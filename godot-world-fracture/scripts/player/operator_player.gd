@@ -41,7 +41,7 @@ var cam_pitch := -0.18
 var recoil := 0.0
 const RECOIL_SETTLE := 1.2
 var cam_dist := 4.2
-const CAM_PIVOT := Vector3(0, 1.55, 0)
+var cam_pivot := Vector3(0, 1.55, 0)
 const CAM_SIDE := 0.45       # over the right shoulder
 
 var _clip := ""
@@ -165,7 +165,7 @@ func _animate(speed: float, sprint: bool) -> void:
 func _place_camera(dt: float) -> void:
 	if not cam:
 		return
-	var pivot := position + CAM_PIVOT
+	var pivot := position + cam_pivot
 	var pitch := clampf(cam_pitch + recoil, -0.9, 0.6)
 	var back := Vector3(sin(cam_yaw) * cos(pitch), -sin(pitch), cos(cam_yaw) * cos(pitch))
 	var side := Vector3(cos(cam_yaw), 0, -sin(cam_yaw)) * CAM_SIDE

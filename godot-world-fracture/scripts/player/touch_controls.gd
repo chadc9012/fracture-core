@@ -10,6 +10,15 @@ var look_delta := Vector2.ZERO
 var sprint := false
 var fire := false
 var _jump := false
+var _enter := false
+## "foot" or "drive": the phone buttons relabel (JUMP → BRAKE, SPRINT → EXIT) and the keys remap
+var mode := "foot"
+var _jump_button: Button
+var _sprint_button: Button
+var _enter_button: Button
+var _fire_button: Button
+var _reload_button: Button
+var _swap_button: Button
 var _reload := false
 var _next := false
 var ammo: Label
@@ -45,14 +54,25 @@ func _ready() -> void:
 		var jump := _button("JUMP")
 		jump.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		jump.position = Vector2(-120, -140)
-		jump.button_down.connect(func(): _jump = true)
+		jump.button_down.connect(func(): _jump = true; _brake_held = true)
+		jump.button_up.connect(func(): _brake_held = false)
 		add_child(jump)
+		_jump_button = jump
 		var run := _button("SPRINT")
 		run.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		run.position = Vector2(-120, -230)
 		run.toggle_mode = true
 		run.toggled.connect(func(on: bool): _sprint_held = on)
 		add_child(run)
+		_sprint_button = run
+		var ent := _button("ENTER")
+		ent.custom_minimum_size = Vector2(150, 64)
+		ent.set_anchors_preset(Control.PRESET_CENTER)
+		ent.position = Vector2(-75, 120)
+		ent.visible = false
+		ent.pressed.connect(func(): _enter = true)
+		add_child(ent)
+		_enter_button = ent
 		var shoot := _button("FIRE")
 		shoot.custom_minimum_size = Vector2(120, 120)
 		shoot.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -60,18 +80,21 @@ func _ready() -> void:
 		shoot.button_down.connect(func(): fire = true)
 		shoot.button_up.connect(func(): fire = false)
 		add_child(shoot)
+		_fire_button = shoot
 		var rl := _button("RELOAD")
 		rl.custom_minimum_size = Vector2(104, 56)
 		rl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		rl.position = Vector2(-120, -300)
 		rl.pressed.connect(func(): _reload = true)
 		add_child(rl)
+		_reload_button = rl
 		var nx := _button("SWAP")
 		nx.custom_minimum_size = Vector2(104, 56)
 		nx.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		nx.position = Vector2(-120, -365)
 		nx.pressed.connect(func(): _next = true)
 		add_child(nx)
+		_swap_button = nx
 	_hud()
 
 ## crosshair, the weapon's name and its magazine
@@ -117,6 +140,12 @@ func _hud() -> void:
 	hull_fill.size = Vector2(216, 10)
 	hull_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hull_fill)
+	_prompt_label = Label.new()
+	_prompt_label.set_anchors_preset(Control.PRESET_CENTER)
+	_prompt_label.position = Vector2(-80, 120)
+	_prompt_label.add_theme_font_size_override("font_size", 20)
+	_prompt_label.modulate = Color(0.8, 0.95, 1.0)
+	add_child(_prompt_label)
 	status = Label.new()
 	status.set_anchors_preset(Control.PRESET_CENTER)
 	status.position = Vector2(-120, -120)
@@ -144,6 +173,43 @@ func toast(text: String) -> void:
 		add_child(_toast)
 	_toast.text = text
 	_toast_t = 3.0
+
+var _brake_held := false
+## the brake while driving: the JUMP button held on the phone, Space on the desk
+func brake() -> float:
+	if mode != "drive":
+		return 0.0
+	return 1.0 if (_brake_held or (not touch_ui and Input.is_key_pressed(KEY_SPACE))) else 0.0
+
+## the ENTER / EXIT press since the last call (the phone button, or E on the desk)
+func take_enter() -> bool:
+	var e := _enter
+	_enter = false
+	return e
+
+## shows the enter prompt ("" hides it)
+func prompt(text: String) -> void:
+	if _enter_button:
+		_enter_button.text = text
+		_enter_button.visible = text != ""
+	elif _prompt_label:
+		_prompt_label.text = ("%s  (E)" % text) if text != "" else ""
+var _prompt_label: Label
+
+func set_mode(m: String) -> void:
+	mode = m
+	var drive := m == "drive"
+	if _jump_button:
+		_jump_button.text = "BRAKE" if drive else "JUMP"
+	if _sprint_button:
+		_sprint_button.visible = not drive
+		_sprint_button.button_pressed = false
+	for b in [_fire_button, _reload_button, _swap_button]:
+		if b:
+			b.visible = not drive
+	if drive:
+		_sprint_held = false
+		fire = false
 
 func take_reload() -> bool:
 	var r := _reload
@@ -209,6 +275,10 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_Q) and not _q_was:
 		_next = true
 	_q_was = Input.is_key_pressed(KEY_Q)
+	if Input.is_key_pressed(KEY_E) and not _e_was:
+		_enter = true
+	_e_was = Input.is_key_pressed(KEY_E)
+var _e_was := false
 var _r_was := false
 var _q_was := false
 var _space_was := false

@@ -110,12 +110,20 @@ whenever a view closes; each file keeps the later copy, the profile never loses 
 tested headless: `--script res://tests/cloud/cloud_merge_test.gd`); the web game keeps the newer copy on its own merges
 (`mergeGodot`). Google sign-in waits for an Android deep link (TASKBOARD.md). Shot: `cloud` opens the panel.
 
+**On foot ↔ driving** (`scripts/driving/street_car.gd`, phase 5): walk up to any parked car on the street and ENTER (the
+prompt button on the phone, E on the desk) — it drives with the garage's build for that car (drive_profile.gd), stick or
+WASD, the JUMP button becomes BRAKE, EXIT (E) gets out on the kerb side once it's slow. The car keeps out of the scene's
+boxes (facades, props, the other cars, the garage shell) with three discs along its length and loses its speed on a hit;
+its own box moves with it so the operator and the troopers walk around it where it parks. The chase camera rides behind the
+car; the troopers shoot at it. Test: `--script res://tests/driving/street_car_test.gd`. Shot: `slicewalk:drive` takes the
+nearest car and pulls out; the log prints the car's speed, hits and place.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:inventory|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

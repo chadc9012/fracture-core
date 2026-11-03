@@ -33,6 +33,14 @@ const TouchControls = preload("res://scripts/player/touch_controls.gd")
 const Gunplay = preload("res://scripts/combat/gunplay.gd")
 const Enemies = preload("res://scripts/combat/enemies.gd")
 const Gear = preload("res://scripts/gear/gear_store.gd")
+const StreetCar = preload("res://scripts/driving/street_car.gd")
+const DriveProfile = preload("res://scripts/driving/drive_profile.gd")
+const GarageState = preload("res://scripts/garage/garage_state.gd")
+## the parked cars you can take (phase 5): each fleet file's vehicle id for the garage build it drives with
+const CAR_IDS := { "street-racer-lod.glb": "street-racer", "muscle-car-lod.glb": "muscle-car", "security-suv.glb": "security-suv", "tuner.glb": "tuner", "offroad-truck.glb": "offroad-truck" }
+var parked: Array[Node3D] = []
+var driving_car: RefCounted
+var _near_car: Node3D
 const InventoryView = preload("res://scripts/gear/inventory_view.gd")
 var gear: Dictionary = {}
 var inventory_overlay: Control
@@ -237,6 +245,7 @@ func _obstacles() -> Array[AABB]:
 			out.append(_world_box(n.transform, Vector3(-sz.x * 0.5, 0, -sz.z * 0.5), Vector3(sz.x * 0.5, sz.y, sz.z * 0.5)))
 		elif n.has_meta("car"):
 			var a := _aabb(n)
+			n.set_meta("box_index", out.size())
 			out.append(_world_box(n.transform, a.position, a.end))
 	var x0 := ROAD_W * 0.5 + WALK_W
 	out.append(AABB(Vector3(-x0 - 0.5, 0, -LENGTH * 0.5), Vector3(0.5, 12.0, LENGTH)))
@@ -273,7 +282,22 @@ func _process(dt: float) -> void:
 			if _respawn_timer <= 0.0:
 				operator.position = _spawn
 				operator.velocity = Vector3.ZERO
+	if driving_car:
+		_drive(minf(dt, 0.05))
+		return
 	operator.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	# a parked car within reach: the prompt, and ENTER / E takes it
+	var near: Node3D = null
+	for c in parked:
+		if c.visible and c.position.distance_to(operator.position) < 3.2:
+			near = c
+			break
+	if near != _near_car:
+		_near_car = near
+		controls.prompt(("ENTER " + _car_name(near)) if near else "")
+	if controls.take_enter() and near:
+		enter_car(near)
+		return
 	if gunplay:
 		if controls.take_next():
 			gunplay.next_weapon()
@@ -679,7 +703,9 @@ func _cars() -> void:
 			car.position = Vector3(side * (half - 1.4), 0.0, z + _rng.randf_range(-2.0, 2.0))
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
 			car.set_meta("car", true)
+			car.set_meta("vehicle", CAR_IDS.get(f, ""))
 			world.add_child(car)
+			parked.append(car)
 		z += _rng.randf_range(9.0, 16.0)
 		i += 1
 
@@ -882,3 +908,82 @@ func close_sports() -> void:
 		sports_overlay.queue_free()
 		sports_overlay = null
 		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+
+# --------------------------------------------------------------------------------------------- driving
+func _car_name(c: Node3D) -> String:
+	var v := Catalog.vehicle(String(c.get_meta("vehicle", "")))
+	return String(v.get("name", "CAR")).to_upper() if not v.is_empty() else "CAR"
+
+## the operator gets in: the car drives with its garage build, the operator rides along (hidden) so the enemies and the
+## camera follow the car; the car's box stops being an obstacle to itself
+func enter_car(c: Node3D) -> void:
+	var id := String(c.get_meta("vehicle", ""))
+	var state := GarageState.load_or_fresh()
+	var perf: Dictionary = DriveProfile.performance(state, id) if id != "" else { "max_speed": 28.0, "acceleration": 7.0, "steering": 1.0, "braking": 12.0 }
+	var car := StreetCar.new(c, id, perf)
+	car.bounds = operator.bounds
+	car.ground_at = operator.ground_at
+	var own := int(c.get_meta("box_index", -1))
+	var others: Array[AABB] = []
+	for i in operator.obstacles.size():
+		if i != own:
+			others.append(operator.obstacles[i])
+	car.obstacles = others
+	# the driven car is no obstacle to the camera or the troopers while it moves; its box comes back where it parks
+	if own >= 0:
+		operator.obstacles[own] = AABB(c.position + Vector3(0, -50, 0), Vector3(0.01, 0.01, 0.01))
+	driving_car = car
+	if operator.rig:
+		operator.rig.visible = false
+	operator.cam_dist = 9.0
+	operator.cam_pivot = Vector3(0, 2.4, 0)
+	operator.cam_yaw = c.rotation.y + PI
+	controls.set_mode("drive")
+	controls.prompt("")
+	controls.toast("Driving " + _car_name(c) + " · hold BRAKE to stop, EXIT to get out")
+	if controls.touch_ui and controls._enter_button:
+		controls._enter_button.text = "EXIT"
+		controls._enter_button.visible = true
+
+func exit_car() -> void:
+	var car: RefCounted = driving_car
+	driving_car = null
+	var c: Node3D = car.node
+	var f: Vector3 = car.forward()
+	var side := Vector3(f.z, 0, -f.x)
+	# the car's box takes its new place; the operator steps out on the kerb side (the right of the car), clear of it
+	var own := int(c.get_meta("box_index", -1))
+	if own >= 0:
+		operator.obstacles[own] = car.box()
+	operator.position = c.position + side * -2.3
+	operator.position.y = operator.ground_at.call(operator.position.x, operator.position.z)
+	operator.velocity = Vector3.ZERO
+	operator.heading = c.rotation.y + PI
+	if operator.rig:
+		operator.rig.visible = true
+	operator.cam_dist = 4.2
+	operator.cam_pivot = Vector3(0, 1.55, 0)
+	controls.set_mode("foot")
+	controls.prompt("")
+
+func _drive(dt: float) -> void:
+	var car: RefCounted = driving_car
+	if controls.take_enter() and absf(car.speed) < 2.0:
+		exit_car()
+		return
+	var throttle: float = controls.move.y
+	var steer: float = -controls.move.x
+	if not controls.touch_ui and not controls.scripted:
+		throttle = (1.0 if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) else 0.0)
+		steer = (1.0 if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) else 0.0) - (1.0 if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) else 0.0)
+	car.step(dt, throttle, steer, controls.brake())
+	var c: Node3D = car.node
+	# the operator rides inside: enemies aim at the car, the chase camera follows it from behind
+	operator.position = c.position
+	operator.velocity = car.forward() * car.speed
+	var look: Vector2 = controls.take_look()
+	operator.cam_yaw -= look.x * 0.0045
+	operator.cam_yaw = lerp_angle(operator.cam_yaw, c.rotation.y + PI, minf(1.0, 2.5 * dt) if look.x == 0.0 else 0.0)
+	operator._place_camera(dt)
+	controls.weapon_name.text = _car_name(c)
+	controls.ammo.text = "%d km/h" % int(absf(car.speed) * 3.6)

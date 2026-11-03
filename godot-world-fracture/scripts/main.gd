@@ -328,6 +328,15 @@ func _shoot(path: String, opts: Array) -> void:
 				street.controls.scripted = true
 				street.controls.move = Vector2(0.0, 1.0)
 				street.controls.sprint = true
+			# slicewalk:drive[:N] takes the nearest parked car and drives forward with the stick for N frames
+			if String(o).contains("walk:drive"):
+				street.controls.scripted = true
+				var nearest: Node3D = null
+				for c in street.parked:
+					if nearest == null or c.position.distance_to(street.operator.position) < nearest.position.distance_to(street.operator.position):
+						nearest = c
+				street.enter_car(nearest)
+				street.controls.move = Vector2(-0.12, 1.0)   # pull out toward the road
 			if String(o).contains("walk:inventory"):
 				street.open_inventory()
 			if String(o).contains("walk:fire"):
@@ -416,6 +425,8 @@ func _shoot(path: String, opts: Array) -> void:
 		await get_tree().process_frame
 	if street and street.gunplay:
 		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
+	if street and street.driving_car:
+		print("driving: ", street.driving_car.id, " speed ", street.driving_car.speed, " hits ", street.driving_car.hits, " at ", street.driving_car.node.position, " yaw ", street.driving_car.node.rotation.y)
 	if street and street.enemies:
 		var st: Array = []
 		for e in street.enemies.enemies:
