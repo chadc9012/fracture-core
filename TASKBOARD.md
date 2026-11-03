@@ -24,12 +24,13 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Phase 2/4 merge: Mission 01 onto scripts/player + scripts/combat (one operator, one gun, one HUD for the street and the mission) | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
+| Phase 5: on foot ↔ driving in the street slices — walk up to a parked car and ENTER it, drive the block (drive_vehicle rules), get out; cars and the operator collide with the scene's boxes | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
 | Killbox bots: full bot teams on the arenas, allies and rivals (web build; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
 - Phase 3 follow-up: Google sign-in in the Godot Android app — needs a deep link (`com.chadc9012.worldfracture://auth/callback`) via a custom Gradle build (android/build) with an intent-filter, then the PKCE flow in cloud_save.gd. Email code sign-in covers the Dec 4 gate meanwhile.
-- Phase 4: fd-01…fd-04 missions in Godot on the quest engine contract.
+- Phase 4: fd-02…fd-04 in Godot after Mission 01, on the quest engine contract (best taken by the session that built Mission 01, on scripts/mission/).
+- Phase 2/4 merge (after phase 5): Mission 01 onto scripts/player + scripts/combat + scripts/gear so one operator, one gun, one HUD and the worn gear serve the street and the mission.
 - Phase 5: traffic AI + building collisions in the driving district; district streaming (Active / Simulated / Frozen).
 - Phase 5: shoppable clothing and furnishings stores in the mall; first racing venue with stands and pit lane.
 
