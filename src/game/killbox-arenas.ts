@@ -7,12 +7,14 @@
  * on its low side. Rival machines do not collide with walls, so the match keeps them on the rooftops with `confine`. Falling off
  * the roofs is a death (`belowKillPlane`). Pure data and geometry, no three.js.
  *
- * The first map is Rooftop Run (Neon City, E-Rooftops): two blocks of rooftops either side of a neon street, joined by three
+ * Maps follow the owner's PvP maps board (Nov 2 2026: Kaiju Complex, Fracture Floor, Killbox Prime, then the new arenas).
+ *
+ * Kaiju Complex (Neon City, E-Rooftops; first built as "Rooftop Run"): two blocks of rooftops either side of a neon street, joined by three
  * crossings — a sloped west catwalk, the wide billboard bridge in the middle and an east catwalk — so the fight runs in three lanes.
  * Its fracture event is the Billboard Blackout: every sign goes dark and sight ranges collapse for 30 s.
  *
- * The second is Data Fields (Nexus City, Sector 02): a sterile, symmetrical data-processing platform. A processing floor between two
- * raised uplink terraces, server racks for cover, and data pillars — cover walls that rise and sink. Its fracture event is the Grid
+ * Fracture Floor (Nexus City, Sector 02; first built as "Data Fields"): a wet rooftop plaza in the towers. A processing floor between
+ * two raised uplink terraces, cargo containers and crates for cover, and glass data walls — cover that rises and sinks. Its fracture event is the Grid
  * Rewrite: the standing pillars sink and the sunken ones rise, so every sightline on the floor changes for 25 s.
  *
  * Playlists rotate through the maps that list them (`arenaForRun`). */
@@ -21,13 +23,13 @@ import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "rooftop-run" | "data-fields";
+export type ArenaId = "kaiju-complex" | "fracture-floor";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
 export type ArenaWalk = { id: string; x: number; z: number; along: "x" | "z"; length: number; width: number; top: number; topB: number; rails: boolean };
 /** a solid prop standing on a roof (HVAC unit, water tank, sign base): blocks movement and line of sight; you can mantle onto it */
-export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "rack" | "console" | "barrier"; x: number; z: number; w: number; d: number; h: number };
+export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier"; x: number; z: number; w: number; d: number; h: number };
 /** a cover wall that rises and sinks with the fracture event: "up" stands until the event sinks it, "down" lies flush until the
  * event raises it. Solid (movement and sight) while more than half raised. */
 export type ArenaShifter = { id: string; x: number; z: number; w: number; d: number; h: number; phase: "up" | "down" };
@@ -57,7 +59,7 @@ export type KillboxArena = {
 export const ARENA_ALTITUDE = 320;
 const PARAPET = 1.1;
 
-/* ---------------- Rooftop Run ---------------- */
+/* ---------------- Kaiju Complex ---------------- */
 
 // two blocks of roofs, north (your side) and south, with a 16 m street between them (z -8..8); heights are point-symmetric so
 // both sides get the same high ground: the west roof of the north block and the east roof of the south block are the tall ones
@@ -89,6 +91,10 @@ const RR_COVER: ArenaCover[] = [
   { id: "sm-sign", kind: "sign", x: 6, z: -22, w: 7, d: 1, h: 2.2 }, { id: "sm-vent", kind: "vent", x: -8, z: -14, w: 2.4, d: 2.4, h: 1.4 },
   { id: "sm-crate", kind: "crate", x: -4, z: -28, w: 2, d: 2, h: 1.3 },
   { id: "sw-tank", kind: "tank", x: -38, z: -26, w: 4, d: 4, h: 3.2 }, { id: "sw-hvac", kind: "hvac", x: -26, z: -14, w: 4, d: 2.4, h: 1.6 },
+  // small AC units in the roof corners (owner's board: rooftop plant everywhere), mirrored through the centre
+  { id: "nw-ac", kind: "hvac", x: -43.5, z: 31.5, w: 1.4, d: 1.4, h: 1.1 }, { id: "se-ac", kind: "hvac", x: 43.5, z: -31.5, w: 1.4, d: 1.4, h: 1.1 },
+  { id: "ne-ac", kind: "hvac", x: 43.5, z: 31.5, w: 1.4, d: 1.4, h: 1.1 }, { id: "sw-ac", kind: "hvac", x: -43.5, z: -31.5, w: 1.4, d: 1.4, h: 1.1 },
+  { id: "nm-ac", kind: "hvac", x: 12, z: 32, w: 1.4, d: 1.4, h: 1.1 }, { id: "sm-ac", kind: "hvac", x: -12, z: -32, w: 1.4, d: 1.4, h: 1.1 },
   // the billboard bridge: two low barriers to fight over the centre from
   { id: "bridge-west", kind: "crate", x: -2.2, z: 0, w: 1.2, d: 3, h: 1.2 }, { id: "bridge-east", kind: "crate", x: 2.2, z: 0, w: 1.2, d: 3, h: 1.2 },
 ];
@@ -98,9 +104,9 @@ const RR_LEDGES: ArenaWall[] = [
   { ax: 16, az: -8, bx: 16, bz: -26, base: 19.5, top: 23 }, { ax: 16, az: -31, bx: 16, bz: -34, base: 19.5, top: 23 },
 ];
 
-export const ROOFTOP_RUN: KillboxArena = {
-  id: "rooftop-run", name: "Rooftop Run", region: "Neon City · E-Rooftops", size: "small",
-  blurb: "Two blocks of neon rooftops over a street you do not want to fall into. Three crossings: the west catwalk, the billboard bridge and the east catwalk.",
+export const KAIJU_COMPLEX: KillboxArena = {
+  id: "kaiju-complex", name: "Kaiju Complex", region: "Neon City · E-Rooftops", size: "small",
+  blurb: "Two blocks of neon-trimmed rooftops under the Kaiju sign, over a street you do not want to fall into. Three crossings: the west catwalk, the billboard bridge and the east catwalk.",
   site: { x: -1000, z: 700 }, base: ARENA_ALTITUDE, look: "neon-rooftops",
   roofs: RR_ROOFS, walks: RR_WALKS, cover: RR_COVER, ledges: RR_LEDGES, shifters: [],
   spawns: {
@@ -113,7 +119,7 @@ export const ROOFTOP_RUN: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-/* ---------------- Data Fields ---------------- */
+/* ---------------- Fracture Floor ---------------- */
 
 /** a prop list and its copy turned half way round the centre (both teams get the same cover) */
 function pointPair<T extends { id: string; x: number; z: number }>(half: readonly T[]): T[] {
@@ -134,12 +140,12 @@ const DF_WALKS: ArenaWalk[] = [
 // the terrace faces: 2.5 m, so you can mantle up them with a jump but never walk up; open where the ramps arrive
 const DF_LEDGES: ArenaWall[] = [24, -24].flatMap((z) => [[-30, -22], [-18, 18], [22, 30]].map(([a, b]) => ({ ax: a!, az: z, bx: b!, bz: z, base: 19.5, top: 22.5 })));
 const DF_COVER: ArenaCover[] = pointPair<ArenaCover>([
-  // server racks on the floor: tall cover in an offset grid, so no lane runs the length of the floor
-  { id: "rack-w", kind: "rack", x: -22, z: 8, w: 1.4, d: 5, h: 2.6 },
-  { id: "rack-nw", kind: "rack", x: -8, z: 14, w: 5, d: 1.4, h: 2.6 },
-  { id: "rack-ne", kind: "rack", x: 25, z: 12, w: 4, d: 1.4, h: 2.6 },
-  { id: "rack-low", kind: "rack", x: 8, z: 6, w: 1.4, d: 4, h: 1.4 },
-  { id: "rack-edge", kind: "rack", x: 27, z: 7, w: 1.4, d: 3, h: 2.6 },
+  // cargo containers on the floor: tall cover in an offset grid, so no lane runs the length of the floor; crates for low cover
+  { id: "container-w", kind: "container", x: -22, z: 8, w: 2.4, d: 6, h: 2.6 },
+  { id: "container-nw", kind: "container", x: -8, z: 14, w: 6, d: 2.4, h: 2.6 },
+  { id: "container-ne", kind: "container", x: 25, z: 12, w: 5, d: 2.4, h: 2.6 },
+  { id: "crates-mid", kind: "crate", x: 8, z: 6, w: 2.2, d: 3.2, h: 1.3 },
+  { id: "container-edge", kind: "container", x: 27, z: 6.5, w: 2.4, d: 3, h: 2.6 },
   // the centre: two low barriers either side of the objective
   { id: "core-barrier", kind: "barrier", x: -5, z: 0, w: 1.2, d: 3, h: 1.2 },
   // the uplink terraces: a low wall at the lip to fight down from, and a console
@@ -156,9 +162,9 @@ const DF_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
   { id: "slot-n", x: 12, z: 18, w: 5, d: 1, h: 3, phase: "down" },
 ]);
 
-export const DATA_FIELDS: KillboxArena = {
-  id: "data-fields", name: "Data Fields", region: "Nexus City · Sector 02", size: "small",
-  blurb: "A sterile Nexus data-processing floor between two uplink terraces. Server racks for cover, and data pillars that rise and sink when the grid rewrites itself.",
+export const FRACTURE_FLOOR: KillboxArena = {
+  id: "fracture-floor", name: "Fracture Floor", region: "Nexus City · Sector 02", size: "small",
+  blurb: "A rain-wet plaza high in the Nexus towers, between two uplink terraces. Cargo containers for cover, and glass data walls that rise and sink when the grid rewrites itself.",
   site: { x: -1000, z: 380 }, base: ARENA_ALTITUDE, look: "nexus-grid",
   roofs: DF_ROOFS, walks: DF_WALKS, cover: DF_COVER, ledges: DF_LEDGES, shifters: DF_SHIFTERS,
   spawns: {
@@ -171,7 +177,7 @@ export const DATA_FIELDS: KillboxArena = {
   modes: ["lockdown", "ascendancy", "dominion", "clash", "freefall"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "rooftop-run": ROOFTOP_RUN, "data-fields": DATA_FIELDS };
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));

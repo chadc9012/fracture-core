@@ -2625,11 +2625,11 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
             if (c.moved) { m.x = ar.site.x + c.x; m.z = ar.site.z + c.z; m.y = walkHeight(m.x, m.z) + 2.2 * m.scale; }
           }
           for (const mate of sim.squad.mates) { const c = confine(ar, mate.x - ar.site.x, mate.z - ar.site.z, 0.8, st.clock); if (c.moved) { mate.x = ar.site.x + c.x; mate.z = ar.site.z + c.z; } }
-          // Rooftop Run is infantry-only, and the street is a long way down
+          // Kaiju Complex is infantry-only, and the street is a long way down
           if (s.inVehicle && inArenaSpace(s.x, s.y, s.z)) { s.inVehicle = false; alert(sim, `${ar.name} is infantry-only`); }
           if (Math.abs(s.x - ar.site.x) < 90 && Math.abs(s.z - ar.site.z) < 90 && belowKillPlane(ar, s.y - 1.6) && sim.hp > 0) hurtPlayer(sim, 9999, "Fell into the street");
           arenaVis.current = fractureVisibility(ar, st.clock);
-          // moving cover (Data Fields' data pillars): swap its walls and sight blockers in as it rises and out as it sinks
+          // moving cover (Fracture Floor's glass data walls): swap its walls and sight blockers in as it rises and out as it sinks
           syncShifters(ar, st.clock);
         }
         arenaShown.current = !!ar && inArenaSpace(s.x, s.y, s.z);

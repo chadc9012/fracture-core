@@ -1,7 +1,7 @@
 /** Puts a Killbox arena (killbox-arenas.ts) into the shared world registries: its decks (walkHeight), walls (collideWalls) and
  * line-of-sight solids. Idempotent, and arenas stay registered once installed: they hang in their own airspace at ARENA_ALTITUDE,
  * so nothing else ever walks on or sees them. Called before the drop-in transit lands (GameCanvas) and when a match starts (Scene).
- * `syncShifters` swaps the moving cover (Data Fields' data pillars) in and out as it rises and sinks; Scene calls it every frame. */
+ * `syncShifters` swaps the moving cover (Fracture Floor's glass data walls) in and out as it rises and sinks; Scene calls it every frame. */
 import { registerDeck } from "./district-decks";
 import { removeModelSolid, setModelSolid } from "./environment-collision";
 import { arenaDecks, arenaSolids, arenaWalls, shifterBlockers, solidShifters, type KillboxArena } from "./killbox-arenas";

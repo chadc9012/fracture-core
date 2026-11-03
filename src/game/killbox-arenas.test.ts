@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, DATA_FIELDS as D, ROOFTOP_RUN as A, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -9,9 +9,9 @@ import { validSpot } from "./resume-spot";
 
 const deckAtLocal = (dx: number, dz: number) => { const w = toWorld(A, dx, dz); return districtDeckAt(w.x, w.z) - A.base; };
 
-describe("Rooftop Run", () => {
+describe("Kaiju Complex", () => {
   it("plays every arena mode except the royale", () => {
-    for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) expect(arenaForMode(m)?.id).toBe("rooftop-run");
+    for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) expect(arenaForMode(m)?.id).toBe("kaiju-complex");
     expect(arenaForMode("royale")).toBeUndefined();
     for (const a of Object.values(ARENAS)) for (const m of a.modes) expect(PVP_MODES[m]).toBeDefined();
   });
@@ -123,7 +123,7 @@ describe("launching a Killbox playlist", () => {
   it("records the arena on the run and points the waypoint at it; the royale and the old duel stay in the open world", () => {
     const go = (id: string) => { const s = startActivity(structuredClone(DEFAULT_PROGRESSION), id, Date.UTC(2026, 10, 2)); if ("error" in s) throw new Error(s.error); return s.run; };
     const clash = go(PVP_MODES.clash.activity);
-    expect(clash.arena).toBe("rooftop-run");
+    expect(clash.arena).toBe("kaiju-complex");
     const t = currentTarget(activityById(PVP_MODES.clash.activity)!, clash)!;
     expect(t).toMatchObject({ x: A.site.x + A.objective[0], z: A.site.z + A.objective[1] });
     expect(go(PVP_MODES.royale.activity).arena).toBeUndefined();
@@ -139,7 +139,7 @@ describe("leaving the arena", () => {
   });
 });
 
-describe("Data Fields", () => {
+describe("Fracture Floor", () => {
   const solidAt = (x: number, z: number, t: number, pad = 0.5) => [...D.cover, ...solidShifters(D, t)].some((k) => Math.abs(x - k.x) < k.w / 2 + pad && Math.abs(z - k.z) < k.d / 2 + pad);
 
   it("is point-symmetric: surfaces, cover and every data pillar", () => {
@@ -205,24 +205,24 @@ describe("Data Fields", () => {
     expect(confine(D, up.x, up.z, 0.8, D.fracture.first + 5).moved).toBe(false);
   });
 
-  it("its airspace never overlaps Rooftop Run's", () => {
+  it("its airspace never overlaps Kaiju Complex's", () => {
     expect(Math.abs(D.site.z - A.site.z) > 180 || Math.abs(D.site.x - A.site.x) > 180).toBe(true);
   });
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates Rooftop Run → Data Fields match to match", () => {
+  it("each arena playlist rotates Kaiju Complex → Fracture Floor match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["rooftop-run", "data-fields"]);
-      expect([0, 1, 2, 3].map((n) => arenaForRun(m, n)?.id)).toEqual(["rooftop-run", "data-fields", "rooftop-run", "data-fields"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor"]);
+      expect([0, 1, 2, 3].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "kaiju-complex", "fracture-floor"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
 
-  it("the second launch of the day lands on Data Fields", () => {
+  it("the second launch of the day lands on Fracture Floor", () => {
     let p = structuredClone(DEFAULT_PROGRESSION);
     const ids: (string | undefined)[] = [];
     for (let i = 0; i < 3; i++) { const s = startActivity(p, PVP_MODES.lockdown.activity, Date.UTC(2026, 10, 2, 12, i)); if ("error" in s) throw new Error(s.error); p = s.progression; ids.push(s.run.arena); }
-    expect(ids).toEqual(["rooftop-run", "data-fields", "rooftop-run"]);
+    expect(ids).toEqual(["kaiju-complex", "fracture-floor", "kaiju-complex"]);
   });
 });
