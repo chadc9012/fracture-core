@@ -76,11 +76,20 @@ Test: `godot --headless --path godot-world-fracture --script res://tests/player/
 puts the operator on the street; `slicewalk:run` and `slicewalk:jump` drive the stick for the frames captured; plain `slice`
 keeps the look-dev camera.
 
+**Shooting** (`scripts/combat/`): the web game's three rifle frames — Auto Rifle, Sniper Rifle, Fusion Rifle (five-bolt
+volley) — with its numbers (`weapons.gd`: damage, fire rate, burst, spread steadied when standing, mag, reserve, reload,
+range falloff, headshot multiplier) and its authored rifle models in the operator's right hand. Bolts are hitscan from the
+muzzle to where the crosshair points, stopped by the scene's obstacle boxes, with tracers, a muzzle flash, impact sparks,
+recoil that settles and the combat stance. FIRE, RELOAD and SWAP on the phone; left mouse, R and Q on the desk. Practice
+dummies stand on the Nexus sidewalk (hull 30; a plate hit scores, the head more) until the enemies arrive. Tests:
+`--script res://tests/combat/weapons_test.gd`. Shots: `slicewalk:fire[:sniper|:fusion][:aim]` holds the trigger (aim turns
+the crosshair onto the first dummy) and prints shots / hits / kills.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

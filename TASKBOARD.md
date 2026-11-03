@@ -24,11 +24,10 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Phase 2: Godot weapons — rifle / sniper / fusion frames, hitscan + projectile, ammo and reload, fire button | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-02 |
+| Phase 2: Godot enemies — 5 types from the web AI, spawns in the Nexus block, they shoot back, operator hull and death | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
 | Killbox arena maps to the owner's PvP maps board (web build; the owner asked for this directly in session — outside the Dec 4 scope, paused after Killbox Prime pending the owner's call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
-- Phase 2: Godot enemies — 5 types from the web AI (`src/game/sim.ts`), spawns in the Nexus block.
 - Phase 2: Godot HUD — hull, ammo, crosshair, compass, objective (the phone's simple HUD first).
 - Phase 3: Godot inventory + wardrobe + transmog reading the web catalogues via `export-godot-data.ts`.
 - Phase 3: Godot Supabase cloud save with Google sign-in (same `player_saves` table and `com.chadc9012.worldfracture://auth/callback`).
@@ -43,6 +42,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Phase 2: Godot weapons (Auto / Sniper / Fusion frames, hitscan, ammo, reload, fire/reload/swap, HUD, practice dummies) | see git log "Godot: shooting" (Nov 3) |
 | Phase 2: Godot on-foot operator in the street slices (stick, look-drag, jump, sprint, chase camera, kerbs, obstacle slide) | see git log "Godot: on foot" (Nov 2); grapple waits for the weapons pass |
 | Killbox: Kaiju Complex, Fracture Floor, Killbox Prime arenas + map rotation (web build, owner asked in session) | 81bebbc, d2729c1, 1bf20ec, this push |
 | Phase 1: melee items as Fracture Blade skins/stats (web build) | see git log "Melee slot" (Nov 2) |

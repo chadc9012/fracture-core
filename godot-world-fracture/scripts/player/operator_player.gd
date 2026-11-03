@@ -37,11 +37,16 @@ var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
 var cam: Camera3D
 var cam_yaw := 0.0
 var cam_pitch := -0.18
+## the kick the gun adds to the pitch (gunplay.gd), settling back at RECOIL_SETTLE a second
+var recoil := 0.0
+const RECOIL_SETTLE := 1.2
 var cam_dist := 4.2
 const CAM_PIVOT := Vector3(0, 1.55, 0)
 const CAM_SIDE := 0.45       # over the right shoulder
 
 var _clip := ""
+## seconds the combat stance holds after a shot (gunplay.gd sets it); standing still plays the combat clip meanwhile
+var combat_hold := 0.0
 
 func build(look: Dictionary = {}) -> void:
 	if rig:
@@ -101,6 +106,8 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		grounded = false
 	velocity = Vector3(flat.x, y_vel, flat.z)
 	position = Vector3(nx, ny, nz)
+	combat_hold = maxf(0.0, combat_hold - dt)
+	recoil = maxf(0.0, recoil - RECOIL_SETTLE * dt * maxf(recoil, 0.05) * 4.0)
 	if rig:
 		rig.rotation.y = heading
 	_animate(flat.length(), sprint)
@@ -141,6 +148,8 @@ func _animate(speed: float, sprint: bool) -> void:
 		clip = "run"
 	elif speed > 0.3:
 		clip = "walk"
+	elif combat_hold > 0.0 and rig.anim.has_animation("combat"):
+		clip = "combat"
 	var anim: AnimationPlayer = rig.anim
 	if clip != _clip and anim.has_animation(clip):
 		anim.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
@@ -157,7 +166,8 @@ func _place_camera(dt: float) -> void:
 	if not cam:
 		return
 	var pivot := position + CAM_PIVOT
-	var back := Vector3(sin(cam_yaw) * cos(cam_pitch), -sin(cam_pitch), cos(cam_yaw) * cos(cam_pitch))
+	var pitch := clampf(cam_pitch + recoil, -0.9, 0.6)
+	var back := Vector3(sin(cam_yaw) * cos(pitch), -sin(pitch), cos(cam_yaw) * cos(pitch))
 	var side := Vector3(cos(cam_yaw), 0, -sin(cam_yaw)) * CAM_SIDE
 	var want := pivot + back * cam_dist + side
 	# keep the camera out of the walls: pull it in along the bounds, and never below the ground

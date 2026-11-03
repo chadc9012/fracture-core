@@ -1,14 +1,19 @@
 extends Control
 ## On-foot input for the phone and the desk, one overlay over the 3D view: a virtual stick where the thumb lands on the left
-## half of the screen, look-drag anywhere on the right half, JUMP and SPRINT buttons (phone), WASD / arrows + Space + Shift and
-## mouse-drag look on a keyboard. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
+## half of the screen, look-drag anywhere on the right half, JUMP, SPRINT, FIRE, RELOAD and SWAP buttons (phone), WASD / arrows + Space + Shift,
+## left mouse to fire, right-drag look, R and Q on a keyboard; a crosshair and the magazine read-out. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
 ## whoever reads it), `jump` (edge, consumed) and `sprint` (held). Owner, Oct 26: the phone screen keeps only walk, look,
 ## jump and sprint until more is asked for; fire comes with the weapons task.
 
 var move := Vector2.ZERO
 var look_delta := Vector2.ZERO
 var sprint := false
+var fire := false
 var _jump := false
+var _reload := false
+var _next := false
+var ammo: Label
+var weapon_name: Label
 var touch_ui := false
 ## set by a test or a shot: the inputs are written by code, not read from the keyboard
 var scripted := false
@@ -44,6 +49,59 @@ func _ready() -> void:
 		run.toggle_mode = true
 		run.toggled.connect(func(on: bool): _sprint_held = on)
 		add_child(run)
+		var shoot := _button("FIRE")
+		shoot.custom_minimum_size = Vector2(120, 120)
+		shoot.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		shoot.position = Vector2(-250, -160)
+		shoot.button_down.connect(func(): fire = true)
+		shoot.button_up.connect(func(): fire = false)
+		add_child(shoot)
+		var rl := _button("RELOAD")
+		rl.custom_minimum_size = Vector2(104, 56)
+		rl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		rl.position = Vector2(-120, -300)
+		rl.pressed.connect(func(): _reload = true)
+		add_child(rl)
+		var nx := _button("SWAP")
+		nx.custom_minimum_size = Vector2(104, 56)
+		nx.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		nx.position = Vector2(-120, -365)
+		nx.pressed.connect(func(): _next = true)
+		add_child(nx)
+	_hud()
+
+## crosshair, the weapon's name and its magazine
+func _hud() -> void:
+	var cross := Control.new()
+	cross.set_anchors_preset(Control.PRESET_CENTER)
+	cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cross.draw.connect(func():
+		var c := Color(1, 1, 1, 0.85)
+		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+			cross.draw_line(d * 5.0, d * 14.0, c, 2.0)
+		cross.draw_circle(Vector2.ZERO, 1.6, c))
+	add_child(cross)
+	weapon_name = Label.new()
+	weapon_name.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	weapon_name.position = Vector2(20, -80)
+	weapon_name.add_theme_font_size_override("font_size", 16)
+	weapon_name.modulate = Color(0.75, 0.85, 0.95)
+	add_child(weapon_name)
+	ammo = Label.new()
+	ammo.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	ammo.position = Vector2(20, -56)
+	ammo.add_theme_font_size_override("font_size", 30)
+	add_child(ammo)
+
+func take_reload() -> bool:
+	var r := _reload
+	_reload = false
+	return r
+
+func take_next() -> bool:
+	var n := _next
+	_next = false
+	return n
 
 func _ring(r: float, col: Color) -> Control:
 	var c := Control.new()
@@ -89,6 +147,14 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_SPACE) and not _space_was:
 		_jump = true
 	_space_was = Input.is_key_pressed(KEY_SPACE)
+	if Input.is_key_pressed(KEY_R) and not _r_was:
+		_reload = true
+	_r_was = Input.is_key_pressed(KEY_R)
+	if Input.is_key_pressed(KEY_Q) and not _q_was:
+		_next = true
+	_q_was = Input.is_key_pressed(KEY_Q)
+var _r_was := false
+var _q_was := false
 var _space_was := false
 
 func _gui_input(event: InputEvent) -> void:
@@ -129,7 +195,10 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT or mb.button_index == MOUSE_BUTTON_RIGHT:
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			fire = mb.pressed
+			accept_event()
+		elif mb.button_index == MOUSE_BUTTON_RIGHT:
 			_mouse_look = mb.pressed
 			accept_event()
 	elif event is InputEventMouseMotion and _mouse_look:

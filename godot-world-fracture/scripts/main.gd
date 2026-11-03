@@ -276,6 +276,18 @@ func _shoot(path: String, opts: Array) -> void:
 				street.controls.sprint = String(o).contains("run")
 				if String(o).contains("jump"):
 					street.controls._jump = true
+			# slicewalk:fire stands and holds the trigger at the dummies; :sniper / :fusion swap first
+			if String(o).contains("walk:fire"):
+				street.controls.scripted = true
+				street.controls.move = Vector2.ZERO
+				street.controls.fire = true
+				if String(o).contains("sniper"):
+					street.gunplay.next_weapon()
+				elif String(o).contains("fusion"):
+					street.gunplay.next_weapon(); street.gunplay.next_weapon()
+				if String(o).contains("aim"):
+					await get_tree().process_frame
+					street.gunplay.aim_at(street.gunplay.targets[0], street.cam)
 			if String(o).contains("garage"):
 				street.open_garage()
 		# casino[:view]  the Skyline Casino: 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
@@ -347,5 +359,7 @@ func _shoot(path: String, opts: Array) -> void:
 			frames = int(String(o).substr(7))
 	for f in frames:
 		await get_tree().process_frame
+	if street and street.gunplay:
+		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
 	get_viewport().get_texture().get_image().save_png(path)
 	get_tree().quit()

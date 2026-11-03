@@ -30,6 +30,8 @@ const Casino = preload("res://scripts/city/casino_interior.gd")
 const Sports = preload("res://scripts/city/sports_district.gd")
 const OperatorPlayer = preload("res://scripts/player/operator_player.gd")
 const TouchControls = preload("res://scripts/player/touch_controls.gd")
+const Gunplay = preload("res://scripts/combat/gunplay.gd")
+var gunplay: Node3D
 ## on foot (phase 2 of the Dec 4 plan): the saved operator walks the block with a chase camera; off for look-dev shots
 var walk := true
 var player: Node3D
@@ -156,6 +158,12 @@ func _spawn_player() -> void:
 	player.heading = PI
 	player.build()
 	player.attach_camera(cam)
+	gunplay = Gunplay.new()
+	world.add_child(gunplay)
+	gunplay.setup(player, player.obstacles)
+	# practice dummies on the garage apron and down the sidewalk, until the enemies arrive
+	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0), Vector3(half + 2.5, 0.18, -34.0), Vector3(-(half + 3.0), 0.18, -20.0)]:
+		gunplay.add_dummy(spot)
 
 ## world boxes the operator slides around: the props and buildings (`size` meta from prop()), the parked cars, and the
 ## facade line where no building stands (the block's ends); the garage lot stays open
@@ -201,6 +209,13 @@ func _process(dt: float) -> void:
 	if mall_overlay or casino_overlay or sports_overlay or garage_overlay:
 		return
 	player.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	if gunplay:
+		if controls.take_next():
+			gunplay.next_weapon()
+		gunplay.step(minf(dt, 0.05), cam, controls.fire, controls.take_reload(), Vector2(player.velocity.x, player.velocity.z).length())
+		var g = gunplay.gun()
+		controls.weapon_name.text = String(g.def().name)
+		controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
 
 # --------------------------------------------------------------------------------------------- light, sky, haze
 func _environment() -> void:
