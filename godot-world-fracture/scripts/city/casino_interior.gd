@@ -10,6 +10,7 @@ extends Control
 ## All original names. Views step through NEXT VIEW; the level buttons ride the elevator.
 signal closed
 
+const Materials := preload("res://scripts/city/materials.gd")
 const FLOOR_Y := 0.0
 const PENT_Y := 240.0
 const ROOF_Y := 262.0
@@ -384,6 +385,7 @@ func _floor() -> void:
 shader_type spatial;
 uniform vec3 field : source_color = vec3(0.32, 0.03, 0.06);
 uniform vec3 trim : source_color = vec3(0.55, 0.36, 0.12);
+uniform sampler2D weave : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 void fragment() {
 	vec2 p = UV * vec2(44.0, 50.0);
 	vec2 f = fract(p) - 0.5;
@@ -395,8 +397,12 @@ void fragment() {
 	c = mix(c, trim, clamp(ring + diamond * 0.8, 0.0, 1.0));
 	ALBEDO = c;
 	ROUGHNESS = 0.95;
+	NORMAL_MAP = texture(weave, UV * vec2(140.0, 160.0)).xyz;
+	NORMAL_MAP_DEPTH = 1.4;
 }
 """)
+	if ResourceLoader.exists("res://textures/pbr/quatrefoil_jacquard_fabric_nor.jpg"):
+		carpet.set_shader_parameter("weave", load("res://textures/pbr/quatrefoil_jacquard_fabric_nor.jpg"))
 	var L := 80.0
 	var W := 70.0
 	var H := 9.0
@@ -407,8 +413,8 @@ void fragment() {
 	fl.material_override = carpet
 	fl.position = Vector3(0, y, 0)
 	world.add_child(fl)
-	var wall := flat(Color(0.16, 0.06, 0.06), 0.6)
-	var panel := flat(Color(0.25, 0.13, 0.07), 0.35, 0.3)
+	var wall: Material = Materials.pbr("painted_plaster_wall", Color(0.42, 0.14, 0.13), 3.0)
+	var panel: Material = Materials.pbr("wood_floor", Color(0.45, 0.28, 0.18), 1.5, 0.6)
 	for sx: float in [-1.0, 1.0]:
 		_box(Vector3(0.6, H, L), Vector3(sx * W * 0.5, y + H * 0.5, 0), wall)
 		# gold pilasters and sconces
@@ -419,7 +425,7 @@ void fragment() {
 	_box(Vector3(W, H, 0.6), Vector3(0, y + H * 0.5, -L * 0.5), wall)
 	_box(Vector3(W, H, 0.6), Vector3(0, y + H * 0.5, L * 0.5), wall)
 	# coffered ceiling with chandeliers
-	_box(Vector3(W, 0.4, L), Vector3(0, y + H, 0), flat(Color(0.12, 0.05, 0.04), 0.7))
+	_box(Vector3(W, 0.4, L), Vector3(0, y + H, 0), Materials.pbr("painted_plaster_wall", Color(0.22, 0.09, 0.07), 3.0))
 	for i in range(-3, 4):
 		_box(Vector3(0.5, 0.6, L), Vector3(i * 10.0, y + H - 0.5, 0), panel)
 	for j in range(-4, 5):
@@ -521,13 +527,13 @@ void fragment() {
 	_cyl(0.28, 0.08, Vector3(0, 0.75, 0.85), flat(CRIMSON, 0.6), holder)
 	_cyl(0.05, 0.72, Vector3(0, 0.36, 0.85), flat(GOLD, 0.2, 1.0), holder)
 
-func _felt() -> StandardMaterial3D:
-	return flat(Color(0.03, 0.28, 0.14), 0.95)
+func _felt() -> Material:
+	return Materials.surface("velour_velvet", Color(0.03, 0.3, 0.15), 0.4)
 
 func _blackjack(at: Vector3) -> void:
 	var t := _cyl(1.6, 0.12, at + Vector3(0, 0.9, 0), _felt(), null, -1.0, 32)
 	t.scale = Vector3(1.0, 1.0, 0.65)
-	var rim := _cyl(1.7, 0.1, at + Vector3(0, 0.86, 0), flat(Color(0.25, 0.12, 0.05), 0.4, 0.2), null, -1.0, 32)
+	var rim := _cyl(1.7, 0.1, at + Vector3(0, 0.86, 0), Materials.pbr("wood_floor", Color(0.55, 0.3, 0.18), 0.8, 0.5), null, -1.0, 32)
 	rim.scale = Vector3(1.0, 1.0, 0.68)
 	_cyl(0.25, 0.85, at + Vector3(0, 0.42, 0), flat(Color(0.1, 0.06, 0.03), 0.5))
 	# cards, chips, the dealer's shoe and lamp
@@ -546,7 +552,7 @@ func _blackjack(at: Vector3) -> void:
 
 func _roulette(at: Vector3) -> void:
 	_box(Vector3(4.4, 0.12, 1.8), at + Vector3(0.6, 0.9, 0), _felt())
-	_box(Vector3(4.6, 0.85, 2.0), at + Vector3(0.6, 0.42, 0), flat(Color(0.2, 0.1, 0.04), 0.4, 0.2))
+	_box(Vector3(4.6, 0.85, 2.0), at + Vector3(0.6, 0.42, 0), Materials.pbr("wood_floor", Color(0.45, 0.25, 0.14), 0.8, 0.5))
 	# the layout: red and black numbers
 	for r in 3:
 		for c in 12:
@@ -563,7 +569,7 @@ func _roulette(at: Vector3) -> void:
 	_light(at + Vector3(0, 2.8, 0), Color(1.0, 0.85, 0.65), 1.2, 5.0)
 
 func _craps(at: Vector3) -> void:
-	_box(Vector3(6.0, 0.9, 2.6), at + Vector3(0, 0.45, 0), flat(Color(0.2, 0.1, 0.04), 0.4, 0.2))
+	_box(Vector3(6.0, 0.9, 2.6), at + Vector3(0, 0.45, 0), Materials.pbr("wood_floor", Color(0.45, 0.25, 0.14), 0.8, 0.5))
 	_box(Vector3(5.6, 0.04, 2.2), at + Vector3(0, 0.82, 0), _felt())
 	_box(Vector3(6.0, 0.25, 0.15), at + Vector3(0, 1.0, 1.25), flat(Color(0.3, 0.15, 0.06), 0.3, 0.3))
 	_box(Vector3(6.0, 0.25, 0.15), at + Vector3(0, 1.0, -1.25), flat(Color(0.3, 0.15, 0.06), 0.3, 0.3))
@@ -581,9 +587,9 @@ func _bar(at: Vector3) -> void:
 	tor.mesh = t
 	tor.scale = Vector3(1, 1.6, 1)
 	tor.position = at + Vector3(0, 1.1, 0)
-	tor.material_override = flat(Color(0.12, 0.06, 0.04), 0.25, 0.3)
+	tor.material_override = Materials.pbr("wood_floor", Color(0.32, 0.17, 0.1), 0.8, 0.45)
 	world.add_child(tor)
-	_cyl(r + 0.7, 0.08, at + Vector3(0, 1.15, 0), flat(Color(0.95, 0.92, 0.88), 0.1, 0.0), null, -1.0, 48)  # marble top
+	_cyl(r + 0.7, 0.08, at + Vector3(0, 1.15, 0), Materials.pbr("marble_01", Color(1.1, 1.08, 1.05), 1.2, 0.3), null, -1.0, 48)  # stone top
 	_cyl(r - 0.65, 0.1, at + Vector3(0, 1.16, 0), flat(Color(0.06, 0.03, 0.02), 0.5), null, -1.0, 48)
 	_cyl(r + 0.62, 0.06, at + Vector3(0, 0.25, 0), flat(GOLD, 0.2, 1.0), null, -1.0, 48)
 	# the bottle tower in the middle
@@ -650,27 +656,27 @@ void fragment() {
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(30, 20)
 	fl.mesh = pm
-	fl.material_override = marble
+	fl.material_override = Materials.pbr("marble_01", Color(1.12, 1.1, 1.06), 2.4, 0.4) if Materials.has("marble_01") else marble
 	fl.position = Vector3(0, y, 0)
 	world.add_child(fl)
 	_box(Vector3(30, 0.4, 20), Vector3(0, y + 4.4, 0), flat(Color(0.12, 0.11, 0.1), 0.6))                  # ceiling
-	_box(Vector3(30, 3, 22), Vector3(0, y - 1.6, -1), flat(Color(0.08, 0.08, 0.09), 0.6))                   # the slab edge
+	_box(Vector3(30, 3, 22), Vector3(0, y - 1.6, -1), Materials.pbr("brushed_concrete", Color(0.5, 0.5, 0.52), 3.0))                   # the slab edge
 	# glass walls to the terrace (north) and the city (west), solid walls east and south
 	_box(Vector3(30, 4.4, 0.06), Vector3(0, y + 2.2, -10), glass())
 	_box(Vector3(0.06, 4.4, 20), Vector3(-15, y + 2.2, 0), glass())
 	for k in 7:
 		_box(Vector3(0.1, 4.4, 0.1), Vector3(-15 + k * 5.0, y + 2.2, -10), flat(Color(0.1, 0.1, 0.1), 0.3, 0.8))
 		_box(Vector3(0.1, 4.4, 0.1), Vector3(-15, y + 2.2, -10 + k * 3.33), flat(Color(0.1, 0.1, 0.1), 0.3, 0.8))
-	_box(Vector3(0.3, 4.4, 20), Vector3(15, y + 2.2, 0), flat(Color(0.18, 0.15, 0.13), 0.7))
-	_box(Vector3(30, 4.4, 0.3), Vector3(0, y + 2.2, 10), flat(Color(0.2, 0.17, 0.14), 0.7))
+	_box(Vector3(0.3, 4.4, 20), Vector3(15, y + 2.2, 0), Materials.pbr("painted_plaster_wall", Color(0.55, 0.5, 0.45), 3.0))
+	_box(Vector3(30, 4.4, 0.3), Vector3(0, y + 2.2, 10), Materials.pbr("painted_plaster_wall", Color(0.6, 0.54, 0.48), 3.0))
 	# cove lights in the ceiling
 	for k in 4:
 		_box(Vector3(26, 0.05, 0.12), Vector3(0, y + 4.18, -7.5 + k * 5.0), flat(Color(1.0, 0.85, 0.65), 1.0, 0.0, 3.5))
 	_light(Vector3(-4, y + 3.6, -2), Color(1.0, 0.82, 0.62), 2.0, 14.0, true)
 	_light(Vector3(8, y + 3.6, 5), Color(1.0, 0.82, 0.62), 1.6, 12.0)
 	# living room: a sunken lounge round a fire table, rug, sofas
-	_box(Vector3(9, 0.02, 7), Vector3(-6, y + 0.01, -3), flat(Color(0.35, 0.3, 0.26), 1.0))
-	var sofa := flat(Color(0.82, 0.78, 0.72), 0.95)
+	_box(Vector3(9, 0.02, 7), Vector3(-6, y + 0.01, -3), Materials.surface("velour_velvet", Color(0.35, 0.3, 0.26), 0.6))
+	var sofa: Material = Materials.surface("fabric_pattern_07", Color(0.82, 0.78, 0.72), 0.5)
 	_box(Vector3(6.5, 0.45, 1.1), Vector3(-6, y + 0.23, 0.2), sofa)
 	_box(Vector3(6.5, 0.7, 0.3), Vector3(-6, y + 0.6, 0.65), sofa)
 	_box(Vector3(1.1, 0.45, 4.0), Vector3(-9.8, y + 0.23, -2.2), sofa)
@@ -694,7 +700,7 @@ void fragment() {
 		_cyl(0.05, 0.7, Vector3(lx, 0.35, 0.7), black, piano)
 	_cyl(0.05, 0.7, Vector3(0, 0.35, -0.8), black, piano)
 	# the kitchen island and bar stools, a wine wall
-	_box(Vector3(5, 0.95, 1.4), Vector3(7, y + 0.48, -5.5), flat(Color(0.95, 0.94, 0.92), 0.12))
+	_box(Vector3(5, 0.95, 1.4), Vector3(7, y + 0.48, -5.5), Materials.pbr("marble_01", Color(1.15, 1.13, 1.1), 1.0, 0.3))
 	_box(Vector3(5.1, 0.05, 1.5), Vector3(7, y + 0.98, -5.5), flat(Color(0.1, 0.1, 0.1), 0.05, 0.3))
 	for k in 4:
 		_cyl(0.22, 0.06, Vector3(5.3 + k * 1.1, y + 0.75, -4.4), flat(GOLD, 0.25, 0.9))
@@ -787,10 +793,8 @@ func _studio(at: Vector3) -> void:
 	_light(at + Vector3(2.0, 2.2, 1.0), Color(0.85, 0.92, 1.0), 1.2, 6.0)
 
 func _terrace(y: float) -> void:
-	var deck := flat(Color(0.32, 0.22, 0.14), 0.8)
+	var deck: Material = Materials.pbr("brown_planks_03", Color(1.0, 0.85, 0.7), 2.0)
 	_box(Vector3(30, 0.1, 22), Vector3(0, y - 0.05, -21), deck)
-	for k in 30:
-		_box(Vector3(0.02, 0.105, 22), Vector3(-14.5 + k, y - 0.05, -21), flat(Color(0.18, 0.12, 0.08), 0.9))
 	_box(Vector3(30, 3, 22), Vector3(0, y - 1.6, -21), flat(Color(0.08, 0.08, 0.09), 0.6))
 	# glass balustrade
 	_box(Vector3(30, 1.1, 0.04), Vector3(0, y + 0.55, -32), glass())
@@ -861,7 +865,7 @@ func _palm(base: Vector3, h: float) -> void:
 # --------------------------------------------------------------------------------------------- the skydeck
 func _skydeck() -> void:
 	var y := ROOF_Y
-	_box(Vector3(60, 1.0, 64), Vector3(0, y - 0.5, 0), flat(Color(0.09, 0.09, 0.1), 0.55, 0.3))
+	_box(Vector3(60, 1.0, 64), Vector3(0, y - 0.5, 0), Materials.pbr("brushed_concrete", Color(0.42, 0.42, 0.45), 3.0, 0.8))
 	for k in 16:
 		_box(Vector3(60, 0.02, 0.06), Vector3(0, y + 0.005, -32 + k * 4.0), flat(Color(0.2, 0.2, 0.22), 0.6))
 	# glass edge with a cyan glow line
@@ -871,7 +875,7 @@ func _skydeck() -> void:
 	_box(Vector3(60, 1.2, 0.05), Vector3(0, y + 0.6, 32), glass())
 	# the stage at the north end
 	var sz := -18.0
-	_box(Vector3(26, 1.6, 12), Vector3(0, y + 0.8, sz), flat(Color(0.05, 0.05, 0.06), 0.5, 0.2))
+	_box(Vector3(26, 1.6, 12), Vector3(0, y + 0.8, sz), Materials.pbr("metal_plate", Color(0.32, 0.32, 0.34), 1.2, 0.6, 0.8))
 	_box(Vector3(26, 0.06, 0.2), Vector3(0, y + 1.6, sz + 6.0), flat(Color(1.0, 0.25, 0.55), 0.3, 0.0, 5.0))
 	# truss: four towers and a roof grid
 	var truss := flat(Color(0.65, 0.66, 0.7), 0.3, 0.9)

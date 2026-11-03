@@ -10,6 +10,7 @@ const DriveView := preload("res://scripts/driving/drive_view.gd")
 const StreetSlice := preload("res://scripts/city/street_slice.gd")
 const CharacterCreator := preload("res://scripts/character/character_creator.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
+const Mission01 := preload("res://scripts/mission/mission_01.gd")
 
 var planet_view: Control
 var region_map: Control
@@ -45,6 +46,13 @@ func _ready() -> void:
 	street_button.custom_minimum_size = Vector2(150, 52)
 	street_button.pressed.connect(_open_street)
 	add_child(street_button)
+	var play := Data.button("▶ PLAY · M1 THE FRACTURE", true)
+	play.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	play.position = Vector2(-450, -134)
+	play.custom_minimum_size = Vector2(430, 56)
+	play.add_theme_font_size_override("font_size", 18)
+	play.pressed.connect(_open_mission)
+	add_child(play)
 	var op_button := Data.button("OPERATOR", true)
 	op_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	op_button.position = Vector2(-590, -70)
@@ -136,9 +144,31 @@ func _open_creator(first := false) -> void:
 	creator.onboarding = first
 	creator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	creator.closed.connect(_close_creator)
-	creator.confirmed.connect(func(_l: Dictionary) -> void: _close_creator())
+	creator.confirmed.connect(func(_l: Dictionary) -> void:
+		var was_first: bool = creator.onboarding
+		_close_creator()
+		if was_first:
+			_open_mission())
 	add_child(creator)
 	planet_view.set_process(false)
+
+var mission: Control
+func _open_mission() -> void:
+	if mission or creator:
+		return
+	mission = Mission01.new()
+	mission.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mission.closed.connect(_close_mission)
+	add_child(mission)
+	planet_view.set_process(false)
+	planet_view.visible = false
+
+func _close_mission() -> void:
+	if mission:
+		mission.queue_free()
+		mission = null
+	planet_view.visible = true
+	planet_view.set_process(true)
 
 func _close_creator() -> void:
 	if creator:
@@ -176,7 +206,9 @@ func _close_map() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
-		if creator and not creator.onboarding:
+		if mission:
+			_close_mission()
+		elif creator and not creator.onboarding:
 			_close_creator()
 		elif street and street.sports_overlay:
 			street.close_sports()
@@ -272,6 +304,13 @@ func _shoot(path: String, opts: Array) -> void:
 			if q.size() > 2:
 				var f := q[1].split(","); var t := q[2].split(",")
 				sl.look_from(Vector3(float(f[0]), float(f[1]), float(f[2])), Vector3(float(t[0]), float(t[1]), float(t[2])))
+		# m1[:moment]  Mission 01: apt (default), apt2, hall, lobby, lounge, cine, dazed, surge, anchor, done
+		if String(o).begins_with("m1"):
+			var mm := String(o).split(":")
+			_open_mission()
+			if mm.size() > 1:
+				await get_tree().process_frame
+				mission.shot(mm[1])
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o).begins_with("char"):
 			var c := String(o).split(":")

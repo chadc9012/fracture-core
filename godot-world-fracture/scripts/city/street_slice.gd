@@ -314,22 +314,27 @@ varying vec3 wpos;
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 void fragment() {
 	vec2 p = wpos.xz;
-	float g = texture(grain, p * 0.35).r;
+	float g = dot(texture(grain, p * 0.28).rgb, vec3(0.33)) * 1.6;
 	float puddle = smoothstep(0.52, 0.62, texture(puddle_noise, p * 0.018).r * 0.8 + texture(puddle_noise, p * 0.07).r * 0.3);
 	float wetness = clamp(wet * 0.55 + puddle * wet, 0.0, 1.0);
 	vec3 base = vec3(0.075, 0.078, 0.085) * (0.75 + 0.5 * g);
 	ALBEDO = mix(base, base * 0.55, wetness);
 	ROUGHNESS = mix(0.86, 0.05, wetness);
 	SPECULAR = mix(0.4, 0.75, wetness);
-	NORMAL_MAP = mix(texture(grain_n, p * 0.35).xyz, vec3(0.5, 0.5, 1.0), puddle);
+	NORMAL_MAP = mix(texture(grain_n, p * 0.28).xyz, vec3(0.5, 0.5, 1.0), puddle);
 	NORMAL_MAP_DEPTH = 0.8;
 }
 """
 	var m := ShaderMaterial.new()
 	m.shader = sh
 	m.set_shader_parameter("puddle_noise", _noise_tex(0.004, 4, 512))
-	m.set_shader_parameter("grain", _noise_tex(0.09, 3, 512))
-	m.set_shader_parameter("grain_n", _noise_tex(0.09, 3, 512, true))
+	# real asphalt (Poly Haven asphalt_02) for the grain and its bump; noise if the set is missing
+	if ResourceLoader.exists("res://textures/pbr/asphalt_02_diff.jpg"):
+		m.set_shader_parameter("grain", load("res://textures/pbr/asphalt_02_diff.jpg"))
+		m.set_shader_parameter("grain_n", load("res://textures/pbr/asphalt_02_nor.jpg"))
+	else:
+		m.set_shader_parameter("grain", _noise_tex(0.09, 3, 512))
+		m.set_shader_parameter("grain_n", _noise_tex(0.09, 3, 512, true))
 	return m
 
 ## pale stone paving in 0.6 m slabs, damp in the joints
@@ -338,6 +343,8 @@ static func paving() -> ShaderMaterial:
 	sh.code = """
 shader_type spatial;
 uniform sampler2D grain : hint_default_white, repeat_enable;
+uniform sampler2D grain_n : hint_normal, repeat_enable;
+uniform bool has_n = false;
 uniform vec3 lo_col = vec3(0.60, 0.55, 0.49);
 uniform vec3 hi_col = vec3(0.70, 0.65, 0.57);
 varying vec3 wpos;
@@ -352,11 +359,15 @@ void fragment() {
 	vec3 stone = mix(lo_col, hi_col, tint) * (0.88 + 0.2 * g);
 	ALBEDO = mix(stone * 0.62, stone, joint);
 	ROUGHNESS = mix(0.35, 0.78 + 0.08 * tint, joint);
+	if (has_n) { NORMAL_MAP = texture(grain_n, wpos.xz * 0.5).xyz; NORMAL_MAP_DEPTH = 0.6; }
 }
 """
 	var m := ShaderMaterial.new()
 	m.shader = sh
 	m.set_shader_parameter("grain", _noise_tex(0.12, 3, 256))
+	if ResourceLoader.exists("res://textures/pbr/brushed_concrete_nor.jpg"):
+		m.set_shader_parameter("grain_n", load("res://textures/pbr/brushed_concrete_nor.jpg"))
+		m.set_shader_parameter("has_n", true)
 	return m
 
 static func flat(c: Color, rough := 0.8, metal := 0.0, emit := 0.0) -> StandardMaterial3D:

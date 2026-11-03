@@ -89,20 +89,26 @@ shader_type spatial;
 uniform bool wood = true;
 uniform vec3 key_col : source_color = vec3(0.0, 0.5, 0.7);
 uniform vec3 field : source_color = vec3(0.2, 0.4, 0.3);
+uniform sampler2D surf : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D surf_n : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform bool has_surf = false;
 float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float line(float d, float w) { return 1.0 - smoothstep(w * 0.5, w * 0.5 + 0.02, abs(d)); }
 void fragment() {
 	// court space in metres: x along the length (-16..16), z across (-9..9); the playing area is 28 x 15
 	vec2 p = vec2((UV.x - 0.5) * 32.0, (UV.y - 0.5) * 18.0);
 	vec3 base;
-	if (wood) {
+	vec3 tex = has_surf ? texture(surf, p * (wood ? 0.42 : 0.3)).rgb : vec3(0.5);
+	if (wood && has_surf) {
+		base = tex * vec3(1.25, 1.05, 0.82);
+	} else if (wood) {
 		float plank = floor(p.y / 0.07);
 		float seg = floor((p.x + h(vec2(plank, 1.0)) * 3.0) / 2.4);
 		float grain = sin(p.x * 30.0 + h(vec2(plank, seg)) * 10.0) * 0.5 + 0.5;
 		base = mix(vec3(0.78, 0.55, 0.32), vec3(0.88, 0.67, 0.42), h(vec2(plank, seg)) * 0.6 + grain * 0.15);
 		base *= 1.0 - 0.25 * step(0.97, fract(p.y / 0.07));
 	} else {
-		base = field * (0.85 + 0.15 * h(floor(p * 40.0)));
+		base = field * (has_surf ? 0.65 + 0.8 * dot(tex, vec3(0.33)) : 0.85 + 0.15 * h(floor(p * 40.0)));
 	}
 	vec2 a = abs(p);
 	bool inside = a.x < 14.0 && a.y < 7.5;
@@ -128,9 +134,15 @@ void fragment() {
 	base = mix(base, vec3(0.97), l);
 	ALBEDO = base;
 	ROUGHNESS = wood ? 0.25 : 0.85;
+	if (has_surf) { NORMAL_MAP = texture(surf_n, p * (wood ? 0.42 : 0.3)).xyz; NORMAL_MAP_DEPTH = wood ? 0.5 : 1.0; }
 	SPECULAR = wood ? 0.6 : 0.3;
 }
 """, {"wood": wood, "key_col": key, "field": field})
+	var set := "wood_floor" if wood else "asphalt_02"
+	if Materials.has(set):
+		m.set_shader_parameter("surf", load("res://textures/pbr/%s_diff.jpg" % set))
+		m.set_shader_parameter("surf_n", load("res://textures/pbr/%s_nor.jpg" % set))
+		m.set_shader_parameter("has_surf", true)
 	var fl := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(32, 18)
@@ -245,7 +257,7 @@ func _arena() -> void:
 	_label("VOLTAGE", o + Vector3(0, 0.03, 0), 0.0, HOME, 160, 0.012).rotation.x = -PI / 2
 	# the bowl: rows rising on all four sides (a rounded rectangle), 22 rows, lower and upper decks
 	var seat_cols := [HOME, HOME, Color(0.06, 0.06, 0.08), Color(0.9, 0.9, 0.92), HOME.darkened(0.4), AWAY, Color(0.5, 0.05, 0.08), Color(0.15, 0.25, 0.5)]
-	var riser := flat(Color(0.1, 0.11, 0.14), 0.6)
+	var riser: Material = Materials.pbr("brushed_concrete", Color(0.3, 0.31, 0.34), 3.0)
 	var seat := flat(Color(0.05, 0.25, 0.45), 0.5)
 	var fans: Array[Vector3] = []
 	for row in 22:
@@ -357,7 +369,7 @@ void fragment() {
 func _courts() -> void:
 	var o := COURTS
 	# the lot: two courts side by side on a slab by the water
-	_box(Vector3(80, 0.4, 60), o + Vector3(0, -0.2, 0), flat(Color(0.2, 0.2, 0.21), 0.9))
+	_box(Vector3(80, 0.4, 60), o + Vector3(0, -0.2, 0), Materials.pbr("asphalt_02", Color(0.8, 0.8, 0.82), 4.0))
 	_court(o + Vector3(0, 0, -10), false, Color(0.75, 0.2, 0.18), Color(0.12, 0.3, 0.5))
 	_court(o + Vector3(0, 0, 10), false, Color(0.95, 0.65, 0.15), Color(0.15, 0.38, 0.25))
 	for z: float in [-10.0, 10.0]:
@@ -482,10 +494,10 @@ void fragment() {
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(Wd, Ln)
 	fl.mesh = pm
-	fl.material_override = rubber
+	fl.material_override = Materials.pbr("rubber_tiles", Color(0.9, 0.9, 0.95), 1.0) if Materials.has("rubber_tiles") else rubber
 	fl.position = o
 	world.add_child(fl)
-	var wall := flat(Color(0.16, 0.17, 0.19), 0.8)
+	var wall: Material = Materials.pbr("brushed_concrete", Color(0.55, 0.56, 0.6), 3.0)
 	_box(Vector3(Wd, 6, 0.3), o + Vector3(0, 3, -Ln * 0.5), wall)
 	_box(Vector3(Wd, 6, 0.3), o + Vector3(0, 3, Ln * 0.5), wall)
 	_box(Vector3(0.3, 6, Ln), o + Vector3(Wd * 0.5, 3, 0), wall)
@@ -508,7 +520,7 @@ void fragment() {
 		_light(o + Vector3(-12 + k * 8, 5.0, 0), Color(0.95, 0.97, 1.0), 3.0, 16.0)
 	var steel := flat(Color(0.18, 0.19, 0.2), 0.35, 0.85)
 	var chrome := flat(Color(0.8, 0.82, 0.85), 0.15, 1.0)
-	var black := flat(Color(0.04, 0.04, 0.045), 0.6)
+	var black: Material = Materials.surface("leather_red_02", Color(0.045, 0.045, 0.05), 0.4, 0.8)
 	var green := flat(Color(0.2, 0.8, 0.4), 0.5)
 	# squat racks along the mirror
 	for k in 4:
@@ -591,7 +603,7 @@ void fragment() {
 	# the boxing corner: a ring and heavy bags
 	var ring_at := o + Vector3(12.0, 0, -7.5)
 	_box(Vector3(6, 0.9, 6), ring_at + Vector3(0, 0.45, 0), flat(Color(0.12, 0.12, 0.14), 0.6))
-	_box(Vector3(5.8, 0.05, 5.8), ring_at + Vector3(0, 0.92, 0), flat(Color(0.2, 0.35, 0.75), 0.8))
+	_box(Vector3(5.8, 0.05, 5.8), ring_at + Vector3(0, 0.92, 0), Materials.surface("velour_velvet", Color(0.2, 0.35, 0.75), 0.5))
 	var rope_cols := [flat(Color(0.9, 0.1, 0.15), 0.5), flat(Color(0.95, 0.95, 0.95), 0.5), flat(Color(0.1, 0.3, 0.9), 0.5)]
 	for cx2: float in [-2.8, 2.8]:
 		for cz2: float in [-2.8, 2.8]:

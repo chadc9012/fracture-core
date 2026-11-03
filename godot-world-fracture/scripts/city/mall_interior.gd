@@ -6,6 +6,7 @@ extends Control
 signal closed
 
 const MODELS := "res://models/city/"
+const Materials := preload("res://scripts/city/materials.gd")
 const L := 120.0        # mall length (z)
 const W := 36.0         # width between shopfronts
 const FLOOR_H := 7.0    # storey height
@@ -202,8 +203,8 @@ func _environment() -> void:
 
 # --------------------------------------------------------------------------------------------- building
 func _shell() -> void:
-	var stone := flat(Color(0.58, 0.54, 0.49), 0.14, 0.0)     # polished marble floor that mirrors the shopfronts
-	var white := flat(Color(0.78, 0.76, 0.73), 0.6)
+	var stone: Material = Materials.pbr("floor_tiles_06", Color(1.05, 1.02, 0.98), 2.4, 0.35)     # polished stone tiles that mirror the shopfronts
+	var white: Material = Materials.pbr("painted_plaster_wall", Color(0.95, 0.93, 0.9), 3.0)
 	var steel := flat(Color(0.75, 0.77, 0.8), 0.25, 0.9)
 	var D := W + 2.0 * 10.0     # shopfront to shopfront plus shop depth both sides
 	_box(Vector3(D, 0.2, L), Vector3(0, -0.1, 0), stone)
