@@ -47,6 +47,9 @@ class Enemy:
 	var burst_cool := 0.0
 	var held: Node3D
 	var hover := 0.0
+	## 0 = hostile to the operator (the default); 1 = the operator's own team (Killbox allies): bots fight the other team
+	var team := 0
+	var tint := Color(0, 0, 0, 0)
 
 var player: Node3D
 var gunplay: Node3D
@@ -64,15 +67,41 @@ var deaths := 0
 var kills := 0
 signal operator_hit(damage: float)
 signal operator_down
+## a bot went down: who it was, and the team that got the kill (0 rivals, 1 the operator's side; -1 unknown)
+## `by_player`: the operator's own bolt made the kill (an ally bot's kill carries the operator's team but not the credit)
+signal bot_down(e: Enemy, by_team: int, by_player: bool)
+## the operator's team for Killbox (bots of this team never target the operator)
+var operator_team := 1
+## which bot last hit each bot, for the kill credit
+var _last_hitter := {}
+const OPERATOR_HIT := -2
 
 func setup(p: Node3D, g: Node3D) -> void:
 	player = p
 	gunplay = g
 	_rng.seed = 19
 	g.killed.connect(_on_target_killed)
+	g.hit.connect(_on_target_hit)
 
 ## spawns one enemy of `type` at `at` with a patrol beat (world points it walks between)
-func spawn(type: String, at: Vector3, beat: Array = []) -> Enemy:
+## a team colour band on a bot's body (Killbox): a tint over the plating
+func _tint(e: Enemy, c: Color) -> void:
+	e.tint = c
+	var rig: Node3D = e.mover.rig
+	if not rig or not rig.body_root:
+		return
+	for ch in rig.body_root.find_children("*", "MeshInstance3D", true, false):
+		var mi := ch as MeshInstance3D
+		if mi == rig.head_mesh or mi == rig.hair_mesh or not mi.mesh:
+			continue
+		for i in mi.mesh.get_surface_count():
+			var base: Material = mi.mesh.surface_get_material(i)
+			if base is StandardMaterial3D:
+				var m := (base as StandardMaterial3D).duplicate() as StandardMaterial3D
+				m.albedo_color = Color(1, 1, 1).lerp(c * 1.5, 0.55)
+				mi.set_surface_override_material(i, m)
+
+func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 	var e := Enemy.new()
 	e.type = type
 	e.def = TYPES[type]
@@ -91,6 +120,9 @@ func spawn(type: String, at: Vector3, beat: Array = []) -> Enemy:
 		e.mover.build(look)
 		e.mover.rig.scale = Vector3.ONE * float(e.def.scale)
 		_arm(e)
+		if team >= 0:
+			e.team = team
+			_tint(e, Color(0.2, 0.7, 1.0) if team == 1 else Color(1.0, 0.35, 0.3))
 	else:
 		_drone_body(e)
 	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
@@ -190,12 +222,24 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 		e.state = State.DOWN
 		e.timer = RESPAWN
 		m.visible = false
-		kills += 1
+		var by: int = int(_last_hitter.get(e, OPERATOR_HIT))
+		var by_player := by == OPERATOR_HIT   # no bot hit it last: the operator's bolt did
+		if by_player:
+			by = operator_team
+		if e.team != operator_team and by_player:
+			kills += 1
+		bot_down.emit(e, by, by_player)
+		_last_hitter.erase(e)
 		return
-	var to_player: Vector3 = player.position - m.position
+	# the hostile it fights: the operator (when on the other team) or the nearest bot of the other team
+	var foe: Variant = _foe(e)
+	var foe_pos: Vector3 = player.position if foe == null else (foe as Enemy).mover.position
+	var to_player: Vector3 = foe_pos - m.position
 	to_player.y = 0.0
 	var dist := to_player.length()
-	var sees := dist < SIGHT and down <= 0.0 and _clear(m.position + Vector3(0, 1.4, 0), player.position + Vector3(0, 1.2, 0))
+	var foe_up := (foe == null and down <= 0.0) or (foe != null and (foe as Enemy).target.alive())
+	var sees := dist < SIGHT and foe_up and _clear(m.position + Vector3(0, 1.4, 0), foe_pos + Vector3(0, 1.2, 0))
+	e.set_meta("foe", foe)
 	var move := Vector2.ZERO
 	var sprint := false
 	e.cool = maxf(0.0, e.cool - dt)
@@ -280,12 +324,27 @@ func _clear(from: Vector3, to: Vector3) -> bool:
 			return false
 	return true
 
+## the nearest live bot of the other team, or null for the operator (when hostile to this bot and nearer)
+func _foe(e: Enemy) -> Variant:
+	var best: Variant = null
+	var best_d := INF
+	if e.team != operator_team and down <= 0.0:
+		best_d = e.mover.position.distance_to(player.position)
+	for o in enemies:
+		if o == e or o.team == e.team or not o.target.alive():
+			continue
+		var d := e.mover.position.distance_to(o.mover.position)
+		if d < best_d:
+			best_d = d
+			best = o
+	return best
+
 func _attack(e: Enemy, dist: float) -> void:
 	e.cool = float(e.def.cool) * (0.8 + _rng.randf() * 0.4)
 	e.mover.combat_hold = 1.5
 	if e.def.melee:
 		if dist <= float(e.def.range) + 0.6:
-			_hit_operator(float(e.def.damage))
+			_damage_foe(e, float(e.def.damage))
 		return
 	e.burst_left = int(e.def.burst)
 	e.burst_cool = 0.0
@@ -298,11 +357,13 @@ func _muzzle(e: Enemy) -> Vector3:
 ## one bolt at the operator: a hit when the line passes within the body's radius, else a miss into the scene
 func _shoot(e: Enemy) -> void:
 	var from := _muzzle(e)
-	var aim: Vector3 = player.position + Vector3(0, 1.1, 0)
+	var foe: Variant = e.get_meta("foe") if e.has_meta("foe") else null
+	var aim: Vector3 = (player.position if foe == null else (foe as Enemy).mover.position) + Vector3(0, 1.1, 0)
 	var dir := (aim - from).normalized()
 	var side := dir.cross(Vector3.UP).normalized()
 	var up := side.cross(dir)
-	var spread: float = float(e.def.spread) * (1.6 if Vector2(player.velocity.x, player.velocity.z).length() > 3.0 else 1.0)
+	var vel: Vector3 = player.velocity if foe == null else (foe as Enemy).mover.velocity
+	var spread: float = float(e.def.spread) * (1.6 if Vector2(vel.x, vel.z).length() > 3.0 else 1.0)
 	dir = (dir + side * _rng.randfn(0.0, spread) + up * _rng.randfn(0.0, spread)).normalized()
 	var len := from.distance_to(aim)
 	var closest := (aim - from) - dir * (aim - from).dot(dir)
@@ -313,10 +374,22 @@ func _shoot(e: Enemy) -> void:
 			var p: Variant = b.intersects_ray(from, dir)
 			if p != null and from.distance_to(p) < from.distance_to(end):
 				end = p
-	gunplay.tracer(from, end, Color(0.4, 0.9, 1.0))
+	gunplay.tracer(from, end, Color(0.4, 0.9, 1.0) if e.team == 0 else Color(1.0, 0.75, 0.3))
 	gunplay.spark(end, hit)
 	if hit:
-		_hit_operator(float(e.def.damage))
+		_damage_foe(e, float(e.def.damage))
+
+## the hit lands on whoever this bot is fighting
+func _damage_foe(e: Enemy, damage: float) -> void:
+	var foe: Variant = e.get_meta("foe") if e.has_meta("foe") else null
+	if foe == null:
+		_hit_operator(damage)
+		return
+	var o := foe as Enemy
+	o.target.hp -= damage
+	_last_hitter[o] = e.team
+	if o.target.hp <= 0.0:
+		o.target.hp = 0.0
 
 func _hit_operator(damage: float) -> void:
 	if down > 0.0:
@@ -333,3 +406,7 @@ func _hit_operator(damage: float) -> void:
 
 func _on_target_killed(_t: Gunplay.Target) -> void:
 	pass
+
+func _on_target_hit(t: Gunplay.Target, _damage: float, _head: bool) -> void:
+	if t.has_meta("enemy"):
+		_last_hitter[t.get_meta("enemy")] = OPERATOR_HIT

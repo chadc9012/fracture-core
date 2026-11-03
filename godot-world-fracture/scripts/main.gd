@@ -14,7 +14,9 @@ const CloudSave := preload("res://scripts/cloud/cloud_save.gd")
 const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 const Descent := preload("res://scripts/mission/descent.gd")
+const ArenaView := preload("res://scripts/killbox/arena_view.gd")
 var descent: Control
+var killbox: Control
 var race_view: Control
 var cloud: Node
 var cloud_panel: Control
@@ -89,6 +91,13 @@ func _ready() -> void:
 	race_button.custom_minimum_size = Vector2(110, 52)
 	race_button.pressed.connect(_open_race)
 	add_child(race_button)
+	var kb := Data.button("KILLBOX", true)
+	kb.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	kb.position = Vector2(260, -70)
+	kb.custom_minimum_size = Vector2(130, 52)
+	kb.add_theme_color_override("font_color", Color(1.0, 0.45, 0.7))
+	kb.pressed.connect(_open_killbox)
+	add_child(kb)
 	cloud_line = Label.new()
 	cloud_line.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	cloud_line.position = Vector2(20, -96)
@@ -205,6 +214,19 @@ func _close_race() -> void:
 	if race_view:
 		race_view.queue_free()
 		race_view = null
+
+## the Killbox: Kaiju Complex, Clash against bots (scripts/killbox/)
+func _open_killbox() -> void:
+	if killbox:
+		return
+	killbox = ArenaView.new()
+	killbox.closed.connect(_close_killbox)
+	add_child(killbox)
+
+func _close_killbox() -> void:
+	if killbox:
+		killbox.queue_free()
+		killbox = null
 	planet_view.set_process(true)
 	_sync_later()
 
@@ -448,6 +470,15 @@ func _shoot(path: String, opts: Array) -> void:
 				descent.controls.move = Vector2(0.0, 1.0)
 				descent.controls.sprint = true
 				descent.controls.fire = true
+		# killbox[:fight]  Kaiju Complex, Clash; :fight sprints along the roof and fires
+		if String(o).begins_with("killbox"):
+			_open_killbox()
+			if String(o).contains("fight"):
+				killbox.controls.scripted = true
+				killbox.operator.position = Vector3(0, 20, 26)   # the top of the billboard bridge
+				killbox.controls.move = Vector2(0.0, 1.0)
+				killbox.controls.sprint = true
+				killbox.controls.fire = true
 		# race[:go]  Nexus Speedway from the grid; :go skips the lights and holds the throttle
 		if String(o).begins_with("race"):
 			_open_race()
@@ -494,6 +525,9 @@ func _shoot(path: String, opts: Array) -> void:
 		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
 	if descent and descent.enemies:
 		print("descent: ", descent.progress, " objective '", descent._objective.text.replace("\n", " / "), "' at ", descent.operator.position.round(), " enemies ", descent.enemies.enemies.size(), " hull ", descent.enemies.hull)
+	if killbox and killbox.match_state:
+		var kb := killbox
+		print("killbox: us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)
 	if race_view and race_view.race:
 		var rv := race_view
 		print("race: t ", rv.race.time, " player ", rv.player.node.position, " speed ", rv.player.speed, " laps ", rv.race.player().laps, " place ", rv.race.position_of(rv.race.player()), " rivals ", rv.rivals.map(func(r: Dictionary) -> String: return "%s@%.2f" % [r.entry.name, r.entry.frac]))

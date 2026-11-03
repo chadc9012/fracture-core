@@ -149,12 +149,24 @@ fd-02 *First Resonance* clears five patrols that come out of the trees; fd-03 *B
 three relay beacons to its guarded source; fd-04 *Into the Shrouded Swamps* walks to where the treeline ends. Rewards
 pay the profile's XP and Nex; progress is `user://quests.json` (synced to the cloud). Shot: `descent[:fight]`.
 
+**Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
+`scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two
+blocks over a Neon City street, joined by the west catwalk, the billboard bridge and the east catwalk, with the cover,
+ledges, parapets and stairs the data lists, neon trim, lit facades and the KAIJU sign. `arena.gd` turns the data into the
+on-foot rules (roofs are the ground, `surface_at`; parapets, cover and rails are the obstacle boxes; `spawn(side,
+threats)` picks the team spawn farthest from the enemy); `killbox_match.gd` keeps the score. Clash: your team of five
+trooper bots against six (enemies.gd with teams — blue band for allies, red for rivals; allies fight the other team),
+every elimination scores, first to 75 or the clock (10 min) decides. Falling below the kill plane is a death; respawns
+go to the team spawns; the Billboard Blackout event douses the signs for 30 s. Winning pays 400 Nex / 300 XP, losing
+150 / 120. The worn gear carries over (guns, hull bonus, outfit tint). Shot: `killbox[:fight]`.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
+bun scripts/export-godot-killbox.ts       # from the repo root: rewrites godot-world-fracture/data/killbox.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [killbox[:fight]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 
