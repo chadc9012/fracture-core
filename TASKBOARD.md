@@ -24,12 +24,11 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Phase 2: Godot enemies — 5 types from the web AI, spawns in the Nexus block, they shoot back, operator hull and death | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
+| Phase 3: Godot inventory + wardrobe + transmog reading the web catalogues (export-godot-data.ts), equip from the street | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
 | Killbox bots: full bot teams on the arenas, allies and rivals (web build; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
-- Phase 2: Godot HUD — hull, ammo, crosshair, compass, objective (the phone's simple HUD first).
-- Phase 3: Godot inventory + wardrobe + transmog reading the web catalogues via `export-godot-data.ts`.
+- Phase 2/4 merge: Mission 01 (scripts/mission/, landed Nov 3 by session_01… without a claim) carries its own player.gd and rifle; move it onto scripts/player + scripts/combat so one operator, one gun and one HUD serve the street and the mission.
 - Phase 3: Godot Supabase cloud save with Google sign-in (same `player_saves` table and `com.chadc9012.worldfracture://auth/callback`).
 - Phase 4: Apartment 12-04 opening in Godot.
 - Phase 4: fd-01…fd-04 missions in Godot on the quest engine contract.
@@ -42,6 +41,8 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Phase 2: Godot enemies (scout, elite, executor, marksman, drone; patrol / alert / engage; they shoot back; hull, down, respawn) + HUD (hull bar, ammo, crosshair) | see git log "Godot: enemies" (Nov 3) |
+| Phase 4: Mission 01 "The Fracture" in Godot (apartment, morning, Fracture, Breach fight) | 9d9079a (another session) |
 | Phase 2: Godot weapons (Auto / Sniper / Fusion frames, hitscan, ammo, reload, fire/reload/swap, HUD, practice dummies) | see git log "Godot: shooting" (Nov 3) |
 | Phase 2: Godot on-foot operator in the street slices (stick, look-drag, jump, sprint, chase camera, kerbs, obstacle slide) | see git log "Godot: on foot" (Nov 2); grapple waits for the weapons pass |
 | Killbox: Kaiju Complex, Fracture Floor, Killbox Prime arenas + map rotation (web build, owner asked in session) | 81bebbc, d2729c1, 1bf20ec, this push |

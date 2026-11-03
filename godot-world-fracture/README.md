@@ -85,11 +85,19 @@ dummies stand on the Nexus sidewalk (hull 30; a plate hit scores, the head more)
 `--script res://tests/combat/weapons_test.gd`. Shots: `slicewalk:fire[:sniper|:fusion][:aim]` holds the trigger (aim turns
 the crosshair onto the first dummy) and prints shots / hits / kills.
 
+**Enemies** (`scripts/combat/enemies.gd`): Nexus City's cyber troopers on the robot operator bodies — Data Drone Scout
+(rifle, holds 14 m, strafes), Data Drone Elite (fusion bursts, walks in), Executor (blade, runs you down), Grid Marksman
+(one hard shot from 30 m) and a hovering Surveillance Drone — moved by the operator's own rules, patrolling a beat until
+they see you (40 m, clear of the scene's boxes), then holding their range and shooting back with cyan bolts. The
+operator has 100 hull (bar, red wash, regen after 4 s); at 0 you are DOWN for 5 s and stand again at the spawn. Downed
+troopers stand again after 8 s. Test: `--script res://tests/combat/enemies_test.gd`. Shot: `slicewalk:fight` sprints down
+the street into them and prints hull, deaths, kills and every trooper's state.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

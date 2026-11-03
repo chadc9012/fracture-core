@@ -176,8 +176,8 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 			dist = from.distance_to(p2)
 			hit_t = t
 	var end := from + dir * dist
-	_tracer(from, end)
-	_spark(end, hit_t != null)
+	tracer(from, end)
+	spark(end, hit_t != null)
 	if hit_t:
 		var head := end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
 		var dmg := Weapons.damage(gun().frame, dist, head)
@@ -192,7 +192,7 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 				hit_t.node.visible = false
 			killed.emit(hit_t)
 
-func _tracer(from: Vector3, to: Vector3) -> void:
+func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
 	var mi := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	var len := from.distance_to(to)
@@ -200,9 +200,9 @@ func _tracer(from: Vector3, to: Vector3) -> void:
 	mi.mesh = box
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = Color(1.0, 0.85, 0.55)
+	m.albedo_color = col
 	m.emission_enabled = true
-	m.emission = Color(1.0, 0.75, 0.4)
+	m.emission = col
 	m.emission_energy_multiplier = 3.0
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mi.material_override = m
@@ -217,10 +217,11 @@ func _tracer(from: Vector3, to: Vector3) -> void:
 		_flash.light_energy = 3.0
 		_flash.omni_range = 4.0
 		add_child(_flash)
-	_flash.global_position = from
-	_flash_t = 0.05
+	if col.r > 0.9:
+		_flash.global_position = from
+		_flash_t = 0.05
 
-func _spark(at: Vector3, flesh: bool) -> void:
+func spark(at: Vector3, flesh: bool) -> void:
 	var mi := MeshInstance3D.new()
 	var s := SphereMesh.new()
 	s.radius = 0.06

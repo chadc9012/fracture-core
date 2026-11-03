@@ -277,6 +277,10 @@ func _shoot(path: String, opts: Array) -> void:
 				if String(o).contains("jump"):
 					street.controls._jump = true
 			# slicewalk:fire stands and holds the trigger at the dummies; :sniper / :fusion swap first
+			if String(o).contains("walk:fight"):
+				street.controls.scripted = true
+				street.controls.move = Vector2(0.0, 1.0)
+				street.controls.sprint = true
 			if String(o).contains("walk:fire"):
 				street.controls.scripted = true
 				street.controls.move = Vector2.ZERO
@@ -361,5 +365,10 @@ func _shoot(path: String, opts: Array) -> void:
 		await get_tree().process_frame
 	if street and street.gunplay:
 		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
+	if street and street.enemies:
+		var st: Array = []
+		for e in street.enemies.enemies:
+			st.append("%s:%d:%.0f@%s" % [e.type, e.state, e.target.hp, str(e.mover.position.round())])
+		print("enemies: hull ", street.enemies.hull, " deaths ", street.enemies.deaths, " kills ", street.enemies.kills, " ", ", ".join(st))
 	get_viewport().get_texture().get_image().save_png(path)
 	get_tree().quit()

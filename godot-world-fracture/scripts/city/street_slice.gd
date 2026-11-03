@@ -31,10 +31,13 @@ const Sports = preload("res://scripts/city/sports_district.gd")
 const OperatorPlayer = preload("res://scripts/player/operator_player.gd")
 const TouchControls = preload("res://scripts/player/touch_controls.gd")
 const Gunplay = preload("res://scripts/combat/gunplay.gd")
+const Enemies = preload("res://scripts/combat/enemies.gd")
 var gunplay: Node3D
+var enemies: Node3D
+var _spawn := Vector3.ZERO
 ## on foot (phase 2 of the Dec 4 plan): the saved operator walks the block with a chase camera; off for look-dev shots
 var walk := true
-var player: Node3D
+var operator: Node3D
 var controls: Control
 var mall_overlay: Control
 var casino_overlay: Control
@@ -144,26 +147,36 @@ func look_from(from: Vector3, at: Vector3) -> void:
 func _spawn_player() -> void:
 	controls = TouchControls.new()
 	add_child(controls)
-	player = OperatorPlayer.new()
-	world.add_child(player)
+	operator = OperatorPlayer.new()
+	world.add_child(operator)
 	var half := ROAD_W * 0.5
 	var x0 := half + WALK_W
-	player.bounds = Rect2(-(x0 - 0.3), -(LENGTH * 0.5 - 1.0), (x0 - 0.3) + (x0 + 15.4), LENGTH - 2.0)
-	player.ground_at = func(x: float, z: float) -> float:
+	operator.bounds = Rect2(-(x0 - 0.3), -(LENGTH * 0.5 - 1.0), (x0 - 0.3) + (x0 + 15.4), LENGTH - 2.0)
+	operator.ground_at = func(x: float, z: float) -> float:
 		if x > x0 and absf(z - GARAGE_Z) < 11.0:
 			return 0.23     # the garage workshop floor
 		return 0.18 if absf(x) > half + 0.15 else 0.0
-	player.obstacles = _obstacles()
-	player.position = Vector3(half + 3.4, 0.18, 30.0)
-	player.heading = PI
-	player.build()
-	player.attach_camera(cam)
+	operator.obstacles = _obstacles()
+	operator.position = Vector3(half + 3.4, 0.18, 30.0)
+	operator.heading = PI
+	operator.build()
+	operator.attach_camera(cam)
 	gunplay = Gunplay.new()
 	world.add_child(gunplay)
-	gunplay.setup(player, player.obstacles)
-	# practice dummies on the garage apron and down the sidewalk, until the enemies arrive
-	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0), Vector3(half + 2.5, 0.18, -34.0), Vector3(-(half + 3.0), 0.18, -20.0)]:
+	gunplay.setup(operator, operator.obstacles)
+	_spawn = operator.position
+	# two practice dummies by the garage, and the block's cyber troopers (enemies.gd) further down
+	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0)]:
 		gunplay.add_dummy(spot)
+	enemies = Enemies.new()
+	world.add_child(enemies)
+	enemies.setup(operator, gunplay)
+	enemies.spawn("scout", Vector3(-(half + 3.0), 0.18, -10.0), [Vector3(-(half + 3.0), 0.18, -10.0), Vector3(-(half + 3.0), 0.18, -40.0)])
+	enemies.spawn("elite", Vector3(half + 3.5, 0.18, -48.0), [Vector3(half + 3.5, 0.18, -48.0), Vector3(half + 3.5, 0.18, -30.0)])
+	enemies.spawn("executor", Vector3(-2.0, 0.0, -70.0), [Vector3(-2.0, 0.0, -70.0), Vector3(3.0, 0.0, -56.0)])
+	enemies.spawn("marksman", Vector3(-(half + 4.0), 0.18, -95.0), [Vector3(-(half + 4.0), 0.18, -95.0), Vector3(-(half + 4.0), 0.18, -85.0)])
+	enemies.spawn("drone", Vector3(0.0, 4.0, -25.0), [Vector3(0.0, 4.0, -25.0), Vector3(0.0, 4.0, -60.0)])
+	enemies.operator_down.connect(func(): _respawn_timer = 5.0)
 
 ## world boxes the operator slides around: the props and buildings (`size` meta from prop()), the parked cars, and the
 ## facade line where no building stands (the block's ends); the garage lot stays open
@@ -203,16 +216,25 @@ static func _world_box(t: Transform3D, lo: Vector3, hi: Vector3) -> AABB:
 		w = w.expand(t * box.get_endpoint(i))
 	return w
 
+var _respawn_timer := 0.0
 func _process(dt: float) -> void:
-	if not player or not controls:
+	if not operator or not controls:
 		return
 	if mall_overlay or casino_overlay or sports_overlay or garage_overlay:
 		return
-	player.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	if enemies:
+		enemies.step(minf(dt, 0.05))
+		controls.show_hull(enemies.hull / Enemies.HULL_MAX, enemies.hurt, enemies.down)
+		if _respawn_timer > 0.0:
+			_respawn_timer -= dt
+			if _respawn_timer <= 0.0:
+				operator.position = _spawn
+				operator.velocity = Vector3.ZERO
+	operator.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if gunplay:
 		if controls.take_next():
 			gunplay.next_weapon()
-		gunplay.step(minf(dt, 0.05), cam, controls.fire, controls.take_reload(), Vector2(player.velocity.x, player.velocity.z).length())
+		gunplay.step(minf(dt, 0.05), cam, controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())
 		var g = gunplay.gun()
 		controls.weapon_name.text = String(g.def().name)
 		controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())

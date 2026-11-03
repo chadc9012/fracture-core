@@ -14,6 +14,10 @@ var _reload := false
 var _next := false
 var ammo: Label
 var weapon_name: Label
+var hull_fill: ColorRect
+var hull_back: ColorRect
+var hurt_flash: ColorRect
+var status: Label
 var touch_ui := false
 ## set by a test or a shot: the inputs are written by code, not read from the keyboard
 var scripted := false
@@ -92,6 +96,40 @@ func _hud() -> void:
 	ammo.position = Vector2(20, -56)
 	ammo.add_theme_font_size_override("font_size", 30)
 	add_child(ammo)
+	# hull: a bar at the bottom left above the magazine, and a red wash when hit
+	hurt_flash = ColorRect.new()
+	hurt_flash.color = Color(0.9, 0.1, 0.1, 0.0)
+	hurt_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hurt_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(hurt_flash)
+	move_child(hurt_flash, 0)
+	hull_back = ColorRect.new()
+	hull_back.color = Color(0, 0, 0, 0.45)
+	hull_back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	hull_back.position = Vector2(20, -112)
+	hull_back.size = Vector2(220, 14)
+	hull_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(hull_back)
+	hull_fill = ColorRect.new()
+	hull_fill.color = Color(0.35, 0.95, 0.75)
+	hull_fill.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	hull_fill.position = Vector2(22, -110)
+	hull_fill.size = Vector2(216, 10)
+	hull_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(hull_fill)
+	status = Label.new()
+	status.set_anchors_preset(Control.PRESET_CENTER)
+	status.position = Vector2(-120, -120)
+	status.add_theme_font_size_override("font_size", 34)
+	status.modulate = Color(1.0, 0.3, 0.3)
+	add_child(status)
+
+## the hull read-out: `frac` 0..1, `hurt` 0..1 fades the wash, `down_left` seconds until the operator stands (0 = up)
+func show_hull(frac: float, hurt: float, down_left: float) -> void:
+	hull_fill.size.x = 216.0 * clampf(frac, 0.0, 1.0)
+	hull_fill.color = Color(0.35, 0.95, 0.75) if frac > 0.35 else Color(0.95, 0.4, 0.3)
+	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
+	status.text = ("DOWN · %d" % ceili(down_left)) if down_left > 0.0 else ""
 
 func take_reload() -> bool:
 	var r := _reload

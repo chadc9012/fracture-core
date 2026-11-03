@@ -1,0 +1,333 @@
+extends Node3D
+## Enemies on foot (the Dec 4 plan, phase 2): Nexus City's cyber troopers (the web game's OVERCLOCKED faction, sim.ts),
+## five types built on the robot operator bodies so they walk, run and fight with real clips, moved by the same rules as
+## the player (operator_player.gd with no camera), shooting back with gunplay.gd's bolts. Each is a gunplay Target, so the
+## player's bolts land on them. Hull points are the web game's trooper hull × 10 (a base bullet is 10, weapons.gd).
+##
+##   scout     Data Drone Scout    cipher-robot   rifle, keeps 14 m, strafes            hull 30
+##   elite     Data Drone Elite    goliath-robot  heavy bursts, walks in to 10 m        hull 60
+##   executor  Executor            nyx-robot      blade, runs you down, swings at 2 m   hull 50
+##   marksman  Grid Marksman       cipher-robot   one hard shot, holds 30 m             hull 30
+##   drone     Surveillance Drone  built          hovers at 4 m, weak zaps              hull 15
+##
+## States: PATROL (walks its beat), ALERT (saw you: a beat before it moves), ENGAGE (holds its range and fires), DOWN
+## (dead; stands again after RESPAWN seconds at its spawn). Sight is 40 m with a clear line past the scene's boxes.
+
+const Player := preload("res://scripts/player/operator_player.gd")
+const CharacterStore := preload("res://scripts/character/character_store.gd")
+const Gunplay := preload("res://scripts/combat/gunplay.gd")
+const Weapons := preload("res://scripts/combat/weapons.gd")
+
+const TYPES := {
+	"scout": { "name": "Data Drone Scout", "frame": "cipher", "plating": "graphite", "optics": "cyan", "hull": 30.0, "range": 14.0, "speed": 0.75, "damage": 6.0, "cool": 1.4, "burst": 3, "spread": 0.05, "melee": false, "fly": 0.0, "weapon": "rifle.glb", "scale": 1.0 },
+	"elite": { "name": "Data Drone Elite", "frame": "goliath", "plating": "cobalt", "optics": "amber", "hull": 60.0, "range": 10.0, "speed": 0.55, "damage": 9.0, "cool": 1.8, "burst": 4, "spread": 0.07, "melee": false, "fly": 0.0, "weapon": "rifle-fusion.glb", "scale": 1.08 },
+	"executor": { "name": "Executor", "frame": "nyx", "plating": "crimson", "optics": "red", "hull": 50.0, "range": 1.8, "speed": 1.0, "damage": 16.0, "cool": 1.1, "burst": 1, "spread": 0.0, "melee": true, "fly": 0.0, "weapon": "", "scale": 1.0 },
+	"marksman": { "name": "Grid Marksman", "frame": "cipher", "plating": "ivory", "optics": "violet", "hull": 30.0, "range": 30.0, "speed": 0.6, "damage": 28.0, "cool": 3.2, "burst": 1, "spread": 0.012, "melee": false, "fly": 0.0, "weapon": "rifle-sniper.glb", "scale": 1.0 },
+	"drone": { "name": "Surveillance Drone", "frame": "", "plating": "", "optics": "cyan", "hull": 15.0, "range": 9.0, "speed": 0.9, "damage": 3.0, "cool": 0.9, "burst": 2, "spread": 0.06, "melee": false, "fly": 4.0, "weapon": "", "scale": 1.0 },
+}
+const SIGHT := 40.0
+const RESPAWN := 8.0
+const ALERT_BEAT := 0.5
+
+enum State { PATROL, ALERT, ENGAGE, DOWN }
+
+class Enemy:
+	var type: String
+	var def: Dictionary
+	var mover: Node3D          # operator_player.gd
+	var target: Gunplay.Target
+	var state := State.PATROL
+	var spawn: Vector3
+	var beat: Array[Vector3] = []
+	var beat_i := 0
+	var cool := 0.0
+	var timer := 0.0
+	var strafe := 1.0
+	var burst_left := 0
+	var burst_cool := 0.0
+	var held: Node3D
+	var hover := 0.0
+
+var player: Node3D
+var gunplay: Node3D
+var enemies: Array[Enemy] = []
+var _rng := RandomNumberGenerator.new()
+## the operator's hull, damage this frame for the HUD flash, and the down state
+var hull := 100.0
+const HULL_MAX := 100.0
+var hurt := 0.0
+var down := 0.0
+var since_hit := 10.0
+var deaths := 0
+var kills := 0
+signal operator_hit(damage: float)
+signal operator_down
+
+func setup(p: Node3D, g: Node3D) -> void:
+	player = p
+	gunplay = g
+	_rng.seed = 19
+	g.killed.connect(_on_target_killed)
+
+## spawns one enemy of `type` at `at` with a patrol beat (world points it walks between)
+func spawn(type: String, at: Vector3, beat: Array = []) -> Enemy:
+	var e := Enemy.new()
+	e.type = type
+	e.def = TYPES[type]
+	e.spawn = at
+	for b in (beat if not beat.is_empty() else [at, at + Vector3(0, 0, -12.0)]):
+		e.beat.append(b)
+	e.mover = Player.new()
+	add_child(e.mover)
+	e.mover.bounds = player.bounds
+	e.mover.ground_at = player.ground_at
+	e.mover.obstacles = player.obstacles
+	e.mover.position = at
+	e.mover.cam_yaw = 0.0
+	if e.def.frame != "":
+		var look := CharacterStore.clean({ "frame": e.def.frame, "body": "robot", "skin": e.def.plating, "eyes": e.def.optics })
+		e.mover.build(look)
+		e.mover.rig.scale = Vector3.ONE * float(e.def.scale)
+		_arm(e)
+	else:
+		_drone_body(e)
+	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
+	e.target.set_meta("enemy", e)
+	gunplay.targets.append(e.target)
+	enemies.append(e)
+	return e
+
+func _box(e: Enemy) -> AABB:
+	var p: Vector3 = e.mover.position
+	if e.def.fly > 0.0:
+		return AABB(p + Vector3(-0.5, -0.3, -0.5), Vector3(1.0, 0.6, 1.0))
+	return AABB(p + Vector3(-0.35, 0, -0.35), Vector3(0.7, 1.9 * float(e.def.scale), 0.7))
+
+## the rifle in the right hand, as gunplay mounts the player's
+func _arm(e: Enemy) -> void:
+	if e.def.weapon == "":
+		return
+	var path: String = "res://models/weapons/" + String(e.def.weapon)
+	if not ResourceLoader.exists(path) or not e.mover.rig.skeleton:
+		return
+	var sk: Skeleton3D = e.mover.rig.skeleton
+	for i in sk.get_bone_count():
+		if sk.get_bone_name(i).ends_with("RightHand"):
+			var att := BoneAttachment3D.new()
+			att.bone_idx = i
+			sk.add_child(att)
+			var ws := att.global_transform.basis.get_scale().y
+			e.held = Node3D.new()
+			e.held.scale = Vector3.ONE / maxf(ws, 1e-4)
+			e.held.rotation.y = PI
+			att.add_child(e.held)
+			e.held.add_child((load(path) as PackedScene).instantiate())
+			return
+
+## a hovering surveillance drone: a disc, a lens and four rotor pods
+func _drone_body(e: Enemy) -> void:
+	var n := Node3D.new()
+	e.mover.add_child(n)
+	var body := StandardMaterial3D.new()
+	body.albedo_color = Color(0.16, 0.17, 0.2)
+	body.metallic = 0.7
+	body.roughness = 0.35
+	var lens := StandardMaterial3D.new()
+	lens.albedo_color = Color(0.1, 0.9, 1.0)
+	lens.emission_enabled = true
+	lens.emission = Color(0.1, 0.9, 1.0)
+	lens.emission_energy_multiplier = 3.0
+	var disc := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.45; cm.bottom_radius = 0.5; cm.height = 0.18
+	disc.mesh = cm
+	disc.material_override = body
+	n.add_child(disc)
+	var eye := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.1; sm.height = 0.2
+	eye.mesh = sm
+	eye.position = Vector3(0, -0.05, 0.45)
+	eye.material_override = lens
+	n.add_child(eye)
+	for a in 4:
+		var pod := MeshInstance3D.new()
+		var pm := CylinderMesh.new()
+		pm.top_radius = 0.16; pm.bottom_radius = 0.16; pm.height = 0.06
+		pod.mesh = pm
+		pod.position = Vector3(cos(a * TAU / 4 + PI / 4) * 0.6, 0.08, sin(a * TAU / 4 + PI / 4) * 0.6)
+		pod.material_override = body
+		n.add_child(pod)
+	e.hover = float(e.def.fly)
+
+func step(dt: float) -> void:
+	since_hit += dt
+	hurt = maxf(0.0, hurt - dt * 3.0)
+	if down > 0.0:
+		down -= dt
+		if down <= 0.0:
+			hull = HULL_MAX
+	elif since_hit > 4.0:
+		hull = minf(HULL_MAX, hull + 12.0 * dt)
+	for e in enemies:
+		_step_enemy(e, dt)
+		e.target.box = _box(e)
+
+func _step_enemy(e: Enemy, dt: float) -> void:
+	var m: Node3D = e.mover
+	if e.state == State.DOWN:
+		e.timer -= dt
+		if e.timer <= 0.0:
+			e.state = State.PATROL
+			e.target.hp = e.target.max_hp
+			e.target.down = 0.0
+			m.position = e.spawn
+			m.visible = true
+		return
+	if not e.target.alive():
+		e.state = State.DOWN
+		e.timer = RESPAWN
+		m.visible = false
+		kills += 1
+		return
+	var to_player: Vector3 = player.position - m.position
+	to_player.y = 0.0
+	var dist := to_player.length()
+	var sees := dist < SIGHT and down <= 0.0 and _clear(m.position + Vector3(0, 1.4, 0), player.position + Vector3(0, 1.2, 0))
+	var move := Vector2.ZERO
+	var sprint := false
+	e.cool = maxf(0.0, e.cool - dt)
+	match e.state:
+		State.PATROL:
+			var goal: Vector3 = e.beat[e.beat_i]
+			var d := goal - m.position
+			d.y = 0.0
+			if d.length() < 1.0:
+				e.beat_i = (e.beat_i + 1) % e.beat.size()
+			else:
+				move = _toward(d) * 0.4
+			if sees:
+				e.state = State.ALERT
+				e.timer = ALERT_BEAT
+		State.ALERT:
+			e.timer -= dt
+			_face(e, to_player)
+			if e.timer <= 0.0:
+				e.state = State.ENGAGE
+				e.strafe = 1.0 if _rng.randf() < 0.5 else -1.0
+		State.ENGAGE:
+			if not sees and dist > SIGHT * 1.2:
+				e.state = State.PATROL
+			_face(e, to_player)
+			var want: float = float(e.def.range)
+			var fwd := _toward(to_player)
+			if dist > want + 1.5:
+				move = fwd * float(e.def.speed)
+				sprint = e.def.melee
+			elif dist < want - 1.5 and not e.def.melee:
+				move = -fwd * 0.5
+			else:
+				# hold the range and strafe
+				move = Vector2(-fwd.y, fwd.x) * e.strafe * 0.35
+				e.timer -= dt
+				if e.timer <= 0.0:
+					e.strafe = -e.strafe
+					e.timer = 1.5 + _rng.randf() * 2.0
+			if sees and e.cool <= 0.0 and dist <= want + 2.5:
+				_attack(e, dist)
+	# bursts in flight
+	if e.burst_left > 0:
+		e.burst_cool -= dt
+		if e.burst_cool <= 0.0:
+			_shoot(e)
+			e.burst_left -= 1
+			e.burst_cool = 0.12
+	if e.def.fly > 0.0:
+		# the drone floats: no gravity, a gentle bob
+		m.position += Vector3(move.x, 0, -move.y) * 4.0 * dt
+		e.hover += dt
+		m.position.y = (m.ground_at.call(m.position.x, m.position.z) as float) + float(e.def.fly) + sin(e.hover * 2.0) * 0.25
+		var yaw := atan2(to_player.x, to_player.z)
+		m.rotation.y = lerp_angle(m.rotation.y, yaw, minf(1.0, 4.0 * dt))
+	else:
+		m.step(dt, move, Vector2.ZERO, false, sprint)
+		if e.state == State.ENGAGE or e.state == State.ALERT:
+			# in a fight the body faces the operator whichever way it steps
+			m.heading = lerp_angle(m.heading, atan2(to_player.x, to_player.z), minf(1.0, 8.0 * dt))
+			if m.rig:
+				m.rig.rotation.y = m.heading
+
+func _toward(d: Vector3) -> Vector2:
+	# operator_player with cam_yaw 0: stick y walks -z, stick x walks +x
+	var n := Vector3(d.x, 0, d.z).normalized()
+	return Vector2(n.x, -n.z)
+
+func _face(e: Enemy, d: Vector3) -> void:
+	if e.mover.rig:
+		e.mover.heading = lerp_angle(e.mover.heading, atan2(d.x, d.z), 0.25)
+
+func _clear(from: Vector3, to: Vector3) -> bool:
+	var dir := to - from
+	var len := dir.length()
+	if len < 0.01:
+		return true
+	dir /= len
+	for b in player.obstacles:
+		var p: Variant = b.intersects_ray(from, dir)
+		if p != null and from.distance_to(p) < len:
+			return false
+	return true
+
+func _attack(e: Enemy, dist: float) -> void:
+	e.cool = float(e.def.cool) * (0.8 + _rng.randf() * 0.4)
+	e.mover.combat_hold = 1.5
+	if e.def.melee:
+		if dist <= float(e.def.range) + 0.6:
+			_hit_operator(float(e.def.damage))
+		return
+	e.burst_left = int(e.def.burst)
+	e.burst_cool = 0.0
+
+func _muzzle(e: Enemy) -> Vector3:
+	if e.held:
+		return e.held.global_transform * Vector3(0, 0.07, 0.8)
+	return e.mover.position + Vector3(0, 1.3 if e.def.fly <= 0.0 else -0.05, 0)
+
+## one bolt at the operator: a hit when the line passes within the body's radius, else a miss into the scene
+func _shoot(e: Enemy) -> void:
+	var from := _muzzle(e)
+	var aim: Vector3 = player.position + Vector3(0, 1.1, 0)
+	var dir := (aim - from).normalized()
+	var side := dir.cross(Vector3.UP).normalized()
+	var up := side.cross(dir)
+	var spread: float = float(e.def.spread) * (1.6 if Vector2(player.velocity.x, player.velocity.z).length() > 3.0 else 1.0)
+	dir = (dir + side * _rng.randfn(0.0, spread) + up * _rng.randfn(0.0, spread)).normalized()
+	var len := from.distance_to(aim)
+	var closest := (aim - from) - dir * (aim - from).dot(dir)
+	var hit := closest.length() < 0.45 and _clear(from, aim)
+	var end := aim if hit else from + dir * minf(len + 20.0, 80.0)
+	if not hit:
+		for b in player.obstacles:
+			var p: Variant = b.intersects_ray(from, dir)
+			if p != null and from.distance_to(p) < from.distance_to(end):
+				end = p
+	gunplay.tracer(from, end, Color(0.4, 0.9, 1.0))
+	gunplay.spark(end, hit)
+	if hit:
+		_hit_operator(float(e.def.damage))
+
+func _hit_operator(damage: float) -> void:
+	if down > 0.0:
+		return
+	hull -= damage
+	hurt = 1.0
+	since_hit = 0.0
+	operator_hit.emit(damage)
+	if hull <= 0.0:
+		hull = 0.0
+		down = 5.0
+		deaths += 1
+		operator_down.emit()
+
+func _on_target_killed(_t: Gunplay.Target) -> void:
+	pass
