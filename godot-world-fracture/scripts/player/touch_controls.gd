@@ -1,0 +1,137 @@
+extends Control
+## On-foot input for the phone and the desk, one overlay over the 3D view: a virtual stick where the thumb lands on the left
+## half of the screen, look-drag anywhere on the right half, JUMP and SPRINT buttons (phone), WASD / arrows + Space + Shift and
+## mouse-drag look on a keyboard. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
+## whoever reads it), `jump` (edge, consumed) and `sprint` (held). Owner, Oct 26: the phone screen keeps only walk, look,
+## jump and sprint until more is asked for; fire comes with the weapons task.
+
+var move := Vector2.ZERO
+var look_delta := Vector2.ZERO
+var sprint := false
+var _jump := false
+var touch_ui := false
+## set by a test or a shot: the inputs are written by code, not read from the keyboard
+var scripted := false
+
+const STICK_R := 70.0           # stick travel in px
+var _stick_id := -1
+var _stick_origin := Vector2.ZERO
+var _look_id := -1
+var _mouse_look := false
+var _stick_base: Control
+var _stick_knob: Control
+var _sprint_held := false
+
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	touch_ui = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
+	if touch_ui:
+		_stick_base = _ring(STICK_R + 24.0, Color(1, 1, 1, 0.12))
+		_stick_knob = _ring(34.0, Color(1, 1, 1, 0.35))
+		_stick_base.visible = false
+		_stick_knob.visible = false
+		add_child(_stick_base)
+		add_child(_stick_knob)
+		var jump := _button("JUMP")
+		jump.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		jump.position = Vector2(-120, -140)
+		jump.button_down.connect(func(): _jump = true)
+		add_child(jump)
+		var run := _button("SPRINT")
+		run.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		run.position = Vector2(-120, -230)
+		run.toggle_mode = true
+		run.toggled.connect(func(on: bool): _sprint_held = on)
+		add_child(run)
+
+func _ring(r: float, col: Color) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(r * 2, r * 2)
+	c.size = c.custom_minimum_size
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.draw.connect(func(): c.draw_circle(Vector2(r, r), r, col); c.draw_arc(Vector2(r, r), r - 1.0, 0.0, TAU, 48, Color(1, 1, 1, 0.5), 2.0))
+	return c
+
+func _button(text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(104, 76)
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_size_override("font_size", 20)
+	b.modulate = Color(1, 1, 1, 0.85)
+	return b
+
+## the jump press since the last call
+func take_jump() -> bool:
+	var j := _jump
+	_jump = false
+	return j
+
+## the look drag since the last call (px)
+func take_look() -> Vector2:
+	var d := look_delta
+	look_delta = Vector2.ZERO
+	return d
+
+func _process(_dt: float) -> void:
+	if scripted:
+		return
+	if touch_ui:
+		sprint = _sprint_held
+		return
+	# keyboard
+	var k := Vector2.ZERO
+	k.x = (1.0 if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) else 0.0) - (1.0 if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) else 0.0)
+	k.y = (1.0 if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) else 0.0)
+	move = k.limit_length(1.0)
+	sprint = Input.is_key_pressed(KEY_SHIFT)
+	if Input.is_key_pressed(KEY_SPACE) and not _space_was:
+		_jump = true
+	_space_was = Input.is_key_pressed(KEY_SPACE)
+var _space_was := false
+
+func _gui_input(event: InputEvent) -> void:
+	if touch_ui:
+		if event is InputEventScreenTouch:
+			var t := event as InputEventScreenTouch
+			var left := t.position.x < size.x * 0.45
+			if t.pressed:
+				if left and _stick_id < 0:
+					_stick_id = t.index
+					_stick_origin = t.position
+					_stick_base.position = t.position - _stick_base.size * 0.5
+					_stick_knob.position = t.position - _stick_knob.size * 0.5
+					_stick_base.visible = true
+					_stick_knob.visible = true
+					move = Vector2.ZERO
+				elif not left and _look_id < 0:
+					_look_id = t.index
+			else:
+				if t.index == _stick_id:
+					_stick_id = -1
+					move = Vector2.ZERO
+					_stick_base.visible = false
+					_stick_knob.visible = false
+				elif t.index == _look_id:
+					_look_id = -1
+			accept_event()
+		elif event is InputEventScreenDrag:
+			var d := event as InputEventScreenDrag
+			if d.index == _stick_id:
+				var v := (d.position - _stick_origin)
+				var lim := v.limit_length(STICK_R)
+				_stick_knob.position = _stick_origin + lim - _stick_knob.size * 0.5
+				move = Vector2(lim.x, -lim.y) / STICK_R
+			elif d.index == _look_id:
+				look_delta += d.relative
+			accept_event()
+		return
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT or mb.button_index == MOUSE_BUTTON_RIGHT:
+			_mouse_look = mb.pressed
+			accept_event()
+	elif event is InputEventMouseMotion and _mouse_look:
+		look_delta += (event as InputEventMouseMotion).relative
+		accept_event()

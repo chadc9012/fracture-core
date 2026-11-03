@@ -28,6 +28,12 @@ const GarageView = preload("res://scripts/garage/garage_view.gd")
 const Mall = preload("res://scripts/city/mall_interior.gd")
 const Casino = preload("res://scripts/city/casino_interior.gd")
 const Sports = preload("res://scripts/city/sports_district.gd")
+const OperatorPlayer = preload("res://scripts/player/operator_player.gd")
+const TouchControls = preload("res://scripts/player/touch_controls.gd")
+## on foot (phase 2 of the Dec 4 plan): the saved operator walks the block with a chase camera; off for look-dev shots
+var walk := true
+var player: Node3D
+var controls: Control
 var mall_overlay: Control
 var casino_overlay: Control
 var sports_overlay: Control
@@ -84,6 +90,8 @@ func _ready() -> void:
 	world.add_child(cam)
 	cam.current = true
 	look_from(Vector3(ROAD_W * 0.5 + 3.4, 1.7, 30.0), Vector3(ROAD_W * 0.5 - 3.0, 4.0, -40.0))
+	if walk:
+		_spawn_player()
 	var back := Button.new()
 	back.text = "← BACK"
 	back.position = Vector2(16, 16)
@@ -129,6 +137,70 @@ func _ready() -> void:
 func look_from(from: Vector3, at: Vector3) -> void:
 	cam.position = from
 	cam.look_at(at)
+
+# --------------------------------------------------------------------------------------------- on foot
+func _spawn_player() -> void:
+	controls = TouchControls.new()
+	add_child(controls)
+	player = OperatorPlayer.new()
+	world.add_child(player)
+	var half := ROAD_W * 0.5
+	var x0 := half + WALK_W
+	player.bounds = Rect2(-(x0 - 0.3), -(LENGTH * 0.5 - 1.0), (x0 - 0.3) + (x0 + 15.4), LENGTH - 2.0)
+	player.ground_at = func(x: float, z: float) -> float:
+		if x > x0 and absf(z - GARAGE_Z) < 11.0:
+			return 0.23     # the garage workshop floor
+		return 0.18 if absf(x) > half + 0.15 else 0.0
+	player.obstacles = _obstacles()
+	player.position = Vector3(half + 3.4, 0.18, 30.0)
+	player.heading = PI
+	player.build()
+	player.attach_camera(cam)
+
+## world boxes the operator slides around: the props and buildings (`size` meta from prop()), the parked cars, and the
+## facade line where no building stands (the block's ends); the garage lot stays open
+func _obstacles() -> Array[AABB]:
+	var out: Array[AABB] = []
+	for c in world.get_children():
+		var n := c as Node3D
+		if not n:
+			continue
+		if n.has_meta("size"):
+			var sz: Vector3 = n.get_meta("size")
+			var file := String(n.get_meta("file")) if n.has_meta("file") else ""
+			if file.begins_with("palm") or file.begins_with("street-lamp"):
+				sz = Vector3(0.6, sz.y, 0.6)   # the trunk, not the fronds
+			out.append(_world_box(n.transform, Vector3(-sz.x * 0.5, 0, -sz.z * 0.5), Vector3(sz.x * 0.5, sz.y, sz.z * 0.5)))
+		elif n.has_meta("car"):
+			var a := _aabb(n)
+			out.append(_world_box(n.transform, a.position, a.end))
+	var x0 := ROAD_W * 0.5 + WALK_W
+	out.append(AABB(Vector3(-x0 - 0.5, 0, -LENGTH * 0.5), Vector3(0.5, 12.0, LENGTH)))
+	out.append(AABB(Vector3(x0, 0, -LENGTH * 0.5), Vector3(0.5, 12.0, GARAGE_Z - 11.0 + LENGTH * 0.5)))
+	out.append(AABB(Vector3(x0, 0, GARAGE_Z + 11.0), Vector3(0.5, 12.0, LENGTH * 0.5 - GARAGE_Z - 11.0)))
+	# the garage shell (_garage_front): its two side walls, the back wall, the door jambs, the lift and the tool wall
+	out.append(AABB(Vector3(x0, 0, GARAGE_Z - 11.2), Vector3(16.4, 9.0, 0.4)))
+	out.append(AABB(Vector3(x0, 0, GARAGE_Z + 10.8), Vector3(16.4, 9.0, 0.4)))
+	out.append(AABB(Vector3(x0 + 15.8, 0, GARAGE_Z - 11.0), Vector3(0.6, 9.0, 22.0)))
+	out.append(AABB(Vector3(x0, 0, GARAGE_Z - 11.0), Vector3(0.5, 9.0, 3.0)))
+	out.append(AABB(Vector3(x0, 0, GARAGE_Z + 8.0), Vector3(0.5, 9.0, 3.0)))
+	out.append(AABB(Vector3(x0 + 6.5, 0, GARAGE_Z - 5.2), Vector3(5.0, 1.5, 2.4)))
+	out.append(AABB(Vector3(x0 + 15.45, 0, GARAGE_Z - 2.0), Vector3(0.3, 3.0, 10.0)))
+	return out
+
+static func _world_box(t: Transform3D, lo: Vector3, hi: Vector3) -> AABB:
+	var box := AABB(lo, hi - lo)
+	var w := AABB(t * box.position, Vector3.ZERO)
+	for i in 8:
+		w = w.expand(t * box.get_endpoint(i))
+	return w
+
+func _process(dt: float) -> void:
+	if not player or not controls:
+		return
+	if mall_overlay or casino_overlay or sports_overlay or garage_overlay:
+		return
+	player.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 
 # --------------------------------------------------------------------------------------------- light, sky, haze
 func _environment() -> void:
@@ -353,6 +425,7 @@ func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
 	holder.position = pos
 	holder.rotation_degrees.y = yaw_deg
 	holder.set_meta("size", aabb.size * s)
+	holder.set_meta("file", file)
 	world.add_child(holder)
 	return holder
 
@@ -514,6 +587,7 @@ func _cars() -> void:
 			var car := (load(FLEET + f) as PackedScene).instantiate() as Node3D
 			car.position = Vector3(side * (half - 1.4), 0.0, z + _rng.randf_range(-2.0, 2.0))
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
+			car.set_meta("car", true)
 			world.add_child(car)
 		z += _rng.randf_range(9.0, 16.0)
 		i += 1
@@ -659,6 +733,7 @@ func _garage_front() -> void:
 			var car := (load(FLEET + String(spec[0])) as PackedScene).instantiate() as Node3D
 			car.position = spec[1]
 			car.rotation_degrees.y = float(spec[2])
+			car.set_meta("car", true)
 			world.add_child(car)
 
 func open_garage() -> void:

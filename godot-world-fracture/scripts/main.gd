@@ -101,22 +101,23 @@ func _open_drive() -> void:
 	planet_view.set_process(false)
 
 var street: Control
-func _open_street(night := false, style := "nexus") -> void:
+func _open_street(night := false, style := "nexus", walk := true) -> void:
 	if street or driving or garage:
 		return
 	street = StreetSlice.new()
 	street.night = night
 	street.style = style
+	street.walk = walk
 	street.toggle_style.connect(func():
 		var n: bool = street.night
 		var st: String = street.style
 		_close_street()
-		_open_street(n, StreetSlice.STYLES[(StreetSlice.STYLES.find(st) + 1) % StreetSlice.STYLES.size()]))
+		_open_street(n, StreetSlice.STYLES[(StreetSlice.STYLES.find(st) + 1) % StreetSlice.STYLES.size()], walk))
 	street.toggle_night.connect(func():
 		var was: bool = street.night
 		var st2: String = street.style
 		_close_street()
-		_open_street(not was, st2))
+		_open_street(not was, st2, walk))
 	street.closed.connect(_close_street)
 	add_child(street)
 	planet_view.set_process(false)
@@ -233,28 +234,35 @@ func _shoot(path: String, opts: Array) -> void:
 				for k in 20:
 					await get_tree().process_frame
 				driving._open_city_garage()
-		# slice[:x,y,z:tx,ty,tz]  the Nexus street slice, optionally from another camera
+		# slice[night][coast|neon][walk][garage]  the street slice as a look-dev shot (fixed camera), or on foot with "walk"
 		if String(o).begins_with("slice"):
-			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"))
+			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"), String(o).contains("walk"))
+			# slicewalk:run holds the stick forward-right with sprint for the shot; slicewalk:jump also jumps once
+			if String(o).contains("walk:"):
+				street.controls.scripted = true
+				street.controls.move = Vector2(0.35, 1.0) if String(o).contains("run") else Vector2(0.0, 1.0)
+				street.controls.sprint = String(o).contains("run")
+				if String(o).contains("jump"):
+					street.controls._jump = true
 			if String(o).contains("garage"):
 				street.open_garage()
 		# casino[:view]  the Skyline Casino: 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
 		if String(o).begins_with("casino"):
-			_open_street()
+			_open_street(false, "nexus", false)
 			street.open_casino()
 			var cv := String(o).split(":")
 			if cv.size() > 1:
 				street.casino_overlay.show_view(int(cv[1]))
 		# sports[:view]  the sports district: 0-2 Pulse Arena, 3-4 Sunset Courts, 5-7 Iron Pulse gym
 		if String(o).begins_with("sports"):
-			_open_street()
+			_open_street(false, "nexus", false)
 			street.open_sports()
 			var sv := String(o).split(":")
 			if sv.size() > 1:
 				street.sports_overlay.show_view(int(sv[1]))
 		# mall[:view]  the Galleria mall interior
 		if String(o).begins_with("mall"):
-			_open_street()
+			_open_street(false, "nexus", false)
 			street.open_mall()
 			var mv := String(o).split(":")
 			if mv.size() > 1:

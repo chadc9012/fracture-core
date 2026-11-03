@@ -66,11 +66,21 @@ The cut heads are skinned onto the body's own skeleton, so they follow its idle;
 web game's (ported to `face_morphs.gd` and a generated skin shader). The catalogue comes from the web game:
 `bun scripts/export-godot-character.ts` rewrites `data/character.json`.
 
+**On foot** (`scripts/player/`, phase 2 of the owner's Dec 4 plan): the street slices open with the saved operator standing
+on the sidewalk and a chase camera behind the shoulder. Phone: a virtual stick where the left thumb lands, look-drag on the
+right half, JUMP and SPRINT buttons. Keyboard: WASD / arrows, Space, Shift, mouse-drag look. Movement is the operator's own
+rules (`operator_player.gd`: a ground height function, obstacle boxes it slides around, the kerb stepped onto, a jump) rather
+than the physics server, because the street is merged visual meshes with no collision shapes; `street_slice.gd` builds the
+boxes from the props' sizes, the parked cars, the facade line and the garage shell. Clips idle / walk / run follow the speed.
+Test: `godot --headless --path godot-world-fracture --script res://tests/player/operator_player_test.gd`. Shots: `slicewalk`
+puts the operator on the street; `slicewalk:run` and `slicewalk:jump` drive the stick for the frames captured; plain `slice`
+keeps the look-dev camera.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 
