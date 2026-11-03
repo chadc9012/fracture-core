@@ -25,7 +25,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Session | Since |
 | --- | --- | --- |
 | Phase 2: Godot enemies — 5 types from the web AI, spawns in the Nexus block, they shoot back, operator hull and death | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
-| Killbox arena maps to the owner's PvP maps board (web build; the owner asked for this directly in session — outside the Dec 4 scope, paused after Killbox Prime pending the owner's call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
+| Killbox bots: full bot teams on the arenas, allies and rivals (web build; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
 - Phase 2: Godot HUD — hull, ammo, crosshair, compass, objective (the phone's simple HUD first).

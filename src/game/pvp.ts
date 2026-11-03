@@ -1,7 +1,8 @@
 /** Killbox match modes (owner's PvP brief, Oct 25): Clash, Dominion, Freefall and Lockdown in the Killbox, the 3v3 Killbox:
  * Ascendancy rounds, and Fracture Royale. Pure rules, kept apart from Scene so they are testable.
  *
- * There is no online multiplayer yet (crucible.ts), so every other player is an AI operator. Around you the fight is real:
+ * There is no online multiplayer yet (crucible.ts), so every other player is an AI operator. On a built arena (killbox-arenas.ts) both
+ * teams are on the field in full and played by bots (killbox-bots.ts: `allies`, `rivalField`, ally deaths, zone presence); elsewhere: Around you the fight is real:
  * rival operators take the field (`onField` at a time) and your two squadmates (squad.ts) fight beside you. The rest of each
  * team is "the far side of the arena": the off-field members trade eliminations at a steady, seeded rate (`stepFront`), so a
  * 6v6 score moves like a 6v6 even though you only see your corner of it. The same scoring takes real players when they can
@@ -57,21 +58,25 @@ export type PvpState = {
   result: "win" | "loss" | null; reason: string;
   /** rng seed for the off-field fight */
   seed: number;
+  /** a built arena with bots (killbox-bots.ts): your ally bots and the rivals on the field; the rest of each team fights off-field */
+  allies: number; rivalField?: number | undefined;
 };
 
 export type ZoneSpot = { id: Zone["id"]; dx: number; dz: number };
 /** the open-world arena's zones (Grid-Iron); a built arena (killbox-arenas.ts) passes its own */
 const OPEN_ZONES: readonly ZoneSpot[] = [{ id: "A", dx: -22, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 22, dz: 0 }];
-export function newPvp(mode: PvpModeId, seed = 1, zones: readonly ZoneSpot[] = OPEN_ZONES): PvpState {
+export function newPvp(mode: PvpModeId, seed = 1, zones: readonly ZoneSpot[] = OPEN_ZONES, /** a bot match: ally bots and rivals on the field */ bots?: { allies: number; rivals: number }): PvpState {
   const m = PVP_MODES[mode];
-  return { mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed };
+  return { mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed, allies: bots?.allies ?? 0, rivalField: bots?.rivals };
 }
 
 /** deterministic 0..1 from the state's seed (advances it) */
 function rnd(st: PvpState): number { st.seed = (Math.imul(st.seed ^ 0x5bd1e995, 1103515245) + 12345) >>> 0; return (st.seed % 100000) / 100000; }
 
 /** what the player and the field did this frame */
-export type PvpEvents = { dt: number; kills: number; died: boolean; /** player distance to the arena centre and position offset (for zones) */ px: number; pz: number; /** rivals of this round still standing (rounds) */ rivalsAlive: number };
+export type PvpEvents = { dt: number; kills: number; died: boolean; /** player distance to the arena centre and position offset (for zones) */ px: number; pz: number; /** rivals of this round still standing (rounds) */ rivalsAlive: number;
+  /** a bot match: ally bots that went down this frame (a point for them), and who stands in each zone (Dominion captures by presence) */
+  allyDeaths?: number; presence?: Record<string, { us: number; them: number }> };
 
 /** advance a match one frame; returns true once it is decided */
 export function stepPvp(st: PvpState, e: PvpEvents): boolean {
@@ -80,12 +85,12 @@ export function stepPvp(st: PvpState, e: PvpEvents): boolean {
   st.clock += e.dt;
   switch (m.kind) {
     case "team": {
-      st.us += e.kills; if (e.died) st.them += 1;
+      st.us += e.kills; if (e.died) st.them += 1; st.them += e.allyDeaths ?? 0;
       stepFront(st, m, e.dt);
       break;
     }
     case "zones": {
-      st.us += e.kills; if (e.died) st.them += 1;
+      st.us += e.kills; if (e.died) st.them += 1; st.them += e.allyDeaths ?? 0;
       stepFront(st, m, e.dt);
       stepZones(st, e);
       break;
@@ -107,13 +112,23 @@ export function stepPvp(st: PvpState, e: PvpEvents): boolean {
 
 /** the far side of the arena: off-field members of each team trade eliminations */
 function stepFront(st: PvpState, m: PvpMode, dt: number) {
-  const ours = Math.max(0, m.teamSize - FIRETEAM), theirs = Math.max(0, m.teamSize - m.onField);
+  // a bot match fields the whole of both teams, so nobody is left to fight off-field
+  const fireteam = st.rivalField !== undefined ? 1 + st.allies : FIRETEAM;
+  const ours = Math.max(0, m.teamSize - fireteam), theirs = Math.max(0, m.teamSize - (st.rivalField ?? m.onField));
   if (rnd(st) < dt * FRONT_RATE * ours) st.us += 1;
   if (rnd(st) < dt * FRONT_RATE * theirs) st.them += 1;
 }
 
 function stepZones(st: PvpState, e: PvpEvents) {
-  for (const z of st.zones) {
+  if (e.presence) {
+    // a bot match: a zone moves toward the team standing in it unopposed; a contested zone holds
+    for (const z of st.zones) {
+      const p = e.presence[z.id] ?? { us: 0, them: 0 };
+      if (p.us > 0 && p.them === 0) z.cap = Math.min(1, z.cap + (e.dt / ZONE_CAPTURE_S) * Math.min(2, p.us));
+      else if (p.them > 0 && p.us === 0) z.cap = Math.max(-1, z.cap - (e.dt / ZONE_CAPTURE_S) * Math.min(2, p.them));
+      z.owner = z.cap >= 1 ? "us" : z.cap <= -1 ? "them" : z.owner;
+    }
+  } else for (const z of st.zones) {
     const here = Math.hypot(e.px - z.dx, e.pz - z.dz) < ZONE_RADIUS;
     if (here) z.cap = Math.min(1, z.cap + e.dt / ZONE_CAPTURE_S);
     // the zones you aren't standing in change hands in the off-field fight now and then
@@ -209,9 +224,10 @@ function decide(st: PvpState, m: PvpMode) {
 /** rival operators that should be on the field right now */
 export function fieldSize(st: PvpState): number {
   const m = PVP_MODES[st.mode];
-  if (m.kind === "rounds") return st.roundOver > 0 ? 0 : m.onField;
+  const field = st.rivalField ?? m.onField;
+  if (m.kind === "rounds") return st.roundOver > 0 ? 0 : field;
   if (m.kind === "royale") return Math.min(m.onField, Math.max(0, st.alive - m.teamSize));
-  return m.onField;
+  return field;
 }
 /** do downed rivals come back this round/match? (no respawns in rounds; royale sends fresh squads in waves instead) */
 export const respawns = (st: PvpState) => PVP_MODES[st.mode].kind !== "rounds";

@@ -333,7 +333,7 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
           {/* Crucible rival operators in their hostile colourways (crucible.ts) */}
           {(["TITAN", "HUNTER", "WARLOCK"] as RivalClass[]).map((cls) => (
             <group key={cls} name={`rival-${cls}`} visible={false} position={[0, 2.2, 0]}>
-              {need(i, `rival-${cls}`) && <OperatorModel classId={cls} height={OPERATOR_HEIGHT} feetY={-2.2} pose="locomotion" motion={strides[i]} color={RIVAL_COLORS[cls].armor} trim={RIVAL_COLORS[cls].trim} cloth={RIVAL_COLORS[cls].cloth} fallback={<RegionalEnemy kind="VANGUARD" boss={false} drive={drives[i]!} />} />}
+              {need(i, `rival-${cls}`) && <OperatorModel classId={cls} height={OPERATOR_HEIGHT} feetY={-2.2} pose="locomotion" motion={strides[i]} color={RIVAL_COLORS[cls].armor} trim={RIVAL_COLORS[cls].trim} cloth={RIVAL_COLORS[cls].cloth} colorway fallback={<RegionalEnemy kind="VANGUARD" boss={false} drive={drives[i]!} />} />}
             </group>
           ))}
           {/* loot cue: elites (better drops) wear a glowing amber ring at their feet, like Diablo's elite tell */}

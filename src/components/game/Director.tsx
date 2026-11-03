@@ -139,7 +139,7 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
         <div className="text-right font-mono"><p className="ui-kicker">Rank</p><p className="text-lg text-primary">{rank}</p></div>
       </header>
       {!progression.tutorialComplete && <p className="mt-4 border-l-2 border-primary pl-3 text-sm">{CRUCIBLE_LOCKED}.</p>}
-      <p className="mt-4 max-w-3xl text-sm text-muted-foreground">Fight rival operators on the Killbox arenas. Playlists rotate through the arena maps — {Object.values(ARENAS).map((a) => `${a.name} (${a.region})`).join(", ")} — one match to the next; Duel and Skirmish stay on the Grid-Iron Highway in the Wastelands. Online matchmaking isn't live yet, so every rival slot is filled by an AI GOLIATH, NYX or CIPHER; the same scoring will carry over when real players can join.</p>
+      <p className="mt-4 max-w-3xl text-sm text-muted-foreground">Fight rival operators on the Killbox arenas. Playlists rotate through the arena maps — {Object.values(ARENAS).map((a) => `${a.name} (${a.region})`).join(", ")} — one match to the next; Duel and Skirmish stay on the Grid-Iron Highway in the Wastelands. Online matchmaking isn't live yet, so on the arenas every other slot is a bot: your team's ally bots (VEX, HOLT, KAI, ROOK, SABLE) fight beside you against a full team of rival GOLIATH, NYX and CIPHER operators, and the bots fight each other as well as you. The same scoring will carry over when real players can join.</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {modes.map(({ mode, id }) => {
           const m = CRUCIBLE_MODES[mode];
@@ -188,7 +188,7 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
           );
         })}
       </div>
-      <p className="mt-4 text-[11px] text-muted-foreground">Every other player is an AI operator for now. Around you the fight is real: rivals take the field and your squadmates VEX and HOLT fight beside you; the rest of each team battles across the arena and their eliminations count on the scoreboard.</p>
+      <p className="mt-4 text-[11px] text-muted-foreground">Every other player is a bot for now. On the arenas both teams are on the field in full — 6v6, 4v4 or 3v3 — and your ally bots capture zones, push the objective, die and respawn like players; in Freefall the rival bots fight each other too. Fracture Royale and the Grid-Iron duels keep the open-world fight.</p>
     </Panel>
   );
 }
