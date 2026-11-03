@@ -27,7 +27,6 @@ Rows are the lock; `git fetch` before you claim.
 | Killbox bots: full bot teams on the arenas, allies and rivals (web build; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
-- Phase 5 follow-up: draw the owned Haven Home furniture in Apartment 12-04 (preset slots per piece).
 - Phase 5: district streaming (Active / Simulated / Frozen) once the block becomes more than one street.
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
@@ -37,6 +36,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Phase 5 follow-up: Haven Home furniture drawn in Apartment 12-04 (per-slot replacements and additions) | see git log "Apartment 12-04 shows the furniture" (Nov 3) |
 | Phase 3 follow-up: Google sign-in in the Godot app (PKCE via the browser and a localhost callback, no custom build) | see git log "Godot: sign in with Google" (Nov 3) |
 | Phase 4: fd-02 First Resonance, fd-03 Broken Signal, fd-04 Into the Shrouded Swamps in the Verdant Forest (region PLAY mode, shared operator/guns/troopers/gear, quests.json) | see git log "Godot: the Fracture Descent" (Nov 3) |
 | Phase 2/4 merge (gear side): the worn weapon's frame, numbers and authored model, the outfit tint and a first-clear boss drop in Mission 01 | see git log "Mission 01 takes the worn gear" (Nov 3) |

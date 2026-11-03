@@ -454,8 +454,18 @@ func _interior_skyline() -> void:
 		if i % 4 == 0:
 			_box(Vector3(w * 0.7, 12.0, w * 0.7), c + Vector3(0, h * 0.5 + 6.0, 0), win).rotation.y = mi.rotation.y
 
+## Haven Home (gear_store.gd FURNITURE): the newest bought piece per room slot replaces or joins the apartment's own
+func _haven() -> Dictionary:
+	var out := {}
+	for id in Gear.load_save().get("furniture", []):
+		var f := Gear.furniture(String(id))
+		if not f.is_empty():
+			out[String(f.slot)] = String(id)
+	return out
+
 func _apartment() -> void:
 	var c := APT
+	var haven := _haven()
 	var wood := Materials.pbr("wood_floor", Color(1.0, 0.92, 0.85), 1.6, 0.8)
 	var plaster := Materials.pbr("painted_plaster_wall", Color(0.93, 0.9, 0.86), 3.0)
 	_shell(c, 16.0, 11.0, 3.2, wood, plaster, flat(Color(0.95, 0.94, 0.92), 0.9), "n")
@@ -465,7 +475,14 @@ func _apartment() -> void:
 	_lamp(c + Vector3(4.0, 2.8, 0.5), Color(1.0, 0.86, 0.7), 1.3, 9.0, true)
 	# bedroom (west): bed, nightstands, wardrobe
 	var frame := Materials.pbr("wood_floor", Color(0.45, 0.3, 0.2), 1.0, 0.7)
-	if not _hero("bed.glb", 1.15, c + Vector3(-6.4, 0, -2.6), 0.0):
+	if haven.get("bed", "") == "bed-platform":
+		# Haven Home's platform bed: a low walnut slab, linen, no footboard
+		var walnut := Materials.pbr("wood_floor", Color(0.3, 0.2, 0.14), 1.0, 0.6)
+		_solid(Vector3(2.6, 0.3, 2.5), c + Vector3(-6.4, 0.15, -2.6), walnut)
+		_box(Vector3(2.1, 0.22, 2.2), c + Vector3(-6.4, 0.41, -2.6), Materials.surface("fabric_pattern_07", Color(0.86, 0.84, 0.78), 0.7))
+		_box(Vector3(2.1, 0.1, 1.2), c + Vector3(-6.4, 0.57, -2.1), Materials.surface("fabric_pattern_07", Color(0.55, 0.58, 0.5), 0.7))
+		_solid(Vector3(2.6, 0.9, 0.1), c + Vector3(-6.4, 0.45, -3.8), walnut)
+	elif not _hero("bed.glb", 1.15, c + Vector3(-6.4, 0, -2.6), 0.0):
 		_solid(Vector3(2.2, 0.45, 2.3), c + Vector3(-6.4, 0.23, -2.6), frame)
 		_box(Vector3(2.1, 0.25, 2.2), c + Vector3(-6.4, 0.58, -2.6), Materials.surface("velour_velvet", Color(0.9, 0.9, 0.92), 0.6))
 		_box(Vector3(2.1, 0.12, 1.3), c + Vector3(-6.4, 0.75, -2.1), Materials.surface("velour_velvet", Color(0.35, 0.2, 0.5), 0.6))
@@ -476,15 +493,81 @@ func _apartment() -> void:
 	_solid(Vector3(2.6, 2.6, 0.7), c + Vector3(-6.3, 1.3, 4.8), frame)
 	_box(Vector3(0.02, 2.4, 0.02), c + Vector3(-6.3, 1.3, 4.44), flat(Color(0.8, 0.7, 0.5), 0.3, 0.9))
 	_interact("apt", c + Vector3(-6.3, 0, 3.9), 1.6, "Get dressed", func() -> void: _morning("dress"), func() -> bool: return _todo("dress"), "dress")
-	# living room: rug, L sofa, coffee table with the phone, TV wall
-	_box(Vector3(5.0, 0.02, 3.6), c + Vector3(2.0, 0.01, -0.6), Materials.surface("velour_velvet", Color(0.4, 0.36, 0.33), 0.6))
-	if not _hero("sofa.glb", 0.9, c + Vector3(2.0, 0, 1.2), 180.0):
+	# living room: rug, L sofa, coffee table with the phone, TV wall (Haven Home pieces replace the apartment's own)
+	var rug_id: String = haven.get("rug", "")
+	if rug_id == "rug-wool":
+		_box(Vector3(5.0, 0.03, 3.6), c + Vector3(2.0, 0.015, -0.6), Materials.surface("fabric_pattern_07", Color(0.82, 0.76, 0.64), 0.9))
+	elif rug_id == "rug-circuit":
+		_box(Vector3(5.0, 0.03, 3.6), c + Vector3(2.0, 0.015, -0.6), Materials.surface("velour_velvet", Color(0.08, 0.09, 0.11), 0.6))
+		for k in 6:
+			_box(Vector3(4.4, 0.005, 0.03), c + Vector3(2.0, 0.035, -2.0 + k * 0.56), flat(Color(0.2, 0.9, 1.0), 0.3, 0.0, 2.5))
+	else:
+		_box(Vector3(5.0, 0.02, 3.6), c + Vector3(2.0, 0.01, -0.6), Materials.surface("velour_velvet", Color(0.4, 0.36, 0.33), 0.6))
+	var sofa_id: String = haven.get("sofa", "")
+	if sofa_id == "sofa-velvet":
+		var velvet := Materials.surface("velour_velvet", Color(0.12, 0.36, 0.26), 0.55)
+		var brass := flat(Color(0.8, 0.65, 0.3), 0.35, 0.9)
+		_solid(Vector3(4.0, 0.5, 1.0), c + Vector3(2.0, 0.25, 1.4), velvet)
+		_box(Vector3(4.0, 0.85, 0.32), c + Vector3(2.0, 0.65, 1.86), velvet)
+		for s2: float in [-1.0, 1.0]:
+			_box(Vector3(0.3, 0.75, 1.0), c + Vector3(2.0 + s2 * 2.05, 0.55, 1.4), velvet)
+			_box(Vector3(0.02, 0.3, 0.9), c + Vector3(2.0 + s2 * 2.2, 0.75, 1.4), brass)
+		_solid(Vector3(1.0, 0.5, 2.2), c + Vector3(-0.4, 0.25, 0.2), velvet)
+	elif sofa_id == "sofa-loft":
+		var loft := Materials.surface("fabric_pattern_07", Color(0.5, 0.52, 0.55), 0.6)
+		_solid(Vector3(4.0, 0.38, 1.1), c + Vector3(2.0, 0.19, 1.4), loft)
+		_box(Vector3(4.0, 0.5, 0.25), c + Vector3(2.0, 0.55, 1.88), loft)
+		_solid(Vector3(1.1, 0.38, 2.2), c + Vector3(-0.4, 0.19, 0.2), loft)
+	elif not _hero("sofa.glb", 0.9, c + Vector3(2.0, 0, 1.2), 180.0):
 		var sofa := Materials.surface("fabric_pattern_07", Color(0.32, 0.33, 0.36), 0.5)
 		_solid(Vector3(4.0, 0.45, 1.0), c + Vector3(2.0, 0.23, 1.4), sofa)
 		_box(Vector3(4.0, 0.7, 0.3), c + Vector3(2.0, 0.6, 1.85), sofa)
 		_solid(Vector3(1.0, 0.45, 2.2), c + Vector3(-0.4, 0.23, 0.2), sofa)
 	_hero("armchair.glb", 0.95, c + Vector3(-0.4, 0, -2.6), 60.0)
-	_solid(Vector3(1.6, 0.4, 0.9), c + Vector3(2.0, 0.2, -0.4), _stone_top())
+	var table_id: String = haven.get("table", "")
+	if table_id == "table-glass":
+		var steel := flat(Color(0.55, 0.57, 0.6), 0.3, 0.9)
+		for sx: float in [-0.7, 0.7]:
+			for sz: float in [-0.35, 0.35]:
+				_box(Vector3(0.04, 0.38, 0.04), c + Vector3(2.0 + sx, 0.19, -0.4 + sz), steel)
+		var glass_m := StandardMaterial3D.new()
+		glass_m.albedo_color = Color(0.2, 0.25, 0.28, 0.45)
+		glass_m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		glass_m.roughness = 0.05
+		_solid(Vector3(1.6, 0.03, 0.9), c + Vector3(2.0, 0.4, -0.4), glass_m)
+	elif table_id == "table-oak":
+		_solid(Vector3(1.7, 0.08, 0.95), c + Vector3(2.0, 0.38, -0.4), Materials.pbr("wood_floor", Color(0.6, 0.42, 0.25), 1.0, 0.5))
+		for sx: float in [-0.6, 0.6]:
+			_box(Vector3(0.12, 0.34, 0.8), c + Vector3(2.0 + sx, 0.17, -0.4), Materials.pbr("wood_floor", Color(0.45, 0.3, 0.18), 1.0, 0.6))
+	else:
+		_solid(Vector3(1.6, 0.4, 0.9), c + Vector3(2.0, 0.2, -0.4), _stone_top())
+	# the lamp, the art, the plant: new pieces with a place of their own
+	var lamp_id: String = haven.get("lamp", "")
+	if lamp_id == "lamp-arc":
+		var steel2 := flat(Color(0.7, 0.72, 0.75), 0.3, 0.9)
+		_solid(Vector3(0.5, 0.05, 0.5), c + Vector3(4.6, 0.025, 1.4), flat(Color(0.2, 0.2, 0.22), 0.5, 0.6))
+		_box(Vector3(0.04, 2.2, 0.04), c + Vector3(4.6, 1.1, 1.4), steel2)
+		_box(Vector3(1.6, 0.04, 0.04), c + Vector3(3.8, 2.2, 1.4), steel2)
+		_box(Vector3(0.5, 0.3, 0.5), c + Vector3(3.0, 2.0, 1.4), flat(Color(1.0, 0.95, 0.85), 0.6, 0.0, 1.5))
+		_lamp(c + Vector3(3.0, 1.8, 1.4), Color(1.0, 0.9, 0.75), 1.4, 6.0)
+	elif lamp_id == "lamp-neon":
+		_box(Vector3(0.06, 1.6, 0.06), c + Vector3(4.6, 0.8, 1.6), flat(Color(1.0, 0.25, 0.65), 0.4, 0.0, 4.0))
+		_lamp(c + Vector3(4.4, 0.9, 1.4), Color(1.0, 0.3, 0.7), 1.2, 6.0)
+	var art_id: String = haven.get("art", "")
+	if art_id != "":
+		var frame_m := flat(Color(0.1, 0.1, 0.11), 0.5, 0.3)
+		_box(Vector3(1.7, 1.1, 0.04), c + Vector3(2.0, 1.9, 5.47), frame_m)
+		var canvas := flat(Color(0.1, 0.16, 0.28), 0.8) if art_id == "art-skyline" else flat(Color(0.5, 0.2, 0.55), 0.7, 0.0, 0.6)
+		_box(Vector3(1.55, 0.95, 0.02), c + Vector3(2.0, 1.9, 5.44), canvas)
+		if art_id == "art-skyline":
+			for k in 7:
+				_box(Vector3(0.12, 0.2 + (k * 7 % 5) * 0.1, 0.01), c + Vector3(1.4 + k * 0.2, 1.55 + (0.1 + (k * 7 % 5) * 0.05), 5.42), flat(Color(0.9, 0.85, 0.5), 0.5, 0.0, 2.0))
+	if haven.get("plant", "") == "plant-fern":
+		_solid(Vector3(0.5, 0.45, 0.5), c + Vector3(6.8, 0.22, 3.6), flat(Color(0.5, 0.42, 0.35), 0.8))
+		for k in 6:
+			var a := k * TAU / 6.0
+			var leaf := _box(Vector3(0.12, 0.04, 1.1), c + Vector3(6.8 + cos(a) * 0.4, 0.95, 3.6 + sin(a) * 0.4), flat(Color(0.2, 0.5, 0.22), 0.8))
+			leaf.rotation = Vector3(-0.5, -a, 0)
 	_box(Vector3(0.09, 0.01, 0.17), c + Vector3(2.4, 0.41, -0.3), flat(Color(0.4, 0.75, 1.0), 0.2, 0.0, 3.0))
 	_interact("apt", c + Vector3(2.4, 0, -0.3), 1.6, "Check your messages", func() -> void: _morning("phone"), func() -> bool: return _todo("phone"), "phone")
 	# the TV wall on the east wall

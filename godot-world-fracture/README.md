@@ -138,8 +138,9 @@ and the prize Nex (900 / 500 / 250 / 100) plus 150 XP into the profile. Rules ar
 **Mall shops** (`scripts/gear/shop_view.gd`, from the Galleria's NOVA THREADS and HAVEN HOME buttons): Nova Threads sells
 the web game's outfits (gear.json) for the profile's Nex — owned ones are free to wear again, event outfits only during
 their event — and the worn outfit tints the operator's plate and undersuit (`outfit_look.gd`) until clothing is modelled;
-Haven Home sells furnishings for Apartment 12-04 (sofas, tables, lamps, rugs, art, a bed; `gear_store.gd` FURNITURE),
-delivered to the apartment's owned list. Test: `--script res://tests/gear/shop_test.gd`. Shot: `slicewalk:shop[:haven]`.
+Haven Home sells furnishings for Apartment 12-04 (sofas, tables, lamps, rugs, art, a plant, a bed; `gear_store.gd` FURNITURE)
+that appear in the apartment the next time you're home: the newest piece per room slot replaces the apartment's own (the
+sofa, the coffee table, the rug, the bed) or joins it (a floor lamp, a framed print on the north wall, a fern by the window). Test: `--script res://tests/gear/shop_test.gd`. Shot: `slicewalk:shop[:haven]`.
 
 **The Fracture Descent, fd-02 to fd-04** (`scripts/mission/descent.gd`, the FRACTURE DESCENT button on the globe): the
 web game's quest chain after Mission 01, played on foot in the Verdant Forest region (region_3d.gd's new PLAY mode: the
