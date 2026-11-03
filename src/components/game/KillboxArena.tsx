@@ -7,28 +7,14 @@ import type { PvpState } from "@/game/pvp";
 import { antennaMast, hvacUnit, waterTank } from "@/game/street-geometry";
 import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 import { facadeTexture } from "./InstancedGlb";
+import { DataFieldsView } from "./DataFieldsArena";
+import { slab, towerShell } from "./arena-parts";
 
 /** A built Killbox arena (killbox-arenas.ts), drawn from the same data its decks and walls come from so what you see is what you
  * stand on. Rooftop Run: Neon City tower blocks rising out of a wet neon street, concrete roofs with steel parapets, the steel
  * catwalks and the billboard bridge across the street, rooftop plant (water tanks, HVAC, vents) as cover, a ring of lit towers
  * round the block for the skyline, and neon signs. During the Billboard Blackout every sign and window fades out.
  * Everything is in world space; arena space (dx, dz, m above base) maps to it with the arena's site and base. */
-
-/** building wall faces with UVs in facade tiles (16 bays of 1.6 m by 16 floors of 3.6 m, facade-windows.ts) */
-function towerShell(x0: number, x1: number, z0: number, z1: number, y0: number, y1: number): THREE.BufferGeometry {
-  const parts: THREE.BufferGeometry[] = [];
-  const face = (w: number, cx: number, cz: number, yaw: number) => {
-    const g = new THREE.PlaneGeometry(w, y1 - y0);
-    const uv = g.attributes["uv"] as THREE.BufferAttribute;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (w / 25.6), uv.getY(i) * ((y1 - y0) / 57.6) + y0 / 57.6);
-    return g.rotateY(yaw).translate(cx, (y0 + y1) / 2, cz);
-  };
-  parts.push(face(x1 - x0, (x0 + x1) / 2, z1, 0), face(x1 - x0, (x0 + x1) / 2, z0, Math.PI), face(z1 - z0, x1, (z0 + z1) / 2, Math.PI / 2), face(z1 - z0, x0, (z0 + z1) / 2, -Math.PI / 2));
-  return mergeGeometries(parts)!;
-}
-
-/** a box between two corners (world), with UVs (BoxGeometry) */
-const slab = (x: number, y: number, z: number, w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d).translate(x, y, z);
 
 /** a neon sign face: bold word on a dark panel with a glowing tube border, drawn once to a canvas */
 function signTexture(word: string, tube: string): THREE.CanvasTexture | null {
@@ -65,7 +51,12 @@ const SKYLINE: readonly [number, number, number, number, number][] = [
   [-100, -50, 24, 22, 84], [-112, 8, 20, 20, 112], [-150, 120, 30, 30, 160], [150, -125, 30, 30, 170], [160, 80, 26, 26, 150], [-160, -110, 28, 28, 145],
 ];
 
-export function KillboxArena({ arena: a, state }: { arena: Arena; state: PvpState }) {
+/** the arena a match plays on, dressed for its look */
+export function KillboxArena({ arena, state }: { arena: Arena; state: PvpState }) {
+  return arena.look === "nexus-grid" ? <DataFieldsView arena={arena} state={state} /> : <RooftopRunView arena={arena} state={state} />;
+}
+
+function RooftopRunView({ arena: a, state }: { arena: Arena; state: PvpState }) {
   const { x: sx, z: sz } = a.site, B = a.base;
 
   const geo = useMemo(() => {

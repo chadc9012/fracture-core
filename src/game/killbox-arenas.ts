@@ -9,19 +9,28 @@
  *
  * The first map is Rooftop Run (Neon City, E-Rooftops): two blocks of rooftops either side of a neon street, joined by three
  * crossings — a sloped west catwalk, the wide billboard bridge in the middle and an east catwalk — so the fight runs in three lanes.
- * Its fracture event is the Billboard Blackout: every sign goes dark and sight ranges collapse for 30 s. */
+ * Its fracture event is the Billboard Blackout: every sign goes dark and sight ranges collapse for 30 s.
+ *
+ * The second is Data Fields (Nexus City, Sector 02): a sterile, symmetrical data-processing platform. A processing floor between two
+ * raised uplink terraces, server racks for cover, and data pillars — cover walls that rise and sink. Its fracture event is the Grid
+ * Rewrite: the standing pillars sink and the sunken ones rise, so every sightline on the floor changes for 25 s.
+ *
+ * Playlists rotate through the maps that list them (`arenaForRun`). */
 import type { Deck } from "./district-decks";
 import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "rooftop-run";
+export type ArenaId = "rooftop-run" | "data-fields";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
 export type ArenaWalk = { id: string; x: number; z: number; along: "x" | "z"; length: number; width: number; top: number; topB: number; rails: boolean };
 /** a solid prop standing on a roof (HVAC unit, water tank, sign base): blocks movement and line of sight; you can mantle onto it */
-export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign"; x: number; z: number; w: number; d: number; h: number };
+export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "rack" | "console" | "barrier"; x: number; z: number; w: number; d: number; h: number };
+/** a cover wall that rises and sinks with the fracture event: "up" stands until the event sinks it, "down" lies flush until the
+ * event raises it. Solid (movement and sight) while more than half raised. */
+export type ArenaShifter = { id: string; x: number; z: number; w: number; d: number; h: number; phase: "up" | "down" };
 /** a wall in arena space: a ledge or parapet from (ax,az) to (bx,bz), solid from `base` to `top` (m above the arena base) */
 export type ArenaWall = { ax: number; az: number; bx: number; bz: number; base: number; top: number };
 export type FractureEvent = { name: string; brief: string; /** first fires at this match time, then every `every` s, for `length` s */ first: number; every: number; length: number; warn: number; /** sight multiplier while it runs */ visibility: number };
@@ -30,7 +39,10 @@ export type KillboxArena = {
   id: ArenaId; name: string; region: string; size: "small" | "medium" | "large"; blurb: string;
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
+  /** how KillboxArena.tsx dresses it */
+  look: "neon-rooftops" | "nexus-grid";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
+  shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
   spawns: { us: readonly [number, number][]; them: readonly [number, number][] };
   /** Dominion zones A, B, C and the round modes' objective (arena space) */
@@ -89,8 +101,8 @@ const RR_LEDGES: ArenaWall[] = [
 export const ROOFTOP_RUN: KillboxArena = {
   id: "rooftop-run", name: "Rooftop Run", region: "Neon City · E-Rooftops", size: "small",
   blurb: "Two blocks of neon rooftops over a street you do not want to fall into. Three crossings: the west catwalk, the billboard bridge and the east catwalk.",
-  site: { x: -1000, z: 700 }, base: ARENA_ALTITUDE,
-  roofs: RR_ROOFS, walks: RR_WALKS, cover: RR_COVER, ledges: RR_LEDGES,
+  site: { x: -1000, z: 700 }, base: ARENA_ALTITUDE, look: "neon-rooftops",
+  roofs: RR_ROOFS, walks: RR_WALKS, cover: RR_COVER, ledges: RR_LEDGES, shifters: [],
   spawns: {
     us: [[-30, 30], [0, 31], [30, 30], [-42, 14], [42, 14], [-8, 12]],
     them: [[30, -30], [0, -31], [-30, -30], [42, -14], [-42, -14], [8, -12]],
@@ -101,10 +113,75 @@ export const ROOFTOP_RUN: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "rooftop-run": ROOFTOP_RUN };
+/* ---------------- Data Fields ---------------- */
+
+/** a prop list and its copy turned half way round the centre (both teams get the same cover) */
+function pointPair<T extends { id: string; x: number; z: number }>(half: readonly T[]): T[] {
+  return [...half, ...half.map((k) => ({ ...k, id: `${k.id}-b`, x: -k.x, z: -k.z }))];
+}
+// a 60 x 48 m processing floor between two uplink terraces 2.5 m up (z 24..34 north, your side; -34..-24 south), two ramps each
+const DF_ROOFS: ArenaRoof[] = [
+  { id: "floor", name: "Processing Floor", x0: -30, x1: 30, z0: -24, z1: 24, top: 20 },
+  { id: "north-uplink", name: "North Uplink", x0: -30, x1: 30, z0: 24, z1: 34, top: 22.5 },
+  { id: "south-uplink", name: "South Uplink", x0: -30, x1: 30, z0: -34, z1: -24, top: 22.5 },
+];
+const DF_WALKS: ArenaWalk[] = [
+  { id: "north-ramp-w", x: -20, z: 20, along: "z", length: 8, width: 4, top: 20, topB: 22.5, rails: false },
+  { id: "north-ramp-e", x: 20, z: 20, along: "z", length: 8, width: 4, top: 20, topB: 22.5, rails: false },
+  { id: "south-ramp-w", x: -20, z: -20, along: "z", length: 8, width: 4, top: 22.5, topB: 20, rails: false },
+  { id: "south-ramp-e", x: 20, z: -20, along: "z", length: 8, width: 4, top: 22.5, topB: 20, rails: false },
+];
+// the terrace faces: 2.5 m, so you can mantle up them with a jump but never walk up; open where the ramps arrive
+const DF_LEDGES: ArenaWall[] = [24, -24].flatMap((z) => [[-30, -22], [-18, 18], [22, 30]].map(([a, b]) => ({ ax: a!, az: z, bx: b!, bz: z, base: 19.5, top: 22.5 })));
+const DF_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  // server racks on the floor: tall cover in an offset grid, so no lane runs the length of the floor
+  { id: "rack-w", kind: "rack", x: -22, z: 8, w: 1.4, d: 5, h: 2.6 },
+  { id: "rack-nw", kind: "rack", x: -8, z: 14, w: 5, d: 1.4, h: 2.6 },
+  { id: "rack-ne", kind: "rack", x: 25, z: 12, w: 4, d: 1.4, h: 2.6 },
+  { id: "rack-low", kind: "rack", x: 8, z: 6, w: 1.4, d: 4, h: 1.4 },
+  { id: "rack-edge", kind: "rack", x: 27, z: 7, w: 1.4, d: 3, h: 2.6 },
+  // the centre: two low barriers either side of the objective
+  { id: "core-barrier", kind: "barrier", x: -5, z: 0, w: 1.2, d: 3, h: 1.2 },
+  // the uplink terraces: a low wall at the lip to fight down from, and a console
+  { id: "uplink-wall", kind: "barrier", x: 0, z: 26, w: 6, d: 1.2, h: 1.2 },
+  { id: "uplink-console", kind: "console", x: -12, z: 30, w: 1.6, d: 1.6, h: 1.6 },
+]);
+const DF_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // standing pillars that the Grid Rewrite sinks…
+  { id: "pillar-w", x: -16, z: 3, w: 4, d: 1, h: 3, phase: "up" },
+  { id: "pillar-n", x: 0, z: 9, w: 6, d: 1, h: 3, phase: "up" },
+  // …and slots in the floor it raises, across the lanes the standing pillars left open
+  { id: "slot-c", x: -10, z: 0, w: 1, d: 5, h: 3, phase: "down" },
+  { id: "slot-w", x: -26, z: -2, w: 1, d: 6, h: 3, phase: "down" },
+  { id: "slot-n", x: 12, z: 18, w: 5, d: 1, h: 3, phase: "down" },
+]);
+
+export const DATA_FIELDS: KillboxArena = {
+  id: "data-fields", name: "Data Fields", region: "Nexus City · Sector 02", size: "small",
+  blurb: "A sterile Nexus data-processing floor between two uplink terraces. Server racks for cover, and data pillars that rise and sink when the grid rewrites itself.",
+  site: { x: -1000, z: 380 }, base: ARENA_ALTITUDE, look: "nexus-grid",
+  roofs: DF_ROOFS, walks: DF_WALKS, cover: DF_COVER, ledges: DF_LEDGES, shifters: DF_SHIFTERS,
+  spawns: {
+    us: [[-20, 31], [0, 32], [20, 31], [-26, 27], [26, 27], [-6, 30]],
+    them: [[20, -31], [0, -32], [-20, -31], [26, -27], [-26, -27], [6, -30]],
+  },
+  zones: [{ id: "A", dx: -20, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 20, dz: 0 }], objective: [0, 0],
+  killPlane: 12,
+  fracture: { name: "Grid Rewrite", brief: "The grid rewrites itself: standing data pillars sink and new ones rise, changing every sightline on the floor.", first: 75, every: 120, length: 25, warn: 10, visibility: 1 },
+  modes: ["lockdown", "ascendancy", "dominion", "clash", "freefall"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "rooftop-run": ROOFTOP_RUN, "data-fields": DATA_FIELDS };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
-/** the arena a mode plays on (the first that lists it), or undefined to play in the open world (Fracture Royale, the old duels) */
-export const arenaForMode = (mode: PvpModeId): KillboxArena | undefined => Object.values(ARENAS).find((a) => a.modes.includes(mode));
+/** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
+export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));
+/** the first arena a mode plays on */
+export const arenaForMode = (mode: PvpModeId): KillboxArena | undefined => arenasForMode(mode)[0];
+/** the map for a mode's `played`-th match (0 = the first today): playlists rotate through their maps */
+export function arenaForRun(mode: PvpModeId, played: number): KillboxArena | undefined {
+  const list = arenasForMode(mode);
+  return list.length ? list[((Math.floor(played) % list.length) + list.length) % list.length] : undefined;
+}
 
 /* ---------------- geometry ---------------- */
 
@@ -149,13 +226,28 @@ export function surfaceAt(a: KillboxArena, dx: number, dz: number): number {
 }
 function roofTopAt(a: KillboxArena, dx: number, dz: number): number { const s = surfaceAt(a, dx, dz); return Number.isFinite(s) ? s : 0; }
 
-const inCover = (a: KillboxArena, dx: number, dz: number, pad: number) => a.cover.find((k) => Math.abs(dx - k.x) < k.w / 2 + pad && Math.abs(dz - k.z) < k.d / 2 + pad);
+/** seconds a data pillar takes to rise or sink */
+export const SHIFT_SECONDS = 1.2;
+/** how far raised (0..1) a shifter is at match time `t`: it eases over SHIFT_SECONDS from each start and end of the event */
+export function shifterLift(a: KillboxArena, s: ArenaShifter, t: number): number {
+  const f = a.fracture, ev = fractureAt(a, t);
+  const raised = (s.phase === "up") !== ev.active;
+  let since = Infinity;
+  if (t >= f.first) { const into = (t - f.first) % f.every; since = ev.active ? into : into - f.length; }
+  const k = Math.min(1, since / SHIFT_SECONDS);
+  return raised ? k : 1 - k;
+}
+/** the shifters that block movement and sight right now (more than half raised) */
+export const solidShifters = (a: KillboxArena, t: number) => a.shifters.filter((s) => shifterLift(a, s, t) > 0.5);
+
+const inCover = (a: KillboxArena, dx: number, dz: number, pad: number, t = 0) => a.cover.find((k) => Math.abs(dx - k.x) < k.w / 2 + pad && Math.abs(dz - k.z) < k.d / 2 + pad)
+  ?? solidShifters(a, t).find((k) => Math.abs(dx - k.x) < k.w / 2 + pad && Math.abs(dz - k.z) < k.d / 2 + pad);
 
 /** Keeps a body that does not collide with walls (a rival machine, a squadmate) on the rooftops: off the map or inside a prop, it is
  * moved to the nearest point that is on a roof or walkway, `margin` m in from the edge and clear of cover. Arena space in and out. */
-export function confine(a: KillboxArena, dx: number, dz: number, margin = 0.8): { x: number; z: number; moved: boolean } {
+export function confine(a: KillboxArena, dx: number, dz: number, margin = 0.8, /** match time, for the shifters */ t = 0): { x: number; z: number; moved: boolean } {
   const onFloor = (x: number, z: number) => Number.isFinite(surfaceAt(a, x, z)) && Number.isFinite(surfaceAt(a, x + margin, z)) && Number.isFinite(surfaceAt(a, x - margin, z))
-    && Number.isFinite(surfaceAt(a, x, z + margin)) && Number.isFinite(surfaceAt(a, x, z - margin)) && !inCover(a, x, z, margin * 0.6);
+    && Number.isFinite(surfaceAt(a, x, z + margin)) && Number.isFinite(surfaceAt(a, x, z - margin)) && !inCover(a, x, z, margin * 0.6, t);
   if (onFloor(dx, dz)) return { x: dx, z: dz, moved: false };
   let best = { x: 0, z: 0, d: Infinity };
   const consider = (x: number, z: number) => { if (!onFloor(x, z)) return; const d = Math.hypot(x - dx, z - dz); if (d < best.d) best = { x, z, d }; };
@@ -165,7 +257,7 @@ export function confine(a: KillboxArena, dx: number, dz: number, margin = 0.8): 
     const clampX = (x: number) => Math.min(q.x1 - margin, Math.max(q.x0 + margin, x)), clampZ = (z: number) => Math.min(q.z1 - margin, Math.max(q.z0 + margin, z));
     const x = clampX(dx), z = clampZ(dz);
     consider(x, z);
-    const k = inCover(a, x, z, margin * 0.6);
+    const k = inCover(a, x, z, margin * 0.6, t);
     if (k) {
       consider(clampX(k.x - k.w / 2 - margin), z); consider(clampX(k.x + k.w / 2 + margin), z);
       consider(x, clampZ(k.z - k.d / 2 - margin)); consider(x, clampZ(k.z + k.d / 2 + margin));
@@ -179,21 +271,25 @@ const wallMaker = (a: KillboxArena, out: Wall[]) => (ax: number, az: number, bx:
   out.push({ ax: p.x, az: p.z, bx: q.x, bz: q.z, half, base: a.base + base, top: a.base + top });
 };
 
-/** the roofs' parapets in world space: round the outside of each block and along the street, open at the three crossings */
+/** the roofs' parapets in world space: along every roof edge with nothing walkable beyond it (the outside of each block, the street
+ * side between crossings), found by sampling the edge every 0.5 m. Edges that meet another roof or a walkway stay open. */
 export function arenaParapets(a: KillboxArena): Wall[] {
-  const out: Wall[] = [], W = wallMaker(a, out);
-  const crossings = a.walks.filter((w) => w.along === "z");
-  const minX = Math.min(...a.roofs.map((r) => r.x0)), maxX = Math.max(...a.roofs.map((r) => r.x1));
+  const out: Wall[] = [], W = wallMaker(a, out), STEP = 0.5, OUT = 0.4;
   for (const r of a.roofs) {
     const lo = r.top - 0.5, hi = r.top + PARAPET;
-    if (r.x0 <= minX) W(r.x0, r.z0, r.x0, r.z1, lo, hi);
-    if (r.x1 >= maxX) W(r.x1, r.z0, r.x1, r.z1, lo, hi);
-    const far = r.z0 > 0 ? r.z1 : r.z0, street = r.z0 > 0 ? r.z0 : r.z1;
-    W(r.x0, far, r.x1, far, lo, hi);
-    const gaps = crossings.map((w) => [w.x - w.width / 2, w.x + w.width / 2] as const).filter(([g0, g1]) => g1 > r.x0 && g0 < r.x1).sort((p, q) => p[0] - q[0]);
-    let x = r.x0;
-    for (const [g0, g1] of gaps) { if (g0 > x) W(x, street, g0, street, lo, hi); x = Math.max(x, g1); }
-    if (x < r.x1) W(x, street, r.x1, street, lo, hi);
+    // each edge: start, end and the outward normal
+    const edges: [number, number, number, number, number, number][] = [
+      [r.x0, r.z0, r.x1, r.z0, 0, -1], [r.x0, r.z1, r.x1, r.z1, 0, 1], [r.x0, r.z0, r.x0, r.z1, -1, 0], [r.x1, r.z0, r.x1, r.z1, 1, 0],
+    ];
+    for (const [ax, az, bx, bz, nx, nz] of edges) {
+      const len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(len / STEP));
+      let runStart = -1;
+      for (let i = 0; i <= n; i++) {
+        const t = (i + 0.5) / n, open = i === n || Number.isFinite(surfaceAt(a, ax + (bx - ax) * t + nx * OUT, az + (bz - az) * t + nz * OUT));
+        if (!open && runStart < 0) runStart = i;
+        if (open && runStart >= 0) { const t0 = runStart / n, t1 = i / n; W(ax + (bx - ax) * t0, az + (bz - az) * t0, ax + (bx - ax) * t1, az + (bz - az) * t1, lo, hi); runStart = -1; }
+      }
+    }
   }
   return out;
 }
@@ -211,6 +307,17 @@ export function arenaWalls(a: KillboxArena): Wall[] {
     W(x0, z0, x1, z0, t - 0.2, t + k.h); W(x1, z0, x1, z1, t - 0.2, t + k.h); W(x1, z1, x0, z1, t - 0.2, t + k.h); W(x0, z1, x0, z0, t - 0.2, t + k.h);
   }
   return out;
+}
+
+/** the walls and sight blockers of the shifters standing at match time `t` (killbox-arena-install.ts swaps them in as they move) */
+export function shifterBlockers(a: KillboxArena, t: number): { walls: Wall[]; solids: { id: string; box: SolidBox }[] } {
+  const walls: Wall[] = [], W = wallMaker(a, walls), solids: { id: string; box: SolidBox }[] = [];
+  for (const k of solidShifters(a, t)) {
+    const b = roofTopAt(a, k.x, k.z), x0 = k.x - k.w / 2, x1 = k.x + k.w / 2, z0 = k.z - k.d / 2, z1 = k.z + k.d / 2, c = toWorld(a, k.x, k.z);
+    W(x0, z0, x1, z0, b - 0.2, b + k.h); W(x1, z0, x1, z1, b - 0.2, b + k.h); W(x1, z1, x0, z1, b - 0.2, b + k.h); W(x0, z1, x0, z0, b - 0.2, b + k.h);
+    solids.push({ id: `arena:${a.id}:shift:${k.id}`, box: { x: c.x, y: a.base + b + k.h / 2, z: c.z, w: k.w, h: k.h, d: k.d } });
+  }
+  return { walls, solids };
 }
 
 /** line-of-sight blockers (environment-collision.ts SolidBox, centred): the props and the parapets, which you can duck behind */

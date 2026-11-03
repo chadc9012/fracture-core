@@ -28,7 +28,7 @@ import { PVP_MODES, fieldSize, newPvp, respawns, stepPvp, stormDamage, type PvpS
 import { PvpField } from "./PvpField";
 import { KillboxArena as KillboxArenaView } from "./KillboxArena";
 import { arenaById, belowKillPlane, confine, fractureVisibility, inArenaSpace, spawnPoint, toWorld, type KillboxArena } from "@/game/killbox-arenas";
-import { installArena } from "@/game/killbox-arena-install";
+import { installArena, syncShifters } from "@/game/killbox-arena-install";
 import { AREAS, pointWorld } from "@/game/activities";
 import { CoverWall } from "./PropModels";
 import { getPerfTier, heavyShadows, NEAR_SCALE, setPerfTier } from "@/game/perf-budget";
@@ -2621,14 +2621,16 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           for (const m of sim.machines) {
             if (!m.alive || Math.abs(m.x - ar.site.x) > 140 || Math.abs(m.z - ar.site.z) > 140) continue;
             if (!m.rival) { m.alive = false; continue; }
-            const c = confine(ar, m.x - ar.site.x, m.z - ar.site.z);
+            const c = confine(ar, m.x - ar.site.x, m.z - ar.site.z, 0.8, st.clock);
             if (c.moved) { m.x = ar.site.x + c.x; m.z = ar.site.z + c.z; m.y = walkHeight(m.x, m.z) + 2.2 * m.scale; }
           }
-          for (const mate of sim.squad.mates) { const c = confine(ar, mate.x - ar.site.x, mate.z - ar.site.z); if (c.moved) { mate.x = ar.site.x + c.x; mate.z = ar.site.z + c.z; } }
+          for (const mate of sim.squad.mates) { const c = confine(ar, mate.x - ar.site.x, mate.z - ar.site.z, 0.8, st.clock); if (c.moved) { mate.x = ar.site.x + c.x; mate.z = ar.site.z + c.z; } }
           // Rooftop Run is infantry-only, and the street is a long way down
           if (s.inVehicle && inArenaSpace(s.x, s.y, s.z)) { s.inVehicle = false; alert(sim, `${ar.name} is infantry-only`); }
           if (Math.abs(s.x - ar.site.x) < 90 && Math.abs(s.z - ar.site.z) < 90 && belowKillPlane(ar, s.y - 1.6) && sim.hp > 0) hurtPlayer(sim, 9999, "Fell into the street");
           arenaVis.current = fractureVisibility(ar, st.clock);
+          // moving cover (Data Fields' data pillars): swap its walls and sight blockers in as it rises and out as it sinks
+          syncShifters(ar, st.clock);
         }
         arenaShown.current = !!ar && inArenaSpace(s.x, s.y, s.z);
         if (mode.kind === "royale") { const burn = stormDamage(st, Math.hypot(s.x - p.center.x, s.z - p.center.z)); if (burn > 0) hurtPlayer(sim, burn * dt, "The closing fracture"); }

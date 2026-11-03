@@ -14,7 +14,7 @@ import type { MaterialId } from "./inventory";
 import type { PlayerProgression } from "./progression";
 import { ARENA_POINT, CRUCIBLE_MODES, type CrucibleModeId } from "./crucible";
 import { PVP_MODES, pvpLine, type PvpModeId, type PvpState } from "./pvp";
-import { arenaById, arenaForMode, fractureLine } from "./killbox-arenas";
+import { arenaById, arenaForRun, fractureLine } from "./killbox-arenas";
 
 export type ActivityKind = "side" | "bounty" | "race" | "parkour" | "event" | "contract" | "crucible";
 export type Objective =
@@ -206,7 +206,8 @@ export function startActivity(p: PlayerProgression, id: string, now = Date.now()
   const next = { ...p, missionRuns: { ...p.missionRuns, [recKey(id)]: { ...(rec ?? {}), day: periodKey(def, now), count: today + 1, last: (rec as { last?: number } | undefined)?.last ?? 0 } } } as PlayerProgression;
   const run = newRun(def, now); if (difficulty) run.difficulty = difficulty;
   const pvpStage = def.stages.find((o) => o.kind === "pvp");
-  if (pvpStage?.kind === "pvp") { const a = arenaForMode(pvpStage.mode); if (a) run.arena = a.id; }
+  // playlists rotate through their maps: the n-th match of the period plays the n-th map in the list
+  if (pvpStage?.kind === "pvp") { const a = arenaForRun(pvpStage.mode, today); if (a) run.arena = a.id; }
   return { progression: next, run };
 }
 export const newRun = (def: ActivityDef, now: number): Run => ({ id: def.id, startedAt: now, stage: 0, stageStartedAt: now, status: "active", progress: 0, need: def.stages[0] ? needOf(def.stages[0]) : 0, cp: 0, visited: [], carrying: false, hold: 0, killsBase: -1, elitesBase: -1, bossesBase: -1, hpMin: 100, deaths0: -1, diedDuring: false, wasHurt: false });
