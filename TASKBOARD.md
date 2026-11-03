@@ -25,6 +25,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Session | Since |
 | --- | --- | --- |
 | Phase 1: melee items as Fracture Blade skins/stats (web build) | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-02 |
+| Killbox arena maps to the owner's PvP maps board (web build; the owner asked for this directly in session — outside the Dec 4 scope, paused after Killbox Prime pending the owner's call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
 - Phase 1: server-side mission-run guard (`mission_runs` table + Supabase function; `player_saves` revision check stays).
@@ -42,3 +43,4 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Killbox: Kaiju Complex, Fracture Floor, Killbox Prime arenas + map rotation (web build, owner asked in session) | 81bebbc, d2729c1, 1bf20ec, this push |
