@@ -1,7 +1,7 @@
 extends Node3D
 ## Where the car may go: the boulevard between the kerbs, end to end. Low crash barriers close off the two ends so the
 ## edge of the district reads as a barrier, not a cliff. keep_inside() is the hard limit the driving view applies.
-const MeshMerge = preload("res://scripts/driving/mesh_merge.gd")
+const MeshMerge = preload("res://scripts/mesh_merge.gd")
 const LIMIT := 120.0
 const HALF_WIDTH := 41.0
 

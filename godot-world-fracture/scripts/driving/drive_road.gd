@@ -2,7 +2,7 @@ extends Node3D
 ## The practice district's streets: a long boulevard (north-south, z) crossed by one avenue (east-west, x) at the origin,
 ## asphalt with kerbs, white edge lines, dashed lane lines and a zebra crossing on each side of the intersection.
 ## Sizes match the city dressing: the sidewalks sit at x = +-46 (7 m wide), so the carriageway is 85 m kerb to kerb.
-const MeshMerge = preload("res://scripts/driving/mesh_merge.gd")
+const MeshMerge = preload("res://scripts/mesh_merge.gd")
 const HALF_WIDTH := 42.5
 const HALF_LENGTH := 122.0
 const AVENUE_HALF := 8.0

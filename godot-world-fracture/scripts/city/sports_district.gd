@@ -45,6 +45,7 @@ func _ready() -> void:
 	_arena()
 	_courts()
 	_gym()
+	_merge_static()
 	cam = Camera3D.new()
 	cam.fov = 62.0
 	cam.near = 0.05
@@ -197,7 +198,7 @@ func _seat_fans(points: Array[Vector3], yaw_to: Vector3, cols: Array) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
-	mm.mesh = figure(1)
+	mm.mesh = figure(1, false, true)
 	mm.instance_count = points.size()
 	var r := RandomNumberGenerator.new()
 	r.seed = points.size()
@@ -213,6 +214,7 @@ func _seat_fans(points: Array[Vector3], yaw_to: Vector3, cols: Array) -> void:
 		_crowd_phase.append(r.randf() * TAU)
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var m := StandardMaterial3D.new()
 	m.vertex_color_use_as_albedo = true
 	m.roughness = 0.7

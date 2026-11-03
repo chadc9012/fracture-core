@@ -63,6 +63,7 @@ func _ready() -> void:
 	_floor()
 	_penthouse()
 	_skydeck()
+	_merge_static()
 	cam = Camera3D.new()
 	cam.fov = 62.0
 	cam.near = 0.05
@@ -115,8 +116,21 @@ func _process(delta: float) -> void:
 			_crowd.multimesh.set_instance_transform(k, xf)
 
 # --------------------------------------------------------------------------------------------- helpers
+const MeshMerge = preload("res://scripts/mesh_merge.gd")
+## the room is built from hundreds of boxes and cylinders: fold the static ones into one mesh per material
+func _merge_static() -> void:
+	MeshMerge.merge_children(world)
+	for w in _wheels:
+		MeshMerge.merge_children(w)
+
+## one material per look, shared: identical boxes then merge into one mesh (see _merge_static) and batch on a phone
+static var _flats := {}
 static func flat(c: Color, rough := 0.8, metal := 0.0, emit := 0.0) -> StandardMaterial3D:
+	var key := "%s|%.3f|%.3f|%.3f" % [c, rough, metal, emit]
+	if _flats.has(key):
+		return _flats[key]
 	var m := StandardMaterial3D.new()
+	_flats[key] = m
 	m.albedo_color = c
 	m.roughness = rough
 	m.metallic = metal
@@ -206,9 +220,11 @@ func _light(pos: Vector3, c: Color, energy: float, rng: float, shadow := false) 
 
 ## a simple person in one mesh: surface 0 clothes, surface 1 skin, surface 2 hair. pose 0 standing, 1 both arms up,
 ## 2 one arm up, 3 seated-ish (arms forward). About 1.75 m tall, feet at y 0, facing +Z.
+## lo: the crowd version, a quarter of the triangles (fans are seen by the hundred from across an arena)
 static var _figures := {}
-static func figure(pose: int, female := false) -> ArrayMesh:
-	var key := pose * 2 + (1 if female else 0)
+static func figure(pose: int, female := false, lo := false) -> ArrayMesh:
+	var key := pose * 2 + (1 if female else 0) + (100 if lo else 0)
+	var seg := func(n: int) -> int: return maxi(4, n / 2) if lo else n
 	if _figures.has(key):
 		return _figures[key]
 	var surf := [SurfaceTool.new(), SurfaceTool.new(), SurfaceTool.new()]
@@ -220,14 +236,14 @@ static func figure(pose: int, female := false) -> ArrayMesh:
 		var c := CapsuleMesh.new()
 		c.radius = r
 		c.height = a.distance_to(b) + r * 2.0
-		c.radial_segments = 8
-		c.rings = 2
+		c.radial_segments = seg.call(8)
+		c.rings = (1 if lo else 2)
 		var d := (b - a).normalized()
 		var x := d.cross(Vector3.FORWARD if absf(d.z) < 0.9 else Vector3.RIGHT).normalized()
 		return [c, Transform3D(Basis(x, d, x.cross(d)), (a + b) * 0.5)]
 	var hip_w := 0.11 if female else 0.1
 	var sh_w := 0.17 if female else 0.21
-	for sx: float in [-1.0, 1.0]:
+	for sx: float in ([] if lo else [-1.0, 1.0]):   # a seated fan's legs are behind the row in front
 		var l: Array = limb.call(0.07, Vector3(sx * hip_w, 0.88, 0), Vector3(sx * hip_w * 0.9, 0.07, 0.02))
 		put.call(0, l[0], l[1])
 		var shoe := BoxMesh.new()
@@ -236,33 +252,33 @@ static func figure(pose: int, female := false) -> ArrayMesh:
 	var torso := CapsuleMesh.new()
 	torso.radius = 0.17 if not female else 0.15
 	torso.height = 0.72
-	torso.radial_segments = 10
-	torso.rings = 3
+	torso.radial_segments = seg.call(10)
+	torso.rings = (1 if lo else 3)
 	put.call(0, torso, Transform3D(Basis().scaled(Vector3(1.0, 1.0, 0.62)), Vector3(0, 1.17, 0)))
 	if female:
 		var skirt := CylinderMesh.new()
 		skirt.top_radius = 0.16
 		skirt.bottom_radius = 0.24
 		skirt.height = 0.42
-		skirt.radial_segments = 12
+		skirt.radial_segments = seg.call(12)
 		put.call(0, skirt, Transform3D(Basis(), Vector3(0, 0.78, 0)))
 	var neck := CylinderMesh.new()
 	neck.top_radius = 0.045
 	neck.bottom_radius = 0.05
 	neck.height = 0.1
-	neck.radial_segments = 8
+	neck.radial_segments = seg.call(8)
 	put.call(1, neck, Transform3D(Basis(), Vector3(0, 1.53, 0)))
 	var head := SphereMesh.new()
 	head.radius = 0.105
 	head.height = 0.25
-	head.radial_segments = 12
-	head.rings = 8
+	head.radial_segments = seg.call(12)
+	head.rings = (4 if lo else 8)
 	put.call(1, head, Transform3D(Basis(), Vector3(0, 1.66, 0.01)))
 	var hair := SphereMesh.new()
 	hair.radius = 0.113
 	hair.height = 0.2 if not female else 0.3
-	hair.radial_segments = 12
-	hair.rings = 6
+	hair.radial_segments = seg.call(12)
+	hair.rings = (3 if lo else 6)
 	put.call(2, hair, Transform3D(Basis(), Vector3(0, 1.7 if not female else 1.67, -0.015)))
 	for sx2: float in [-1.0, 1.0]:
 		var sh := Vector3(sx2 * sh_w, 1.42, 0)
@@ -277,11 +293,13 @@ static func figure(pose: int, female := false) -> ArrayMesh:
 		put.call(0, up[0], up[1])
 		var fore: Array = limb.call(0.045, elbow, hand)
 		put.call(0, fore[0], fore[1])
+		if lo:
+			continue
 		var palm := SphereMesh.new()
 		palm.radius = 0.045
 		palm.height = 0.1
-		palm.radial_segments = 6
-		palm.rings = 4
+		palm.radial_segments = seg.call(6)
+		palm.rings = (1 if lo else 4)
 		put.call(1, palm, Transform3D(Basis(), hand))
 	var m := ArrayMesh.new()
 	for st2: SurfaceTool in surf:
@@ -990,7 +1008,7 @@ func _crowd_build(y: float, sz: float) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
-	mm.mesh = figure(1)
+	mm.mesh = figure(1, false, true)
 	var pts: Array[Vector3] = []
 	var r := RandomNumberGenerator.new()
 	r.seed = 5
@@ -1012,6 +1030,7 @@ func _crowd_build(y: float, sz: float) -> void:
 		mm.set_instance_color(k, cols[r.randi() % cols.size()])
 	_crowd = MultiMeshInstance3D.new()
 	_crowd.multimesh = mm
+	_crowd.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var m := StandardMaterial3D.new()
 	m.vertex_color_use_as_albedo = true
 	m.roughness = 0.7

@@ -1,5 +1,5 @@
 extends Node3D
-const MeshMerge = preload("res://scripts/driving/mesh_merge.gd")
+const MeshMerge = preload("res://scripts/mesh_merge.gd")
 func _ready() -> void:
 	var mats: Array[StandardMaterial3D] = []
 	for c in [Color("#46545c"), Color("#303c4b")]:
