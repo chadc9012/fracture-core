@@ -28,7 +28,18 @@ func _init(car: Node3D, vehicle_id: String, perf: Dictionary) -> void:
 func yaw() -> float:
 	return node.rotation.y
 
-## the forward axis: the fleet models face -z of their node (drive_vehicle.gd moves along -basis.z)
+## The fleet GLBs are modelled nose along +z, but drive_vehicle.gd (and this) move a car along -basis.z, so a spawned model
+## is turned half a turn inside its node once: the node's -z is then the nose, the camera sits at +z.
+static func face_forward(car: Node3D) -> void:
+	if car.has_meta("faced"):
+		return
+	for ch in car.get_children():
+		if ch is Node3D:
+			(ch as Node3D).rotation.y += PI
+			(ch as Node3D).position = Vector3(-(ch as Node3D).position.x, (ch as Node3D).position.y, -(ch as Node3D).position.z)
+	car.set_meta("faced", true)
+
+## the forward axis: the node's -z (drive_vehicle.gd moves along -basis.z)
 func forward() -> Vector3:
 	return -node.transform.basis.z
 

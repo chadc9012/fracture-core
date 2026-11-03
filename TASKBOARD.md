@@ -24,7 +24,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Phase 5: the first racing venue — a real track with stands and a pit lane reachable from the street, race entry against traffic-rule rivals, laps, prize Nex | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
+| Phase 5: shoppable clothing and furnishings stores in the mall (outfits and cosmetics from data/gear.json, Nex from the profile) | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
 | Killbox bots: full bot teams on the arenas, allies and rivals (web build; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
@@ -32,7 +32,6 @@ Rows are the lock; `git fetch` before you claim.
 - Phase 4: fd-02…fd-04 in Godot after Mission 01, on the quest engine contract (best taken by the session that built Mission 01, on scripts/mission/).
 - Phase 2/4 merge (after phase 5): Mission 01 onto scripts/player + scripts/combat + scripts/gear so one operator, one gun, one HUD and the worn gear serve the street and the mission.
 - Phase 5: district streaming (Active / Simulated / Frozen) once the block becomes more than one street.
-- Phase 5: shoppable clothing and furnishings stores in the mall (outfits and cosmetics from data/gear.json, Nex from the profile).
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
 - Phase 1: server-side mission-run guard — needs a migration applied on the live Supabase project that can't be verified from a session; changes nothing playable.
@@ -40,6 +39,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Phase 5: Nexus Speedway, the first racing venue (track data, stands, pit lane, lights, 3 rivals, 3 laps, positions, best lap, prize Nex) | see git log "Godot: Nexus Speedway" (Nov 3) |
 | Phase 5: traffic on the street slices (eight pooled civilian cars, lanes, gaps, stops for the operator and the player's car, moving obstacle boxes) | see git log "Godot: traffic" (Nov 3) |
 | Phase 5: on foot ↔ driving on the street slices (ENTER a parked car, drive with its garage build, brake, EXIT; collisions with the scene's boxes; chase camera; troopers engage the car) | see git log "Godot: get in the car" (Nov 3) |
 | Phase 3: Godot cloud save (email code sign-in, session, sync of character / profile / inventory / mission into player_saves `data.godot`, web-side mergeGodot) | see git log "Godot: cloud save" (Nov 3) |

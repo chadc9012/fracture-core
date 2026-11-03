@@ -63,6 +63,7 @@ func _spawn(dir: float, z: float) -> Car:
 	c.lane_x = -LANE_X * dir     # -z lane on +x (right-hand traffic), +z lane on -x
 	node.position = Vector3(c.lane_x, 0, z)
 	node.rotation.y = 0.0 if dir < 0 else PI
+	StreetCar.face_forward(node)
 	_world.add_child(node)
 	c.sc = StreetCar.new(node, "", { "max_speed": 14.0, "acceleration": 6.0, "steering": 1.1, "braking": 14.0 })
 	c.sc.bounds = bounds

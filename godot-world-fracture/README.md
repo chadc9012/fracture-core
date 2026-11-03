@@ -124,12 +124,21 @@ pooling back to the far end when they leave the block. Their boxes move in the s
 the troopers and your car all keep out of them (and crash into them if you cross the line). Test:
 `--script res://tests/driving/traffic_test.gd`.
 
+**Nexus Speedway** (`scripts/racing/`, the RACE button on the globe): the first racing venue — a stadium oval with a
+chicane laid as data (`track.gd`: a closed centreline, width, start line, pit lane, stands), built as asphalt and
+red-and-white kerbs over grass with tyre walls past the run-off, two grandstands of coloured tiers under a roof with a
+crowd, the pit lane with its wall and garages, and a start-light gantry. You race the car you last drove (its garage
+build) from the back of the grid against three rivals who follow the centreline and ease off for the corners; five
+lights, three laps, live positions and lap times, grass that cuts your grip, the best lap into `drive_records.json`
+and the prize Nex (900 / 500 / 250 / 100) plus 150 XP into the profile. Rules are tested headless
+(`--script res://tests/racing/race_test.gd`); the shot `race:go` skips the lights and lets the car drive itself.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [race[:go]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

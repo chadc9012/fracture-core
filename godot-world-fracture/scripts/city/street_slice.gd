@@ -714,6 +714,7 @@ func _cars() -> void:
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
 			car.set_meta("car", true)
 			car.set_meta("vehicle", CAR_IDS.get(f, ""))
+			StreetCar.face_forward(car)
 			world.add_child(car)
 			parked.append(car)
 		z += _rng.randf_range(9.0, 16.0)
@@ -944,7 +945,7 @@ func enter_car(c: Node3D) -> void:
 		operator.rig.visible = false
 	operator.cam_dist = 9.0
 	operator.cam_pivot = Vector3(0, 2.4, 0)
-	operator.cam_yaw = c.rotation.y + PI
+	operator.cam_yaw = c.rotation.y
 	controls.set_mode("drive")
 	controls.prompt("")
 	controls.toast("Driving " + _car_name(c) + " · hold BRAKE to stop, EXIT to get out")
@@ -965,7 +966,7 @@ func exit_car() -> void:
 	operator.position = c.position + side * -2.3
 	operator.position.y = operator.ground_at.call(operator.position.x, operator.position.z)
 	operator.velocity = Vector3.ZERO
-	operator.heading = c.rotation.y + PI
+	operator.heading = c.rotation.y + PI   # the body faces +z at heading 0; the car's nose is -z
 	if operator.rig:
 		operator.rig.visible = true
 	operator.cam_dist = 4.2
@@ -990,7 +991,7 @@ func _drive(dt: float) -> void:
 	operator.velocity = car.forward() * car.speed
 	var look: Vector2 = controls.take_look()
 	operator.cam_yaw -= look.x * 0.0045
-	operator.cam_yaw = lerp_angle(operator.cam_yaw, c.rotation.y + PI, minf(1.0, 2.5 * dt) if look.x == 0.0 else 0.0)
+	operator.cam_yaw = lerp_angle(operator.cam_yaw, c.rotation.y, minf(1.0, 2.5 * dt) if look.x == 0.0 else 0.0)
 	operator._place_camera(dt)
 	controls.weapon_name.text = _car_name(c)
 	controls.ammo.text = "%d km/h" % int(absf(car.speed) * 3.6)

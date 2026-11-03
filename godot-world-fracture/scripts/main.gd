@@ -12,6 +12,8 @@ const CharacterCreator := preload("res://scripts/character/character_creator.gd"
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 const CloudSave := preload("res://scripts/cloud/cloud_save.gd")
 const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
+const RaceView := preload("res://scripts/racing/race_view.gd")
+var race_view: Control
 var cloud: Node
 var cloud_panel: Control
 var cloud_line: Label
@@ -72,6 +74,12 @@ func _ready() -> void:
 	cloud_button.custom_minimum_size = Vector2(110, 52)
 	cloud_button.pressed.connect(_open_cloud)
 	add_child(cloud_button)
+	var race_button := Data.button("RACE", true)
+	race_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	race_button.position = Vector2(140, -70)
+	race_button.custom_minimum_size = Vector2(110, 52)
+	race_button.pressed.connect(_open_race)
+	add_child(race_button)
 	cloud_line = Label.new()
 	cloud_line.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	cloud_line.position = Vector2(20, -96)
@@ -158,6 +166,21 @@ func _close_street() -> void:
 	if street:
 		street.queue_free()
 		street = null
+	planet_view.set_process(true)
+	_sync_later()
+
+func _open_race() -> void:
+	if race_view:
+		return
+	race_view = RaceView.new()
+	race_view.closed.connect(_close_race)
+	add_child(race_view)
+	planet_view.set_process(false)
+
+func _close_race() -> void:
+	if race_view:
+		race_view.queue_free()
+		race_view = null
 	planet_view.set_process(true)
 	_sync_later()
 
@@ -388,6 +411,13 @@ func _shoot(path: String, opts: Array) -> void:
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o) == "cloud":
 			_open_cloud()
+		# race[:go]  Nexus Speedway from the grid; :go skips the lights and holds the throttle
+		if String(o).begins_with("race"):
+			_open_race()
+			if String(o).contains("go"):
+				race_view.countdown = 0.05
+				race_view.controls.scripted = true
+				race_view.autopilot = true
 		if String(o).begins_with("char"):
 			var c := String(o).split(":")
 			var lk := CharacterStore.default_look()
@@ -425,6 +455,9 @@ func _shoot(path: String, opts: Array) -> void:
 		await get_tree().process_frame
 	if street and street.gunplay:
 		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
+	if race_view and race_view.race:
+		var rv := race_view
+		print("race: t ", rv.race.time, " player ", rv.player.node.position, " speed ", rv.player.speed, " laps ", rv.race.player().laps, " place ", rv.race.position_of(rv.race.player()), " rivals ", rv.rivals.map(func(r: Dictionary) -> String: return "%s@%.2f" % [r.entry.name, r.entry.frac]))
 	if street and street.driving_car:
 		print("driving: ", street.driving_car.id, " speed ", street.driving_car.speed, " hits ", street.driving_car.hits, " at ", street.driving_car.node.position, " yaw ", street.driving_car.node.rotation.y)
 	if street and street.enemies:
