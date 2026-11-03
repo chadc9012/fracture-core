@@ -133,12 +133,18 @@ lights, three laps, live positions and lap times, grass that cuts your grip, the
 and the prize Nex (900 / 500 / 250 / 100) plus 150 XP into the profile. Rules are tested headless
 (`--script res://tests/racing/race_test.gd`); the shot `race:go` skips the lights and lets the car drive itself.
 
+**Mall shops** (`scripts/gear/shop_view.gd`, from the Galleria's NOVA THREADS and HAVEN HOME buttons): Nova Threads sells
+the web game's outfits (gear.json) for the profile's Nex — owned ones are free to wear again, event outfits only during
+their event — and the worn outfit tints the operator's plate and undersuit (`outfit_look.gd`) until clothing is modelled;
+Haven Home sells furnishings for Apartment 12-04 (sofas, tables, lamps, rugs, art, a bed; `gear_store.gd` FURNITURE),
+delivered to the apartment's owned list. Test: `--script res://tests/gear/shop_test.gd`. Shot: `slicewalk:shop[:haven]`.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
 bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [race[:go]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [race[:go]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

@@ -4,6 +4,12 @@ extends Control
 ## salon, an armour and weapons dealer, a gym, a phone shop) each with its own window display and sign; and a food court
 ## at the far end with counters under lit menu boards and the café tables from the street. All original names.
 signal closed
+## the shops you can buy from (shop_view.gd): the scene that opens the mall sets `gear` / `profile` and hears `changed`
+signal shop_changed
+const ShopView := preload("res://scripts/gear/shop_view.gd")
+var gear: Dictionary = {}
+var profile: Dictionary = {}
+var shop_overlay: Control
 
 const MODELS := "res://models/city/"
 const Materials := preload("res://scripts/city/materials.gd")
@@ -78,6 +84,34 @@ func _ready() -> void:
 	next.position = Vector2(120, 16)
 	next.pressed.connect(func(): show_view(_view + 1))
 	add_child(next)
+	var nova := Button.new()
+	nova.text = "NOVA THREADS"
+	nova.add_theme_color_override("font_color", Color(0.95, 0.4, 0.75))
+	nova.position = Vector2(230, 16)
+	nova.pressed.connect(func(): open_shop("nova"))
+	add_child(nova)
+	var haven := Button.new()
+	haven.text = "HAVEN HOME"
+	haven.add_theme_color_override("font_color", Color(0.95, 0.75, 0.4))
+	haven.position = Vector2(370, 16)
+	haven.pressed.connect(func(): open_shop("haven"))
+	add_child(haven)
+
+func open_shop(which: String) -> void:
+	if shop_overlay:
+		return
+	shop_overlay = ShopView.new()
+	shop_overlay.shop = which
+	shop_overlay.gear = gear
+	shop_overlay.profile = profile
+	shop_overlay.closed.connect(close_shop)
+	shop_overlay.changed.connect(func(): shop_changed.emit())
+	add_child(shop_overlay)
+
+func close_shop() -> void:
+	if shop_overlay:
+		shop_overlay.queue_free()
+		shop_overlay = null
 
 func show_view(i: int) -> void:
 	_view = i % _views.size()

@@ -33,7 +33,7 @@ static func fresh() -> Dictionary:
 		var it: Dictionary = (g as Dictionary).duplicate()
 		items.append(it)
 		equipped[it.slot] = it.id
-	return { "items": items, "equipped": equipped, "transmog": {}, "outfit": "", "next_id": 1 }
+	return { "items": items, "equipped": equipped, "transmog": {}, "outfit": "", "next_id": 1, "outfits": [], "furniture": [] }
 
 static func load_save() -> Dictionary:
 	var f := FileAccess.open(PATH, FileAccess.READ)
@@ -50,7 +50,15 @@ static func save(d: Dictionary) -> void:
 
 ## drops unknown slots and dangling equips
 static func clean(d: Dictionary) -> Dictionary:
-	var out := { "items": [], "equipped": {}, "transmog": {}, "outfit": str(d.get("outfit", "")), "next_id": int(d.get("next_id", 1)) }
+	var out := { "items": [], "equipped": {}, "transmog": {}, "outfit": str(d.get("outfit", "")), "next_id": int(d.get("next_id", 1)), "outfits": [], "furniture": [] }
+	for o in d.get("outfits", []):
+		if o is String and not outfit(o).is_empty() and o not in out.outfits:
+			out.outfits.append(o)
+	for fid in d.get("furniture", []):
+		if fid is String and not furniture(fid).is_empty() and fid not in out.furniture:
+			out.furniture.append(fid)
+	if out.outfit != "" and out.outfit not in out.outfits:
+		out.outfit = ""
 	for it in d.get("items", []):
 		if it is Dictionary and it.has("id") and (it.get("slot", "") in WEAPON_SLOTS or it.get("slot", "") in ARMOR_SLOTS):
 			out.items.append(it)
@@ -178,3 +186,87 @@ static func roll_drop(d: Dictionary, source: String, roll: float, op_power: floa
 	it.source = "Drop"
 	d.items.append(it)
 	return it
+
+# --------------------------------------------------------------------------------------------- shops (the mall)
+const PROFILE := "user://profile.json"
+## Haven Home's catalogue: furnishings for Apartment 12-04, by the room slot each fills
+const FURNITURE := [
+	{ "id": "sofa-loft", "name": "Loft Sofa", "slot": "sofa", "price": 650, "blurb": "Low grey three-seater." },
+	{ "id": "sofa-velvet", "name": "Velvet Chesterfield", "slot": "sofa", "price": 1400, "blurb": "Deep green, brass studs." },
+	{ "id": "table-glass", "name": "Glass Coffee Table", "slot": "table", "price": 380, "blurb": "Smoked glass on steel." },
+	{ "id": "table-oak", "name": "Oak Slab Table", "slot": "table", "price": 720, "blurb": "Live edge, waxed." },
+	{ "id": "lamp-arc", "name": "Arc Floor Lamp", "slot": "lamp", "price": 240, "blurb": "Brushed steel, warm white." },
+	{ "id": "lamp-neon", "name": "Neon Tube Lamp", "slot": "lamp", "price": 310, "blurb": "Nexus pink, dimmable." },
+	{ "id": "rug-wool", "name": "Wool Rug", "slot": "rug", "price": 290, "blurb": "Oatmeal, hand-loomed." },
+	{ "id": "rug-circuit", "name": "Circuit Rug", "slot": "rug", "price": 420, "blurb": "Black with cyan traces." },
+	{ "id": "art-skyline", "name": "Nexus Skyline Print", "slot": "art", "price": 180, "blurb": "The towers at night." },
+	{ "id": "art-fracture", "name": "First Light", "slot": "art", "price": 560, "blurb": "The Fracture in oils." },
+	{ "id": "plant-fern", "name": "Tree Fern", "slot": "plant", "price": 140, "blurb": "Veridan Forest stock." },
+	{ "id": "bed-platform", "name": "Platform Bed", "slot": "bed", "price": 980, "blurb": "Walnut, linen." },
+]
+
+static func outfit(id: String) -> Dictionary:
+	for o in data().get("outfits", []):
+		if o.id == id:
+			return o
+	return {}
+
+static func furniture(id: String) -> Dictionary:
+	for f in FURNITURE:
+		if f.id == id:
+			return f
+	return {}
+
+static func profile_load() -> Dictionary:
+	var p := { "xp": 0, "nex": 0, "level": 1 }
+	var f := FileAccess.open(PROFILE, FileAccess.READ)
+	if f:
+		var d: Variant = JSON.parse_string(f.get_as_text())
+		if d is Dictionary:
+			p.merge(d, true)
+	return p
+
+static func profile_save(p: Dictionary) -> void:
+	var f := FileAccess.open(PROFILE, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(p))
+
+## buys an outfit with the profile's Nex and wears it; returns a line for the shop. Already owned: just wears it.
+static func buy_outfit(d: Dictionary, profile: Dictionary, id: String) -> String:
+	var o := outfit(id)
+	if o.is_empty():
+		return "No such outfit"
+	if id in d.outfits:
+		d.outfit = id
+		return "Wearing " + String(o.name)
+	if o.price == null:
+		return "%s isn't for sale: %s" % [o.name, o.source]
+	var price := int(o.price)
+	if int(profile.nex) < price:
+		return "Needs %d Nex (you have %d)" % [price, int(profile.nex)]
+	profile.nex = int(profile.nex) - price
+	d.outfits.append(id)
+	d.outfit = id
+	return "Bought %s · -%d Nex" % [o.name, price]
+
+static func wear_outfit(d: Dictionary, id: String) -> bool:
+	if id == "":
+		d.outfit = ""
+		return true
+	if id not in d.outfits:
+		return false
+	d.outfit = id
+	return true
+
+static func buy_furniture(d: Dictionary, profile: Dictionary, id: String) -> String:
+	var f := furniture(id)
+	if f.is_empty():
+		return "No such piece"
+	if id in d.furniture:
+		return "%s is already in the apartment" % f.name
+	var price := int(f.price)
+	if int(profile.nex) < price:
+		return "Needs %d Nex (you have %d)" % [price, int(profile.nex)]
+	profile.nex = int(profile.nex) - price
+	d.furniture.append(id)
+	return "Bought %s · -%d Nex · delivered to Apartment 12-04" % [f.name, price]

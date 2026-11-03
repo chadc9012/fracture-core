@@ -44,6 +44,8 @@ var parked: Array[Node3D] = []
 var driving_car: RefCounted
 var _near_car: Node3D
 const InventoryView = preload("res://scripts/gear/inventory_view.gd")
+const OutfitLook = preload("res://scripts/gear/outfit_look.gd")
+var wallet: Dictionary = {}   # the profile (xp, nex, level) while the street is open; mission_01.gd has its own `profile`
 var gear: Dictionary = {}
 var inventory_overlay: Control
 var gunplay: Node3D
@@ -193,6 +195,7 @@ func _spawn_player() -> void:
 	enemies.operator_down.connect(func(): _respawn_timer = 5.0)
 	# the gear (gear_store.gd): the worn weapons become the gun list; kills roll drops into the bag
 	gear = Gear.load_save()
+	wallet = Gear.profile_load()
 	_fit_gear()
 	# traffic (traffic.gd): eight civilian cars on the block's two lanes, sharing the obstacle list
 	traffic = Traffic.new()
@@ -215,6 +218,7 @@ func _spawn_player() -> void:
 
 func _fit_gear() -> void:
 	gunplay.set_loadout(Gear.loadout(gear))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	if enemies:
 		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
 		enemies.hull = minf(enemies.hull, enemies.hull_max)
@@ -882,6 +886,11 @@ func open_mall() -> void:
 	if mall_overlay or garage_overlay:
 		return
 	mall_overlay = Mall.new()
+	if not gear.is_empty():
+		wallet = Gear.profile_load()
+		mall_overlay.gear = gear
+		mall_overlay.profile = wallet
+		mall_overlay.shop_changed.connect(func(): Gear.save(gear); Gear.profile_save(wallet); _fit_gear())
 	mall_overlay.closed.connect(close_mall)
 	add_child(mall_overlay)
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED

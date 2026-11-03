@@ -284,6 +284,8 @@ func _notification(what: int) -> void:
 			street.close_sports()
 		elif street and street.casino_overlay:
 			street.close_casino()
+		elif street and street.mall_overlay and street.mall_overlay.shop_overlay:
+			street.mall_overlay.close_shop()
 		elif street and street.mall_overlay:
 			street.close_mall()
 		elif street and street.garage_overlay:
@@ -360,6 +362,9 @@ func _shoot(path: String, opts: Array) -> void:
 						nearest = c
 				street.enter_car(nearest)
 				street.controls.move = Vector2(-0.12, 1.0)   # pull out toward the road
+			if String(o).contains("walk:shop"):
+				street.open_mall()
+				street.mall_overlay.open_shop("haven" if String(o).contains("haven") else "nova")
 			if String(o).contains("walk:inventory"):
 				street.open_inventory()
 			if String(o).contains("walk:fire"):
