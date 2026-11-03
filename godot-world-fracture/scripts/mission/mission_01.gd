@@ -989,7 +989,7 @@ shader_type spatial;
 render_mode unshaded, blend_add, cull_disabled, depth_draw_never;
 void fragment() {
 	// a seam of light: white-hot at the core, violet at the edges, flickering along its length
-	float x = abs(UV.x - 0.5) * 2.0;
+	float x = clamp(abs(UV.x - 0.5) * 2.0, 0.0, 1.0);
 	float core = pow(1.0 - x, 6.0);
 	float edge = pow(1.0 - x, 1.6);
 	float f = 0.85 + 0.15 * sin(TIME * 23.0 + UV.y * 3.0);

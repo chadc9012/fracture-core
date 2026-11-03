@@ -29,9 +29,9 @@ void vertex() {
 	VERTEX.x += step(0.94, h(band + floor(TIME * 13.0))) * (h(band * 3.1) - 0.5) * 0.12;
 }
 void fragment() {
-	float fres = pow(1.0 - abs(dot(NORMAL, VIEW)), 2.5);
+	float fres = pow(clamp(1.0 - abs(dot(normalize(NORMAL), VIEW)), 0.0, 1.0), 2.5);
 	float scan = step(0.92, fract(lp.y * 18.0 - TIME * 2.0));
-	ALBEDO = edge * (fres * 1.6 + scan * 0.5) + vec3(1.0) * flash * 1.5;
+	ALBEDO = edge * (fres * 1.3 + scan * 0.35) + vec3(1.0) * flash * 1.5;
 }
 """
 	_ov = ShaderMaterial.new()
@@ -72,7 +72,7 @@ void vertex() {
 	VERTEX.z += j * 0.5;
 }
 void fragment() {
-	float fres = pow(1.0 - abs(dot(NORMAL, VIEW)), 2.0);
+	float fres = pow(clamp(1.0 - abs(dot(normalize(NORMAL), VIEW)), 0.0, 1.0), 2.0);
 	float scan = 0.5 + 0.5 * sin(lp.y * 120.0 - TIME * 14.0);
 	float flick = 0.75 + 0.25 * step(0.2, h(floor(TIME * 20.0)));
 	ALBEDO = vec3(0.02, 0.01, 0.04);
