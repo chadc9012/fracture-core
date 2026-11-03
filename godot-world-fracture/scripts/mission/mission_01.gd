@@ -1114,7 +1114,10 @@ func _on_phase() -> void:
 	_save()
 	_update_hud()
 
+var _dropped_before := false
 func _mission_complete() -> void:
+	_dropped_before = profile.get("m1_drop", false) == true
+	profile["m1_drop"] = true
 	if _complete_shown:
 		return
 	_complete_shown = true
@@ -1124,7 +1127,15 @@ func _mission_complete() -> void:
 	while int(profile.xp) >= int(profile.level) * 1000:
 		profile.level = int(profile.level) + 1
 	_save_profile()
-	(_complete.get_child(0).get_child(1) as Label).text = "+%d XP    +%d Nex%s" % [rw.xp, rw.nex, "\nMara got out with you." if story.rescued else ""]
+	# the Breach anchor drops a weapon into the inventory (gear_store.gd), the first clear only
+	var drop_line := ""
+	if not _dropped_before:
+		var gear := Gear.load_save()
+		var it := Gear.roll_drop(gear, "boss", 0.0, Gear.operator_power(gear, int(profile.level)), int(Time.get_unix_time_from_system()))
+		if not it.is_empty():
+			Gear.save(gear)
+			drop_line = "\nThe anchor dropped: %s (%d power)" % [it.name, int(it.power)]
+	(_complete.get_child(0).get_child(1) as Label).text = "+%d XP    +%d Nex%s%s" % [rw.xp, rw.nex, "\nMara got out with you." if story.rescued else "", drop_line]
 	_complete.visible = true
 	_release_mouse()
 	finished.emit()

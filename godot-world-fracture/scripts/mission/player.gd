@@ -13,11 +13,22 @@ signal hurt(hp: float)
 
 const Rig := preload("res://scripts/character/character_rig.gd")
 const Store := preload("res://scripts/character/character_store.gd")
+const Gear := preload("res://scripts/gear/gear_store.gd")
+const Weapons := preload("res://scripts/combat/weapons.gd")
+const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const WALK := 2.4
 const RUN := 5.6
 const MAG := 30
 const FIRE_RATE := 9.0
 const DAMAGE := 20.0
+## the worn weapon (gear_store.gd loadout, phase 2/4 merge): its frame sets the magazine, rate and damage; its model rides
+## the hand (the authored rifle GLBs, as gunplay.gd mounts them); the worn outfit tints the body. Bare values are the
+## mission's own carbine, so a fresh save plays as before.
+var mag_size := MAG
+var fire_rate := FIRE_RATE
+var damage := DAMAGE
+var frame := "AUTO"
+var weapon_name := "Resonance carbine"
 const MELEE_DAMAGE := 40.0
 const BLAST_DAMAGE := 140.0
 const BLAST_RADIUS := 6.5
@@ -69,6 +80,7 @@ func _ready() -> void:
 	add_child(rig)
 	rig.build(Store.load_look() if Store.exists() else Store.default_look())
 	_lock_root_motion()
+	_fit_gear()
 	_make_rifle()
 	# camera: yaw on the body's position, pitch, a spring arm over the right shoulder
 	yaw_pivot = Node3D.new()
@@ -107,6 +119,22 @@ func _lock_root_motion() -> void:
 					var v: Vector3 = an.track_get_key_value(t, k)
 					an.track_set_key_value(t, k, Vector3(first.x, v.y, first.z))
 
+## the worn primary from the inventory (gear_store.gd): frame numbers in the mission's units, the outfit on the body
+func _fit_gear() -> void:
+	var gear := Gear.load_save()
+	var lo := Gear.loadout(gear)
+	if not lo.is_empty():
+		var w: Dictionary = lo[0]
+		frame = String(w.frame)
+		weapon_name = String(w.name)
+		var f: Dictionary = Weapons.FRAMES[frame]
+		mag_size = int(f.mag)
+		fire_rate = float(f.burst) / float(f.fire_rate) if int(f.burst) > 1 else 1.0 / float(f.fire_rate)
+		damage = DAMAGE * float(f.damage) * float(w.mult) / (1.0 if int(f.burst) <= 1 else 1.4)
+		ammo = mag_size
+		reserve = int(f.reserve)
+	OutfitLook.apply(rig, Gear.outfit(str(gear.get("outfit", ""))))
+
 func _make_rifle() -> void:
 	var sk: Skeleton3D = rig.skeleton
 	if not sk:
@@ -121,6 +149,26 @@ func _make_rifle() -> void:
 	rifle.position = Vector3(0.0, 0.1, 0.05)
 	rifle.rotation_degrees = Vector3(0, 0, -90)
 	att.add_child(rifle)
+	# the worn weapon's authored model when it exists (gunplay.gd's mount: bone scale undone, barrel along the bone's +z)
+	var model_path: String = "res://models/weapons/" + String(Weapons.FRAMES[frame].model)
+	if ResourceLoader.exists(model_path):
+		var held := Node3D.new()
+		held.scale = Vector3.ONE / maxf(att.global_transform.basis.get_scale().y, 1e-4)
+		held.rotation.y = PI
+		att.add_child(held)
+		held.add_child((load(model_path) as PackedScene).instantiate())
+		rifle.visible = false
+		rifle.set_meta("authored", held)
+		muzzle = Node3D.new()
+		muzzle.position = Vector3(0, 0.07, 0.8 + float(Weapons.FRAMES[frame].muzzle_dz))
+		held.add_child(muzzle)
+		_flash = OmniLight3D.new()
+		_flash.light_color = Color(1.0, 0.8, 0.5)
+		_flash.omni_range = 4.0
+		_flash.light_energy = 0.0
+		muzzle.add_child(_flash)
+		held.visible = false
+		return
 	var body := StandardMaterial3D.new()
 	body.albedo_color = Color(0.09, 0.095, 0.1)
 	body.metallic = 0.7
@@ -159,7 +207,11 @@ func _make_rifle() -> void:
 func set_powers(p: int) -> void:
 	powers = p
 	if rifle:
-		rifle.visible = p >= 1
+		var held: Variant = rifle.get_meta("authored") if rifle.has_meta("authored") else null
+		if held != null:
+			(held as Node3D).visible = p >= 1
+		else:
+			rifle.visible = p >= 1
 
 ## the point the camera's centre looks at (for aiming and the crosshair)
 func aim_ray() -> Array:
@@ -225,7 +277,7 @@ func _physics_process(delta: float) -> void:
 	if _reload > 0.0:
 		_reload -= delta
 		if _reload <= 0.0:
-			var take := mini(MAG - ammo, reserve)
+			var take := mini(mag_size - ammo, reserve)
 			ammo += take
 			reserve -= take
 	elif powers >= 1 and fire_held and _fire_cd <= 0.0:
@@ -245,15 +297,15 @@ func _play(nm: String) -> void:
 	rig.anim.play(nm, 0.2)
 
 func reload() -> void:
-	if _reload > 0.0 or ammo >= MAG or reserve <= 0:
+	if _reload > 0.0 or ammo >= mag_size or reserve <= 0:
 		return
-	_reload = 1.6
+	_reload = float(Weapons.FRAMES[frame].reload) if Weapons.FRAMES.has(frame) else 1.6
 
 func reloading() -> bool:
 	return _reload > 0.0
 
 func _shoot() -> void:
-	_fire_cd = 1.0 / FIRE_RATE
+	_fire_cd = 1.0 / fire_rate
 	ammo -= 1
 	var r := aim_ray()
 	var from: Vector3 = r[0]
@@ -265,7 +317,7 @@ func _shoot() -> void:
 	var to: Vector3 = hit.position if hit else from + dir * 90.0
 	var collider: Object = hit.collider if hit else null
 	if collider and collider.has_method("take_damage"):
-		collider.take_damage(DAMAGE)
+		collider.take_damage(damage)
 	if _flash:
 		_flash.light_energy = 3.0
 	fired.emit(muzzle.global_position if muzzle else global_position + Vector3(0, 1.4, 0), to, collider)

@@ -24,7 +24,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Phase 2/4 merge: Mission 01 onto scripts/player + scripts/combat + scripts/gear (one operator, one gun, one HUD, the worn gear and outfit in the mission) | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-03 |
 | Killbox bots: full bot teams on the arenas, allies and rivals (web build; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
@@ -34,11 +33,13 @@ Rows are the lock; `git fetch` before you claim.
 - Phase 5: district streaming (Active / Simulated / Frozen) once the block becomes more than one street.
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
+- Controller unification: Mission 01's physics player onto scripts/player (the gear, outfit and drops already carry into the mission; the interiors rely on physics bodies, so the rewrite buys nothing playable before Dec 4).
 - Phase 1: server-side mission-run guard — needs a migration applied on the live Supabase project that can't be verified from a session; changes nothing playable.
 
 ## Done
 | Task | Commit |
 | --- | --- |
+| Phase 2/4 merge (gear side): the worn weapon's frame, numbers and authored model, the outfit tint and a first-clear boss drop in Mission 01 | see git log "Mission 01 takes the worn gear" (Nov 3) |
 | Phase 5: mall shops — Nova Threads (outfits, worn tint) and Haven Home (furnishings) with Nex purchases | see git log "Godot: mall shops" (Nov 3) |
 | Phase 5: Nexus Speedway, the first racing venue (track data, stands, pit lane, lights, 3 rivals, 3 laps, positions, best lap, prize Nex) | see git log "Godot: Nexus Speedway" (Nov 3) |
 | Phase 5: traffic on the street slices (eight pooled civilian cars, lanes, gaps, stops for the operator and the player's car, moving obstacle boxes) | see git log "Godot: traffic" (Nov 3) |
