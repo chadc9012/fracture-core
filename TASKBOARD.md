@@ -24,6 +24,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Game modes: PvP, Raids and Races as separate modes from a MODES hub — the Killbox (another session's arenas and picker) as the PvP card, a Neon City street circuit with bot racers, Raid 01 The Hollow Star with a bot fireteam (owner asked directly, Nov 8: "PvP, Raids & races are all separate game modes … create separate modes for each"; bots now, online later by the owner's call) | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-08 |
 | Killbox bots + Skydock arena, then the PvP maps board in order (web build; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
