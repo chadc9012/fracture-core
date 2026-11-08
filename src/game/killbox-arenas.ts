@@ -23,7 +23,7 @@ import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
@@ -42,7 +42,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -287,7 +287,62 @@ export const SKYDOCK: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK };
+/* ---------------- Neon Yard ---------------- */
+
+// a container yard on a harbour pier at night: rows of stacked containers make the corridors, two stacks you can climb (5.2 m,
+// two containers up, by a steel stair) give the high ground, and the gantry crane rearranges the lanes when the yard shuffles
+const NY_ROOFS: ArenaRoof[] = [
+  { id: "yard", name: "Container Yard", x0: -40, x1: 40, z0: -34, z1: 34, top: 20 },
+  { id: "west-stack", name: "West Stack", x0: -26, x1: -21, z0: -6, z1: 6, top: 25.2 },
+  { id: "east-stack", name: "East Stack", x0: 21, x1: 26, z0: -6, z1: 6, top: 25.2 },
+];
+const NY_WALKS: ArenaWalk[] = [
+  { id: "west-stair", x: -23.5, z: 10, along: "z", length: 8, width: 3, top: 25.2, topB: 20, rails: true },
+  { id: "east-stair", x: 23.5, z: -10, along: "z", length: 8, width: 3, top: 20, topB: 25.2, rails: true },
+];
+// the climbable stacks' 5.2 m faces: walled from the yard, open where the stairs arrive
+const NY_LEDGES: ArenaWall[] = [
+  { ax: -26, az: -6, bx: -26, bz: 6, base: 19.5, top: 25.2 }, { ax: -21, az: -6, bx: -21, bz: 6, base: 19.5, top: 25.2 },
+  { ax: -26, az: -6, bx: -21, bz: -6, base: 19.5, top: 25.2 }, { ax: -26, az: 6, bx: -25, bz: 6, base: 19.5, top: 25.2 }, { ax: -22, az: 6, bx: -21, bz: 6, base: 19.5, top: 25.2 },
+  { ax: 26, az: 6, bx: 26, bz: -6, base: 19.5, top: 25.2 }, { ax: 21, az: 6, bx: 21, bz: -6, base: 19.5, top: 25.2 },
+  { ax: 26, az: 6, bx: 21, bz: 6, base: 19.5, top: 25.2 }, { ax: 26, az: -6, bx: 25, bz: -6, base: 19.5, top: 25.2 }, { ax: 22, az: -6, bx: 21, bz: -6, base: 19.5, top: 25.2 },
+];
+const NY_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  // two-high rows that make the corridors, and single boxes to fight round
+  { id: "row-n", kind: "container", x: -12, z: 14, w: 12, d: 2.4, h: 5.2 },
+  { id: "row-ne", kind: "container", x: 12, z: 20, w: 6, d: 2.4, h: 2.6 },
+  { id: "stack-nw", kind: "container", x: -30, z: 22, w: 2.4, d: 6, h: 5.2 },
+  { id: "stack-ne", kind: "container", x: 32, z: 14, w: 2.4, d: 6, h: 2.6 },
+  { id: "box-mid", kind: "container", x: -8, z: 4, w: 2.4, d: 6, h: 2.6 },
+  { id: "crates", kind: "crate", x: 4, z: 10, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "barrier", kind: "barrier", x: 16, z: 4, w: 3, d: 1.2, h: 1.2 },
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 27, w: 6, d: 1.2, h: 1.2 },
+]);
+const NY_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // boxes the crane lifts out of the lanes when the yard shuffles…
+  { id: "lift-n", x: 0, z: 16, w: 6, d: 2.4, h: 2.6, phase: "up" },
+  { id: "lift-w", x: -34, z: 6, w: 2.4, d: 6, h: 2.6, phase: "up" },
+  // …and boxes it drops into the open ones
+  { id: "drop-c", x: 0, z: 7.5, w: 6, d: 2.4, h: 2.6, phase: "down" },
+  { id: "drop-w", x: -16, z: 0, w: 2.4, d: 6, h: 2.6, phase: "down" },
+]);
+
+export const NEON_YARD: KillboxArena = {
+  id: "neon-yard", name: "Neon Yard", region: "Neon City · Southern Docks", size: "medium",
+  blurb: "A container yard on the harbour at night. Stacked containers make the corridors, two stacks you can climb hold the high ground, and the gantry crane shuffles the lanes.",
+  site: { x: -100, z: 1180 }, base: ARENA_ALTITUDE, look: "neon-yard",
+  roofs: NY_ROOFS, walks: NY_WALKS, cover: NY_COVER, ledges: NY_LEDGES, shifters: NY_SHIFTERS,
+  spawns: {
+    us: [[-20, 30], [0, 31], [20, 30], [-34, 29], [34, 29], [-8, 30]],
+    them: [[20, -30], [0, -31], [-20, -30], [34, -29], [-34, -29], [8, -30]],
+  },
+  zones: [{ id: "A", dx: -30, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 30, dz: 0 }], objective: [0, 0],
+  killPlane: 12,
+  fracture: { name: "Crane Shuffle", brief: "The gantry crane reworks the yard: it lifts containers out of the lanes and drops others into the open ones.", first: 70, every: 130, length: 30, warn: 10, visibility: 1 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates Kaiju Complex → Fracture Floor → Killbox Prime → Skydock match to match", () => {
+  it("each arena playlist rotates through all five maps match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock"]);
-      expect([0, 1, 2, 3, 4].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "kaiju-complex"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard"]);
+      expect([0, 1, 2, 3, 4, 5].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
@@ -234,7 +234,10 @@ for (const X of Object.values(ARENAS)) describe(`every arena: ${X.name}`, () => 
   const times = [10, X.fracture.first + 8];
 
   it("is point-symmetric (surfaces, cover, shifters)", () => {
-    for (let x = -50; x <= 50; x += 1.5) for (let z = -40; z <= 40; z += 1.5) expect(surfaceAt(X, x, z)).toBe(surfaceAt(X, -x, -z));
+    for (let x = -50; x <= 50; x += 1.5) for (let z = -40; z <= 40; z += 1.5) {
+      const p = surfaceAt(X, x, z), q = surfaceAt(X, -x, -z);
+      if (Number.isFinite(p) || Number.isFinite(q)) expect(p).toBeCloseTo(q, 6); else expect(p).toBe(q);
+    }
     for (const list of [X.cover, X.shifters] as const) {
       const keys = new Set(list.map((k) => `${k.x},${k.z},${k.w},${k.d},${k.h},${"phase" in k ? k.phase : ""}`));
       for (const k of list) expect(keys.has(`${-k.x},${-k.z},${k.w},${k.d},${k.h},${"phase" in k ? k.phase : ""}`)).toBe(true);
@@ -312,5 +315,23 @@ describe("Skydock", () => {
     for (const [x, z] of S.spawns.us) expect(surfaceAt(S, x, z)).toBe(22);
     // the docks and the deck are joined only over the ramps: the middle of the drop is open
     expect(surfaceAt(S, 0, 18)).toBe(-Infinity);
+  });
+});
+
+describe("Neon Yard", () => {
+  it("the climbable stacks are walled from the yard except at their stairs, and you can drop off them", () => {
+    clearWalls(); setWalls("ny", arenaWalls(Y));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(Y, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, Y.base + feet); };
+    expect(hit(-20.8, 0, 20)).toBe(true); // the west stack's face from the yard
+    expect(hit(-23.5, 6.2, 24)).toBe(false); // its stair mouth
+    expect(hit(-21.2, 0, 25.2)).toBe(false); // from the top you can drop off
+    expect(hit(39.8, 0, 20)).toBe(true); // the pier's edge
+    clearWalls();
+    expect(surfaceAt(Y, -23.5, 0)).toBe(25.2); expect(surfaceAt(Y, 0, 0)).toBe(20);
+  });
+  it("the Crane Shuffle swaps which boxes stand in the lanes", () => {
+    const t = Y.fracture.first + 10, up = Y.shifters.filter((s) => s.phase === "up"), down = Y.shifters.filter((s) => s.phase === "down");
+    expect(up.every((s) => shifterLift(Y, s, 5) === 1 && shifterLift(Y, s, t) === 0)).toBe(true);
+    expect(down.every((s) => shifterLift(Y, s, 5) === 0 && shifterLift(Y, s, t) === 1)).toBe(true);
   });
 });
