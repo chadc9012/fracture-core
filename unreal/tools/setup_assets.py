@@ -4,6 +4,9 @@
                        "Color"), M_WF_Terrain (vertex colour, for AWFTerrain), M_WF_Water ("Color", glossy)
   /Game/WF/Models      Buildings/<name> and Fleet/<name>: the web build's GLB models (joined to one mesh each by
                        unreal/tools/join_models.py), named with '_' for '-' (nexus-civic-a -> nexus_civic_a)
+  /Game/WF/Characters  <model>/<model> (skeletal mesh) and <model>_idle / _walk / _run (clips): the web build's rigged
+                       enemies and townspeople (public/models/enemies, npcs), read from WF_CHARACTER_MODELS (default the
+                       repo's public/models); UWFRig wears them
 
 The game finds them by path (WFAssets) and falls back to its stand-ins when they are missing.
 
@@ -193,6 +196,98 @@ def instanced_safe(mesh):
             LIB.save_loaded_asset(base)
 
 
+CHARACTERS = [
+    # enemy-visuals.ts: the rigged bipeds (crawlers, queens and swimmers are static meshes there and stay stand-ins here)
+    *(f"enemies/{f}-{r}" for f in ("raider", "overclocked", "vanguard", "skyborn", "guardian") for r in ("regular", "elite", "boss")),
+    "enemies/aberration-elite",
+    # townspeople for AWFLivingNpc
+    *(f"npcs/merchants/{n}" for n in ("cruz-mendez", "jax-kane", "malek-daram", "rafiq-kaleem", "selene-voss", "thalia-ren")),
+    "npcs/general-store", "npcs/vehicle-dealer",
+]
+CLIPS = ("idle", "walk", "run", "shoot")
+
+
+def import_character(src):
+    base = os.path.splitext(os.path.basename(src))[0]
+    asset = base.replace("-", "_")
+    folder = f"{ROOT}/Characters/{asset}"
+    if LIB.does_asset_exist(f"{folder}/{asset}") and not os.environ.get("WF_REIMPORT"):
+        return True  # already there: a rerun only adds what's missing
+    staging = f"{ROOT}/Characters/_src/{asset}"
+    task = unreal.AssetImportTask()
+    task.set_editor_property("filename", src)
+    task.set_editor_property("destination_path", staging)
+    task.set_editor_property("automated", True)
+    task.set_editor_property("replace_existing", True)
+    task.set_editor_property("save", True)
+    TOOLS.import_asset_tasks([task])
+    mesh, clips = None, {}
+    for path in LIB.list_assets(staging, recursive=True, include_folder=False):
+        kind = str(LIB.find_asset_data(path).asset_class_path.asset_name)
+        name = path.split(".")[0].split("/")[-1].lower()
+        if kind == "SkeletalMesh" and mesh is None:
+            mesh = path.split(".")[0]
+        elif kind == "AnimSequence":
+            for clip in CLIPS:
+                # the importer names a clip after the glTF animation, sometimes prefixed with the file or mesh name
+                # (UE 5.8 glues it on: raider-regularwalk)
+                if name.endswith(clip):
+                    clips.setdefault(clip, path.split(".")[0])
+    if not mesh:
+        unreal.log_warning(f"[WF setup] {base}: the import made no skeletal mesh")
+        return False
+    for target, src_path in [(f"{folder}/{asset}", mesh)] + [(f"{folder}/{asset}_{c}", p) for c, p in clips.items()]:
+        if LIB.does_asset_exist(target):
+            LIB.delete_asset(target)
+        if not LIB.rename_asset(src_path, target):
+            unreal.log_warning(f"[WF setup] {base}: could not move {src_path} to {target}")
+    skinned_safe(LIB.load_asset(f"{folder}/{asset}"))
+    LIB.save_asset(f"{folder}/{asset}")
+    log(f"character {asset}: clips {sorted(clips)}")
+    return True
+
+
+def skinned_safe(mesh):
+    """Like instanced_safe, for skinned meshes: every base material must allow skeletal meshes, or a cooked build draws
+    the default material. Bases from outside /Game (the importer's) are copied in first."""
+    for i, slot in enumerate(mesh.get_editor_property("materials")):
+        mi = slot.get_editor_property("material_interface")
+        if not mi or not mi.get_base_material():
+            continue
+        base = mi.get_base_material()
+        if not base.get_path_name().startswith("/Game/"):
+            copy = f"{MAT_PATH}/Imported/{base.get_name()}"
+            if not LIB.does_asset_exist(copy):
+                LIB.duplicate_asset(base.get_path_name().split(".")[0], copy)
+            new_base = LIB.load_asset(copy)
+            if isinstance(mi, unreal.MaterialInstanceConstant) and mi.get_editor_property("parent") == base:
+                MEL.set_material_instance_parent(mi, new_base)
+                LIB.save_loaded_asset(mi)
+            base = new_base
+        if not base.get_editor_property("used_with_skeletal_mesh"):
+            base.set_editor_property("used_with_skeletal_mesh", True)
+            MEL.recompile_material(base)
+            LIB.save_loaded_asset(base)
+
+
+def import_characters():
+    here = os.path.dirname(os.path.abspath(__file__))
+    default = os.path.normpath(os.path.join(here, "..", "..", "public", "models"))
+    src_root = os.environ.get("WF_CHARACTER_MODELS", default)
+    done = 0
+    for rel in CHARACTERS:
+        src = os.path.join(src_root, rel + ".glb")
+        if not os.path.isfile(src):
+            unreal.log_warning(f"[WF setup] no character model at {src}")
+            continue
+        try:
+            if import_character(src):
+                done += 1
+        except Exception as e:  # one bad file must not cost the rest
+            unreal.log_warning(f"[WF setup] {rel}: {e}")
+    log(f"{done} characters imported")
+
+
 def import_models():
     here = os.path.dirname(os.path.abspath(__file__))
     default = os.path.normpath(os.path.join(here, "..", "..", "build", "joined"))
@@ -210,6 +305,8 @@ def import_models():
 
 
 make_materials()
-import_models()
+if not os.environ.get("WF_ONLY_CHARACTERS"):
+    import_models()
+import_characters()
 LIB.save_directory(ROOT, only_if_is_dirty=False, recursive=True)
 log("done")

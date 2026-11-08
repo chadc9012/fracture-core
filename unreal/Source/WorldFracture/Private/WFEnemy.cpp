@@ -7,6 +7,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "WFRig.h"
 #include "Engine/OverlapResult.h"
 #include "DrawDebugHelpers.h"
 #include "Components/StaticMeshComponent.h"
@@ -119,13 +120,53 @@ void AWFEnemy::BeginPlay()
 	}
 	const double Scale = ScaleOverride > 0 ? ScaleOverride : bBoss ? 1.8 : bElite ? 1.25 : 1.0;
 	SetActorScale3D(FVector(Scale));
+	WearModel(Scale);
 	GetCharacterMovement()->MaxWalkSpeed = static_cast<float>(SpeedBase * (bElite ? SpeedElite : 1.0) * CmPerM);
 	RangedCooldown = 1.5; // sim.ts spawnMachine cool
+}
+
+namespace
+{
+	/** enemy-visuals.ts ENEMY_VISUALS: the rigged model a faction's regular / elite / boss wears and its real height (m).
+	 * Aberration crawlers and queens and the Abyssal swimmers are static meshes in the web build: they keep the stand-in. */
+	struct FEnemyLook { const TCHAR* Model; double Height; };
+	const FEnemyLook* EnemyLook(const FString& Kind, bool bElite, bool bBoss)
+	{
+		static const TMap<FString, TArray<FEnemyLook>> Looks = {
+			{TEXT("RAIDER"), {{TEXT("raider-regular"), 1.85}, {TEXT("raider-elite"), 1.95}, {TEXT("raider-boss"), 2.18}}},
+			{TEXT("OVERCLOCKED"), {{TEXT("overclocked-regular"), 1.85}, {TEXT("overclocked-elite"), 1.95}, {TEXT("overclocked-boss"), 2.18}}},
+			{TEXT("VANGUARD"), {{TEXT("vanguard-regular"), 1.9}, {TEXT("vanguard-elite"), 2.04}, {TEXT("vanguard-boss"), 2.23}}},
+			{TEXT("SKYBORN"), {{TEXT("skyborn-regular"), 2.0}, {TEXT("skyborn-elite"), 2.05}, {TEXT("skyborn-boss"), 2.3}}},
+			{TEXT("GUARDIAN"), {{TEXT("guardian-regular"), 2.1}, {TEXT("guardian-elite"), 2.2}, {TEXT("guardian-boss"), 2.5}}},
+			{TEXT("ABERRATION"), {{nullptr, 0}, {TEXT("aberration-elite"), 1.8}, {nullptr, 0}}},
+		};
+		const TArray<FEnemyLook>* Row = Looks.Find(Kind.ToUpper());
+		if (!Row) return nullptr;
+		const FEnemyLook& L = (*Row)[bBoss ? 2 : bElite ? 1 : 0];
+		return L.Model ? &L : nullptr;
+	}
+}
+
+void AWFEnemy::WearModel(double Scale)
+{
+	const FEnemyLook* Look = EnemyLook(Kind, bElite, bBoss);
+	if (!Look) return;
+	// enemy-visuals.ts enemyBodyScale: on screen the sim scale only adds a little bulk (an elite a head taller, a region
+	// boss about 3.5 m), while the actor's own scale keeps driving hit and push radii
+	const double OnScreen = Look->Height * 100.0 * (1.0 + (Scale - 1.0) * 0.35);
+	const float Half = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+	if (UWFRig* Worn = UWFRig::Attach(this, GetCapsuleComponent(), Look->Model, static_cast<float>(OnScreen / Scale), -Half))
+	{
+		Rig = Worn;
+		Body->SetVisibility(false);
+		Head->SetVisibility(false);
+	}
 }
 
 void AWFEnemy::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (Rig) Rig->Drive(IsDead() ? 0.f : static_cast<float>(GetVelocity().Size2D()));
 	if (IsDead()) return;
 	SincePlayerHit += DeltaSeconds;
 	if (bDecoy) return; // False Saints never fight

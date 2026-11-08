@@ -1,6 +1,6 @@
 #!/bin/bash
 # World Fracture: build the Unreal Android APK on this Mac. Logs to ~/WorldFracture/logs/unreal-build.log.
-# Run from a folder holding unreal.tgz (tar of this repo's unreal/) and joined.tgz (join_models.py output: joined/{buildings,fleet}).
+# Needs unreal.tgz (the repo's unreal/), joined.tgz (buildings/fleet) and chars.tgz (rigged characters) next to it.
 cd "$(dirname "$0")"; exec > logs/unreal-build.log 2>&1; set -x
 UE="/Users/Shared/Epic Games/UE_5.8"
 export ANDROID_HOME="$HOME/Library/Android/sdk" NDKROOT="$HOME/Library/Android/sdk/ndk/27.2.12479018" NDK_ROOT="$HOME/Library/Android/sdk/ndk/27.2.12479018"
@@ -12,12 +12,19 @@ fi
 export JAVA_HOME="$PWD/jdk21/Contents/Home"; "$JAVA_HOME/bin/java" -version
 export DEVELOPER_DIR=/Users/sir/Applications/Xcode-26.app/Contents/Developer
 xcode-select -p; xcodebuild -version
-[ -f proj/.assets-done ] || { rm -rf proj/unreal/Source proj/unreal/Plugins proj/unreal/Config joined && mkdir -p proj && tar xzf unreal.tgz -C proj && tar xzf joined.tgz; }
+mkdir -p proj && rm -rf proj/unreal/Source proj/unreal/Plugins/WorldFractureCore/Source proj/unreal/tools && tar xzf unreal.tgz -C proj
+[ -d joined ] || tar xzf joined.tgz
+[ -f chars.tgz ] && { rm -rf chars && mkdir chars && tar xzf chars.tgz -C chars; }
 P="$PWD/proj/unreal/WorldFracture.uproject"
-[ -f proj/.assets-done ] || "$UE/Engine/Build/BatchFiles/Mac/Build.sh" WorldFractureEditor Mac Development -project="$P" || { echo BUILD_EDITOR_FAILED; exit 1; }
-[ -f proj/.assets-done ] || WF_JOINED_MODELS="$PWD/joined" "$UE/Engine/Binaries/Mac/UnrealEditor.app/Contents/MacOS/UnrealEditor" "$P" \
-  -run=pythonscript -script="$PWD/proj/unreal/tools/setup_assets.py" -unattended -nullrhi -nosplash || { echo SETUP_ASSETS_FAILED; exit 1; }
-touch proj/.assets-done
+"$UE/Engine/Build/BatchFiles/Mac/Build.sh" WorldFractureEditor Mac Development -project="$P" || { echo BUILD_EDITOR_FAILED; exit 1; }
+ED="$UE/Engine/Binaries/Mac/UnrealEditor.app/Contents/MacOS/UnrealEditor"
+if [ ! -f proj/.assets-done ]; then
+  WF_JOINED_MODELS="$PWD/joined" WF_CHARACTER_MODELS="$PWD/chars" "$ED" "$P" -run=pythonscript -script="$PWD/proj/unreal/tools/setup_assets.py" -unattended -nullrhi -nosplash || { echo SETUP_ASSETS_FAILED; exit 1; }
+  touch proj/.assets-done proj/.chars-done
+elif [ ! -f proj/.chars-done ]; then
+  WF_ONLY_CHARACTERS=1 WF_CHARACTER_MODELS="$PWD/chars" "$ED" "$P" -run=pythonscript -script="$PWD/proj/unreal/tools/setup_assets.py" -unattended -nullrhi -nosplash || { echo SETUP_CHARACTERS_FAILED; exit 1; }
+  touch proj/.chars-done
+fi
 "$UE/Engine/Build/BatchFiles/RunUAT.sh" BuildCookRun -project="$P" -platform=Android -cookflavor=ASTC -clientconfig=Development \
   -build -cook -stage -package -pak -archive -archivedirectory="$PWD/apk" -utf8output -nop4 -unattended || { echo PACKAGE_FAILED; exit 1; }
 find apk -name '*.apk' -exec ls -la {} \;

@@ -6,6 +6,7 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "WFRig.h"
 
 AWFLivingNpc::AWFLivingNpc()
 {
@@ -43,6 +44,19 @@ void AWFLivingNpc::Setup(const FString& InId, const FString& Name, const FString
 		Body->SetMaterial(0, Paint);
 		Head->SetMaterial(0, Paint);
 	}
+	// a real person instead of the cylinder: one of the web build's rigged townspeople (public/models/npcs), picked by id so
+	// the same NPC always looks the same; the cylinder stays as the (hidden) collision body
+	if (!Rig)
+	{
+		static const TCHAR* People[] = {TEXT("cruz-mendez"), TEXT("jax-kane"), TEXT("malek-daram"), TEXT("rafiq-kaleem"),
+			TEXT("selene-voss"), TEXT("thalia-ren"), TEXT("general-store"), TEXT("vehicle-dealer")};
+		const uint32 Pick = GetTypeHash(InId) % UE_ARRAY_COUNT(People);
+		if ((Rig = UWFRig::Attach(this, Root, People[Pick], 175.f, 0.f)) != nullptr)
+		{
+			Body->SetVisibility(false);
+			Head->SetVisibility(false);
+		}
+	}
 	Plate->SetText(FText::FromString(FString::Printf(TEXT("%s\n%s"), *Name, *Title)));
 	Plate->SetTextRenderColor(Color.ToFColor(true));
 }
@@ -51,13 +65,20 @@ void AWFLivingNpc::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	// walk toward the post or the rest spot at an easy pace; the plate faces the camera
+	float Speed = 0.f;
 	if (bHasGoal)
 	{
 		const FVector At = GetActorLocation();
 		const FVector To = GoalCm - At;
 		const double Step = 140.0 * DeltaSeconds;
+		if (To.Size2D() > 1.0)
+		{
+			Speed = 140.f;
+			SetActorRotation(FRotator(0.f, static_cast<float>(To.Rotation().Yaw), 0.f)); // face where they walk
+		}
 		SetActorLocation(To.Size() <= Step ? GoalCm : At + To.GetSafeNormal() * Step);
 	}
+	if (Rig) Rig->Drive(Speed);
 	if (const APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
 		Plate->SetWorldRotation(FRotator(0.f, static_cast<float>((Cam->GetCameraLocation() - Plate->GetComponentLocation()).Rotation().Yaw), 0.f));
 }

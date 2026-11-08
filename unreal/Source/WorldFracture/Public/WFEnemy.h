@@ -9,6 +9,7 @@
 #include "WFEnemy.generated.h"
 
 class UStaticMeshComponent;
+class UWFRig;
 class AWFCharacter;
 class AWFVehicle;
 
@@ -134,6 +135,9 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Body") TObjectPtr<UStaticMeshComponent> Body;
 	UPROPERTY(VisibleAnywhere, Category = "Body") TObjectPtr<UStaticMeshComponent> Head;
+	/** the faction's rigged model (enemy-visuals.ts), when it has been imported; the shapes above are the stand-in */
+	UPROPERTY() TObjectPtr<UWFRig> Rig;
+	void WearModel(double Scale);
 
 private:
 	FString ActivityTag;

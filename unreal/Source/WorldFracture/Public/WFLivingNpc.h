@@ -35,6 +35,8 @@ private:
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Body;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Head;
 	UPROPERTY() TObjectPtr<UTextRenderComponent> Plate;
+	/** the rigged person (public/models/npcs) when imported; Body/Head are the stand-in and the collision */
+	UPROPERTY() TObjectPtr<class UWFRig> Rig;
 	FString NpcId;
 	FVector GoalCm = FVector::ZeroVector;
 	bool bHasGoal = false;
