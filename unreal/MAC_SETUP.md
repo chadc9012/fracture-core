@@ -21,3 +21,14 @@ about 150 GB of disk and a few hours of downloads:
 
 Then: Actions > **Unreal Android APK (Mac)** > Run workflow. The first build takes a few hours (the engine compiles the
 project and cooks every asset), later ones much less. The APK appears on the `unreal-android-latest` release page.
+
+## What actually worked (Nov 8, Intel MacBook Pro, macOS 26.6)
+
+- Xcode 26.6 (`Xcode_26.6_Universal.xip` from developer.apple.com/download/all), unpacked to ~/Applications/Xcode-26.app and
+  selected per build with `DEVELOPER_DIR` (no `sudo xcode-select` needed). Open it once and accept the licence.
+- Epic Games Launcher > Unreal Engine 5.8.4 > Options > Target Platforms > **Android** must be ticked (2.2 GB); without it
+  UAT stops with "Missing files required to build Android targets".
+- Gradle 8.13 (UE 5.8's APK packaging) cannot run on Android Studio's bundled Java 25 ("Unsupported class file major
+  version 69"): the build uses a private Temurin JDK 21 via `JAVA_HOME`.
+- `unreal/tools/mac-build.command` is the script that produced the first APK (compile ~7 min, model import ~15 min,
+  cook ~45 min on first run; reruns skip what's done).
