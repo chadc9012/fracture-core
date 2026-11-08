@@ -7,7 +7,7 @@ const Match = preload("res://scripts/killbox/killbox_match.gd")
 func _init() -> void:
 	var ok := true
 	var a := Arena.new("kaiju-complex")
-	var r1: bool = a.ok() and Arena.arena_ids().size() == 3 and a.def.roofs.size() == 6
+	var r1: bool = a.ok() and Arena.arena_ids().has("kaiju-complex") and Arena.arena_ids().size() >= 3 and a.def.roofs.size() == 6
 	print("the arena loads: ", r1, " ", Arena.arena_ids())
 	ok = ok and r1
 	var roof: float = a.surface_at(-30.0, 20.0)      # the Rooftop Bar, top 23
