@@ -29,6 +29,15 @@ Rows are the lock; `git fetch` before you claim.
 
 ## Open (unclaimed, take in order within a phase)
 - Phase 5: district streaming (Active / Simulated / Frozen) once the block becomes more than one street.
+- Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
+  1. Godot takes the web's authored sets it lacks: remaining fleet GLBs, weapon GLBs (pistol / shotgun / SMG / LMG frames), NPC and enemy bodies, foliage, buildings.
+  2. PvP modes missing from pvp.ts: Extraction, Ranked (board); Dominion / Control / Kill Confirmed / FFA played by bots in Godot (Clash only today).
+  3. Vehicles with no authored hull: tank, VTOL, jet, helicopter, cargo airship, boat / yacht, submarine, hovercraft.
+  4. Wildlife set (deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile) + behaviours (herds, hunting, nocturnal).
+  5. Fracture creatures (Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus) with their fights.
+  6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
+  7. Vegetation / rock gaps (cherry blossom, baobab, bamboo, alien flora, vines; arch, cave, ice), natural effects (waterfall, lava, snow, lightning), VFX (rift, portal, hologram, energy field).
+  8. Fantasy & dimensional set (§9) for the Shattered Expanse and boss arenas.
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
 - Controller unification: Mission 01's physics player onto scripts/player (the gear, outfit and drops already carry into the mission; the interiors rely on physics bodies, so the rewrite buys nothing playable before Dec 4).
