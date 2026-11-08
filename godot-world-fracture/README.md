@@ -159,6 +159,14 @@ builders as the hub block under one root node, their boxes go into the shared ob
 never thrashes. Traffic lanes span the simulated extent and re-enter at its ends. Shot: `slicenightwalk:district` (walks
 +z across the first boundary).
 
+**Authored sets from the web build** (Nov 8): `models/fleet` now holds every web fleet GLB (30, 33 MB), `models/weapons`
+the rifle frames plus pistol / shotgun / SMG / heavy / launcher / sword (12, 11 MB), `models/foliage` the three palms and
+two trees (5 MB), `models/buildings` the 18 web buildings (10 MB) — about 105 MB of models in all, nothing over 7 MB.
+`weapons.gd` fires SMG / SHOTGUN (8 pellets a shell) / SIDEARM / LMG / HEAVY with the web numbers and the gear export
+gives every catalogue weapon its real frame (launchers fire as HEAVY for now). **Civilians** (`scripts/city/civilians.gd`):
+ten walkers on the sidewalks of the active blocks, random catalog faces in casual tints, strolling, turning at the ends and
+running from gunfire; not obstacles, not targets.
+
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two
 blocks over a Neon City street, joined by the west catwalk, the billboard bridge and the east catwalk, with the cover,

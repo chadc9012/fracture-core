@@ -40,5 +40,18 @@ func _init() -> void:
 	ok = ok and not sn.reload()
 	sn.mag = 1; sn.reserve = 0
 	ok = ok and not sn.reload()
+	# the authored frames (Nov 8): every ORDER entry has a model and bands; the shotgun throws 8 pellets a round for one
+	# round of ammo; the SMG out-fires the auto rifle; unknown gear frames fall back to AUTO
+	var r5 := true
+	for f in Weapons.ORDER:
+		var d: Dictionary = Weapons.FRAMES[f]
+		r5 = r5 and d.has("model") and d.has("range_full") and d.has("mag") and ResourceLoader.exists("res://models/weapons/" + String(d.model))
+	var sg := Weapons.Gun.new("SHOTGUN")
+	var bolts := sg.step(0.02, true)
+	r5 = r5 and bolts == 1 and Weapons.pellets("SHOTGUN") == 8 and sg.mag == 5 and Weapons.pellets("AUTO") == 1
+	r5 = r5 and float(Weapons.FRAMES.SMG.fire_rate) < float(Weapons.FRAMES.AUTO.fire_rate) and Weapons.known("PLASMA") == "AUTO" and Weapons.known("LMG") == "LMG"
+	r5 = r5 and absf(Weapons.damage("SHOTGUN", 4.0) - 7.5) < 1e-6 and Weapons.damage("SHOTGUN", 20.0) < Weapons.damage("SHOTGUN", 4.0) * 0.25
+	print("authored frames, pellets, fallback: ", r5)
+	ok = ok and r5
 	print("Weapons test: ", ok)
 	quit(0 if ok else 1)

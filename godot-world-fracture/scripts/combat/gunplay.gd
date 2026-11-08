@@ -97,7 +97,7 @@ func set_loadout(list: Array) -> void:
 	var was := gun().frame if not guns.is_empty() else ""
 	guns.clear()
 	for w in list:
-		var g := Weapons.Gun.new(String(w.frame))
+		var g := Weapons.Gun.new(Weapons.known(String(w.frame)))
 		g.label = String(w.name)
 		g.mult = float(w.mult)
 		guns.append(g)
@@ -141,7 +141,8 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		gun().reload()
 	var n := gun().step(dt, trigger)
 	for i in n:
-		_fire_one(cam, moving_speed)
+		for k in Weapons.pellets(gun().frame):
+			_fire_one(cam, moving_speed)
 	# tracers and the flash fade
 	var keep: Array = []
 	for tr in _tracers:

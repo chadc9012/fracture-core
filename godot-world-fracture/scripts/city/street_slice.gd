@@ -40,6 +40,9 @@ var traffic: Node3D
 ## built when Active, kept as boxes when Simulated, parked when Frozen. Each tile's meshes hang under one root node at
 ## z = k * TILE, so the builders below work in tile-local coordinates (`_tile_root` set while a tile is being built).
 const District = preload("res://scripts/city/district.gd")
+const Civilians = preload("res://scripts/city/civilians.gd")
+var civilians: Node3D
+var _shots_seen := 0
 var district: RefCounted
 var tiles := {}                 # k -> { "root": Node3D or null, "slots": Array[int] }
 var _free_slots: Array[int] = []
@@ -213,6 +216,11 @@ func _spawn_player() -> void:
 	traffic = Traffic.new()
 	world.add_child(traffic)
 	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, 8, 5)
+	# civilians (civilians.gd): ten walkers on the sidewalks of the active blocks
+	civilians = Civilians.new()
+	world.add_child(civilians)
+	var act0: Vector2 = district.extent(District.State.ACTIVE)
+	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, 10, 9)
 	_apply_district(district.update(operator.position.z, true))
 	gunplay.killed.connect(func(t: Variant) -> void:
 		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
@@ -263,7 +271,7 @@ func _obstacles() -> Array[AABB]:
 		if n.has_meta("size"):
 			var sz: Vector3 = n.get_meta("size")
 			var file := String(n.get_meta("file")) if n.has_meta("file") else ""
-			if file.begins_with("palm") or file.begins_with("street-lamp"):
+			if file.contains("palm") or file.begins_with("street-lamp"):
 				sz = Vector3(0.6, sz.y, 0.6)   # the trunk, not the fronds
 			out.append(_world_box(n.transform, Vector3(-sz.x * 0.5, 0, -sz.z * 0.5), Vector3(sz.x * 0.5, sz.y, sz.z * 0.5)))
 		elif n.has_meta("car"):
@@ -327,6 +335,9 @@ func _apply_district(changes: Dictionary) -> void:
 		var sim: Vector2 = district.extent(District.State.SIMULATED)
 		var act: Vector2 = district.extent(District.State.ACTIVE)
 		traffic.set_span(sim.x, sim.y, act.x, act.y)
+	if civilians:
+		var act2: Vector2 = district.extent(District.State.ACTIVE)
+		civilians.set_span(act2.x, act2.y)
 
 ## one block of the avenue at z = k * TILE, deterministic per tile, built with the same builders as the hub block
 func _build_tile(k: int) -> Node3D:
@@ -358,7 +369,7 @@ func _tile_boxes(k: int, root: Node3D) -> Array[AABB]:
 			continue
 		var sz: Vector3 = n.get_meta("size")
 		var file := String(n.get_meta("file")) if n.has_meta("file") else ""
-		if file.begins_with("palm") or file.begins_with("street-lamp"):
+		if file.contains("palm") or file.begins_with("street-lamp"):
 			sz = Vector3(0.6, sz.y, 0.6)
 		out.append(_world_box(root.transform * n.transform, Vector3(-sz.x * 0.5, 0, -sz.z * 0.5), Vector3(sz.x * 0.5, sz.y, sz.z * 0.5)))
 	var x0 := ROAD_W * 0.5 + WALK_W
@@ -399,6 +410,11 @@ func _process(dt: float) -> void:
 		var ch: Dictionary = district.update(focus.z)
 		if not ch.is_empty():
 			_apply_district(ch)
+	if civilians:
+		civilians.step(minf(dt, 0.05))
+		if gunplay and gunplay.shots_fired != _shots_seen:
+			_shots_seen = gunplay.shots_fired
+			civilians.scatter(operator.position)
 	if traffic:
 		traffic.watch_point = operator.position
 		traffic.watch_box = driving_car.box() if driving_car else AABB()
@@ -687,11 +703,11 @@ static func _aabb(n: Node) -> AABB:
 func _buildings() -> void:
 	var half := ROAD_W * 0.5 + WALK_W
 	# which blocks line the street, and how tall each kind stands (m)
-	var kinds: Array = [["apartment.glb", 22.0], ["brick.glb", 21.0], ["office.glb", 34.0], ["apartment.glb", 25.0], ["brick.glb", 19.0]]
+	var kinds: Array = [["apartment.glb", 22.0], ["brick.glb", 21.0], ["office.glb", 34.0], ["apartment.glb", 25.0], ["brick.glb", 19.0], ["../buildings/nexus-civic-a.glb", 24.0], ["../buildings/nexus-terrace-a.glb", 20.0], ["../buildings/nexus-civic-b.glb", 26.0]]
 	if style == "coast":
 		kinds = [["deco.glb", 15.0], ["villa.glb", 12.0], ["deco.glb", 17.0], ["villa.glb", 11.0]]
 	elif style == "neon":
-		kinds = [["deco.glb", 16.0], ["brick.glb", 18.0], ["apartment.glb", 20.0], ["deco.glb", 14.0], ["office.glb", 28.0]]
+		kinds = [["deco.glb", 16.0], ["brick.glb", 18.0], ["apartment.glb", 20.0], ["../buildings/neon-block-a.glb", 24.0], ["deco.glb", 14.0], ["office.glb", 28.0], ["../buildings/neon-block-b.glb", 22.0], ["../buildings/neon-tower-b.glb", 36.0]]
 	var k := 0
 	for side: float in [-1.0, 1.0]:
 		var z := -LENGTH * 0.5 + 6.0
@@ -779,7 +795,10 @@ func _props() -> void:
 		while z < LENGTH * 0.5 - 6.0:
 			var edge := side * (half + 1.3)
 			if i % 2 == 0 or style != "nexus":
-				if ResourceLoader.exists(MODELS + "palm.glb"):
+				if style == "coast" and ResourceLoader.exists(MODELS + "../foliage/palm-a.glb"):
+					# the web build's three authored palms on the resort strip
+					prop("../foliage/palm-%s.glb" % ["a", "b", "c"][(i + int(side + 1.0)) % 3], _rng.randf_range(8.5, 11.5), Vector3(edge, 0.18, z), _rng.randf() * 360.0)
+				elif ResourceLoader.exists(MODELS + "palm.glb"):
 					prop("palm.glb", _rng.randf_range(8.5, 11.0), Vector3(edge, 0.18, z), _rng.randf() * 360.0)
 				else:
 					_palm_fallback(Vector3(edge, 0.18, z))

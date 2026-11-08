@@ -9,17 +9,19 @@
 import { writeFileSync } from "node:fs";
 import { STARTER_GEAR, weaponDamageMultiplier } from "../src/game/inventory";
 import { WEAPON_CATALOG, CLASS_LABEL } from "../src/game/weapon-catalog";
-import { frameFor } from "../src/game/weapon-classes";
+import { frameFor, itemClass } from "../src/game/weapon-classes";
 import { ARMOR_SETS } from "../src/game/armor-sets";
 import { OUTFITS } from "../src/game/clothing-sets";
 import { COSMETICS, COSMETIC_SLOTS } from "../src/game/cosmetics";
 import { MELEE_CLASS } from "../src/game/foundries";
 
 const slotOf = (arch: string) => (arch === "HEAVY" ? "heavy" : arch === "SIDEARM" ? "secondary" : arch === "BLADE" ? "melee" : "primary");
-/** which Godot frame a weapon fires as: the three the slice ships (AUTO / SNIPER / FUSION); the rest fire as AUTO until their frames arrive */
+/** which Godot frame a weapon fires as (weapons.gd FRAMES: AUTO / SMG / SHOTGUN / SNIPER / FUSION / SIDEARM / HEAVY / LMG); launchers fire as HEAVY until a launcher frame lands */
 const godotFrame = (slot: string, name: string) => {
-  const f = slot === "primary" ? frameFor("AUTO", name) : slot === "heavy" ? frameFor("HEAVY", name) : "AUTO";
-  return f === "SNIPER" || f === "FUSION" ? f : "AUTO";
+  const f = slot === "primary" ? frameFor("AUTO", name) : slot === "heavy" ? frameFor("HEAVY", name) : slot === "secondary" ? "SIDEARM" : "AUTO";
+  const cls = itemClass(name);
+  if (slot === "heavy" && cls === "launcher") return "HEAVY";
+  return f;
 };
 const out = {
   starter: STARTER_GEAR.map((g) => ({ ...g, frame: godotFrame(g.slot, g.name), cls: g.slot === "primary" ? "ar" : g.slot === "secondary" ? "pistol" : "" })),
