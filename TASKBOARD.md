@@ -24,7 +24,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Phase 5: district streaming (Active / Simulated / Frozen) — the Godot street slice becomes a tile grid streamed round the operator / car | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-08 |
 | Game modes: PvP, Raids and Races as separate modes from a MODES hub — the Killbox (another session's arenas and picker) as the PvP card, a Neon City street circuit with bot racers, Raid 01 The Hollow Star with a bot fireteam (owner asked directly, Nov 8: "PvP, Raids & races are all separate game modes … create separate modes for each"; bots now, online later by the owner's call) | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-08 |
 | Killbox bots, Skydock and Neon Yard arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
@@ -46,6 +45,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Phase 5: district streaming — the street slice as seven block tiles, Active / Simulated / Frozen round the operator or car, index-stable obstacle slots, traffic over the simulated span | see git log "Godot: district streaming" (Nov 8) |
 | Post-Dec 4: Killbox in Godot — killbox.json export, Kaiju Complex built from the data (roofs, walks, cover, parapets, neon), Clash first-to-75 against two bot teams, kill plane, Billboard Blackout, scoreboard, KILLBOX button; then the arena picker with Fracture Floor (Grid Rewrite shifters) and Killbox Prime (Containment Lock) | see git log "Godot: the Killbox" and "Killbox: all three arenas" (Nov 3–8) |
 | Phase 5 follow-up: Haven Home furniture drawn in Apartment 12-04 (per-slot replacements and additions) | see git log "Apartment 12-04 shows the furniture" (Nov 3) |
 | Phase 3 follow-up: Google sign-in in the Godot app (PKCE via the browser and a localhost callback, no custom build) | see git log "Godot: sign in with Google" (Nov 3) |

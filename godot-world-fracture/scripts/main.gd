@@ -394,6 +394,14 @@ func _shoot(path: String, opts: Array) -> void:
 				street.controls.sprint = String(o).contains("run")
 				if String(o).contains("jump"):
 					street.controls._jump = true
+			# slicewalk:district starts at the far end of the hub block walking +z across the tile boundary
+			if String(o).contains("walk:district"):
+				street.controls.scripted = true
+				street.operator.position = Vector3(8.0 + 3.4, 0.18, 125.0)
+				street.operator.heading = 0.0
+				street.operator.cam_yaw = PI
+				street.controls.move = Vector2(0.0, 1.0)
+				street.controls.sprint = true
 			# slicewalk:fire stands and holds the trigger at the dummies; :sniper / :fusion swap first
 			if String(o).contains("walk:fight"):
 				street.controls.scripted = true
@@ -535,6 +543,8 @@ func _shoot(path: String, opts: Array) -> void:
 	if killbox and killbox.match_state:
 		var kb := killbox
 		print("killbox: us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)
+	if street and street.district:
+		print("district: focus ", street.district.focus_k, " counts ", street.district.counts(), " tiles built ", street.tiles.keys(), " operator z ", street.operator.position.z, " boxes ", street.operator.obstacles.size())
 	if race_view and race_view.race:
 		var rv := race_view
 		print("race: t ", rv.race.time, " player ", rv.player.node.position, " speed ", rv.player.speed, " laps ", rv.race.player().laps, " place ", rv.race.position_of(rv.race.player()), " rivals ", rv.rivals.map(func(r: Dictionary) -> String: return "%s@%.2f" % [r.entry.name, r.entry.frac]))

@@ -149,6 +149,16 @@ fd-02 *First Resonance* clears five patrols that come out of the trees; fd-03 *B
 three relay beacons to its guarded source; fd-04 *Into the Shrouded Swamps* walks to where the treeline ends. Rewards
 pay the profile's XP and Nex; progress is `user://quests.json` (synced to the cloud). Shot: `descent[:fight]`.
 
+**District streaming** (`scripts/city/district.gd`, phase 5): the street slice is now a run of seven block tiles along
+the avenue (260 m each; the authored block with the garage, mall and casino is tile 0 and always stands). Whatever carries
+the camera — the operator or the driven car — is the focus: the tile it is on and its neighbours are **Active** (meshes,
+props, parked cars, signs, boxes), the ring beyond is **Simulated** (no meshes, boxes kept, traffic ticking hidden), the
+rest **Frozen** (obstacle slots parked out of the world). Tiles are built deterministically per index with the same
+builders as the hub block under one root node, their boxes go into the shared obstacle list through index-stable slots
+(traffic and the driven car hold indexes), and the focus tile only changes 18 m past an edge so standing on a boundary
+never thrashes. Traffic lanes span the simulated extent and re-enter at its ends. Shot: `slicenightwalk:district` (walks
++z across the first boundary).
+
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two
 blocks over a Neon City street, joined by the west catwalk, the billboard bridge and the east catwalk, with the cover,
@@ -169,7 +179,7 @@ bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-w
 bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
 bun scripts/export-godot-killbox.ts       # from the repo root: rewrites godot-world-fracture/data/killbox.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [killbox[:fight]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [slicewalk:district] [killbox[:fight]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

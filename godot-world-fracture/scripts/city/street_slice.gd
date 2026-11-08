@@ -36,6 +36,16 @@ const Gear = preload("res://scripts/gear/gear_store.gd")
 const StreetCar = preload("res://scripts/driving/street_car.gd")
 const Traffic = preload("res://scripts/driving/traffic.gd")
 var traffic: Node3D
+## district streaming (district.gd): the authored slice is tile 0 and stays; the blocks either way along the avenue are
+## built when Active, kept as boxes when Simulated, parked when Frozen. Each tile's meshes hang under one root node at
+## z = k * TILE, so the builders below work in tile-local coordinates (`_tile_root` set while a tile is being built).
+const District = preload("res://scripts/city/district.gd")
+var district: RefCounted
+var tiles := {}                 # k -> { "root": Node3D or null, "slots": Array[int] }
+var _free_slots: Array[int] = []
+var _tile_root: Node3D = null
+var _tile_k := 0
+const PARKED_BOX := AABB(Vector3(0, -1000, 0), Vector3(0.1, 0.1, 0.1))
 const DriveProfile = preload("res://scripts/driving/drive_profile.gd")
 const GarageState = preload("res://scripts/garage/garage_state.gd")
 ## the parked cars you can take (phase 5): each fleet file's vehicle id for the garage build it drives with
@@ -167,7 +177,9 @@ func _spawn_player() -> void:
 	world.add_child(operator)
 	var half := ROAD_W * 0.5
 	var x0 := half + WALK_W
-	operator.bounds = Rect2(-(x0 - 0.3), -(LENGTH * 0.5 - 1.0), (x0 - 0.3) + (x0 + 15.4), LENGTH - 2.0)
+	district = District.new(-3, 3)
+	var span: Vector2 = district.span()
+	operator.bounds = Rect2(-(x0 - 0.3), span.x + 1.0, (x0 - 0.3) + (x0 + 15.4), span.y - span.x - 2.0)
 	operator.ground_at = func(x: float, z: float) -> float:
 		if x > x0 and absf(z - GARAGE_Z) < 11.0:
 			return 0.23     # the garage workshop floor
@@ -201,6 +213,7 @@ func _spawn_player() -> void:
 	traffic = Traffic.new()
 	world.add_child(traffic)
 	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, 8, 5)
+	_apply_district(district.update(operator.position.z, true))
 	gunplay.killed.connect(func(t: Variant) -> void:
 		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
 		var source := "enemy"
@@ -278,6 +291,95 @@ static func _world_box(t: Transform3D, lo: Vector3, hi: Vector3) -> AABB:
 		w = w.expand(t * box.get_endpoint(i))
 	return w
 
+# --------------------------------------------------------------------------------------------- district streaming
+## apply the tiles whose state changed (district.update): build, keep as boxes, or park
+func _apply_district(changes: Dictionary) -> void:
+	for k in changes:
+		if k == 0:
+			continue     # the authored hub block is always there
+		var want: int = changes[k]
+		if not tiles.has(k):
+			tiles[k] = { "root": null, "slots": [] }
+		var t: Dictionary = tiles[k]
+		if want == District.State.ACTIVE:
+			if t.root == null:
+				t.root = _build_tile(k)
+			if (t.slots as Array).is_empty():
+				_slot_boxes(t, _tile_boxes(k, t.root))
+		elif want == District.State.SIMULATED:
+			if (t.slots as Array).is_empty():
+				# coming from frozen: the boxes come from a build that is dropped straight away
+				var root := _build_tile(k)
+				_slot_boxes(t, _tile_boxes(k, root))
+				root.queue_free()
+			elif t.root:
+				(t.root as Node3D).queue_free()
+			t.root = null
+		else:
+			if t.root:
+				(t.root as Node3D).queue_free()
+				t.root = null
+			for i in t.slots:
+				operator.obstacles[i] = PARKED_BOX
+				_free_slots.append(i)
+			t.slots = []
+	if traffic:
+		var sim: Vector2 = district.extent(District.State.SIMULATED)
+		var act: Vector2 = district.extent(District.State.ACTIVE)
+		traffic.set_span(sim.x, sim.y, act.x, act.y)
+
+## one block of the avenue at z = k * TILE, deterministic per tile, built with the same builders as the hub block
+func _build_tile(k: int) -> Node3D:
+	var root := Node3D.new()
+	root.position = Vector3(0, 0, District.tile_z(k))
+	root.name = "tile_%d" % k
+	world.add_child(root)
+	_tile_root = root
+	_tile_k = k
+	var keep_seed := _rng.seed
+	_rng.seed = 2207 + k * 101
+	_street()
+	_buildings()
+	_props()
+	_cars()
+	if night:
+		_neon()
+	_rng.seed = keep_seed
+	_tile_root = null
+	_tile_k = 0
+	return root
+
+## the tile's obstacle boxes in world space: its props, buildings and parked cars, and both facade lines
+func _tile_boxes(k: int, root: Node3D) -> Array[AABB]:
+	var out: Array[AABB] = []
+	for c in root.get_children():
+		var n := c as Node3D
+		if not n or not n.has_meta("size"):
+			continue
+		var sz: Vector3 = n.get_meta("size")
+		var file := String(n.get_meta("file")) if n.has_meta("file") else ""
+		if file.begins_with("palm") or file.begins_with("street-lamp"):
+			sz = Vector3(0.6, sz.y, 0.6)
+		out.append(_world_box(root.transform * n.transform, Vector3(-sz.x * 0.5, 0, -sz.z * 0.5), Vector3(sz.x * 0.5, sz.y, sz.z * 0.5)))
+	var x0 := ROAD_W * 0.5 + WALK_W
+	var z0 := District.tile_z(k) - LENGTH * 0.5
+	out.append(AABB(Vector3(-x0 - 0.5, 0, z0), Vector3(0.5, 12.0, LENGTH)))
+	out.append(AABB(Vector3(x0, 0, z0), Vector3(0.5, 12.0, LENGTH)))
+	return out
+
+## boxes into the shared obstacle list through index-stable slots (traffic and the driven car hold indexes)
+func _slot_boxes(t: Dictionary, boxes: Array[AABB]) -> void:
+	var slots: Array = []
+	for b in boxes:
+		if _free_slots.is_empty():
+			slots.append(operator.obstacles.size())
+			operator.obstacles.append(b)
+		else:
+			var i: int = _free_slots.pop_back()
+			operator.obstacles[i] = b
+			slots.append(i)
+	t.slots = slots
+
 var _respawn_timer := 0.0
 func _process(dt: float) -> void:
 	if not operator or not controls:
@@ -292,6 +394,11 @@ func _process(dt: float) -> void:
 			if _respawn_timer <= 0.0:
 				operator.position = _spawn
 				operator.velocity = Vector3.ZERO
+	if district:
+		var focus: Vector3 = driving_car.node.position if driving_car else operator.position
+		var ch: Dictionary = district.update(focus.z)
+		if not ch.is_empty():
+			_apply_district(ch)
 	if traffic:
 		traffic.watch_point = operator.position
 		traffic.watch_box = driving_car.box() if driving_car else AABB()
@@ -506,8 +613,11 @@ func _box(size: Vector3, pos: Vector3, mat: Material, parent: Node3D = null) -> 
 	mi.mesh = b
 	mi.position = pos
 	mi.material_override = mat
-	(parent if parent else world).add_child(mi)
+	(parent if parent else _root()).add_child(mi)
 	return mi
+
+func _root() -> Node3D:
+	return _tile_root if _tile_root else world
 
 # --------------------------------------------------------------------------------------------- street
 func _street() -> void:
@@ -555,7 +665,7 @@ func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
 	holder.rotation_degrees.y = yaw_deg
 	holder.set_meta("size", aabb.size * s)
 	holder.set_meta("file", file)
-	world.add_child(holder)
+	_root().add_child(holder)
 	return holder
 
 static func _aabb(n: Node) -> AABB:
@@ -586,12 +696,12 @@ func _buildings() -> void:
 	for side: float in [-1.0, 1.0]:
 		var z := -LENGTH * 0.5 + 6.0
 		while z < LENGTH * 0.5 - 10.0:
-			if side > 0 and absf(z + 9.0 - GARAGE_Z) < 12.0:
+			if _tile_k == 0 and side > 0 and absf(z + 9.0 - GARAGE_Z) < 12.0:
 				z += 22.0     # the city garage takes this lot
 				continue
 			var pick: Array = kinds[(k * 7 + int(side + 1.0)) % kinds.size()]
 			# the casino podium once on the far side of the Nexus street, at the head of the block
-			if style == "nexus" and side < 0 and k == 2:
+			if _tile_k == 0 and style == "nexus" and side < 0 and k == 2:
 				pick = ["casino.glb", 14.0]
 			var h: float = float(pick[1]) * _rng.randf_range(0.92, 1.1)
 			# Meshy models face +z; turning by -90 * side faces them across the street
@@ -657,8 +767,8 @@ void fragment() {
 	lm.set_shader_parameter("glass", Color(0.36, 0.48, 0.62))
 	lm.set_shader_parameter("lit", 0.3 if night else 0.08)
 	lm.set_shader_parameter("glow", 1.6 if night else 0.35)
-	_box(Vector3(30, 260, 30), Vector3(-6, 130, -LENGTH * 0.5 - 70.0), lm)
-	_box(Vector3(18, 60, 18), Vector3(-6, 290, -LENGTH * 0.5 - 70.0), lm)
+	_box(Vector3(30, 260, 30), Vector3(-62, 130, -LENGTH * 0.5 - 70.0), lm)
+	_box(Vector3(18, 60, 18), Vector3(-62, 290, -LENGTH * 0.5 - 70.0), lm)
 
 # --------------------------------------------------------------------------------------------- street furniture
 func _props() -> void:
@@ -681,14 +791,16 @@ func _props() -> void:
 					lamp.light_energy = 2.6
 					lamp.omni_range = 15.0
 					lamp.position = Vector3(edge - side * 1.2, 6.0, z)
-					world.add_child(lamp)
+					_root().add_child(lamp)
 			else:
 				_lamp_fallback(Vector3(edge, 0.18, z), side)
 			if i % 3 == 1:
 				prop("planter.glb", 2.2, Vector3(edge, 0.18, z + 5.5), 0.0)
 			z += 12.0
 			i += 1
-		# a café terrace along the shopfronts on the near side
+		# a café terrace along the shopfronts on the near side (the hub block only)
+	if _tile_k != 0:
+		return
 	for k in 5:
 		prop("cafe-set.glb", 0.95, Vector3(half + WALK_W - 2.4, 0.18, 6.0 - k * 3.2), _rng.randf_range(-20.0, 20.0))
 	prop("bus-shelter.glb", 2.8, Vector3(-(half + 2.4), 0.18, 12.0), 90.0)
@@ -716,11 +828,16 @@ func _cars() -> void:
 			var car := (load(FLEET + f) as PackedScene).instantiate() as Node3D
 			car.position = Vector3(side * (half - 1.4), 0.0, z + _rng.randf_range(-2.0, 2.0))
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
-			car.set_meta("car", true)
-			car.set_meta("vehicle", CAR_IDS.get(f, ""))
 			StreetCar.face_forward(car)
-			world.add_child(car)
-			parked.append(car)
+			if _tile_root:
+				var a := _aabb(car)
+				car.set_meta("size", Vector3(a.size.x, a.size.y, a.size.z))
+				_tile_root.add_child(car)
+			else:
+				car.set_meta("car", true)
+				car.set_meta("vehicle", CAR_IDS.get(f, ""))
+				world.add_child(car)
+				parked.append(car)
 		z += _rng.randf_range(9.0, 16.0)
 		i += 1
 
@@ -737,7 +854,7 @@ func _sign(text: String, c: Color, pos: Vector3, yaw_deg: float, vertical: bool)
 	var holder := Node3D.new()
 	holder.position = pos
 	holder.rotation_degrees.y = yaw_deg
-	world.add_child(holder)
+	_root().add_child(holder)
 	var w := 0.9 if vertical else maxf(3.0, text.length() * 0.55)
 	var h := maxf(2.6, text.length() * 0.5) if vertical else 1.1
 	_box(Vector3(w + 0.2, h + 0.2, 0.25), Vector3.ZERO, flat(Color(0.05, 0.05, 0.06), 0.4, 0.6), holder)
@@ -766,7 +883,7 @@ func _neon() -> void:
 	for side: float in [-1.0, 1.0]:
 		var z := -LENGTH * 0.5 + 14.0
 		while z < LENGTH * 0.5 - 10.0:
-			if side > 0 and absf(z - GARAGE_Z) < 16.0:
+			if _tile_k == 0 and side > 0 and absf(z - GARAGE_Z) < 16.0:
 				z += 22.0     # the garage carries its own sign
 				k += 1
 				continue
@@ -805,7 +922,7 @@ void fragment() {
 		mi.material_override = m
 		mi.position = Vector3(side * (half + 0.3), _rng.randf_range(24.0, 34.0), -40.0 - i * 26.0)
 		mi.rotation_degrees.y = 90.0 if side < 0 else -90.0
-		world.add_child(mi)
+		_root().add_child(mi)
 
 # --------------------------------------------------------------------------------------------- the city garage
 ## a drive-in garage on the near side: a wide roll-up door open onto a lit workshop, the shop's sign in its accent

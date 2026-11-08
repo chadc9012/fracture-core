@@ -26,6 +26,12 @@ var obstacles: Array[AABB]
 var bounds: Rect2
 var ground_at: Callable
 var length := 200.0
+## the lanes run between span_lo and span_hi (the district's simulated extent); cars are drawn only inside the active
+## extent (vis_lo..vis_hi) and keep ticking hidden beyond it
+var span_lo := -100.0
+var span_hi := 100.0
+var vis_lo := -INF
+var vis_hi := INF
 ## the operator's position and radius, and the player's car box when driving (the lane stops for them)
 var watch_point := Vector3(0, -100, 0)
 var watch_box := AABB()
@@ -38,6 +44,8 @@ func setup(world: Node3D, boxes: Array[AABB], b: Rect2, ground: Callable, street
 	bounds = b
 	ground_at = ground
 	length = street_length
+	span_lo = -length * 0.5
+	span_hi = length * 0.5
 	_rng.seed = seed
 	var per := budget / 2
 	for lane: float in [-1.0, 1.0]:
@@ -75,10 +83,19 @@ func _spawn(dir: float, z: float) -> Car:
 	cars.append(c)
 	return c
 
+## the district moved: the lanes cover lo..hi, meshes show between vis_lo..vis_hi
+func set_span(lo: float, hi: float, v_lo: float, v_hi: float) -> void:
+	span_lo = lo
+	span_hi = hi
+	vis_lo = v_lo
+	vis_hi = v_hi
+
 func step(dt: float) -> void:
 	for c in cars:
 		_drive(c, dt)
 		obstacles[c.box_index] = c.sc.box()
+		var n: Node3D = c.sc.node
+		n.visible = n.position.z >= vis_lo and n.position.z <= vis_hi
 
 ## how far ahead the lane is clear: the nearest car, the operator or the player's car within the lane's width
 func clear_ahead(c: Car) -> float:
@@ -102,9 +119,10 @@ func clear_ahead(c: Car) -> float:
 
 func _drive(c: Car, dt: float) -> void:
 	var n: Node3D = c.sc.node
-	# past the end of the block: back in at the far end, pooled
-	if n.position.z * c.dir > length * 0.5 - 4.0:
-		n.position = Vector3(c.lane_x, 0, -c.dir * (length * 0.5 - 6.0))
+	# past the end of the street (or outside it after the district moved): back in at the far end, pooled
+	var past: bool = (n.position.z > span_hi - 4.0) if c.dir > 0 else (n.position.z < span_lo + 4.0)
+	if past or n.position.z < span_lo or n.position.z > span_hi:
+		n.position = Vector3(c.lane_x, 0, (span_lo + 6.0) if c.dir > 0 else (span_hi - 6.0))
 		n.rotation.y = 0.0 if c.dir < 0 else PI
 		c.sc.speed = 0.0
 	var ahead := clear_ahead(c)
