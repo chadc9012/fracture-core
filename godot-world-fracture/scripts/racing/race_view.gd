@@ -16,10 +16,13 @@ const DriveProfile := preload("res://scripts/driving/drive_profile.gd")
 const Records := preload("res://scripts/driving/drive_records.gd")
 const Catalog := preload("res://scripts/garage/catalog.gd")
 const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
+const Materials := preload("res://scripts/city/materials.gd")
 const FLEET := "res://models/fleet/"
 const PROFILE := "user://profile.json"
 const RIVAL_FILES := ["muscle-car-lod.glb", "street-racer-lod.glb", "tuner.glb"]
 const RIVAL_NAMES := ["K. Voss", "Mara Lin", "D. Okafor"]
+## the street racers (Neon Night Circuit)
+const STREET_NAMES := ["Ghost", "Vex", "Nightjar"]
 
 var track_id := "nexus-speedway"
 var vehicle_id := "tuner"
@@ -65,10 +68,14 @@ func _ready() -> void:
 	if last != "" and not Catalog.vehicle(last).is_empty():
 		vehicle_id = last
 	track = Track.new(track_id)
-	_environment()
-	_build_track()
-	_stands()
-	_pit()
+	if track.street():
+		_night()
+		_build_streets()
+	else:
+		_environment()
+		_build_track()
+		_stands()
+		_pit()
 	_gantry()
 	cam = Camera3D.new()
 	cam.fov = 62.0
@@ -265,6 +272,141 @@ func _gantry() -> void:
 		world.add_child(mi)
 		lights.append(mi)
 
+# --------------------------------------------------------------------------------------------- the street circuit
+## Neon City at night: a wet black sky, violet fog, the city's glow (the owner's Neon City target frame)
+func _night() -> void:
+	var moon := DirectionalLight3D.new()
+	moon.light_color = Color(0.55, 0.6, 1.0)
+	moon.light_energy = 0.35
+	moon.rotation_degrees = Vector3(-50, 30, 0)
+	world.add_child(moon)
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.03, 0.02, 0.07)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.3, 0.25, 0.45)
+	env.ambient_light_energy = 0.9
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.3, 0.12, 0.4)
+	env.fog_density = 0.006
+	env.glow_enabled = true
+	env.glow_intensity = 0.8
+	env.glow_bloom = 0.05
+	var we := WorldEnvironment.new()
+	we.environment = env
+	world.add_child(we)
+
+func _glow(c: Color, energy := 3.0) -> StandardMaterial3D:
+	var m := _mat(c, 0.4)
+	m.emission_enabled = true
+	m.emission = c
+	m.emission_energy_multiplier = energy
+	return m
+
+## the circuit through the blocks: wet asphalt, lane paint, pavements, concrete barriers both sides (the obstacles),
+## towers on every free lot with lit windows and neon signs, street lights; whatever is off the road is pavement
+func _build_streets() -> void:
+	const NEON := [Color(1.0, 0.18, 0.62), Color(0.15, 0.85, 1.0), Color(0.62, 0.3, 1.0), Color(1.0, 0.62, 0.15), Color(0.25, 1.0, 0.55)]
+	var pave := Materials.pbr("brushed_concrete", Color(0.32, 0.31, 0.34), 3.0, 0.7)
+	_box(Vector3(460, 0.1, 460), Vector3(-70, -0.06, 10), pave)
+	var asphalt := Materials.pbr("asphalt_02", Color(0.42, 0.42, 0.46), 4.0, 0.35)
+	var paint := _mat(Color(0.9, 0.9, 0.85), 0.5)
+	var barrier := Materials.pbr("concrete_floor", Color(0.7, 0.7, 0.68), 1.0, 0.8)
+	var stripe := [_mat(Color(0.85, 0.12, 0.1), 0.6), _mat(Color(0.92, 0.92, 0.9), 0.6)]
+	var step := 3.0
+	var d := 0.0
+	var k := 0
+	while d < track.length:
+		var c := track.at(d + step * 0.5)
+		var f := track.dir_at(d + step * 0.5)
+		var yaw := atan2(f.x, f.z)
+		var side := Vector3(f.z, 0, -f.x)
+		_box(Vector3(track.width + 1.0, 0.08, step + 1.8), c, asphalt, yaw)
+		if k % 3 == 0:
+			_box(Vector3(0.18, 0.09, 2.2), c, paint, yaw)
+		for s: float in [-1.0, 1.0]:
+			_box(Vector3(0.15, 0.09, step + 0.4), c + side * s * (track.width * 0.5 - 0.6), paint, yaw)
+			# the barrier: a jersey wall, striped where the corners are
+			var bp := c + side * s * (track.width * 0.5 + 0.9)
+			var curved: bool = track.curvature_ahead(c, 6.0) > 0.25
+			_box(Vector3(0.6, 0.9, step + 0.6), bp + Vector3(0, 0.45, 0), stripe[k % 2] if curved else barrier, yaw)
+			# a street light every 8 samples, leaning over the road
+			if k % 8 == 4:
+				var lp := c + side * s * (track.width * 0.5 + 2.4)
+				_box(Vector3(0.18, 7.0, 0.18), lp + Vector3(0, 3.5, 0), _mat(Color(0.2, 0.2, 0.22), 0.4, 0.8))
+				_box(Vector3(2.2, 0.12, 0.35), lp + Vector3(0, 7.0, 0) - side * s * 1.0, _mat(Color(0.2, 0.2, 0.22), 0.4, 0.8), yaw + PI * 0.5)
+				_box(Vector3(1.2, 0.06, 0.3), lp + Vector3(0, 6.92, 0) - side * s * 1.4, _glow(Color(1.0, 0.82, 0.55), 4.0), yaw + PI * 0.5)
+				if k % 24 == 4:
+					var l := OmniLight3D.new()
+					l.light_color = Color(1.0, 0.8, 0.55)
+					l.light_energy = 1.6
+					l.omni_range = 18.0
+					l.position = lp + Vector3(0, 6.5, 0) - side * s * 1.4
+					world.add_child(l)
+		d += step
+		k += 1
+	# the towers: on a 16 m grid, wherever a lot is clear of the road by 5 m
+	var facade_mats := [Materials.pbr("painted_plaster_wall", Color(0.25, 0.25, 0.3), 3.0), Materials.pbr("brick_4", Color(0.45, 0.4, 0.42), 3.0), Materials.pbr("metal_plate", Color(0.3, 0.32, 0.38), 3.0, 0.5, 0.6)]
+	var win := _glow(Color(1.0, 0.85, 0.6), 1.6)
+	var win_cool := _glow(Color(0.6, 0.85, 1.0), 1.6)
+	var signs := 0
+	for gx in range(-190, 60, 16):
+		for gz in range(-180, 200, 16):
+			var p := Vector3(gx, 0, gz)
+			var half := 6.5
+			var clear := track.width * 0.5 + 5.0
+			var ok := true
+			for q in [p, p + Vector3(half, 0, half), p + Vector3(-half, 0, half), p + Vector3(half, 0, -half), p + Vector3(-half, 0, -half)]:
+				if float(track.nearest(q)[1]) < clear:
+					ok = false
+					break
+			if not ok:
+				continue
+			var near := float(track.nearest(p)[1])
+			var h := _rng.randf_range(14.0, 34.0) if near < 40.0 else _rng.randf_range(30.0, 70.0)
+			_box(Vector3(13, h, 13), p + Vector3(0, h * 0.5, 0), facade_mats[_rng.randi() % 3])
+			if near > 45.0:
+				continue
+			# lit windows on the face toward the road, a neon sign on some
+			var toward: Vector3 = track.at(float(track.nearest(p)[0])) - p
+			var face := Vector3(signf(toward.x), 0, 0) if absf(toward.x) > absf(toward.z) else Vector3(0, 0, signf(toward.z))
+			var across := Vector3(face.z, 0, face.x)
+			for fl in int(h / 3.4):
+				for col in 3:
+					if _rng.randf() < 0.55:
+						_box(Vector3(2.2, 1.3, 2.2) * (Vector3.ONE - Vector3(absf(face.x), 0, absf(face.z))) + Vector3(absf(face.x), 0, absf(face.z)) * 0.08, p + face * 6.52 + across * (-4.0 + col * 4.0) + Vector3(0, 2.4 + fl * 3.4, 0), win if (fl + col) % 4 else win_cool)
+			if signs < 22 and _rng.randf() < 0.6:
+				signs += 1
+				var nc: Color = NEON[_rng.randi() % NEON.size()]
+				var sp := p + face * 6.75 + Vector3(0, _rng.randf_range(5.0, minf(h - 3.0, 14.0)), 0)
+				var sg := _box(Vector3(6.0, 1.6, 6.0) * (Vector3.ONE - Vector3(absf(face.x), 0, absf(face.z))) + Vector3(absf(face.x), 0, absf(face.z)) * 0.2, sp, _glow(nc, 3.5))
+				sg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				if signs % 4 == 0:
+					var l := OmniLight3D.new()
+					l.light_color = nc
+					l.light_energy = 2.0
+					l.omni_range = 16.0
+					l.position = sp + face * 2.0
+					world.add_child(l)
+	# the start line and a banner over it
+	var s0 := track.at(float(track.def.start))
+	var f0 := track.dir_at(float(track.def.start))
+	var check := [_mat(Color(0.95, 0.95, 0.95), 0.5), _mat(Color(0.05, 0.05, 0.05), 0.5)]
+	var side0 := Vector3(f0.z, 0, -f0.x)
+	for i in 12:
+		for j in 2:
+			_box(Vector3(track.width / 12.0, 0.09, 0.5), s0 + side0 * (-track.width * 0.5 + (i + 0.5) * track.width / 12.0) + f0 * (j * 0.5) + Vector3(0, 0.01, 0), check[(i + j) % 2], atan2(f0.x, f0.z))
+	var banner := Label3D.new()
+	banner.text = "NEON NIGHT CIRCUIT"
+	banner.font_size = 150
+	banner.pixel_size = 0.012
+	banner.modulate = Color(1.0, 0.35, 0.75)
+	banner.shaded = false
+	banner.position = s0 + Vector3(0, 8.4, 0)
+	banner.rotation.y = atan2(f0.x, f0.z) + PI
+	world.add_child(banner)
+
 # --------------------------------------------------------------------------------------------- the cars
 func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 	var node: Node3D
@@ -296,7 +438,7 @@ func _grid() -> void:
 	# rivals take the front rows, you start last
 	for i in 3:
 		var sc := _spawn_car(RIVAL_FILES[i], track.grid(i), "")
-		var e := race.add(RIVAL_NAMES[i])
+		var e := race.add(STREET_NAMES[i] if track.street() else RIVAL_NAMES[i])
 		rivals.append({ "sc": sc, "entry": e, "skill": 0.86 + i * 0.05 })
 	player = _spawn_car(file, track.grid(3), vehicle_id)
 	race.add("You", true)
@@ -328,7 +470,8 @@ func _process(dt: float) -> void:
 		var to: Vector3 = aim - player.node.position
 		var err := wrapf(atan2(-to.x, -to.z) - player.node.rotation.y, -PI, PI)
 		steer = clampf(err * 2.5, -1.0, 1.0)
-		throttle = clampf((float(player.profile.max_speed) * (1.0 - 0.55 * track.curvature_ahead(player.node.position, 26.0)) - player.speed) / 4.0, -1.0, 1.0)
+		var pc: float = maxf(track.curvature_ahead(player.node.position, 26.0), track.curvature_ahead(player.node.position, 44.0) if track.street() else 0.0)
+		throttle = clampf((float(player.profile.max_speed) * (1.0 - (0.68 if track.street() else 0.55) * pc) - player.speed) / 4.0, -1.0, 1.0)
 	if race.finished or race.player().finished_at >= 0.0:
 		throttle = 0.0
 	_step_car(player, dt, throttle, steer, controls.brake())
@@ -340,8 +483,8 @@ func _process(dt: float) -> void:
 		var to := aim - n.position
 		var want_yaw := atan2(-to.x, -to.z)
 		var err := wrapf(want_yaw - n.rotation.y, -PI, PI)
-		var curve: float = track.curvature_ahead(n.position, 26.0)
-		var top: float = float(sc.profile.max_speed) * float(r.skill) * (1.0 - 0.55 * curve)
+		var curve: float = maxf(track.curvature_ahead(n.position, 26.0), track.curvature_ahead(n.position, 44.0) if track.street() else 0.0)
+		var top: float = float(sc.profile.max_speed) * float(r.skill) * (1.0 - (0.68 if track.street() else 0.55) * curve)
 		var thr := clampf((top - sc.speed) / 4.0, -1.0, 1.0)
 		var e: Dictionary = r.entry
 		if e.finished_at >= 0.0:
@@ -363,9 +506,20 @@ func _process(dt: float) -> void:
 		_finish()
 	_place_camera(dt)
 
-## grass slows a car, and the tyre walls stop it (the obstacle list)
+## grass slows a car, and the tyre walls stop it (the obstacle list); on a street circuit the barriers are the track's edge:
+## a car that reaches one is held on the road and scrubs speed along it
 func _step_car(sc: RefCounted, dt: float, throttle: float, steer: float, brake: float) -> void:
 	sc.step(dt, throttle, steer, brake)
+	if track.street():
+		var n: Array = track.nearest(sc.node.position)
+		var lim := track.width * 0.5 + 0.2
+		if float(n[1]) > lim:
+			var q := track.at(float(n[0]))
+			var out := Vector3(sc.node.position.x - q.x, 0, sc.node.position.z - q.z).normalized()
+			sc.node.position = Vector3(q.x + out.x * lim, sc.node.position.y, q.z + out.z * lim)
+			sc.speed *= pow(0.3, dt)
+		obstacles[int(sc.get_meta("box_index"))] = sc.box()
+		return
 	if track.off_track(sc.node.position):
 		# grass: no grip past a crawl
 		var crawl: float = float(sc.profile.max_speed) * 0.35

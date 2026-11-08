@@ -15,6 +15,8 @@ const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 const Descent := preload("res://scripts/mission/descent.gd")
 const ArenaView := preload("res://scripts/killbox/arena_view.gd")
+const ModesHub := preload("res://scripts/modes/modes_hub.gd")
+var modes: Control
 var descent: Control
 var killbox: Control
 var race_view: Control
@@ -78,6 +80,15 @@ func _ready() -> void:
 	cloud_button.custom_minimum_size = Vector2(110, 52)
 	cloud_button.pressed.connect(_open_cloud)
 	add_child(cloud_button)
+	# Game Modes (scripts/modes): PvP, Raids and Races, each its own mode
+	var gm := Data.button("⚔ GAME MODES · PVP · RAIDS · RACES", true)
+	gm.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	gm.position = Vector2(-450, -262)
+	gm.custom_minimum_size = Vector2(430, 56)
+	gm.add_theme_font_size_override("font_size", 18)
+	gm.add_theme_color_override("font_color", Color(1.0, 0.8, 0.5))
+	gm.pressed.connect(_open_modes)
+	add_child(gm)
 	var fd := Data.button("▶ FRACTURE DESCENT · fd-02…04", true)
 	fd.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	fd.position = Vector2(-450, -198)
@@ -215,6 +226,22 @@ func _close_race() -> void:
 		race_view.queue_free()
 		race_view = null
 
+## Game Modes: the hub hosts the PvP, Raids and Races views itself (scripts/modes/modes_hub.gd)
+func _open_modes() -> void:
+	if modes:
+		return
+	modes = ModesHub.new()
+	modes.closed.connect(_close_modes)
+	add_child(modes)
+	planet_view.set_process(false)
+
+func _close_modes() -> void:
+	if modes:
+		modes.queue_free()
+		modes = null
+	planet_view.set_process(true)
+	_sync_later()
+
 ## the Killbox: Kaiju Complex, Clash against bots (scripts/killbox/)
 func _open_killbox() -> void:
 	if killbox:
@@ -326,6 +353,12 @@ func _notification(what: int) -> void:
 			_close_mission()
 		elif creator and not creator.onboarding:
 			_close_creator()
+		elif modes and modes.view:
+			modes._view_closed()
+		elif modes and modes._mode != "":
+			modes.show_hub()
+		elif modes:
+			_close_modes()
 		elif street and street.sports_overlay:
 			street.close_sports()
 		elif street and street.casino_overlay:
@@ -494,6 +527,36 @@ func _shoot(path: String, opts: Array) -> void:
 				killbox.controls.move = Vector2(0.0, 1.0)
 				killbox.controls.sprint = true
 				killbox.controls.fire = true
+		# modes[:pvp|:raids|:races]  the Game Modes hub, or one mode's lobby
+		if String(o).begins_with("modes"):
+			_open_modes()
+			var mm := String(o).split(":")
+			if mm.size() > 1:
+				modes.open_mode(mm[1])
+		# raid[:boss][:fight]  Raid 01 from the gate (or the boss); :fight turns the operator to the fight and fires
+		if String(o).begins_with("raid"):
+			_open_modes()
+			modes.open_mode("raids")
+			modes._launch_raid("hollow-star-boss" if String(o).contains("boss") else "broken-gate")
+			var rv: Control = modes.view
+			if String(o).contains("fight"):
+				rv.controls.scripted = true
+				rv.controls.fire = true
+				rv.autopilot = true
+				if String(o).contains("boss"):
+					rv.operator.cam_yaw = 0.0
+					rv.operator.cam_pitch = 0.12
+				else:
+					rv.operator.cam_yaw = 0.0
+		# street-race[:go]  the Neon Night Circuit; :go skips the lights and drives itself
+		if String(o).begins_with("street-race"):
+			_open_modes()
+			modes.open_mode("races")
+			modes._launch_race("neon-circuit")
+			if String(o).contains("go"):
+				modes.view.countdown = 0.05
+				modes.view.controls.scripted = true
+				modes.view.autopilot = true
 		# race[:go]  Nexus Speedway from the grid; :go skips the lights and holds the throttle
 		if String(o).begins_with("race"):
 			_open_race()
@@ -545,6 +608,12 @@ func _shoot(path: String, opts: Array) -> void:
 		print("killbox: us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)
 	if street and street.district:
 		print("district: focus ", street.district.focus_k, " counts ", street.district.counts(), " tiles built ", street.tiles.keys(), " operator z ", street.operator.position.z, " boxes ", street.operator.obstacles.size())
+	if modes and modes.view and "raid" in modes.view:
+		var rd: Control = modes.view
+		print("raid: ", rd.raid.encounter, " pylons ", rd.raid.pylons, " wave ", rd.raid.wave, " boss ", rd.raid.boss_hp, " phase ", rd.raid.phase, " lives ", rd.raid.lives, " hostiles ", rd._hostiles_alive(), " hull ", rd.enemies.hull, " shots ", rd.gunplay.shots_fired, " hits ", rd.gunplay.hits_landed)
+	if modes and modes.view and "race" in modes.view and modes.view.race:
+		var sr: Control = modes.view
+		print("street race: t ", sr.race.time, " speed ", sr.player.speed, " place ", sr.race.position_of(sr.race.player()), " at ", sr.player.node.position.round())
 	if race_view and race_view.race:
 		var rv := race_view
 		print("race: t ", rv.race.time, " player ", rv.player.node.position, " speed ", rv.player.speed, " laps ", rv.race.player().laps, " place ", rv.race.position_of(rv.race.player()), " rivals ", rv.rivals.map(func(r: Dictionary) -> String: return "%s@%.2f" % [r.entry.name, r.entry.frac]))

@@ -13,7 +13,21 @@ const TRACKS := {
 		"pit": { "x": 20.0, "z0": -40.0, "z1": 50.0 },
 		"stands": [{ "x": 30.0, "z0": -55.0, "z1": 55.0, "yaw": 0.0 }, { "x": -118.0, "z0": -80.0, "z1": 0.0, "yaw": 0.0 }],
 	},
+	# a night street circuit through Neon City's blocks: the avenue is the main straight, right-angle corners round the
+	# blocks, a jog through the market grid; concrete barriers instead of kerbs and grass (race_view builds it as a city)
+	"neon-circuit": {
+		"name": "Neon Night Circuit", "kind": "street", "width": 13.0, "laps": 3, "prize": [1200, 650, 300, 120],
+		"points": [[0, 0, 126], [0, 0, -90], [-7, 0, -119], [-29, 0, -130], [-104, 0, -130], [-130, 0, -119], [-140, 0, -94], [-140, 0, -32], [-130, 0, -11], [-104, 0, 0], [-83, 0, 11], [-72, 0, 36], [-72, 0, 119], [-61, 0, 148], [-36, 0, 162], [-11, 0, 155]],
+		"start": 0.0,
+	},
 }
+
+## the tracks a lobby lists, in order
+static func ids() -> Array:
+	return TRACKS.keys()
+
+func street() -> bool:
+	return String(def.get("kind", "venue")) == "street"
 
 var id: String
 var def: Dictionary
@@ -98,7 +112,7 @@ func progress(p: Vector3) -> float:
 	return fposmod(float(n[0]) - float(def.start), length) / length
 
 func off_track(p: Vector3) -> bool:
-	return float(nearest(p)[1]) > width * 0.5
+	return float(nearest(p)[1]) > width * 0.5 + (1.5 if street() else 0.0)
 
 ## a point `m` metres further round from where `p` is, for a driver to aim at
 func ahead(p: Vector3, m: float) -> Vector3:

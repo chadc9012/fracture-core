@@ -181,6 +181,36 @@ Floor (nexus-grid look; Grid Rewrite sinks the standing data pillars and raises 
 Killbox Prime (prime-roof; Containment Lock rings the capture zone in glass) are built from the same data with their own
 palette, sign and zone rings. Skydock (the other session's fourth map) plays through the same view with a dusk palette. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
 
+**Game Modes** (`scripts/modes/modes_hub.gd`, the ⚔ GAME MODES button on the globe; the owner, Nov 8: PvP, Raids and
+Races are separate modes): a hub of three tiles in the look of the owner's boards (`docs/reference/pvp-maps.png` — navy
+panels with glowing edges, angled title plates, a picture per tile, a strip of modes and features), each opening its own
+lobby, which hosts the mode's view so LEAVE comes back to the lobby. Bots fill every slot; online play comes later (the
+owner's call). Tile pictures are `textures/ui/modes/<id>.jpg` (in-game shots; the coming PvP maps are crops of the board),
+with a painted gradient when one is missing.
+- **PvP**: every Killbox arena as a tile (straight into the match), the board's coming maps greyed, the PvP modes strip.
+- **Raids**: Raid 01 · The Hollow Star (`scripts/raid/`): `hollow_star.gd` is the rules (pure; `tests/raid/hollow_star_test.gd`),
+  `raid_view.gd` the scene on the shared operator / guns / enemies stack with a fireteam of five bots (team 1; three hold
+  the pylons or conduits, two roam) against the void army (team 0, the trooper bodies tinted violet under the raid's
+  names, no respawn). *The Broken Gate*: the Nexus subway gate hall, a cracked ring gate with the rift in it, three
+  pylons that charge while someone of yours stands in their ring and drain while an enemy does, six waves; the gate holds
+  when all three are online and the last wave is down, and that is the checkpoint (`user://raids.json`). *The Hollow
+  Star*: the final chamber 3.8 km down — a round floor of stone rings over the abyss and Astravore (the web build's
+  AstravoreBody: a colossal crowned upper body rising out of the abyss, arms that lift for a beam, a halo of plates, the
+  star caged in its chest as the target, its colour by phase). Beams (a telegraphed line, then the beam from the star),
+  shockwave rings to jump, guardians; Phase II shields the boss behind three conduits while the overload climbs; Phase
+  III splits reality (half the floor burns, and it swaps); Phase IV exposes the core (double damage), collapses the
+  floor inward and starts a 90 s overload clock. Eight shared lives; a wipe restarts the encounter. The first clear pays
+  2500 Nex, the Hollow Star Lens (exotic) into the bag and the Starbreaker title; repeats 1200 Nex. Play test:
+  `tests/raid/raid_play.tscn`. The middle four encounters are listed and greyed.
+- **Races**: Nexus Speedway and the **Neon Night Circuit** (`track.gd` kind `street`): 780 m round Neon City's blocks at
+  night — wet asphalt, lane paint, jersey barriers (striped on the corners) that are the track's edge (a car is held on
+  the road and scrubs speed), street lights, towers on every free lot with lit windows and neon signs, a chequered line
+  and banner; three laps against Ghost, Vex and Nightjar, who brake for the right-angle corners. Play test:
+  `tests/racing/street_race_play.tscn`. Open-world races against other players are the greyed tile, waiting on online play.
+
+Shots: `modes[:pvp|:raids|:races]`, `raid[:boss][:fight]` (fight = the operator fires at the fight and can't go down),
+`street-race[:go]`.
+
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)
 bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-world-fracture/data/character.json
