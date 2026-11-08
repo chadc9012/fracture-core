@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## A region in 3D (owner's map packs: "3D City" and "Street View"), built from the same data as its map: the ground from the
 ## exported height grid, coloured by land cover; the sea; every building extruded to its height with floors and windows; the
 ## roads, bridges, rails and paved ground; domes, arenas and hazard rings; forests and crystal fields; the Storm Islands in the
@@ -96,7 +97,7 @@ func _ready() -> void:
 	svc.gui_input.connect(_input_3d)
 	col.add_child(svc)
 	_vp = SubViewport.new()
-	_vp.msaa_3d = Viewport.MSAA_2X
+	Phone.fit_viewport(_vp)
 	_vp.own_world_3d = true
 	svc.add_child(_vp)
 	# the controls over the view
@@ -300,6 +301,7 @@ func _build_env() -> void:
 	sun.rotation_degrees = Vector3(-float(_style.sun_el), -35.0, 0)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 320.0
+	Phone.fit_sun(sun, 160.0)
 	_world.add_child(sun)
 	if _style.planet:
 		_build_planet_in_sky()

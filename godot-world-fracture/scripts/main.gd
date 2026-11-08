@@ -170,7 +170,8 @@ func _open_drive() -> void:
 	planet_view.set_process(false)
 
 var street: Control
-func _open_street(night := false, style := "nexus", walk := true) -> void:
+## Nexus City opens at night (the owner's Nov 8 references: neon, wet streets, the spire's rings); DAY toggles it back
+func _open_street(night := true, style := "nexus", walk := true) -> void:
 	if street or driving or garage:
 		return
 	street = StreetSlice.new()
@@ -417,9 +418,9 @@ func _shoot(path: String, opts: Array) -> void:
 				for k in 20:
 					await get_tree().process_frame
 				driving._open_city_garage()
-		# slice[night][coast|neon][walk][garage]  the street slice as a look-dev shot (fixed camera), or on foot with "walk"
+		# slice[day][coast|neon][walk][garage]  the street slice as a look-dev shot (fixed camera), or on foot with "walk"
 		if String(o).begins_with("slice"):
-			_open_street(String(o).contains("night"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"), String(o).contains("walk"))
+			_open_street(String(o).contains("night") or not String(o).contains("day"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"), String(o).contains("walk"))
 			# slicewalk:run holds the stick forward-right with sprint for the shot; slicewalk:jump also jumps once
 			if String(o).contains("walk:"):
 				street.controls.scripted = true

@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## The Skyline Casino: the tower at the head of the Nexus block, three places stacked in one scene.
 ##  - THE FLOOR: a gold-and-crimson gaming hall under coffered chandeliers — banks of slot machines with live screens,
 ##    blackjack, roulette and craps tables, a round centre bar with a lit bottle wall, the cashier cage and the elevators.
@@ -54,7 +55,7 @@ func _ready() -> void:
 	add_child(svc)
 	var vp := SubViewport.new()
 	vp.own_world_3d = true
-	vp.msaa_3d = Viewport.MSAA_4X
+	Phone.fit_viewport(vp)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	world = Node3D.new()

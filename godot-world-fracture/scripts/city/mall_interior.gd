@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## The Nexus Galleria: a two-level mall the street's ENTER MALL button walks into. A skylit atrium with a fountain and
 ## palms; storefronts for the in-world brands on both levels (clothing, home furnishings, electronics, a barber, a hair
 ## salon, an armour and weapons dealer, a gym, a phone shop) each with its own window display and sign; and a food court
@@ -58,7 +59,7 @@ func _ready() -> void:
 	add_child(svc)
 	var vp := SubViewport.new()
 	vp.own_world_3d = true
-	vp.msaa_3d = Viewport.MSAA_4X
+	Phone.fit_viewport(vp)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	world = Node3D.new()

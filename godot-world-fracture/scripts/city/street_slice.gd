@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## Nexus City street slice: one block of a Nexus avenue at golden hour, built to chase the owner's concept frames (wet
 ## reflective asphalt, palms and planters, a café terrace, mid-rise apartments over shopfronts, glass towers behind, warm
 ## low sun through haze). Meshy-generated props from res://models/city/, the fleet cars parked at the kerb.
@@ -99,7 +100,7 @@ func _ready() -> void:
 	add_child(svc)
 	var vp := SubViewport.new()
 	vp.own_world_3d = true
-	vp.msaa_3d = Viewport.MSAA_4X
+	Phone.fit_viewport(vp)
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
@@ -113,6 +114,8 @@ func _ready() -> void:
 	_props()
 	_cars()
 	_garage_front()
+	_dressing()
+	_hub_dressing()
 	if night:
 		_neon()
 		if style == "neon":
@@ -353,6 +356,7 @@ func _build_tile(k: int) -> Node3D:
 	_buildings()
 	_props()
 	_cars()
+	_dressing()
 	if night:
 		_neon()
 	_rng.seed = keep_seed
@@ -410,6 +414,7 @@ func _process(dt: float) -> void:
 		var ch: Dictionary = district.update(focus.z)
 		if not ch.is_empty():
 			_apply_district(ch)
+	_step_dressing(minf(dt, 0.05))
 	if civilians:
 		civilians.step(minf(dt, 0.05))
 		if gunplay and gunplay.shots_fired != _shots_seen:
@@ -450,6 +455,7 @@ func _environment() -> void:
 	sun.light_energy = 2.6
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 220.0
+	Phone.fit_sun(sun)
 	sun.light_angular_distance = 1.2
 	sun.rotation_degrees = Vector3(-11.0, 148.0, 0.0)   # low sun ahead and to the right, long shadows across the street
 	sun.light_volumetric_fog_energy = 1.6
@@ -515,8 +521,13 @@ func _environment() -> void:
 		sky_mat.ground_horizon_color = Color(0.12, 0.08, 0.14)
 		sky_mat.ground_bottom_color = Color(0.02, 0.02, 0.03)
 		sky_mat.sun_angle_max = 2.0
-		env.ambient_light_energy = 0.5
-		env.tonemap_exposure = 1.4
+		# the owner's references are a lit night: a violet-cyan city bounce, not crushed darks (AGENTS: Neon City's
+		# cyberpunk comes from colour), so the ambient is a fixed colour at full energy and the moon is stronger
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		env.ambient_light_color = Color(0.42, 0.32, 0.62)
+		env.ambient_light_energy = 1.25
+		sun.light_energy = 0.55
+		env.tonemap_exposure = 1.5
 		env.glow_intensity = 1.1
 		env.glow_bloom = 0.16
 		env.glow_hdr_threshold = 0.85
@@ -942,6 +953,180 @@ void fragment() {
 		mi.position = Vector3(side * (half + 0.3), _rng.randf_range(24.0, 34.0), -40.0 - i * 26.0)
 		mi.rotation_degrees.y = 90.0 if side < 0 else -90.0
 		_root().add_child(mi)
+
+# --------------------------------------------------------------------------------------------- the reference dressing
+## Nexus City as the owner's Nov 8 references draw it: cyan bollard lights along the kerbs, WORLD FRACTURE banners on the
+## lamp posts, cherry-blossom trees between the palms, and the monorail on its pylons over the far lane. Built per tile.
+func _dressing() -> void:
+	var half := ROAD_W * 0.5
+	var cyan := Color(0.2, 0.9, 1.0)
+	var violet := Color(0.6, 0.3, 1.0)
+	var post := flat(Color(0.1, 0.1, 0.12), 0.4, 0.6)
+	var glow := _neon_mat(cyan if style != "coast" else Color(1.0, 0.6, 0.3), 3.0)
+	# bollard lights: a short post with a lit band, every 6 m along both kerbs
+	var z := -LENGTH * 0.5 + 3.0
+	while z < LENGTH * 0.5 - 3.0:
+		for side: float in [-1.0, 1.0]:
+			var x := side * (half + 0.9)
+			_box(Vector3(0.22, 0.9, 0.22), Vector3(x, 0.18 + 0.45, z), post)
+			_box(Vector3(0.24, 0.12, 0.24), Vector3(x, 0.18 + 0.78, z), glow)
+		z += 6.0
+	if style == "coast":
+		return
+	# banners on the lamp posts (lamps stand every 24 m, see _props): a violet drop with the WF mark and the game's name
+	var cloth := flat(Color(0.16, 0.06, 0.3), 0.7)
+	var zb := -LENGTH * 0.5 + 8.0 + 12.0
+	var i := 1
+	while zb < LENGTH * 0.5 - 6.0:
+		for side: float in [-1.0, 1.0]:
+			if (i % 2 == 1 or style != "nexus"):
+				var edge := side * (half + 1.3)
+				var holder := Node3D.new()
+				holder.position = Vector3(edge - side * 0.75, 4.9, zb)
+				holder.rotation_degrees.y = 90.0 if side < 0 else -90.0
+				_root().add_child(holder)
+				_box(Vector3(1.0, 2.6, 0.04), Vector3.ZERO, cloth, holder)
+				_box(Vector3(1.06, 0.05, 0.05), Vector3(0, 1.32, 0), _neon_mat(violet, 4.0), holder)
+				var mark := Label3D.new()
+				mark.text = "▽"
+				mark.font_size = 120
+				mark.pixel_size = 0.006
+				mark.modulate = Color(0.75, 0.5, 1.0) * 2.0
+				mark.position = Vector3(0, 0.55, 0.03)
+				mark.shaded = false
+				holder.add_child(mark)
+				var txt := Label3D.new()
+				txt.text = "WORLD\nFRACTURE"
+				txt.font_size = 48
+				txt.pixel_size = 0.006
+				txt.modulate = Color(1, 1, 1)
+				txt.position = Vector3(0, -0.45, 0.03)
+				txt.shaded = false
+				holder.add_child(txt)
+		zb += 24.0
+		i += 1
+	# cherry blossoms on the Nexus strip: a dark trunk and a cloud of pink, between the palms
+	if style == "nexus":
+		var bark := flat(Color(0.16, 0.12, 0.1), 0.9)
+		var bloom := flat(Color(0.98, 0.55, 0.75), 0.9, 0.0, 0.25)
+		var zt := -LENGTH * 0.5 + 20.0
+		var k := 0
+		while zt < LENGTH * 0.5 - 10.0:
+			var side := -1.0 if k % 2 == 0 else 1.0
+			if _tile_k == 0 and side > 0 and absf(zt - GARAGE_Z) < 16.0:
+				zt += 36.0
+				k += 1
+				continue
+			var at := Vector3(side * (half + WALK_W - 1.9), 0.18, zt)
+			_box(Vector3(0.35, 2.8, 0.35), at + Vector3(0, 1.4, 0), bark)
+			for b in 4:
+				var mi := MeshInstance3D.new()
+				var sm := SphereMesh.new()
+				sm.radius = _rng.randf_range(1.1, 1.7)
+				sm.height = sm.radius * 1.8
+				sm.radial_segments = 10
+				sm.rings = 5
+				mi.mesh = sm
+				mi.material_override = bloom
+				mi.position = at + Vector3(_rng.randf_range(-1.0, 1.0), 3.1 + _rng.randf_range(0.0, 1.2), _rng.randf_range(-1.0, 1.0))
+				_root().add_child(mi)
+			zt += 36.0
+			k += 1
+	# the monorail: a beam at 13 m over the far lane on pylons every 30 m (the train runs on the hub block)
+	var steel := flat(Color(0.75, 0.78, 0.82), 0.35, 0.7)
+	var beam_x := -(half - 3.0)
+	_box(Vector3(2.2, 0.8, LENGTH), Vector3(beam_x, 13.0, 0), steel)
+	_box(Vector3(2.4, 0.08, LENGTH), Vector3(beam_x, 13.44, 0), _neon_mat(cyan, 2.5))
+	var zp := -LENGTH * 0.5 + 15.0
+	while zp < LENGTH * 0.5:
+		_box(Vector3(1.2, 12.6, 1.2), Vector3(beam_x, 6.3, zp), steel)
+		zp += 30.0
+
+## the hub block only: the holo rings on the landmark spire, the district sign, billboards with the owner's art, the train
+var _rings: Array = []
+var _train: Node3D
+func _hub_dressing() -> void:
+	if style == "coast":
+		return
+	var cyan := Color(0.2, 0.9, 1.0)
+	# three tilted rings round the spire's crown (it stands behind the far facades at the head of the avenue)
+	var spire := Vector3(-62, 250, -LENGTH * 0.5 - 70.0)
+	for i in 3:
+		var ring := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 30.0 + i * 9.0
+		tm.outer_radius = tm.inner_radius + 1.4
+		tm.rings = 48
+		tm.ring_segments = 6
+		ring.mesh = tm
+		ring.material_override = _neon_mat(cyan if i != 1 else Color(0.75, 0.4, 1.0), 2.0)
+		ring.position = spire + Vector3(0, 10.0 - i * 14.0, 0)
+		ring.rotation_degrees = Vector3(8.0 * (i - 1), 0, 6.0 * (1 - i))
+		world.add_child(ring)
+		_rings.append(ring)
+	# the district sign by the spawn: where the shops, the armoury, the garage, the arena and the apartments are
+	var sign := Node3D.new()
+	sign.position = Vector3(ROAD_W * 0.5 + 1.0, 2.6, 36.0)
+	sign.rotation_degrees.y = -90.0
+	world.add_child(sign)
+	_box(Vector3(2.4, 2.2, 0.12), Vector3.ZERO, flat(Color(0.04, 0.05, 0.07), 0.4, 0.5), sign)
+	_box(Vector3(2.5, 0.05, 0.14), Vector3(0, 1.12, 0), _neon_mat(cyan, 4.0), sign)
+	_box(Vector3(0.14, 2.6, 0.14), Vector3(0, -1.6, -0.1), flat(Color(0.1, 0.1, 0.12), 0.4, 0.6), sign)
+	var lines := Label3D.new()
+	lines.text = "DISTRICT 03\nTRADING HUB  →\nARMORY  →\nGARAGE  →\nARENA  →\nAPARTMENTS  →"
+	lines.font_size = 40
+	lines.pixel_size = 0.0065
+	lines.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	lines.modulate = cyan * 2.2
+	lines.position = Vector3(-1.05, 0.0, 0.07)
+	lines.shaded = false
+	sign.add_child(lines)
+	# billboards with the owner's concept art high on the facades
+	var art := ["wf-nexus", "enlist", "vyrak", "nova-tech", "arc-face"]
+	for i in art.size():
+		var path := "res://textures/billboards/%s.jpg" % art[i]
+		if not ResourceLoader.exists(path):
+			continue
+		var tex: Texture2D = load(path)
+		var m := StandardMaterial3D.new()
+		m.albedo_texture = tex
+		m.emission_enabled = true
+		m.emission_texture = tex
+		m.emission_energy_multiplier = 1.6 if night else 0.6
+		m.roughness = 0.4
+		var q := QuadMesh.new()
+		var h := 12.0 if i == 0 else 9.0
+		q.size = Vector2(h * float(tex.get_width()) / float(tex.get_height()), h)
+		var mi := MeshInstance3D.new()
+		mi.mesh = q
+		mi.material_override = m
+		var side := 1.0 if i % 2 == 0 else -1.0
+		var xw := ROAD_W * 0.5 + WALK_W
+		mi.position = Vector3(side * (xw + 0.35), 15.0 + (i % 3) * 3.0, 60.0 - i * 38.0)
+		mi.rotation_degrees.y = 90.0 if side < 0 else -90.0
+		world.add_child(mi)
+		var frame := _box(Vector3(q.size.x + 0.5, q.size.y + 0.5, 0.2), mi.position + Vector3(side * 0.2, 0, 0), flat(Color(0.05, 0.05, 0.06), 0.4, 0.6))
+		frame.rotation_degrees.y = mi.rotation_degrees.y
+	# the train: three cars on the beam, running +z and looping
+	_train = Node3D.new()
+	_train.position = Vector3(-(ROAD_W * 0.5 - 3.0), 14.4, -LENGTH * 0.5)
+	world.add_child(_train)
+	var shell := flat(Color(0.9, 0.92, 0.95), 0.3, 0.6)
+	var glass := flat(Color(0.2, 0.5, 0.8), 0.1, 0.4, 0.3)
+	for c in 3:
+		var zc := c * 9.5
+		_box(Vector3(2.6, 2.4, 9.0), Vector3(0, 1.2, zc), shell, _train)
+		_box(Vector3(2.7, 0.7, 8.4), Vector3(0, 1.5, zc), glass, _train)
+		_box(Vector3(2.7, 0.06, 9.0), Vector3(0, 0.1, zc), _neon_mat(cyan, 3.0), _train)
+
+func _step_dressing(dt: float) -> void:
+	for i in _rings.size():
+		(_rings[i] as MeshInstance3D).rotation.y += dt * (0.12 + 0.05 * i) * (1.0 if i % 2 == 0 else -1.0)
+	if _train:
+		_train.position.z += 22.0 * dt
+		var span: Vector2 = district.span() if district else Vector2(-LENGTH * 0.5, LENGTH * 0.5)
+		if _train.position.z > span.y:
+			_train.position.z = span.x
 
 # --------------------------------------------------------------------------------------------- the city garage
 ## a drive-in garage on the near side: a wide roll-up door open onto a lit workshop, the shop's sign in its accent

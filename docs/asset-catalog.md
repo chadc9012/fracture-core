@@ -9,6 +9,14 @@ Anything else is a procedural stand-in or missing. Sessions adding assets update
 Direction, standing: gritty realistic everywhere, neon cyberpunk in Neon City; authored GLBs or the detailed generators, never
 raw low-segment primitives (AGENTS.md).
 
+## Character sheets (Nov 8)
+`docs/reference/characters/armored-operator-turnaround.png` (front / side / back, blue-lit black armour with red accents) and
+`hunter-raider-turnaround.png` (the white-haired hunter in the torn coat, the red-haired raider in the layered skirt) are
+the briefs for three rigged player bodies / outfits. Pipeline: Meshy image-to-3D from the front view with the side and
+back as references → Meshy rig (humanoid) → `blender -b -P scripts/fit-godot-android.py` caps them at 12k triangles / 1024
+px → `godot-world-fracture/models/operators/bodies/` once the skeleton is checked against character_rig.gd's bone names.
+Status: briefs saved; Meshy generation waits on the owner's account (the API is not reachable from the build sandbox).
+
 ## Part 1 — core categories
 
 | Category | Items on the board | Have |

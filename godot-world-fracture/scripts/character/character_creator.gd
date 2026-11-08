@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## Onboarding: the operator creator. A lit turntable of the character (drag to turn it) beside tabs for the body, a named face
 ## (20 male, 20 female), the ten sculpt sliders, skin tone (plating and optics for robots), hairstyle and colour, facial hair
 ## and markings, and gear; a name and CONFIRM save it to user://character.json (character_store.gd).
@@ -46,7 +47,7 @@ func _ready() -> void:
 	svc.gui_input.connect(_stage_input)
 	add_child(svc)
 	var vp := SubViewport.new()
-	vp.msaa_3d = Viewport.MSAA_4X
+	Phone.fit_viewport(vp)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	_stage(vp)

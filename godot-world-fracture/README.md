@@ -167,6 +167,24 @@ gives every catalogue weapon its real frame (launchers fire as HEAVY for now). *
 ten walkers on the sidewalks of the active blocks, random catalog faces in casual tints, strolling, turning at the ends and
 running from gunfire; not obstacles, not targets.
 
+**Android fit** (owner, Nov 8: "upgrade game and rigged images to fit android"): `scripts/phone.gd` is the one phone
+budget — every 3D view calls `Phone.fit_viewport` (2× MSAA + FXAA, 3D at 80 % scale, 2048 px shadow atlas on mobile; 4×
+MSAA on desktop) and `Phone.fit_sun` (two-split 2048 px directional shadows, shorter distance, hard filtering); project.godot
+sets the mobile shadow and LOD defaults and a 540 × 1170 base viewport for the S22 Ultra. Every model was put through
+`blender -b -P scripts/fit-godot-android.py -- godot-world-fracture/models` — 1.91 M → 0.79 M triangles over 98 GLBs
+(planter 87k → 13k, palm 20k → 7k, muscle car 80k → 12k, operator bodies 17–27k → 12k with skins, shape keys and the four
+clips intact; leaf clouds are thinned by whole leaves, solids collapse with a 15 % floor, textures capped at 1024 / 512).
+Rerun it after adding models; it skips anything already under its caps. The slice places a 13k planter every 36 m across
+three streamed blocks, so the caps matter more than any one model.
+
+**Nexus City by the references** (Nov 8, `docs/reference/nexus-city-*.png`): the Nexus slice opens at night (DAY toggles
+back) with a violet-cyan city bounce instead of crushed darks, cyan bollard lights along both kerbs, WORLD FRACTURE
+banners on the lamp posts, cherry blossoms between the palms, a monorail beam on pylons over the far lane with a
+three-car train looping the district, three holo rings turning round the spire's crown, a DISTRICT 03 direction board by
+the spawn (trading hub / armory / garage / arena / apartments) and five lit billboards carrying crops of the owner's own
+concept art (`textures/billboards/`). Every block tile gets the bollards, banners, blossoms and track; the hub block adds
+the rings, sign, billboards and train. Shots: `slicewalk` is now the night; `slicedaywalk` the day.
+
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two
 blocks over a Neon City street, joined by the west catwalk, the billboard bridge and the east catwalk, with the cover,

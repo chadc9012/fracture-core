@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## The racing venue (the Dec 4 plan, phase 5): Nexus Speedway as a scene — the track laid along track.gd's centreline (asphalt
 ## segments, red-and-white kerbs, grass, a wall at the edge), grandstands full of seats on the straights, the pit lane and
 ## pit wall, a start-light gantry — with the player's car (the garage's build) on the grid against three rivals driven on the
@@ -58,7 +59,7 @@ func _ready() -> void:
 	add_child(svc)
 	var vp := SubViewport.new()
 	vp.own_world_3d = true
-	vp.msaa_3d = Viewport.MSAA_2X
+	Phone.fit_viewport(vp)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	world = Node3D.new()

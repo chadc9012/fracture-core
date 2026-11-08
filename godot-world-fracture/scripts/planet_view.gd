@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## The Planetary Director's globe: the canon "12 Continents, 7 Oceans" board on a sphere you spin (drag), zoom (pinch, wheel,
 ## the buttons) and tap. A pin on every continent (cyan: flights open, gold: make landfall first, grey: on the map only), the
 ## air routes, the seven oceans' names. Tapping a continent turns the globe to it; tapping it again, or OPEN MAP, opens its
@@ -121,7 +122,7 @@ func _build_globe(area: Control) -> void:
 	svc.gui_input.connect(_globe_input)
 	area.add_child(svc)
 	_vp = SubViewport.new()
-	_vp.msaa_3d = Viewport.MSAA_4X
+	Phone.fit_viewport(_vp)
 	_vp.own_world_3d = true
 	svc.add_child(_vp)
 	var env := WorldEnvironment.new()

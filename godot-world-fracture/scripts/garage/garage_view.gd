@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## The garage (owner's Vehicle Garage design, Nov 2026): drive a car into one of four shops, look it over on the turntable,
 ## pick paint, body kit, wheels, performance, armour, lights and Fracture mods, see each change on the car and in the stat bars
 ## before paying, then buy the whole order (or repair the damage) at the shop's prices. Rules: catalog.gd, garage_order.gd,
@@ -71,7 +72,7 @@ func _ready() -> void:
 	svc.gui_input.connect(_input_3d)
 	_split.add_child(svc)
 	_vp = SubViewport.new()
-	_vp.msaa_3d = Viewport.MSAA_4X
+	Phone.fit_viewport(_vp)
 	_vp.own_world_3d = true
 	svc.add_child(_vp)
 	svc.add_child(_car_bar())

@@ -96,7 +96,7 @@ func _ready() -> void:
 	svc.stretch = true
 	add_child(svc)
 	_vp3 = SubViewport.new()
-	_vp3.msaa_3d = Viewport.MSAA_4X
+	Phone.fit_viewport(_vp3)
 	_vp3.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	_vp3.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_vp3.positional_shadow_atlas_size = 2048

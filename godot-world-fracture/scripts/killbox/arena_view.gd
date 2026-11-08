@@ -1,4 +1,5 @@
 extends Control
+const Phone := preload("res://scripts/phone.gd")
 ## Killbox in Godot: a match on one of the owner's arenas (arena.gd data) — Kaiju Complex (two blocks of neon-trimmed
 ## rooftops over a Neon City street, joined by three crossings), Fracture Floor (a plaza between two uplink terraces, data
 ## pillars that rewrite the sightlines) or Killbox Prime (one big roof round a capture zone, two lower balconies). Clash: your team
@@ -120,7 +121,7 @@ func _start() -> void:
 	add_child(svc)
 	var vp := SubViewport.new()
 	vp.own_world_3d = true
-	vp.msaa_3d = Viewport.MSAA_2X
+	Phone.fit_viewport(vp)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	world = Node3D.new()

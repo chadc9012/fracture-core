@@ -13,8 +13,8 @@ boot_splash/bg_color=Color(0.012, 0.047, 0.094, 1)
 Data="*res://scripts/data.gd"
 
 [display]
-window/size/viewport_width=720
-window/size/viewport_height=720
+window/size/viewport_width=540
+window/size/viewport_height=1170
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=6
@@ -28,4 +28,12 @@ renderer/rendering_method="mobile"
 renderer/rendering_method.web="gl_compatibility"
 anti_aliasing/quality/msaa_3d=1
 textures/vram_compression/import_etc2_astc=true
+; the phone budget (scripts/phone.gd sets the per-view part): 2048 px shadows with hard filtering on mobile, meshes drop to
+; their imported LODs sooner, and the 3D scene is upscaled from 80 %
+shadows/directional_shadow/size.mobile=2048
+shadows/directional_shadow/soft_shadow_filter_quality.mobile=0
+shadows/positional_shadow/soft_shadow_filter_quality.mobile=0
+mesh_lod/lod_change/threshold_pixels=2.0
+scaling_3d/scale=1.0
+textures/default_filters/anisotropic_filtering_level.mobile=1
 environment/defaults/default_clear_color=Color(0.012, 0.027, 0.059, 1)
