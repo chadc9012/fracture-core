@@ -15,11 +15,13 @@ describe("operator body tiers", () => {
     expect(bodyTierFor(gear([90, 90, 90, 90, 90]))).toBe("ROOKIE");
     expect(bodyTierFor(gear([150, 150, 150, 150, 150]))).toBe("VETERAN");
     expect(bodyTierFor(gear([240, 240, 240, 240, 240]))).toBe("ELITE");
+    expect(bodyTierFor(gear([339, 339, 339, 339, 339]))).toBe("ELITE");
+    expect(bodyTierFor(gear([340, 340, 340, 340, 340]))).toBe("MYTHIC");
     expect(bodyTierFor(gear([340, 340]))).toBe("ROOKIE"); // two great pieces are not a set
     expect(wornArmorPower(gear([100, 200]))).toBe(60);
   });
-  test("every class has all three tier bodies", () => {
-    for (const cls of ["TITAN", "HUNTER", "WARLOCK"] as const) for (const t of BODY_TIERS) expect(TIER_BODIES[cls][t]).toBeDefined();
+  test("every class has the Rookie, Veteran and Elite bodies (Mythic falls back to Elite until authored)", () => {
+    for (const cls of ["TITAN", "HUNTER", "WARLOCK"] as const) for (const t of ["ROOKIE", "VETERAN", "ELITE"] as const) expect(TIER_BODIES[cls][t]).toBeDefined();
     expect(tierBodyFor("WARLOCK", gear([160, 160, 160, 160, 160])).body.url).toContain("cipher-veteran");
   });
   test("one piece never flips the whole body", () => {
@@ -27,6 +29,7 @@ describe("operator body tiers", () => {
   });
   test("a tier without an authored body falls back down; every listed body exists", () => {
     expect(tierBodyFor("TITAN", gear([300, 300, 300, 300, 300])).tier).toBe("ELITE");
+    expect(tierBodyFor("TITAN", gear([340, 340, 340, 340, 340])).tier).toBe("ELITE"); // no Mythic body yet
     for (const cls of ["TITAN", "HUNTER", "WARLOCK"] as const) {
       expect(TIER_BODIES[cls].ROOKIE).toBeDefined();
       expect(TIER_BODIES[cls].ROOKIE!.url).toMatch(/-authored\.glb$/);

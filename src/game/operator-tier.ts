@@ -4,6 +4,7 @@
  *  - ROOKIE  : Common gear (the rookie bodies made from docs/reference/rookie-*.jpg)
  *  - VETERAN : Rare-level gear (mid-tier bodies, when authored)
  *  - ELITE   : Legendary-level gear (the original concept-art heroes: Goliath Destroyer, Nyx Rift, Cipher Tech)
+ *  - MYTHIC  : top-tier gear (340+ power); no bodies authored yet, so it shows the Elite body until they are added to TIER_BODIES
  *
  * The tier is the average power of the armor actually worn across the five set slots, so swapping one piece never flips the
  * whole body and an empty slot pulls the average down. A tier with no authored body for that class falls back to the next
@@ -13,11 +14,11 @@ import type { ClassId } from "./loadout";
 import type { GearItem, GearSlot } from "./inventory";
 import { SET_SLOTS } from "./armor-sets";
 
-export type BodyTier = "ROOKIE" | "VETERAN" | "ELITE";
-export const BODY_TIERS: readonly BodyTier[] = ["ROOKIE", "VETERAN", "ELITE"];
+export type BodyTier = "ROOKIE" | "VETERAN" | "ELITE" | "MYTHIC";
+export const BODY_TIERS: readonly BodyTier[] = ["ROOKIE", "VETERAN", "ELITE", "MYTHIC"];
 /** average worn armor power where each tier starts (armor tiers sell at 90 / 150 / 240 / 340 power, +15 a level) */
-export const TIER_POWER: Record<BodyTier, number> = { ROOKIE: 0, VETERAN: 150, ELITE: 240 };
-export const TIER_LABEL: Record<BodyTier, string> = { ROOKIE: "Rookie", VETERAN: "Veteran", ELITE: "Elite" };
+export const TIER_POWER: Record<BodyTier, number> = { ROOKIE: 0, VETERAN: 150, ELITE: 240, MYTHIC: 340 };
+export const TIER_LABEL: Record<BodyTier, string> = { ROOKIE: "Rookie", VETERAN: "Veteran", ELITE: "Elite", MYTHIC: "Mythic" };
 
 export type TierBody = { url: string; /** the body's own colours are its look: the rookie colourway does not apply */ colorway: boolean };
 /** authored bodies per class and tier; a missing entry falls back down a tier */
@@ -55,7 +56,7 @@ export function wornArmorPower(gear: WornArmor | undefined): number {
 /** the tier the worn armor earns (before checking which bodies exist) */
 export function bodyTierFor(gear: WornArmor | undefined): BodyTier {
   const p = wornArmorPower(gear);
-  return p >= TIER_POWER.ELITE ? "ELITE" : p >= TIER_POWER.VETERAN ? "VETERAN" : "ROOKIE";
+  return p >= TIER_POWER.MYTHIC ? "MYTHIC" : p >= TIER_POWER.ELITE ? "ELITE" : p >= TIER_POWER.VETERAN ? "VETERAN" : "ROOKIE";
 }
 
 /** the body to draw: the earned tier's, else the nearest authored tier below it */
