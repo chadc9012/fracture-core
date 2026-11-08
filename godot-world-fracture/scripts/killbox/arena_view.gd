@@ -1,6 +1,7 @@
 extends Control
-## Killbox in Godot: a match on one of the owner's arenas (arena.gd data) — here Kaiju Complex, two blocks of neon-trimmed
-## rooftops over a Neon City street, joined by the west catwalk, the billboard bridge and the east catwalk. Clash: your team
+## Killbox in Godot: a match on one of the owner's arenas (arena.gd data) — Kaiju Complex (two blocks of neon-trimmed
+## rooftops over a Neon City street, joined by three crossings), Fracture Floor (a plaza between two uplink terraces, data
+## pillars that rewrite the sightlines) or Killbox Prime (one big roof round a capture zone, two lower balconies). Clash: your team
 ## of trooper bots against theirs, every elimination scores, first to 75. The operator, guns, bots and gear are the shared
 ## stack (scripts/player, scripts/combat, scripts/gear); roofs are the ground (arena.surface_at), the parapets, cover and
 ## ledges are the obstacle boxes, and falling below the kill plane is a death. Night, wet roofs, neon signs; the Billboard
@@ -17,10 +18,16 @@ const Enemies := preload("res://scripts/combat/enemies.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const PROFILE := "user://profile.json"
-const NEON := [Color(1.0, 0.18, 0.62), Color(0.15, 0.85, 1.0), Color(0.62, 0.3, 1.0), Color(1.0, 0.62, 0.15), Color(0.25, 1.0, 0.55)]
 const BOT_TYPES := ["scout", "elite", "marksman", "scout", "executor"]
+## the palette per arena `look` (killbox-arenas.ts): neon trim colours, the facade and roof tones, the sign text
+const LOOKS := {
+	"neon-rooftops": { "trim": [Color(1.0, 0.18, 0.62), Color(0.15, 0.85, 1.0), Color(0.62, 0.3, 1.0), Color(1.0, 0.62, 0.15), Color(0.25, 1.0, 0.55)], "facade": Color(0.1, 0.1, 0.14), "roof": Color(0.12, 0.12, 0.15), "sky": Color(0.03, 0.02, 0.07), "fog": Color(0.2, 0.12, 0.35), "sign": "KAIJU", "sign_color": Color(1.0, 0.18, 0.62) },
+	"nexus-grid": { "trim": [Color(0.2, 0.9, 1.0), Color(0.6, 0.95, 1.0), Color(0.3, 0.6, 1.0)], "facade": Color(0.08, 0.1, 0.14), "roof": Color(0.1, 0.12, 0.16), "sky": Color(0.01, 0.03, 0.06), "fog": Color(0.08, 0.2, 0.3), "sign": "NEXUS UPLINK", "sign_color": Color(0.2, 0.9, 1.0) },
+	"prime-roof": { "trim": [Color(0.75, 0.3, 1.0), Color(1.0, 0.3, 0.5), Color(0.4, 0.5, 1.0)], "facade": Color(0.09, 0.07, 0.13), "roof": Color(0.11, 0.1, 0.15), "sky": Color(0.04, 0.01, 0.07), "fog": Color(0.22, 0.1, 0.32), "sign": "KILLBOX PRIME", "sign_color": Color(0.75, 0.3, 1.0) },
+}
 
-var arena_id := "kaiju-complex"
+## "" opens the arena picker first; a shot sets it before the view is added
+var arena_id := ""
 var mode_id := "clash"
 var arena: Arena
 var match_state: Match
@@ -39,11 +46,68 @@ var _respawn_t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _done_panel: Control
 var _paid := false
+var look: Dictionary = LOOKS["neon-rooftops"]
+var _shifted := false
+var _shifter_nodes: Array = []   # [{node, up_y, down_y, phase}]
+var _picker: Control
 
 func _ready() -> void:
-	_rng.seed = 31
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if arena_id == "":
+		_pick()
+	else:
+		_start()
+
+## the arena list before the match: name, region blurb, the fracture event
+func _pick() -> void:
+	_picker = Control.new()
+	_picker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_picker)
+	var bg := ColorRect.new()
+	bg.color = Color(0.02, 0.02, 0.05, 0.96)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_picker.add_child(bg)
+	var box := VBoxContainer.new()
+	box.position = Vector2(24, 80)
+	box.custom_minimum_size = Vector2(492, 0)
+	box.add_theme_constant_override("separation", 14)
+	_picker.add_child(box)
+	var title := Label.new()
+	title.text = "KILLBOX · CLASH"
+	title.add_theme_font_size_override("font_size", 26)
+	box.add_child(title)
+	var sub := Label.new()
+	sub.text = "Pick the arena. Six a side with your trooper squad; every elimination scores, first to 75."
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sub.custom_minimum_size = Vector2(492, 0)
+	sub.modulate = Color(0.8, 0.85, 0.9)
+	box.add_child(sub)
+	for id in Arena.arena_ids():
+		var a := Arena.new(id)
+		var b := Button.new()
+		b.text = "%s\n%s" % [String(a.def.name).to_upper(), String(a.fracture_name())]
+		b.custom_minimum_size = Vector2(0, 64)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_color_override("font_color", (LOOKS.get(String(a.def.look), look) as Dictionary).sign_color)
+		b.pressed.connect(func(): arena_id = id; _picker.queue_free(); _picker = null; _start())
+		box.add_child(b)
+		var blurb := Label.new()
+		blurb.text = String(a.def.blurb)
+		blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		blurb.custom_minimum_size = Vector2(492, 0)
+		blurb.add_theme_font_size_override("font_size", 13)
+		blurb.modulate = Color(0.65, 0.7, 0.78)
+		box.add_child(blurb)
+	var back := Button.new()
+	back.text = "← BACK"
+	back.custom_minimum_size = Vector2(0, 48)
+	back.pressed.connect(func(): closed.emit())
+	box.add_child(back)
+
+func _start() -> void:
+	_rng.seed = 31
 	arena = Arena.new(arena_id)
+	look = LOOKS.get(String(arena.def.look), LOOKS["neon-rooftops"])
 	match_state = Match.new(Arena.mode(mode_id))
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.02, 0.04)
@@ -66,6 +130,8 @@ func _ready() -> void:
 	_walks()
 	_cover()
 	_signs()
+	_shifters()
+	_zones()
 	cam = Camera3D.new()
 	cam.fov = 62.0
 	cam.near = 0.08
@@ -152,14 +218,14 @@ func _box(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 func _environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.03, 0.02, 0.07)
+	env.background_color = look.sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.25, 0.2, 0.4)
 	env.ambient_light_energy = 1.3
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.2, 0.12, 0.35)
-	env.fog_density = 0.0015
+	env.fog_light_color = look.fog
+	env.fog_density = 0.0015 if String(arena.def.look) == "neon-rooftops" else 0.0005
 	env.glow_enabled = true
 	env.glow_intensity = 0.6
 	var we := WorldEnvironment.new()
@@ -183,7 +249,7 @@ func _street() -> void:
 	for s: float in [-1.0, 1.0]:
 		_box(Vector3(0.15, 0.02, 140), Vector3(s * 6.5, 0.01, 0), paint)
 	# the two blocks' facades up to the roofs, with lit windows
-	var facade := _mat(Color(0.1, 0.1, 0.14), 0.7)
+	var facade := _mat(look.facade, 0.7)
 	var lit := _mat(Color(1.0, 0.85, 0.6), 0.5, 0.0, 1.5)
 	for r in arena.def.roofs:
 		var w := float(r.x1) - float(r.x0)
@@ -197,7 +263,7 @@ func _street() -> void:
 					_box(Vector3(1.6, 1.2, 0.05), Vector3(float(r.x0) + 2.0 + k * 4.0, 2.0 + fl * 3.2, float(r.z0) - 0.03 if zc < 0 else float(r.z1) + 0.03), lit)
 
 func _roofs() -> void:
-	var wet := _mat(Color(0.12, 0.12, 0.15), 0.25, 0.1)
+	var wet := _mat(look.roof, 0.25, 0.1)
 	var trim_k := 0
 	for r in arena.def.roofs:
 		var w := float(r.x1) - float(r.x0)
@@ -215,7 +281,7 @@ func _roofs() -> void:
 			_box(Vector3(w, 0.02, 0.08), Vector3(c.x, float(r.top) + 0.01, sz), seam)
 			sz += 4.0
 		# parapets as drawn walls where the data puts them; neon trim along every edge
-		var neon: Color = NEON[trim_k % NEON.size()]
+		var neon: Color = look.trim[trim_k % (look.trim as Array).size()]
 		trim_k += 1
 		for edge in [[Vector3(c.x, 0, float(r.z0)), Vector3(w, 0.05, 0.08)], [Vector3(c.x, 0, float(r.z1)), Vector3(w, 0.05, 0.08)], [Vector3(float(r.x0), 0, c.z), Vector3(0.08, 0.05, d)], [Vector3(float(r.x1), 0, c.z), Vector3(0.08, 0.05, d)]]:
 			var mi := _box(edge[1], Vector3((edge[0] as Vector3).x, float(r.top) + 1.1, (edge[0] as Vector3).z), _mat(neon, 0.4, 0.0, 3.5))
@@ -265,18 +331,21 @@ func _cover() -> void:
 		else:
 			_box(Vector3(float(c.w), float(c.h), float(c.d)), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z)), m)
 			if c.kind == "sign":
-				var face := _box(Vector3(float(c.w) - 0.4, float(c.h) - 0.4, 0.05), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z) + float(c.d) / 2.0 + 0.03), _mat(NEON[1], 0.4, 0.0, 3.0))
+				var face := _box(Vector3(float(c.w) - 0.4, float(c.h) - 0.4, 0.05), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z) + float(c.d) / 2.0 + 0.03), _mat(look.trim[1], 0.4, 0.0, 3.0))
 				signs.append(face)
 
-## the Kaiju sign over the far block, billboards on the roofs, the sign lights
+## the arena's sign over the north roof, the sign lights
 func _signs() -> void:
-	var r: Dictionary = arena.def.roofs[1]
+	var r: Dictionary = arena.def.roofs[0]
+	for cand in arena.def.roofs:
+		if float(cand.z1) > float(r.z1) or (float(cand.z1) == float(r.z1) and absf(float(cand.x0) + float(cand.x1)) < absf(float(r.x0) + float(r.x1))):
+			r = cand
 	var mi := _box(Vector3(26, 6, 0.4), Vector3((float(r.x0) + float(r.x1)) / 2.0, float(r.top) + 8.0, float(r.z1) + 0.5), _mat(Color(0.08, 0.08, 0.1), 0.5, 0.3))
-	var face := _box(Vector3(25, 5, 0.1), mi.position + Vector3(0, 0, -0.3), _mat(NEON[0], 0.4, 0.0, 3.5))
+	var face := _box(Vector3(25, 5, 0.1), mi.position + Vector3(0, 0, -0.3), _mat(look.sign_color, 0.4, 0.0, 3.5))
 	signs.append(face)
 	var l3 := Label3D.new()
-	l3.text = "KAIJU"
-	l3.font_size = 220
+	l3.text = String(look.sign)
+	l3.font_size = 220 if String(look.sign).length() <= 6 else 120
 	l3.pixel_size = 0.02
 	l3.modulate = Color(1, 1, 1)
 	l3.shaded = false
@@ -285,20 +354,79 @@ func _signs() -> void:
 	world.add_child(l3)
 	for i in 4:
 		var l := OmniLight3D.new()
-		l.light_color = NEON[i % NEON.size()]
+		l.light_color = look.trim[i % (look.trim as Array).size()]
 		l.light_energy = 2.5
 		l.omni_range = 40.0
 		l.position = Vector3(-30.0 + i * 20.0, 26.0, 0.0)
 		world.add_child(l)
 		sign_lights.append(l)
 
-func _set_blackout(on: bool) -> void:
+## the moving cover: data pillars (Fracture Floor) / glass walls (Killbox Prime) that stand in one phase of the event
+func _shifters() -> void:
+	var glass := _mat(Color(0.5, 0.85, 1.0, 0.4), 0.1, 0.2, 0.25)
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	for sh in arena.def.get("shifters", []):
+		var top: float = arena.surface_at(float(sh.x), float(sh.z))
+		if top == -INF:
+			top = 0.0
+		var h := float(sh.h)
+		var up := String(sh.phase) == "up"
+		var mi := _box(Vector3(float(sh.w), h, float(sh.d)), Vector3(float(sh.x), top + h / 2.0, float(sh.z)), glass)
+		var lid := _box(Vector3(float(sh.w), 0.06, float(sh.d)), Vector3(0, h / 2.0, 0), _mat(look.trim[0], 0.4, 0.0, 2.5))
+		lid.reparent(mi)
+		lid.position = Vector3(0, h / 2.0, 0)
+		var down_y := top - h / 2.0 - 0.1
+		if not up:
+			mi.position.y = down_y
+		_shifter_nodes.append({ "node": mi, "up_y": top + h / 2.0, "down_y": down_y, "up": up })
+
+## the capture zones (Dominion's A / B / C) drawn as faint rings on the decks — a landmark for every mode
+func _zones() -> void:
+	for z in arena.def.get("zones", []):
+		var x := float(z.dx)
+		var zz := float(z.dz)
+		var top: float = arena.surface_at(x, zz)
+		if top == -INF:
+			continue
+		var ring := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 3.6
+		tm.outer_radius = 4.0
+		ring.mesh = tm
+		ring.position = Vector3(x, top + 0.05, zz)
+		ring.material_override = _mat(look.trim[1], 0.5, 0.0, 1.5)
+		world.add_child(ring)
+		var l3 := Label3D.new()
+		l3.text = String(z.id)
+		l3.font_size = 160
+		l3.pixel_size = 0.01
+		l3.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l3.modulate = look.trim[1]
+		l3.position = Vector3(x, top + 3.0, zz)
+		world.add_child(l3)
+
+## the fracture event on / off: the signs go dark where the event dims visibility (Billboard Blackout); the shifters swap
+func _set_event(on: bool) -> void:
 	_blackout = on
-	for s in signs:
-		(s as MeshInstance3D).visible = not on
-	for l in sign_lights:
-		(l as OmniLight3D).light_energy = 0.3 if on else 2.5
-	controls.toast("BILLBOARD BLACKOUT — fight by muzzle flash" if on else "The signs come back")
+	var f: Dictionary = arena.def.fracture
+	if float(f.get("visibility", 1.0)) < 1.0:
+		for s in signs:
+			(s as MeshInstance3D).visible = not on
+		for l in sign_lights:
+			(l as OmniLight3D).light_energy = 0.3 if on else 2.5
+	if not _shifter_nodes.is_empty():
+		_shifted = on
+		var nb: Array[AABB] = arena.boxes(on)
+		operator.obstacles.clear()
+		operator.obstacles.append_array(nb)
+	controls.toast((String(f.name).to_upper() + " — " + String(f.brief)) if on else "The %s ends" % String(f.name))
+
+func _slide_shifters(dt: float) -> void:
+	for sh in _shifter_nodes:
+		var mi: MeshInstance3D = sh.node
+		var standing: bool = (sh.up as bool) != _shifted
+		var want: float = (sh.up_y as float) if standing else (sh.down_y as float)
+		mi.position.y = move_toward(mi.position.y, want, 2.5 * dt)
 
 # --------------------------------------------------------------------------------------------- the match
 func _on_bot_down(e: RefCounted, _by_team: int, by_player: bool) -> void:
@@ -325,6 +453,8 @@ func _on_operator_down() -> void:
 	_respawn_t = 4.0
 
 func _process(dt: float) -> void:
+	if not match_state:
+		return
 	dt = minf(dt, 0.05)
 	match_state.tick(dt)
 	enemies.step(dt)
@@ -361,7 +491,8 @@ func _process(dt: float) -> void:
 	var since := t - float(f.first)
 	var running := since >= 0.0 and fmod(since, float(f.every)) < float(f.length)
 	if running != _blackout:
-		_set_blackout(running)
+		_set_event(running)
+	_slide_shifters(dt)
 	var g = gunplay.gun()
 	controls.weapon_name.text = g.display_name()
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())

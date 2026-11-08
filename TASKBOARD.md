@@ -36,7 +36,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
-| Post-Dec 4: Killbox in Godot — killbox.json export, Kaiju Complex built from the data (roofs, walks, cover, parapets, neon), Clash first-to-75 against two bot teams, kill plane, Billboard Blackout, scoreboard, KILLBOX button | see git log "Godot: the Killbox" (Nov 3) |
+| Post-Dec 4: Killbox in Godot — killbox.json export, Kaiju Complex built from the data (roofs, walks, cover, parapets, neon), Clash first-to-75 against two bot teams, kill plane, Billboard Blackout, scoreboard, KILLBOX button; then the arena picker with Fracture Floor (Grid Rewrite shifters) and Killbox Prime (Containment Lock) | see git log "Godot: the Killbox" and "Killbox: all three arenas" (Nov 3–8) |
 | Phase 5 follow-up: Haven Home furniture drawn in Apartment 12-04 (per-slot replacements and additions) | see git log "Apartment 12-04 shows the furniture" (Nov 3) |
 | Phase 3 follow-up: Google sign-in in the Godot app (PKCE via the browser and a localhost callback, no custom build) | see git log "Godot: sign in with Google" (Nov 3) |
 | Phase 4: fd-02 First Resonance, fd-03 Broken Signal, fd-04 Into the Shrouded Swamps in the Verdant Forest (region PLAY mode, shared operator/guns/troopers/gear, quests.json) | see git log "Godot: the Fracture Descent" (Nov 3) |

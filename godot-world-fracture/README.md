@@ -158,7 +158,10 @@ threats)` picks the team spawn farthest from the enemy); `killbox_match.gd` keep
 trooper bots against six (enemies.gd with teams — blue band for allies, red for rivals; allies fight the other team),
 every elimination scores, first to 75 or the clock (10 min) decides. Falling below the kill plane is a death; respawns
 go to the team spawns; the Billboard Blackout event douses the signs for 30 s. Winning pays 400 Nex / 300 XP, losing
-150 / 120. The worn gear carries over (guns, hull bonus, outfit tint). Shot: `killbox[:fight]`.
+150 / 120. The worn gear carries over (guns, hull bonus, outfit tint). The KILLBOX button opens the arena picker: Fracture
+Floor (nexus-grid look; Grid Rewrite sinks the standing data pillars and raises others, swapping the obstacle boxes) and
+Killbox Prime (prime-roof; Containment Lock rings the capture zone in glass) are built from the same data with their own
+palette, sign and zone rings. Shot: `killbox[:floor|:prime][:fight]`.
 
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)

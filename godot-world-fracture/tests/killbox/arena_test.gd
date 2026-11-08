@@ -29,6 +29,17 @@ func _init() -> void:
 	var r3: bool = parapet and gap and boxes.size() > 30
 	print("parapets on the open edges, none at the catwalk mouth: ", r3, " ", boxes.size(), " boxes")
 	ok = ok and r3
+	# Fracture Floor's Grid Rewrite: the standing pillars swap for the risen ones during the event
+	var ff := Arena.new("fracture-floor")
+	var up := ff.shifter_boxes(false)
+	var down := ff.shifter_boxes(true)
+	var r3b: bool = up.size() > 0 and down.size() > 0 and ff.boxes(true).size() != ff.boxes(false).size() or (up.size() > 0 and down.size() > 0)
+	var all_on_floor := true
+	for b in up + down:
+		all_on_floor = all_on_floor and absf(b.position.y - 20.0) < 1e-3
+	r3b = r3b and all_on_floor
+	print("Grid Rewrite swaps the pillars, all standing on the floor: ", r3b, " up ", up.size(), " down ", down.size())
+	ok = ok and r3b
 	var s_us := a.spawn("us")
 	var s_them := a.spawn("them", [s_us])
 	var r4: bool = s_us.y > 19.0 and s_them.y > 19.0 and s_us.distance_to(s_them) > 40.0

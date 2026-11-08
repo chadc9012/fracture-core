@@ -61,8 +61,9 @@ func surface_at(x: float, z: float) -> float:
 		best = maxf(best, float(w.top) + (float(w.topB) - float(w.top)) * t)
 	return best
 
-## the solids: cover props, parapets, ledges, the walkways' rails
-func boxes() -> Array[AABB]:
+## the solids: cover props, parapets, ledges, the walkways' rails — and the shifters that stand in the current phase
+## (`shifted` false: the "up" pieces stand; true: the fracture event has swapped them for the "down" pieces)
+func boxes(shifted := false) -> Array[AABB]:
 	var out: Array[AABB] = []
 	for c in def.cover:
 		var top := surface_at(float(c.x), float(c.z))
@@ -93,6 +94,7 @@ func boxes() -> Array[AABB]:
 					var hi := Vector3(maxf(p0.x, p1.x) + 0.15, p1.y, maxf(p0.z, p1.z) + 0.15)
 					out.append(AABB(lo, hi - lo))
 					run_start = -1
+	out.append_array(shifter_boxes(shifted))
 	for w in def.walks:
 		if not w.rails:
 			continue
@@ -105,6 +107,23 @@ func boxes() -> Array[AABB]:
 		else:
 			out.append(AABB(Vector3(q.position.x, lo_y, q.position.y - 0.1), Vector3(q.size.x, top - lo_y + 1.0, 0.2)))
 			out.append(AABB(Vector3(q.position.x, lo_y, q.end.y - 0.1), Vector3(q.size.x, top - lo_y + 1.0, 0.2)))
+	return out
+
+## the shifter pieces standing in a phase (phase "up" stands normally, "down" stands during the event)
+func shifters_up(shifted: bool) -> Array:
+	var out: Array = []
+	for sh in def.get("shifters", []):
+		if (String(sh.phase) == "down") == shifted:
+			out.append(sh)
+	return out
+
+func shifter_boxes(shifted: bool) -> Array[AABB]:
+	var out: Array[AABB] = []
+	for sh in shifters_up(shifted):
+		var top := surface_at(float(sh.x), float(sh.z))
+		if top == -INF:
+			top = 0.0
+		out.append(AABB(Vector3(float(sh.x) - float(sh.w) / 2.0, top, float(sh.z) - float(sh.d) / 2.0), Vector3(float(sh.w), float(sh.h), float(sh.d))))
 	return out
 
 ## a team's spawn point, the one furthest from `threats`
@@ -126,6 +145,9 @@ func spawn(side: String, threats: Array = [], pick := 0) -> Vector3:
 			best = p
 		k += 1
 	return best
+
+func fracture_name() -> String:
+	return String((def.get("fracture", {}) as Dictionary).get("name", ""))
 
 func kill_plane() -> float:
 	return float(def.killPlane)
