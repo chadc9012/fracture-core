@@ -161,7 +161,7 @@ go to the team spawns; the Billboard Blackout event douses the signs for 30 s. W
 150 / 120. The worn gear carries over (guns, hull bonus, outfit tint). The KILLBOX button opens the arena picker: Fracture
 Floor (nexus-grid look; Grid Rewrite sinks the standing data pillars and raises others, swapping the obstacle boxes) and
 Killbox Prime (prime-roof; Containment Lock rings the capture zone in glass) are built from the same data with their own
-palette, sign and zone rings. Shot: `killbox[:floor|:prime][:fight]`.
+palette, sign and zone rings. Skydock (the other session's fourth map) plays through the same view with a dusk palette. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
 
 ```sh
 bun scripts/export-godot-data.ts          # from the repo root: writes godot-world-fracture/generated/ (gitignored)

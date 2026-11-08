@@ -470,10 +470,13 @@ func _shoot(path: String, opts: Array) -> void:
 				descent.controls.move = Vector2(0.0, 1.0)
 				descent.controls.sprint = true
 				descent.controls.fire = true
-		# killbox[:floor|:prime][:fight]  Kaiju Complex (or Fracture Floor / Killbox Prime), Clash; :fight sprints and fires
+		# killbox[:fracture|:prime|:skydock][:fight]  Kaiju Complex (or Fracture Floor / Killbox Prime), Clash; :fight sprints and fires
 		if String(o).begins_with("killbox"):
 			killbox = ArenaView.new()
-			killbox.arena_id = "fracture-floor" if String(o).contains("floor") else ("killbox-prime" if String(o).contains("prime") else "kaiju-complex")
+			killbox.arena_id = "kaiju-complex"
+			for id in ["fracture-floor", "killbox-prime", "skydock"]:
+				if String(o).contains(String(id).split("-")[0] if id != "killbox-prime" else "prime"):
+					killbox.arena_id = id
 			killbox.closed.connect(_close_killbox)
 			add_child(killbox)
 			if String(o).contains("fight"):
