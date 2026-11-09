@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates through all five maps match to match", () => {
+  it("each arena playlist rotates through all six maps match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard"]);
-      expect([0, 1, 2, 3, 4, 5].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "kaiju-complex"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire"]);
+      expect([0, 1, 2, 3, 4, 5, 6].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
@@ -333,5 +333,29 @@ describe("Neon Yard", () => {
     const t = Y.fracture.first + 10, up = Y.shifters.filter((s) => s.phase === "up"), down = Y.shifters.filter((s) => s.phase === "down");
     expect(up.every((s) => shifterLift(Y, s, 5) === 1 && shifterLift(Y, s, t) === 0)).toBe(true);
     expect(down.every((s) => shifterLift(Y, s, 5) === 0 && shifterLift(Y, s, t) === 1)).toBe(true);
+  });
+});
+
+describe("Glass Spire", () => {
+  it("the crown is walled from the plaza except at its stairs; the gardens are walled from below except at theirs", () => {
+    clearWalls(); setWalls("gs", arenaWalls(G));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(G, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, G.base + feet); };
+    expect(hit(6.2, 0, 20)).toBe(true); // the crown's face from the plaza
+    expect(hit(-2.5, 6.2, 24.5)).toBe(false); // its north stair mouth
+    expect(hit(5.8, 0, 25)).toBe(false); // from the crown you can drop off
+    expect(hit(-28.2, 0, 16)).toBe(true); // the plaza's face from the west garden
+    expect(hit(-28.2, 12, 19.5)).toBe(false); // the garden stair mouth
+    expect(hit(-27.8, 0, 20)).toBe(false); // from the plaza you can drop into the garden
+    expect(hit(-41.8, 0, 16)).toBe(true); // the garden's own edge
+    expect(hit(-27.8, 24, 20)).toBe(true); // no garden here: the plaza's parapet
+    clearWalls();
+    expect(surfaceAt(G, 0, 0)).toBe(25); expect(surfaceAt(G, -35, 0)).toBe(16); expect(surfaceAt(G, 0, 20)).toBe(20);
+  });
+  it("the Spire Shatter breaks the glass panels and raises the blast shutters, with dust in the air", () => {
+    const t = G.fracture.first + 10, glass = G.shifters.filter((s) => s.id.startsWith("glass")), shutters = G.shifters.filter((s) => s.id.startsWith("shutter"));
+    expect(glass).toHaveLength(4); expect(shutters).toHaveLength(4);
+    expect(glass.every((s) => shifterLift(G, s, 5) === 1 && shifterLift(G, s, t) === 0)).toBe(true);
+    expect(shutters.every((s) => shifterLift(G, s, 5) === 0 && shifterLift(G, s, t) === 1)).toBe(true);
+    expect(fractureVisibility(G, t)).toBeCloseTo(0.7, 5);
   });
 });

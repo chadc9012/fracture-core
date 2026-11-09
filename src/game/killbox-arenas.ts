@@ -17,19 +17,22 @@
  * two raised uplink terraces, cargo containers and crates for cover, and glass data walls — cover that rises and sinks. Its fracture event is the Grid
  * Rewrite: the standing pillars sink and the sunken ones rise, so every sightline on the floor changes for 25 s.
  *
+ * Glass Spire (Nexus City, Spire Crown): an open plaza on a glass tower top round a raised crown, with a sky garden down each flank.
+ * Its fracture event is the Spire Shatter: the glass panels shatter and blast shutters rise across the lanes.
+ *
  * Playlists rotate through the maps that list them (`arenaForRun`). */
 import type { Deck } from "./district-decks";
 import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
 export type ArenaWalk = { id: string; x: number; z: number; along: "x" | "z"; length: number; width: number; top: number; topB: number; rails: boolean };
 /** a solid prop standing on a roof (HVAC unit, water tank, sign base): blocks movement and line of sight; you can mantle onto it */
-export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier" | "dropship"; x: number; z: number; w: number; d: number; h: number };
+export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier" | "dropship" | "planter" | "pillar"; x: number; z: number; w: number; d: number; h: number };
 /** a cover wall that rises and sinks with the fracture event: "up" stands until the event sinks it, "down" lies flush until the
  * event raises it. Solid (movement and sight) while more than half raised. */
 export type ArenaShifter = { id: string; x: number; z: number; w: number; d: number; h: number; phase: "up" | "down" };
@@ -42,7 +45,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -342,7 +345,68 @@ export const NEON_YARD: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD };
+/* ---------------- Glass Spire ---------------- */
+
+// the crown of a glass corporate tower in Nexus City at night: an open plaza deck (each team spawns at one end), the Spire Crown in
+// the middle 5 m up (the high ground and the centre zone) reached by one steel stair from each team's side, and a sky garden 4 m
+// down off each flank (zones A and C) joined to the plaza by two stairs each. Glass panels for cover that shatter in the event
+const GS_ROOFS: ArenaRoof[] = [
+  { id: "plaza", name: "Spire Plaza", x0: -28, x1: 28, z0: -30, z1: 30, top: 20 },
+  { id: "crown", name: "Spire Crown", x0: -6, x1: 6, z0: -6, z1: 6, top: 25 },
+  { id: "west-garden", name: "West Sky Garden", x0: -42, x1: -28, z0: -16, z1: 16, top: 16 },
+  { id: "east-garden", name: "East Sky Garden", x0: 28, x1: 42, z0: -16, z1: 16, top: 16 },
+];
+const GS_WALKS: ArenaWalk[] = [
+  // up to the crown from each team's side of the plaza
+  { id: "crown-stair-n", x: -2.5, z: 10, along: "z", length: 8, width: 3, top: 25, topB: 20, rails: true },
+  { id: "crown-stair-s", x: 2.5, z: -10, along: "z", length: 8, width: 3, top: 20, topB: 25, rails: true },
+  // down to the sky gardens
+  { id: "garden-stair-wn", x: -32, z: 12, along: "x", length: 8, width: 4, top: 16, topB: 20, rails: false },
+  { id: "garden-stair-ws", x: -32, z: -12, along: "x", length: 8, width: 4, top: 16, topB: 20, rails: false },
+  { id: "garden-stair-en", x: 32, z: 12, along: "x", length: 8, width: 4, top: 20, topB: 16, rails: false },
+  { id: "garden-stair-es", x: 32, z: -12, along: "x", length: 8, width: 4, top: 20, topB: 16, rails: false },
+];
+// the crown's 5 m faces, open where its stairs arrive; the plaza's 4 m faces over the gardens, open at the garden stairs
+const GS_LEDGES: ArenaWall[] = [
+  ...[[-6, -4], [-1, 6]].map(([a, b]) => ({ ax: a!, az: 6, bx: b!, bz: 6, base: 19.5, top: 25 })),
+  ...[[-6, 1], [4, 6]].map(([a, b]) => ({ ax: a!, az: -6, bx: b!, bz: -6, base: 19.5, top: 25 })),
+  { ax: -6, az: -6, bx: -6, bz: 6, base: 19.5, top: 25 }, { ax: 6, az: -6, bx: 6, bz: 6, base: 19.5, top: 25 },
+  ...[-28, 28].flatMap((x) => [[-16, -14], [-10, 10], [14, 16]].map(([a, b]) => ({ ax: x, az: a!, bx: x, bz: b!, base: 15.5, top: 20 }))),
+];
+const GS_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 26, w: 6, d: 1.2, h: 1.2 },
+  { id: "planter-w", kind: "planter", x: -16, z: 20, w: 4, d: 2, h: 1.1 },
+  { id: "planter-e", kind: "planter", x: 14, z: 14, w: 2, d: 4, h: 1.1 },
+  { id: "kiosk", kind: "console", x: 22, z: 22, w: 1.6, d: 1.6, h: 1.6 },
+  { id: "pillar", kind: "pillar", x: -14, z: 6, w: 2, d: 2, h: 4 },
+  { id: "crates", kind: "crate", x: -20, z: -14, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "garden-planter", kind: "planter", x: -38, z: 8, w: 2, d: 3, h: 1.1 },
+]);
+const GS_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // glass panels standing on the plaza, that shatter when the spire fractures…
+  { id: "glass-a", x: -10, z: 14, w: 6, d: 1, h: 3, phase: "up" },
+  { id: "glass-b", x: 22, z: 8, w: 1, d: 5, h: 3, phase: "up" },
+  // …and the blast shutters that rise to seal the lanes they leave open
+  { id: "shutter-n", x: 6, z: 12, w: 1, d: 5, h: 3, phase: "down" },
+  { id: "shutter-w", x: -24, z: 0, w: 1, d: 6, h: 3, phase: "down" },
+]);
+
+export const GLASS_SPIRE: KillboxArena = {
+  id: "glass-spire", name: "Glass Spire", region: "Nexus City · Spire Crown", size: "medium",
+  blurb: "The top of a glass tower in Nexus City. Fight across the open plaza for the Spire Crown in the middle, or flank through the sky gardens below. When the spire fractures, the glass panels shatter and blast shutters seal the lanes.",
+  site: { x: 200, z: 1180 }, base: ARENA_ALTITUDE, look: "glass-spire",
+  roofs: GS_ROOFS, walks: GS_WALKS, cover: GS_COVER, ledges: GS_LEDGES, shifters: GS_SHIFTERS,
+  spawns: {
+    us: [[-18, 27], [0, 29], [18, 27], [-24, 23], [26, 26], [-8, 28]],
+    them: [[18, -27], [0, -29], [-18, -27], [24, -23], [-26, -26], [8, -28]],
+  },
+  zones: [{ id: "A", dx: -35, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 35, dz: 0 }], objective: [0, 0],
+  killPlane: 10,
+  fracture: { name: "Spire Shatter", brief: "The spire fractures: every glass panel on the plaza shatters, glass dust hangs in the air, and blast shutters rise across the open lanes.", first: 85, every: 140, length: 25, warn: 10, visibility: 0.7 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));
