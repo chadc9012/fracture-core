@@ -571,13 +571,15 @@ func _loc(x: float, z: float) -> Vector2:
 func _style_for(id: String) -> Dictionary:
 	# the owner's target frames: gritty daylight in the wilds (cracked planet overhead), the cities at night with wet streets
 	var s := {"top": "#4a77a6", "hor": "#c2ccd2", "fog": "#aab4ba", "fog_d": 0.0011, "sun": 1.25, "sun_col": "#fff1dc", "sun_el": 38.0,
-		"amb": 0.55, "night": 0.0, "neon": 0.0, "wet": 0.0, "sat": 0.86, "planet": true, "under": false}
+		"amb": 0.55, "night": 0.0, "neon": 0.0, "ordered": 0.0, "wet": 0.0, "sat": 0.86, "planet": true, "under": false}
 	match id:
 		"neon-city":
 			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#2a1240", "fog_d": 0.0026, "sun": 0.12, "sun_col": "#8fa6ff", "sun_el": 30.0, "amb": 0.35, "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.15}, true)
 		"nexus":
-			# still night, but moonlit enough to read the island, parks and streets (it was near-black outside the towers)
-			s.merge({"top": "#0d1a30", "hor": "#3a5278", "fog": "#24324a", "fog_d": 0.0016, "sun": 0.28, "sun_col": "#a9bfff", "sun_el": 34.0, "amb": 0.6, "night": 1.0, "neon": 0.55, "wet": 0.9, "sat": 1.0}, true)
+			# the owner's Nexus City board (Nov 9): the capital at dusk — an indigo sky going orange and pink at the horizon, a
+			# low warm sun on cream and white towers lit gold with blue and violet accents, palms along the shore, the Core
+			# Spire in holographic rings with its beam into the sky. Its own look, not a second Neon (`ordered` = Nexus look)
+			s.merge({"top": "#1c2260", "hor": "#e88a6a", "fog": "#3b3a72", "fog_d": 0.0012, "sun": 0.6, "sun_col": "#ffc3a0", "sun_el": 7.0, "amb": 0.6, "night": 0.5, "neon": 0.3, "ordered": 1.0, "wet": 0.25, "sat": 1.15, "exp": 0.9}, true)
 		"ember":
 			s.merge({"top": "#2c140e", "hor": "#c05628", "fog": "#6a2e1e", "fog_d": 0.0022, "sun": 0.85, "sun_col": "#ffb27a", "sun_el": 18.0, "amb": 0.5}, true)
 		"frostspire":
@@ -886,8 +888,11 @@ func _build_buildings() -> void:
 	mat.shader = load("res://shaders/building3d.gdshader")
 	mat.set_shader_parameter("night", _style.night)
 	mat.set_shader_parameter("neon", _style.neon)
+	mat.set_shader_parameter("ordered", _style.ordered)
 	mi.material_override = mat
 	_world.add_child(mi)
+	if _style.ordered > 0.5:
+		_nexus_lines()
 	# Neon City's signs: strips of colour along the rooflines of the taller towers
 	if _style.neon > 0.5:
 		var sst := SurfaceTool.new()
@@ -924,6 +929,56 @@ func _build_buildings() -> void:
 		smi.material_override = smat
 		smi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_world.add_child(smi)
+
+## Nexus: thin blue light lines up the four corners of every tall tower and a violet crown line at the roof, as on the
+## board's skyline (Neon City gets coloured sign strips instead)
+func _nexus_lines() -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cyan := Color(0.36, 0.66, 1.0)
+	var white := Color(0.72, 0.48, 1.0)
+	for bd in m.buildings:
+		if _is_landmark(bd) or _bh(bd) < 30.0:
+			continue
+		var p := _loc(bd[0], bd[1])
+		var base := _h(p.x, p.y)
+		var top := base + _bh(bd)
+		var hx: float = float(bd[2]) + 0.06
+		var hz: float = float(bd[3]) + 0.06
+		var yaw: float = bd[4]
+		var c := cos(yaw)
+		var sn := sin(yaw)
+		var corners: Array[Vector2] = []
+		for d in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			var lx: float = d.x * hx
+			var lz: float = d.y * hz
+			corners.append(Vector2(p.x + lx * c + lz * sn, p.y - lx * sn + lz * c))
+		for k in 4:
+			var a: Vector2 = corners[k]
+			var b: Vector2 = corners[(k + 1) % 4]
+			var dir := (b - a).normalized() * 0.35
+			# a corner line: a narrow quad on each face meeting at the corner
+			for q in [[a, a + dir, base + 6.0, top], [b - dir, b, base + 6.0, top], [a, b, top - 0.9, top - 0.3]]:
+				var u: Vector2 = q[0]
+				var v: Vector2 = q[1]
+				var y0: float = q[2]
+				var y1: float = q[3]
+				var col := white if y1 - y0 < 2.0 else cyan
+				var quad := [Vector3(u.x, y0, u.y), Vector3(v.x, y0, v.y), Vector3(v.x, y1, v.y), Vector3(u.x, y1, u.y)]
+				for t in [[0, 2, 1], [0, 3, 2], [0, 1, 2], [0, 2, 3]]:
+					for vi in t:
+						st.set_color(col)
+						st.add_vertex(quad[vi])
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.vertex_color_use_as_albedo = true
+	mat.emission_enabled = true
+	mat.emission_energy_multiplier = 2.2
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_world.add_child(mi)
 
 ## one triangle facing `n` (Godot's front faces wind clockwise as seen from the front), with its normal, colour and uvs
 func _tri(st: SurfaceTool, v: Array, uv: Array, n: Vector3, col: Color, seed: float) -> void:
@@ -1178,6 +1233,13 @@ func _build_trees() -> void:
 		var cold := map_id in ["frostspire", "frostveil"]
 		if map_id == "azure-isles" and _palms(trees):
 			pass
+		elif map_id == "nexus" and _palms(trees):
+			# the capital's board: palms along the shore and avenues, the park woods between them
+			var rest: Array[Transform3D] = []
+			for i in trees.size():
+				if i % 3 != 0:
+					rest.append(trees[i])
+			_multimesh(_tree_mesh(false), rest, _tree_material(false))
 		else:
 			_multimesh(_tree_mesh(cold), trees, _tree_material(cold))
 	if not shards.is_empty():
@@ -1725,7 +1787,7 @@ func _build_lamps() -> void:
 	sm.rings = 4
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(1.0, 0.82, 0.55) if _style.neon < 0.5 else Color(0.75, 0.9, 1.0)
+	mat.albedo_color = Color(1.0, 0.82, 0.55) if _style.neon < 0.5 and _style.ordered < 0.5 else Color(0.75, 0.9, 1.0)
 	mat.emission_enabled = true
 	mat.emission = mat.albedo_color
 	mat.emission_energy_multiplier = 4.0
@@ -2634,8 +2696,8 @@ func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 ## three times, ringed in cyan data bands, the core glowing through slots in the top tier, and a needle to the full height
 ## with a beacon.
 func _core_spire(root: Node3D, hx: float, hz: float, top: float) -> void:
-	var steel := _lm_mat(Color("#c9d3de"), 0.0, 0.7, 0.25)
-	var dark := _lm_windows(Color("#bfe9ff"), Color("#141c28"), 0.22)
+	var steel := _lm_mat(Color("#8fa3d8"), 0.25, 0.7, 0.25)
+	var dark := _lm_windows(Color("#9fd4ff"), Color("#141a3a"), 0.3)
 	var cyan := _lm_mat(Color("#4fe3ff"), 3.0)
 	var white := _lm_mat(Color("#eaf6ff"), 4.0)
 	var box := BoxMesh.new()
@@ -2665,6 +2727,40 @@ func _core_spire(root: Node3D, hx: float, hz: float, top: float) -> void:
 		var r := w * 0.35 * (1.0 - (y - shaft_top) / (top - shaft_top)) + 0.4
 		_lm_part(root, _lm_cyl(r, r, 0.5, 16), cyan, Vector3(0, y, 0))
 	_lm_part(root, SphereMesh.new(), white, Vector3(0, top, 0), Vector3.ONE * 1.6)
+	# the board's holographic halos round the upper tower (turning slowly) and the beam into the sky
+	var holo := _lm_mat(Color("#5fd4ff"), 3.5)
+	holo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	holo.albedo_color.a = 0.8
+	holo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.94
+	ring.outer_radius = 1.0
+	ring.rings = 64
+	ring.ring_segments = 4
+	for k in 3:
+		var halo := Node3D.new()
+		halo.position = Vector3(0, top * (0.56 + 0.12 * float(k)), 0)
+		halo.rotation = Vector3(0.05 * float(k - 1), 0, 0.04 * float(1 - k))
+		halo.set_meta("spin", 0.12 + 0.05 * float(k) * (1.0 if k % 2 == 0 else -1.0))
+		root.add_child(halo)
+		_spin.append(halo)
+		var r := w * (4.2 - 0.9 * float(k))
+		_lm_part(halo, ring, holo, Vector3.ZERO, Vector3(r, 1.0, r))
+	var beam := _lm_mat(Color("#7fe0ff"), 4.0)
+	beam.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	beam.albedo_color.a = 0.28
+	beam.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_lm_part(root, _lm_cyl(1.2, 2.6, 700.0, 12), beam, Vector3(0, top + 350.0, 0))
+	# the hologram crystal over the hub plaza in front (the Central District's core on the board), slowly turning
+	var crystal := Node3D.new()
+	crystal.position = Vector3(0, 22.0, 48.0)
+	crystal.set_meta("spin", 0.5)
+	root.add_child(crystal)
+	_spin.append(crystal)
+	var gem := _lm_cyl(0.0, 1.0, 1.0, 4)
+	_lm_part(crystal, gem, holo, Vector3(0, 4.0, 0), Vector3(5.0, 8.0, 5.0))
+	_lm_part(crystal, gem, holo, Vector3(0, -4.0, 0), Vector3(5.0, 8.0, 5.0), Vector3(PI, 0, 0))
+	_lm_part(crystal, ring, holo, Vector3(0, -14.0, 0), Vector3(14.0, 1.0, 14.0))
 	var beacon := OmniLight3D.new()
 	beacon.light_color = Color("#9fefff")
 	beacon.light_energy = 4.0

@@ -9,6 +9,8 @@ render_mode cull_back;
 
 uniform float night = 0.0;
 uniform float neon = 0.0;
+// Nexus (1.0, the owner's capital board): cream and white towers lit floor by floor in gold, with blue and violet accents
+uniform float ordered = 0.0;
 // Pass 15: facade depth cues without additional draw calls.
 uniform float facade_detail = 1.0;
 // Batch update 4: art-direction controls, no new texture dependencies.
@@ -23,7 +25,7 @@ float band(float x, float a, float b, float w) { return smoothstep(a - w, a + w,
 varying float seed;
 void vertex() { seed = UV2.x; }
 void fragment() {
-	vec3 base = COLOR.rgb;
+	vec3 base = mix(COLOR.rgb, vec3(0.86, 0.83, 0.78) * (0.8 + 0.3 * COLOR.g), ordered * 0.7);
 	if (COLOR.a > 0.5) {
 		ALBEDO = base * 0.82;
 		ROUGHNESS = 0.9;
@@ -69,15 +71,19 @@ void fragment() {
 		glass *= mix(1.0, mix(1.0, smoothstep(0.0, 0.065, reveal) * 0.28 + 0.72, detail), facade_detail);
 
 		// which windows are lit: per window up close, the lit share (38% at night, less the blinds) far away
-		float share = mix(0.0, 0.38, night);
-		float lit_one = step(1.0 - share, r) * (1.0 - blind * 0.75);
+		float share = mix(0.0, mix(0.38, 0.55, ordered), night);
+		// Nexus lights a floor at a time (the same for the whole storey of a building), Neon window by window
+		float r_floor = hash2(vec2(cell.y, seed * 31.0));
+		float lit_one = step(1.0 - share, mix(r, r_floor, ordered)) * (1.0 - blind * 0.75 * (1.0 - ordered));
 		float lit = mix(share * (1.0 - 0.24 * 0.75), lit_one, detail);
 		vec3 warm = vec3(1.0, 0.72, 0.42);
 		vec3 cool_one = r > 0.8 ? vec3(1.0, 0.25, 0.75) : vec3(0.25, 0.85, 1.0);
 		vec3 cool = mix(vec3(0.62, 0.55, 0.88), cool_one, detail);
 
+		vec3 nexus_one = r > 0.9 ? vec3(0.72, 0.45, 1.0) : (r > 0.8 ? vec3(0.4, 0.72, 1.0) : vec3(1.0, 0.78, 0.5));
+		vec3 nexus = mix(vec3(0.9, 0.74, 0.62), nexus_one, detail);
 		ALBEDO = mix(wall, glass, win);
-		EMISSION = mix(warm, cool, neon) * lit * window_light_strength * night * win;
+		EMISSION = mix(mix(warm, cool, neon), nexus, ordered) * lit * window_light_strength * night * win;
 		ROUGHNESS = mix(0.82, 0.12, win);
 		METALLIC = 0.3 * win;
 	}
