@@ -1994,9 +1994,14 @@ func _apply_cam() -> void:
 		_cam.fov = 70.0
 
 func _process(dt: float) -> void:
+	var tsec := Time.get_ticks_msec() * 0.001
 	for n in _spin:
 		if is_instance_valid(n):
 			n.rotate_y(dt * float(n.get_meta("spin", 0.3)))
+			if n.has_meta("flicker"):
+				# a lightning bolt: on for a short flash every so often, at its own rate
+				var f := float(n.get_meta("flicker"))
+				n.visible = fmod(tsec * f + float(n.get_instance_id() % 97) * 0.13, 1.0) < 0.12
 	if _cam == null or mode == Mode.PLAY:
 		return
 	_declutter_t -= dt

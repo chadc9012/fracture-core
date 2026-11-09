@@ -311,7 +311,7 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
   const [bx, bz] = nr(BEACH.u, BEACH.v - 30);
   f.pavements.push({ x: bx, z: bz, hx: 60, hz: 4, yaw: 0, kind: "street" });
   for (let i = 0; i < 6; i++) f.buildings.push({ x: bx - 50 + i * 20, z: bz - 14, hx: 6, hz: 5, yaw: 0, use: i % 2 ? "store" : "entertainment", h: 0.1, m: 6 + rnd() * 6 });
-  for (let i = 0; i < 3; i++) f.pavements.push({ x: bx - 20 + i * 18, z: bz + 16, hx: 7, hz: 4, yaw: 0, kind: "plaza" });
+  for (let i = 0; i < 3; i++) f.pavements.push({ x: bx - 30 + i * 20, z: bz - 34, hx: 8, hz: 4.5, yaw: 0, kind: "plaza" });
   // the Azure Keys resorts: villas round each isle, a bridge between them
   for (const k of KEYS) {
     const n = Math.round(k.r / 12);

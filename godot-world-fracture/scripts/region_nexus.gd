@@ -9,6 +9,9 @@ const LANDMARKS := ["The Fracture Spire", "Lighthouse Point", "Nexus Beach Wheel
 static func dress(r: Node) -> void:
 	_falls(r)
 	_yachts(r)
+	_courts(r)
+	_harbor(r)
+	_stadiums(r)
 
 # ---------------------------------------------------------------------------------------------------------------- falls
 
@@ -155,6 +158,139 @@ static func _yachts(r: Node) -> void:
 		_part(y, BoxMesh.new(), hull, Vector3(0, 3.1, -1.6), Vector3(2.2, 0.9, 3.6))
 		_part(y, BoxMesh.new(), trim, Vector3(0, 1.45, 0), Vector3(3.7, 0.12, 12.1))
 
+# ------------------------------------------------------------------------------------------------- beach, harbour, arenas
+
+## Nexus Beach's courts: on every plaza near the beach, a tennis, basketball or volleyball court with its lines and net
+static func _courts(r: Node) -> void:
+	var beach := Vector2.INF
+	for p in r.m.pois:
+		if String(p.id) == "nr-beach":
+			beach = r._loc(float(p.x), float(p.z))
+	if beach == Vector2.INF:
+		return
+	var kinds := [[Color("#2f8f6a"), Color("#3a7bd5")], [Color("#d9772b"), Color("#b5532a")], [Color("#e9d29a"), Color("#e2c27e")]]
+	var line := _mat(Color("#f6f6f6"), 0.4)
+	var net := _mat(Color("#222831"))
+	var k := 0
+	for pv in r.m.pavements:
+		var at: Vector2 = r._loc(float(pv[0]), float(pv[1]))
+		if String(pv[5]) != "plaza" or at.distance_to(beach) > 140.0:
+			continue
+		var hx: float = pv[2]
+		var hz: float = pv[3]
+		var y: float = r._h(at.x, at.y) + 0.18
+		var kind: Array = kinds[k % 3]
+		var root := Node3D.new()
+		root.position = Vector3(at.x, y, at.y)
+		root.rotation.y = float(pv[4])
+		r._world.add_child(root)
+		_part(root, BoxMesh.new(), _mat(kind[1]), Vector3.ZERO, Vector3(hx * 2.0, 0.08, hz * 2.0))
+		_part(root, BoxMesh.new(), _mat(kind[0]), Vector3(0, 0.03, 0), Vector3(hx * 1.6, 0.08, hz * 1.5))
+		for sz: float in [-1.0, 1.0]:
+			_part(root, BoxMesh.new(), line, Vector3(0, 0.08, sz * hz * 0.75), Vector3(hx * 1.6, 0.03, 0.12))
+		for sx: float in [-1.0, 1.0]:
+			_part(root, BoxMesh.new(), line, Vector3(sx * hx * 0.8, 0.08, 0), Vector3(0.12, 0.03, hz * 1.5))
+		_part(root, BoxMesh.new(), line, Vector3(0, 0.08, 0), Vector3(0.12, 0.03, hz * 1.5))
+		_part(root, BoxMesh.new(), net, Vector3(0, 0.55, 0), Vector3(0.08, 1.0 if k % 3 == 0 else 2.4, hz * 1.6))
+		k += 1
+
+## Nexus Harbor's working quay: gantry cranes along the water and container stacks on the apron behind them
+static func _harbor(r: Node) -> void:
+	var dock := Vector2.INF
+	for ring in r.m.rings:
+		if String(ring[3]) == "dock" and String(ring[4]) == "Nexus Harbor":
+			dock = r._loc(float(ring[0]), float(ring[1]))
+	if dock == Vector2.INF:
+		return
+	var orange := _mat(Color("#e8742b"), 0.0, 0.3, 0.5)
+	var blue := _mat(Color("#2b6fe8"), 0.0, 0.3, 0.5)
+	var lamp := _mat(Color("#fff0b5"), 3.0)
+	# the quay line: from the dock ring back toward the land, find the shore
+	var shore := dock
+	for s in range(0, 80, 2):
+		var q := dock + Vector2(0, -float(s))
+		if r._h(q.x, q.y) > r._water + 0.5:
+			shore = q
+			break
+	var gy: float = r._h(shore.x, shore.y)
+	for k in 4:
+		var c := Node3D.new()
+		c.position = Vector3(shore.x - 45.0 + k * 30.0, gy, shore.y + 2.0)
+		r._world.add_child(c)
+		var col := orange if k % 2 == 0 else blue
+		for sx: float in [-1.0, 1.0]:
+			for sz: float in [-1.0, 1.0]:
+				_part(c, BoxMesh.new(), col, Vector3(sx * 4.0, 9.0, sz * 5.0), Vector3(0.9, 18.0, 0.9))
+		_part(c, BoxMesh.new(), col, Vector3(0, 18.5, 4.0), Vector3(9.5, 1.4, 36.0))
+		_part(c, BoxMesh.new(), col, Vector3(0, 21.0, 0), Vector3(7.0, 3.5, 4.0))
+		_part(c, BoxMesh.new(), lamp, Vector3(0, 19.4, 21.5), Vector3(1.0, 0.4, 0.6))
+	# containers: a few stacks of mixed colours behind the cranes
+	var cols := [Color("#c0392b"), Color("#2e86de"), Color("#27ae60"), Color("#f39c12"), Color("#8e44ad"), Color("#ecf0f1")]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5151
+	var box := BoxMesh.new()
+	for row in 3:
+		for i in 10:
+			var at := shore + Vector2(-50.0 + i * 10.5, -16.0 - row * 6.0)
+			var g: float = r._h(at.x, at.y)
+			if g < r._water + 0.5:
+				continue
+			for lvl in rng.randi_range(1, 3):
+				_part(r._world, box, _mat(cols[rng.randi() % cols.size()], 0.0, 0.4, 0.6), Vector3(at.x, g + 1.3 + lvl * 2.6, at.y), Vector3(6.1, 2.5, 2.4))
+
+## the Arena and the Stadium as bowls: raked stands round a lit field, a violet neon crown and four light towers
+static func _stadiums(r: Node) -> void:
+	var stand := _mat(Color("#d9dde6"), 0.0, 0.2, 0.6)
+	var seats := _mat(Color("#3b3f6e"))
+	var field := _mat(Color("#2f9e4a"), 0.25)
+	var neon := _mat(Color("#a35cff"), 3.0)
+	var lamp := _mat(Color("#fffbe8"), 5.0)
+	for ring in r.m.rings:
+		if String(ring[3]) != "arena":
+			continue
+		var c: Vector2 = r._loc(float(ring[0]), float(ring[1]))
+		var rad: float = ring[2]
+		var gy: float = r._h(c.x, c.y)
+		var root := Node3D.new()
+		root.position = Vector3(c.x, gy, c.y)
+		r._world.add_child(root)
+		var outer := CylinderMesh.new()
+		outer.top_radius = rad + 3.0
+		outer.bottom_radius = rad + 1.0
+		outer.height = 12.0
+		outer.radial_segments = 40
+		outer.cap_top = false
+		_part(root, outer, stand, Vector3(0, 6.0, 0), Vector3(1.0, 1.0, 0.78))
+		var bowl := CylinderMesh.new()
+		bowl.top_radius = rad + 2.6
+		bowl.bottom_radius = rad * 0.62
+		bowl.height = 11.0
+		bowl.radial_segments = 40
+		bowl.cap_bottom = false
+		bowl.cap_top = false
+		bowl.flip_faces = true
+		_part(root, bowl, seats, Vector3(0, 6.0, 0), Vector3(1.0, 1.0, 0.78))
+		_part(root, _disc(rad * 0.62), field, Vector3(0, 0.6, 0), Vector3(1.0, 1.0, 0.78))
+		var crown := TorusMesh.new()
+		crown.inner_radius = rad + 2.6
+		crown.outer_radius = rad + 3.4
+		crown.rings = 48
+		crown.ring_segments = 4
+		_part(root, crown, neon, Vector3(0, 12.2, 0), Vector3(1.0, 1.0, 0.78))
+		for k in 4:
+			var a := float(k) / 4.0 * TAU + PI * 0.25
+			var p := Vector3(cos(a) * (rad + 5.0), 0, sin(a) * (rad + 5.0) * 0.78)
+			_part(root, BoxMesh.new(), stand, p + Vector3(0, 11.0, 0), Vector3(0.8, 22.0, 0.8))
+			_part(root, BoxMesh.new(), lamp, p + Vector3(0, 22.5, 0), Vector3(3.0, 1.6, 0.6), Vector3(0, -a, 0))
+
+static func _disc(rad: float) -> CylinderMesh:
+	var d := CylinderMesh.new()
+	d.top_radius = rad
+	d.bottom_radius = rad
+	d.height = 0.3
+	d.radial_segments = 32
+	return d
+
 # ------------------------------------------------------------------------------------------------------------ landmarks
 
 ## one of the board's landmarks on its plot (root stands at the plot's foot, turned to its yaw; top = its height above that)
@@ -207,6 +343,36 @@ static func _fracture_spire(r: Node, root: Node3D, top: float) -> void:
 	light.omni_range = 90.0
 	light.position = Vector3(0, top * 0.6, 0)
 	root.add_child(light)
+	# the board's lightning: jagged violet bolts from the tip down into the crags, each flashing on and off at its own
+	# rate (region_3d's _process flickers nodes with a "flicker" meta)
+	var bolt := _mat(Color("#e2b3ff"), 8.0)
+	bolt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for k in 5:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var a := float(k) / 5.0 * TAU + rng.randf() * 0.6
+		var from := Vector3(0, top, 0)
+		var to := Vector3(cos(a) * (30.0 + rng.randf() * 40.0), rng.randf() * 10.0, sin(a) * (30.0 + rng.randf() * 40.0))
+		var prev := from
+		for i in range(1, 9):
+			var t := float(i) / 8.0
+			var q := from.lerp(to, t) + (Vector3(rng.randf_range(-1, 1), rng.randf_range(-0.4, 0.4), rng.randf_range(-1, 1)) * 7.0 if i < 8 else Vector3.ZERO)
+			var side := (q - prev).cross(Vector3.UP).normalized() * 0.5
+			if side.length() < 0.1:
+				side = Vector3(0.5, 0, 0)
+			var quad := [prev - side, prev + side, q + side, q - side]
+			for tri in [[0, 1, 2], [0, 2, 3], [0, 2, 1], [0, 3, 2]]:
+				for vi in tri:
+					st.add_vertex(quad[vi])
+			prev = q
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = bolt
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.set_meta("flicker", 0.6 + rng.randf() * 1.4)
+		mi.set_meta("spin", 0.0)
+		root.add_child(mi)
+		r._spin.append(mi)
 
 ## a white lighthouse banded in red on its rock, the lamp room glowing and its beam turning
 static func _lighthouse(r: Node, root: Node3D, top: float) -> void:
