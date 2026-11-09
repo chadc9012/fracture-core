@@ -197,7 +197,14 @@ go to the team spawns; the Billboard Blackout event douses the signs for 30 s. W
 150 / 120. The worn gear carries over (guns, hull bonus, outfit tint). The KILLBOX button opens the arena picker: Fracture
 Floor (nexus-grid look; Grid Rewrite sinks the standing data pillars and raises others, swapping the obstacle boxes) and
 Killbox Prime (prime-roof; Containment Lock rings the capture zone in glass) are built from the same data with their own
-palette, sign and zone rings. Skydock (the other session's fourth map) plays through the same view with a dusk palette. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
+palette, sign and zone rings. Skydock (the other session's fourth map) plays through the same view with a dusk palette. **Modes** (Nov 8, after the
+arena a mode picker lists what the map allows, rules in `killbox_match.gd` mirroring pvp.ts): Clash; Dominion — zones
+A / B / C capture by unopposed presence in 5 s, a contested zone holds, every held zone ticks a point each 2 s on top of
+kills, first to 150, rings recolour to the holder and bots walk to zones their team doesn't hold; Freefall — 12 players
+each for themselves, a board of kills (the rival who last hit you takes yours), first to 20; Lockdown — 4v4, attack and
+defend alternate, no respawns in a round, attackers win by a wipe or 10 s unopposed on the objective, defenders by a wipe,
+the clock or an unopposed plant, first to 4 rounds; Ascendancy — 3v3, a wipe takes the round, at the 90 s buzzer the
+middle zone opens and whoever holds it takes it, first to 5. Shots: `killbox[:<arena>][:dominion|:freefall|:lockdown|:ascendancy][:fight]`. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
 
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive

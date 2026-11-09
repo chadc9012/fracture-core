@@ -40,6 +40,8 @@ class Enemy:
 	var spawn: Vector3
 	var beat: Array[Vector3] = []
 	var beat_i := 0
+	## an objective to walk to when no foe is in sight (Killbox zones / tags); null = the beat
+	var goal: Variant = null
 	var cool := 0.0
 	var timer := 0.0
 	var strafe := 1.0
@@ -74,6 +76,9 @@ signal bot_down(e: Enemy, by_team: int, by_player: bool)
 var operator_team := 1
 ## which bot last hit each bot, for the kill credit
 var _last_hitter := {}
+## Killbox rounds: downed bots stay down until revive_all()
+var respawn_enabled := true
+const TEAM_COLORS := [Color(1.0, 0.25, 0.25), Color(0.25, 0.6, 1.0), Color(1.0, 0.7, 0.2), Color(0.3, 1.0, 0.5), Color(0.85, 0.35, 1.0), Color(0.2, 0.95, 0.95), Color(1.0, 0.45, 0.75), Color(0.95, 0.95, 0.4), Color(0.6, 0.4, 0.2), Color(0.5, 0.75, 1.0), Color(1.0, 0.55, 0.3), Color(0.7, 1.0, 0.7)]
 const OPERATOR_HIT := -2
 
 func setup(p: Node3D, g: Node3D) -> void:
@@ -122,7 +127,7 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 		_arm(e)
 		if team >= 0:
 			e.team = team
-			_tint(e, Color(0.2, 0.7, 1.0) if team == 1 else Color(1.0, 0.35, 0.3))
+			_tint(e, team_color(team))
 	else:
 		_drone_body(e)
 	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
@@ -210,7 +215,8 @@ func step(dt: float) -> void:
 func _step_enemy(e: Enemy, dt: float) -> void:
 	var m: Node3D = e.mover
 	if e.state == State.DOWN:
-		e.timer -= dt
+		if respawn_enabled:
+			e.timer -= dt
 		if e.timer <= 0.0:
 			e.state = State.PATROL
 			e.target.hp = e.target.max_hp
@@ -245,13 +251,14 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 	e.cool = maxf(0.0, e.cool - dt)
 	match e.state:
 		State.PATROL:
-			var goal: Vector3 = e.beat[e.beat_i]
+			var goal: Vector3 = (e.goal as Vector3) if e.goal != null else e.beat[e.beat_i]
 			var d := goal - m.position
 			d.y = 0.0
 			if d.length() < 1.0:
-				e.beat_i = (e.beat_i + 1) % e.beat.size()
+				if e.goal == null:
+					e.beat_i = (e.beat_i + 1) % e.beat.size()
 			else:
-				move = _toward(d) * 0.4
+				move = _toward(d) * (0.8 if e.goal != null else 0.4)
 			if sees:
 				e.state = State.ALERT
 				e.timer = ALERT_BEAT
@@ -267,7 +274,13 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 			_face(e, to_player)
 			var want: float = float(e.def.range)
 			var fwd := _toward(to_player)
-			if dist > want + 1.5:
+			if not sees and e.goal != null:
+				# nothing to shoot at: get to the objective
+				var dg: Vector3 = (e.goal as Vector3) - m.position
+				dg.y = 0.0
+				if dg.length() > 1.5:
+					move = _toward(dg) * 0.8
+			elif dist > want + 1.5:
 				move = fwd * float(e.def.speed)
 				sprint = e.def.melee
 			elif dist < want - 1.5 and not e.def.melee:
@@ -325,6 +338,28 @@ func _clear(from: Vector3, to: Vector3) -> bool:
 	return true
 
 ## the nearest live bot of the other team, or null for the operator (when hostile to this bot and nearer)
+## bring every downed bot back at its spawn (a new Killbox round)
+func revive_all() -> void:
+	for e in enemies:
+		if e.state == State.DOWN or not e.target.alive():
+			e.state = State.ENGAGE
+			e.target.hp = e.target.max_hp
+			e.target.down = 0.0
+			e.timer = 0.0
+			e.mover.position = e.spawn
+			e.mover.visible = true
+
+func alive_on(team: int) -> int:
+	var n := 0
+	for e in enemies:
+		if e.team == team and e.target.alive():
+			n += 1
+	return n
+
+## a team's band colour: 0 red, 1 blue, then the FFA palette
+static func team_color(team: int) -> Color:
+	return TEAM_COLORS[team % TEAM_COLORS.size()] if team >= 0 else Color(0.6, 0.6, 0.6)
+
 func _foe(e: Enemy) -> Variant:
 	var best: Variant = null
 	var best_d := INF
@@ -383,6 +418,10 @@ func _shoot(e: Enemy) -> void:
 func _damage_foe(e: Enemy, damage: float) -> void:
 	var foe: Variant = e.get_meta("foe") if e.has_meta("foe") else null
 	if foe == null:
+		for o in enemies:
+			if o.has_meta("hit_operator"):
+				o.remove_meta("hit_operator")
+		e.set_meta("hit_operator", true)
 		_hit_operator(damage)
 		return
 	var o := foe as Enemy

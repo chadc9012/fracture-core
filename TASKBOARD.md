@@ -24,13 +24,12 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Asset catalog gap 2: PvP modes in Godot's Killbox — Dominion, Control (lockdown), Kill Confirmed (ascendancy), Free For All (freefall) with a mode picker; Extraction + Ranked in pvp.ts stay with the web Killbox session | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-08 |
 | Owner ask (Nov 8, 19:31): cleanup pass — play through every mission, fix performance / FPS, audio and dialogue issues, and unintended overlaps (trees, rocks, props, clothing); lands the playtest + phone-performance PRs #2/#3 against main as its base | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-08 |
 | Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront and Solara Outpost arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
-  2. PvP modes missing from pvp.ts: Extraction, Ranked (board); Dominion / Control / Kill Confirmed / FFA played by bots in Godot (Clash only today).
+  2. PvP modes missing from pvp.ts: Extraction, Ranked (owner's board) — web-side rules + bots (killbox web session), then re-export to Godot.
   3. Vehicles with no authored hull: tank, VTOL, jet, helicopter, cargo airship, boat / yacht, submarine, hovercraft.
   4. Wildlife set (deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile) + behaviours (herds, hunting, nocturnal).
   5. Fracture creatures (Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus) with their fights.
@@ -46,6 +45,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Commit |
 | --- | --- |
 | Owner ask (Nov 8 19:26): Nexus street closer to the night renders — wet-night pass (screen-space mirror overlay for the mobile renderer, dark wet paving with puddles, rain) and the first Meshy street set (bench-neon, kiosk, vending, motorbike, plaza-arch) placed per tile. **For the lead:** the glass towers (models/buildings/neon-v-*, nexus-civic-*) read as crumpled shards up close since the Android fit — worth a gentler collapse on those | see git log "wet night" (Nov 8) |
+| Asset gap 2 (Godot half): Killbox modes — Dominion, Freefall, Lockdown, Ascendancy with a mode picker, zone / objective presence, bot objectives, round resets, per-mode HUD | see git log "Godot Killbox: every mode" (Nov 8) |
 | Asset gap 1: Godot takes the web's authored sets — all fleet GLBs, pistol / shotgun / SMG / heavy / launcher / sword with their frames, foliage, the 18 web buildings; civilians on the sidewalks | see git log "Godot: the authored sets" (Nov 8) |
 | Phase 5: district streaming — the street slice as seven block tiles, Active / Simulated / Frozen round the operator or car, index-stable obstacle slots, traffic over the simulated span | see git log "Godot: district streaming" (Nov 8) |
 | Owner ask (Nov 8): Game Modes — PvP, Raids and Races as separate modes from a ⚔ GAME MODES hub styled on the owner's boards; PvP tiles open the Killbox arenas; Raid 01 The Hollow Star (Broken Gate + Astravore, four phases, bot fireteam, checkpoint, first-clear Lens + Starbreaker); the Neon Night Circuit street race with bot racers; bots now, online later (owner's call) | see git log "Game Modes" (Nov 8) |

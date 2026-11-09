@@ -517,10 +517,14 @@ func _shoot(path: String, opts: Array) -> void:
 				descent.controls.move = Vector2(0.0, 1.0)
 				descent.controls.sprint = true
 				descent.controls.fire = true
-		# killbox[:fracture|:prime|:skydock][:fight]  Kaiju Complex (or Fracture Floor / Killbox Prime), Clash; :fight sprints and fires
+		# killbox[:fracture|:prime|:skydock][:dominion|:freefall|:lockdown|:ascendancy][:fight]  an arena (Kaiju Complex by
+		# default) in a mode (Clash by default); :fight sprints and fires
 		if String(o).begins_with("killbox"):
 			killbox = ArenaView.new()
 			killbox.arena_id = "kaiju-complex"
+			for mid in ["dominion", "freefall", "lockdown", "ascendancy"]:
+				if String(o).contains(mid):
+					killbox.mode_id = mid
 			for id in ["fracture-floor", "killbox-prime", "skydock"]:
 				if String(o).contains(String(id).split("-")[0] if id != "killbox-prime" else "prime"):
 					killbox.arena_id = id
@@ -611,7 +615,7 @@ func _shoot(path: String, opts: Array) -> void:
 		print("descent: ", descent.progress, " objective '", descent._objective.text.replace("\n", " / "), "' at ", descent.operator.position.round(), " enemies ", descent.enemies.enemies.size(), " hull ", descent.enemies.hull)
 	if killbox and killbox.match_state:
 		var kb := killbox
-		print("killbox: us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)
+		print("killbox: ", kb.mode_id, " us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " zones ", kb.match_state.zones.map(func(z): return [z.id, z.owner]), " rounds ", kb.match_state.us_rounds, "-", kb.match_state.them_rounds, " board ", kb.match_state.board, " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)
 	if street and street.district:
 		print("district: focus ", street.district.focus_k, " counts ", street.district.counts(), " tiles built ", street.tiles.keys(), " operator z ", street.operator.position.z, " boxes ", street.operator.obstacles.size())
 	if modes and modes.view and "raid" in modes.view:
