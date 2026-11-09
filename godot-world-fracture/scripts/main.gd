@@ -610,14 +610,14 @@ func _shoot(path: String, opts: Array) -> void:
 				if String(o).contains("still"):
 					street.controls.move = Vector2.ZERO
 			# slicewalk:tank walks the operator to the Goliath tank by the garage and climbs in (then drives)
-		if String(o).contains("walk:tank"):
-			for c in street.parked:
-				if String(c.get_meta("vehicle", "")) == "goliath-tank":
-					street.operator.position = c.position + Vector3(3.0, 0.18, 0.0)
-					street.enter_car(c)
-			street.controls.scripted = true
-			street.controls.move = Vector2(0.6, 0.8)
-		# slicewalk:district starts at the far end of the hub block walking +z across the tile boundary
+			if String(o).contains("walk:tank"):
+				for c in street.parked:
+					if String(c.get_meta("vehicle", "")) == "goliath-tank":
+						street.operator.position = c.position + Vector3(3.0, 0.18, 0.0)
+						street.enter_car(c)
+				street.controls.scripted = true
+				street.controls.move = Vector2(0.6, 0.8)
+			# slicewalk:district starts at the far end of the hub block walking +z across the tile boundary
 			if String(o).contains("walk:district"):
 				street.controls.scripted = true
 				street.operator.position = Vector3(8.0 + 3.4, 0.18, 125.0)
@@ -633,12 +633,17 @@ func _shoot(path: String, opts: Array) -> void:
 			# slicewalk:drive[:N] takes the nearest parked car and drives forward with the stick for N frames
 			if String(o).contains("walk:drive"):
 				street.controls.scripted = true
-				var nearest: Node3D = null
-				for c in street.parked:
-					if nearest == null or c.position.distance_to(street.operator.position) < nearest.position.distance_to(street.operator.position):
-						nearest = c
-				street.enter_car(nearest)
-				street.controls.move = Vector2(-0.12, 1.0)   # pull out toward the road
+				# a frame later: the street's first frame settles the operator and the parked cars before anyone climbs in
+				var st := street
+				get_tree().process_frame.connect(func():
+					var nearest: Node3D = null
+					for c in st.parked:
+						if nearest == null or c.position.distance_to(st.operator.position) < nearest.position.distance_to(st.operator.position):
+							nearest = c
+					if nearest:
+						st.enter_car(nearest)
+						st.controls.move = Vector2(-0.12, 1.0)   # pull out toward the road
+					, CONNECT_ONE_SHOT)
 			if String(o).contains("walk:shop"):
 				street.open_mall()
 				street.mall_overlay.open_shop("haven" if String(o).contains("haven") else "nova")

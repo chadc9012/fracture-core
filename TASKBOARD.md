@@ -32,7 +32,6 @@ Rows are the lock; `git fetch` before you claim.
 
 ## Open (unclaimed, take in order within a phase)
 - Owner: add the release keystore secrets (ANDROID_KEYSTORE_BASE64 / _USER / _PASS) and run the Godot APK workflow's release job; read the frame-time readout on the S22 Ultra in a Nexus firefight (gate: 30 fps); check the cloud save both ways; send the playtest bug list for step 12.
-- Small: the `--shot … slicewalk:drive` capture hook no longer enters the car (driving itself works — street race play test and a headless probe both drive); fix the hook so the drive HUD / radio line can be shot.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. Done in the web build (Nov 9): Extraction and Ranked are in pvp.ts with bots and re-exported; left for Godot: Extraction's core rules in killbox_match.gd (port pvp.ts `stepExtract`; it is hidden from the Godot picker until then — Ranked already plays there as Dominion).
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
