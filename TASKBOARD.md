@@ -26,6 +26,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Owner ask (Nov 9, 06:25): finish Nexus — the one repeating street becomes a walkable street grid with each named district (Spire District + the 420 m Central Tower, Vanguard Command Citadel, Central Transit Plaza, Apex Gear, Rusty Trigger, Cylinder & Co, Scrapyard Bazaar & Southern Docks, The Warrens, Marina, Aqua-Tech Shipyard, Perimeter Wall) as its own area | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-09 |
 | Asset gap 7 (Godot region 3D): vegetation and rock gaps — oak, cherry blossom, baobab, bamboo, alien flora, vines; rock arches, cave mouths, ice spires — and natural effects (flowing lava, snowfall, storm lightning, rift tears) | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
