@@ -1,0 +1,1273 @@
+extends Control
+## An international airport you walk through (owner, Nov 9, with three reference renders: Nexus City International (NXC) by
+## day and Neon City International (NEC) at night). The rules are airport.gd; this is the place:
+##   LANDSIDE  the forecourt (drop-off road, palms, the globe fountain, the airport's name over the doors), the check-in
+##             hall with the TICKETS counter (buy / refund flights), the departures board, and the shops — Sky Duty Free
+##             (outfits), Aero Gear (weapons and armour), Cloud Nine Café.
+##   SECURITY  three scanner lanes across the hall. Through with a boarding pass from here or a hangar lease; otherwise
+##             the lane gates stay shut.
+##   AIRSIDE   the gate lounge (six gates, jet bridges out to the parked airliners; BOARD at your ticket's gate flies you
+##             there), the apron door, the apron and runway, the control tower, and three private hangars on the apron.
+## Weapons: holstered and unusable anywhere landside, in the terminal, the shops and the lounge; out on the airstrip
+## (apron, taxiway, runway) and inside a hangar you lease — and only once the story has armed the operator (Mission 01's
+## Surge, as on the street). A leased hangar keeps the aircraft you buy and has a target range at the back; FLY takes one
+## out over the city (skyways_view.gd).
+## Signals: `closed` (back to the street), `flew(code)` after a flight takes off (main.gd opens the destination).
+
+signal closed
+signal flew(code: String)
+
+const Air := preload("res://scripts/airport/airport.gd")
+const Phone := preload("res://scripts/phone.gd")
+const Materials := preload("res://scripts/city/materials.gd")
+const StaticBatch := preload("res://scripts/static_batch.gd")
+const Player := preload("res://scripts/player/operator_player.gd")
+const TouchControls := preload("res://scripts/player/touch_controls.gd")
+const Gunplay := preload("res://scripts/combat/gunplay.gd")
+const Gear := preload("res://scripts/gear/gear_store.gd")
+const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
+const ShopView := preload("res://scripts/gear/shop_view.gd")
+const Crowd := preload("res://scripts/city/crowd.gd")
+const Fx := preload("res://scripts/vfx/fx.gd")
+const StreetSlice := preload("res://scripts/city/street_slice.gd")
+const Sound := preload("res://scripts/audio/sound.gd")
+const StreetCar := preload("res://scripts/driving/street_car.gd")
+
+## which airport ("NXC" / "NEC") and whether you just flew in (you start in the arrivals hall, not on the forecourt)
+var code := "NXC"
+var arriving := false
+## where the city sits (main.gd returns to that city's street when you leave)
+var return_style := "nexus"
+
+# the plan, in metres: x across, z along (the forecourt is +z, the airstrip -z)
+const HALL := Rect2(-48, -30, 96, 56)          # the terminal's walls: x -48..48, z -30..26
+const WALL_H := 14.0
+const SECURITY_Z := -4.0
+const LANES := [-8.0, 0.0, 8.0]
+const APRON_DOOR := Vector2(-22.0, -15.0)     # the east wall's door to the apron spans these z
+const SHOPS := [ # id, label, z centre, colour
+	["nova", "SKY DUTY FREE", 18.0, Color(1.0, 0.55, 0.85)],
+	["apex", "AERO GEAR", 8.0, Color(0.35, 1.0, 0.6)],
+	["cafe", "CLOUD NINE CAFÉ", -0.5, Color(1.0, 0.8, 0.45)],
+]
+const HANGAR_X := [86.0, 122.0, 158.0]         # bay centres; each 30 m wide (x), 30 m deep (z -14..16), door at z -14
+const RUNWAY_Z := -140.0
+const CAFE := [["Flat white", 8], ["Cold brew", 9], ["Chicken wrap", 14], ["Fruit cup", 7]]
+
+var night := false
+var accent := Color(0.4, 0.8, 1.0)
+var accent2 := Color(1.0, 0.85, 0.4)
+var profile: Dictionary
+var gear: Dictionary
+var world: Node3D
+var static_root: Node3D
+var cam: Camera3D
+var operator: Node3D
+var controls: Control
+var gunplay: Node3D
+var obstacles: Array[AABB] = []
+var spots: Array = []            # [{id, label, pos: Vector3, r}]
+var zone := ""
+var armed_story := false
+var _vp: SubViewport
+var _lane_gates: Array = []      # obstacle indexes of the three lane gates
+var _lane_bars: Array[Node3D] = []
+var _shutters := {}              # bay -> { node, idx }
+var _hangar_craft := {}          # bay -> Node3D shown inside
+var _board_labels: Array[Label3D] = []
+var _board_t := 0.0
+var _near := ""
+var _panel: Control
+var _overlay: Control            # a shop or Skyways over the airport
+var _flight: Dictionary = {}     # the take-off: { plane, t, to }
+var _taxi: Node3D                # an airliner forever taking off down the runway, for life
+var _taxi_t := 0.0
+var _crowds: Array = []
+var _hud: Label
+var _look: Array = []            # [from, to] for a fixed look-dev camera (main.gd --shot airport:...)
+
+func _ready() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var a: Dictionary = Air.AIRPORTS.get(code, Air.AIRPORTS.NXC)
+	night = bool(a.night)
+	return_style = String(a.style)
+	accent = Color(0.78, 0.35, 1.0) if night else Color(0.25, 0.6, 1.0)
+	accent2 = Color(0.25, 0.85, 1.0) if night else Color(1.0, 0.82, 0.35)
+	profile = Gear.profile_load()
+	Air.air(profile)
+	gear = Gear.load_save()
+	armed_story = StreetSlice.force_armed or StreetSlice.story_armed()
+	var svc := SubViewportContainer.new()
+	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	svc.stretch = true
+	add_child(svc)
+	_vp = SubViewport.new()
+	_vp.own_world_3d = true
+	Phone.fit_viewport(_vp)
+	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	svc.add_child(_vp)
+	world = Node3D.new()
+	_vp.add_child(world)
+	static_root = Node3D.new()
+	static_root.name = "Static"
+	world.add_child(static_root)
+	_environment()
+	_ground()
+	_terminal()
+	_forecourt()
+	_checkin()
+	_shops()
+	_security()
+	_gates()
+	_airstrip()
+	_hangars()
+	_skyline()
+	_people()
+	StaticBatch.batch(static_root)
+	cam = Camera3D.new()
+	cam.fov = 64.0
+	cam.near = 0.05
+	cam.far = 3000.0
+	world.add_child(cam)
+	cam.current = true
+	controls = TouchControls.new()
+	add_child(controls)
+	operator = Player.new()
+	world.add_child(operator)
+	operator.bounds = Rect2(-200, -175, 420, 260)
+	operator.obstacles = obstacles
+	operator.position = Vector3(0, 0, 16.0) if arriving else Vector3(0, 0, 40.0)
+	operator.heading = 0.0 if arriving else PI     # off the street: facing the terminal; off a plane: facing the way out
+	operator.build()
+	operator.attach_camera(cam)
+	gunplay = Gunplay.new()
+	world.add_child(gunplay)
+	gunplay.setup(operator, obstacles)
+	gunplay.set_loadout(Gear.loadout(gear))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	for bay in Air.BAYS:   # the target range at the back of each hangar (only usable where weapons are allowed)
+		var cx: float = HANGAR_X[Air.BAYS.find(bay)]
+		for k in 3:
+			gunplay.add_dummy(Vector3(cx - 8.0 + k * 8.0, 0, 13.0), 40.0)
+	_apply_lanes()
+	_apply_shutters()
+	_head()
+	_set_zone(_zone_at(operator.position), true)
+	controls.toast(("Welcome to %s." % String(a.city)) if arriving else String(a.name))
+	Sound.loops_stop()
+	Sound.loop("bed", "nexus-hum" if not night else "neon-hum", -18.0, 1.0)
+
+# --------------------------------------------------------------------------------------------- the frame
+func _process(dt: float) -> void:
+	dt = minf(dt, 0.05)
+	_step_taxi(dt)
+	if not _flight.is_empty():
+		_step_flight(dt)
+		return
+	if _overlay or _panel:
+		return
+	_board_t -= dt
+	if _board_t <= 0.0:
+		_board_t = 5.0
+		_refresh_board()
+	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	if not _look.is_empty():
+		cam.position = _look[0]
+		cam.look_at(_look[1])
+	_security_check()
+	var z := _zone_at(operator.position)
+	if z != zone:
+		_set_zone(z, false)
+	for c in _crowds:
+		c.set_player(operator.position)
+	# the nearest thing to use
+	var near := ""
+	var label := ""
+	for s in spots:
+		var p: Vector3 = s.pos
+		if Vector2(operator.position.x - p.x, operator.position.z - p.z).length() < float(s.get("r", 3.2)):
+			near = String(s.id)
+			label = String(s.label)
+			break
+	if near != _near:
+		_near = near
+		controls.prompt(label)
+	if controls.take_enter() and near != "":
+		_use(near)
+		return
+	if controls.take_next():
+		gunplay.next_weapon()
+	var armed := _armed_here()
+	gunplay.step(dt, cam, controls.fire and armed, controls.take_reload() and armed, Vector2(operator.velocity.x, operator.velocity.z).length())
+	var g = gunplay.gun()
+	controls.weapon_name.text = g.display_name() if armed else "WEAPONS STOWED"
+	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text()) if armed else ""
+	_hud.text = "%s · %s   %d Nex%s" % [code, _zone_name(zone), int(profile.get("nex", 0)), _pass_line()]
+
+## a fixed camera for look-dev shots
+func look_from(from: Vector3, to: Vector3) -> void:
+	_look = [from, to]
+
+func _armed_here() -> bool:
+	return armed_story and Air.weapons_allowed(profile, code, zone)
+
+func _pass_line() -> String:
+	var t := Air.tickets_from(profile, code)
+	if t.is_empty():
+		return ""
+	var x: Dictionary = t[0]
+	return "   ✈ %s gate %s" % [String(Air.DESTINATIONS[x.to].name), Air.gate(code, String(x.to))]
+
+## which part of the airport a point is in (airport.gd zone names)
+func _zone_at(p: Vector3) -> String:
+	for i in HANGAR_X.size():
+		if absf(p.x - float(HANGAR_X[i])) < 15.0 and p.z > -14.0 and p.z < 16.0:
+			return "hangar:" + String(Air.BAYS[i])
+	if HALL.has_point(Vector2(p.x, p.z)):
+		if p.z <= SECURITY_Z:
+			return "lounge"
+		return "shops" if p.x > 30.0 else "terminal"
+	if p.z > 26.0:
+		return "landside"
+	return "runway" if p.z < RUNWAY_Z + 30.0 else "apron"
+
+func _zone_name(z: String) -> String:
+	if z.begins_with("hangar:"):
+		return "HANGAR " + z.substr(7) + (" (YOURS)" if Air.hangar_bay(profile, code) == z.substr(7) else "")
+	return { "landside": "FORECOURT", "terminal": "CHECK-IN HALL", "shops": "SHOPS", "lounge": "GATE LOUNGE", "apron": "APRON · AIRSIDE", "runway": "RUNWAY" }.get(z, z.to_upper())
+
+func _set_zone(z: String, first: bool) -> void:
+	var was := _armed_here()
+	zone = z
+	var now := _armed_here()
+	gunplay.set_holstered(not now)
+	controls.set_armed(now)
+	if first:
+		return
+	if was and not now:
+		controls.toast("Weapons stowed · no weapons inside the airport")
+	elif now and not was:
+		controls.toast("Airside · weapons allowed on the airstrip" if not z.begins_with("hangar:") else "Your hangar · weapons allowed")
+	elif not armed_story and (z == "apron" or z.begins_with("hangar:")) and Air.weapons_allowed(profile, code, z):
+		controls.toast("Weapons are allowed here — once you're carrying one")
+
+## the lanes are open to a pass-holder; anyone else is held at the line (also catches a walk-through before the gates draw)
+func _security_check() -> void:
+	var p: Vector3 = operator.position
+	if p.z < SECURITY_Z - 0.4 and p.z > SECURITY_Z - 3.0 and HALL.has_point(Vector2(p.x, p.z)) and not Air.can_go_airside(profile, code):
+		operator.position.z = SECURITY_Z + 0.6
+		operator.velocity = Vector3.ZERO
+		controls.toast("Security: boarding pass or hangar lease needed past this point")
+
+func _apply_lanes() -> void:
+	var open := Air.can_go_airside(profile, code)
+	for i in _lane_gates.size():
+		var x: float = LANES[i]
+		obstacles[_lane_gates[i]] = AABB(Vector3(x - 1.2, 0, SECURITY_Z - 0.3), Vector3(2.4, 1.2, 0.6)) if not open else AABB(Vector3(0, -900, 0), Vector3(0.1, 0.1, 0.1))
+		_lane_bars[i].rotation.y = PI * 0.5 if open else 0.0
+
+func _apply_shutters() -> void:
+	var mine := Air.hangar_bay(profile, code)
+	for bay in _shutters:
+		var s: Dictionary = _shutters[bay]
+		var open: bool = bay == mine
+		(s.node as Node3D).position.y = 10.5 if open else 4.5
+		var cx: float = HANGAR_X[Air.BAYS.find(bay)]
+		obstacles[int(s.idx)] = AABB(Vector3(0, -900, 0), Vector3(0.1, 0.1, 0.1)) if open else AABB(Vector3(cx - 14.0, 0, -14.6), Vector3(28.0, 9.0, 0.6))
+	for bay in _hangar_craft:
+		(_hangar_craft[bay] as Node3D).queue_free()
+	_hangar_craft.clear()
+	if mine != "":
+		var list := Air.aircraft_at(profile, code)
+		var cx: float = HANGAR_X[Air.BAYS.find(mine)]
+		for i in list.size():
+			var m := _craft_model(String(list[i]), 13.0 if String(list[i]) != "leviathan" else 22.0)
+			m.position = Vector3(cx + (i - (list.size() - 1) * 0.5) * 9.0, 0, 1.0)
+			m.rotation.y = PI
+			world.add_child(m)
+			_hangar_craft[mine + str(i)] = m
+	# a lease can change what's allowed where you stand
+	if operator:
+		_set_zone(_zone_at(operator.position), false)
+
+func _save() -> void:
+	Gear.profile_save(profile)
+
+# --------------------------------------------------------------------------------------------- using things
+func _use(id: String) -> void:
+	controls.prompt("")
+	_near = ""
+	Sound.sfx("door", -6.0)
+	if id == "tickets":
+		_tickets_panel()
+	elif id == "nova" or id == "apex":
+		_open_shop(id)
+	elif id == "cafe":
+		_cafe_panel()
+	elif id.begins_with("gate:"):
+		_gate_panel(id.substr(5))
+	elif id.begins_with("hangar:"):
+		_hangar_panel(id.substr(7))
+	elif id.begins_with("craft:"):
+		_aircraft_panel()
+	elif id == "exit":
+		closed.emit()
+
+func _panel_open(title: String, col: Color) -> VBoxContainer:
+	_panel = Control.new()
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_panel)
+	controls.visible = false
+	var bg := ColorRect.new()
+	bg.color = Color(0.02, 0.03, 0.06, 0.94)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_panel.add_child(bg)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.offset_left = 20
+	scroll.offset_top = 20
+	scroll.offset_right = -20
+	scroll.offset_bottom = -20
+	_panel.add_child(scroll)
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 8)
+	scroll.add_child(box)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 14)
+	box.add_child(head)
+	var back := Button.new()
+	back.text = "← BACK"
+	back.custom_minimum_size = Vector2(100, 44)
+	back.pressed.connect(_panel_close)
+	head.add_child(back)
+	var t := Label.new()
+	t.text = title
+	t.add_theme_font_size_override("font_size", 22)
+	t.modulate = col
+	head.add_child(t)
+	var nex := Label.new()
+	nex.name = "Nex"
+	nex.text = "%d Nex" % int(profile.get("nex", 0))
+	nex.add_theme_font_size_override("font_size", 18)
+	head.add_child(nex)
+	return box
+
+func _panel_close() -> void:
+	if _panel:
+		_panel.queue_free()
+		_panel = null
+	controls.visible = true
+
+func _line(box: VBoxContainer, text: String, size := 15, col := Color(0.75, 0.8, 0.88)) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", size)
+	l.modulate = col
+	box.add_child(l)
+	return l
+
+func _row_button(box: VBoxContainer, text: String, col: Color, f: Callable, enabled := true) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, 46)
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.add_theme_color_override("font_color", col)
+	b.disabled = not enabled
+	b.pressed.connect(f)
+	box.add_child(b)
+	return b
+
+## re-open a panel after a purchase (its numbers changed)
+func _redo(f: Callable, msg: String) -> void:
+	_save()
+	_panel_close()
+	f.call()
+	controls.toast(msg)
+	if _panel:
+		_line(_panel.get_child(1).get_child(0), msg, 16, Color(0.55, 1.0, 0.8)).move_to_front()
+
+func _tickets_panel() -> void:
+	var box := _panel_open("TICKETS · %s" % code, accent2)
+	_line(box, "Economy, one way. Your boarding pass gets you through security; board at the gate shown. Refunds pay back 90%.")
+	var minute := _minute()
+	var by_dest := {}
+	for f in Air.departures(code, minute):
+		by_dest[f.to] = f
+	for to in Air.routes(code):
+		var f: Dictionary = by_dest[to]
+		_row_button(box, "%s  %s  ·  %s  ·  gate %s  ·  %d Nex" % [to, String(Air.DESTINATIONS[to].name).to_upper(), String(f.time), String(f.gate), Air.fare(to)],
+			Color(0.85, 0.92, 1.0), func(): _redo(_tickets_panel, Air.buy_ticket(profile, code, to)); _apply_lanes())
+	var mine := Air.tickets_from(profile, code)
+	if not mine.is_empty():
+		_line(box, "YOUR BOARDING PASSES", 17, accent2)
+		for t in mine:
+			var tid := String(t.id)
+			_row_button(box, "✈ %s → %s · gate %s   REFUND" % [code, String(Air.DESTINATIONS[t.to].name), Air.gate(code, String(t.to))],
+				Color(1.0, 0.7, 0.6), func(): _redo(_tickets_panel, Air.refund(profile, tid)); _apply_lanes())
+	var later := Air.DESTINATIONS.keys().filter(func(c): return String(Air.DESTINATIONS[c].region) == "")
+	_line(box, "Not open yet: " + ", ".join(later.map(func(c): return String(Air.DESTINATIONS[c].name))), 13, Color(0.55, 0.6, 0.68))
+
+func _gate_panel(g: String) -> void:
+	var box := _panel_open("GATE %s" % g, accent)
+	var any := false
+	for t in Air.tickets_from(profile, code):
+		var to := String(t.to)
+		any = true
+		if Air.gate(code, to) == g:
+			_row_button(box, "BOARD · %s → %s" % [code, String(Air.DESTINATIONS[to].name).to_upper()], Color(0.5, 1.0, 0.7), func(): _board(to))
+		else:
+			_line(box, "Your flight to %s boards at gate %s." % [String(Air.DESTINATIONS[to].name), Air.gate(code, to)])
+	if not any:
+		_line(box, "No boarding pass. Buy one at the TICKETS counter in the check-in hall.")
+	var here := Air.departures(code, _minute()).filter(func(f): return f.gate == g and f.open)
+	if not here.is_empty():
+		_line(box, "From this gate: " + ", ".join(here.map(func(f): return "%s %s" % [f.time, f.name])), 13, Color(0.6, 0.66, 0.75))
+
+func _cafe_panel() -> void:
+	var box := _panel_open("CLOUD NINE CAFÉ", Color(1.0, 0.8, 0.45))
+	for it in CAFE:
+		var name := String(it[0])
+		var price := int(it[1])
+		_row_button(box, "%s · %d Nex" % [name, price], Color(1.0, 0.9, 0.75), func():
+			if int(profile.nex) < price:
+				_redo(_cafe_panel, "Needs %d Nex" % price)
+			else:
+				profile.nex = int(profile.nex) - price
+				_redo(_cafe_panel, "%s, to go. Enjoy." % name))
+
+func _hangar_panel(bay: String) -> void:
+	var mine := Air.hangar_bay(profile, code)
+	var box := _panel_open("PRIVATE HANGAR %s · %s" % [bay, code], accent2)
+	if mine == bay:
+		_line(box, "Your hangar. The door is open; your aircraft are inside. Weapons are allowed in here (target range at the back) and out on the airstrip.")
+	elif mine != "":
+		_line(box, "You lease hangar %s here. One hangar per airport." % mine)
+	else:
+		_line(box, "Lease this hangar: your own airside access (no ticket needed at security), a place to keep the aircraft you buy, and weapons allowed inside.")
+		_row_button(box, "LEASE HANGAR %s · %d Nex" % [bay, Air.HANGAR_PRICE], Color(0.5, 1.0, 0.7), func():
+			_redo(func(): _hangar_panel(bay), Air.buy_hangar(profile, code, bay))
+			_apply_lanes()
+			_apply_shutters())
+
+func _aircraft_panel() -> void:
+	var box := _panel_open("YOUR HANGAR · AIRCRAFT", accent2)
+	var have := Air.aircraft_at(profile, code)
+	for craft in Air.AIRCRAFT:
+		var d: Dictionary = Air.AIRCRAFT[craft]
+		if craft in have:
+			_row_button(box, "FLY · %s" % String(d.name).to_upper(), Color(0.5, 1.0, 0.7), func(): _fly_craft(craft))
+		else:
+			_row_button(box, "BUY · %s · %d Nex" % [String(d.name), int(d.price)], Color(0.85, 0.92, 1.0), func():
+				_redo(_aircraft_panel, Air.buy_aircraft(profile, code, craft))
+				_apply_shutters())
+	_line(box, "Flying takes your aircraft out over %s; landing brings you back here." % String(Air.AIRPORTS[code].city), 13)
+
+func _open_shop(id: String) -> void:
+	var v := ShopView.new()
+	v.shop = id
+	v.back_label = "← TERMINAL"
+	v.gear = gear
+	v.profile = profile
+	v.op_power = Gear.operator_power(gear, int(profile.get("level", 1)))
+	v.changed.connect(func():
+		Gear.save(gear)
+		_save()
+		gunplay.set_loadout(Gear.loadout(gear))
+		gunplay.set_holstered(not _armed_here())
+		OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", "")))))
+	_overlay_open(v)
+
+func _fly_craft(craft: String) -> void:
+	_panel_close()
+	var SkywaysView := load("res://scripts/flying/skyways_view.gd")
+	var v: Control = SkywaysView.new()
+	v.craft_id = craft
+	v.region_id = String(Air.AIRPORTS[code].region)
+	_overlay_open(v)
+
+func _overlay_open(v: Control) -> void:
+	_overlay = v
+	controls.visible = false
+	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	v.closed.connect(func():
+		_overlay.queue_free()
+		_overlay = null
+		controls.visible = true
+		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		Sound.loops_stop()
+		Sound.loop("bed", "nexus-hum" if not night else "neon-hum", -18.0, 1.0))
+	add_child(v)
+
+# --------------------------------------------------------------------------------------------- the flight
+## the ticket is used, the HUD goes, and the camera watches your airliner roll down the runway and climb away; then
+## `flew(to)` (main.gd opens the destination)
+func _board(to: String) -> void:
+	if not Air.board(profile, code, to):
+		return
+	_save()
+	_panel_close()
+	controls.visible = false
+	_hud.visible = false
+	var plane := _airliner(accent, "NEXUSAIR" if code == "NXC" else "NEONAIR")
+	plane.position = Vector3(-260, 0, RUNWAY_Z)
+	plane.rotation.y = -PI * 0.5      # nose to +x
+	world.add_child(plane)
+	_flight = { "plane": plane, "t": 0.0, "to": to }
+	Sound.sfx("door", -4.0)
+	var l := Label.new()
+	l.name = "FlightLine"
+	l.text = "✈ %s → %s" % [code, String(Air.DESTINATIONS[to].name).to_upper()]
+	l.add_theme_font_size_override("font_size", 26)
+	l.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	l.position = Vector2(-160, 40)
+	add_child(l)
+
+func _step_flight(dt: float) -> void:
+	_flight.t = float(_flight.t) + dt
+	var t: float = _flight.t
+	var plane: Node3D = _flight.plane
+	# 0..7 s: roll and rotate at ~5 s, climb out; the camera stands beside the runway, then follows
+	var x := -260.0 + 4.0 * t * t * 1.6
+	var y := 0.0 if t < 5.0 else pow(t - 5.0, 2.0) * 3.2
+	plane.position = Vector3(x, y, RUNWAY_Z)
+	plane.rotation.z = 0.0 if t < 5.0 else -minf(0.18, (t - 5.0) * 0.12)
+	cam.position = Vector3(-40, 6, RUNWAY_Z + 55)
+	cam.look_at(plane.position + Vector3(0, 3, 0))
+	if t > 8.0:
+		var to := String(_flight.to)
+		_flight = {}
+		flew.emit(to)
+
+# --------------------------------------------------------------------------------------------- the board
+func _minute() -> int:
+	var d := Time.get_time_dict_from_system()
+	return int(d.hour) * 60 + int(d.minute)
+
+func _refresh_board() -> void:
+	var rows: Array[String] = ["DEPARTURES                     GATE  STATUS"]
+	for f in Air.departures(code, _minute()).slice(0, 9):
+		rows.append("%s  %-3s %-18s  %-4s  %s" % [f.time, f.to, String(f.name).to_upper().left(18), f.gate if f.open else "--", f.status])
+	var text := "\n".join(rows)
+	for l in _board_labels:
+		l.text = text
+
+# --------------------------------------------------------------------------------------------- HUD
+func _head() -> void:
+	var row := HBoxContainer.new()
+	row.position = Vector2(16, 16)
+	row.add_theme_constant_override("separation", 8)
+	add_child(row)
+	var back := Button.new()
+	back.text = "← STREET"
+	back.custom_minimum_size = Vector2(96, 44)
+	back.pressed.connect(func(): closed.emit())
+	row.add_child(back)
+	_hud = Label.new()
+	_hud.add_theme_font_size_override("font_size", 16)
+	_hud.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_hud.add_theme_constant_override("outline_size", 6)
+	_hud.modulate = accent2.lerp(Color.WHITE, 0.4)
+	row.add_child(_hud)
+	_refresh_board()
+
+# --------------------------------------------------------------------------------------------- building helpers
+func _mat(c: Color, rough := 0.6, metal := 0.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = rough
+	m.metallic = metal
+	return m
+
+func _glow(c: Color, energy := 2.5) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.emission_enabled = true
+	m.emission = c
+	m.emission_energy_multiplier = energy
+	return m
+
+func _glass(tint: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(tint.r, tint.g, tint.b, 0.28)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.metallic = 0.6
+	m.roughness = 0.05
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return m
+
+## a box; `solid` also makes it a wall for the operator (and the guns)
+func _box(size: Vector3, pos: Vector3, mat: Material, parent: Node3D = null, solid := false) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	mi.mesh = bm
+	mi.material_override = mat
+	mi.position = pos
+	(parent if parent else static_root).add_child(mi)
+	if solid:
+		obstacles.append(AABB(pos - size * 0.5, size))
+	return mi
+
+func _cyl(r: float, h: float, pos: Vector3, mat: Material, parent: Node3D = null, top := -1.0, seg := 16) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = r if top < 0.0 else top
+	cm.bottom_radius = r
+	cm.height = h
+	cm.radial_segments = seg
+	mi.mesh = cm
+	mi.material_override = mat
+	mi.position = pos
+	(parent if parent else static_root).add_child(mi)
+	return mi
+
+func _text(t: String, pos: Vector3, size: int, col: Color, yaw := 0.0, parent: Node3D = null, billboard := false) -> Label3D:
+	var l := Label3D.new()
+	l.text = t
+	l.font_size = size
+	l.pixel_size = 0.01
+	l.modulate = col
+	l.outline_size = 10
+	l.outline_modulate = Color(0, 0, 0, 0.7)
+	l.position = pos
+	l.rotation.y = yaw
+	l.shaded = false
+	if billboard:
+		l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	(parent if parent else world).add_child(l)
+	return l
+
+func _spot(id: String, label: String, pos: Vector3, r := 3.2) -> void:
+	spots.append({ "id": id, "label": label, "pos": pos, "r": r })
+
+func _model(path: String) -> Node3D:
+	if not ResourceLoader.exists(path):
+		return null
+	return (load(path) as PackedScene).instantiate() as Node3D
+
+# --------------------------------------------------------------------------------------------- light and ground
+func _environment() -> void:
+	var sky := ProceduralSkyMaterial.new()
+	if night:
+		sky.sky_top_color = Color(0.03, 0.02, 0.08)
+		sky.sky_horizon_color = Color(0.28, 0.1, 0.32)
+		sky.ground_horizon_color = Color(0.2, 0.08, 0.22)
+		sky.ground_bottom_color = Color(0.02, 0.01, 0.03)
+		sky.sun_angle_max = 0.0
+	else:
+		sky.sky_top_color = Color(0.22, 0.45, 0.82)
+		sky.sky_horizon_color = Color(0.72, 0.82, 0.92)
+		sky.ground_horizon_color = Color(0.6, 0.62, 0.6)
+		sky.ground_bottom_color = Color(0.2, 0.2, 0.2)
+		sky.sun_angle_max = 25.0
+	var s := Sky.new()
+	s.sky_material = sky
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	env.sky = s
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR if night else Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_color = Color(0.45, 0.3, 0.6)
+	env.ambient_light_energy = 0.75 if night else 0.85
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.0 if night else 1.05
+	env.glow_enabled = true
+	env.glow_intensity = 0.9 if night else 0.4
+	env.glow_bloom = 0.1 if night else 0.02
+	env.glow_hdr_threshold = 1.0
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.25, 0.12, 0.3) if night else Color(0.75, 0.82, 0.9)
+	env.fog_density = 0.0011 if night else 0.0006
+	var we := WorldEnvironment.new()
+	we.environment = env
+	world.add_child(we)
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-50, 145, 0) if not night else Vector3(-40, -130, 0)
+	sun.light_energy = 2.2 if not night else 0.35
+	sun.light_color = Color(1.0, 0.92, 0.8) if not night else Color(0.65, 0.6, 1.0)
+	sun.shadow_enabled = not night
+	sun.directional_shadow_max_distance = 120.0
+	Phone.fit_sun(sun)
+	world.add_child(sun)
+	if night:
+		var moon := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 30.0
+		sm.height = 60.0
+		moon.mesh = sm
+		moon.material_override = _glow(Color(0.95, 0.95, 1.0), 2.2)
+		moon.position = Vector3(500, 420, 1200)
+		world.add_child(moon)
+	# a few warm lights in the hall (the Mobile renderer takes 8 per mesh; these are few and far apart)
+	for p in [Vector3(-24, 9, 12), Vector3(18, 9, 12), Vector3(0, 9, -18)]:
+		var o := OmniLight3D.new()
+		o.position = p
+		o.omni_range = 30.0
+		o.light_energy = 1.4 if night else 0.9
+		o.light_color = accent.lerp(Color.WHITE, 0.6) if night else Color(1.0, 0.95, 0.85)
+		world.add_child(o)
+
+func _ground() -> void:
+	# the land round the airport out to the city: grass verges by day, dark ground at night
+	var land := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(5000, 5000)
+	land.mesh = pm
+	land.position = Vector3(0, -0.25, -300)
+	land.material_override = Materials.surface("rubber_tiles", Color(0.36, 0.5, 0.3) if not night else Color(0.08, 0.06, 0.12), 12.0, 1.0)
+	land.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(land)
+	# the airstrip's concrete, everything outside the building
+	_box(Vector3(900, 0.2, 520), Vector3(0, -0.1, -110), Materials.surface("brushed_concrete", Color(0.62, 0.64, 0.67) if not night else Color(0.3, 0.28, 0.36), 6.0))
+	# the terminal's floor
+	_box(Vector3(96, 0.12, 56), Vector3(0, 0.0, -2), Materials.pbr("marble_tiles", Color(0.92, 0.92, 0.94) if not night else Color(0.55, 0.5, 0.65), 3.0, 0.5))
+	# the forecourt plaza and the road
+	_box(Vector3(120, 0.12, 18), Vector3(0, 0.0, 35), Materials.pbr("floor_tiles_06", Color(0.8, 0.8, 0.82) if not night else Color(0.6, 0.52, 0.75), 2.5))
+	_box(Vector3(260, 0.1, 14), Vector3(0, 0.02, 51), Materials.pbr("asphalt_02", Color(0.5, 0.5, 0.52) if not night else Color(0.22, 0.2, 0.26), 6.0, 0.6))
+	for x in range(-120, 121, 12):
+		_box(Vector3(5, 0.04, 0.25), Vector3(x, 0.09, 51), _mat(Color(0.95, 0.95, 0.9)))
+	_box(Vector3(120, 0.4, 0.5), Vector3(0, 0.2, 44), _mat(Color(0.6, 0.6, 0.62)))   # kerb
+
+# --------------------------------------------------------------------------------------------- the terminal
+func _terminal() -> void:
+	var frame := _mat(Color(0.78, 0.8, 0.84) if not night else Color(0.2, 0.2, 0.26), 0.35, 0.8)
+	var glass := _glass(Color(0.55, 0.75, 0.95) if not night else Color(0.5, 0.3, 0.8))
+	var wall := Materials.pbr("painted_plaster_wall", Color(0.88, 0.89, 0.92) if not night else Color(0.25, 0.22, 0.32), 3.0)
+	# the facade (z 26): a glass curtain wall on mullions, open at the doors (x -7..7)
+	for side in [-1.0, 1.0]:
+		var cx: float = side * 27.5
+		_box(Vector3(41, WALL_H, 0.3), Vector3(cx, WALL_H * 0.5, 26), glass, null, true)
+		for k in 8:
+			_box(Vector3(0.35, WALL_H, 0.5), Vector3(side * (7.0 + k * 5.8), WALL_H * 0.5, 26), frame)
+	_box(Vector3(14, WALL_H - 4.5, 0.3), Vector3(0, 4.5 + (WALL_H - 4.5) * 0.5, 26), glass)
+	_box(Vector3(14.4, 0.5, 0.6), Vector3(0, 4.4, 26), frame)
+	# the side walls and the back (airside) wall
+	_box(Vector3(0.4, WALL_H, 56), Vector3(-48, WALL_H * 0.5, -2), glass, null, true)
+	for k in 10:
+		_box(Vector3(0.5, WALL_H, 0.35), Vector3(-48, WALL_H * 0.5, -29 + k * 6.2), frame)
+	# east wall: solid with the apron door at z -22..-15
+	_box(Vector3(0.4, WALL_H, 41), Vector3(48, WALL_H * 0.5, 5.5), wall, null, true)
+	_box(Vector3(0.4, WALL_H, 8), Vector3(48, WALL_H * 0.5, -26), wall, null, true)
+	_box(Vector3(0.4, WALL_H - 4.5, 7), Vector3(48, 4.5 + (WALL_H - 4.5) * 0.5, -18.5), wall)
+	_box(Vector3(0.6, 0.3, 7.2), Vector3(48, 4.4, -18.5), _glow(accent2, 2.0))
+	_text("APRON  ·  HANGARS  →", Vector3(47.6, 5.4, -18.5), 72, accent2, -PI * 0.5)
+	_text("← APRON  ·  HANGARS", Vector3(48.4, 5.4, -18.5), 72, accent2, PI * 0.5)
+	_box(Vector3(96, WALL_H, 0.4), Vector3(0, WALL_H * 0.5, -30), glass, null, true)
+	for k in 16:
+		_box(Vector3(0.35, WALL_H, 0.5), Vector3(-45 + k * 6.0, WALL_H * 0.5, -30), frame)
+	# the roof: a wave over the whole hall, the light ceiling under it, neon at its edges
+	_roof(frame)
+	# the name over the doors
+	var a: Dictionary = Air.AIRPORTS[code]
+	# under the canopy, over the doors
+	_box(Vector3(40, 4.4, 0.8), Vector3(0, 10.6, 26.7), _mat(Color(0.06, 0.07, 0.1), 0.3, 0.7))
+	_text(String(a.city).to_upper(), Vector3(0, 11.5, 27.2), 280, accent.lerp(Color.WHITE, 0.55))
+	_text("INTERNATIONAL AIRPORT (%s)" % code, Vector3(0, 9.6, 27.2), 140, Color(0.92, 0.95, 1.0))
+	_box(Vector3(40, 0.2, 0.3), Vector3(0, 8.3, 27.1), _glow(accent, 3.0))
+	_box(Vector3(40, 0.2, 0.3), Vector3(0, 12.9, 27.1), _glow(accent, 3.0))
+	_text("DEPARTURES ↑  ·  ARRIVALS", Vector3(0, 5.6, 26.5), 90, accent2)
+	# the control tower on the airside, west
+	var tx := Vector3(-110, 0, -40)
+	_cyl(4.5, 52, tx + Vector3(0, 26, 0), frame, null, 3.2)
+	_cyl(8.5, 5.0, tx + Vector3(0, 54.5, 0), _glass(accent.lerp(Color.WHITE, 0.3)), null, 9.5)
+	_cyl(9.6, 0.6, tx + Vector3(0, 51.8, 0), _glow(accent, 3.0))
+	_cyl(10.2, 0.6, tx + Vector3(0, 57.3, 0), frame)
+	_cyl(0.3, 8, tx + Vector3(0, 61.5, 0), frame)
+	var beacon := OmniLight3D.new()
+	beacon.position = tx + Vector3(0, 55, 0)
+	beacon.light_color = accent
+	beacon.light_energy = 2.0 if night else 0.6
+	beacon.omni_range = 30
+	world.add_child(beacon)
+
+## the roof's height over the hall at z
+func _roof_y(z: float) -> float:
+	var t := inverse_lerp(31.0, -34.0, z)
+	return WALL_H + 0.3 + 7.5 * sin(PI * t) + 1.6 * sin(PI * 3.0 * t)
+
+func _roof(frame: Material) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 24
+	var x0 := -52.0
+	var x1 := 52.0
+	for i in n:
+		var t0 := float(i) / n
+		var t1 := float(i + 1) / n
+		var z0 := lerpf(31.0, -34.0, t0)
+		var z1 := lerpf(31.0, -34.0, t1)
+		var y0 := WALL_H + 0.3 + 7.5 * sin(PI * t0) + 1.6 * sin(PI * 3.0 * t0)
+		var y1 := WALL_H + 0.3 + 7.5 * sin(PI * t1) + 1.6 * sin(PI * 3.0 * t1)
+		var a := Vector3(x0, y0, z0)
+		var b := Vector3(x1, y0, z0)
+		var c := Vector3(x1, y1, z1)
+		var d := Vector3(x0, y1, z1)
+		for v in [a, b, c, a, c, d]:
+			st.set_uv(Vector2(v.x / 8.0, v.z / 8.0))
+			st.add_vertex(v)
+	# the gable ends: from the wall top up to the curve
+	for x in [x0 * 0.925, x1 * 0.925]:
+		for i in n:
+			var t0 := float(i) / n
+			var t1 := float(i + 1) / n
+			var z0 := lerpf(31.0, -34.0, t0)
+			var z1 := lerpf(31.0, -34.0, t1)
+			var y0 := WALL_H + 0.3 + 7.5 * sin(PI * t0) + 1.6 * sin(PI * 3.0 * t0)
+			var y1 := WALL_H + 0.3 + 7.5 * sin(PI * t1) + 1.6 * sin(PI * 3.0 * t1)
+			if z0 > 26.0 or z1 < -30.0:
+				continue
+			for v in [Vector3(x, WALL_H, z0), Vector3(x, y0, z0), Vector3(x, y1, z1), Vector3(x, WALL_H, z0), Vector3(x, y1, z1), Vector3(x, WALL_H, z1)]:
+				st.set_uv(Vector2(v.z / 8.0, v.y / 8.0))
+				st.add_vertex(v)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var m := _mat(Color(0.92, 0.93, 0.95) if not night else Color(0.18, 0.16, 0.24), 0.4, 0.55)
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	world.add_child(mi)
+	# the ceiling seen from the hall: the same wave 0.4 m lower, facing down, in pale timber slats (lit softly, so the hall
+	# isn't a dark lid under the sun)
+	var cs := SurfaceTool.new()
+	cs.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in n:
+		var t0 := float(i) / n
+		var t1 := float(i + 1) / n
+		var z0 := lerpf(26.0, -30.0, t0)
+		var z1 := lerpf(26.0, -30.0, t1)
+		var y0 := _roof_y(z0) - 0.4
+		var y1 := _roof_y(z1) - 0.4
+		var a := Vector3(-48, y0, z0)
+		var b := Vector3(48, y0, z0)
+		var c := Vector3(48, y1, z1)
+		var d := Vector3(-48, y1, z1)
+		for v in [a, c, b, a, d, c]:
+			cs.set_uv(Vector2(v.x / 3.0, v.z / 3.0))
+			cs.add_vertex(v)
+	cs.generate_normals()
+	var ceil := MeshInstance3D.new()
+	ceil.mesh = cs.commit()
+	var cm2 := _mat(Color(0.94, 0.95, 0.97) if not night else Color(0.3, 0.2, 0.42), 0.7, 0.1)
+	cm2.emission_enabled = true
+	cm2.emission = Color(0.95, 0.95, 0.97) if not night else Color(0.4, 0.22, 0.6)
+	cm2.emission_energy_multiplier = 0.55 if not night else 0.4
+	cm2.cull_mode = BaseMaterial3D.CULL_DISABLED
+	ceil.material_override = cm2
+	ceil.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(ceil)
+	# light strips along the ceiling and the neon edge of the canopy
+	for k in 6:
+		var z := 20.0 - k * 9.0
+		_box(Vector3(80, 0.12, 0.7), Vector3(0, _roof_y(z) - 0.5, z), _glow(Color(1.0, 0.97, 0.9) if not night else accent.lerp(Color.WHITE, 0.4), 1.6))
+	_box(Vector3(104, 0.3, 0.3), Vector3(0, WALL_H + 0.45, 31.0), _glow(accent, 4.0))
+	_box(Vector3(104, 0.3, 0.3), Vector3(0, WALL_H + 0.45, -34.0), _glow(accent2, 3.0))
+
+# --------------------------------------------------------------------------------------------- the forecourt
+func _forecourt() -> void:
+	# walls closing the forecourt off from the airstrip (the way airside is through security)
+	for side in [-1.0, 1.0]:
+		_box(Vector3(0.4, 3.0, 54), Vector3(side * 60.0, 1.5, 53), _mat(Color(0.3, 0.32, 0.36), 0.5, 0.5), null, true)
+		_box(Vector3(152, 3.0, 0.4), Vector3(side * 124.0, 1.5, 26.0), _mat(Color(0.32, 0.34, 0.36), 0.6, 0.6), null, true)
+	_box(Vector3(120, 3.0, 0.4), Vector3(0, 1.5, 80), _mat(Color(0.3, 0.32, 0.36), 0.5, 0.5), null, true)
+	# the globe fountain: a round basin, jets, the holographic globe over it
+	var fc := Vector3(-30, 0, 36)
+	_cyl(6.5, 0.8, fc + Vector3(0, 0.4, 0), _mat(Color(0.7, 0.72, 0.76), 0.3, 0.4), null, -1, 32)
+	_cyl(6.0, 0.1, fc + Vector3(0, 0.82, 0), _glow(accent.lerp(Color(0.2, 0.5, 1.0), 0.5), 0.8), null, -1, 32)
+	obstacles.append(AABB(fc - Vector3(6.5, 0, 6.5), Vector3(13, 0.8, 13)))
+	for k in 6:
+		var a := k * TAU / 6.0
+		_cyl(0.18, 3.0, fc + Vector3(cos(a) * 4.2, 2.3, sin(a) * 4.2), _glow(Color(0.6, 0.85, 1.0), 1.6), null, 0.04, 6)
+	var globe := Fx.hologram("globe", accent.lerp(Color(0.3, 0.8, 1.0), 0.4), 6.0)
+	globe.position = fc + Vector3(0, 0.8, 0)
+	world.add_child(globe)
+	# palms in planters along the plaza and the road
+	for x in [-50.0, -38.0, -14.0, 14.0, 26.0, 38.0, 50.0]:
+		_palm(Vector3(x, 0, 30.5), int(x))
+		_palm(Vector3(x + 6.0, 0, 56.5), int(x) + 3)
+	# the wayfinding sign on the kerb (the references' big board)
+	var sg := Node3D.new()
+	sg.position = Vector3(30, 0, 41.5)
+	static_root.add_child(sg)
+	_box(Vector3(0.3, 4.5, 0.3), Vector3(-2.2, 2.25, 0), _mat(Color(0.3, 0.3, 0.32), 0.4, 0.8), sg)
+	_box(Vector3(0.3, 4.5, 0.3), Vector3(2.2, 2.25, 0), _mat(Color(0.3, 0.3, 0.32), 0.4, 0.8), sg)
+	_box(Vector3(5.2, 3.0, 0.25), Vector3(0, 4.6, 0), _mat(Color(0.05, 0.06, 0.1), 0.3, 0.5), sg)
+	_box(Vector3(5.3, 0.08, 0.3), Vector3(0, 6.1, 0), _glow(accent, 3.0), sg)
+	_text("Departures  ↑\nArrivals  ↑\nCheck-in · Tickets  ↑\nShops · Duty Free  ↑\nGates · Hangars  ↑\n(weapons not permitted)", Vector3(0, 4.6, 0.16), 34, Color(0.95, 0.97, 1.0), 0.0, sg)
+	_text("NO WEAPONS BEYOND THIS POINT", Vector3(0, 3.0, 26.4), 60, Color(1.0, 0.45, 0.35))
+	# a car at the kerb and a shuttle back to the street
+	var car := _model("res://models/fleet/luxury-sedan.glb")
+	if car:
+		StreetCar.face_forward(car)
+		car.position = Vector3(-8, 0.1, 48)
+		car.rotation.y = PI * 0.5
+		static_root.add_child(car)
+	_spot("exit", "CITY SHUTTLE · BACK TO THE STREET", Vector3(8, 0, 43.0))
+	_box(Vector3(3.2, 0.1, 1.6), Vector3(8, 3.2, 43.0), _mat(Color(0.2, 0.22, 0.25), 0.4, 0.5))
+	_box(Vector3(2.6, 0.5, 0.06), Vector3(8, 2.75, 43.6), _glow(accent2, 2.4))
+	_text("CITY SHUTTLE", Vector3(8, 3.8, 43.0), 64, accent2, 0.0, null, true)
+
+func _palm(at: Vector3, seed: int) -> void:
+	var p := _model("res://models/foliage/palm-%s.glb" % ["a", "b", "c"][posmod(seed, 3)])
+	_cyl(1.0, 0.7, at + Vector3(0, 0.35, 0), _mat(Color(0.5, 0.52, 0.55), 0.6, 0.3), null, 1.1)
+	obstacles.append(AABB(at - Vector3(1.0, 0, 1.0), Vector3(2.0, 0.7, 2.0)))
+	if p:
+		p.position = at + Vector3(0, 0.6, 0)
+		p.rotation.y = seed * 1.7
+		static_root.add_child(p)
+
+# --------------------------------------------------------------------------------------------- check-in and the board
+func _checkin() -> void:
+	var desk := _mat(Color(0.95, 0.95, 0.97) if not night else Color(0.12, 0.12, 0.16), 0.25, 0.3)
+	# two check-in islands along the west side, the ticket desk at the first
+	for i in 2:
+		var z := 16.0 - i * 13.0
+		_box(Vector3(2.0, 1.1, 10.0), Vector3(-32, 0.55, z), desk, null, true)
+		_box(Vector3(2.1, 0.1, 10.1), Vector3(-32, 1.12, z), _glow(accent, 1.2))
+		_box(Vector3(0.3, 3.6, 10.0), Vector3(-35.5, 1.8, z), _mat(Color(0.08, 0.09, 0.12), 0.4, 0.4), null, true)
+		_box(Vector3(0.2, 1.4, 9.0), Vector3(-35.3, 3.0, z), _glow(accent.lerp(Color(0.1, 0.1, 0.2), 0.5), 1.0))
+		_text("CHECK-IN · %s" % ("TICKETS" if i == 0 else "BAG DROP"), Vector3(-35.1, 3.0, z), 80, Color(0.95, 0.97, 1.0), PI * 0.5)
+		# queue posts
+		for k in 4:
+			_cyl(0.06, 1.0, Vector3(-28.5, 0.5, z - 4.0 + k * 2.6), _mat(Color(0.7, 0.7, 0.72), 0.2, 0.9), null, -1, 8)
+	_spot("tickets", "TICKETS · BUY A FLIGHT", Vector3(-29.8, 0, 16.0), 3.6)
+	# the departures board over the security line, both faces
+	for face in [1.0, -1.0]:
+		var bz: float = SECURITY_Z + face * 0.2
+		_box(Vector3(24, 6.4, 0.3), Vector3(0, 9.6, SECURITY_Z), _mat(Color(0.02, 0.025, 0.05), 0.3, 0.4))
+		var l := _text("", Vector3(-11.4, 9.6, bz + face * 0.05), 46, Color(1.0, 0.85, 0.35), 0.0 if face > 0 else PI)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		l.width = 2400
+		l.autowrap_mode = TextServer.AUTOWRAP_OFF
+		if face < 0:
+			l.position.x = 11.4
+		_board_labels.append(l)
+	_box(Vector3(24.4, 0.15, 0.4), Vector3(0, 12.9, SECURITY_Z), _glow(accent, 3.0))
+	# seating in the hall
+	for k in 4:
+		_bench(Vector3(-10.0 + (k % 2) * 20.0 - 6.0, 0, 12.0 + float(k / 2) * 7.0), 0.0)
+
+func _bench(at: Vector3, yaw: float) -> void:
+	var g := Node3D.new()
+	g.position = at
+	g.rotation.y = yaw
+	static_root.add_child(g)
+	var seat := _mat(Color(0.15, 0.17, 0.22) if not night else Color(0.25, 0.12, 0.3), 0.5, 0.2)
+	for k in 5:
+		_box(Vector3(0.6, 0.12, 0.6), Vector3(-1.4 + k * 0.7, 0.48, 0), seat, g)
+		_box(Vector3(0.6, 0.6, 0.1), Vector3(-1.4 + k * 0.7, 0.8, -0.3), seat, g)
+	_box(Vector3(3.6, 0.08, 0.12), Vector3(0, 0.38, 0), _mat(Color(0.7, 0.7, 0.72), 0.25, 0.9), g)
+	obstacles.append(AABB(at - Vector3(1.8, 0, 0.4), Vector3(3.6, 0.9, 0.8)) if absf(yaw) < 0.1 else AABB(at - Vector3(0.4, 0, 1.8), Vector3(0.8, 0.9, 3.6)))
+
+# --------------------------------------------------------------------------------------------- the shops
+func _shops() -> void:
+	for s in SHOPS:
+		var id := String(s[0])
+		var z: float = s[2]
+		var col: Color = s[3]
+		var g := Node3D.new()
+		g.position = Vector3(40, 0, z)
+		static_root.add_child(g)
+		# the unit: back and side walls, a lit front band with the name, a counter and shelves inside
+		_box(Vector3(0.3, 6, 8.6), Vector3(7.8, 3, 0), _mat(Color(0.12, 0.12, 0.15), 0.6), g, false)
+		for zz in [-4.3, 4.3]:
+			_box(Vector3(16, 6, 0.3), Vector3(0, 3, zz), _mat(Color(0.85, 0.86, 0.9) if not night else Color(0.14, 0.13, 0.18), 0.5), g)
+			obstacles.append(AABB(g.position + Vector3(-8, 0, zz - 0.15), Vector3(16, 6, 0.3)))
+		_box(Vector3(0.4, 1.2, 8.6), Vector3(-8.0, 6.6, 0), _mat(Color(0.05, 0.05, 0.07), 0.3, 0.6), g)
+		_box(Vector3(0.1, 0.12, 8.4), Vector3(-8.25, 6.0, 0), _glow(col, 3.0), g)
+		_text(String(s[1]), Vector3(-8.3, 6.6, 0), 90, col.lerp(Color.WHITE, 0.3), -PI * 0.5, g)
+		_box(Vector3(1.2, 1.0, 4.0), Vector3(1.0, 0.5, 0), _mat(Color(0.9, 0.9, 0.92) if not night else Color(0.1, 0.1, 0.14), 0.3, 0.3), g)
+		obstacles.append(AABB(g.position + Vector3(0.4, 0, -2.0), Vector3(1.2, 1.0, 4.0)))
+		for k in 3:
+			_box(Vector3(0.5, 3.2, 2.2), Vector3(6.8, 1.6, -2.6 + k * 2.6), _mat(Color(0.2, 0.2, 0.24), 0.5, 0.3), g)
+			for sh in 3:
+				_box(Vector3(0.45, 0.35, 1.8), Vector3(6.4, 0.7 + sh * 0.95, -2.6 + k * 2.6), _glow(col.lerp(Color(0.9, 0.9, 0.9), 0.5), 0.35 + 0.2 * sh), g)
+		_spot(id, ("ENTER " if id != "cafe" else "ORDER AT ") + String(s[1]), Vector3(31.0, 0, z), 3.4)
+
+# --------------------------------------------------------------------------------------------- security
+func _security() -> void:
+	var rail := _mat(Color(0.6, 0.62, 0.66), 0.25, 0.9)
+	var post := _mat(Color(0.12, 0.13, 0.16), 0.4, 0.5)
+	# the line: a glass screen across the hall but the three lanes
+	var edges: Array[float] = [-48.0]
+	for x in LANES:
+		edges.append(x - 1.4)
+		edges.append(x + 1.4)
+	edges.append(48.0)
+	for i in range(0, edges.size(), 2):
+		var a: float = edges[i]
+		var b: float = edges[i + 1]
+		_box(Vector3(b - a, 2.4, 0.2), Vector3((a + b) * 0.5, 1.2, SECURITY_Z), _glass(Color(0.7, 0.8, 0.9)), null, true)
+		_box(Vector3(b - a, 0.08, 0.25), Vector3((a + b) * 0.5, 2.42, SECURITY_Z), rail)
+	for x in LANES:
+		# the scanner arch and the lane gate
+		_box(Vector3(0.3, 2.6, 1.0), Vector3(x - 1.3, 1.3, SECURITY_Z), post)
+		_box(Vector3(0.3, 2.6, 1.0), Vector3(x + 1.3, 1.3, SECURITY_Z), post)
+		_box(Vector3(2.9, 0.4, 1.0), Vector3(x, 2.8, SECURITY_Z), post)
+		_box(Vector3(2.6, 0.08, 0.9), Vector3(x, 2.58, SECURITY_Z), _glow(Color(0.3, 1.0, 0.5), 2.0))
+		_box(Vector3(1.0, 0.9, 2.6), Vector3(x + 2.3, 0.45, SECURITY_Z + 2.4), post)       # the bag belt
+		_box(Vector3(0.9, 0.05, 2.5), Vector3(x + 2.3, 0.92, SECURITY_Z + 2.4), _mat(Color(0.05, 0.05, 0.05), 0.9))
+		var bar := Node3D.new()
+		bar.set_meta("dynamic", true)
+		bar.position = Vector3(x - 1.1, 0.9, SECURITY_Z + 0.4)
+		world.add_child(bar)
+		_box(Vector3(2.2, 0.12, 0.12), Vector3(1.1, 0, 0), _glow(Color(1.0, 0.3, 0.25), 2.0), bar)
+		_lane_bars.append(bar)
+		_lane_gates.append(obstacles.size())
+		obstacles.append(AABB())
+	_text("SECURITY · BOARDING PASS OR HANGAR PASS · NO WEAPONS", Vector3(0, 3.6, SECURITY_Z + 0.3), 64, Color(0.95, 0.97, 1.0))
+
+# --------------------------------------------------------------------------------------------- the gates
+func _gates() -> void:
+	var desk := _mat(Color(0.12, 0.13, 0.16), 0.3, 0.5)
+	for i in Air.GATES.size():
+		var g := String(Air.GATES[i])
+		var x := -40.0 + i * 16.0
+		_box(Vector3(3.2, 1.1, 1.0), Vector3(x, 0.55, -26.5), desk, null, true)
+		_box(Vector3(3.3, 0.08, 1.1), Vector3(x, 1.12, -26.5), _glow(accent, 1.4))
+		_box(Vector3(3.6, 1.4, 0.2), Vector3(x, 4.4, -29.6), _mat(Color(0.03, 0.03, 0.06), 0.3, 0.4))
+		_text("GATE %s" % g, Vector3(x, 4.4, -29.45), 110, accent2)
+		_spot("gate:" + g, "GATE %s · BOARD" % g, Vector3(x, 0, -24.6), 3.0)
+		# the jet bridge out to the parked airliner
+		var jb := _mat(Color(0.75, 0.77, 0.8) if not night else Color(0.22, 0.22, 0.28), 0.4, 0.7)
+		_box(Vector3(3.2, 3.2, 18), Vector3(x, 4.6, -39.5), jb)
+		_box(Vector3(0.6, 3.0, 0.6), Vector3(x, 1.5, -46), jb)
+		_box(Vector3(3.3, 0.15, 18.1), Vector3(x, 6.2, -39.5), _glow(accent, 1.5))
+		var plane := _airliner(accent if i % 2 == 0 else accent2, "NEXUSAIR" if code == "NXC" else "NEONAIR")
+		plane.position = Vector3(x + 6.0, 0, -66)
+		plane.rotation.y = PI     # nose to the terminal
+		static_root.add_child(plane)
+		obstacles.append(AABB(Vector3(x - 2.0, 0, -86), Vector3(16.0, 6.0, 40.0)))
+	for k in 6:
+		_bench(Vector3(-36.0 + k * 14.4, 0, -14.0), 0.0)
+		_bench(Vector3(-36.0 + k * 14.4, 0, -19.0), PI)
+
+## an airliner, procedural (no airliner model in the fleet yet): white fuselage, swept wings, two engines, tail in the
+## airline's colour; nose toward -z, ~40 m long, wheels at y 0
+func _airliner(tail: Color, name: String) -> Node3D:
+	var p := Node3D.new()
+	var body := _mat(Color(0.95, 0.96, 0.98), 0.3, 0.2)
+	var dark := _mat(Color(0.1, 0.12, 0.16), 0.2, 0.4)
+	var tailm := _glow(tail, 0.9 if night else 0.25)
+	tailm.albedo_color = tail
+	var fus := MeshInstance3D.new()
+	var cap := CapsuleMesh.new()
+	cap.radius = 2.3
+	cap.height = 40.0
+	cap.radial_segments = 20
+	cap.rings = 6
+	fus.mesh = cap
+	fus.material_override = body
+	fus.rotation.x = PI * 0.5
+	fus.position = Vector3(0, 4.2, 0)
+	p.add_child(fus)
+	_box(Vector3(4.66, 0.5, 30), Vector3(0, 4.9, 0), dark, p)                # the window band
+	_box(Vector3(4.7, 0.25, 32), Vector3(0, 3.7, 0), tailm, p)              # cheat line
+	for side in [-1.0, 1.0]:
+		var w := Node3D.new()
+		w.position = Vector3(side * 2.0, 3.2, 1.5)
+		w.rotation.y = side * deg_to_rad(-28.0)
+		p.add_child(w)
+		_box(Vector3(17.0, 0.45, 5.0), Vector3(side * 8.5, 0, 0), body, w)
+		_box(Vector3(0.4, 1.4, 1.2), Vector3(side * 17.0, 0.6, 1.0), tailm, w)     # winglet
+		_cyl(1.25, 4.2, Vector3(side * 6.5, -1.4, -1.5), body, w).rotation.x = PI * 0.5
+		_cyl(1.0, 0.1, Vector3(side * 6.5, -1.4, -3.65), dark, w).rotation.x = PI * 0.5
+		var hs := Node3D.new()
+		hs.position = Vector3(side * 1.2, 5.0, 17.0)
+		hs.rotation.y = side * deg_to_rad(-30.0)
+		p.add_child(hs)
+		_box(Vector3(6.0, 0.3, 2.6), Vector3(side * 3.0, 0, 0), body, hs)
+		_cyl(0.25, 3.2, Vector3(side * 2.0, 1.6, 2.0), dark, p)                # main gear
+	var fin := Node3D.new()
+	fin.position = Vector3(0, 6.2, 17.5)
+	fin.rotation.x = deg_to_rad(-35.0)
+	p.add_child(fin)
+	_box(Vector3(0.45, 8.0, 4.5), Vector3(0, 3.6, 0), tailm, fin)
+	_cyl(0.22, 2.4, Vector3(0, 1.2, -15.5), dark, p)                            # nose gear
+	_box(Vector3(2.6, 0.7, 0.2), Vector3(0, 5.6, -19.6), dark, p)              # cockpit glass
+	for side in [-1.0, 1.0]:
+		var l := Label3D.new()
+		l.text = name
+		l.font_size = 140
+		l.pixel_size = 0.01
+		l.modulate = tail.darkened(0.15)
+		l.position = Vector3(side * 2.36, 4.5, -4.0)
+		l.rotation.y = side * PI * 0.5
+		l.double_sided = false
+		p.add_child(l)
+	return p
+
+# --------------------------------------------------------------------------------------------- the airstrip
+func _airstrip() -> void:
+	var asphalt := Materials.pbr("asphalt_02", Color(0.35, 0.35, 0.37) if not night else Color(0.14, 0.13, 0.17), 8.0, 0.7)
+	var paint := _mat(Color(0.96, 0.96, 0.94), 0.6)
+	var yellow := _mat(Color(0.95, 0.75, 0.15), 0.6)
+	_box(Vector3(900, 0.06, 46), Vector3(0, 0.04, RUNWAY_Z), asphalt)
+	for x in range(-420, 421, 30):
+		_box(Vector3(14, 0.03, 0.8), Vector3(x, 0.08, RUNWAY_Z), paint)
+	for side in [-1.0, 1.0]:
+		_box(Vector3(900, 0.03, 0.6), Vector3(0, 0.08, RUNWAY_Z + side * 21.5), paint)
+		for k in 8:   # threshold bars
+			_box(Vector3(30, 0.03, 1.4), Vector3(side * 380.0, 0.08, RUNWAY_Z - 14.0 + k * 4.0), paint)
+	_text("27R", Vector3(-340, 0.12, RUNWAY_Z), 1600, Color(0.96, 0.96, 0.94)).rotation = Vector3(-PI * 0.5, 0, PI * 0.5)
+	_text("09L", Vector3(340, 0.12, RUNWAY_Z), 1600, Color(0.96, 0.96, 0.94)).rotation = Vector3(-PI * 0.5, 0, -PI * 0.5)
+	# the taxiway and its centre line, a lead-in to every gate
+	_box(Vector3(500, 0.05, 24), Vector3(40, 0.05, -100), asphalt)
+	_box(Vector3(500, 0.03, 0.4), Vector3(40, 0.09, -100), yellow)
+	for i in Air.GATES.size():
+		_box(Vector3(0.4, 0.03, 30), Vector3(-34.0 + i * 16.0, 0.09, -73), yellow)
+	# edge lights (glowing studs; no real lights)
+	var stud := _glow(Color(0.35, 0.65, 1.0) if night else Color(1.0, 1.0, 0.95), 3.0 if night else 1.0)
+	var green := _glow(Color(0.3, 1.0, 0.45), 2.6)
+	for x in range(-420, 421, 20):
+		for side in [-1.0, 1.0]:
+			_box(Vector3(0.4, 0.25, 0.4), Vector3(x, 0.12, RUNWAY_Z + side * 23.5), stud)
+		_box(Vector3(0.3, 0.2, 0.3), Vector3(x + 10, 0.12, -100), green)
+	# the apron's own paint: hangar lead-ins and a helipad
+	for x in HANGAR_X:
+		_box(Vector3(0.4, 0.03, 70), Vector3(x, 0.09, -50), yellow)
+	var hp := Vector3(200, 0, -40)
+	_cyl(11, 0.06, hp + Vector3(0, 0.07, 0), _mat(Color(0.25, 0.27, 0.3), 0.7), null, -1, 32)
+	_cyl(10, 0.04, hp + Vector3(0, 0.1, 0), _glow(Color(1.0, 0.85, 0.2), 0.6), null, 9.6, 32)
+	_text("H", hp + Vector3(0, 0.14, 0), 1200, Color(0.96, 0.96, 0.94)).rotation.x = -PI * 0.5
+	var heli := _craft_model("rift-helicopter", 14.0)
+	heli.position = hp
+	heli.rotation.y = 0.6
+	static_root.add_child(heli)
+	obstacles.append(AABB(hp - Vector3(4, 0, 7), Vector3(8, 4, 14)))
+	# ground equipment and cargo dollies by the gates
+	for k in 10:
+		var at := Vector3(-44.0 + k * 9.5, 0, -52.0 - (k % 3) * 2.0)
+		_box(Vector3(2.0, 1.2, 3.0), at + Vector3(0, 0.75, 0), _mat(Color(0.95, 0.95, 0.92) if k % 2 == 0 else Color(0.9, 0.7, 0.15), 0.5, 0.2))
+		_box(Vector3(1.9, 0.3, 2.9), at + Vector3(0, 0.15, 0), _mat(Color(0.08, 0.08, 0.08), 0.8))
+	# apron floodlight masts: a lit head on each (glow only) and a real light on a few
+	var mast := _mat(Color(0.45, 0.46, 0.5), 0.4, 0.8)
+	var head := _glow(Color(1.0, 0.95, 0.85) if not night else Color(0.85, 0.75, 1.0), 4.0)
+	var lit := 0
+	for at in [Vector3(-60, 0, -45), Vector3(0, 0, -48), Vector3(60, 0, -45), Vector3(104, 0, -26), Vector3(140, 0, -26), Vector3(176, 0, -26), Vector3(200, 0, -60)]:
+		_cyl(0.3, 22, at + Vector3(0, 11, 0), mast, null, 0.2, 8)
+		_box(Vector3(3.0, 0.6, 1.2), at + Vector3(0, 22.2, 0), head)
+		obstacles.append(AABB(at - Vector3(0.4, 0, 0.4), Vector3(0.8, 22, 0.8)))
+		if night and lit < 4 and at.x > 90.0:
+			var o := OmniLight3D.new()
+			o.position = at + Vector3(0, 18, -4)
+			o.omni_range = 40.0
+			o.light_energy = 2.2
+			o.light_color = Color(0.9, 0.85, 1.0)
+			world.add_child(o)
+			lit += 1
+	# the airliner on the runway (always rolling, for life)
+	_taxi = _airliner(accent2, "NEXUSAIR" if code == "NXC" else "NEONAIR")
+	_taxi.rotation.y = -PI * 0.5
+	world.add_child(_taxi)
+
+func _step_taxi(dt: float) -> void:
+	if not _taxi:
+		return
+	_taxi_t = fmod(_taxi_t + dt, 60.0)
+	var t := _taxi_t
+	var x := -420.0 + 3.2 * t * t
+	var y := 0.0 if t < 12.0 else pow(t - 12.0, 2.0) * 1.4
+	_taxi.visible = t < 30.0
+	_taxi.position = Vector3(x, y, RUNWAY_Z + 8.0)
+	_taxi.rotation.z = 0.0 if t < 12.0 else -minf(0.16, (t - 12.0) * 0.05)
+
+# --------------------------------------------------------------------------------------------- the hangars
+func _hangars() -> void:
+	var shell := Materials.surface("metal_plate", Color(0.78, 0.8, 0.84) if not night else Color(0.26, 0.26, 0.34), 3.0, 0.7, 0.75)
+	for i in HANGAR_X.size():
+		var bay := String(Air.BAYS[i])
+		var cx: float = HANGAR_X[i]
+		# the shell: sides, back, a barrel roof; the door (z -14) a shutter that lifts when it's yours
+		for side in [-1.0, 1.0]:
+			_box(Vector3(0.5, 10, 30), Vector3(cx + side * 14.0, 5, 1), shell, null, true)
+		_box(Vector3(28.5, 10, 0.5), Vector3(cx, 5, 16), shell, null, true)
+		var roof := _cyl(15.0, 30.0, Vector3(cx, 10, 1), shell, null, -1, 24)
+		roof.rotation.x = PI * 0.5
+		roof.scale = Vector3(1.0, 1.0, 0.35)
+		_box(Vector3(28.5, 2.0, 0.6), Vector3(cx, 11.0, -14.2), _mat(Color(0.06, 0.07, 0.1), 0.3, 0.6))
+		_text("PRIVATE HANGAR %s" % bay, Vector3(cx, 11.0, -14.6), 120, accent2, PI)
+		_box(Vector3(28.5, 0.15, 0.3), Vector3(cx, 10.0, -14.55), _glow(accent, 3.0))
+		# inside: floor paint, work benches, the target range at the back
+		_box(Vector3(27, 0.03, 28), Vector3(cx, 0.06, 1), _mat(Color(0.32, 0.34, 0.38) if not night else Color(0.16, 0.15, 0.2), 0.3, 0.3))
+		_box(Vector3(26, 0.04, 0.3), Vector3(cx, 0.09, 10.5), _mat(Color(1.0, 0.35, 0.2), 0.5))
+		_box(Vector3(1.0, 1.0, 6.0), Vector3(cx - 12.5, 0.5, 4.0), _mat(Color(0.25, 0.25, 0.3), 0.5, 0.5), null, true)
+		var lamp := OmniLight3D.new()
+		lamp.position = Vector3(cx, 8.5, 1)
+		lamp.omni_range = 18.0
+		lamp.light_energy = 1.2
+		lamp.light_color = Color(1.0, 0.95, 0.85)
+		world.add_child(lamp)
+		var sh := Node3D.new()
+		sh.set_meta("dynamic", true)
+		sh.position = Vector3(cx, 4.5, -14.3)
+		world.add_child(sh)
+		_box(Vector3(27.5, 9.0, 0.3), Vector3.ZERO, _mat(Color(0.55, 0.57, 0.6) if not night else Color(0.22, 0.22, 0.28), 0.5, 0.7), sh)
+		for k in 12:
+			_box(Vector3(27.5, 0.08, 0.35), Vector3(0, -4.2 + k * 0.75, 0), _mat(Color(0.35, 0.36, 0.4), 0.5, 0.7), sh)
+		_shutters[bay] = { "node": sh, "idx": obstacles.size() }
+		obstacles.append(AABB())
+		_spot("hangar:" + bay, "HANGAR %s" % bay, Vector3(cx + 9.0, 0, -17.0), 3.4)
+		_spot("craft:" + bay, "YOUR AIRCRAFT", Vector3(cx - 10.0, 0, 4.0), 2.8)
+
+func _craft_model(id: String, length: float) -> Node3D:
+	var root := Node3D.new()
+	var m := _model("res://models/fleet/%s.glb" % id)
+	if not m:
+		return root
+	StreetCar.face_forward(m)
+	root.add_child(m)
+	var aabb := AABB()
+	var first := true
+	for c in m.find_children("*", "MeshInstance3D", true, false):
+		var mi := c as MeshInstance3D
+		var t := Transform3D.IDENTITY
+		var n: Node = mi
+		while n != root and n is Node3D:
+			t = (n as Node3D).transform * t
+			n = n.get_parent()
+		var a := t * mi.get_aabb()
+		aabb = a if first else aabb.merge(a)
+		first = false
+	if not first:
+		var k := length / maxf(0.01, maxf(aabb.size.z, aabb.size.x))
+		m.scale *= k
+		m.position = m.position * k - Vector3(0, aabb.position.y * k, 0)
+	return root
+
+# --------------------------------------------------------------------------------------------- the city behind and the people
+func _skyline() -> void:
+	var files := ["nexus-spire", "nexus-civic-a", "nexus-civic-b", "nexus-civic-c", "nexus-terrace-a", "nexus-terrace-b"] if not night else \
+		["neon-tower-a", "neon-tower-b", "neon-tower-c", "neon-v-A", "neon-v-B", "neon-v-C"]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7 if night else 3
+	for k in 14:
+		var f: String = files[k % files.size()]
+		var m := _model("res://models/buildings/%s.glb" % f)
+		if not m:
+			continue
+		var x := -560.0 + k * 80.0 + rng.randf_range(-20, 20)
+		m.position = Vector3(x, 0, -480.0 - rng.randf_range(0, 200))
+		m.rotation.y = rng.randf_range(0, TAU)
+		var s := rng.randf_range(2.2, 3.4)
+		m.scale = Vector3(s, s * rng.randf_range(1.0, 1.6), s)
+		static_root.add_child(m)
+		# stand it on the ground whatever the model's origin
+		var low := INF
+		for c in m.find_children("*", "MeshInstance3D", true, false):
+			var mi := c as MeshInstance3D
+			var b: AABB = mi.global_transform * mi.get_aabb()
+			low = minf(low, b.position.y)
+		if low < INF:
+			m.position.y -= low
+
+func _people() -> void:
+	var n := Phone.crowd()
+	# landside hall, the forecourt and the gate lounge
+	var specs := [[-2.0, 24.0, 10.0, 8.0, 41], [-28.0, -6.0, 14.0, 10.0, 43], [28.0, 42.0, 20.0, 14.0, 47]]
+	for s in specs:
+		var c: MultiMeshInstance3D = Crowd.new()
+		world.add_child(c)
+		c.setup(int(36 * n), float(s[0]), float(s[1]), float(s[2]), float(s[3]), int(s[4]))
+		_crowds.append(c)

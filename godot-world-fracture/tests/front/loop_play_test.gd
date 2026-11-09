@@ -57,7 +57,7 @@ func _run() -> void:
 	ok(m.street._door_spots.size() >= 9, "the hub has its doors: %d" % m.street._door_spots.size())
 	ok(Audio.ambience_bed() == "nexus-hum" and not Audio.music_playing(), "the street hums (nexus-hum), the title music is gone")
 	# every door round-trips: hidden + paused street while the system is open, restored after
-	for id in ["modes", "skyways", "descent", "rift", "apartment"]:
+	for id in ["modes", "skyways", "descent", "rift", "apartment", "airport"]:
 		var before: Vector3 = m.street.operator.position
 		m.street.door.emit(id)
 		await _frames(4)

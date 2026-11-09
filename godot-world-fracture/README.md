@@ -470,3 +470,22 @@ blocks (`Nexus.in_frontage`, `_court_here`, `_in_mouth`). Apex Gear and Rusty Tr
 `shop_stock` / `buy_offer` (a daily stock); Cylinder & Co opens the garage on the `ironworks` shop. The casino is Neon
 City's alone (the Neon City Grand Casino on the Neon hub). Shots: `--shot slicewalk:court=<id>[:still]`. Test:
 `godot --headless --path godot-world-fracture --script res://tests/city/nexus_walk_test.gd`.
+
+## Airports (owner, Nov 9)
+
+Nexus City International (NXC, by day) and Neon City International (NEC, at night), after the owner's three reference
+renders. The street's AIRPORT EXPRESS stop opens the city's own airport (`scripts/airport/airport_view.gd`): the
+forecourt with the globe fountain, the check-in hall (TICKETS: one-way economy fares, refunds at 90%), the departures
+board (`airport.gd departures`, live clock), the shops (Sky Duty Free → Nova Threads outfits, Aero Gear → Apex stock,
+Cloud Nine Café), security (three lanes: through with a boarding pass from this airport or a hangar lease here), the
+gate lounge with six gates and jet bridges, the apron door, the apron, taxiway and runway, the control tower and three
+private hangars. **Weapons are stowed landside, in the terminal, the shops and the lounge; they come out on the
+airstrip (apron / runway) and inside a hangar you lease**, and only once the story has armed the operator (Mission 01's
+Surge). A leased hangar opens its door, keeps the aircraft you buy (helicopter / jet / airship) and has a target range;
+YOUR AIRCRAFT → FLY takes one out over that city in Skyways (`skyways_view.gd region_id`). BOARD at your ticket's gate
+plays the take-off and main.gd opens the destination: the other airport's arrivals hall (leaving it puts you on that
+city's street) or the region on foot (`arrival_view.gd`, with a FLIGHTS desk home). All rules are in `airport.gd`
+(state in the profile under `air`, so it rides the cloud save); add an airport as an `AIRPORTS` row and a destination
+as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove, Obsidian
+Reach). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
+whole trip through main.gd). Shots: `--shot airport[:NXC|NEC[:x,y,z:tx,ty,tz]]`.

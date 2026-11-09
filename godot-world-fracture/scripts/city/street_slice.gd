@@ -13,7 +13,7 @@ const WetNight := preload("res://scripts/city/wet_night.gd")
 signal closed
 signal toggle_night
 signal toggle_style
-## a hub door the operator walked up to and entered: "modes", "skyways", "rift", "descent", "apartment" (main.gd opens the
+## a hub door the operator walked up to and entered: "modes", "skyways", "rift", "descent", "apartment", "airport" (main.gd opens the
 ## view over the street); the garage, mall, casino and sports doors open their own overlays here
 signal door(id: String)
 ## the hub block's doors (step 7 of the schedule): where each stands on the Nexus block and what it says
@@ -27,6 +27,8 @@ const DOORS := [
 	{ "id": "mall", "label": "GALLERIA MALL", "x": -1.0, "z": -100.0, "color": Color(1.0, 0.6, 0.9), "kind": "door" },
 	# the casino is Neon City's alone (owner, Nov 9): the Neon City Grand Casino; its door is set at the podium in _buildings
 	{ "id": "casino", "label": "NEON CITY GRAND CASINO", "x": -1.0, "z": -82.0, "color": Color(0.95, 0.72, 0.32), "kind": "door", "style": "neon" },
+	# Nexus City International / Neon City International (main.gd opens the street's own city's airport)
+	{ "id": "airport", "label": "AIRPORT EXPRESS", "x": 1.0, "z": -40.0, "color": Color(0.55, 0.8, 1.0), "kind": "stop", "style": "any" },
 	{ "id": "sports", "label": "SPORTS DISTRICT", "x": -1.0, "z": 20.0, "color": Color(0.1, 0.85, 1.0), "kind": "door" },
 ]
 var _door_spots: Array = []     # [{id, label, pos}]

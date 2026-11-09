@@ -19,6 +19,9 @@ const ArenaView := preload("res://scripts/killbox/arena_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
 const BossArena := preload("res://scripts/combat/boss_arena.gd")
+const Airport := preload("res://scripts/airport/airport.gd")
+const AirportView := preload("res://scripts/airport/airport_view.gd")
+const ArrivalView := preload("res://scripts/airport/arrival_view.gd")
 var boss_arena: Control
 const Title := preload("res://scripts/front/title.gd")
 const SettingsView := preload("res://scripts/front/settings_view.gd")
@@ -251,24 +254,60 @@ func _street_door(id: String) -> void:
 		"apartment":
 			view = Mission01.new()
 			view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		"airport":
+			# the city's own airport: Neon City International from Neon City's street, Nexus City International otherwise
+			view = _airport_view("NEC" if street.style == "neon" else "NXC", false)
 	if view == null:
 		return
-	_from_street = view
 	street.visible = false
 	street.set_process(false)
 	street._vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	street.sound_off()
+	_show_from_street(view)
+
+## puts a system over the hidden street; closing it brings the street back (in the city you left from, if you flew)
+func _show_from_street(view: Control) -> void:
+	_from_street = view
 	view.closed.connect(func():
+		var come_back: String = String(_from_street.get("return_style")) if _from_street.get("return_style") != null else ""
 		_from_street.queue_free()
 		_from_street = null
 		Sound.loops_stop()
-		if street:
+		if street and come_back != "" and come_back != street.style:
+			# you flew to the other city: its street, at its usual hour
+			var walk: bool = street.walk
+			_close_street()
+			_open_street(come_back == "neon", come_back, walk)
+		elif street:
 			street.visible = true
 			street.set_process(true)
 			street._vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 			street.sound_on()
 		_sync_later())
+	if view.has_signal("flew"):
+		view.flew.connect(_flown.bind(view))
 	add_child(view)
+
+func _airport_view(code: String, arriving: bool) -> Control:
+	var v := AirportView.new()
+	v.code = code
+	v.arriving = arriving
+	return v
+
+## a flight took off: the old view goes, the destination opens over the street (the other airport, or a region)
+func _flown(to: String, from_view: Control) -> void:
+	if _from_street != from_view:
+		return
+	var next: Control
+	if Airport.AIRPORTS.has(to):
+		next = _airport_view(to, true)
+	else:
+		next = ArrivalView.new()
+		next.dest = to
+	_from_street = null
+	from_view.queue_free()
+	Sound.loops_stop()
+	_show_from_street(next)
 
 ## the title screen and what its buttons do
 func _open_title() -> void:
@@ -680,6 +719,16 @@ func _shoot(path: String, opts: Array) -> void:
 			var sv := String(o).split(":")
 			if sv.size() > 1:
 				street.sports_overlay.show_view(int(sv[1]))
+		# airport[:NXC|NEC[:x,y,z:tx,ty,tz]]  Nexus / Neon City International from its street's door; a camera to look from
+		if String(o).begins_with("airport"):
+			var aq := String(o).split(":")
+			var ac := aq[1] if aq.size() > 1 else "NXC"
+			_open_street(ac == "NEC", "neon" if ac == "NEC" else "nexus", true)
+			await get_tree().process_frame
+			_street_door("airport")
+			if aq.size() > 3 and _from_street:
+				var af := aq[2].split(","); var at := aq[3].split(",")
+				_from_street.look_from(Vector3(float(af[0]), float(af[1]), float(af[2])), Vector3(float(at[0]), float(at[1]), float(at[2])))
 		# mall[:view]  the Galleria mall interior
 		if String(o).begins_with("mall"):
 			_open_street(false, "nexus", false)

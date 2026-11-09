@@ -31,6 +31,8 @@ const RINGS := 8
 const RING_R := 9.0
 
 var craft_id := ""
+## the region flown over (an owned aircraft from a Neon City hangar flies over Neon City); the start is its airport if it has one
+var region_id := REGION
 var region: Control
 var controls: Control
 var hull: Node3D
@@ -110,10 +112,10 @@ func _start() -> void:
 	region.closed.connect(func(): closed.emit())
 	add_child(region)
 	var start := Vector2.ZERO
-	for poi in Data.map(REGION).get("pois", []):
+	for poi in Data.map(region_id).get("pois", []):
 		if String(poi.id) == String(c.poi):
 			start = Vector2(float(poi.x), float(poi.z))
-	region.show_region(REGION, start, Region3D.Mode.PLAY)
+	region.show_region(region_id, start, Region3D.Mode.PLAY)
 	cam = region.camera()
 	cam.current = true
 	cam.far = 4000.0
