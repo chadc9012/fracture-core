@@ -33,6 +33,10 @@ const ROAD := {
 }
 
 var map_id := ""
+## the named supertall landmarks drawn by _build_landmarks instead of the plain extrusion (map data: carto-features.ts)
+const LANDMARKS := ["Nexus Core Spire", "Neon City Grand Casino"]
+var _landmark_bds: Array = []
+var _spin: Array[Node3D] = []
 var m: Dictionary = {}
 ## the season the regions are shown in (owner's Planetary World Overview board: spring, summer, autumn, winter across all
 ## regions); -1 follows the real calendar. Kept across regions; the header's button steps it.
@@ -462,6 +466,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_build_ground()
 	_build_water()
 	_build_buildings()
+	_build_landmarks()
 	_build_tower_rooftops_pass_17()
 	_build_civic_roofs()
 	_build_entrances_pass_18()
@@ -801,7 +806,11 @@ func _build_buildings() -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var k := 0
+	_landmark_bds.clear()
 	for bd in m.buildings:
+		if bd.size() > 7 and String(bd[7]) in LANDMARKS:
+			_landmark_bds.append(bd)
+			continue
 		var p := _loc(bd[0], bd[1])
 		var hx: float = bd[2]
 		var hz: float = bd[3]
@@ -1884,6 +1893,9 @@ func _apply_cam() -> void:
 		_cam.fov = 70.0
 
 func _process(dt: float) -> void:
+	for n in _spin:
+		if is_instance_valid(n):
+			n.rotate_y(dt * float(n.get_meta("spin", 0.3)))
 	if _cam == null or mode == Mode.PLAY:
 		return
 	_declutter_t -= dt
@@ -2393,3 +2405,220 @@ func _build_facade_fins_batch_19_43() -> void:
 	mat.roughness = 0.38
 	mi.material_override = mat
 	_world.add_child(mi)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Landmark supertalls (owner, Nov 9 2026): the Nexus Core Spire at 420 m is the tallest building in the game and the Neon
+# City Grand Casino at 380 m the second (their heights come from the map data, carto-features.ts CORE_SPIRE_M /
+# CASINO_TOWER_M). Built from primitives with shared emissive materials so they stay cheap on the phone.
+
+func _lm_mat(col: Color, emit := 0.0, metal := 0.0, rough := 0.5) -> StandardMaterial3D:
+	var mt := StandardMaterial3D.new()
+	mt.albedo_color = col
+	mt.metallic = metal
+	mt.roughness = rough
+	if emit > 0.0:
+		mt.emission_enabled = true
+		mt.emission = col
+		mt.emission_energy_multiplier = emit
+	return mt
+
+func _lm_part(parent: Node3D, mesh: Mesh, mat: Material, at: Vector3, scl := Vector3.ONE, rot := Vector3.ZERO) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.position = at
+	mi.scale = scl
+	mi.rotation = rot
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	return mi
+
+func _lm_cyl(r_top: float, r_bot: float, h: float, seg := 32) -> CylinderMesh:
+	var c := CylinderMesh.new()
+	c.top_radius = r_top
+	c.bottom_radius = r_bot
+	c.height = h
+	c.radial_segments = seg
+	c.rings = 1
+	return c
+
+func _build_landmarks() -> void:
+	for bd in _landmark_bds:
+		var p := _loc(bd[0], bd[1])
+		var base := INF
+		for d in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			base = minf(base, _h(p.x + d.x * float(bd[2]), p.y + d.y * float(bd[3])))
+		var root := Node3D.new()
+		root.position = Vector3(p.x, base - 0.6, p.y)
+		root.rotation.y = float(bd[4])
+		_world.add_child(root)
+		var hgt := _bh(bd) + (_h(p.x, p.y) - base) + 0.6
+		if String(bd[7]) == "Neon City Grand Casino":
+			_grand_casino(root, float(bd[2]), float(bd[3]), hgt)
+		else:
+			_core_spire(root, float(bd[2]), float(bd[3]), hgt)
+
+## The Neon City Grand Casino after the owner's board: an oval tower of dark glass in gold and violet neon bands, a gold
+## crown on the face, and on the roof the live venue — a cantilevered deck with a glass rail, the ringed truss stage under a
+## crown, lasers sweeping the sky, the dance floor, cabana palms and the helipad.
+func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
+	var glass := _lm_mat(Color("#141026"), 0.0, 0.6, 0.12)
+	var gold := _lm_mat(Color("#e8b24a"), 1.4, 0.9, 0.3)
+	var violet := _lm_mat(Color("#b04bff"), 3.2)
+	var cyan := _lm_mat(Color("#3fd8ff"), 2.6)
+	var pink := _lm_mat(Color("#ff3fb4"), 2.8)
+	var deck_y := top - 14.0
+	var unit := _lm_cyl(1.0, 1.0, 1.0, 40)
+	# podium: a wider gold-trimmed drum with the entrance glow
+	_lm_part(root, unit, glass, Vector3(0, 12.0, 0), Vector3(hx * 1.05, 24.0, hz * 1.05))
+	_lm_part(root, unit, gold, Vector3(0, 24.2, 0), Vector3(hx * 1.08, 0.6, hz * 1.08))
+	_lm_part(root, unit, violet, Vector3(0, 4.0, 0), Vector3(hx * 1.06, 0.5, hz * 1.06))
+	# the shaft in three gently narrowing sections, banded in neon every 12 m
+	var secs := [[24.0, deck_y * 0.45, 0.9], [deck_y * 0.45, deck_y * 0.8, 0.84], [deck_y * 0.8, deck_y, 0.78]]
+	for sc in secs:
+		var y0: float = sc[0]
+		var y1: float = sc[1]
+		var f: float = sc[2]
+		_lm_part(root, unit, glass, Vector3(0, (y0 + y1) * 0.5, 0), Vector3(hx * f, y1 - y0, hz * f))
+		_lm_part(root, unit, gold, Vector3(0, y1, 0), Vector3(hx * (f + 0.03), 0.8, hz * (f + 0.03)))
+		var y := y0 + 12.0
+		var i := 0
+		while y < y1 - 4.0:
+			_lm_part(root, unit, violet if i % 3 != 2 else cyan, Vector3(0, y, 0), Vector3(hx * (f + 0.012), 0.35, hz * (f + 0.012)))
+			y += 12.0
+			i += 1
+	# four gold fins up the long sides and the crown on the face
+	var box := BoxMesh.new()
+	for sx: float in [-1.0, 1.0]:
+		for sz: float in [-0.35, 0.35]:
+			_lm_part(root, box, gold, Vector3(sx * hx * 0.86, deck_y * 0.5 + 12.0, sz * hz), Vector3(0.6, deck_y - 24.0, 0.6))
+	var crown_y := deck_y - 40.0
+	var face := hz * 0.8 + 0.4
+	for k in 5:
+		var x := (float(k) - 2.0) * 2.6
+		var spike := 8.0 if k % 2 == 0 else 5.0
+		_lm_part(root, box, violet, Vector3(x, crown_y + spike * 0.5, face), Vector3(0.7, spike, 0.3), Vector3(0, 0, (float(k) - 2.0) * -0.12))
+	_lm_part(root, box, violet, Vector3(0, crown_y - 0.6, face), Vector3(12.0, 1.0, 0.3))
+	# the roof venue: a cantilevered deck with a lit edge and a glass rail
+	var dx := hx * 0.98
+	var dz := hz * 0.98
+	_lm_part(root, unit, glass, Vector3(0, deck_y + 0.5, 0), Vector3(dx, 1.0, dz))
+	_lm_part(root, unit, violet, Vector3(0, deck_y + 0.1, 0), Vector3(dx + 0.15, 0.4, dz + 0.15))
+	var rail := _lm_mat(Color(0.7, 0.85, 1.0, 0.25), 0.4)
+	rail.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var rail_mesh := _lm_cyl(1.0, 1.0, 1.0, 40)
+	rail_mesh.cap_top = false
+	rail_mesh.cap_bottom = false
+	_lm_part(root, rail_mesh, rail, Vector3(0, deck_y + 1.6, 0), Vector3(dx, 1.2, dz))
+	# dance floor: a glowing disc of pink and cyan
+	_lm_part(root, unit, pink, Vector3(0, deck_y + 1.05, dz * 0.1), Vector3(dx * 0.32, 0.1, dz * 0.32))
+	_lm_part(root, unit, cyan, Vector3(0, deck_y + 1.1, dz * 0.1), Vector3(dx * 0.2, 0.1, dz * 0.2))
+	# the stage at the back under a ringed truss and a gold crown that tops out at the tower's height
+	var sy := deck_y + 1.0
+	_lm_part(root, box, glass, Vector3(0, sy + 1.0, -dz * 0.55), Vector3(dx * 0.7, 2.0, dz * 0.3))
+	_lm_part(root, box, cyan, Vector3(0, sy + 6.0, -dz * 0.68), Vector3(dx * 0.5, 7.0, 0.3))
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.9
+	ring.outer_radius = 1.0
+	ring.rings = 48
+	ring.ring_segments = 6
+	for r in [[sy + 11.0, 0.62], [sy + 9.5, 0.5]]:
+		_lm_part(root, ring, violet, Vector3(0, float(r[0]), -dz * 0.4), Vector3(dx * float(r[1]), 1.0, dz * float(r[1]) * 0.9))
+	var crown := Node3D.new()
+	crown.position = Vector3(0, top - 2.6, -dz * 0.4)
+	root.add_child(crown)
+	_lm_part(crown, _lm_cyl(2.2, 2.2, 0.8, 24), gold, Vector3.ZERO)
+	for k in 5:
+		var a := float(k) / 5.0 * TAU
+		_lm_part(crown, box, gold, Vector3(cos(a) * 2.0, 1.4, sin(a) * 2.0), Vector3(0.5, 2.4, 0.5))
+	# lasers from the stage, sweeping (spun in _process)
+	var beam := _lm_mat(Color("#7a5cff"), 6.0)
+	beam.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	beam.albedo_color.a = 0.35
+	beam.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var beam_c := beam.duplicate() as StandardMaterial3D
+	beam_c.albedo_color = Color("#3fe0ff", 0.35)
+	beam_c.emission = Color("#3fe0ff")
+	var fan := Node3D.new()
+	fan.position = Vector3(0, sy + 3.0, -dz * 0.5)
+	fan.set_meta("spin", 0.35)
+	root.add_child(fan)
+	_spin.append(fan)
+	for k in 8:
+		var a := float(k) / 8.0 * TAU
+		var tilt := 0.38 + 0.12 * float(k % 3)
+		var L := 160.0
+		var arm := Node3D.new()
+		arm.rotation = Vector3(0, a, tilt)
+		fan.add_child(arm)
+		_lm_part(arm, box, beam if k % 2 == 0 else beam_c, Vector3(0, L * 0.5, 0), Vector3(0.35, L, 0.35))
+	# cabana palms round the deck rim and the helipad cantilevered off the side
+	var trunk := _lm_mat(Color("#5a4632"))
+	var frond := _lm_mat(Color("#2f7a3f"), 0.3)
+	for k in 8:
+		var a := float(k) / 8.0 * TAU + 0.2
+		var q := Vector3(cos(a) * dx * 0.85, sy, sin(a) * dz * 0.85)
+		if q.z < -dz * 0.3:
+			continue  # not in front of the stage
+		_lm_part(root, _lm_cyl(0.15, 0.22, 4.5, 6), trunk, q + Vector3(0, 2.25, 0))
+		_lm_part(root, _lm_cyl(0.0, 1.8, 1.4, 7), frond, q + Vector3(0, 4.8, 0))
+	var pad := Vector3(dx + 6.0, deck_y + 0.6, dz * 0.3)
+	_lm_part(root, _lm_cyl(7.0, 7.0, 0.8, 32), glass, pad)
+	_lm_part(root, ring, cyan, pad + Vector3(0, 0.45, 0), Vector3(6.2, 1.0, 6.2))
+	_lm_part(root, box, gold, pad + Vector3(0, 0.45, 0), Vector3(0.6, 0.1, 4.0))
+	# one light on the roof, one at the door (phone budget)
+	var lamp := OmniLight3D.new()
+	lamp.light_color = Color("#b04bff")
+	lamp.light_energy = 3.0
+	lamp.omni_range = 70.0
+	lamp.position = Vector3(0, sy + 8.0, 0)
+	root.add_child(lamp)
+	var door := OmniLight3D.new()
+	door.light_color = Color("#ffcf7a")
+	door.light_energy = 2.0
+	door.omni_range = 40.0
+	door.position = Vector3(0, 6.0, hz * 1.3)
+	root.add_child(door)
+
+## The Nexus Core Spire: the AI spine of Nexus City, the tallest building in the game — a white-and-steel tower stepping in
+## three times, ringed in cyan data bands, the core glowing through slots in the top tier, and a needle to the full height
+## with a beacon.
+func _core_spire(root: Node3D, hx: float, hz: float, top: float) -> void:
+	var steel := _lm_mat(Color("#c9d3de"), 0.0, 0.7, 0.25)
+	var dark := _lm_mat(Color("#1a2433"), 0.0, 0.5, 0.15)
+	var cyan := _lm_mat(Color("#4fe3ff"), 3.0)
+	var white := _lm_mat(Color("#eaf6ff"), 4.0)
+	var box := BoxMesh.new()
+	var w := maxf(hx, hz)
+	var shaft_top := top * 0.86
+	var tiers := [[0.0, top * 0.32, 1.0], [top * 0.32, top * 0.6, 0.78], [top * 0.6, shaft_top, 0.56]]
+	for t in tiers:
+		var y0: float = t[0]
+		var y1: float = t[1]
+		var f: float = t[2]
+		_lm_part(root, box, dark, Vector3(0, (y0 + y1) * 0.5, 0), Vector3(hx * 2.0 * f, y1 - y0, hz * 2.0 * f))
+		# steel corner piers
+		for sx: float in [-1.0, 1.0]:
+			for sz: float in [-1.0, 1.0]:
+				_lm_part(root, box, steel, Vector3(sx * hx * f, (y0 + y1) * 0.5, sz * hz * f), Vector3(w * 0.25, y1 - y0, w * 0.25))
+		_lm_part(root, box, steel, Vector3(0, y1, 0), Vector3(hx * 2.1 * f, 0.8, hz * 2.1 * f))
+		var y := y0 + 10.0
+		while y < y1 - 3.0:
+			_lm_part(root, box, cyan, Vector3(0, y, 0), Vector3(hx * 2.02 * f, 0.25, hz * 2.02 * f))
+			y += 10.0
+	# the core glowing through the top tier
+	_lm_part(root, box, white, Vector3(0, (top * 0.6 + shaft_top) * 0.5, 0), Vector3(hx * 0.4, shaft_top - top * 0.6 - 6.0, hz * 2.0 * 0.57))
+	# the needle and its beacon
+	_lm_part(root, _lm_cyl(0.25, w * 0.35, top - shaft_top, 12), steel, Vector3(0, (shaft_top + top) * 0.5, 0))
+	for k in 4:
+		var y := shaft_top + (top - shaft_top) * (0.2 + 0.2 * float(k))
+		var r := w * 0.35 * (1.0 - (y - shaft_top) / (top - shaft_top)) + 0.4
+		_lm_part(root, _lm_cyl(r, r, 0.5, 16), cyan, Vector3(0, y, 0))
+	_lm_part(root, SphereMesh.new(), white, Vector3(0, top, 0), Vector3.ONE * 1.6)
+	var beacon := OmniLight3D.new()
+	beacon.light_color = Color("#9fefff")
+	beacon.light_energy = 4.0
+	beacon.omni_range = 60.0
+	beacon.position = Vector3(0, top - 2.0, 0)
+	root.add_child(beacon)

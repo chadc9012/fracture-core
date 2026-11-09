@@ -123,6 +123,10 @@ function useFromSites(regionId: string, x: number, z: number, fallback: Building
 }
 
 /** name a building after the venue or school standing on it: the one site of that kind nearest the footprint */
+/** the two tallest buildings in the game (owner, Nov 9 2026): the Nexus Core Spire, then the Neon City Grand Casino */
+export const CORE_SPIRE_M = 420;
+export const CASINO_TOWER_M = 380;
+
 function nameBuildings(list: CartoBuilding[], regionId: string) {
   for (const s of SITES) {
     if (s.regionId !== regionId || !["mall", "school", "campus", "casino", "nightclub", "lounge"].includes(s.kind)) continue;
@@ -145,6 +149,11 @@ function nexusBuildings(): CartoBuilding[] {
   for (const [k, b] of [["Terminal", A.terminal], ["Hangar", A.hangar]] as const) { const p = airportPoint(b.along, b.across); out.push({ x: p.x, z: p.z, hx: b.length / 2, hz: b.depth / 2, yaw, use: "transport", h: b.height / 60, m: b.height, name: `Nexus Airport ${k}` }); }
   { const p = airportPoint(A.tower.along, A.tower.across); out.push({ x: p.x, z: p.z, hx: A.tower.radius, hz: A.tower.radius, yaw, use: "transport", h: 0.45, m: 26 }); }
   nameBuildings(out, "nexus");
+  // the Nexus Core Spire: the biggest of the Spire district's towers, on the axis north of the hub, made the tallest
+  // building in the game (owner, Nov 9 2026: Nexus at 420 m, the Neon casino next at 380 m)
+  let core: CartoBuilding | null = null;
+  for (const b of out) if (!b.name && b.hx >= 5 && Math.abs(b.x - NEXUS.x) < 8 && b.z < NEXUS.z - 30 && b.z > NEXUS.z - 70 && (!core || b.hx * b.hz > core.hx * core.hz)) core = b;
+  if (core) { core.m = CORE_SPIRE_M; core.h = 1; core.use = "civic"; core.name = "Nexus Core Spire"; }
   return out;
 }
 
@@ -159,8 +168,9 @@ function neonBuildings(): CartoBuilding[] {
     const b = out.find((o) => Math.hypot(o.x - l.tower.x, o.z - l.tower.z) < 0.5);
     if (b) { b.use = "entertainment"; b.name = l.venue.name; }
   }
-  // the casino resort on its own plot
-  out.push({ x: NEON_SITE.x + CASINO_PLOT.x, z: NEON_SITE.z + CASINO_PLOT.z, hx: CASINO_PLOT.r * 0.62, hz: CASINO_PLOT.r * 0.5, yaw: 0, use: "entertainment", h: 1, m: 70, name: "Skyline Casino Resort" });
+  // the casino resort on its own plot: the Neon City Grand Casino (owner, Nov 9 2026), the second-tallest building in the
+  // game at CASINO_TOWER_M, below only the Nexus Core Spire (Godot draws both as landmarks: region_3d.gd)
+  out.push({ x: NEON_SITE.x + CASINO_PLOT.x, z: NEON_SITE.z + CASINO_PLOT.z, hx: CASINO_PLOT.r * 0.62, hz: CASINO_PLOT.r * 0.5, yaw: 0, use: "entertainment", h: 1, m: CASINO_TOWER_M, name: "Neon City Grand Casino" });
   nameBuildings(out, "neon");
   return out;
 }
