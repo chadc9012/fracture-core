@@ -63,9 +63,9 @@ export function continentAt(p: LatLon, reach = 16): ContinentId | null {
 
 /** the street maps each continent opens (the first is shown first); none for the lands not in the game yet */
 export const CONTINENT_MAPS: Readonly<Record<ContinentId, readonly CartoMapId[]>> = {
-  "nexus-city": ["nexus"], "neon-city": ["neon-city"], "verdant-forest": ["veridan", "riverdale"], thalassia: ["thalassia"],
-  "frost-spire": ["frostspire"], "scorched-plains": ["solara"], wastelands: ["wastelands"], "crystal-badlands": ["crystal-badlands"],
-  "storm-islands": ["storm"], "shattered-reefs": ["shattered-reefs"], "ember-peaks": ["ember"], "shrouded-swamps": ["swamps"],
+  "nexus-city": ["nexus"], "neon-city": ["neon-city"], "verdant-forest": ["veridan", "riverdale", "goldenreach"], thalassia: ["thalassia"],
+  "frost-spire": ["frostspire", "frostveil"], "scorched-plains": ["solara"], wastelands: ["wastelands"], "crystal-badlands": ["crystal-badlands"],
+  "storm-islands": ["storm"], "shattered-reefs": ["shattered-reefs", "azure-isles"], "ember-peaks": ["ember"], "shrouded-swamps": ["swamps"],
 };
 
 /** the camera's spin that faces a point: yaw about +Y and pitch, so the globe turns it to the front */

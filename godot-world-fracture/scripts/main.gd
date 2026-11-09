@@ -642,6 +642,9 @@ func _shoot(path: String, opts: Array) -> void:
 			region_map.set_satellite(true)
 		if String(o).begins_with("zoom:") and region_map:
 			region_map.zoom_by(float(String(o).substr(5)))
+		# season:0..3 shows the regions in spring / summer / autumn / winter
+		if String(o).begins_with("season:"):
+			Region3D.season = int(String(o).substr(7))
 		if String(o) == "3d" and region_map:
 			_open_3d(region_map.map_id, null, false)
 		if String(o).begins_with("street:") and region_map:

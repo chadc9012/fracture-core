@@ -219,6 +219,19 @@ defend alternate, no respawns in a round, attackers win by a wipe or 10 s unoppo
 the clock or an unopposed plant, first to 4 rounds; Ascendancy — 3v3, a wipe takes the round, at the 90 s buzzer the
 middle zone opens and whoever holds it takes it, first to 5. Shots: `killbox[:<arena>][:dominion|:freefall|:lockdown|:ascendancy][:fight]`. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
 
+**The planetary board's regions and seasons** (owner, Nov 8 21:43: "work on the rest of the regions and maps", with the
+Planetary World Overview board): three more lands in `src/game/board-lands.ts`, built exactly like new-lands.ts (own ground,
+cover, towns, roads, names; street map, satellite and 3D all from the same data; baked into `public/maps/carto`):
+**Goldenreach Farmlands** (farmland: a patchwork of wheat — the new `crop` cover — green crops, pasture and ploughed earth on
+a farm-lane grid, hedgerows, farmsteads with barns and silos, Windmill Ridge, Goldenreach Ranch, orchards, the river and its
+mill, Harvest Hollow), **Azure Isles** (tropical isles, beaches, resorts: a jungle volcano with a crater lake, the Coral Bay
+resort strip, Azure Marina and Shipyard, the Turquoise Lagoon, a lighthouse cay; the 3D view grows the city's palms) and
+**Frostveil Ice Cap** (the ice sheet, crevasse fields, nunataks, an ice shelf with bergs, Frostveil Station, the Glacier
+Cave). On the globe they open from Verdant Forest, The Shattered Reefs and Frost Spire. **Seasons**: the region 3D view's
+header steps SPRING / SUMMER / AUTUMN / WINTER (it starts on the real calendar's season): the growing covers and every tree
+recolour live — blossom and fresh green, gold and rust, snow on the ground and bare crowns where winter comes (not in the
+tropics, deserts, volcano, ice or the deep). Shots: `map:<id> 3d`, `season:0..3`.
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through

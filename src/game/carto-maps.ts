@@ -23,7 +23,7 @@ import { lavaFissures } from "./set-pieces";
 import { frozenFall } from "./frost-dressing";
 
 export type CartoBounds = { x0: number; z0: number; span: number };
-export type CartoMapId = "nexus" | "neon-city" | "riverdale" | "thalassia" | "veridan" | "frostspire" | "ember" | "wastelands" | "solara" | "swamps" | "storm" | "crystal-badlands" | "shattered-reefs";
+export type CartoMapId = "nexus" | "neon-city" | "riverdale" | "thalassia" | "veridan" | "frostspire" | "ember" | "wastelands" | "solara" | "swamps" | "storm" | "crystal-badlands" | "shattered-reefs" | "goldenreach" | "azure-isles" | "frostveil";
 export type CartoMap = { id: CartoMapId; name: string; sub: string; kind: "city" | "region"; x: number; z: number; reach: number; regionId: string };
 
 const R = (id: string) => REGIONS.find((r) => r.id === id)!;
@@ -65,7 +65,7 @@ export function cartoMapAt(x: number, z: number): CartoMap | null {
 
 export type Cover =
   | "deep" | "sea" | "shallow" | "lake" | "river" | "beach" | "meadow" | "grass" | "forest" | "denseForest" | "scrub" | "dirt"
-  | "desert" | "dunes" | "rock" | "sandstone" | "basalt" | "cliff" | "snow" | "ice" | "ash" | "lava" | "magma" | "marsh" | "urban" | "paved" | "town" | "wash" | "crystal" | "rift" | "reef";
+  | "desert" | "dunes" | "rock" | "sandstone" | "basalt" | "cliff" | "snow" | "ice" | "ash" | "lava" | "magma" | "marsh" | "urban" | "paved" | "town" | "wash" | "crystal" | "rift" | "reef" | "crop";
 
 /** The palette: a light, legible street-map style. Water is a clean light blue, land a warm off-white tinted by what grows
  * on it, cities pale grey blocks for the white streets to sit on; the hot ground of Ember Peaks is the one loud colour. */
@@ -75,12 +75,12 @@ export const COVER_COLOR: Record<Cover, readonly [number, number, number]> = {
   scrub: [222, 216, 176], dirt: [232, 206, 160], desert: [246, 226, 184], dunes: [240, 214, 162], rock: [214, 206, 194], sandstone: [226, 176, 128], basalt: [96, 88, 86], cliff: [190, 180, 168],
   snow: [252, 253, 255], ice: [222, 240, 250], ash: [128, 116, 110], lava: [255, 104, 32], magma: [255, 178, 40], marsh: [182, 206, 172],
   urban: [236, 234, 230], paved: [226, 222, 216], town: [240, 236, 226], wash: [226, 204, 168],
-  crystal: [214, 190, 255], rift: [92, 52, 128], reef: [150, 226, 222],
+  crystal: [214, 190, 255], rift: [92, 52, 128], reef: [150, 226, 222], crop: [244, 226, 160],
 };
 export const COVER_LABEL: Record<Cover, string> = {
   deep: "Deep water", sea: "Sea", shallow: "Shallows", lake: "Lake", river: "River", beach: "Beach", meadow: "Meadow", grass: "Grassland",
   forest: "Forest", denseForest: "Old-growth forest", scrub: "Scrub", dirt: "Dirt", desert: "Desert", dunes: "Dunes", rock: "Rock", sandstone: "Sandstone", basalt: "Basalt", cliff: "Cliffs",
-  snow: "Snow", ice: "Glacier ice", ash: "Ash plain", lava: "Lava field", magma: "Magma pool", marsh: "Marsh", urban: "City", paved: "Paved", town: "Town", wash: "Dry wash", crystal: "Crystal field", rift: "Void rift", reef: "Reef",
+  snow: "Snow", ice: "Glacier ice", ash: "Ash plain", lava: "Lava field", magma: "Magma pool", marsh: "Marsh", urban: "City", paved: "Paved", town: "Town", wash: "Dry wash", crystal: "Crystal field", rift: "Void rift", reef: "Reef", crop: "Crop fields",
 };
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
@@ -327,7 +327,7 @@ export const SAT_COLOR: Record<Cover, readonly [number, number, number]> = {
   scrub: [130, 122, 84], dirt: [148, 122, 88], desert: [204, 178, 130], dunes: [212, 180, 124], rock: [124, 116, 104], sandstone: [176, 118, 76], basalt: [50, 46, 46], cliff: [106, 98, 90],
   snow: [236, 240, 246], ice: [194, 220, 234], ash: [84, 76, 72], lava: [255, 92, 22], magma: [255, 172, 42], marsh: [72, 90, 58],
   urban: [96, 100, 106], paved: [122, 124, 128], town: [120, 114, 104], wash: [170, 150, 118],
-  crystal: [150, 112, 214], rift: [34, 16, 52], reef: [52, 168, 168],
+  crystal: [150, 112, 214], rift: [34, 16, 52], reef: [52, 168, 168], crop: [190, 162, 70],
 };
 /** recolour a map's data (createCartoJob `data`) into a satellite image; noise is keyed to world metres so it never swims */
 export function satelliteFromData(data: Uint8ClampedArray, size: number, bounds: CartoBounds): Uint8ClampedArray {

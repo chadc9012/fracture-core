@@ -24,7 +24,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Owner ask (Nov 8 21:43, "work on the rest of the regions and maps" with the Planetary World Overview and Environment & Asset Catalog boards): the board's regions the game has no ground for — Goldenreach Farmlands (farmland), Azure Isles (tropical islands, beaches, resorts), Frostveil Ice Cap (ice cap) as new lands (map + satellite + Godot 3D, on the globe), then seasons (spring/summer/autumn/winter) across the regions | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-08 |
 | Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront and Solara Outpost arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
@@ -44,6 +43,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Owner ask (Nov 8 21:43): the Planetary World Overview's missing regions — Goldenreach Farmlands, Azure Isles, Frostveil Ice Cap (board-lands.ts: maps, satellite, Godot 3D, on the globe) — and seasons in the region 3D view; plus the sidewalk crowd (crowd.gd) | see git log "regions" / "crowd" (Nov 8) |
 | Owner ask (Nov 8 19:31): cleanup pass — PRs #2/#3 landed; every mission and mode played headless (tests/play/playthrough.gd, 104 steps, 0 problems; descent / m01 / raid / race / speedway play tests). FPS: static props merged into batches and MultiMeshes (scripts/static_batch.gd; street on foot 3,009 → ~1,650 draws, speedway 2,557 → ~200), sign lights thinned, light fade distance, collision near-lists (street script time 3.2 → 1.2 ms). Fixes: civilians spawning at NaN, the descent's source guards respawning / soft-lock on reload, Mission 01 dialogue repeating and toasts stacking, a missing armchair model, scatter overlaps in all regions (spacing hash), hair poking through beanies / caps / bandanas. **Gap for the lead:** the Godot build has no audio system at all | see git log "Godot cleanup pass" (Nov 8) |
 | Asset gap 3 (second half): Goliath tank + hover-car driveable on the street (pivot / hover rules), Leviathan airship in Skyways | see git log "Godot: tank, hover-car, airship" (Nov 8) |
 | Asset gap 3 (first half): vehicle_handling.gd (web rules for every kind) + Skyways — helicopter, jet, patrol boat and sub over Nexus City with a ring course, crashes, prizes; fly-mode controls | see git log "Godot: Skyways" (Nov 8) |

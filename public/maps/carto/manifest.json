@@ -66,6 +66,21 @@
    "url": "/maps/carto/shattered-reefs.png",
    "data": "/maps/carto/shattered-reefs.data.png",
    "size": 1536
+  },
+  "goldenreach": {
+   "url": "/maps/carto/goldenreach.png",
+   "data": "/maps/carto/goldenreach.data.png",
+   "size": 1536
+  },
+  "azure-isles": {
+   "url": "/maps/carto/azure-isles.png",
+   "data": "/maps/carto/azure-isles.data.png",
+   "size": 1536
+  },
+  "frostveil": {
+   "url": "/maps/carto/frostveil.png",
+   "data": "/maps/carto/frostveil.data.png",
+   "size": 1536
   }
  }
 }

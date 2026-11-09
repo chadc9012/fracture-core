@@ -34,6 +34,17 @@ const ROAD := {
 
 var map_id := ""
 var m: Dictionary = {}
+## the season the regions are shown in (owner's Planetary World Overview board: spring, summer, autumn, winter across all
+## regions); -1 follows the real calendar. Kept across regions; the header's button steps it.
+static var season := -1
+const SEASONS := ["SPRING", "SUMMER", "AUTUMN", "WINTER"]
+## the lands that stay as they are all year: the tropics, the deserts, the fire, the ice, the deep
+const NO_WINTER := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire", "neon-city", "nexus"]
+const EVERGREEN := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire"]
+var _season_btn: Button
+var _ground_mat: ShaderMaterial
+var _base_pal := PackedVector3Array()
+var _tree_mats: Array[ShaderMaterial] = []
 var mode: Mode = Mode.CITY
 var _ox := 0.0
 var _oz := 0.0
@@ -86,6 +97,11 @@ func _ready() -> void:
 	_title = Data.label("", 18)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(_title)
+	_season_btn = Data.button(SEASONS[current_season()])
+	_season_btn.pressed.connect(func():
+		season = (current_season() + 1) % 4
+		_apply_season())
+	hb.add_child(_season_btn)
 	_mode_btn = Data.button("STREET VIEW", true)
 	_mode_btn.pressed.connect(func(): set_mode(Mode.STREET if mode == Mode.CITY else Mode.CITY))
 	hb.add_child(_mode_btn)
@@ -248,7 +264,7 @@ func _build_civic_roofs() -> void:
 
 ## Snow and lava mountains read as one smooth cone: scatter rock outcrops where the ground is steep and high
 func _build_slope_rock() -> void:
-	if map_id not in ["frostspire", "ember", "crystal-badlands", "wastelands"]:
+	if map_id not in ["frostspire", "ember", "crystal-badlands", "wastelands", "frostveil"]:
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(map_id) + 7
@@ -286,7 +302,7 @@ func _build_slope_rock() -> void:
 	mesh.radial_segments = 6
 	mesh.rings = 3
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = {"frostspire": Color("#6d737d"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e")}.get(map_id, Color("#555555"))
+	mat.albedo_color = {"frostspire": Color("#6d737d"), "frostveil": Color("#3a3e46"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e")}.get(map_id, Color("#555555"))
 	mat.roughness = 0.95
 	_multimesh(mesh, rocks, mat, 700.0, false)
 
@@ -467,6 +483,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 		preload("res://scripts/thalassia_city.gd").new().build(_world, m, _loc, _h)
 	_build_lamps()
 	_build_labels()
+	_apply_season()
 	_cam = Camera3D.new()
 	_cam.far = 14000.0
 	_cam.near = 0.2
@@ -572,6 +589,15 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#2c3646", "hor": "#6d7a89", "fog": "#58636f", "fog_d": 0.0035, "sun": 0.85, "sun_col": "#dfe8ff", "sun_el": 30.0, "amb": 0.6}, true)
 		"crystal-badlands":
 			s.merge({"top": "#241c4a", "hor": "#d39a7c", "fog": "#6a5676", "fog_d": 0.0014, "sun": 1.0, "sun_col": "#ffc6a0", "sun_el": 22.0, "amb": 0.85, "night": 0.3}, true)
+		"goldenreach":
+			# late-afternoon gold over the fields
+			s.merge({"top": "#5e8fc4", "hor": "#f0d6a8", "fog": "#d8c49e", "fog_d": 0.0010, "sun": 1.35, "sun_col": "#ffd9a0", "sun_el": 24.0, "amb": 0.55, "sat": 1.05}, true)
+		"azure-isles":
+			# high tropical sun, a deep blue sky, turquoise water
+			s.merge({"top": "#1f6fd0", "hor": "#bfe6f4", "fog": "#a8d8ea", "fog_d": 0.0006, "sun": 1.45, "sun_col": "#fff8e6", "sun_el": 60.0, "amb": 0.7, "sat": 1.1, "exp": 0.85}, true)
+		"frostveil":
+			# a low polar sun across the ice, blue shadows, a little ground haze
+			s.merge({"top": "#5d7fa8", "hor": "#e6eef6", "fog": "#d6e2ee", "fog_d": 0.0020, "sun": 1.05, "sun_col": "#ffe8d2", "sun_el": 12.0, "amb": 0.75, "exp": 0.75}, true)
 		"shattered-reefs":
 			s.merge({"top": "#2b78c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 55.0, "amb": 0.65, "sat": 0.95}, true)
 		"thalassia":
@@ -707,6 +733,8 @@ func _build_ground() -> void:
 	while pal.size() < 32:
 		pal.append(Vector3(0.3, 0.3, 0.3))
 	mat.set_shader_parameter("pal", pal)
+	_ground_mat = mat
+	_base_pal = pal.duplicate()
 	var b: Dictionary = m.bounds
 	mat.set_shader_parameter("bounds", Vector4(b.x0, b.z0, b.span, 0))
 	mat.set_shader_parameter("data_tex", Data.texture("maps/%s.data.pngb" % map_id))
@@ -750,6 +778,12 @@ func _build_water() -> void:
 	if map_id == "shattered-reefs":
 		mat.set_shader_parameter("shallow_col", Color(0.1, 0.52, 0.56))
 		mat.set_shader_parameter("clarity", 0.55)
+	elif map_id == "azure-isles":
+		mat.set_shader_parameter("shallow_col", Color(0.12, 0.7, 0.72))
+		mat.set_shader_parameter("clarity", 0.7)
+	elif map_id == "frostveil":
+		mat.set_shader_parameter("deep_col", Color(0.02, 0.08, 0.14))
+		mat.set_shader_parameter("shallow_col", Color(0.12, 0.3, 0.38))
 	elif _style.night > 0.5:
 		mat.set_shader_parameter("deep_col", Color(0.02, 0.03, 0.08))
 		mat.set_shader_parameter("shallow_col", Color(0.05, 0.08, 0.16))
@@ -1071,8 +1105,11 @@ func _build_trees() -> void:
 					continue
 				shards.append(Transform3D(Basis.from_euler(Vector3((roll - 0.06) * 3.0, roll * 40.0, (0.06 - roll) * 2.0)).scaled(Vector3(s2 * 0.5, s2 * 1.6, s2 * 0.5)), Vector3(lx, _h(lx, lz), lz)))
 	if not trees.is_empty():
-		var cold := map_id == "frostspire"
-		_multimesh(_tree_mesh(cold), trees, _tree_material(cold))
+		var cold := map_id in ["frostspire", "frostveil"]
+		if map_id == "azure-isles" and _palms(trees):
+			pass
+		else:
+			_multimesh(_tree_mesh(cold), trees, _tree_material(cold))
 	if not shards.is_empty():
 		var cm := CylinderMesh.new()
 		cm.top_radius = 0.0
@@ -1089,6 +1126,31 @@ func _build_trees() -> void:
 		mat.roughness = 0.1
 		mat.metallic = 0.3
 		_multimesh(cm, shards, mat)
+
+## the tropical isles grow palms, not oaks: the city's palm model, scaled to 7-11 m, one in three of the forest's places
+func _palms(trees: Array[Transform3D]) -> bool:
+	const PALM := "res://models/city/palm.glb"
+	if not ResourceLoader.exists(PALM):
+		return false
+	var sc := (load(PALM) as PackedScene).instantiate()
+	var mis := sc.find_children("*", "MeshInstance3D", true, false)
+	if mis.is_empty():
+		sc.free()
+		return false
+	var mesh: Mesh = (mis[0] as MeshInstance3D).mesh
+	sc.free()
+	var bb := mesh.get_aabb()
+	var k := 9.0 / maxf(bb.size.y, 0.01)
+	var lift := Vector3(-(bb.position.x + bb.size.x * 0.5), -bb.position.y, -(bb.position.z + bb.size.z * 0.5)) * k
+	var xf: Array[Transform3D] = []
+	for i in trees.size():
+		if i % 3 != 0:
+			continue
+		var t := trees[i]
+		var s := t.basis.get_scale().y
+		xf.append(Transform3D(Basis(Vector3.UP, float(i) * 2.4).scaled(Vector3.ONE * k * s), t.origin + lift * s))
+	_multimesh(mesh, xf, null, 700.0)
+	return true
 
 # ---------------- spacing: trees, rocks and shards never stand inside each other ----------------
 ## Scattered things are placed on a jittered grid, and two neighbours could land on top of each other (a pine growing out
@@ -1216,19 +1278,63 @@ func _tree_material(cold: bool) -> Material:
 	var sh := Shader.new()
 	sh.code = """shader_type spatial;
 uniform float cold = 0.0;
+uniform int season = 1;        // 0 spring, 1 summer, 2 autumn, 3 winter
+uniform float evergreen = 0.0; // the tropics and the deserts don't turn
 varying float hy;
 void vertex() { hy = VERTEX.y; }
 void fragment() {
 	float n = fract(sin(dot(floor(NODE_POSITION_WORLD.xz), vec2(12.9898, 78.233))) * 43758.5453);
 	vec3 leaf = mix(vec3(0.1, 0.2, 0.09), vec3(0.22, 0.32, 0.13), n);
+	if (evergreen < 0.5 && cold < 0.5) {
+		if (season == 0) leaf = n > 0.72 ? mix(vec3(0.85, 0.5, 0.65), vec3(0.95, 0.75, 0.85), fract(n * 7.0)) : leaf * vec3(1.15, 1.35, 1.05);
+		if (season == 2) leaf = mix(vec3(0.62, 0.22, 0.06), vec3(0.85, 0.55, 0.12), fract(n * 5.3)) * (n > 0.85 ? 0.6 : 1.0);
+		if (season == 3) leaf = mix(vec3(0.24, 0.2, 0.17), vec3(0.32, 0.27, 0.22), n);
+	}
 	vec3 c = hy < 2.6 ? vec3(0.22, 0.15, 0.1) : leaf * (0.75 + 0.35 * smoothstep(2.6, 10.0, hy));
-	if (cold > 0.5 && hy > 2.6) c = mix(c, vec3(0.88, 0.92, 0.96), smoothstep(5.0, 9.5, hy) * 0.8);
+	if ((cold > 0.5 || (season == 3 && evergreen < 0.5)) && hy > 2.6) c = mix(c, vec3(0.88, 0.92, 0.96), smoothstep(5.0, 9.5, hy) * 0.8);
 	ALBEDO = c;
 	ROUGHNESS = 0.95;
 }"""
 	mat.shader = sh
 	mat.set_shader_parameter("cold", 1.0 if cold else 0.0)
+	mat.set_shader_parameter("evergreen", 1.0 if map_id in EVERGREEN else 0.0)
+	mat.set_shader_parameter("season", current_season())
+	_tree_mats.append(mat)
 	return mat
+
+static func current_season() -> int:
+	if season >= 0:
+		return season
+	var month := int(Time.get_date_dict_from_system().month)
+	return [3, 3, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3][month - 1]
+
+## recolour for the season: the ground's growing covers (green in spring, gold and rust in autumn, under snow in winter
+## where winter comes) and every tree material; nothing is rebuilt
+func _apply_season() -> void:
+	var sn := current_season()
+	if _season_btn:
+		_season_btn.text = SEASONS[sn]
+	for tm in _tree_mats:
+		tm.set_shader_parameter("season", sn)
+	if not _ground_mat or _base_pal.is_empty():
+		return
+	var covers: Array = Data.styles.get("covers", [])
+	var pal := _base_pal.duplicate()
+	var green := ["meadow", "grass", "forest", "denseForest", "scrub", "marsh", "crop"]
+	var bare := ["dirt", "rock", "cliff", "town", "wash"]
+	var turns := map_id not in EVERGREEN
+	for i in covers.size():
+		var cv: String = covers[i]
+		var c: Vector3 = pal[i]
+		if turns and cv in green:
+			match sn:
+				0: c = c * Vector3(0.95, 1.12, 0.9) + Vector3(0.0, 0.03, 0.0)
+				2: c = c.lerp(Vector3(0.55, 0.38, 0.14) if cv != "crop" else Vector3(0.7, 0.55, 0.22), 0.55)
+				3: c = c.lerp(Vector3(0.9, 0.93, 0.97), 0.0 if map_id in NO_WINTER else 0.8)
+		if sn == 3 and map_id not in NO_WINTER and cv in bare:
+			c = c.lerp(Vector3(0.88, 0.9, 0.94), 0.55)
+		pal[i] = c
+	_ground_mat.set_shader_parameter("pal", pal)
 
 ## the Storm Islands: torn-off chunks of land in the sky. Each has a jagged rock underside that tapers to a broken point,
 ## a slightly domed grass top with pines and boulders, and hangs over a sea that runs out to the haze.
