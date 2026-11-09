@@ -1,10 +1,13 @@
 extends Node3D
+const Sound := preload("res://scripts/audio/sound.gd")
 ## Shooting on foot (the Dec 4 plan, phase 2): the operator's gun in the right hand (the web game's authored rifle GLBs —
 ## rifle, rifle-sniper, rifle-fusion — on the RightHand bone, barrel along the bone's +Z as OperatorModel.tsx mounts them),
 ## hitscan bolts from the muzzle toward where the chase camera's crosshair points, stopped by the scene's obstacle boxes,
 ## landing on `targets` (practice dummies now, enemies next), tracers, a muzzle flash and impact sparks, and the combat clip
 ## while the trigger is warm. weapons.gd holds the frames and the magazine; this node is the scene side.
 
+## the shot cue per frame (audio/sfx, scripts/build-sfx.py)
+const SHOT_CUES := { "AUTO": "rifle", "SNIPER": "sniper", "FUSION": "fusion", "SMG": "smg", "SHOTGUN": "shotgun", "SIDEARM": "sidearm", "LMG": "lmg", "HEAVY": "heavy" }
 const Weapons := preload("res://scripts/combat/weapons.gd")
 const MODELS := "res://models/weapons/"
 
@@ -137,10 +140,16 @@ func aim_point(cam: Camera3D) -> Vector3:
 
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
-	if reload:
-		gun().reload()
+	if reload and gun().reload():
+		Sound.sfx("reload", -4.0)
+	var was_reloading := gun().reloading > 0.0
+	var empty_before := gun().mag <= 0
 	var n := gun().step(dt, trigger)
+	if trigger and empty_before and not was_reloading and gun().reloading > 0.0:
+		Sound.sfx("dry", -6.0)
+		Sound.sfx("reload", -4.0)
 	for i in n:
+		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
 		for k in Weapons.pellets(gun().frame):
 			_fire_one(cam, moving_speed)
 	# tracers and the flash fade
@@ -203,12 +212,14 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 		hit_t.hp -= dmg
 		hits_landed += 1
 		hit.emit(hit_t, dmg, head)
+		Sound.sfx_at("headshot" if head else "hit", end, from, -3.0)
 		if hit_t.hp <= 0.0:
 			hit_t.hp = 0.0
 			hit_t.down = 5.0
 			kills += 1
 			if hit_t.node:
 				hit_t.node.visible = false
+			Sound.sfx_at("down", end, from, -4.0)
 			killed.emit(hit_t)
 
 func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:

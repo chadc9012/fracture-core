@@ -1,4 +1,5 @@
 extends Control
+const Sound := preload("res://scripts/audio/sound.gd")
 const Phone := preload("res://scripts/phone.gd")
 const Flora := preload("res://scripts/region_flora.gd")
 const Weather := preload("res://scripts/region_weather.gd")
@@ -440,6 +441,7 @@ func _build_ruins() -> void:
 func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -> void:
 	map_id = id
 	m = Data.map(id)
+	Sound.ambience(Sound.bed_for(id))
 	if m.is_empty():
 		return
 	_split_ruins()

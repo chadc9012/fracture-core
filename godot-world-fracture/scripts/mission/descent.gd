@@ -1,4 +1,5 @@
 extends Control
+const Sound := preload("res://scripts/audio/sound.gd")
 ## The Fracture Descent after Mission 01 (the Dec 4 plan, phase 4): fd-02, fd-03 and fd-04 from the web game's quest chain
 ## (src/game/quests.ts), played on foot in the Verdant Forest region (region_3d.gd in PLAY mode) with the shared operator,
 ## guns, troopers and gear. Objectives follow the web's: fd-02 clears five patrols, fd-03 traces the corrupted signal through
@@ -135,6 +136,9 @@ func _begin(id: String) -> void:
 		_chapter_done()
 		return
 	controls.toast("%s · %s" % [String(quest.id).to_upper(), quest.title])
+	if id == "fd-02":
+		# Mara's crash-site line, recorded (audio/voices)
+		Sound.voice("mara-crash-site")
 	match String(quest.kind):
 		"kills":
 			_set_waypoint(Vector3.ZERO, false)
@@ -205,6 +209,7 @@ func _complete() -> void:
 		p.level = int(p.level) + 1
 	Gear.profile_save(p)
 	controls.toast("%s complete · +%d XP · +%d Nex" % [quest.title, int(quest.xp), int(quest.nex)])
+	Sound.sfx("confirm", -3.0)
 	var i := 0
 	for q in QUESTS:
 		if q.id == id:

@@ -1,4 +1,5 @@
 extends Node3D
+const Sound := preload("res://scripts/audio/sound.gd")
 ## A Fracture boss on the field (boss.gd rules): the authored hull scaled to the row's size, walking the ground toward the
 ## operator while the rules say APPROACH, turning to face it otherwise, flaring red on a telegraph, glowing at the core
 ## while staggered or at a weak point. Attacks land as the rules fire them — LUNGE / SLAM hit the operator inside the
@@ -153,6 +154,7 @@ func step(dt: float) -> void:
 	for e in rules.drain():
 		match String(e.kind):
 			"telegraph":
+				Sound.sfx_at("roar", position, operator.position, -4.0 if size > 4.0 else -9.0)
 				_flash = float(e.seconds)
 				_ring.visible = true
 				var r: float = float(Boss.ATTACKS[e.attack].get("radius", float(rules.def.range) * 0.5))
@@ -161,6 +163,10 @@ func step(dt: float) -> void:
 			"attack":
 				_ring.visible = false
 				_apply_attack(e, dist)
+				if String(e.attack) in ["SLAM", "LUNGE"]:
+					Sound.sfx_at("explosion" if String(e.attack) == "SLAM" else "land", position, operator.position, -6.0)
+				elif String(e.attack) == "BREATH":
+					Sound.sfx_at("jet", position, operator.position, -10.0)
 			"summon":
 				for i in int(e.count):
 					var a := TAU * i / int(e.count)
@@ -172,10 +178,13 @@ func step(dt: float) -> void:
 			"phase":
 				toast.call("%s — %s" % [String(e.label), String(e.telegraph)])
 			"stagger":
+				Sound.sfx("stagger", -4.0)
 				toast.call("STAGGERED — hit the core")
 			"dead":
 				if not _killed:
 					_killed = true
+					Sound.sfx("explosion", -2.0)
+					Sound.sfx("confirm", -4.0)
 					_ring.visible = false
 					killed.emit(rules.id, rules.reward())
 	# the breath keeps burning while it lasts

@@ -308,6 +308,24 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Sound** (`scripts/audio/`, schedule step 8, Nov 9): the Godot build has a mixer. Four buses (`default_bus_layout.tres`:
+Master, Music, SFX, Voices — the settings sliders), the `Audio` autoload (`audio.gd`) behind the static front `Sound`
+(`sound.gd`; scripts call `Sound.sfx("rifle")`, and in the headless `--script` tests, where autoload names do not
+resolve, every call is a silent no-op). What plays: **cues** from `audio/sfx/` — every gun frame, reload, dry click, hit /
+headshot / down, hurt, footsteps / jump / land, doors and the Rift portal, UI, captures and buzzers, boss roars and
+staggers, explosions, engine / hover / rotor / jet / wind / water loops (`scripts/build-sfx.py` designs the set as 24 kHz
+WAVs, since the web's authored SFX live only on the Lovable CDN; an authored WAV of the same name replaces one);
+**ambience** from `audio/ambience/` — the web's regional beds (forest-wilds, nexus-hum, swamp-marsh, underwater-city,
+frost-spire, solara-dunes, wasteland-wind, ember-peaks) crossfaded by region or street style (`Sound.bed_for`); the
+**radio** (`radio.gd` over `data/radio.json`, exported from `src/game/radio-stations.ts` by
+`scripts/export-godot-radio.ts`): the owner's seven recorded stations as linear broadcasts — station ID, the rotation in
+order, a commercial after every two programs, never mid-song; the archived spoiler episodes and ad are not exported and
+never ship — playing in any car on the street (the RADIO button steps the dial and remembers the station); **music** on
+the title (Vektor Lane's Night Drive); **voices** from `audio/voices/` — NOVA's first words at the Mission 01 surge and
+Mara at the crash site (fd-02) are the owner's recordings; Vaelith, Serik Vale and Dr Aris's log wait for step 11. Tests:
+`tests/audio/audio_test.gd` (the broadcast rules, every exported file present, the autoload playing headless) and the loop
+play test's sound checks. Phone: 65 MB of audio, Ogg / MP3 streamed, WAV cues in memory.
+
 **Game Modes** (`scripts/modes/modes_hub.gd`, the ⚔ GAME MODES button on the globe; the owner, Nov 8: PvP, Raids and
 Races are separate modes): a hub of three tiles in the look of the owner's boards (`docs/reference/pvp-maps.png` — navy
 panels with glowing edges, angled title plates, a picture per tile, a strip of modes and features), each opening its own

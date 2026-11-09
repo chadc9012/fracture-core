@@ -1,4 +1,5 @@
 extends Control
+const Sound := preload("res://scripts/audio/sound.gd")
 const Phone := preload("res://scripts/phone.gd")
 ## Killbox in Godot: a match on one of the owner's arenas (arena.gd data) — Kaiju Complex (two blocks of neon-trimmed
 ## rooftops over a Neon City street, joined by three crossings), Fracture Floor (a plaza between two uplink terraces, data
@@ -492,6 +493,7 @@ func _set_event(on: bool) -> void:
 		operator.obstacles.clear()
 		operator.obstacles.append_array(nb)
 	controls.toast((String(f.name).to_upper() + " — " + String(f.brief)) if on else "The %s ends" % String(f.name))
+	Sound.sfx("portal" if on else "stagger", -6.0)
 
 func _slide_shifters(dt: float) -> void:
 	for sh in _shifter_nodes:
@@ -648,8 +650,18 @@ func _process(dt: float) -> void:
 		return
 	dt = minf(dt, 0.05)
 	var alive_us: int = enemies.alive_on(1) + (1 if enemies.down <= 0.0 and enemies.hull > 0.0 else 0)
+	var owners_before: Array[int] = []
+	for z in match_state.zones:
+		owners_before.append(int(z.owner))
+	var was_over: bool = match_state.over
 	match_state.tick(dt, _presence(), alive_us, enemies.alive_on(0))
+	for i in match_state.zones.size():
+		if int(match_state.zones[i].owner) != owners_before[i]:
+			Sound.sfx("capture" if int(match_state.zones[i].owner) == 1 else "buzzer", -6.0)
+	if match_state.over and not was_over:
+		Sound.sfx("confirm", -2.0)
 	if match_state.round_reset:
+		Sound.sfx("buzzer", -4.0)
 		_new_round()
 	var paused: bool = match_state.is_rounds() and match_state.round_over > 0.0
 	if not paused:

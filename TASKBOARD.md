@@ -28,6 +28,7 @@ Rows are the lock; `git fetch` before you claim.
 | --- | --- | --- |
 
 ## Open (unclaimed, take in order within a phase)
+- Small: the `--shot … slicewalk:drive` capture hook no longer enters the car (driving itself works — street race play test and a headless probe both drive); fix the hook so the drive HUD / radio line can be shot.
 - Step 10 (step 7 landed Nov 9 — open now): economy and progression — one profile for XP / levels / Nex across every mode, loot into the inventory from Killbox, bosses and missions, shop prices, daily goals.
 - Step 11 (step 7 landed Nov 9 — open now): story — fd-05 onward (Verdant Forest → Neon City), cutscene playback from the web's story data, Vyrak as the act boss at the Rift Gate.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
@@ -46,6 +47,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Step 8 (schedule): sound — buses, the Audio autoload + Sound front, 35 designed cues, regional ambience beds, the owner's seven radio stations in every car (spoiler archive excluded), title music, NOVA / Mara recorded lines, engine / craft loops; tests/audio | Godot: sound |
 | Step 7 (schedule): the front door and the loop — title screen, settings (graphics tier / sensitivity / audio), the Nexus street as the hub with in-world doors to Apartment 12-04, Killbox, Skyways, the crash-site Descent, the Rift Gate, garage, mall, casino, sports; systems open over the paused street and return to it; tests/front/loop_play.tscn | Godot: the front door |
 | Asset gap 7 (Godot region 3D): oak, cherry blossom, baobab, bamboo, alien flora, vines; sandstone and sea arches, cave mouths, ice spires; flowing lava, snowfall, storm lightning, rift tears; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Trees, rocks and weather" (Nov 9) |
 | Asset gap 5 (fights): the six Fracture bosses at the Rift Gate — phases, poise / stagger / weak point, telegraphed attacks, summons, rewards, on the authored boss hulls | see git log "Godot: the Rift Gate" (Nov 9) |

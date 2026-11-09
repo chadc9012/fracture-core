@@ -1,4 +1,5 @@
 extends Control
+const Sound := preload("res://scripts/audio/sound.gd")
 ## The front door (step 7 of the schedule): the title over the owner's Nexus City art, and the way in. CONTINUE takes an
 ## existing operator to the Nexus street hub (the game's home: every mode has a door there); NEW OPERATOR runs the creator
 ## and then Apartment 12-04, the opening; WORLD MAP is the globe; GAME MODES the PvP / Raids / Races hub; SETTINGS and
@@ -9,8 +10,12 @@ signal pressed(action: String)
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 const ART := "res://textures/billboards/wf-nexus.jpg"
 
+const MUSIC := "res://audio/radio/instrumental-night-drive.ogg"
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	Sound.ambience("")
+	Sound.music(MUSIC, -8.0)
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.02, 0.05)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -95,5 +100,10 @@ func _button(text: String, action: String, col: Color, h := 50) -> Button:
 	b.custom_minimum_size = Vector2(460, h)
 	b.add_theme_font_size_override("font_size", 20 if h >= 60 else 16)
 	b.add_theme_color_override("font_color", col)
-	b.pressed.connect(func(): pressed.emit(action))
+	b.pressed.connect(func():
+		Sound.sfx("confirm" if h >= 60 else "click", -6.0)
+		pressed.emit(action))
 	return b
+
+func _exit_tree() -> void:
+	Sound.music_stop()
