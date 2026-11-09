@@ -31,7 +31,7 @@ Rows are the lock; `git fetch` before you claim.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. PvP modes missing from pvp.ts: Extraction, Ranked (owner's board) — web-side rules + bots (killbox web session), then re-export to Godot.
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
-  4. Wildlife set (deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile) + behaviours (herds, hunting, nocturnal).
+  4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creatures (Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus) with their fights.
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
   7. Vegetation / rock gaps (cherry blossom, baobab, bamboo, alien flora, vines; arch, cave, ice), natural effects (waterfall, lava, snow, lightning), VFX (rift, portal, hologram, energy field).
@@ -45,6 +45,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Commit |
 | --- | --- |
 | Owner ask (Nov 8 21:43): the Planetary World Overview's missing regions — Goldenreach Farmlands, Azure Isles, Frostveil Ice Cap (board-lands.ts: maps, satellite, Godot 3D, on the globe) — and seasons in the region 3D view; plus the sidewalk crowd (crowd.gd) | see git log "regions" / "crowd" (Nov 8) |
+| Asset gap 4 (behaviours): wildlife rules — herds, alarms, predators hunting and feeding, nocturnal rest, raptor stoops, birds, fish and shark, crocodile banks — on stand-in bodies + the rigged fox in the Descent forest | see git log "Godot: wildlife" (Nov 8) |
 | Owner ask (Nov 8 19:31): cleanup pass — PRs #2/#3 landed; every mission and mode played headless (tests/play/playthrough.gd, 104 steps, 0 problems; descent / m01 / raid / race / speedway play tests). FPS: static props merged into batches and MultiMeshes (scripts/static_batch.gd; street on foot 3,009 → ~1,650 draws, speedway 2,557 → ~200), sign lights thinned, light fade distance, collision near-lists (street script time 3.2 → 1.2 ms). Fixes: civilians spawning at NaN, the descent's source guards respawning / soft-lock on reload, Mission 01 dialogue repeating and toasts stacking, a missing armchair model, scatter overlaps in all regions (spacing hash), hair poking through beanies / caps / bandanas. **Gap for the lead:** the Godot build has no audio system at all | see git log "Godot cleanup pass" (Nov 8) |
 | Asset gap 3 (second half): Goliath tank + hover-car driveable on the street (pivot / hover rules), Leviathan airship in Skyways | see git log "Godot: tank, hover-car, airship" (Nov 8) |
 | Asset gap 3 (first half): vehicle_handling.gd (web rules for every kind) + Skyways — helicopter, jet, patrol boat and sub over Nexus City with a ring course, crashes, prizes; fly-mode controls | see git log "Godot: Skyways" (Nov 8) |

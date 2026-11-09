@@ -8,6 +8,8 @@ extends Control
 signal closed
 
 const Region3D := preload("res://scripts/region_3d.gd")
+const WildlifeView := preload("res://scripts/wildlife/wildlife_view.gd")
+var wildlife: Node3D
 const Player := preload("res://scripts/player/operator_player.gd")
 const TouchControls := preload("res://scripts/player/touch_controls.gd")
 const Gunplay := preload("res://scripts/combat/gunplay.gd")
@@ -75,6 +77,13 @@ func _ready() -> void:
 	enemies = Enemies.new()
 	region.world().add_child(enemies)
 	enemies.setup(operator, gunplay)
+	# the forest's wildlife (scripts/wildlife/): herds, a wolf pack, a bear, a panther, the raptor overhead, water life by the pond
+	wildlife = WildlifeView.new()
+	region.world().add_child(wildlife)
+	wildlife.setup(operator, gunplay, func(x: float, z: float) -> float: return region.ground(x, z), func(x: float, z: float) -> bool: return region.over_water(x, z), 7)
+	wildlife.water_level = region.water_level()
+	wildlife.night = float(region._style.get("night", 0.0)) > 0.5
+	wildlife.populate(Vector2(operator.position.x, operator.position.z))
 	enemies.operator_down.connect(func(): _respawn_t = 5.0)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
@@ -248,6 +257,8 @@ func _refresh() -> void:
 func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
 	enemies.step(dt)
+	if wildlife:
+		wildlife.step(dt)
 	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down)
 	if _respawn_t > 0.0:
 		_respawn_t -= dt

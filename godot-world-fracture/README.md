@@ -198,6 +198,18 @@ UP climbs, DOWN descends. Shots: `skyways[:heli|:jet|:boat|:sub|:airship][:go]`.
 Goliath heavy tank (pivots on the spot, drive_physics `pivot`) and the hover-car (floats 0.9 m) across from the garage —
 ENTER them like any car; their numbers come from vehicle_handling.gd (`hull_perf`). Shot: `slicewalk:tank`.
 
+**Wildlife** (`scripts/wildlife/`, asset catalog gap 4): `wildlife.gd` is the pure rule set, a port of the web game's
+wildlife.ts with the board's behaviours added — prey (deer, boar, rabbit, fox, reptile) graze and wander inside a home
+radius, freeze at the alert radius and bolt at the flee radius with the whole herd sharing one alarm; predators (wolf pack,
+bear, panther, crocodile) stalk the nearest prey in sight, chase inside 12 m, catch at arm's length and feed a while, the
+pack sharing its quarry; nocturnal species rest at home by day, diurnal ones by night; the raptor circles its range and
+stoops on rabbits; songbirds feed, flush, circle and land elsewhere; fish school in their pond and dart from a swimmer, the
+shark hunts them; the crocodile is the one land animal that enters water. `wildlife_view.gd` draws them — the fox is the
+real rigged fox GLB (Survey / Walk / Run by speed; models/animals, CC0 model / CC-BY rig, see LICENSE-fox.md), the rest
+are stand-in bodies in species colours with gaits, heads and wings until the Meshy animals land — and makes every ground
+animal a gunplay target. The Fracture Descent forest is populated by `populate()`. Test: tests/wildlife/wildlife_test.gd.
+Shot: `descent:wild`.
+
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two
 blocks over a Neon City street, joined by the west catwalk, the billboard bridge and the east catwalk, with the cover,

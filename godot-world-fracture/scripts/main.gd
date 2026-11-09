@@ -543,9 +543,25 @@ func _shoot(path: String, opts: Array) -> void:
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o) == "cloud":
 			_open_cloud()
-		# descent[:fight]  the Fracture Descent in the Verdant Forest; :fight sprints and fires
+		# descent[:fight|:wild]  the Fracture Descent in the Verdant Forest; :fight sprints and fires; :wild stands by the deer herd
 		if String(o).begins_with("descent"):
 			_open_descent()
+			if String(o).contains("wild"):
+				# the shot: bring a deer herd, the fox and a wolf to the open ground at the crash site so the bodies show
+				var sp: Vector3 = descent.region.stand_point()
+				var k := 0
+				for c in descent.wildlife.rules.critters:
+					if c.species in ["DEER", "FOX", "WOLF", "BOAR", "BEAR"]:
+						c.home = Vector2(sp.x, sp.z) + Vector2(-6.0 + 3.0 * (k % 5), -14.0 - 3.0 * (k / 5))
+						c.pos = c.home
+						c.target = c.home
+						c.state = 1 if c.species == "DEER" else 0   # GRAZE / IDLE
+						c.timer = 30.0
+						k += 1
+				descent.operator.position = sp
+				descent.operator.heading = PI
+				descent.operator.cam_yaw = 0.0
+				descent.operator.cam_pitch = -0.25
 			if String(o).contains("fight"):
 				descent.controls.scripted = true
 				descent.controls.move = Vector2(0.0, 1.0)
@@ -673,6 +689,12 @@ func _shoot(path: String, opts: Array) -> void:
 	if skyways and skyways.state:
 		var sk := skyways
 		print("skyways: ", sk.craft_id, " speed ", sk.state.speed, " y ", sk.hull.position.y, " airborne ", sk.state.airborne, " at ", sk.hull.position.round(), " pad ", sk.pad.round(), " rings ", sk.next_ring, " hull ", sk.hull_hp)
+	if descent and descent.wildlife:
+		var wl: Node3D = descent.wildlife
+		var counts := {}
+		for c in wl.rules.critters:
+			counts[c.species] = int(counts.get(c.species, 0)) + 1
+		print("wildlife: ", counts, " alive ", wl.rules.alive(), " catches ", wl.rules.catches, " night ", wl.night)
 	if killbox and killbox.match_state:
 		var kb := killbox
 		print("killbox: ", kb.mode_id, " us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " zones ", kb.match_state.zones.map(func(z): return [z.id, z.owner]), " rounds ", kb.match_state.us_rounds, "-", kb.match_state.them_rounds, " board ", kb.match_state.board, " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)
