@@ -26,6 +26,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Bug sweep (owner, Nov 9 12:08: "look into the game for small little bugs and glitches"): engine errors from the playthrough, then screenshots of every screen; small fixes across modules — will note anything in another session's claimed area here instead of editing it | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
 | Owner ask (Nov 9, 06:25): finish Nexus — the one repeating street becomes a walkable street grid with each named district (Spire District + the 420 m Central Tower, Vanguard Command Citadel, Central Transit Plaza, Apex Gear, Rusty Trigger, Cylinder & Co, Scrapyard Bazaar & Southern Docks, The Warrens, Marina, Aqua-Tech Shipyard, Perimeter Wall) as its own area | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
