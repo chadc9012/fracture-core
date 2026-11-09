@@ -8,6 +8,8 @@ const Sound := preload("res://scripts/audio/sound.gd")
 signal pressed(action: String)
 
 const CharacterStore := preload("res://scripts/character/character_store.gd")
+const Progression := preload("res://scripts/progress/progression.gd")
+const Gear := preload("res://scripts/gear/gear_store.gd")
 const ART := "res://textures/billboards/wf-nexus.jpg"
 
 const MUSIC := "res://audio/radio/instrumental-night-drive.ogg"
@@ -64,6 +66,13 @@ func _ready() -> void:
 	var has_operator := CharacterStore.exists()
 	if has_operator:
 		box.add_child(_button("CONTINUE", "continue", Color(0.3, 0.95, 1.0), 60))
+		var p := Gear.profile_load()
+		var goals := Progression.daily(p)
+		var open_goals := 0
+		for g in goals:
+			if not bool(g.done):
+				open_goals += 1
+		box.add_child(_button("OPERATOR · %s · %d GOAL%s TODAY" % [Progression.line(p), open_goals, "" if open_goals == 1 else "S"], "operator", Color(0.95, 0.85, 0.4)))
 		box.add_child(_button("GAME MODES · PVP · RAIDS · RACES", "modes", Color(1.0, 0.45, 0.75)))
 		box.add_child(_button("WORLD MAP", "globe", Color(0.85, 0.9, 1.0)))
 		box.add_child(_button("NEW OPERATOR", "new", Color(0.8, 0.8, 0.85)))

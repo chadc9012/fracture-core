@@ -2,4 +2,7 @@
 build/
 generated/
 *.import
-!textures/pbr/*.import
+# the import settings ship with the sources: every texture is VRAM-compressed at 1024 px (512 for normal / roughness
+# maps) for the phone, and the CI import pass must not fall back to the lossless defaults
+!textures/**/*.import
+!models/**/*.import

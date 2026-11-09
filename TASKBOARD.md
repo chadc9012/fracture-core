@@ -26,11 +26,11 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Bug sweep (owner, Nov 9 12:08: "look into the game for small little bugs and glitches"): engine errors from the playthrough, then screenshots of every screen; small fixes across modules — will note anything in another session's claimed area here instead of editing it | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
 | Owner ask (Nov 9, 06:25): finish Nexus — the one repeating street becomes a walkable street grid with each named district (Spire District + the 420 m Central Tower, Vanguard Command Citadel, Central Transit Plaza, Apex Gear, Rusty Trigger, Cylinder & Co, Scrapyard Bazaar & Southern Docks, The Warrens, Marina, Aqua-Tech Shipyard, Perimeter Wall) as its own area | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
 - Small: the `--shot … slicewalk:drive` capture hook no longer enters the car (driving itself works — street race play test and a headless probe both drive); fix the hook so the drive HUD / radio line can be shot.
-- Step 10 (step 7 landed Nov 9 — open now): economy and progression — one profile for XP / levels / Nex across every mode, loot into the inventory from Killbox, bosses and missions, shop prices, daily goals.
 - Step 11 (step 7 landed Nov 9 — open now): story — fd-05 onward (Verdant Forest → Neon City), cutscene playback from the web's story data, Vyrak as the act boss at the Rift Gate.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. Done in the web build (Nov 9): Extraction and Ranked are in pvp.ts with bots and re-exported; left for Godot: Extraction's core rules in killbox_match.gd (port pvp.ts `stepExtract`; it is hidden from the Godot picker until then — Ranked already plays there as Dominion).
@@ -38,7 +38,7 @@ Rows are the lock; `git fetch` before you claim.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
-  7. ~~Vegetation / rock gaps, natural effects~~ — done in region 3D (see Done); still open: portal, hologram and energy-field VFX.
+  7. ~~Vegetation / rock gaps, natural effects, VFX~~ — done in region 3D and scripts/vfx/fx.gd (see Done).
   8. Fantasy & dimensional set (§9) for the Shattered Expanse and boss arenas.
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
@@ -48,6 +48,9 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Step 10 (schedule): economy and progression — one profile through progression.gd (grant / event), the web XP curve with power + hull per level, loot from Killbox / bosses / quests into the inventory, Killbox purse by result and kills, ten daily goals (three a day) with the ledger, the OPERATOR panel on the title and the street | Godot: one profile |
+| Step 9 (schedule): phone performance — frame-time readout, all textures VRAM-compressed at 1024/512 px with tracked .import files, tier-scaled batching / shadows / ranges / LOD / crowds; Nexus firefight 1382 → 1086 draws (medium), 763 (low) | Godot: phone performance |
+| Asset gap 7 (rest): portal, hologram and energy-field VFX (scripts/vfx/fx.gd) at the tears and gates, research stations, vaults and bases, the cities' landmarks and the Nexus hub's Rift Gate; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Portals, holograms, energy fields" (Nov 9) |
 | Step 8 (schedule): sound — buses, the Audio autoload + Sound front, 35 designed cues, regional ambience beds, the owner's seven radio stations in every car (spoiler archive excluded), title music, NOVA / Mara recorded lines, engine / craft loops; tests/audio | Godot: sound |
 | Step 7 (schedule): the front door and the loop — title screen, settings (graphics tier / sensitivity / audio), the Nexus street as the hub with in-world doors to Apartment 12-04, Killbox, Skyways, the crash-site Descent, the Rift Gate, garage, mall, casino, sports; systems open over the paused street and return to it; tests/front/loop_play.tscn | Godot: the front door |
 | Asset gap 7 (Godot region 3D): oak, cherry blossom, baobab, bamboo, alien flora, vines; sandstone and sea arches, cave mouths, ice spires; flowing lava, snowfall, storm lightning, rift tears; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Trees, rocks and weather" (Nov 9) |

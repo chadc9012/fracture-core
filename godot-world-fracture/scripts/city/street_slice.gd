@@ -1,4 +1,5 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 const Settings := preload("res://scripts/front/settings_store.gd")
 const Radio := preload("res://scripts/audio/radio.gd")
@@ -30,6 +31,7 @@ const DOORS := [
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
 var _radio_button: Button
+var _drive_m := 0.0
 var _near_door := ""
 
 
@@ -103,6 +105,7 @@ var parked: Array[Node3D] = []
 var driving_car: RefCounted
 var _near_car: Node3D
 const InventoryView = preload("res://scripts/gear/inventory_view.gd")
+const ProfileView := preload("res://scripts/progress/profile_view.gd")
 const OutfitLook = preload("res://scripts/gear/outfit_look.gd")
 var wallet: Dictionary = {}   # the profile (xp, nex, level) while the street is open; mission_01.gd has its own `profile`
 var gear: Dictionary = {}
@@ -277,6 +280,7 @@ func _spawn_player() -> void:
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	if armed:
 		_troopers(half)
 	enemies.operator_down.connect(func(): _respawn_timer = 5.0)
@@ -306,7 +310,7 @@ func _after_enemies() -> void:
 	# traffic (traffic.gd): eight civilian cars on the block's two lanes, sharing the obstacle list
 	traffic = Traffic.new()
 	world.add_child(traffic)
-	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, 8, 5)
+	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, maxi(3, int(round(8 * Phone.crowd()))), 5)
 	# civilians (civilians.gd): ten walkers on the sidewalks of the active blocks
 	civilians = Civilians.new()
 	world.add_child(civilians)
@@ -314,7 +318,7 @@ func _after_enemies() -> void:
 	# span is (INF, -INF) and every walker spawned at z = NaN (the renderer then rejected their transforms every frame)
 	var first_plan: Dictionary = district.update(operator.position.z, true)
 	var act0: Vector2 = district.extent(District.State.ACTIVE)
-	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, 10, 9)
+	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(4, int(round(10 * Phone.crowd()))), 9)
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
 	_apply_district(first_plan)
@@ -332,6 +336,23 @@ func _after_enemies() -> void:
 	inv.position = Vector2(16, 60)
 	inv.pressed.connect(open_inventory)
 	add_child(inv)
+	var op := Button.new()
+	op.text = "OPERATOR"
+	op.position = Vector2(140, 60)
+	op.pressed.connect(open_profile)
+	add_child(op)
+
+var profile_overlay: Control
+## the operator panel (progress/profile_view.gd) over the street; the wallet reloads on close since goals may have paid
+func open_profile() -> void:
+	if profile_overlay:
+		return
+	profile_overlay = ProfileView.new()
+	profile_overlay.closed.connect(func():
+		profile_overlay.queue_free()
+		profile_overlay = null
+		wallet = Gear.profile_load())
+	add_child(profile_overlay)
 
 func _fit_gear() -> void:
 	gunplay.set_loadout(Gear.loadout(gear))
@@ -340,7 +361,7 @@ func _fit_gear() -> void:
 		controls.set_armed(armed)
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	if enemies:
-		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 		enemies.hull = minf(enemies.hull, enemies.hull_max)
 
 func open_inventory() -> void:
@@ -1111,6 +1132,11 @@ func _cars() -> void:
 						break
 					up = up.get_parent()
 			StaticBatch.compact(car)   # ~40 draws a car down to one per look
+			if Phone.car_range() > 0.0:
+				for gi in car.find_children("*", "GeometryInstance3D", true, false):
+					(gi as GeometryInstance3D).visibility_range_end = Phone.car_range()
+					(gi as GeometryInstance3D).visibility_range_end_margin = 12.0
+					(gi as GeometryInstance3D).visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			if _tile_root:
 				var a := _aabb(car)
 				car.set_meta("size", Vector3(a.size.x, a.size.y, a.size.z))
@@ -1520,28 +1546,15 @@ func _doors() -> void:
 				_box(Vector3(3.2, 0.1, 1.6), Vector3(0, 3.2, 0), flat(Color(0.2, 0.22, 0.25), 0.4, 0.5), holder)
 				_box(Vector3(2.6, 0.5, 0.06), Vector3(0, 2.75, 0.6), _neon_mat(col, 2.5), holder)
 			"portal":
-				var ring := MeshInstance3D.new()
-				var tm := TorusMesh.new()
-				tm.inner_radius = 1.6
-				tm.outer_radius = 1.9
-				ring.mesh = tm
-				ring.rotation.x = PI * 0.5
-				ring.position = Vector3(0, 2.1, 0)
-				ring.material_override = _neon_mat(col, 3.5)
-				holder.add_child(ring)
-				var light := OmniLight3D.new()
-				light.light_color = col
-				light.light_energy = 3.0
-				light.omni_range = 10.0
-				light.position = Vector3(0, 2.0, 0)
-				holder.add_child(light)
+				# the Rift Gate: a ring standing on the walk with a live vortex in it (scripts/vfx/fx.gd)
+				holder.add_child(preload("res://scripts/vfx/fx.gd").portal(1.7, col))
 		if kind != "none":
 			var name_l := Label3D.new()
 			name_l.text = String(d.label)
 			name_l.font_size = 64
 			name_l.pixel_size = 0.008
 			name_l.modulate = col * 1.6
-			name_l.position = Vector3(0, 3.7 if kind != "kiosk" else 2.5, 0)
+			name_l.position = Vector3(0, 2.5 if kind == "kiosk" else (4.8 if kind == "portal" else 3.7), 0)
 			name_l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 			name_l.shaded = false
 			holder.add_child(name_l)
@@ -1649,7 +1662,12 @@ func open_mall() -> void:
 		wallet = Gear.profile_load()
 		mall_overlay.gear = gear
 		mall_overlay.profile = wallet
-		mall_overlay.shop_changed.connect(func(): Gear.save(gear); Gear.profile_save(wallet); _fit_gear())
+		mall_overlay.shop_changed.connect(func():
+			Gear.save(gear)
+			for g in Progression.event(wallet, "shop", 1):
+				controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+			Gear.profile_save(wallet)
+			_fit_gear())
 	mall_overlay.closed.connect(close_mall)
 	add_child(mall_overlay)
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -1850,6 +1868,13 @@ func _drive(dt: float) -> void:
 	operator._place_camera(dt)
 	controls.weapon_name.text = _car_name(c)
 	controls.ammo.text = "%d km/h" % int(absf(car.speed) * 3.6)
+	_drive_m += absf(car.speed) * dt
+	if _drive_m >= 100.0:
+		var pr := Gear.profile_load()
+		for g in Progression.event(pr, "drive_m", int(_drive_m)):
+			controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+		Gear.profile_save(pr)
+		_drive_m = 0.0
 	var top: float = maxf(float(car.profile.get("max_speed", 28.0)), 1.0)
 	var k := clampf(absf(car.speed) / top, 0.0, 1.0)
 	Sound.loop_set("engine", (0.5 if Handling.kind_of(String(c.get_meta("vehicle", ""))) == "TANK" else 0.8) + k * 1.1, -12.0 + k * 6.0)

@@ -22,6 +22,8 @@ const BossArena := preload("res://scripts/combat/boss_arena.gd")
 var boss_arena: Control
 const Title := preload("res://scripts/front/title.gd")
 const SettingsView := preload("res://scripts/front/settings_view.gd")
+const PerfHud := preload("res://scripts/front/perf_hud.gd")
+const ProfileView := preload("res://scripts/progress/profile_view.gd")
 var title: Control
 var settings_view: Control
 ## the view a street door opened; when it closes the street comes back
@@ -44,10 +46,17 @@ var garage: Control
 var driving: Control
 
 func _ready() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)   # the overlays (title, settings, operator) fill the window
 	var bg := ColorRect.new()
 	bg.color = Data.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	# the front-door overlays (title, settings, operator panel) live on their own layer, over whatever the globe or a mode
+	# adds later and under the frame-time readout
+	_overlays = CanvasLayer.new()
+	_overlays.layer = 50
+	add_child(_overlays)
+	add_child(PerfHud.new())   # the frame-time readout over everything (settings: perf_hud)
 	planet_view = PlanetView.new()
 	planet_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	planet_view.open_map.connect(_open_map)
@@ -267,7 +276,7 @@ func _open_title() -> void:
 		return
 	title = Title.new()
 	title.pressed.connect(_title_action)
-	add_child(title)
+	_overlays.add_child(title)
 	planet_view.set_process(false)
 
 func _close_title() -> void:
@@ -291,6 +300,8 @@ func _title_action(action: String) -> void:
 			_close_title()
 		"settings":
 			_open_settings()
+		"operator":
+			_open_profile()
 		"cloud":
 			_close_title()
 			_open_cloud()
@@ -302,7 +313,18 @@ func _open_settings() -> void:
 	settings_view.closed.connect(func():
 		settings_view.queue_free()
 		settings_view = null)
-	add_child(settings_view)
+	_overlays.add_child(settings_view)
+
+var profile_view: Control
+var _overlays: CanvasLayer
+func _open_profile() -> void:
+	if profile_view:
+		return
+	profile_view = ProfileView.new()
+	profile_view.closed.connect(func():
+		profile_view.queue_free()
+		profile_view = null)
+	_overlays.add_child(profile_view)
 
 func _close_street() -> void:
 	if street:
@@ -704,6 +726,8 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_title()
 		if String(o) == "settings":
 			_open_settings()
+		if String(o) == "operator":
+			_open_profile()
 		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default); :fight holds fire
 		if String(o).begins_with("boss"):
 			boss_arena = BossArena.new()

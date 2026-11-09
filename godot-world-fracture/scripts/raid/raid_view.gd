@@ -1,4 +1,5 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
 ## Raid 01 · The Hollow Star in Godot (hollow_star.gd holds the rules). You and a fireteam of five bots (enemies.gd team 1)
 ## against the void army (team 0, the trooper bodies tinted void-violet under raid names), on the shared operator, guns and
 ## gear stack (scripts/player, scripts/combat, scripts/gear), the same way the Killbox runs.
@@ -127,12 +128,13 @@ func _ready() -> void:
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	enemies.operator_team = 1
 	enemies.operator_down.connect(_on_operator_down)
 	enemies.bot_down.connect(_on_bot_down)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
-	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 	enemies.hull = enemies.hull_max
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	# the fireteam: five bots, each holding a pylon or a conduit between fights
@@ -1080,10 +1082,9 @@ func _raid_cleared() -> void:
 	HollowStar.write_save(s)
 	var rw := HollowStar.reward(first)
 	var p := Gear.profile_load()
-	p.nex = int(p.nex) + int(rw.nex)
-	p.xp = int(p.xp) + int(rw.xp)
-	while int(p.xp) >= int(p.level) * 1000:
-		p.level = int(p.level) + 1
+	var res := Progression.grant(p, "raid", int(rw.nex), int(rw.xp), "The Hollow Star")
+	for l in res.lines:
+		controls.toast(String(l))
 	if rw.title != "":
 		var titles: Array = p.get("titles", [])
 		if not titles.has(rw.title):

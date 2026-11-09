@@ -3,7 +3,7 @@ extends RefCounted
 ## "auto" to the device (phone → medium); scripts/phone.gd and the views read it. Keep every option here, not in a view.
 
 const PATH := "user://settings.json"
-const DEFAULTS := { "graphics": "auto", "sensitivity": 1.0, "invert_look": false, "master": 0.8, "music": 0.7, "sfx": 0.9, "voices": 1.0, "simple_hud": true, "radio": "" }
+const DEFAULTS := { "graphics": "auto", "sensitivity": 1.0, "invert_look": false, "master": 0.8, "music": 0.7, "sfx": 0.9, "voices": 1.0, "simple_hud": true, "radio": "", "perf_hud": true }
 const TIERS := ["low", "medium", "high"]
 
 static var _cache: Dictionary = {}

@@ -1,4 +1,5 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## Skyways (asset catalog gap 3: vehicles beyond cars): fly the Rift-Jumper helicopter or the Resonant Strike jet, sail the
 ## Scrap-Iron patrol boat or dive the Hydro-Sub skiff over the exported Nexus City (region_3d.gd in PLAY mode), with the
@@ -341,6 +342,10 @@ func _process(dt: float) -> void:
 			r.hit = true
 			next_ring += 1
 			Sound.sfx("capture", -6.0)
+			var pr := Gear.profile_load()
+			for g in Progression.event(pr, "ring", 1):
+				controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+			Gear.profile_save(pr)
 			if next_ring >= rings.size():
 				finished = true
 				_finish()
@@ -382,10 +387,10 @@ func _finish() -> void:
 	var nex := 350 if fast else 200
 	var xp := 250 if fast else 150
 	var p := Gear.profile_load()
-	p.nex = int(p.nex) + nex
-	p.xp = int(p.xp) + xp
+	var res := Progression.grant(p, "skyways", nex, xp, "Skyways · %d:%02d" % [int(clock / 60.0), int(fmod(clock, 60.0))])
 	Gear.profile_save(p)
-	controls.toast("Course complete in %d:%02d — +%d Nex, +%d XP" % [int(clock / 60.0), int(fmod(clock, 60.0)), nex, xp])
+	for l in res.lines:
+		controls.toast(String(l))
 
 func _exit_tree() -> void:
 	Sound.loop_stop("craft")

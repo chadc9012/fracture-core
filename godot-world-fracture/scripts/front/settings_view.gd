@@ -59,6 +59,11 @@ func _ready() -> void:
 	simple.button_pressed = bool(s.simple_hud)
 	simple.toggled.connect(func(on: bool): Store.set_value("simple_hud", on))
 	box.add_child(simple)
+	var perf := CheckButton.new()
+	perf.text = "Frame-time readout (fps · ms · draws · tris · vram)"
+	perf.button_pressed = bool(s.get("perf_hud", true))
+	perf.toggled.connect(func(on: bool): Store.set_value("perf_hud", on))
+	box.add_child(perf)
 	# audio
 	box.add_child(_label("AUDIO"))
 	for k in ["master", "music", "sfx", "voices"]:

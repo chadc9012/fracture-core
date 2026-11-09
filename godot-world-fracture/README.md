@@ -281,6 +281,14 @@ tears with dark shards floating round them. Weather: snow falls round the camera
 wherever winter comes when the header is on WINTER; lightning strikes round what the camera is looking at every few
 seconds on the Storm Islands and in the Shrouded Swamps, flashing the scene. Shot option `bolt` strikes at once and holds.
 
+**Portals, holograms, energy fields** (`scripts/vfx/fx.gd`, reusable): `portal()` is a dark ring on two footings with a
+glowing lip, a swirling vortex inside (spiral noise pulled inward) and sparks drawn into it — the Nexus hub's RIFT GATE,
+the Fracture Tear, the Void Rifts and the Wastelands' Vault Gate (12 m off the place, facing it). `hologram()` is a
+projector, its light cone and a slowly turning figure with scanlines, rim light and flicker — globes over the cities'
+plazas and campuses, figures over the shops, emblems over the venues (Nexus, Neon City, Thalassia, on the tallest roof
+nearby). `energy_field()` is a hex-plated dome with a bright rim, rising pulses and a glow where it meets the ground —
+over research stations (blue) and the vaults and bunkered bases (amber), sized to the buildings under it.
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through
@@ -307,6 +315,34 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 (the audio buses, for step 8), a simple HUD switch. The globe stays the travel map (WORLD MAP). The loop is played
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
+
+**Economy and progression** (`scripts/progress/`, schedule step 10, Nov 9): one profile. Every mode pays through
+`progression.gd` `grant()` — Killbox (a win 250 + 25 Nex a kill to 600, a loss 100 + 15; XP likewise), the Rift Gate
+bosses, Descent quests, the Hollow Star, races, Skyways courses, Mission 01 — onto `user://profile.json` (cloud-merged).
+The **level** follows the web's curve (level N needs N × 400 XP; the campaign ends near 11) and is worth +2 operator
+power and +4 hull a level, applied wherever the operator fights. **Loot** lands in the inventory from every end: a Killbox
+win rolls the elite pool (a loss the common one), a boss clear the boss pool every time, a Descent quest the elite pool.
+Three **daily goals** are picked from a ten-goal pool by the day (play / win Killbox, drop 20 hostiles, land 8 headshots,
+clear a boss, finish a quest or a race, fly 10 rings, drive 2 km, buy at the Galleria), count what you do in any mode and
+pay once each; the last twenty payments are a ledger. The **OPERATOR** panel (`profile_view.gd`: level, XP bar, Nex,
+power / hull, today's goals, recent payments) opens from the title (the button carries `LV · NEX · goals left`) and the
+street's OPERATOR button. Tests: `tests/progress/progression_test.gd` (the curve, grants, the ledger, goals that count,
+pay once and reset with the day).
+
+**Phone performance** (schedule step 9, Nov 9): a **frame-time readout** sits bottom-right on every screen
+(`scripts/front/perf_hud.gd`: fps · ms (worst) · draw calls · triangles · video memory, averaged over half a second, green
+at 30 fps and above, amber under, red under 20; settings "Frame-time readout", on by default for the test builds). The
+measured fixes behind it, all by graphics tier (`phone.gd`): every texture is **VRAM-compressed** (ETC2 / ASTC on Android)
+at 1024 px, 512 for normal / roughness / metallic maps — before this the headless import left 379 textures lossless
+(uncompressed in GPU memory); the `.import` files now ship in git (`.gitignore`) so the CI import cannot fall back;
+static batching groups repeated props by what their materials look like, not which material object they hold (tinted
+copies now share a MultiMesh; one-off copies stay plain nodes), merges primitives in 96 m cells on medium / 130 m on low
+(48 m on high), stops shadows on props under 4 m (medium), fades small dressing at 95 m (medium) / 60 m (low) and parked
+cars at 90 / 55 m; the sun casts one orthogonal cascade to 70 m on the phone (every caster drawn once for the shadow);
+mesh LOD switches at 4 px (medium) / 8 px (low); crowds and traffic run at 70 % / 45 % of the desktop count. The Nexus
+firefight (`--shot out.png slicewalk:fight perf:out.json`) went from 1382 draws / 1.56 M triangles to **1086 draws / 1.21 M**
+on medium and **763 / 0.81 M** on low; Killbox, the Rift Gate, Skyways and the Descent sit at 200–600 draws. The gate is
+the owner's S22 Ultra at 30 fps in that firefight; the readout is there to read it off.
 
 **Sound** (`scripts/audio/`, schedule step 8, Nov 9): the Godot build has a mixer. Four buses (`default_bus_layout.tres`:
 Master, Music, SFX, Voices — the settings sliders), the `Audio` autoload (`audio.gd`) behind the static front `Sound`

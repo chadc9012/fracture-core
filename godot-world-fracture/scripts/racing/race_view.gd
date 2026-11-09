@@ -1,4 +1,5 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
 const StaticBatch = preload("res://scripts/static_batch.gd")
 const Phone := preload("res://scripts/phone.gd")
 ## The racing venue (the Dec 4 plan, phase 5): Nexus Speedway as a scene — the track laid along track.gd's centreline (asphalt
@@ -568,8 +569,9 @@ func _finish() -> void:
 		var d: Variant = JSON.parse_string(f.get_as_text())
 		if d is Dictionary:
 			profile.merge(d, true)
-	profile.nex = int(profile.nex) + prize
-	profile.xp = int(profile.xp) + 150
+	var res := Progression.grant(profile, "race", prize, 150, "Race")
+	for l in res.lines:
+		controls.toast(String(l))
 	var w := FileAccess.open(PROFILE, FileAccess.WRITE)
 	if w:
 		w.store_string(JSON.stringify(profile))

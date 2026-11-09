@@ -36,6 +36,13 @@ func _run() -> void:
 		labels.append((b as Button).text)
 	ok(labels.has("CONTINUE") and labels.has("SETTINGS") and labels.has("NEW OPERATOR"), "title has CONTINUE / SETTINGS / NEW OPERATOR: " + str(labels))
 	ok(Audio.music_playing() and Audio.ambience_bed() == "", "the title plays its music, no world ambience")
+	# the operator panel opens over the title and closes back to it
+	m._title_action("operator")
+	await _frames(2)
+	ok(m.profile_view != null, "operator panel opens from the title")
+	m.profile_view.closed.emit()
+	await _frames(2)
+	ok(m.profile_view == null and m.title != null, "operator panel closes back to the title")
 	# settings opens over the title and closes back to it
 	m._title_action("settings")
 	await _frames(2)
@@ -63,6 +70,13 @@ func _run() -> void:
 		ok(m._from_street == null and m.street != null and m.street.visible and m.street.is_processing(), "closing %s brings the street back" % id)
 		ok(m.street != null and m.street.operator.position.distance_to(before) < 0.01, "operator kept their spot through %s" % id)
 		ok(Audio.ambience_bed() == "nexus-hum", "the street's bed is back after %s" % id)
+	# the street's OPERATOR button hosts the same panel as an overlay
+	m.street.open_profile()
+	await _frames(2)
+	ok(m.street.profile_overlay != null, "street opens the operator panel")
+	m.street.profile_overlay.closed.emit()
+	await _frames(2)
+	ok(m.street.profile_overlay == null, "street closes the operator panel")
 	# a door the street handles itself (overlay) emits nothing to main
 	m.street._enter_door("mall")
 	await _frames(2)

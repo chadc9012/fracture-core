@@ -1,4 +1,6 @@
 extends Node3D
+const Progression := preload("res://scripts/progress/progression.gd")
+const Gear := preload("res://scripts/gear/gear_store.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## Enemies on foot (the Dec 4 plan, phase 2): Nexus City's cyber troopers (the web game's OVERCLOCKED faction, sim.ts),
 ## five types built on the robot operator bodies so they walk, run and fight with real clips, moved by the same rules as
@@ -242,6 +244,7 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 			by = operator_team
 		if e.team != operator_team and by_player:
 			kills += 1
+			_tally("kill", 1)
 		bot_down.emit(e, by, by_player)
 		_last_hitter.erase(e)
 		return
@@ -462,6 +465,25 @@ func _hit_operator(damage: float) -> void:
 func _on_target_killed(_t: Gunplay.Target) -> void:
 	pass
 
-func _on_target_hit(t: Gunplay.Target, _damage: float, _head: bool) -> void:
+func _on_target_hit(t: Gunplay.Target, _damage: float, head: bool) -> void:
 	if t.has_meta("enemy"):
 		_last_hitter[t.get_meta("enemy")] = OPERATOR_HIT
+		if head:
+			_tally("headshot", 1)
+
+## the daily-goal counters (progression.gd): kills land at once, headshots every fourth so the profile file is not
+## written on every bolt; a finished goal is toasted through `goal_done` (the view decides how to show it)
+signal goal_done(line: String)
+var _pending_head := 0
+
+func _tally(kind: String, n: int) -> void:
+	if kind == "headshot":
+		_pending_head += n
+		if _pending_head < 4:
+			return
+		n = _pending_head
+		_pending_head = 0
+	var p := Gear.profile_load()
+	for g in Progression.event(p, kind, n):
+		goal_done.emit("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+	Gear.profile_save(p)

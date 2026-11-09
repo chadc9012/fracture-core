@@ -40,12 +40,19 @@ func _run() -> void:
 		if String(n.name).begins_with("batch_"):
 			key = "batch"
 		c[key] = int(c.get(key, 0)) + surf
+		if n is MultiMeshInstance3D and key.begins_with("MultiMeshInstance3D <street_slice"):
+			var mmi := n as MultiMeshInstance3D
+			var mesh_name := mmi.multimesh.mesh.resource_path.get_file() if mmi.multimesh.mesh.resource_path != "" else mmi.multimesh.mesh.resource_name
+			if mesh_name == "":
+				mesh_name = "mesh#%d" % (mmi.multimesh.mesh.get_rid().get_id() % 10000)
+			var why := "MMI %s x%d inst, %d surf, vr=%.0f" % [mesh_name, mmi.multimesh.instance_count, surf, mmi.visibility_range_end]
+			c["  · " + why] = int(c.get("  · " + why, 0)) + surf
 		if key == "MeshInstance3D <street_slice.gd>":
 			var mi := n as MeshInstance3D
 			var why := "%s parent=%s kids=%d vr=%.0f skin=%s" % [mi.mesh.get_class(), mi.get_parent().name, mi.get_child_count(), mi.visibility_range_end, str(mi.skin != null)]
 			c["  · " + why] = int(c.get("  · " + why, 0)) + surf
 	var keys := c.keys()
 	keys.sort_custom(func(a, b) -> bool: return c[a] > c[b])
-	for k in keys.slice(0, 30):
+	for k in keys.slice(0, 60):
 		print("%6d  %s" % [c[k], k])
 	quit()

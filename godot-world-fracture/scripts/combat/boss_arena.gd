@@ -1,4 +1,5 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
 ## The Rift Gate (asset catalog: Fracture creatures & bosses): pick one of the six Fracture bosses and fight it at the
 ## Verdant Forest crash-site clearing with the shared on-foot stack — the operator, the worn guns, enemies.gd for the hull
 ## bar, adds and respawns, boss_view.gd for the creature. The HUD carries the boss bar (hull, phase, poise) and the
@@ -107,10 +108,11 @@ func _start() -> void:
 	enemies = Enemies.new()
 	region.world().add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	enemies.operator_down.connect(func(): _respawn_t = 5.0)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
-	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	# the boss, out across the clearing
 	boss = BossView.new()
@@ -171,19 +173,27 @@ func _on_killed(id: String, reward: Dictionary) -> void:
 	var first: bool = not clears.has(id)
 	var nex := int(reward.nex) / (1 if first else 3)
 	var xp := int(reward.xp) / (1 if first else 3)
-	p.nex = int(p.nex) + nex
-	p.xp = int(p.xp) + xp
+	var res := Progression.grant(p, "boss", nex, xp, "%s%s" % [String(Boss.BOSSES[id].name), "" if first else " (repeat)"])
 	clears[id] = int(clears.get(id, 0)) + 1
 	p.boss_clears = clears
 	Gear.profile_save(p)
-	controls.toast("%s down — +%d Nex, +%d XP%s" % [String(Boss.BOSSES[id].name), nex, xp, "" if first else " (repeat)"])
+	# the boss pool drops every clear
+	var gear := Gear.load_save()
+	var it := Gear.roll_drop(gear, "boss", 0.0, Gear.operator_power(gear, int(p.level)), randi())
+	var drop_line := ""
+	if not it.is_empty():
+		Gear.save(gear)
+		drop_line = "\n%s (%d power)" % [String(it.name), int(it.power)]
+		res.lines.append("LOOT · %s" % String(it.name))
+	for l in res.lines:
+		controls.toast(String(l))
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.position = Vector2(-170, -70)
 	var v := VBoxContainer.new()
 	panel.add_child(v)
 	var t := Label.new()
-	t.text = "%s DEFEATED\n+%d Nex   +%d XP" % [String(Boss.BOSSES[id].name).to_upper(), nex, xp]
+	t.text = "%s DEFEATED\n+%d Nex   +%d XP%s" % [String(Boss.BOSSES[id].name).to_upper(), nex, xp, drop_line]
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_font_size_override("font_size", 22)
 	v.add_child(t)

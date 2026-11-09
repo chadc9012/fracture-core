@@ -34,7 +34,7 @@ Status: briefs saved; Meshy generation waits on the owner's account (the API is 
 | Fracture creatures & bosses | Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak (Ashen Covenant), Astravore, Colossus | Godot: all six fightable at the Rift Gate (Nov 9) on the authored boss / elite hulls (frost-wolf, aberration-elite, abyssal-boss, skyborn-boss, aberration-boss, guardian-boss); bespoke models for each still to author. Web: 2 boss GLBs; Astravore not in the encounter core yet |
 | World props & interactables | Street Light, Bench, Trash Bin, Vendor Kiosk, Billboard (dynamic), Signage, Crates, Barrels, Barricade, Terminal (computer), Health / Pickup, Loot Chest | street-geometry.ts / organic-geometry.ts generators + 3 prop GLBs + 11 placeholders; Godot slices use city GLB props |
 | Natural & atmospheric | Waterfall, River / Stream, Ocean, Lava Flow, Snow, Sand Dune, Fog / Mist, Clouds, Rain, Storm (lightning) | web: rivers, ocean, rain (ArenaWeather), fog; Godot region 3D: waterfalls (Storm Islands), flowing lava, snowfall and storm lightning (`scripts/region_weather.gd`) |
-| VFX & world effects | Fracture Rift, Energy Field, Explosion, Fire, Smoke, Dust, Magic / Ability, Portal, Hologram | web: rift / ability / explosion effects; Godot: tracers, flashes, sparks only |
+| VFX & world effects | Fracture Rift, Energy Field, Explosion, Fire, Smoke, Dust, Magic / Ability, Portal, Hologram | web: rift / ability / explosion effects; Godot: tracers, flashes, sparks, plus portal, hologram and energy field (`scripts/vfx/fx.gd`) |
 
 ## Part 2 — 100 additional assets
 
