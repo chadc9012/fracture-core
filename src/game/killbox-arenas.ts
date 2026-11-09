@@ -32,19 +32,22 @@
  * Thalassia Dome (Thalassia, seabed): an undersea research dome, labs round an open moon pool with a bridge across it and a raised gallery
  * on each flank. Its fracture event is the Pressure Breach: mist, bulkheads rise across the lanes and the glass partitions retract.
  *
+ * Void Rift (inside the fracture): five islands of broken city hanging in a purple void at three heights, joined by hard-light ramps.
+ * Its fracture event is the Rift Surge: the void storms, floating rock slabs fall away and void crystals tear up through the islands.
+ *
  * Playlists rotate through the maps that list them (`arenaForRun`). */
 import type { Deck } from "./district-decks";
 import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome" | "void-rift";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
 export type ArenaWalk = { id: string; x: number; z: number; along: "x" | "z"; length: number; width: number; top: number; topB: number; rails: boolean };
 /** a solid prop standing on a roof (HVAC unit, water tank, sign base): blocks movement and line of sight; you can mantle onto it */
-export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier" | "dropship" | "planter" | "pillar"; x: number; z: number; w: number; d: number; h: number };
+export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier" | "dropship" | "planter" | "pillar" | "monolith"; x: number; z: number; w: number; d: number; h: number };
 /** a cover wall that rises and sinks with the fracture event: "up" stands until the event sinks it, "down" lies flush until the
  * event raises it. Solid (movement and sight) while more than half raised. */
 export type ArenaShifter = { id: string; x: number; z: number; w: number; d: number; h: number; phase: "up" | "down" };
@@ -57,7 +60,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome" | "void-rift";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -659,7 +662,64 @@ export const THALASSIA_DOME: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST, "frostveil-ring": FROSTVEIL_RING, "thalassia-dome": THALASSIA_DOME };
+/* ---------------- Void Rift ---------------- */
+
+// inside the fracture itself: broken chunks of city hanging in a purple void. Five islands at three heights, joined by hard-light
+// ramps: each team's island (spawn), a raised centre island (zone B, 2 m up), and a lower island on each flank (zones A and C, 2 m
+// down), with a ramp from every corner island to its neighbours and from each flank to the centre. Falling is a death
+const VR_ROOFS: ArenaRoof[] = [
+  { id: "north-isle", name: "North Shard", x0: -24, x1: 24, z0: 18, z1: 32, top: 20 },
+  { id: "south-isle", name: "South Shard", x0: -24, x1: 24, z0: -32, z1: -18, top: 20 },
+  { id: "core-isle", name: "Rift Core", x0: -10, x1: 10, z0: -8, z1: 8, top: 22 },
+  { id: "west-isle", name: "West Shard", x0: -36, x1: -22, z0: -10, z1: 10, top: 18 },
+  { id: "east-isle", name: "East Shard", x0: 22, x1: 36, z0: -10, z1: 10, top: 18 },
+];
+const VR_WALKS: ArenaWalk[] = [
+  // each spawn island to the core
+  { id: "core-ramp-n", x: -5, z: 13, along: "z", length: 12, width: 3, top: 22, topB: 20, rails: true },
+  { id: "core-ramp-s", x: 5, z: -13, along: "z", length: 12, width: 3, top: 20, topB: 22, rails: true },
+  // each flank island to the core
+  { id: "core-ramp-w", x: -16, z: 0, along: "x", length: 14, width: 3, top: 18, topB: 22, rails: true },
+  { id: "core-ramp-e", x: 16, z: 0, along: "x", length: 14, width: 3, top: 22, topB: 18, rails: true },
+  // each spawn island down to both flanks
+  { id: "flank-ramp-nw", x: -22.5, z: 14, along: "z", length: 10, width: 3, top: 18, topB: 20, rails: true },
+  { id: "flank-ramp-ne", x: 22.5, z: 14, along: "z", length: 10, width: 3, top: 18, topB: 20, rails: true },
+  { id: "flank-ramp-sw", x: -22.5, z: -14, along: "z", length: 10, width: 3, top: 20, topB: 18, rails: true },
+  { id: "flank-ramp-se", x: 22.5, z: -14, along: "z", length: 10, width: 3, top: 20, topB: 18, rails: true },
+];
+const VR_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 25, w: 6, d: 1.2, h: 1.2 },
+  { id: "monolith-n", kind: "monolith", x: -12, z: 22, w: 2, d: 2, h: 3.5 },
+  { id: "crates", kind: "crate", x: 12, z: 21, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "rubble", kind: "barrier", x: 18, z: 21, w: 3, d: 1.2, h: 1.2 },
+  { id: "core-monolith", kind: "monolith", x: 4, z: 4, w: 1.6, d: 1.6, h: 3 },
+  { id: "flank-rubble", kind: "barrier", x: -30, z: 6, w: 3, d: 1.2, h: 1.2 },
+]);
+const VR_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // floating rock slabs that drop away into the void in the surge…
+  { id: "slab-a", x: -18, z: 20.5, w: 4, d: 1, h: 2.4, phase: "up" },
+  { id: "slab-b", x: -33, z: -4, w: 1, d: 4, h: 2.4, phase: "up" },
+  // …and void crystals that tear up through the islands
+  { id: "crystal-core", x: 3, z: 6.5, w: 3, d: 1, h: 2.6, phase: "down" },
+  { id: "crystal-w", x: -24.5, z: 3.5, w: 1, d: 2, h: 2.6, phase: "down" },
+]);
+
+export const VOID_RIFT: KillboxArena = {
+  id: "void-rift", name: "Void Rift", region: "The Fracture · Void Rift", size: "medium",
+  blurb: "Inside the fracture itself: broken chunks of city hanging in a purple void, joined by hard-light ramps. Take the raised Rift Core or the low flank shards. When the rift surges, the void storms, rock slabs drop away and crystals tear up through the islands.",
+  site: { x: 1700, z: 1180 }, base: ARENA_ALTITUDE, look: "void-rift",
+  roofs: VR_ROOFS, walks: VR_WALKS, cover: VR_COVER, ledges: [], shifters: VR_SHIFTERS,
+  spawns: {
+    us: [[-14, 27], [0, 28], [14, 27], [-8, 30], [8, 30], [20, 25]],
+    them: [[14, -27], [0, -28], [-14, -27], [8, -30], [-8, -30], [-20, -25]],
+  },
+  zones: [{ id: "A", dx: -29, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 29, dz: 0 }], objective: [0, 0],
+  killPlane: 10,
+  fracture: { name: "Rift Surge", brief: "The rift surges: the void storms (sight drops), the floating rock slabs fall away and void crystals tear up through the islands.", first: 80, every: 135, length: 25, warn: 10, visibility: 0.55 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST, "frostveil-ring": FROSTVEIL_RING, "thalassia-dome": THALASSIA_DOME, "void-rift": VOID_RIFT };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));

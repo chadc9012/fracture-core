@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, RIVERFRONT as RF, SOLARA_OUTPOST as SO, FROSTVEIL_RING as FR, THALASSIA_DOME as TD, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, RIVERFRONT as RF, SOLARA_OUTPOST as SO, FROSTVEIL_RING as FR, THALASSIA_DOME as TD, VOID_RIFT as VR, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates through all ten maps match to match", () => {
+  it("each arena playlist rotates through all eleven maps match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome"]);
-      expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "kaiju-complex"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift"]);
+      expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
@@ -444,5 +444,26 @@ describe("Thalassia Dome", () => {
     expect(up.every((s) => s.id.startsWith("glass") && shifterLift(TD, s, 5) === 1 && shifterLift(TD, s, t) === 0)).toBe(true);
     expect(down.every((s) => s.id.startsWith("bulkhead") && shifterLift(TD, s, 5) === 0 && shifterLift(TD, s, t) === 1)).toBe(true);
     expect(fractureVisibility(TD, t)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe("Void Rift", () => {
+  it("five islands at three heights over the void, every one reachable by its ramps, every island edge railed but for them", () => {
+    clearWalls(); setWalls("vr", arenaWalls(VR));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(VR, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, VR.base + feet); };
+    expect(surfaceAt(VR, 0, 0)).toBe(22); expect(surfaceAt(VR, -29, 0)).toBe(18); expect(surfaceAt(VR, 0, 25)).toBe(20);
+    expect(surfaceAt(VR, 15, 13)).toBe(-Infinity); // the void
+    expect(hit(0, 8.2, 22)).toBe(true); // the core's edge
+    expect(hit(-5, 8.2, 21.9)).toBe(false); // its north ramp's mouth
+    expect(hit(-10.2, 0, 21.9)).toBe(false); // its west ramp's mouth
+    expect(hit(-30, 10.2, 18)).toBe(true); // the west shard's edge
+    expect(hit(-22.5, 9.8, 18.1)).toBe(false); // the flank ramp's foot
+    clearWalls();
+  });
+  it("the Rift Surge drops the rock slabs and raises the void crystals, in a storm", () => {
+    const t = VR.fracture.first + 10, up = VR.shifters.filter((s) => s.phase === "up"), down = VR.shifters.filter((s) => s.phase === "down");
+    expect(up.every((s) => s.id.startsWith("slab") && shifterLift(VR, s, 5) === 1 && shifterLift(VR, s, t) === 0)).toBe(true);
+    expect(down.every((s) => s.id.startsWith("crystal") && shifterLift(VR, s, 5) === 0 && shifterLift(VR, s, t) === 1)).toBe(true);
+    expect(fractureVisibility(VR, t)).toBeCloseTo(0.55, 5);
   });
 });

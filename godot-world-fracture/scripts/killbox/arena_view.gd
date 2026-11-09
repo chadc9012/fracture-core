@@ -31,6 +31,7 @@ const LOOKS := {
 	"solara-outpost": { "trim": [Color(1.0, 0.6, 0.2), Color(0.95, 0.95, 0.9), Color(0.3, 0.6, 1.0)], "facade": Color(0.82, 0.72, 0.55), "roof": Color(0.8, 0.68, 0.48), "sky": Color(0.45, 0.68, 0.9), "fog": Color(0.92, 0.84, 0.7), "sign": "SOLARA", "sign_color": Color(1.0, 0.6, 0.2) },
 	"frostveil-ring": { "trim": [Color(0.37, 0.88, 1.0), Color(1.0, 0.76, 0.48), Color(0.3, 0.95, 0.6)], "facade": Color(0.23, 0.27, 0.33), "roof": Color(0.75, 0.8, 0.86), "sky": Color(0.05, 0.09, 0.2), "fog": Color(0.55, 0.65, 0.78), "sign": "FROSTVEIL", "sign_color": Color(0.37, 0.88, 1.0) },
 	"thalassia-dome": { "trim": [Color(0.16, 1.0, 0.82), Color(0.62, 0.96, 1.0), Color(1.0, 0.23, 0.16)], "facade": Color(0.23, 0.27, 0.31), "roof": Color(0.82, 0.85, 0.88), "sky": Color(0.01, 0.1, 0.15), "fog": Color(0.05, 0.28, 0.36), "sign": "THALASSIA", "sign_color": Color(0.16, 1.0, 0.82) },
+	"void-rift": { "trim": [Color(0.78, 0.42, 1.0), Color(0.5, 0.96, 1.0), Color(1.0, 0.23, 0.85)], "facade": Color(0.23, 0.19, 0.25), "roof": Color(0.17, 0.17, 0.19), "sky": Color(0.05, 0.0, 0.1), "fog": Color(0.2, 0.06, 0.3), "sign": "VOID RIFT", "sign_color": Color(0.78, 0.42, 1.0) },
 	"prime-roof": { "trim": [Color(0.75, 0.3, 1.0), Color(1.0, 0.3, 0.5), Color(0.4, 0.5, 1.0)], "facade": Color(0.09, 0.07, 0.13), "roof": Color(0.11, 0.1, 0.15), "sky": Color(0.04, 0.01, 0.07), "fog": Color(0.22, 0.1, 0.32), "sign": "KILLBOX PRIME", "sign_color": Color(0.75, 0.3, 1.0) },
 }
 
