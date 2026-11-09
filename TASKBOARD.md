@@ -31,8 +31,8 @@ Rows are the lock; `git fetch` before you claim.
 | Asset gap 5 (Godot): Fracture creatures & bosses — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus as boss fights (web phases + poise rules, attacks, adds) on the authored boss / enemy GLBs | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
-- Step 10 (after step 7 lands): economy and progression — one profile for XP / levels / Nex across every mode, loot into the inventory from Killbox, bosses and missions, shop prices, daily goals.
-- Step 11 (after step 7 lands): story — fd-05 onward (Verdant Forest → Neon City), cutscene playback from the web's story data, Vyrak as the act boss at the Rift Gate.
+- Step 10 (step 7 landed Nov 9 — open now): economy and progression — one profile for XP / levels / Nex across every mode, loot into the inventory from Killbox, bosses and missions, shop prices, daily goals.
+- Step 11 (step 7 landed Nov 9 — open now): story — fd-05 onward (Verdant Forest → Neon City), cutscene playback from the web's story data, Vyrak as the act boss at the Rift Gate.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. Done in the web build (Nov 9): Extraction and Ranked are in pvp.ts with bots and re-exported; left for Godot: Extraction's core rules in killbox_match.gd (port pvp.ts `stepExtract`; it is hidden from the Godot picker until then — Ranked already plays there as Dominion).
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
@@ -49,6 +49,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Step 7 (schedule): the front door and the loop — title screen, settings (graphics tier / sensitivity / audio), the Nexus street as the hub with in-world doors to Apartment 12-04, Killbox, Skyways, the crash-site Descent, the Rift Gate, garage, mall, casino, sports; systems open over the paused street and return to it; tests/front/loop_play.tscn | Godot: the front door |
 | Asset gap 5 (fights): the six Fracture bosses at the Rift Gate — phases, poise / stagger / weak point, telegraphed attacks, summons, rewards, on the authored boss hulls | see git log "Godot: the Rift Gate" (Nov 9) |
 | Owner ask (Nov 8 22:12, "start"): the Town and Floating Islands regions deepened — Old Harrow (a new walled market town: market, guildhall quest board, tavern, cathedral, castle, hamlets, mill) and the Storm Islands (islets, waterfalls, crystals, drifting debris, storm sky); gabled roofs on low buildings everywhere; autumn/winter keeps the conifers green; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Old Harrow and the Storm Islands" (Nov 8) |
 | Owner ask (Nov 8 21:43): the Planetary World Overview's missing regions — Goldenreach Farmlands, Azure Isles, Frostveil Ice Cap (board-lands.ts: maps, satellite, Godot 3D, on the globe) — and seasons in the region 3D view; plus the sidewalk crowd (crowd.gd) | see git log "regions" / "crowd" (Nov 8) |

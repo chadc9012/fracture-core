@@ -210,13 +210,24 @@ func take_enter() -> bool:
 	return e
 
 ## shows the enter prompt ("" hides it)
+var _prompt_label: Label
+## the interaction prompt: the ENTER button carries it on touch; a keyboard player sees "<text> · E" under the crosshair
 func prompt(text: String) -> void:
 	if _enter_button:
 		_enter_button.text = text
 		_enter_button.visible = text != ""
-	elif _prompt_label:
-		_prompt_label.text = ("%s  (E)" % text) if text != "" else ""
-var _prompt_label: Label
+		return
+	if not _prompt_label:
+		_prompt_label = Label.new()
+		_prompt_label.set_anchors_preset(Control.PRESET_CENTER)
+		_prompt_label.position = Vector2(-150, 60)
+		_prompt_label.custom_minimum_size = Vector2(300, 30)
+		_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_prompt_label.add_theme_font_size_override("font_size", 18)
+		_prompt_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		_prompt_label.modulate = Color(0.5, 0.95, 1.0)
+		add_child(_prompt_label)
+	_prompt_label.text = (text + "  ·  E") if text != "" else ""
 
 func set_mode(m: String) -> void:
 	mode = m

@@ -281,6 +281,21 @@ holo info kiosks, drinks machines against the buildings, superbikes on the pavem
 · CENTRAL DISTRICT gateway arch over the avenue (solid only at its pillars). Placed per tile by `_street_set()`.
 Shot: `slice:look=x,y,z,tx,ty,tz` aims the look-dev camera.
 
+**The front door and the loop** (`scripts/front/`, schedule step 7, Nov 9): the game now opens on a **title screen**
+(`title.gd`, over the owner's Nexus City art) — CONTINUE / GAME MODES / WORLD MAP / NEW OPERATOR once an operator is saved,
+NEW OPERATOR alone on a first launch, SETTINGS and ACCOUNT below. NEW OPERATOR runs the creator and then Apartment 12-04,
+and the opening ends on the **Nexus street hub**, the game's home; CONTINUE goes there directly. The hub's systems are
+**in-world doors** on the sidewalks (`street_slice.gd` DOORS: Apartment 12-04, the KILLBOX TERMINAL kiosk, the SKYWAYS
+SHUTTLE and CRASH-SITE TRANSPORT stops, the RIFT GATE portal, the garage forecourt, the Galleria, the Skyline Casino, the
+Sports District), each drawn as what it is with its name over it; walking up shows ENTER <name> (the ENTER button on touch,
+"<name> · E" under the crosshair with a keyboard). The street's own overlays open in place; the others (`main.gd`
+`_street_door`) open over the street, which is hidden and paused, not rebuilt, and comes back where you left it when they
+close. **Settings** (`settings_store.gd`, `settings_view.gd`, `user://settings.json`): graphics tier AUTO / LOW / MEDIUM /
+HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and invert, Master / Music / SFX / Voices volumes
+(the audio buses, for step 8), a simple HUD switch. The globe stays the travel map (WORLD MAP). The loop is played
+headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
+title`, `settings`, `slicewalk:doors`.
+
 **Game Modes** (`scripts/modes/modes_hub.gd`, the ⚔ GAME MODES button on the globe; the owner, Nov 8: PvP, Raids and
 Races are separate modes): a hub of three tiles in the look of the owner's boards (`docs/reference/pvp-maps.png` — navy
 panels with glowing edges, angled title plates, a picture per tile, a strip of modes and features), each opening its own
@@ -317,7 +332,7 @@ bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-w
 bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
 bun scripts/export-godot-killbox.ts       # from the repo root: rewrites godot-world-fracture/data/killbox.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [slicewalk:district] [killbox[:fight]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [slicewalk:district] [slicewalk:doors] [title] [settings] [killbox[:fight]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 

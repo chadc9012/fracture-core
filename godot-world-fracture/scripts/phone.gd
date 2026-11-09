@@ -7,18 +7,35 @@ extends RefCounted
 static func on_phone() -> bool:
 	return OS.has_feature("mobile") or OS.get_name() in ["Android", "iOS"]
 
+const Settings := preload("res://scripts/front/settings_store.gd")
+
+## the graphics tier in force: the player's setting, or by device (settings_store.gd)
+static func tier() -> String:
+	return Settings.tier()
+
 static func fit_viewport(vp: SubViewport) -> void:
-	if on_phone():
-		vp.msaa_3d = Viewport.MSAA_2X
-		vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
-		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-		vp.scaling_3d_scale = 0.8
-		vp.positional_shadow_atlas_size = 2048
-	else:
-		vp.msaa_3d = Viewport.MSAA_4X
+	match tier():
+		"low":
+			vp.msaa_3d = Viewport.MSAA_DISABLED
+			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+			vp.scaling_3d_scale = 0.6
+			vp.positional_shadow_atlas_size = 1024
+		"medium":
+			vp.msaa_3d = Viewport.MSAA_2X
+			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+			vp.scaling_3d_scale = 0.8
+			vp.positional_shadow_atlas_size = 2048
+		_:
+			vp.msaa_3d = Viewport.MSAA_4X
 
 static func fit_sun(sun: DirectionalLight3D, phone_distance := 120.0) -> void:
-	if not on_phone():
+	var t := tier()
+	if t == "low":
+		sun.shadow_enabled = false
+		return
+	if t != "medium":
 		return
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.directional_shadow_max_distance = minf(sun.directional_shadow_max_distance, phone_distance)

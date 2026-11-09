@@ -9,6 +9,24 @@ const WetNight := preload("res://scripts/city/wet_night.gd")
 signal closed
 signal toggle_night
 signal toggle_style
+## a hub door the operator walked up to and entered: "modes", "skyways", "rift", "descent", "apartment" (main.gd opens the
+## view over the street); the garage, mall, casino and sports doors open their own overlays here
+signal door(id: String)
+## the hub block's doors (step 7 of the schedule): where each stands on the Nexus block and what it says
+const DOORS := [
+	{ "id": "apartment", "label": "APARTMENT 12-04", "x": -1.0, "z": 52.0, "color": Color(1.0, 0.85, 0.5), "kind": "door" },
+	{ "id": "modes", "label": "KILLBOX TERMINAL", "x": -1.0, "z": -42.0, "color": Color(1.0, 0.3, 0.7), "kind": "kiosk" },
+	{ "id": "skyways", "label": "SKYWAYS SHUTTLE", "x": 1.0, "z": -74.0, "color": Color(0.3, 0.9, 1.0), "kind": "stop" },
+	{ "id": "descent", "label": "CRASH-SITE TRANSPORT", "x": 1.0, "z": 78.0, "color": Color(0.95, 0.8, 0.4), "kind": "stop" },
+	{ "id": "rift", "label": "RIFT GATE", "x": -1.0, "z": 110.0, "color": Color(0.75, 0.4, 1.0), "kind": "portal" },
+	{ "id": "garage", "label": "GARAGE", "x": 1.0, "z": 8.0, "color": Color(0.3, 0.9, 1.0), "kind": "none" },
+	{ "id": "mall", "label": "GALLERIA MALL", "x": -1.0, "z": -100.0, "color": Color(1.0, 0.6, 0.9), "kind": "door" },
+	{ "id": "casino", "label": "SKYLINE CASINO", "x": 1.0, "z": -24.0, "color": Color(0.95, 0.72, 0.32), "kind": "door" },
+	{ "id": "sports", "label": "SPORTS DISTRICT", "x": -1.0, "z": 20.0, "color": Color(0.1, 0.85, 1.0), "kind": "door" },
+]
+var _door_spots: Array = []     # [{id, label, pos}]
+var _near_door := ""
+
 
 const ROAD_W := 16.0          # kerb to kerb
 const WALK_W := 7.0           # each sidewalk
@@ -136,6 +154,8 @@ func _ready() -> void:
 	_dressing()
 	_street_set()
 	_hub_dressing()
+	if style == "nexus":
+		_doors()
 	if night:
 		_neon()
 		if style == "neon":
@@ -468,9 +488,21 @@ func _process(dt: float) -> void:
 		if c.visible and c.position.distance_to(operator.position) < 3.2:
 			near = c
 			break
-	if near != _near_car:
+	# a hub door within reach outranks a car
+	var door_id := ""
+	var door_label := ""
+	for d in _door_spots:
+		if Vector2(operator.position.x - (d.pos as Vector3).x, operator.position.z - (d.pos as Vector3).z).length() < 3.6:
+			door_id = String(d.id)
+			door_label = String(d.label)
+			break
+	if door_id != _near_door or near != _near_car:
+		_near_door = door_id
 		_near_car = near
-		controls.prompt(("ENTER " + _car_name(near)) if near else "")
+		controls.prompt(("ENTER " + door_label) if door_id != "" else (("ENTER " + _car_name(near)) if near else ""))
+	if controls.take_enter() and door_id != "":
+		_enter_door(door_id)
+		return
 	if controls.take_enter() and near:
 		enter_car(near)
 		return
@@ -1325,6 +1357,76 @@ func _step_dressing(dt: float) -> void:
 		var span: Vector2 = district.span() if district else Vector2(-LENGTH * 0.5, LENGTH * 0.5)
 		if _train.position.z > span.y:
 			_train.position.z = span.x
+
+# --------------------------------------------------------------------------------------------- the hub's doors
+## every door stands on the sidewalk of its side, drawn as what it is (a lit doorway, a kiosk, a shuttle stop, the
+## portal), with its name over it; walking up shows ENTER <name>
+func _doors() -> void:
+	var half := ROAD_W * 0.5
+	for d in DOORS:
+		var side := float(d.x)
+		var pos := Vector3(side * (half + WALK_W - 2.2), 0.18, float(d.z))
+		var col: Color = d.color
+		var kind := String(d.kind)
+		if kind == "none":
+			pos = Vector3(side * (half + WALK_W + 4.0), 0.18, float(d.z))   # the garage's forecourt
+		_door_spots.append({ "id": String(d.id), "label": String(d.label), "pos": pos })
+		var holder := Node3D.new()
+		holder.position = pos
+		holder.rotation.y = PI * 0.5 if side < 0 else -PI * 0.5
+		world.add_child(holder)
+		match kind:
+			"door":
+				_box(Vector3(2.2, 3.2, 0.3), Vector3(0, 1.6, -1.0), flat(Color(0.08, 0.08, 0.1), 0.5, 0.3), holder)
+				_box(Vector3(1.6, 2.6, 0.08), Vector3(0, 1.3, -0.85), _neon_mat(col * 0.6, 1.2), holder)
+			"kiosk":
+				_box(Vector3(1.2, 2.0, 0.7), Vector3(0, 1.0, 0), flat(Color(0.1, 0.1, 0.14), 0.4, 0.6), holder)
+				_box(Vector3(1.0, 0.7, 0.05), Vector3(0, 1.45, 0.37), _neon_mat(col, 3.0), holder)
+			"stop":
+				_box(Vector3(0.12, 3.2, 0.12), Vector3(-1.4, 1.6, 0), flat(Color(0.3, 0.32, 0.35), 0.4, 0.7), holder)
+				_box(Vector3(0.12, 3.2, 0.12), Vector3(1.4, 1.6, 0), flat(Color(0.3, 0.32, 0.35), 0.4, 0.7), holder)
+				_box(Vector3(3.2, 0.1, 1.6), Vector3(0, 3.2, 0), flat(Color(0.2, 0.22, 0.25), 0.4, 0.5), holder)
+				_box(Vector3(2.6, 0.5, 0.06), Vector3(0, 2.75, 0.6), _neon_mat(col, 2.5), holder)
+			"portal":
+				var ring := MeshInstance3D.new()
+				var tm := TorusMesh.new()
+				tm.inner_radius = 1.6
+				tm.outer_radius = 1.9
+				ring.mesh = tm
+				ring.rotation.x = PI * 0.5
+				ring.position = Vector3(0, 2.1, 0)
+				ring.material_override = _neon_mat(col, 3.5)
+				holder.add_child(ring)
+				var light := OmniLight3D.new()
+				light.light_color = col
+				light.light_energy = 3.0
+				light.omni_range = 10.0
+				light.position = Vector3(0, 2.0, 0)
+				holder.add_child(light)
+		if kind != "none":
+			var name_l := Label3D.new()
+			name_l.text = String(d.label)
+			name_l.font_size = 64
+			name_l.pixel_size = 0.008
+			name_l.modulate = col * 1.6
+			name_l.position = Vector3(0, 3.7 if kind != "kiosk" else 2.5, 0)
+			name_l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+			name_l.shaded = false
+			holder.add_child(name_l)
+
+func _enter_door(id: String) -> void:
+	controls.prompt("")
+	match id:
+		"garage":
+			open_garage()
+		"mall":
+			open_mall()
+		"casino":
+			open_casino()
+		"sports":
+			open_sports()
+		_:
+			door.emit(id)
 
 # --------------------------------------------------------------------------------------------- the city garage
 ## a drive-in garage on the near side: a wide roll-up door open onto a lit workshop, the shop's sign in its accent

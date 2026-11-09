@@ -7,6 +7,7 @@ extends Node3D
 ## follow the speed. `sprint` runs faster. Whoever owns the scene gives it `ground_at`, `obstacles` and `bounds`.
 
 const Rig := preload("res://scripts/character/character_rig.gd")
+const Settings := preload("res://scripts/front/settings_store.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 
 const WALK := 2.3
@@ -64,8 +65,9 @@ func attach_camera(c: Camera3D) -> void:
 ## `move`: x right / y forward on the screen, relative to the camera; `look`: drag in px
 func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> void:
 	# look
-	cam_yaw -= look.x * 0.0045
-	cam_pitch = clampf(cam_pitch - look.y * 0.0035, -0.9, 0.45)
+	var sens := Settings.sensitivity()
+	cam_yaw -= look.x * 0.0045 * sens
+	cam_pitch = clampf(cam_pitch - look.y * 0.0035 * sens * (-1.0 if Settings.invert() else 1.0), -0.9, 0.45)
 	# the camera looks along -Z of its yaw: forward on the stick walks away from the camera
 	var fwd := Vector3(-sin(cam_yaw), 0, -cos(cam_yaw))
 	var right := Vector3(cos(cam_yaw), 0, -sin(cam_yaw))
