@@ -1,21 +1,33 @@
-/* Hosted CC0 model URLs. NPC copies have their missing external color maps removed. */
+/* Hosted CC0 model URLs, always read from their .asset.json so they match what scripts/bundle-hosted-assets.mjs puts in the
+ * APK (Nov 9: nine of these were hand-pasted ids from an older upload, so the APK asked for files it never had and the
+ * traffic, police, garages and two tower kinds were missing on the phone). NPC copies have their missing external color
+ * maps removed. */
 import npcA from "@/assets/models/npc-a-repaired.glb.asset.json";
 import npcB from "@/assets/models/npc-b-repaired.glb.asset.json";
 import npcC from "@/assets/models/npc-c-repaired.glb.asset.json";
+import blockAAsset from "@/assets/models/block-a.glb.asset.json";
+import blockBAsset from "@/assets/models/block-b.glb.asset.json";
+import policeAsset from "@/assets/models/police.glb.asset.json";
+import raceFutureAsset from "@/assets/models/race-future.glb.asset.json";
+import suvAsset from "@/assets/models/suv.glb.asset.json";
+import towerAAsset from "@/assets/models/tower-a.glb.asset.json";
+import towerBAsset from "@/assets/models/tower-b.glb.asset.json";
+import truckAsset from "@/assets/models/truck.glb.asset.json";
+import vanAsset from "@/assets/models/van.glb.asset.json";
 
 export const MODELS = {
-  block_a: "/__l5e/assets-v1/67e47f03-75d9-4efe-b2ce-f3ee07cf02f2/block-a.glb",
-  block_b: "/__l5e/assets-v1/07ffecaf-c36d-4fac-ab3f-012562dda640/block-b.glb",
+  block_a: blockAAsset.url,
+  block_b: blockBAsset.url,
   npc_a: npcA.url,
   npc_b: npcB.url,
   npc_c: npcC.url,
-  police: "/__l5e/assets-v1/e28351df-4c60-45b1-b6a3-ec9e905feb04/police.glb",
-  race_future: "/__l5e/assets-v1/1b1e563b-b63e-4d7e-b485-f83cd08d2270/race-future.glb",
-  suv: "/__l5e/assets-v1/00592969-a097-4816-9c4f-3e788f8921ee/suv.glb",
-  tower_a: "/__l5e/assets-v1/18d6c1cc-423e-4d06-8467-2e055bb55caf/tower-a.glb",
-  tower_b: "/__l5e/assets-v1/5092d44c-5549-41c4-b51a-f3e216886c1b/tower-b.glb",
-  truck: "/__l5e/assets-v1/6c088128-5442-434b-b5ed-3ccbc6d52326/truck.glb",
-  van: "/__l5e/assets-v1/c0075348-1bc6-4e67-81dd-990ce9905412/van.glb",
+  police: policeAsset.url,
+  race_future: raceFutureAsset.url,
+  suv: suvAsset.url,
+  tower_a: towerAAsset.url,
+  tower_b: towerBAsset.url,
+  truck: truckAsset.url,
+  van: vanAsset.url,
   /** authored for this game (scripts/build-vehicles.py): off-road tyre on a beadlock rim, same size/axle as the kit wheel */
   wheel: "/models/vehicles/wheel-offroad.glb",
   /** authored Scrap-Built Interceptor body (scripts/build-vehicles.py); wheels come from <Car> */
