@@ -22,6 +22,7 @@ const BossArena := preload("res://scripts/combat/boss_arena.gd")
 var boss_arena: Control
 const Title := preload("res://scripts/front/title.gd")
 const SettingsView := preload("res://scripts/front/settings_view.gd")
+const PerfHud := preload("res://scripts/front/perf_hud.gd")
 var title: Control
 var settings_view: Control
 ## the view a street door opened; when it closes the street comes back
@@ -48,6 +49,7 @@ func _ready() -> void:
 	bg.color = Data.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	add_child(PerfHud.new())   # the frame-time readout over everything (settings: perf_hud)
 	planet_view = PlanetView.new()
 	planet_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	planet_view.open_map.connect(_open_map)

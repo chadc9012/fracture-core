@@ -274,7 +274,7 @@ func _spawn_player() -> void:
 	# traffic (traffic.gd): eight civilian cars on the block's two lanes, sharing the obstacle list
 	traffic = Traffic.new()
 	world.add_child(traffic)
-	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, 8, 5)
+	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, maxi(3, int(round(8 * Phone.crowd()))), 5)
 	# civilians (civilians.gd): ten walkers on the sidewalks of the active blocks
 	civilians = Civilians.new()
 	world.add_child(civilians)
@@ -282,7 +282,7 @@ func _spawn_player() -> void:
 	# span is (INF, -INF) and every walker spawned at z = NaN (the renderer then rejected their transforms every frame)
 	var first_plan: Dictionary = district.update(operator.position.z, true)
 	var act0: Vector2 = district.extent(District.State.ACTIVE)
-	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, 10, 9)
+	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(4, int(round(10 * Phone.crowd()))), 9)
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
 	_apply_district(first_plan)
@@ -1012,6 +1012,11 @@ func _cars() -> void:
 						break
 					up = up.get_parent()
 			StaticBatch.compact(car)   # ~40 draws a car down to one per look
+			if Phone.car_range() > 0.0:
+				for gi in car.find_children("*", "GeometryInstance3D", true, false):
+					(gi as GeometryInstance3D).visibility_range_end = Phone.car_range()
+					(gi as GeometryInstance3D).visibility_range_end_margin = 12.0
+					(gi as GeometryInstance3D).visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			if _tile_root:
 				var a := _aabb(car)
 				car.set_meta("size", Vector3(a.size.x, a.size.y, a.size.z))

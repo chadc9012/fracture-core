@@ -308,6 +308,21 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Phone performance** (schedule step 9, Nov 9): a **frame-time readout** sits bottom-right on every screen
+(`scripts/front/perf_hud.gd`: fps · ms (worst) · draw calls · triangles · video memory, averaged over half a second, green
+at 30 fps and above, amber under, red under 20; settings "Frame-time readout", on by default for the test builds). The
+measured fixes behind it, all by graphics tier (`phone.gd`): every texture is **VRAM-compressed** (ETC2 / ASTC on Android)
+at 1024 px, 512 for normal / roughness / metallic maps — before this the headless import left 379 textures lossless
+(uncompressed in GPU memory); the `.import` files now ship in git (`.gitignore`) so the CI import cannot fall back;
+static batching groups repeated props by what their materials look like, not which material object they hold (tinted
+copies now share a MultiMesh; one-off copies stay plain nodes), merges primitives in 96 m cells on medium / 130 m on low
+(48 m on high), stops shadows on props under 4 m (medium), fades small dressing at 95 m (medium) / 60 m (low) and parked
+cars at 90 / 55 m; the sun casts one orthogonal cascade to 70 m on the phone (every caster drawn once for the shadow);
+mesh LOD switches at 4 px (medium) / 8 px (low); crowds and traffic run at 70 % / 45 % of the desktop count. The Nexus
+firefight (`--shot out.png slicewalk:fight perf:out.json`) went from 1382 draws / 1.56 M triangles to **1086 draws / 1.21 M**
+on medium and **763 / 0.81 M** on low; Killbox, the Rift Gate, Skyways and the Descent sit at 200–600 draws. The gate is
+the owner's S22 Ultra at 30 fps in that firefight; the readout is there to read it off.
+
 **Sound** (`scripts/audio/`, schedule step 8, Nov 9): the Godot build has a mixer. Four buses (`default_bus_layout.tres`:
 Master, Music, SFX, Voices — the settings sliders), the `Audio` autoload (`audio.gd`) behind the static front `Sound`
 (`sound.gd`; scripts call `Sound.sfx("rifle")`, and in the headless `--script` tests, where autoload names do not
