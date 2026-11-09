@@ -29,13 +29,16 @@
  * Frostveil Ring (Frostveil, Beacon Shaft): a frozen ring of deck round a bottomless shaft, a beacon platform in the middle on four
  * bridges and two corner watchtowers. Its fracture event is the Whiteout: blinding snow, ice walls across the bridges, the heated screens die.
  *
+ * Thalassia Dome (Thalassia, seabed): an undersea research dome, labs round an open moon pool with a bridge across it and a raised gallery
+ * on each flank. Its fracture event is the Pressure Breach: mist, bulkheads rise across the lanes and the glass partitions retract.
+ *
  * Playlists rotate through the maps that list them (`arenaForRun`). */
 import type { Deck } from "./district-decks";
 import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
@@ -54,7 +57,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -598,7 +601,65 @@ export const FROSTVEIL_RING: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST, "frostveil-ring": FROSTVEIL_RING };
+/* ---------------- Thalassia Dome ---------------- */
+
+// an undersea research dome on the Thalassia seabed: a lab floor round an open moon pool (each team spawns at one end), a narrow
+// bridge across the pool (zone B), and a raised gallery along each flank (4.5 m up, a stair at each end) holding zones A and C.
+// Falling into the moon pool is a death
+const TD_ROOFS: ArenaRoof[] = [
+  { id: "north-floor", name: "North Lab", x0: -34, x1: 34, z0: 6, z1: 30, top: 20 },
+  { id: "south-floor", name: "South Lab", x0: -34, x1: 34, z0: -30, z1: -6, top: 20 },
+  { id: "west-floor", name: "West Lab", x0: -34, x1: -6, z0: -6, z1: 6, top: 20 },
+  { id: "east-floor", name: "East Lab", x0: 6, x1: 34, z0: -6, z1: 6, top: 20 },
+  { id: "west-gallery", name: "West Gallery", x0: -34, x1: -24, z0: -20, z1: 20, top: 24.5 },
+  { id: "east-gallery", name: "East Gallery", x0: 24, x1: 34, z0: -20, z1: 20, top: 24.5 },
+];
+const TD_WALKS: ArenaWalk[] = [
+  { id: "pool-bridge", x: 0, z: 0, along: "x", length: 14, width: 3, top: 20, topB: 20, rails: true },
+  { id: "gallery-stair-wn", x: -29, z: 24, along: "z", length: 8, width: 3, top: 24.5, topB: 20, rails: true },
+  { id: "gallery-stair-ws", x: -29, z: -24, along: "z", length: 8, width: 3, top: 20, topB: 24.5, rails: true },
+  { id: "gallery-stair-en", x: 29, z: 24, along: "z", length: 8, width: 3, top: 24.5, topB: 20, rails: true },
+  { id: "gallery-stair-es", x: 29, z: -24, along: "z", length: 8, width: 3, top: 20, topB: 24.5, rails: true },
+];
+// the galleries' faces: walled from the floor, open where their stairs arrive
+const TD_LEDGES: ArenaWall[] = [-1, 1].flatMap((s) => [
+  { ax: s * 24, az: -20, bx: s * 24, bz: 20, base: 19.5, top: 24.5 },
+  ...[-20, 20].flatMap((z) => [[-34, -30.5], [-27.5, -24]].map(([a, b]) => ({ ax: s * a!, az: z, bx: s * b!, bz: z, base: 19.5, top: 24.5 }))),
+]);
+const TD_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 25, w: 6, d: 1.2, h: 1.2 },
+  { id: "lab-bench", kind: "console", x: -12, z: 14, w: 3, d: 1.4, h: 1.1 },
+  { id: "specimen-tank", kind: "tank", x: 12, z: 16, w: 3, d: 3, h: 3 },
+  { id: "crates", kind: "crate", x: 20, z: 10, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "pillar", kind: "pillar", x: -16, z: 0, w: 2, d: 2, h: 4 },
+  { id: "pool-barrier", kind: "barrier", x: -10, z: 9, w: 4, d: 1.2, h: 1.2 },
+  { id: "gallery-crates", kind: "crate", x: -31, z: 8, w: 1.6, d: 1.6, h: 1.2 },
+]);
+const TD_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // glass partitions in the labs, that retract when the breach alarm sounds…
+  { id: "glass-a", x: -20, z: 16, w: 4, d: 1, h: 2.6, phase: "up" },
+  { id: "glass-b", x: 8, z: 20, w: 1, d: 4, h: 2.6, phase: "up" },
+  // …and the bulkheads that rise to seal the lanes
+  { id: "bulkhead-n", x: -4, z: 12, w: 4, d: 1, h: 2.6, phase: "down" },
+  { id: "bulkhead-w", x: -20, z: -2, w: 1, d: 4, h: 2.6, phase: "down" },
+]);
+
+export const THALASSIA_DOME: KillboxArena = {
+  id: "thalassia-dome", name: "Thalassia Dome", region: "Thalassia · Seabed Research Dome", size: "medium",
+  blurb: "An undersea research dome on the Thalassia seabed. Fight across the labs, take a gallery, or hold the narrow bridge over the moon pool. When the dome breaches, alarms sound, mist sprays, bulkheads seal the lanes and the glass partitions retract.",
+  site: { x: 1400, z: 1180 }, base: ARENA_ALTITUDE, look: "thalassia-dome",
+  roofs: TD_ROOFS, walks: TD_WALKS, cover: TD_COVER, ledges: TD_LEDGES, shifters: TD_SHIFTERS,
+  spawns: {
+    us: [[-14, 27], [0, 28], [14, 27], [20, 26], [-20, 26], [-8, 27]],
+    them: [[14, -27], [0, -28], [-14, -27], [-20, -26], [20, -26], [8, -27]],
+  },
+  zones: [{ id: "A", dx: -29, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 29, dz: 0 }], objective: [0, 0],
+  killPlane: 12,
+  fracture: { name: "Pressure Breach", brief: "The dome breaches: alarms sound, mist sprays through the labs, bulkheads rise to seal the lanes and the glass partitions retract.", first: 75, every: 135, length: 25, warn: 10, visibility: 0.5 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST, "frostveil-ring": FROSTVEIL_RING, "thalassia-dome": THALASSIA_DOME };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));

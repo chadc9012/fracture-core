@@ -25,7 +25,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Session | Since |
 | --- | --- | --- |
 | Owner ask (Nov 8 22:12, "start"): the planetary board's Town and Floating Islands regions, deepened — Riverdale (town region: trade, quests, local culture) and the Storm Islands (levitating landmasses, anti-gravity zones, otherworldly resources) | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-08 |
-| Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront, Solara Outpost and Frostveil Ring arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
+| Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront, Solara Outpost, Frostveil Ring and Thalassia Dome arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:

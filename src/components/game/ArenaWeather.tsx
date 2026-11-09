@@ -5,7 +5,7 @@ import * as THREE from "three";
 /** Weather inside a Killbox arena (the open world's Weather is hidden up there): falling rain streaks over the arenas, slow rising
  * data motes, drifting snow. One instanced draw; the fall is computed in the vertex shader from a time uniform, so the CPU does
  * nothing per frame but bump the clock. `count` is cut on phones by the caller. */
-export function ArenaWeather({ kind, center, count, size = 140, height = 70 }: { kind: "rain" | "motes" | "snow"; center: { x: number; y: number; z: number }; count: number; size?: number; height?: number }) {
+export function ArenaWeather({ kind, center, count, size = 140, height = 70, color }: { kind: "rain" | "motes" | "snow"; center: { x: number; y: number; z: number }; count: number; size?: number; height?: number; /** overrides the kind's own tint, e.g. pale bubbles for motes rising under water */ color?: string }) {
   const { geometry, material } = useMemo(() => {
     const base = kind === "rain" ? new THREE.BoxGeometry(0.025, 0.85, 0.025) : kind === "snow" ? new THREE.BoxGeometry(0.06, 0.06, 0.06) : new THREE.BoxGeometry(0.09, 0.09, 0.09);
     const g = new THREE.InstancedBufferGeometry();
@@ -18,7 +18,7 @@ export function ArenaWeather({ kind, center, count, size = 140, height = 70 }: {
     g.setAttribute("aOffset", new THREE.InstancedBufferAttribute(off, 3));
     g.instanceCount = count;
     const m = new THREE.ShaderMaterial({
-      uniforms: { uTime: { value: 0 }, uSpeed: { value: kind === "rain" ? 26 : kind === "snow" ? 2.6 : -1.2 }, uH: { value: height }, uCenter: { value: new THREE.Vector3(center.x, center.y, center.z) }, uColor: { value: new THREE.Color(kind === "rain" ? "#a9b8ff" : kind === "snow" ? "#f2f6ff" : "#5ff0ff") }, uOpacity: { value: kind === "rain" ? 0.32 : kind === "snow" ? 0.85 : 0.75 } },
+      uniforms: { uTime: { value: 0 }, uSpeed: { value: kind === "rain" ? 26 : kind === "snow" ? 2.6 : -1.2 }, uH: { value: height }, uCenter: { value: new THREE.Vector3(center.x, center.y, center.z) }, uColor: { value: new THREE.Color(color ?? (kind === "rain" ? "#a9b8ff" : kind === "snow" ? "#f2f6ff" : "#5ff0ff")) }, uOpacity: { value: kind === "rain" ? 0.32 : kind === "snow" ? 0.85 : 0.75 } },
       vertexShader: `uniform float uTime, uSpeed, uH; uniform vec3 uCenter; attribute vec3 aOffset;
         void main() {
           vec3 p = aOffset; p.y = mod(p.y - uTime * uSpeed, uH);
@@ -30,7 +30,7 @@ export function ArenaWeather({ kind, center, count, size = 140, height = 70 }: {
       transparent: true, depthWrite: false, blending: kind === "motes" ? THREE.AdditiveBlending : THREE.NormalBlending,
     });
     return { geometry: g, material: m };
-  }, [kind, count, size, height, center.x, center.y, center.z]);
+  }, [kind, count, size, height, color, center.x, center.y, center.z]);
   useEffect(() => () => { geometry.dispose(); material.dispose(); }, [geometry, material]);
   useFrame(({ clock }) => { material.uniforms["uTime"]!.value = clock.elapsedTime; });
   return <mesh geometry={geometry} material={material} frustumCulled={false} />;

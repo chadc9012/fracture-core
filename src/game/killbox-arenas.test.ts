@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, RIVERFRONT as RF, SOLARA_OUTPOST as SO, FROSTVEIL_RING as FR, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, RIVERFRONT as RF, SOLARA_OUTPOST as SO, FROSTVEIL_RING as FR, THALASSIA_DOME as TD, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates through all nine maps match to match", () => {
+  it("each arena playlist rotates through all ten maps match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring"]);
-      expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "kaiju-complex"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome"]);
+      expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
@@ -423,5 +423,26 @@ describe("Frostveil Ring", () => {
     expect(up.every((s) => s.id.startsWith("screen") && shifterLift(FR, s, 5) === 1 && shifterLift(FR, s, t) === 0)).toBe(true);
     expect(down.every((s) => s.id.startsWith("ice") && shifterLift(FR, s, 5) === 0 && shifterLift(FR, s, t) === 1)).toBe(true);
     expect(fractureVisibility(FR, t)).toBeCloseTo(0.35, 5);
+  });
+});
+
+describe("Thalassia Dome", () => {
+  it("the moon pool is open and railed but for its bridge; the galleries are walled from the floor but for their stairs", () => {
+    clearWalls(); setWalls("td", arenaWalls(TD));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(TD, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, TD.base + feet); };
+    expect(surfaceAt(TD, 3, 4)).toBe(-Infinity); // the pool
+    expect(surfaceAt(TD, 0, 0)).toBe(20); expect(surfaceAt(TD, -29, 0)).toBe(24.5);
+    expect(hit(3, 6.2, 20)).toBe(true); // the pool's rail
+    expect(hit(-6.2, 0, 20)).toBe(false); // the bridge's mouth
+    expect(hit(-23.8, 0, 20)).toBe(true); // the west gallery's face
+    expect(hit(-29, 19.8, 24.4)).toBe(false); // its north stair mouth
+    expect(hit(-24.2, 0, 24.5)).toBe(false); // you can drop off it
+    clearWalls();
+  });
+  it("the Pressure Breach raises the bulkheads and retracts the glass, in mist", () => {
+    const t = TD.fracture.first + 10, up = TD.shifters.filter((s) => s.phase === "up"), down = TD.shifters.filter((s) => s.phase === "down");
+    expect(up.every((s) => s.id.startsWith("glass") && shifterLift(TD, s, 5) === 1 && shifterLift(TD, s, t) === 0)).toBe(true);
+    expect(down.every((s) => s.id.startsWith("bulkhead") && shifterLift(TD, s, 5) === 0 && shifterLift(TD, s, t) === 1)).toBe(true);
+    expect(fractureVisibility(TD, t)).toBeCloseTo(0.5, 5);
   });
 });
