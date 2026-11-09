@@ -35,6 +35,7 @@ func _run() -> void:
 	for b in m.title.find_children("*", "Button", true, false):
 		labels.append((b as Button).text)
 	ok(labels.has("CONTINUE") and labels.has("SETTINGS") and labels.has("NEW OPERATOR"), "title has CONTINUE / SETTINGS / NEW OPERATOR: " + str(labels))
+	ok(Audio.music_playing() and Audio.ambience_bed() == "", "the title plays its music, no world ambience")
 	# settings opens over the title and closes back to it
 	m._title_action("settings")
 	await _frames(2)
@@ -47,6 +48,7 @@ func _run() -> void:
 	await _frames(6)
 	ok(m.title == null and m.street != null and m.street.style == "nexus", "CONTINUE lands on the Nexus street hub")
 	ok(m.street._door_spots.size() >= 9, "the hub has its doors: %d" % m.street._door_spots.size())
+	ok(Audio.ambience_bed() == "nexus-hum" and not Audio.music_playing(), "the street hums (nexus-hum), the title music is gone")
 	# every door round-trips: hidden + paused street while the system is open, restored after
 	for id in ["modes", "skyways", "descent", "rift", "apartment"]:
 		var before: Vector3 = m.street.operator.position
@@ -60,6 +62,7 @@ func _run() -> void:
 			await _frames(4)
 		ok(m._from_street == null and m.street != null and m.street.visible and m.street.is_processing(), "closing %s brings the street back" % id)
 		ok(m.street != null and m.street.operator.position.distance_to(before) < 0.01, "operator kept their spot through %s" % id)
+		ok(Audio.ambience_bed() == "nexus-hum", "the street's bed is back after %s" % id)
 	# a door the street handles itself (overlay) emits nothing to main
 	m.street._enter_door("mall")
 	await _frames(2)

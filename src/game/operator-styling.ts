@@ -72,7 +72,7 @@ export const HAIR_STYLES: readonly HairDef[] = [
   built("dreads-tied", "Locs tied back", "Locs gathered at the back.", M, { kind: "cap", thick: 0.008 }, { kind: "tied", count: 30, radius: 0.0085 }),
   built("locs-bun", "Locs bun", "Locs gathered up into a bun.", F, { kind: "cap", thick: 0.008 }, { kind: "tied", count: 30, radius: 0.0085, bun: true }),
   // owner's operator sheet (Nov 8): short twists on top, sun-lightened at the ends, over a high skin fade
-  built("twist-fade", "Twists & fade", "Short twists on top, lighter at the tips, faded high at the sides.", M, { kind: "cap", thick: 0.005, sideThick: 0, phiMax: 0.4 * PI }, { kind: "twistTop", count: 110, length: 0.05, radius: 0.0058, seed: 83, phiMax: 0.36 * PI, tip: 3 }),
+  built("twist-fade", "Twists & fade", "Twists springing from the top and falling outward, gold at the ends, over a taper fade.", M, { kind: "cap", thick: 0.0018, sideThick: 0.001, phiMax: 0.5 * PI, shade: 0.8 }, { kind: "cap", thick: 0.006, sideThick: 0, phiMax: 0.36 * PI }, { kind: "twistTop", count: 90, length: 0.085, radius: 0.006, seed: 83, phiMax: 0.34 * PI, tip: 5 }),
   built("twists", "Twists", "Fine two-strand twists.", M, { kind: "cap", thick: 0.006 }, { kind: "hanging", count: 60, length: 0.17, jitter: 0.09, radius: 0.0045, seed: 23 }),
   built("cornrows", "Cornrows", "Rows braided back along the scalp.", MF, { kind: "cap", thick: 0.001, shade: 0.85 }, { kind: "cornrows", rows: 7 }),
   built("braids", "Braids", "Rows along the scalp into short braids.", M, { kind: "cap", thick: 0.001, shade: 0.85 }, { kind: "cornrows", rows: 6, hang: 0.1 }),

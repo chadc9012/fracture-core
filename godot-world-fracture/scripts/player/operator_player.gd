@@ -1,4 +1,5 @@
 extends Node3D
+const Sound := preload("res://scripts/audio/sound.gd")
 ## The operator on foot (owner's Dec 4 plan, phase 2): the saved character (character_store.gd) built by character_rig.gd, walked
 ## with its own movement rules rather than the physics server — a ground height function, a list of obstacle boxes to slide
 ## around, a step onto kerbs, a jump — because the street slices are built from merged visual meshes with no collision shapes,
@@ -36,6 +37,7 @@ var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
 
 # camera
 var cam: Camera3D
+var _step_t := 0.6
 var cam_yaw := 0.0
 var cam_pitch := -0.18
 ## the kick the gun adds to the pitch (gunplay.gd), settling back at RECOIL_SETTLE a second
@@ -82,9 +84,12 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		heading = lerp_angle(heading, want_heading, minf(1.0, TURN * dt))
 	# vertical
 	var gy := ground_at.call(position.x, position.z) as float
+	var was_grounded := grounded
 	if grounded and jump:
 		y_vel = JUMP_V
 		grounded = false
+		if cam:
+			Sound.sfx("jump", -10.0)
 	if not grounded:
 		y_vel -= GRAVITY * dt
 	var ny := position.y + y_vel * dt
@@ -108,6 +113,18 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		grounded = false
 	velocity = Vector3(flat.x, y_vel, flat.z)
 	position = Vector3(nx, ny, nz)
+	# footsteps and the landing, for the operator the camera follows (walkers and bots share this mover, silently)
+	if cam:
+		if grounded and not was_grounded and y_vel <= 0.0:
+			Sound.sfx("land", -8.0)
+		var sp := flat.length()
+		if grounded and sp > 0.5:
+			_step_t -= dt * sp
+			if _step_t <= 0.0:
+				_step_t = 2.1
+				Sound.sfx("step", -14.0 + minf(sp, 7.0) * 0.6, 0.15)
+		else:
+			_step_t = minf(_step_t, 0.6)
 	combat_hold = maxf(0.0, combat_hold - dt)
 	recoil = maxf(0.0, recoil - RECOIL_SETTLE * dt * maxf(recoil, 0.05) * 4.0)
 	if rig:

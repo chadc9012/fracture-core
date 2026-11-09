@@ -1,4 +1,5 @@
 extends Control
+const Sound := preload("res://scripts/audio/sound.gd")
 ## World Fracture (Godot): the Planetary Director. The globe is home; tapping a continent twice (or OPEN MAP) opens its region
 ## map, and Back returns to the globe. Android's back gesture goes back too.
 
@@ -247,13 +248,16 @@ func _street_door(id: String) -> void:
 	street.visible = false
 	street.set_process(false)
 	street._vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	street.sound_off()
 	view.closed.connect(func():
 		_from_street.queue_free()
 		_from_street = null
+		Sound.loops_stop()
 		if street:
 			street.visible = true
 			street.set_process(true)
 			street._vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+			street.sound_on()
 		_sync_later())
 	add_child(view)
 
@@ -304,6 +308,7 @@ func _close_street() -> void:
 	if street:
 		street.queue_free()
 		street = null
+	Sound.ambience("")
 	planet_view.set_process(true)
 	_sync_later()
 
@@ -802,6 +807,9 @@ func _shoot(path: String, opts: Array) -> void:
 		# season:0..3 shows the regions in spring / summer / autumn / winter
 		if String(o).begins_with("season:"):
 			Region3D.season = int(String(o).substr(7))
+		# bolt: the region's lightning strikes at once and stays lit (Storm Islands, swamps)
+		if String(o) == "bolt":
+			preload("res://scripts/region_weather.gd").hold = true
 		if String(o) == "3d" and region_map:
 			_open_3d(region_map.map_id, null, false)
 		if String(o).begins_with("street:") and region_map:

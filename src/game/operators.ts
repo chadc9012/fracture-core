@@ -82,6 +82,9 @@ export const FACES: Readonly<Record<BodyType, readonly FaceDef[]>> = {
     head("m-cipher", "Cipher", "Young, close curls.", 0.061),
     head("m-sage", "Sage", "Weathered, grey at the temples.", 0.082),
     head("m-nomad", "Nomad", "Topknot, beard, tinted goggles.", 0.186),
+    // owner's operator sheet (Nov 9): his headshot and portrait painted onto the Cipher head (face landmarks + a piecewise warp),
+    // the head's own eyes kept; goatee and the cheek cuts are in the texture
+    head("m-ronin", "Ronin", "Goatee, a cut across the cheek.", 0.125),
   ],
   robot: [
     head("r-twin", "Twin-lens", "Paired optics, jointed jaw."), head("r-mono", "Mono-lens", "Single round optic."),

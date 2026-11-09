@@ -1198,6 +1198,13 @@ func _story_event(ev: String) -> void:
 	var lines := story.event(ev, _now)
 	_say(lines, story.phase != before)
 	if story.phase != before:
+		# NOVA's first words are the owner's recorded line (audio/voices); the rest of the beat is captions
+		if story.phase == "SURGE":
+			Sound.voice("nova-first-contact")
+		elif story.phase == "DAZED":
+			Sound.sfx("portal", -4.0)
+		elif story.phase == "CLEAR":
+			Sound.sfx("confirm", -4.0)
 		_on_phase()
 
 func _on_phase() -> void:

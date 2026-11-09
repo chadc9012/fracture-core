@@ -1,4 +1,5 @@
 extends Node3D
+const Sound := preload("res://scripts/audio/sound.gd")
 ## Enemies on foot (the Dec 4 plan, phase 2): Nexus City's cyber troopers (the web game's OVERCLOCKED faction, sim.ts),
 ## five types built on the robot operator bodies so they walk, run and fight with real clips, moved by the same rules as
 ## the player (operator_player.gd with no camera), shooting back with gunplay.gd's bolts. Each is a gunplay Target, so the
@@ -422,6 +423,7 @@ func _shoot(e: Enemy) -> void:
 				end = p
 	gunplay.tracer(from, end, Color(0.4, 0.9, 1.0) if e.team == 0 else Color(1.0, 0.75, 0.3))
 	gunplay.spark(end, hit)
+	Sound.sfx_at("smg" if String(e.def.get("weapon", "")) in ["smg", "pistol"] else "rifle", from, player.position, -8.0)
 	if hit:
 		_damage_foe(e, float(e.def.damage))
 
@@ -448,10 +450,12 @@ func _hit_operator(damage: float) -> void:
 	hurt = 1.0
 	since_hit = 0.0
 	operator_hit.emit(damage)
+	Sound.sfx("hurt", -6.0)
 	if hull <= 0.0:
 		hull = 0.0
 		down = 5.0
 		deaths += 1
+		Sound.sfx("down", -2.0)
 		operator_down.emit()
 
 func _on_target_killed(_t: Gunplay.Target) -> void:

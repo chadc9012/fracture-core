@@ -1,4 +1,7 @@
 extends Control
+const Sound := preload("res://scripts/audio/sound.gd")
+const Settings := preload("res://scripts/front/settings_store.gd")
+const Radio := preload("res://scripts/audio/radio.gd")
 const Phone := preload("res://scripts/phone.gd")
 const WetNight := preload("res://scripts/city/wet_night.gd")
 ## Nexus City street slice: one block of a Nexus avenue at golden hour, built to chase the owner's concept frames (wet
@@ -25,6 +28,7 @@ const DOORS := [
 	{ "id": "sports", "label": "SPORTS DISTRICT", "x": -1.0, "z": 20.0, "color": Color(0.1, 0.85, 1.0), "kind": "door" },
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
+var _radio_button: Button
 var _near_door := ""
 
 
@@ -171,11 +175,21 @@ func _ready() -> void:
 	look_from(Vector3(ROAD_W * 0.5 + 3.4, 1.7, 30.0), Vector3(ROAD_W * 0.5 - 3.0, 4.0, -40.0))
 	if walk:
 		_spawn_player()
+	sound_on()
 	var back := Button.new()
 	back.text = "← BACK"
 	back.position = Vector2(16, 16)
 	back.pressed.connect(func(): closed.emit())
 	add_child(back)
+	_radio_button = Button.new()
+	_radio_button.text = "RADIO"
+	_radio_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_radio_button.position = Vector2(-240, 100)
+	_radio_button.custom_minimum_size = Vector2(224, 40)
+	_radio_button.add_theme_font_size_override("font_size", 13)
+	_radio_button.visible = false
+	_radio_button.pressed.connect(_radio_next)
+	add_child(_radio_button)
 	var tod := Button.new()
 	tod.text = "DAY" if night else "NIGHT"
 	tod.position = Vector2(110, 16)
@@ -1416,6 +1430,7 @@ func _doors() -> void:
 
 func _enter_door(id: String) -> void:
 	controls.prompt("")
+	Sound.sfx("portal" if id == "rift" else "door", -4.0)
 	match id:
 		"garage":
 			open_garage()
@@ -1585,6 +1600,12 @@ func enter_car(c: Node3D) -> void:
 	controls.set_mode("drive")
 	controls.prompt("")
 	controls.toast("Driving " + _car_name(c) + " · hold BRAKE to stop, EXIT to get out")
+	Sound.sfx("click", -6.0)
+	Sound.loop("engine", "hover" if bool(perf.get("hover", false)) else "engine", -9.0, 0.5 if Handling.kind_of(id) == "TANK" else 0.8)
+	var saved := String(Settings.get_value("radio"))
+	if saved != "" and Radio.station_def(saved).size() > 0:
+		Sound.radio_on(saved)
+	_radio_button.visible = true
 	if controls.touch_ui and controls._enter_button:
 		controls._enter_button.text = "EXIT"
 		controls._enter_button.visible = true
@@ -1609,6 +1630,26 @@ func exit_car() -> void:
 	operator.cam_pivot = Vector3(0, 1.55, 0)
 	controls.set_mode("foot")
 	controls.prompt("")
+	Sound.loop_stop("engine")
+	Sound.radio_off()
+	_radio_button.visible = false
+
+## the car radio: the dial steps through the owner's stations and off; the station is remembered
+func _radio_next() -> void:
+	Sound.radio_next()
+	Settings.set_value("radio", Sound.radio_station())
+	Sound.sfx("click", -8.0)
+
+## the street's sound: the city bed (main.gd calls this again when a door's system closes and the street comes back)
+func sound_on() -> void:
+	Sound.ambience(Sound.bed_for(style), -12.0 if night else -10.0)
+
+func sound_off() -> void:
+	Sound.loop_stop("engine")
+	Sound.radio_off()
+
+func _exit_tree() -> void:
+	sound_off()
 
 func _drive(dt: float) -> void:
 	var car: RefCounted = driving_car
@@ -1631,3 +1672,7 @@ func _drive(dt: float) -> void:
 	operator._place_camera(dt)
 	controls.weapon_name.text = _car_name(c)
 	controls.ammo.text = "%d km/h" % int(absf(car.speed) * 3.6)
+	var top: float = maxf(float(car.profile.get("max_speed", 28.0)), 1.0)
+	var k := clampf(absf(car.speed) / top, 0.0, 1.0)
+	Sound.loop_set("engine", (0.5 if Handling.kind_of(String(c.get_meta("vehicle", ""))) == "TANK" else 0.8) + k * 1.1, -12.0 + k * 6.0)
+	_radio_button.text = Sound.radio_line()
