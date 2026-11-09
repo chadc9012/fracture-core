@@ -2,6 +2,7 @@ extends Node
 ## World data exported from the web game (scripts/export-godot-data.ts -> res://generated): the planet, the street maps and the
 ## styles they are drawn with, plus the shared look (the navy / cyan of the owner's map packs) and the globe's projection.
 
+const Phone := preload("res://scripts/phone.gd")
 const GEN := "res://generated/"
 
 # the owner's map-pack palette (Map System V200 / Planetary Director): deep navy, cyan rules, warm gold highlight
@@ -38,13 +39,14 @@ static func phone() -> bool:
 	return OS.has_feature("mobile") or not forward_plus()
 
 ## Every 3D SubViewport goes through here. A phone (S22 Ultra: 3088 x 1440) gets 2x MSAA, no FXAA on top, and draws the 3D at
-## 80 % of the screen; 4x MSAA plus FXAA at full resolution was most of a frame's fill cost there. PC keeps 4x.
+## full resolution (80 % under load: phone.gd Guard); 4x MSAA plus FXAA at full resolution was most of a frame's fill cost there. PC keeps 4x.
 static func tune_viewport(vp: SubViewport) -> void:
 	if phone():
 		vp.msaa_3d = Viewport.MSAA_2X
 		vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-		vp.scaling_3d_scale = 0.8
+		# full resolution, stepped down to 80 % only under load (phone.gd Guard)
+		Phone.fit_viewport_scale(vp)
 	else:
 		vp.msaa_3d = Viewport.MSAA_4X
 

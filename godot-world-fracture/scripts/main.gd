@@ -2,6 +2,7 @@ extends Control
 ## World Fracture (Godot): the Planetary Director. The globe is home; tapping a continent twice (or OPEN MAP) opens its region
 ## map, and Back returns to the globe. Android's back gesture goes back too.
 
+const Phone := preload("res://scripts/phone.gd")
 const PlanetView := preload("res://scripts/planet_view.gd")
 const RegionMap := preload("res://scripts/region_map.gd")
 const Region3D := preload("res://scripts/region_3d.gd")
@@ -36,6 +37,9 @@ var garage: Control
 var driving: Control
 
 func _ready() -> void:
+	# the phone renders the 3D at full resolution; this steps it down only while the frame rate sags (phone.gd)
+	if Phone.on_phone():
+		add_child(Phone.Guard.new())
 	var bg := ColorRect.new()
 	bg.color = Data.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
