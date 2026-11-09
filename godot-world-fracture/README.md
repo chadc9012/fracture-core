@@ -316,6 +316,19 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Economy and progression** (`scripts/progress/`, schedule step 10, Nov 9): one profile. Every mode pays through
+`progression.gd` `grant()` — Killbox (a win 250 + 25 Nex a kill to 600, a loss 100 + 15; XP likewise), the Rift Gate
+bosses, Descent quests, the Hollow Star, races, Skyways courses, Mission 01 — onto `user://profile.json` (cloud-merged).
+The **level** follows the web's curve (level N needs N × 400 XP; the campaign ends near 11) and is worth +2 operator
+power and +4 hull a level, applied wherever the operator fights. **Loot** lands in the inventory from every end: a Killbox
+win rolls the elite pool (a loss the common one), a boss clear the boss pool every time, a Descent quest the elite pool.
+Three **daily goals** are picked from a ten-goal pool by the day (play / win Killbox, drop 20 hostiles, land 8 headshots,
+clear a boss, finish a quest or a race, fly 10 rings, drive 2 km, buy at the Galleria), count what you do in any mode and
+pay once each; the last twenty payments are a ledger. The **OPERATOR** panel (`profile_view.gd`: level, XP bar, Nex,
+power / hull, today's goals, recent payments) opens from the title (the button carries `LV · NEX · goals left`) and the
+street's OPERATOR button. Tests: `tests/progress/progression_test.gd` (the curve, grants, the ledger, goals that count,
+pay once and reset with the day).
+
 **Phone performance** (schedule step 9, Nov 9): a **frame-time readout** sits bottom-right on every screen
 (`scripts/front/perf_hud.gd`: fps · ms (worst) · draw calls · triangles · video memory, averaged over half a second, green
 at 30 fps and above, amber under, red under 20; settings "Frame-time readout", on by default for the test builds). The

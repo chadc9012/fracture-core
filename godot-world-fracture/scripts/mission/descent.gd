@@ -1,4 +1,5 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## The Fracture Descent after Mission 01 (the Dec 4 plan, phase 4): fd-02, fd-03 and fd-04 from the web game's quest chain
 ## (src/game/quests.ts), played on foot in the Verdant Forest region (region_3d.gd in PLAY mode) with the shared operator,
@@ -78,6 +79,7 @@ func _ready() -> void:
 	enemies = Enemies.new()
 	region.world().add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	# the forest's wildlife (scripts/wildlife/): herds, a wolf pack, a bear, a panther, the raptor overhead, water life by the pond
 	wildlife = WildlifeView.new()
 	region.world().add_child(wildlife)
@@ -88,7 +90,7 @@ func _ready() -> void:
 	enemies.operator_down.connect(func(): _respawn_t = 5.0)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
-	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	gunplay.killed.connect(_on_kill)
 	_spawn_origin = operator.position
@@ -203,12 +205,16 @@ func _complete() -> void:
 		return
 	progress.done.append(id)
 	var p := Gear.profile_load()
-	p.xp = int(p.xp) + int(quest.xp)
-	p.nex = int(p.nex) + int(quest.nex)
-	while int(p.xp) >= int(p.level) * 1000:
-		p.level = int(p.level) + 1
+	var res := Progression.grant(p, "quest", int(quest.nex), int(quest.xp), "%s complete" % String(quest.title))
 	Gear.profile_save(p)
-	controls.toast("%s complete · +%d XP · +%d Nex" % [quest.title, int(quest.xp), int(quest.nex)])
+	# a quest drops from the elite pool
+	var gear := Gear.load_save()
+	var it := Gear.roll_drop(gear, "elite", randf(), Gear.operator_power(gear, int(p.level)), randi())
+	if not it.is_empty():
+		Gear.save(gear)
+		res.lines.append("LOOT · %s (%d power)" % [String(it.name), int(it.power)])
+	for l in res.lines:
+		controls.toast(String(l))
 	Sound.sfx("confirm", -3.0)
 	var i := 0
 	for q in QUESTS:

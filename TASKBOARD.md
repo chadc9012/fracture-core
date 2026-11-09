@@ -30,7 +30,6 @@ Rows are the lock; `git fetch` before you claim.
 
 ## Open (unclaimed, take in order within a phase)
 - Small: the `--shot … slicewalk:drive` capture hook no longer enters the car (driving itself works — street race play test and a headless probe both drive); fix the hook so the drive HUD / radio line can be shot.
-- Step 10 (step 7 landed Nov 9 — open now): economy and progression — one profile for XP / levels / Nex across every mode, loot into the inventory from Killbox, bosses and missions, shop prices, daily goals.
 - Step 11 (step 7 landed Nov 9 — open now): story — fd-05 onward (Verdant Forest → Neon City), cutscene playback from the web's story data, Vyrak as the act boss at the Rift Gate.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. Done in the web build (Nov 9): Extraction and Ranked are in pvp.ts with bots and re-exported; left for Godot: Extraction's core rules in killbox_match.gd (port pvp.ts `stepExtract`; it is hidden from the Godot picker until then — Ranked already plays there as Dominion).
@@ -48,6 +47,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Step 10 (schedule): economy and progression — one profile through progression.gd (grant / event), the web XP curve with power + hull per level, loot from Killbox / bosses / quests into the inventory, Killbox purse by result and kills, ten daily goals (three a day) with the ledger, the OPERATOR panel on the title and the street | Godot: one profile |
 | Step 9 (schedule): phone performance — frame-time readout, all textures VRAM-compressed at 1024/512 px with tracked .import files, tier-scaled batching / shadows / ranges / LOD / crowds; Nexus firefight 1382 → 1086 draws (medium), 763 (low) | Godot: phone performance |
 | Asset gap 7 (rest): portal, hologram and energy-field VFX (scripts/vfx/fx.gd) at the tears and gates, research stations, vaults and bases, the cities' landmarks and the Nexus hub's Rift Gate; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Portals, holograms, energy fields" (Nov 9) |
 | Step 8 (schedule): sound — buses, the Audio autoload + Sound front, 35 designed cues, regional ambience beds, the owner's seven radio stations in every car (spoiler archive excluded), title music, NOVA / Mara recorded lines, engine / craft loops; tests/audio | Godot: sound |

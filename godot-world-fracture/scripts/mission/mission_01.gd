@@ -1228,10 +1228,7 @@ func _mission_complete() -> void:
 		return
 	_complete_shown = true
 	var rw := story.reward()
-	profile.xp = int(profile.xp) + int(rw.xp)
-	profile.nex = int(profile.nex) + int(rw.nex)
-	while int(profile.xp) >= int(profile.level) * 1000:
-		profile.level = int(profile.level) + 1
+	Progression.grant(profile, "mission", int(rw.nex), int(rw.xp), "Mission 01")
 	_save_profile()
 	# the Breach anchor drops a weapon into the inventory (gear_store.gd), the first clear only
 	var drop_line := ""

@@ -1,4 +1,5 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 const Settings := preload("res://scripts/front/settings_store.gd")
 const Radio := preload("res://scripts/audio/radio.gd")
@@ -29,6 +30,7 @@ const DOORS := [
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
 var _radio_button: Button
+var _drive_m := 0.0
 var _near_door := ""
 
 
@@ -92,6 +94,7 @@ var parked: Array[Node3D] = []
 var driving_car: RefCounted
 var _near_car: Node3D
 const InventoryView = preload("res://scripts/gear/inventory_view.gd")
+const ProfileView := preload("res://scripts/progress/profile_view.gd")
 const OutfitLook = preload("res://scripts/gear/outfit_look.gd")
 var wallet: Dictionary = {}   # the profile (xp, nex, level) while the street is open; mission_01.gd has its own `profile`
 var gear: Dictionary = {}
@@ -261,6 +264,7 @@ func _spawn_player() -> void:
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	enemies.spawn("scout", Vector3(-(half + 3.0), 0.18, -10.0), [Vector3(-(half + 3.0), 0.18, -10.0), Vector3(-(half + 3.0), 0.18, -40.0)])
 	enemies.spawn("elite", Vector3(half + 3.5, 0.18, -48.0), [Vector3(half + 3.5, 0.18, -48.0), Vector3(half + 3.5, 0.18, -30.0)])
 	enemies.spawn("executor", Vector3(-2.0, 0.0, -70.0), [Vector3(-2.0, 0.0, -70.0), Vector3(3.0, 0.0, -56.0)])
@@ -300,12 +304,29 @@ func _spawn_player() -> void:
 	inv.position = Vector2(16, 60)
 	inv.pressed.connect(open_inventory)
 	add_child(inv)
+	var op := Button.new()
+	op.text = "OPERATOR"
+	op.position = Vector2(140, 60)
+	op.pressed.connect(open_profile)
+	add_child(op)
+
+var profile_overlay: Control
+## the operator panel (progress/profile_view.gd) over the street; the wallet reloads on close since goals may have paid
+func open_profile() -> void:
+	if profile_overlay:
+		return
+	profile_overlay = ProfileView.new()
+	profile_overlay.closed.connect(func():
+		profile_overlay.queue_free()
+		profile_overlay = null
+		wallet = Gear.profile_load())
+	add_child(profile_overlay)
 
 func _fit_gear() -> void:
 	gunplay.set_loadout(Gear.loadout(gear))
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	if enemies:
-		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 		enemies.hull = minf(enemies.hull, enemies.hull_max)
 
 func open_inventory() -> void:
@@ -1519,7 +1540,12 @@ func open_mall() -> void:
 		wallet = Gear.profile_load()
 		mall_overlay.gear = gear
 		mall_overlay.profile = wallet
-		mall_overlay.shop_changed.connect(func(): Gear.save(gear); Gear.profile_save(wallet); _fit_gear())
+		mall_overlay.shop_changed.connect(func():
+			Gear.save(gear)
+			for g in Progression.event(wallet, "shop", 1):
+				controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+			Gear.profile_save(wallet)
+			_fit_gear())
 	mall_overlay.closed.connect(close_mall)
 	add_child(mall_overlay)
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -1664,6 +1690,13 @@ func _drive(dt: float) -> void:
 	operator._place_camera(dt)
 	controls.weapon_name.text = _car_name(c)
 	controls.ammo.text = "%d km/h" % int(absf(car.speed) * 3.6)
+	_drive_m += absf(car.speed) * dt
+	if _drive_m >= 100.0:
+		var pr := Gear.profile_load()
+		for g in Progression.event(pr, "drive_m", int(_drive_m)):
+			controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+		Gear.profile_save(pr)
+		_drive_m = 0.0
 	var top: float = maxf(float(car.profile.get("max_speed", 28.0)), 1.0)
 	var k := clampf(absf(car.speed) / top, 0.0, 1.0)
 	Sound.loop_set("engine", (0.5 if Handling.kind_of(String(c.get_meta("vehicle", ""))) == "TANK" else 0.8) + k * 1.1, -12.0 + k * 6.0)

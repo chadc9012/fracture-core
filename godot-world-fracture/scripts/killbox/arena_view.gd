@@ -1,4 +1,5 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 const Phone := preload("res://scripts/phone.gd")
 ## Killbox in Godot: a match on one of the owner's arenas (arena.gd data) — Kaiju Complex (two blocks of neon-trimmed
@@ -217,12 +218,13 @@ func _start() -> void:
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	enemies.operator_team = 1
 	enemies.operator_down.connect(_on_operator_down)
 	enemies.bot_down.connect(_on_bot_down)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
-	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	var size: int = int(match_state.mode.get("teamSize", 6))
 	if match_state.kind == "ffa":
@@ -757,14 +759,21 @@ func _board_text() -> String:
 func _finish() -> void:
 	_paid = true
 	var won := match_state.winner == "us"
-	var nex := 400 if won else 150
-	var xp := 300 if won else 120
+	# the purse: a win pays 250 + 25 a kill (to 600), a loss 100 + 15 a kill (to 300); XP likewise
+	var kills := int(match_state.player_kills)
+	var nex := mini(250 + 25 * kills, 600) if won else mini(100 + 15 * kills, 300)
+	var xp := mini(200 + 20 * kills, 450) if won else mini(80 + 10 * kills, 220)
 	var p := Gear.profile_load()
-	p.nex = int(p.nex) + nex
-	p.xp = int(p.xp) + xp
-	while int(p.xp) >= int(p.level) * 1000:
-		p.level = int(p.level) + 1
+	var res := Progression.grant(p, "killbox_win" if won else "killbox", nex, xp, "Killbox · %s" % String(match_state.mode.name))
 	Gear.profile_save(p)
+	# loot: a win rolls the elite pool, a loss the common one; the drop lands in the inventory
+	var gear := Gear.load_save()
+	var it := Gear.roll_drop(gear, "elite" if won else "enemy", randf(), Gear.operator_power(gear, int(p.level)), randi())
+	if not it.is_empty():
+		Gear.save(gear)
+		res.lines.append("LOOT · %s (%d power)" % [String(it.name), int(it.power)])
+	for l in res.lines:
+		controls.toast(String(l))
 	_done_panel = PanelContainer.new()
 	_done_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_done_panel.position = Vector2(-170, -90)
