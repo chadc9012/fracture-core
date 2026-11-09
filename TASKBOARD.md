@@ -26,6 +26,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Asset gap 7 (rest): VFX — portal, hologram, energy field as reusable nodes (scripts/vfx/fx.gd), placed at the region landmarks (tears and gates, research stations and vaults, the cities' landmarks) and the Nexus hub's Rift Gate | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
 | Owner ask (Nov 9, 06:25): finish Nexus — the one repeating street becomes a walkable street grid with each named district (Spire District + the 420 m Central Tower, Vanguard Command Citadel, Central Transit Plaza, Apex Gear, Rusty Trigger, Cylinder & Co, Scrapyard Bazaar & Southern Docks, The Warrens, Marina, Aqua-Tech Shipyard, Perimeter Wall) as its own area | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
