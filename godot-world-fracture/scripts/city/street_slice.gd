@@ -1,4 +1,8 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
+const Sound := preload("res://scripts/audio/sound.gd")
+const Settings := preload("res://scripts/front/settings_store.gd")
+const Radio := preload("res://scripts/audio/radio.gd")
 const Phone := preload("res://scripts/phone.gd")
 const WetNight := preload("res://scripts/city/wet_night.gd")
 ## Nexus City street slice: one block of a Nexus avenue at golden hour, built to chase the owner's concept frames (wet
@@ -9,6 +13,27 @@ const WetNight := preload("res://scripts/city/wet_night.gd")
 signal closed
 signal toggle_night
 signal toggle_style
+## a hub door the operator walked up to and entered: "modes", "skyways", "rift", "descent", "apartment" (main.gd opens the
+## view over the street); the garage, mall, casino and sports doors open their own overlays here
+signal door(id: String)
+## the hub block's doors (step 7 of the schedule): where each stands on the Nexus block and what it says
+const DOORS := [
+	{ "id": "apartment", "label": "APARTMENT 12-04", "x": -1.0, "z": 52.0, "color": Color(1.0, 0.85, 0.5), "kind": "door" },
+	{ "id": "modes", "label": "KILLBOX TERMINAL", "x": -1.0, "z": -42.0, "color": Color(1.0, 0.3, 0.7), "kind": "kiosk" },
+	{ "id": "skyways", "label": "SKYWAYS SHUTTLE", "x": 1.0, "z": -74.0, "color": Color(0.3, 0.9, 1.0), "kind": "stop" },
+	{ "id": "descent", "label": "CRASH-SITE TRANSPORT", "x": 1.0, "z": 78.0, "color": Color(0.95, 0.8, 0.4), "kind": "stop" },
+	{ "id": "rift", "label": "RIFT GATE", "x": -1.0, "z": 110.0, "color": Color(0.75, 0.4, 1.0), "kind": "portal" },
+	{ "id": "garage", "label": "GARAGE", "x": 1.0, "z": 8.0, "color": Color(0.3, 0.9, 1.0), "kind": "none", "style": "any" },
+	{ "id": "mall", "label": "GALLERIA MALL", "x": -1.0, "z": -100.0, "color": Color(1.0, 0.6, 0.9), "kind": "door" },
+	# the casino is Neon City's alone (owner, Nov 9): the Neon City Grand Casino; its door is set at the podium in _buildings
+	{ "id": "casino", "label": "NEON CITY GRAND CASINO", "x": -1.0, "z": -82.0, "color": Color(0.95, 0.72, 0.32), "kind": "door", "style": "neon" },
+	{ "id": "sports", "label": "SPORTS DISTRICT", "x": -1.0, "z": 20.0, "color": Color(0.1, 0.85, 1.0), "kind": "door" },
+]
+var _door_spots: Array = []     # [{id, label, pos}]
+var _radio_button: Button
+var _drive_m := 0.0
+var _near_door := ""
+
 
 const ROAD_W := 16.0          # kerb to kerb
 const WALK_W := 7.0           # each sidewalk
@@ -46,6 +71,16 @@ const Civilians = preload("res://scripts/city/civilians.gd")
 const Crowd = preload("res://scripts/city/crowd.gd")
 var crowd: MultiMeshInstance3D
 const StaticBatch = preload("res://scripts/static_batch.gd")
+## Nexus City's district courts off the avenue (nexus_districts.gd): built with their tile, the Central Tower with the hub
+const Nexus = preload("res://scripts/city/nexus_districts.gd")
+const ShopView = preload("res://scripts/gear/shop_view.gd")
+var shop_overlay: Control
+## the operator carries a weapon on the street only once Mission 01's Fracture has armed them (the story starts unarmed in
+## the apartment); before that the street is calm: no troopers. Tests and perf tools set `force_armed`.
+static var force_armed := false
+var armed := true
+var _area := ""
+var _casino_at := Vector3.INF
 var civilians: Node3D
 var _shots_seen := 0
 var district: RefCounted
@@ -70,6 +105,7 @@ var parked: Array[Node3D] = []
 var driving_car: RefCounted
 var _near_car: Node3D
 const InventoryView = preload("res://scripts/gear/inventory_view.gd")
+const ProfileView := preload("res://scripts/progress/profile_view.gd")
 const OutfitLook = preload("res://scripts/gear/outfit_look.gd")
 var wallet: Dictionary = {}   # the profile (xp, nex, level) while the street is open; mission_01.gd has its own `profile`
 var gear: Dictionary = {}
@@ -136,6 +172,8 @@ func _ready() -> void:
 	_dressing()
 	_street_set()
 	_hub_dressing()
+	if style != "coast":
+		_doors()
 	if night:
 		_neon()
 		if style == "neon":
@@ -151,11 +189,21 @@ func _ready() -> void:
 	look_from(Vector3(ROAD_W * 0.5 + 3.4, 1.7, 30.0), Vector3(ROAD_W * 0.5 - 3.0, 4.0, -40.0))
 	if walk:
 		_spawn_player()
+	sound_on()
 	var back := Button.new()
 	back.text = "← BACK"
 	back.position = Vector2(16, 16)
 	back.pressed.connect(func(): closed.emit())
 	add_child(back)
+	_radio_button = Button.new()
+	_radio_button.text = "RADIO"
+	_radio_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_radio_button.position = Vector2(-240, 100)
+	_radio_button.custom_minimum_size = Vector2(224, 40)
+	_radio_button.add_theme_font_size_override("font_size", 13)
+	_radio_button.visible = false
+	_radio_button.pressed.connect(_radio_next)
+	add_child(_radio_button)
 	var tod := Button.new()
 	tod.text = "DAY" if night else "NIGHT"
 	tod.position = Vector2(110, 16)
@@ -179,7 +227,8 @@ func _ready() -> void:
 	mall.pressed.connect(open_mall)
 	add_child(mall)
 	var casino := Button.new()
-	casino.text = "ENTER SKYLINE CASINO"
+	casino.text = "ENTER NEON CITY GRAND CASINO"
+	casino.visible = style == "neon"
 	casino.add_theme_color_override("font_color", Color(0.95, 0.72, 0.32))
 	casino.position = Vector2(760, 16)
 	casino.pressed.connect(open_casino)
@@ -208,6 +257,9 @@ func _spawn_player() -> void:
 	district = District.new(-3, 3)
 	var span: Vector2 = district.span()
 	operator.bounds = Rect2(-(x0 - 0.3), span.x + 1.0, (x0 - 0.3) + (x0 + 15.4), span.y - span.x - 2.0)
+	if style == "nexus":
+		# the district courts (nexus_districts.gd) open off the avenue: their walls and the facade line keep the operator in
+		operator.bounds = Rect2(-(Nexus.COURT_OUT + 2.0), span.x + 1.0, (Nexus.COURT_OUT + 2.0) * 2.0, span.y - span.x - 2.0)
 	operator.ground_at = func(x: float, z: float) -> float:
 		if x > x0 and absf(z - GARAGE_Z) < 11.0:
 			return 0.23     # the garage workshop floor
@@ -221,18 +273,36 @@ func _spawn_player() -> void:
 	world.add_child(gunplay)
 	gunplay.setup(operator, operator.obstacles)
 	_spawn = operator.position
+	armed = force_armed or story_armed()
 	# two practice dummies by the garage, and the block's cyber troopers (enemies.gd) further down
 	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0)]:
 		gunplay.add_dummy(spot)
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.goal_done.connect(func(line: String): controls.toast(line))
+	if armed:
+		_troopers(half)
+	enemies.operator_down.connect(func(): _respawn_timer = 5.0)
+	_after_enemies()
+
+## the block's cyber troopers (only once the operator is armed)
+func _troopers(half: float) -> void:
 	enemies.spawn("scout", Vector3(-(half + 3.0), 0.18, -10.0), [Vector3(-(half + 3.0), 0.18, -10.0), Vector3(-(half + 3.0), 0.18, -40.0)])
 	enemies.spawn("elite", Vector3(half + 3.5, 0.18, -48.0), [Vector3(half + 3.5, 0.18, -48.0), Vector3(half + 3.5, 0.18, -30.0)])
 	enemies.spawn("executor", Vector3(-2.0, 0.0, -70.0), [Vector3(-2.0, 0.0, -70.0), Vector3(3.0, 0.0, -56.0)])
 	enemies.spawn("marksman", Vector3(-(half + 4.0), 0.18, -95.0), [Vector3(-(half + 4.0), 0.18, -95.0), Vector3(-(half + 4.0), 0.18, -85.0)])
 	enemies.spawn("drone", Vector3(0.0, 4.0, -25.0), [Vector3(0.0, 4.0, -25.0), Vector3(0.0, 4.0, -60.0)])
-	enemies.operator_down.connect(func(): _respawn_timer = 5.0)
+
+## Mission 01 has reached the Surge (the operator's powers and the rifle): from then on the street is walked armed
+static func story_armed() -> bool:
+	var f := FileAccess.open("user://mission01.json", FileAccess.READ)
+	if not f:
+		return false
+	var d: Variant = JSON.parse_string(f.get_as_text())
+	return d is Dictionary and String(d.get("phase", "")) in ["SURGE", "ANCHOR", "CLEAR", "DONE"]
+
+func _after_enemies() -> void:
 	# the gear (gear_store.gd): the worn weapons become the gun list; kills roll drops into the bag
 	gear = Gear.load_save()
 	wallet = Gear.profile_load()
@@ -240,7 +310,7 @@ func _spawn_player() -> void:
 	# traffic (traffic.gd): eight civilian cars on the block's two lanes, sharing the obstacle list
 	traffic = Traffic.new()
 	world.add_child(traffic)
-	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, 8, 5)
+	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, maxi(3, int(round(8 * Phone.crowd()))), 5)
 	# civilians (civilians.gd): ten walkers on the sidewalks of the active blocks
 	civilians = Civilians.new()
 	world.add_child(civilians)
@@ -248,7 +318,7 @@ func _spawn_player() -> void:
 	# span is (INF, -INF) and every walker spawned at z = NaN (the renderer then rejected their transforms every frame)
 	var first_plan: Dictionary = district.update(operator.position.z, true)
 	var act0: Vector2 = district.extent(District.State.ACTIVE)
-	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, 10, 9)
+	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(4, int(round(10 * Phone.crowd()))), 9)
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
 	_apply_district(first_plan)
@@ -266,12 +336,32 @@ func _spawn_player() -> void:
 	inv.position = Vector2(16, 60)
 	inv.pressed.connect(open_inventory)
 	add_child(inv)
+	var op := Button.new()
+	op.text = "OPERATOR"
+	op.position = Vector2(140, 60)
+	op.pressed.connect(open_profile)
+	add_child(op)
+
+var profile_overlay: Control
+## the operator panel (progress/profile_view.gd) over the street; the wallet reloads on close since goals may have paid
+func open_profile() -> void:
+	if profile_overlay:
+		return
+	profile_overlay = ProfileView.new()
+	profile_overlay.closed.connect(func():
+		profile_overlay.queue_free()
+		profile_overlay = null
+		wallet = Gear.profile_load())
+	add_child(profile_overlay)
 
 func _fit_gear() -> void:
 	gunplay.set_loadout(Gear.loadout(gear))
+	gunplay.set_holstered(not armed)
+	if controls:
+		controls.set_armed(armed)
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	if enemies:
-		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 		enemies.hull = minf(enemies.hull, enemies.hull_max)
 
 func open_inventory() -> void:
@@ -340,10 +430,18 @@ func _apply_district(changes: Dictionary) -> void:
 			tiles[k] = { "root": null, "slots": [] }
 		var t: Dictionary = tiles[k]
 		if want == District.State.ACTIVE:
-			if t.root == null:
+			var fresh: bool = t.root == null
+			if fresh:
 				t.root = _build_tile(k)
 			if (t.slots as Array).is_empty():
 				_slot_boxes(t, _tile_boxes(k, t.root))
+			elif fresh:
+				_tile_boxes(k, t.root)     # same build, same order: only marks the cars' box slots
+			if fresh:
+				for c in (t.root as Node3D).get_children():
+					if c.has_meta("car") and c.has_meta("box_slot"):
+						c.set_meta("box_index", int(t.slots[int(c.get_meta("box_slot"))]))
+						parked.append(c as Node3D)
 		elif want == District.State.SIMULATED:
 			if (t.slots as Array).is_empty():
 				# coming from frozen: the boxes come from a build that is dropped straight away
@@ -389,6 +487,14 @@ func _build_tile(k: int) -> Node3D:
 	_street_set()
 	if night:
 		_neon()
+	if style == "nexus":
+		for sd: float in [-1.0, 1.0]:
+			Nexus.new(self, k, sd).build()
+		if k == district.min_k:
+			Nexus.north_gate(self, -LENGTH * 0.5 + 0.5)
+		if k == district.max_k:
+			Nexus.south_quay(self, LENGTH * 0.5 - 0.5)
+		Nexus.tile_skyline(self, _rng)
 	StaticBatch.batch(root)
 	_rng.seed = keep_seed
 	_tile_root = null
@@ -403,14 +509,23 @@ func _tile_boxes(k: int, root: Node3D) -> Array[AABB]:
 		if not n or not n.has_meta("size"):
 			continue
 		var sz: Vector3 = n.get_meta("size")
+		if n.has_meta("car"):
+			n.set_meta("box_slot", out.size())     # where its box lands in the tile's slots (enter_car parks it)
 		var file := String(n.get_meta("file")) if n.has_meta("file") else ""
 		if file.contains("palm") or file.begins_with("street-lamp"):
 			sz = Vector3(0.6, sz.y, 0.6)
 		out.append(_world_box(root.transform * n.transform, Vector3(-sz.x * 0.5, 0, -sz.z * 0.5), Vector3(sz.x * 0.5, sz.y, sz.z * 0.5)))
 	var x0 := ROAD_W * 0.5 + WALK_W
 	var z0 := District.tile_z(k) - LENGTH * 0.5
-	out.append(AABB(Vector3(-x0 - 0.5, 0, z0), Vector3(0.5, 12.0, LENGTH)))
-	out.append(AABB(Vector3(x0, 0, z0), Vector3(0.5, 12.0, LENGTH)))
+	for sd: float in [-1.0, 1.0]:
+		var xf := x0 if sd > 0.0 else -x0 - 0.5
+		if style == "nexus" and Nexus.has_court(k, sd):
+			# the side street's mouth stays open
+			var zc := District.tile_z(k)
+			out.append(AABB(Vector3(xf, 0, z0), Vector3(0.5, 12.0, (zc - Nexus.MOUTH_HALF) - z0)))
+			out.append(AABB(Vector3(xf, 0, zc + Nexus.MOUTH_HALF), Vector3(0.5, 12.0, z0 + LENGTH - zc - Nexus.MOUTH_HALF)))
+		else:
+			out.append(AABB(Vector3(xf, 0, z0), Vector3(0.5, 12.0, LENGTH)))
 	return out
 
 ## boxes into the shared obstacle list through index-stable slots (traffic and the driven car hold indexes)
@@ -431,7 +546,7 @@ func _process(dt: float) -> void:
 	WetNight.follow(_rain, cam)
 	if not operator or not controls:
 		return
-	if mall_overlay or casino_overlay or sports_overlay or garage_overlay or inventory_overlay:
+	if mall_overlay or casino_overlay or sports_overlay or garage_overlay or inventory_overlay or shop_overlay:
 		return
 	if enemies:
 		enemies.step(minf(dt, 0.05))
@@ -462,16 +577,48 @@ func _process(dt: float) -> void:
 		_drive(minf(dt, 0.05))
 		return
 	operator.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
-	# a parked car within reach: the prompt, and ENTER / E takes it
+	if style == "nexus":
+		# entering a district court (or the plaza) names it once
+		var area := Nexus.area_at(operator.position)
+		if area != _area:
+			_area = area
+			if area != "" and area != "NEXUS AVENUE":
+				controls.toast(area)
+	# a parked car within reach: the prompt, and ENTER / E takes it (a tile's cars leave the list when the tile goes)
 	var near: Node3D = null
+	var gone := false
 	for c in parked:
-		if c.visible and c.position.distance_to(operator.position) < 3.2:
+		if not is_instance_valid(c) or c.is_queued_for_deletion():
+			gone = true
+			continue
+		if c.visible and c.global_position.distance_to(operator.position) < 3.2:
 			near = c
 			break
-	if near != _near_car:
+	if gone:
+		var keep: Array[Node3D] = []
+		for c in parked:
+			if is_instance_valid(c) and not c.is_queued_for_deletion():
+				keep.append(c)
+		parked = keep
+	# a hub door within reach outranks a car
+	var door_id := ""
+	var door_label := ""
+	for d in _door_spots:
+		if Vector2(operator.position.x - (d.pos as Vector3).x, operator.position.z - (d.pos as Vector3).z).length() < 3.6:
+			door_id = String(d.id)
+			door_label = String(d.label)
+			break
+	if door_id != _near_door or near != _near_car:
+		_near_door = door_id
 		_near_car = near
-		controls.prompt(("ENTER " + _car_name(near)) if near else "")
-	if controls.take_enter() and near:
+		controls.prompt(("ENTER " + door_label) if door_id != "" else (("ENTER " + _car_name(near)) if near else ""))
+	# one ENTER press, read once: a door within reach takes it, else a car (reading it twice ate every press on the way
+	# to the car check, so no car could be entered once the hub doors arrived)
+	var pressed_enter: bool = controls.take_enter()
+	if pressed_enter and door_id != "":
+		_enter_door(door_id)
+		return
+	if pressed_enter and near:
 		enter_car(near)
 		return
 	if gunplay:
@@ -479,8 +626,8 @@ func _process(dt: float) -> void:
 			gunplay.next_weapon()
 		gunplay.step(minf(dt, 0.05), cam, controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())
 		var g = gunplay.gun()
-		controls.weapon_name.text = g.display_name()
-		controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
+		controls.weapon_name.text = g.display_name() if armed else "UNARMED"
+		controls.ammo.text = "" if not armed else ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
 
 # --------------------------------------------------------------------------------------------- light, sky, haze
 func _environment() -> void:
@@ -804,9 +951,12 @@ func _buildings() -> void:
 			if _tile_k == 0 and side > 0 and absf(z + 9.0 - GARAGE_Z) < 12.0:
 				z += 22.0     # the city garage takes this lot
 				continue
+			if _court_here(side) and z + 18.0 > -Nexus.COURT_HALF and z < Nexus.COURT_HALF:
+				z = Nexus.COURT_HALF + 0.5     # a district court's own blocks front the avenue here
+				continue
 			var pick: Array = kinds[(k * 7 + int(side + 1.0)) % kinds.size()]
-			# the casino podium once on the far side of the Nexus street, at the head of the block
-			if _tile_k == 0 and style == "nexus" and side < 0 and k == 2:
+			# the casino podium on the far side of the Neon City hub, at the head of the block (Neon City's alone)
+			if _tile_k == 0 and _tile_root == null and style == "neon" and side < 0 and k == 2:
 				pick = ["casino.glb", 14.0]
 			var h: float = float(pick[1]) * _rng.randf_range(0.92, 1.1)
 			# Meshy models face +z; turning by -90 * side faces them across the street
@@ -817,11 +967,21 @@ func _buildings() -> void:
 				width = size.x
 				b.position.x = side * (half + size.z * 0.5)     # the facade sits on the back of the sidewalk
 				b.position.z = z + width * 0.5
+				if String(pick[0]) == "casino.glb":
+					_casino_at = b.position
 				if style == "nexus" and String(pick[0]) == "apartment.glb":
 					# street-level shops on the apartment blocks
 					prop("shopfront.glb", 5.2, Vector3(side * (half + 4.0), 0.18, b.position.z), -90.0 * side)
 			z += width + _rng.randf_range(0.0, 1.5)
 			k += 1
+
+## a Nexus district court opens on this side of the tile being built (never on the hub, never in the other cities)
+func _court_here(side: float) -> bool:
+	return style == "nexus" and _tile_root != null and Nexus.has_court(_tile_k, side)
+
+## the side street's mouth: nothing stands on the walk or the facade line there
+func _in_mouth(side: float, z: float) -> bool:
+	return _court_here(side) and absf(z) < Nexus.MOUTH_HALF + 2.5
 
 ## glass towers rising behind the street wall: the skyline in the concept frames
 func _skyline() -> void:
@@ -864,8 +1024,14 @@ void fragment() {
 		var h := _rng.randf_range(60.0, 190.0)
 		var side := -1.0 if k % 2 == 0 else 1.0
 		var x := side * _rng.randf_range(50.0, 120.0)
+		if style == "nexus":
+			x = side * _rng.randf_range(175.0, 260.0)     # behind the district courts
 		var z := _rng.randf_range(-LENGTH * 0.7, LENGTH * 0.2) - 60.0
 		_box(Vector3(w, h, w * _rng.randf_range(0.8, 1.3)), Vector3(x, h * 0.5, z), m)
+	if style == "nexus":
+		# the landmark is the Tech Faction Central Tower, 420 m, in the Spire end's west court (nexus_districts.gd)
+		world.add_child(Nexus.central_tower(self, world))
+		return
 	# a landmark at the end of the avenue
 	var lm := ShaderMaterial.new()
 	lm.shader = sh
@@ -966,9 +1132,17 @@ func _cars() -> void:
 						break
 					up = up.get_parent()
 			StaticBatch.compact(car)   # ~40 draws a car down to one per look
+			if Phone.car_range() > 0.0:
+				for gi in car.find_children("*", "GeometryInstance3D", true, false):
+					(gi as GeometryInstance3D).visibility_range_end = Phone.car_range()
+					(gi as GeometryInstance3D).visibility_range_end_margin = 12.0
+					(gi as GeometryInstance3D).visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			if _tile_root:
 				var a := _aabb(car)
 				car.set_meta("size", Vector3(a.size.x, a.size.y, a.size.z))
+				# any parked car can be taken, not only the hub's (owner, Nov 9): it joins `parked` once its box has a slot
+				car.set_meta("car", true)
+				car.set_meta("vehicle", CAR_IDS.get(f, ""))
 				_tile_root.add_child(car)
 			else:
 				car.set_meta("car", true)
@@ -1033,6 +1207,10 @@ func _neon() -> void:
 				z += 22.0     # the garage carries its own sign
 				k += 1
 				continue
+			if _in_mouth(side, z + 6.0) or _in_mouth(side, z - 2.0):
+				z += 22.0
+				k += 1
+				continue
 			var c: Color = NEON[k % NEON.size()]
 			var brand: String = BRANDS[k % BRANDS.size()]
 			# a vertical blade sign sticking out from the facade, readable down the street
@@ -1087,7 +1265,7 @@ func _street_set() -> void:
 	var z := z0 + 30.0
 	while z < LENGTH * 0.5 - 10.0:
 		var side := 1.0 if k % 2 == 0 else -1.0
-		if not (_tile_k == 0 and side > 0.0 and absf(z - GARAGE_Z) < 16.0):
+		if not (_tile_k == 0 and side > 0.0 and absf(z - GARAGE_Z) < 16.0) and not _in_mouth(side, z):
 			prop(SET + "bench-neon.glb", 1.0, Vector3(side * (half + WALK_W - 1.1), 0.18, z), -90.0 * side)
 		z += 46.0
 		k += 1
@@ -1101,7 +1279,7 @@ func _street_set() -> void:
 	z = z0 + 52.0
 	while z < LENGTH * 0.5 - 10.0:
 		var side2 := -1.0 if k % 2 == 0 else 1.0
-		if not (_tile_k == 0 and side2 > 0.0 and absf(z - GARAGE_Z) < 16.0):
+		if not (_tile_k == 0 and side2 > 0.0 and absf(z - GARAGE_Z) < 16.0) and not _in_mouth(side2, z):
 			prop(SET + "vending.glb", 2.0, Vector3(side2 * (half + WALK_W - 0.55), 0.18, z), -90.0 * side2)
 		z += 64.0
 		k += 1
@@ -1209,7 +1387,7 @@ func _dressing() -> void:
 		var k := 0
 		while zt < LENGTH * 0.5 - 10.0:
 			var side := -1.0 if k % 2 == 0 else 1.0
-			if _tile_k == 0 and side > 0 and absf(zt - GARAGE_Z) < 16.0:
+			if (_tile_k == 0 and side > 0 and absf(zt - GARAGE_Z) < 16.0) or _in_mouth(side, zt):
 				zt += 36.0
 				k += 1
 				continue
@@ -1247,6 +1425,8 @@ func _hub_dressing() -> void:
 	var cyan := Color(0.2, 0.9, 1.0)
 	# three tilted rings round the spire's crown (it stands behind the far facades at the head of the avenue)
 	var spire := Vector3(-62, 250, -LENGTH * 0.5 - 70.0)
+	if style == "nexus":
+		spire = Nexus.TOWER_POS + Vector3(0, 372.0, 0)
 	for i in 3:
 		var ring := MeshInstance3D.new()
 		var tm := TorusMesh.new()
@@ -1271,6 +1451,8 @@ func _hub_dressing() -> void:
 	_box(Vector3(0.14, 2.6, 0.14), Vector3(0, -1.6, -0.1), flat(Color(0.1, 0.1, 0.12), 0.4, 0.6), sign)
 	var lines := Label3D.new()
 	lines.text = "DISTRICT 03\nTRADING HUB  →\nARMORY  →\nGARAGE  →\nARENA  →\nAPARTMENTS  →"
+	if style == "nexus":
+		lines.text = "CENTRAL TRANSIT PLAZA\n◀ CENTRAL TOWER · APEX GEAR\n◀ SPIRE · CITADEL · NORTH GATE\nRUSTY TRIGGER · CYLINDER & CO ▶\nWARRENS · BAZAAR · DOCKS ▶"
 	lines.font_size = 40
 	lines.pixel_size = 0.0065
 	lines.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -1325,6 +1507,76 @@ func _step_dressing(dt: float) -> void:
 		var span: Vector2 = district.span() if district else Vector2(-LENGTH * 0.5, LENGTH * 0.5)
 		if _train.position.z > span.y:
 			_train.position.z = span.x
+
+# --------------------------------------------------------------------------------------------- the hub's doors
+## every door stands on the sidewalk of its side, drawn as what it is (a lit doorway, a kiosk, a shuttle stop, the
+## portal), with its name over it; walking up shows ENTER <name>
+func _doors() -> void:
+	var half := ROAD_W * 0.5
+	if style == "nexus":
+		# the court shops (nexus_districts.gd builds their fronts with the tile)
+		_door_spots.append_array(Nexus.door_spots())
+	for d in DOORS:
+		var only := String(d.get("style", "nexus"))
+		if only != "any" and only != style:
+			continue
+		var side := float(d.x)
+		var pos := Vector3(side * (half + WALK_W - 2.2), 0.18, float(d.z))
+		if String(d.id) == "casino" and _casino_at != Vector3.INF:
+			pos.z = _casino_at.z     # at the casino podium's door
+		var col: Color = d.color
+		var kind := String(d.kind)
+		if kind == "none":
+			pos = Vector3(side * (half + WALK_W + 4.0), 0.18, float(d.z))   # the garage's forecourt
+		_door_spots.append({ "id": String(d.id), "label": String(d.label), "pos": pos })
+		var holder := Node3D.new()
+		holder.position = pos
+		holder.rotation.y = PI * 0.5 if side < 0 else -PI * 0.5
+		world.add_child(holder)
+		match kind:
+			"door":
+				_box(Vector3(2.2, 3.2, 0.3), Vector3(0, 1.6, -1.0), flat(Color(0.08, 0.08, 0.1), 0.5, 0.3), holder)
+				_box(Vector3(1.6, 2.6, 0.08), Vector3(0, 1.3, -0.85), _neon_mat(col * 0.6, 1.2), holder)
+			"kiosk":
+				_box(Vector3(1.2, 2.0, 0.7), Vector3(0, 1.0, 0), flat(Color(0.1, 0.1, 0.14), 0.4, 0.6), holder)
+				_box(Vector3(1.0, 0.7, 0.05), Vector3(0, 1.45, 0.37), _neon_mat(col, 3.0), holder)
+			"stop":
+				_box(Vector3(0.12, 3.2, 0.12), Vector3(-1.4, 1.6, 0), flat(Color(0.3, 0.32, 0.35), 0.4, 0.7), holder)
+				_box(Vector3(0.12, 3.2, 0.12), Vector3(1.4, 1.6, 0), flat(Color(0.3, 0.32, 0.35), 0.4, 0.7), holder)
+				_box(Vector3(3.2, 0.1, 1.6), Vector3(0, 3.2, 0), flat(Color(0.2, 0.22, 0.25), 0.4, 0.5), holder)
+				_box(Vector3(2.6, 0.5, 0.06), Vector3(0, 2.75, 0.6), _neon_mat(col, 2.5), holder)
+			"portal":
+				# the Rift Gate: a ring standing on the walk with a live vortex in it (scripts/vfx/fx.gd)
+				holder.add_child(preload("res://scripts/vfx/fx.gd").portal(1.7, col))
+		if kind != "none":
+			var name_l := Label3D.new()
+			name_l.text = String(d.label)
+			name_l.font_size = 64
+			name_l.pixel_size = 0.008
+			name_l.modulate = col * 1.6
+			name_l.position = Vector3(0, 2.5 if kind == "kiosk" else (4.8 if kind == "portal" else 3.7), 0)
+			name_l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+			name_l.shaded = false
+			holder.add_child(name_l)
+
+func _enter_door(id: String) -> void:
+	controls.prompt("")
+	Sound.sfx("portal" if id == "rift" else "door", -4.0)
+	match id:
+		"garage":
+			open_garage()
+		"mall":
+			open_mall()
+		"casino":
+			open_casino()
+		"sports":
+			open_sports()
+		"apex", "rusty":
+			open_shop(id)
+		"cylinder":
+			open_garage("ironworks")     # Cylinder & Co: heavy, off-road and armour work
+		_:
+			door.emit(id)
 
 # --------------------------------------------------------------------------------------------- the city garage
 ## a drive-in garage on the near side: a wide roll-up door open onto a lit workshop, the shop's sign in its accent
@@ -1388,11 +1640,11 @@ func _garage_front() -> void:
 			StaticBatch.compact(car)
 			world.add_child(car)
 
-func open_garage() -> void:
+func open_garage(shop_id := "") -> void:
 	if garage_overlay:
 		return
 	garage_overlay = GarageView.new()
-	garage_overlay.shop_id = CITY_GARAGE[style]
+	garage_overlay.shop_id = shop_id if shop_id != "" else String(CITY_GARAGE[style])
 	garage_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	garage_overlay.closed.connect(close_garage)
 	add_child(garage_overlay)
@@ -1410,7 +1662,12 @@ func open_mall() -> void:
 		wallet = Gear.profile_load()
 		mall_overlay.gear = gear
 		mall_overlay.profile = wallet
-		mall_overlay.shop_changed.connect(func(): Gear.save(gear); Gear.profile_save(wallet); _fit_gear())
+		mall_overlay.shop_changed.connect(func():
+			Gear.save(gear)
+			for g in Progression.event(wallet, "shop", 1):
+				controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+			Gear.profile_save(wallet)
+			_fit_gear())
 	mall_overlay.closed.connect(close_mall)
 	add_child(mall_overlay)
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -1424,6 +1681,8 @@ func close_mall() -> void:
 func open_casino() -> void:
 	if casino_overlay or mall_overlay or garage_overlay or sports_overlay:
 		return
+	if style != "neon":
+		return     # the Neon City Grand Casino is Neon City's alone
 	casino_overlay = Casino.new()
 	casino_overlay.closed.connect(close_casino)
 	add_child(casino_overlay)
@@ -1434,6 +1693,51 @@ func close_casino() -> void:
 		casino_overlay.queue_free()
 		casino_overlay = null
 		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+
+## a court shop on the Nexus avenue (Apex Gear, Rusty Trigger): shop_view.gd over the gear save and the wallet
+func open_shop(id: String) -> void:
+	if shop_overlay or casino_overlay or mall_overlay or garage_overlay or sports_overlay:
+		return
+	if gear.is_empty():
+		gear = Gear.load_save()
+	wallet = Gear.profile_load()
+	shop_overlay = ShopView.new()
+	shop_overlay.shop = id
+	shop_overlay.gear = gear
+	shop_overlay.profile = wallet
+	shop_overlay.op_power = Gear.operator_power(gear, int(wallet.get("level", 1)))
+	shop_overlay.back_label = "← STREET"
+	shop_overlay.changed.connect(func(): Gear.save(gear); Gear.profile_save(wallet); if gunplay: _fit_gear())
+	shop_overlay.closed.connect(close_shop)
+	add_child(shop_overlay)
+	if controls:
+		controls.visible = false
+	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+
+func close_shop() -> void:
+	if shop_overlay:
+		shop_overlay.queue_free()
+		shop_overlay = null
+		if controls:
+			controls.visible = true
+		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+
+## puts the operator at a Nexus district court's entrance, facing in (the --shot hook and tests)
+func go_to_court(id: String, want_side := 0.0) -> bool:
+	for k in Nexus.COURTS:
+		for i in 2:
+			var sd := -1.0 if i == 0 else 1.0
+			if String(Nexus.COURTS[k][i]) != id or (want_side != 0.0 and want_side != sd):
+				continue
+			var p := Vector3(sd * (Nexus.MOUTH_OUT + 6.0), 0.18, District.tile_z(k))
+			if operator:
+				operator.position = p
+				operator.heading = PI * 0.5 * sd     # the body faces +z at heading 0: into the court
+				operator.cam_yaw = operator.heading + PI
+				operator.velocity = Vector3.ZERO
+				_apply_district(district.update(p.z, true))
+			return true
+	return false
 
 func open_sports() -> void:
 	if casino_overlay or mall_overlay or garage_overlay or sports_overlay:
@@ -1460,6 +1764,15 @@ func _car_name(c: Node3D) -> String:
 ## the operator gets in: the car drives with its garage build, the operator rides along (hidden) so the enemies and the
 ## camera follow the car; the car's box stops being an obstacle to itself
 func enter_car(c: Node3D) -> void:
+	if c.get_parent() != world:
+		# a car from a streamed block: it leaves the block (which may unload behind it) and gets a box slot of its own
+		var old := int(c.get_meta("box_index", -1))
+		if old >= 0:
+			operator.obstacles[old] = PARKED_BOX
+		c.reparent(world, true)
+		c.remove_meta("size")
+		c.set_meta("box_index", operator.obstacles.size())
+		operator.obstacles.append(PARKED_BOX)
 	var id := String(c.get_meta("vehicle", ""))
 	var state := GarageState.load_or_fresh()
 	var perf: Dictionary = DriveProfile.performance(state, id) if id != "" else { "max_speed": 28.0, "acceleration": 7.0, "steering": 1.0, "braking": 12.0 }
@@ -1483,6 +1796,12 @@ func enter_car(c: Node3D) -> void:
 	controls.set_mode("drive")
 	controls.prompt("")
 	controls.toast("Driving " + _car_name(c) + " · hold BRAKE to stop, EXIT to get out")
+	Sound.sfx("click", -6.0)
+	Sound.loop("engine", "hover" if bool(perf.get("hover", false)) else "engine", -9.0, 0.5 if Handling.kind_of(id) == "TANK" else 0.8)
+	var saved := String(Settings.get_value("radio"))
+	if saved != "" and Radio.station_def(saved).size() > 0:
+		Sound.radio_on(saved)
+	_radio_button.visible = true
 	if controls.touch_ui and controls._enter_button:
 		controls._enter_button.text = "EXIT"
 		controls._enter_button.visible = true
@@ -1507,6 +1826,26 @@ func exit_car() -> void:
 	operator.cam_pivot = Vector3(0, 1.55, 0)
 	controls.set_mode("foot")
 	controls.prompt("")
+	Sound.loop_stop("engine")
+	Sound.radio_off()
+	_radio_button.visible = false
+
+## the car radio: the dial steps through the owner's stations and off; the station is remembered
+func _radio_next() -> void:
+	Sound.radio_next()
+	Settings.set_value("radio", Sound.radio_station())
+	Sound.sfx("click", -8.0)
+
+## the street's sound: the city bed (main.gd calls this again when a door's system closes and the street comes back)
+func sound_on() -> void:
+	Sound.ambience(Sound.bed_for(style), -12.0 if night else -10.0)
+
+func sound_off() -> void:
+	Sound.loop_stop("engine")
+	Sound.radio_off()
+
+func _exit_tree() -> void:
+	sound_off()
 
 func _drive(dt: float) -> void:
 	var car: RefCounted = driving_car
@@ -1529,3 +1868,14 @@ func _drive(dt: float) -> void:
 	operator._place_camera(dt)
 	controls.weapon_name.text = _car_name(c)
 	controls.ammo.text = "%d km/h" % int(absf(car.speed) * 3.6)
+	_drive_m += absf(car.speed) * dt
+	if _drive_m >= 100.0:
+		var pr := Gear.profile_load()
+		for g in Progression.event(pr, "drive_m", int(_drive_m)):
+			controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+		Gear.profile_save(pr)
+		_drive_m = 0.0
+	var top: float = maxf(float(car.profile.get("max_speed", 28.0)), 1.0)
+	var k := clampf(absf(car.speed) / top, 0.0, 1.0)
+	Sound.loop_set("engine", (0.5 if Handling.kind_of(String(c.get_meta("vehicle", ""))) == "TANK" else 0.8) + k * 1.1, -12.0 + k * 6.0)
+	_radio_button.text = Sound.radio_line()

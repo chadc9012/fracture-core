@@ -1,4 +1,7 @@
 extends Node3D
+const Progression := preload("res://scripts/progress/progression.gd")
+const Gear := preload("res://scripts/gear/gear_store.gd")
+const Sound := preload("res://scripts/audio/sound.gd")
 ## Enemies on foot (the Dec 4 plan, phase 2): Nexus City's cyber troopers (the web game's OVERCLOCKED faction, sim.ts),
 ## five types built on the robot operator bodies so they walk, run and fight with real clips, moved by the same rules as
 ## the player (operator_player.gd with no camera), shooting back with gunplay.gd's bolts. Each is a gunplay Target, so the
@@ -135,6 +138,7 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 		_drone_body(e)
 	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
 	e.target.set_meta("enemy", e)
+	e.target.set_meta("roster", self)     # gunplay's aim help skips the operator's own team
 	gunplay.targets.append(e.target)
 	enemies.append(e)
 	return e
@@ -240,6 +244,7 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 			by = operator_team
 		if e.team != operator_team and by_player:
 			kills += 1
+			_tally("kill", 1)
 		bot_down.emit(e, by, by_player)
 		_last_hitter.erase(e)
 		return
@@ -422,6 +427,7 @@ func _shoot(e: Enemy) -> void:
 				end = p
 	gunplay.tracer(from, end, Color(0.4, 0.9, 1.0) if e.team == 0 else Color(1.0, 0.75, 0.3))
 	gunplay.spark(end, hit)
+	Sound.sfx_at("smg" if String(e.def.get("weapon", "")) in ["smg", "pistol"] else "rifle", from, player.position, -8.0)
 	if hit:
 		_damage_foe(e, float(e.def.damage))
 
@@ -448,15 +454,36 @@ func _hit_operator(damage: float) -> void:
 	hurt = 1.0
 	since_hit = 0.0
 	operator_hit.emit(damage)
+	Sound.sfx("hurt", -6.0)
 	if hull <= 0.0:
 		hull = 0.0
 		down = 5.0
 		deaths += 1
+		Sound.sfx("down", -2.0)
 		operator_down.emit()
 
 func _on_target_killed(_t: Gunplay.Target) -> void:
 	pass
 
-func _on_target_hit(t: Gunplay.Target, _damage: float, _head: bool) -> void:
+func _on_target_hit(t: Gunplay.Target, _damage: float, head: bool) -> void:
 	if t.has_meta("enemy"):
 		_last_hitter[t.get_meta("enemy")] = OPERATOR_HIT
+		if head:
+			_tally("headshot", 1)
+
+## the daily-goal counters (progression.gd): kills land at once, headshots every fourth so the profile file is not
+## written on every bolt; a finished goal is toasted through `goal_done` (the view decides how to show it)
+signal goal_done(line: String)
+var _pending_head := 0
+
+func _tally(kind: String, n: int) -> void:
+	if kind == "headshot":
+		_pending_head += n
+		if _pending_head < 4:
+			return
+		n = _pending_head
+		_pending_head = 0
+	var p := Gear.profile_load()
+	for g in Progression.event(p, kind, n):
+		goal_done.emit("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+	Gear.profile_save(p)

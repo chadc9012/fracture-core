@@ -269,6 +269,26 @@ additive curtains), violet crystal clusters on top and hanging beneath, glowing 
 tumbling debris (one MultiMesh, rotated and bobbed in the vertex shader) and a storm sky. Shots: `map:old-harrow 3d`,
 `map:storm 3d`.
 
+**Trees, rocks and weather** (asset catalog item 7; `scripts/region_flora.gd`, `scripts/region_weather.gd`): every region
+deals its forest places out between species by a hash of their position — broadleaf oaks (they follow the seasons with
+the conifers), cherry blossom (pink in spring, red in autumn, bare in winter) in the temperate regions and towns, baobabs
+in Solara and the Wastelands, bamboo clumps among the Azure Isles and Shattered Reefs palms, and glowing alien flora
+(stalks with pulsing teal or magenta bulbs) in the Crystal Badlands and on the Storm Islands. Vines hang and sway under
+the floating islands. Eroded sandstone arches stand in the deserts and the badlands (and sea arches at the isles' and
+reefs' waterlines), cave mouths open in the mountain and forest slopes, ice spires stand in groups on the ice. Lava now
+flows: crust plates drift over molten seams that breathe. The Crystal Badlands' void rifts split upward as tall violet
+tears with dark shards floating round them. Weather: snow falls round the camera on the ice and the high mountains, and
+wherever winter comes when the header is on WINTER; lightning strikes round what the camera is looking at every few
+seconds on the Storm Islands and in the Shrouded Swamps, flashing the scene. Shot option `bolt` strikes at once and holds.
+
+**Portals, holograms, energy fields** (`scripts/vfx/fx.gd`, reusable): `portal()` is a dark ring on two footings with a
+glowing lip, a swirling vortex inside (spiral noise pulled inward) and sparks drawn into it — the Nexus hub's RIFT GATE,
+the Fracture Tear, the Void Rifts and the Wastelands' Vault Gate (12 m off the place, facing it). `hologram()` is a
+projector, its light cone and a slowly turning figure with scanlines, rim light and flicker — globes over the cities'
+plazas and campuses, figures over the shops, emblems over the venues (Nexus, Neon City, Thalassia, on the tallest roof
+nearby). `energy_field()` is a hex-plated dome with a bright rim, rising pulses and a glow where it meets the ground —
+over research stations (blue) and the vaults and bunkered bases (amber), sized to the buildings under it.
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through
@@ -280,6 +300,67 @@ from concept images in the owner's Meshy account, shrunk in the page to phone bu
 holo info kiosks, drinks machines against the buildings, superbikes on the pavement, and on the hub block the NEXUS CITY
 · CENTRAL DISTRICT gateway arch over the avenue (solid only at its pillars). Placed per tile by `_street_set()`.
 Shot: `slice:look=x,y,z,tx,ty,tz` aims the look-dev camera.
+
+**The front door and the loop** (`scripts/front/`, schedule step 7, Nov 9): the game now opens on a **title screen**
+(`title.gd`, over the owner's Nexus City art) — CONTINUE / GAME MODES / WORLD MAP / NEW OPERATOR once an operator is saved,
+NEW OPERATOR alone on a first launch, SETTINGS and ACCOUNT below. NEW OPERATOR runs the creator and then Apartment 12-04,
+and the opening ends on the **Nexus street hub**, the game's home; CONTINUE goes there directly. The hub's systems are
+**in-world doors** on the sidewalks (`street_slice.gd` DOORS: Apartment 12-04, the KILLBOX TERMINAL kiosk, the SKYWAYS
+SHUTTLE and CRASH-SITE TRANSPORT stops, the RIFT GATE portal, the garage forecourt, the Galleria, the Skyline Casino, the
+Sports District), each drawn as what it is with its name over it; walking up shows ENTER <name> (the ENTER button on touch,
+"<name> · E" under the crosshair with a keyboard). The street's own overlays open in place; the others (`main.gd`
+`_street_door`) open over the street, which is hidden and paused, not rebuilt, and comes back where you left it when they
+close. **Settings** (`settings_store.gd`, `settings_view.gd`, `user://settings.json`): graphics tier AUTO / LOW / MEDIUM /
+HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and invert, Master / Music / SFX / Voices volumes
+(the audio buses, for step 8), a simple HUD switch. The globe stays the travel map (WORLD MAP). The loop is played
+headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
+title`, `settings`, `slicewalk:doors`.
+
+**Economy and progression** (`scripts/progress/`, schedule step 10, Nov 9): one profile. Every mode pays through
+`progression.gd` `grant()` — Killbox (a win 250 + 25 Nex a kill to 600, a loss 100 + 15; XP likewise), the Rift Gate
+bosses, Descent quests, the Hollow Star, races, Skyways courses, Mission 01 — onto `user://profile.json` (cloud-merged).
+The **level** follows the web's curve (level N needs N × 400 XP; the campaign ends near 11) and is worth +2 operator
+power and +4 hull a level, applied wherever the operator fights. **Loot** lands in the inventory from every end: a Killbox
+win rolls the elite pool (a loss the common one), a boss clear the boss pool every time, a Descent quest the elite pool.
+Three **daily goals** are picked from a ten-goal pool by the day (play / win Killbox, drop 20 hostiles, land 8 headshots,
+clear a boss, finish a quest or a race, fly 10 rings, drive 2 km, buy at the Galleria), count what you do in any mode and
+pay once each; the last twenty payments are a ledger. The **OPERATOR** panel (`profile_view.gd`: level, XP bar, Nex,
+power / hull, today's goals, recent payments) opens from the title (the button carries `LV · NEX · goals left`) and the
+street's OPERATOR button. Tests: `tests/progress/progression_test.gd` (the curve, grants, the ledger, goals that count,
+pay once and reset with the day).
+
+**Phone performance** (schedule step 9, Nov 9): a **frame-time readout** sits bottom-right on every screen
+(`scripts/front/perf_hud.gd`: fps · ms (worst) · draw calls · triangles · video memory, averaged over half a second, green
+at 30 fps and above, amber under, red under 20; settings "Frame-time readout", on by default for the test builds). The
+measured fixes behind it, all by graphics tier (`phone.gd`): every texture is **VRAM-compressed** (ETC2 / ASTC on Android)
+at 1024 px, 512 for normal / roughness / metallic maps — before this the headless import left 379 textures lossless
+(uncompressed in GPU memory); the `.import` files now ship in git (`.gitignore`) so the CI import cannot fall back;
+static batching groups repeated props by what their materials look like, not which material object they hold (tinted
+copies now share a MultiMesh; one-off copies stay plain nodes), merges primitives in 96 m cells on medium / 130 m on low
+(48 m on high), stops shadows on props under 4 m (medium), fades small dressing at 95 m (medium) / 60 m (low) and parked
+cars at 90 / 55 m; the sun casts one orthogonal cascade to 70 m on the phone (every caster drawn once for the shadow);
+mesh LOD switches at 4 px (medium) / 8 px (low); crowds and traffic run at 70 % / 45 % of the desktop count. The Nexus
+firefight (`--shot out.png slicewalk:fight perf:out.json`) went from 1382 draws / 1.56 M triangles to **1086 draws / 1.21 M**
+on medium and **763 / 0.81 M** on low; Killbox, the Rift Gate, Skyways and the Descent sit at 200–600 draws. The gate is
+the owner's S22 Ultra at 30 fps in that firefight; the readout is there to read it off.
+
+**Sound** (`scripts/audio/`, schedule step 8, Nov 9): the Godot build has a mixer. Four buses (`default_bus_layout.tres`:
+Master, Music, SFX, Voices — the settings sliders), the `Audio` autoload (`audio.gd`) behind the static front `Sound`
+(`sound.gd`; scripts call `Sound.sfx("rifle")`, and in the headless `--script` tests, where autoload names do not
+resolve, every call is a silent no-op). What plays: **cues** from `audio/sfx/` — every gun frame, reload, dry click, hit /
+headshot / down, hurt, footsteps / jump / land, doors and the Rift portal, UI, captures and buzzers, boss roars and
+staggers, explosions, engine / hover / rotor / jet / wind / water loops (`scripts/build-sfx.py` designs the set as 24 kHz
+WAVs, since the web's authored SFX live only on the Lovable CDN; an authored WAV of the same name replaces one);
+**ambience** from `audio/ambience/` — the web's regional beds (forest-wilds, nexus-hum, swamp-marsh, underwater-city,
+frost-spire, solara-dunes, wasteland-wind, ember-peaks) crossfaded by region or street style (`Sound.bed_for`); the
+**radio** (`radio.gd` over `data/radio.json`, exported from `src/game/radio-stations.ts` by
+`scripts/export-godot-radio.ts`): the owner's seven recorded stations as linear broadcasts — station ID, the rotation in
+order, a commercial after every two programs, never mid-song; the archived spoiler episodes and ad are not exported and
+never ship — playing in any car on the street (the RADIO button steps the dial and remembers the station); **music** on
+the title (Vektor Lane's Night Drive); **voices** from `audio/voices/` — NOVA's first words at the Mission 01 surge and
+Mara at the crash site (fd-02) are the owner's recordings; Vaelith, Serik Vale and Dr Aris's log wait for step 11. Tests:
+`tests/audio/audio_test.gd` (the broadcast rules, every exported file present, the autoload playing headless) and the loop
+play test's sound checks. Phone: 65 MB of audio, Ogg / MP3 streamed, WAV cues in memory.
 
 **Game Modes** (`scripts/modes/modes_hub.gd`, the ⚔ GAME MODES button on the globe; the owner, Nov 8: PvP, Raids and
 Races are separate modes): a hub of three tiles in the look of the owner's boards (`docs/reference/pvp-maps.png` — navy
@@ -317,7 +398,7 @@ bun scripts/export-godot-character.ts     # from the repo root: rewrites godot-w
 bun scripts/export-godot-gear.ts          # from the repo root: rewrites godot-world-fracture/data/gear.json
 bun scripts/export-godot-killbox.ts       # from the repo root: rewrites godot-world-fracture/data/killbox.json
 godot --path godot-world-fracture         # run it
-# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [slicewalk:district] [killbox[:fight]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [3d-at:x,z[,dist,pitch,yaw,lift]] [street:<place id>] [frames:<n>]
+# a screenshot without a window (xvfb): --shot <png> [garage[:shop[:car[:item,kit-racing,...]]]] [drive[:car[:throttle[:steer[:garage]]]]] [slice[night][coast|neon][walk[:run|:jump|:fight|:drive|:inventory|:shop[:haven]|:fire[:sniper|:fusion][:aim]]][:x,y,z:tx,ty,tz]] [mall[:view]] [casino[:view 0-8]] [sports[:view 0-7]] [descent[:fight]] [race[:go]] [slicewalk:district] [slicewalk:doors] [title] [settings] [killbox[:fight]] [cloud] [char[:body[:face[:TAB[:key=value,...]]]]] [select:<continent>] [map:<id>] [sat] [zoom:<factor>] [3d] [3d-at:x,z[,dist,pitch,yaw,lift]] [street:<place id>] [frames:<n>]
 xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resolution 540x1170 -- --shot out.png map:nexus
 ```
 
@@ -336,3 +417,16 @@ Static scenery is merged after a build by `scripts/static_batch.gd`: primitive p
 models into MultiMeshes, lights fading with distance. Anything that moves or animates must carry `set_meta("dynamic", true)`
 or it gets frozen into a batch. Measuring tools live in `tests/tools/` (`draw_breakdown`, `street_profile`, `overlap_scan`,
 `region_spacing`); the `--shot … perf:<json>` capture writes draw calls and the heaviest nodes.
+
+## Nexus City districts
+
+The Nexus avenue (street_slice.gd, `style == "nexus"`) is the hub tile (Central Transit Plaza) and six streamed blocks, and
+every block opens side streets into district courts built with the block by `scripts/city/nexus_districts.gd`:
+Perimeter Wall & Operations and the Vanguard Command Citadel at the North Gate end, the Spire District, the Tech Faction
+Central Tower (420 m, the tallest building in the game, always built) and Apex Gear, then south of the hub Rusty Trigger,
+Cylinder & Co Heavy Motorworks, the Warrens, the Scrapyard Bazaar, and the Southern Docks / Marina & Aqua-Tech Shipyard at
+the quay. Courts are tile-local boxes with obstacle markers; the avenue leaves each court's frontage to the court's own
+blocks (`Nexus.in_frontage`, `_court_here`, `_in_mouth`). Apex Gear and Rusty Trigger sell from gear_store.gd
+`shop_stock` / `buy_offer` (a daily stock); Cylinder & Co opens the garage on the `ironworks` shop. The casino is Neon
+City's alone (the Neon City Grand Casino on the Neon hub). Shots: `--shot slicewalk:court=<id>[:still]`. Test:
+`godot --headless --path godot-world-fracture --script res://tests/city/nexus_walk_test.gd`.

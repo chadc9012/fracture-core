@@ -7,6 +7,7 @@ import { mulberry32 } from "@/game/rng";
 import { chippedBlock, flutedColumn, organicRock, saggingTent } from "@/game/organic-geometry";
 import { applyWorldTriplanar, weatheredConcreteTexture } from "@/game/weathered-surface";
 import { NearOnly } from "./NearOnly";
+import { getPerfTier, NEAR_SCALE } from "@/game/perf-budget";
 import { ReclaimedCity } from "./ReclaimedCity";
 import { CITY } from "@/game/reclaimed-city";
 import { InstancedFleet, type FleetInstance } from "./InstancedFleet";
@@ -199,12 +200,14 @@ const WILD = new Set(["wastelands", "veridan", "frostspire", "ember", "solara", 
 
 export function SiteMarkers({ playerRef }: { playerRef: RefObject<THREE.Object3D> }) {
   const sites = useMemo(() => SITES.filter((s) => WILD.has(s.regionId)), []);
+  // Nov 9 perf pass: the Wastelands had ~245 draw calls of atlas sites a frame at 420 m on every tier; scale like the districts
+  const radius = Math.round(420 * Math.max(0.75, NEAR_SCALE[getPerfTier()]));
   return <group name="atlas-sites">{sites.map((s) => {
     const y = walkHeight(s.x, s.z);
     let body: ReactNode = <group position={[s.x, y, s.z]} rotation-y={(s.x * 0.013) % (Math.PI * 2)}><Piece site={s} /></group>;
     if (s.kind === "scrapyard") body = <Wrecks site={s} count={18} spread={40} />;
     if (s.kind === "highway") body = <Wrecks site={s} count={8} spread={0} line />;
     if (s.id === CITY.siteId) body = <ReclaimedCity />; // the trailer's jungle-reclaimed city stands on the Ancient Ruins
-    return <NearOnly key={s.id} playerRef={playerRef} x={s.x} z={s.z} radius={420} name={`site:${s.id}`}>{body}</NearOnly>;
+    return <NearOnly key={s.id} playerRef={playerRef} x={s.x} z={s.z} radius={s.id === CITY.siteId ? 420 : radius} name={`site:${s.id}`}>{body}</NearOnly>;
   })}</group>;
 }

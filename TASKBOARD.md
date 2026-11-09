@@ -14,6 +14,8 @@ web-build (`src/`) feature work beyond verification and fixes.
 Append a row under *Claimed*, with your session link and the date, then push. Move it to *Done* with the commit when it lands.
 Rows are the lock; `git fetch` before you claim.
 
+## Schedule from Nov 9 (roadmap doc, "Schedule from Nov 9 to Dec 4"): 7 front door + loop (lead) → 8 sound (lead) → 9 phone performance (lead + owner's test) → 10 economy & progression and 11 story (parallel sessions, claim here) → 12 polish → 13 ship. The Dec 4 build phases below are closed.
+
 ## Phases (in order; each gates the next)
 1. **Close out the web build** — melee as Fracture Blade skins/stats (option 1), server-side mission-run guard, phone verification.
 2. **Godot on-foot player and combat** — third-person operator in the street slices, rifle/sniper/fusion frames, 5 enemy types, HUD.
@@ -24,18 +26,19 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Asset gap 5 (Godot): Fracture creatures & bosses — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus as boss fights (web phases + poise rules, attacks, adds) on the authored boss / enemy GLBs | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
-| Killbox bots and the PvP maps board's arenas (all eleven built, Void Rift last), then the web Killbox's Extraction and Ranked modes in pvp.ts (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
-| Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront, Solara Outpost, Frostveil Ring and Thalassia Dome arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
+| Bug sweep (owner, Nov 9 12:08: "look into the game for small little bugs and glitches"): engine errors from the playthrough, then screenshots of every screen; small fixes across modules — will note anything in another session's claimed area here instead of editing it | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
+| Owner ask (Nov 9 12:38): the Nexus Region after the owner's "Nexus Region v1.0" board (natural coastline; full region) — a new region map `nexus-region` (src/game/nexus-region.ts, a NewLand: Aether Ridge, Verdant Expanse, Ironcrest Outlands, Southreach, Nexus City's districts, Harbor, Beach, Azure Keys, Lighthouse Point, Eastpoint, Obsidian Cliffs, NOVA Research Complex, the Fracture Spire), opened first on the Nexus continent; region 3D only — not the Nexus street slice / districts (session_01PQQ… and the districts work own those) | session_01HeBvGF1Wp7cNYHiTnBkJXG | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
+- Small: the `--shot … slicewalk:drive` capture hook no longer enters the car (driving itself works — street race play test and a headless probe both drive); fix the hook so the drive HUD / radio line can be shot.
+- Step 11 (step 7 landed Nov 9 — open now): story — fd-05 onward (Verdant Forest → Neon City), cutscene playback from the web's story data, Vyrak as the act boss at the Rift Gate.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
-  2. PvP modes missing from pvp.ts: Extraction, Ranked (owner's board) — web-side rules + bots (killbox web session), then re-export to Godot.
+  2. Done in the web build (Nov 9): Extraction and Ranked are in pvp.ts with bots and re-exported; left for Godot: Extraction's core rules in killbox_match.gd (port pvp.ts `stepExtract`; it is hidden from the Godot picker until then — Ranked already plays there as Dominion).
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
-  7. Vegetation / rock gaps (cherry blossom, baobab, bamboo, alien flora, vines; arch, cave, ice), natural effects (waterfall, lava, snow, lightning), VFX (rift, portal, hologram, energy field).
+  7. ~~Vegetation / rock gaps, natural effects, VFX~~ — done in region 3D and scripts/vfx/fx.gd (see Done).
   8. Fantasy & dimensional set (§9) for the Shattered Expanse and boss arenas.
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
@@ -45,6 +48,13 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Owner ask (Nov 9): finish Nexus — the avenue's six streamed blocks open side streets into eleven walkable district courts (scripts/city/nexus_districts.gd: Perimeter Wall & Ops + North Gate, Vanguard Citadel, Spire District, the 420 m Tech Faction Central Tower, Apex Gear, Rusty Trigger, Cylinder & Co, the Warrens, Scrapyard Bazaar, Southern Docks, Marina & Aqua-Tech Shipyard + the south quay); Apex Gear / Rusty Trigger sell a daily stock (gear_store `shop_stock` / `buy_offer`), Cylinder & Co opens the ironworks garage; the casino is Neon City's alone (Neon City Grand Casino). Owner's phone report: ENTER was read twice so no car could be entered (fixed; every block's cars takeable), aim point ignored boxes behind the operator, touch FIRE drag-aims + aim help, desktop mouse capture, street unarmed with no troopers until Mission 01's Surge. **For the lead:** models/operators/heads/m-ronin.glb (01e5ec5) logs 'Skin bind … Bone_0xx' errors whenever the street opens | see git log "Nexus City districts" (Nov 9) |
+| Step 10 (schedule): economy and progression — one profile through progression.gd (grant / event), the web XP curve with power + hull per level, loot from Killbox / bosses / quests into the inventory, Killbox purse by result and kills, ten daily goals (three a day) with the ledger, the OPERATOR panel on the title and the street | Godot: one profile |
+| Step 9 (schedule): phone performance — frame-time readout, all textures VRAM-compressed at 1024/512 px with tracked .import files, tier-scaled batching / shadows / ranges / LOD / crowds; Nexus firefight 1382 → 1086 draws (medium), 763 (low) | Godot: phone performance |
+| Asset gap 7 (rest): portal, hologram and energy-field VFX (scripts/vfx/fx.gd) at the tears and gates, research stations, vaults and bases, the cities' landmarks and the Nexus hub's Rift Gate; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Portals, holograms, energy fields" (Nov 9) |
+| Step 8 (schedule): sound — buses, the Audio autoload + Sound front, 35 designed cues, regional ambience beds, the owner's seven radio stations in every car (spoiler archive excluded), title music, NOVA / Mara recorded lines, engine / craft loops; tests/audio | Godot: sound |
+| Step 7 (schedule): the front door and the loop — title screen, settings (graphics tier / sensitivity / audio), the Nexus street as the hub with in-world doors to Apartment 12-04, Killbox, Skyways, the crash-site Descent, the Rift Gate, garage, mall, casino, sports; systems open over the paused street and return to it; tests/front/loop_play.tscn | Godot: the front door |
+| Asset gap 7 (Godot region 3D): oak, cherry blossom, baobab, bamboo, alien flora, vines; sandstone and sea arches, cave mouths, ice spires; flowing lava, snowfall, storm lightning, rift tears; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Trees, rocks and weather" (Nov 9) |
 | Owner ask (Nov 9 05:51): the Neon City Grand Casino (renamed from Skyline Casino Resort, owner's board) made the second-tallest building at 380 m, below the Nexus Core Spire at 420 m (owner's numbers; carto-features CORE_SPIRE_M / CASINO_TOWER_M, landmark-towers.test.ts). Godot region_3d draws both as landmarks: the casino's oval neon-banded tower with the face crown, roof venue (stage under ringed truss and gold crown, sweeping lasers, dance floor, palms, helipad); the spire's stepped steel tiers, cyan bands, glowing core and needle beacon. Lit window floors in world-mapped glass; the generic roof / facade passes skip them. Checked in Godot 4.6: renders (new shot option `3d-at:x,z,dist,pitch,yaw,lift`) and the playthrough runs 120 steps, 0 problems. On branch `neon-casino-tower`, ready to merge; session_01HeBvGF1Wp7cNYHiTnBkJXG | branch neon-casino-tower |
 | Asset gap 5 (fights): the six Fracture bosses at the Rift Gate — phases, poise / stagger / weak point, telegraphed attacks, summons, rewards, on the authored boss hulls | see git log "Godot: the Rift Gate" (Nov 9) |
 | Owner ask (Nov 8 22:12, "start"): the Town and Floating Islands regions deepened — Old Harrow (a new walled market town: market, guildhall quest board, tavern, cathedral, castle, hamlets, mill) and the Storm Islands (islets, waterfalls, crystals, drifting debris, storm sky); gabled roofs on low buildings everywhere; autumn/winter keeps the conifers green; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Old Harrow and the Storm Islands" (Nov 8) |

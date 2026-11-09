@@ -134,7 +134,7 @@ export const KAIJU_COMPLEX: KillboxArena = {
   zones: [{ id: "A", dx: -34, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 34, dz: 0 }], objective: [0, 0],
   killPlane: 12,
   fracture: { name: "Billboard Blackout", brief: "Every sign on the block goes dark. Sight ranges collapse; fight by muzzle flash.", first: 90, every: 150, length: 30, warn: 10, visibility: 0.4 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Fracture Floor ---------------- */
@@ -192,7 +192,7 @@ export const FRACTURE_FLOOR: KillboxArena = {
   zones: [{ id: "A", dx: -20, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 20, dz: 0 }], objective: [0, 0],
   killPlane: 12,
   fracture: { name: "Grid Rewrite", brief: "The grid rewrites itself: standing data pillars sink and new ones rise, changing every sightline on the floor.", first: 75, every: 120, length: 25, warn: 10, visibility: 1 },
-  modes: ["lockdown", "ascendancy", "dominion", "clash", "freefall"],
+  modes: ["lockdown", "ascendancy", "dominion", "clash", "freefall", "extraction", "ranked"],
 };
 
 /* ---------------- Killbox Prime ---------------- */
@@ -247,7 +247,7 @@ export const KILLBOX_PRIME: KillboxArena = {
   zones: [{ id: "A", dx: -20, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 20, dz: 0 }], objective: [0, 0],
   killPlane: 10,
   fracture: { name: "Containment Lock", brief: "The capture zone locks down: a ring of glass walls rises round the centre and the walls out on the deck sink. Get in through the corners, or hold the gaps.", first: 90, every: 140, length: 25, warn: 10, visibility: 1 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Skydock ---------------- */
@@ -302,7 +302,7 @@ export const SKYDOCK: KillboxArena = {
   zones: [{ id: "A", dx: -32, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 32, dz: 0 }], objective: [0, 0],
   killPlane: 12,
   fracture: { name: "Cloud Bank", brief: "A bank of cloud rolls up over the dock. Sight drops to a few metres: listen for footsteps and fight close.", first: 80, every: 140, length: 25, warn: 10, visibility: 0.35 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Neon Yard ---------------- */
@@ -357,7 +357,7 @@ export const NEON_YARD: KillboxArena = {
   zones: [{ id: "A", dx: -30, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 30, dz: 0 }], objective: [0, 0],
   killPlane: 12,
   fracture: { name: "Crane Shuffle", brief: "The gantry crane reworks the yard: it lifts containers out of the lanes and drops others into the open ones.", first: 70, every: 130, length: 30, warn: 10, visibility: 1 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Glass Spire ---------------- */
@@ -418,7 +418,7 @@ export const GLASS_SPIRE: KillboxArena = {
   zones: [{ id: "A", dx: -35, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 35, dz: 0 }], objective: [0, 0],
   killPlane: 10,
   fracture: { name: "Spire Shatter", brief: "The spire fractures: every glass panel on the plaza shatters, glass dust hangs in the air, and blast shutters rise across the open lanes.", first: 85, every: 140, length: 25, warn: 10, visibility: 0.7 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Riverfront ---------------- */
@@ -482,7 +482,7 @@ export const RIVERFRONT: KillboxArena = {
   zones: [{ id: "A", dx: -30, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 30, dz: 0 }], objective: [0, 0],
   killPlane: 11,
   fracture: { name: "Flood Alert", brief: "Sirens on the river: the rain comes down in sheets, flood barriers rise across the bridges and the quay, and the windbreaks fold away.", first: 80, every: 135, length: 25, warn: 10, visibility: 0.6 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Solara Outpost ---------------- */
@@ -541,7 +541,7 @@ export const SOLARA_OUTPOST: KillboxArena = {
   zones: [{ id: "A", dx: -25, dz: 14 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 25, dz: -14 }], objective: [0, 0],
   killPlane: 12,
   fracture: { name: "Solar Flare", brief: "A solar flare hits the mesa: the glare is blinding, the panel arrays fold flat and heat shields rise across the open yard.", first: 80, every: 140, length: 25, warn: 10, visibility: 0.5 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Frostveil Ring ---------------- */
@@ -601,7 +601,7 @@ export const FROSTVEIL_RING: KillboxArena = {
   zones: [{ id: "A", dx: -26, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 26, dz: 0 }], objective: [0, 0],
   killPlane: 12,
   fracture: { name: "Whiteout", brief: "A whiteout sweeps the ring: the snow blinds you, ice walls freeze across the bridges and the heated screens die.", first: 85, every: 140, length: 25, warn: 10, visibility: 0.35 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Thalassia Dome ---------------- */
@@ -659,7 +659,7 @@ export const THALASSIA_DOME: KillboxArena = {
   zones: [{ id: "A", dx: -29, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 29, dz: 0 }], objective: [0, 0],
   killPlane: 12,
   fracture: { name: "Pressure Breach", brief: "The dome breaches: alarms sound, mist sprays through the labs, bulkheads rise to seal the lanes and the glass partitions retract.", first: 75, every: 135, length: 25, warn: 10, visibility: 0.5 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 /* ---------------- Void Rift ---------------- */
@@ -716,12 +716,17 @@ export const VOID_RIFT: KillboxArena = {
   zones: [{ id: "A", dx: -29, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 29, dz: 0 }], objective: [0, 0],
   killPlane: 10,
   fracture: { name: "Rift Surge", brief: "The rift surges: the void storms (sight drops), the floating rock slabs fall away and void crystals tear up through the islands.", first: 80, every: 135, length: 25, warn: 10, visibility: 0.55 },
-  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
 export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST, "frostveil-ring": FROSTVEIL_RING, "thalassia-dome": THALASSIA_DOME, "void-rift": VOID_RIFT };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
+/** Extraction's sites on an arena: the core drops in on the objective, and each team's pad is the middle of its spawns */
+export function extractionSites(a: KillboxArena): { home: { x: number; z: number }; us: { x: number; z: number }; them: { x: number; z: number } } {
+  const mid = (pts: readonly (readonly [number, number])[]) => ({ x: pts.reduce((n, p) => n + p[0], 0) / pts.length, z: pts.reduce((n, p) => n + p[1], 0) / pts.length });
+  return { home: { x: a.objective[0], z: a.objective[1] }, us: mid(a.spawns.us), them: mid(a.spawns.them) };
+}
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));
 /** the first arena a mode plays on */
 export const arenaForMode = (mode: PvpModeId): KillboxArena | undefined => arenasForMode(mode)[0];

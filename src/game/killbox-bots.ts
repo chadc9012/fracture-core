@@ -5,11 +5,12 @@
  *
  * Each bot plays the mode: in Clash it hunts the nearest enemy and otherwise pushes up a lane; in Dominion the team splits over the
  * three zones and leans on the ones it does not hold; in Lockdown attackers go for the objective and defenders hold round it; in
- * Ascendancy they hunt, and take the centre once the zone opens. In sight of an enemy a bot stops at fighting range, strafes and fires
+ * Ascendancy they hunt, and take the centre once the zone opens; in Extraction they go for a loose core, the carrier runs it home
+ * (shooting back but never stopping to fight) while the rest escort, and the other team hunts the carrier. In sight of an enemy a bot stops at fighting range, strafes and fires
  * in bursts; line of sight is blocked by the arena's cover and standing shifters. Ally bots die and respawn at your side's spawns
  * (not in a round: they wait for the next one). Pure rules: Scene feeds the world in and applies what comes back. */
 import { confine, solidShifters, spawnPoint, surfaceAt, type KillboxArena } from "./killbox-arenas";
-import { PVP_MODES, type PvpModeId, type PvpState } from "./pvp";
+import { PVP_MODES, type PvpModeId, type PvpState, type Unit } from "./pvp";
 import type { RivalClass } from "./crucible";
 
 export const ALLY_NAMES = ["VEX", "HOLT", "KAI", "ROOK", "SABLE"] as const;
@@ -142,6 +143,14 @@ function goalFor(b: Bot, w: BotWorld): { x: number; z: number } {
     const best = want.reduce((p, q) => (q.score > p.score ? q : p));
     return { x: best.z.dx + Math.sin(b.lane * 2.1) * 2.5, z: best.z.dz + Math.cos(b.lane * 2.1) * 2.5 };
   }
+  if (m.kind === "extract" && st.core) {
+    const c = st.core, mine = ours ? "us" : "them";
+    if (c.carrier === b.id) return c.pads[mine];
+    // a loose core: everyone goes for it; theirs: run the carrier down; ours: escort the carrier, a little ahead toward the pad
+    if (c.holder === null || c.holder !== mine) return { x: c.x + Math.sin(b.lane * 2.3) * 1.2, z: c.z + Math.cos(b.lane * 2.3) * 1.2 };
+    const pad = c.pads[mine], dx = pad.x - c.x, dz = pad.z - c.z, d = Math.max(1, Math.hypot(dx, dz)), ahead = Math.min(6, d);
+    return { x: c.x + (dx / d) * ahead + Math.sin(b.lane * 2.1) * 3, z: c.z + (dz / d) * ahead + Math.cos(b.lane * 2.1) * 3 };
+  }
   if (m.kind === "rounds") {
     const [ox, oz] = a.objective;
     const attacking = m.id === "lockdown" ? st.attacking === ours : st.roundClock >= (m.roundTime ?? 90);
@@ -213,6 +222,9 @@ export function stepBots(s: BotsState, w: BotWorld): BotOutcome {
       if (b.via) { const ex = b.via.x - b.x, ez = b.via.z - b.z, e = Math.max(0.01, Math.hypot(ex, ez)); vx = ex / e; vz = ez / e; b.yaw = Math.atan2(ex, ez); }
     }
     b.flipIn -= dt; if (b.flipIn <= 0) { b.side = b.side > 0 ? -1 : 1; b.flipIn = 1.2 + rng(s) * 1.6; }
+    // Extraction's carrier never stops to fight: it shoots back on the run home
+    const carrying = st.core?.carrier === b.id;
+    if (foe && carrying) { const p = posOf(foe); fire(s, b, foe, p, Math.hypot(p.x - b.x, p.z - b.z), out); foe = null; }
     if (foe) {
       const p = posOf(foe), dx = p.x - b.x, dz = p.z - b.z, d = Math.max(0.01, Math.hypot(dx, dz));
       b.yaw = Math.atan2(dx, dz);
@@ -227,8 +239,8 @@ export function stepBots(s: BotsState, w: BotWorld): BotOutcome {
       b.routeIn = (b.routeIn ?? 0) - dt;
       if (b.routeIn <= 0) { b.routeIn = 0.9 + rng(s) * 0.3; b.via = routeVia(a, b.x, b.z, g.x, g.z); }
       const aim = b.via ?? g, dx = aim.x - b.x, dz = aim.z - b.z, d = Math.hypot(dx, dz);
-      if (d > 1.2) { vx = dx / d; vz = dz / d; b.yaw = Math.atan2(dx, dz); } else speed = 0;
-      b.firing = Math.max(0, b.firing - dt);
+      if (d > 1.2) { vx = dx / d; vz = dz / d; if (!carrying) b.yaw = Math.atan2(dx, dz); } else speed = 0;
+      if (!carrying) b.firing = Math.max(0, b.firing - dt);
     }
     const l = Math.hypot(vx, vz);
     const nx = l > 0 ? b.x + (vx / l) * speed * dt : b.x, nz = l > 0 ? b.z + (vz / l) * speed * dt : b.z;
@@ -274,6 +286,13 @@ export function zonePresence(s: BotsState, st: PvpState, player: { x: number; z:
     };
   }
   return out;
+}
+
+/** everyone on the field for Extraction's core (pvp.ts Unit): you as "player", the ally bots and the rivals by their ids */
+export function fieldUnits(s: BotsState, player: { x: number; z: number; alive: boolean }): Unit[] {
+  return [{ id: "player", team: "us", x: player.x, z: player.z, alive: player.alive },
+    ...s.allies.map((b) => ({ id: b.id, team: "us" as const, x: b.x, z: b.z, alive: b.alive })),
+    ...[...s.rivals.values()].map((b) => ({ id: b.id, team: "them" as const, x: b.x, z: b.z, alive: b.alive }))];
 }
 
 /** a new round: every ally back on your side's spawns at full health */

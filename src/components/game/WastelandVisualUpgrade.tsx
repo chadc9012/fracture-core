@@ -7,6 +7,7 @@ import { distanceToRoad, LANE_HALF_WIDTH } from "@/game/lanes";
 import { organicRock } from "@/game/organic-geometry";
 import { regionById } from "@/game/dressing-kit";
 import { useInstances } from "./instancing";
+import { getPerfTier, heavyShadows } from "@/game/perf-budget";
 import { terrainContactNormal, terrainContactPosition } from "@/game/terrain-contact";
 
 /** Deterministic, instanced set dressing. Does not alter collision or gameplay. */
@@ -72,12 +73,21 @@ export function WastelandVisualUpgrade() {
   const scrubGeometry = useMemo(() => createDesertScrubGeometry(), []);
   // Four genuinely different silhouettes: layered boulders, fractured slabs and low rubble.
   // Keep a single instanced draw per silhouette instead of hundreds of separate meshes.
+  // Nov 9 perf pass: at detail 2 every rock AND every ankle-high stone was a 2,000-triangle mesh — 950 of them, ~1.9M
+  // triangles (more with the rock shadows), the single biggest cost in the Wastelands on the owner's MEDIUM phone. Boulders
+  // keep ~980 triangles on LOW/MEDIUM (the normal map carries the detail); stones are a few centimetres tall and get 320.
+  const tier = getPerfTier();
+  const rockSub = heavyShadows(tier) ? undefined : 6;
   const rockGeometries = useMemo(() => [
-    organicRock(1, 913, 2, 0.21), organicRock(1, 1847, 2, 0.34),
-    organicRock(1, 2911, 2, 0.28), organicRock(1, 4517, 2, 0.18),
+    organicRock(1, 913, 2, 0.21, rockSub), organicRock(1, 1847, 2, 0.34, rockSub),
+    organicRock(1, 2911, 2, 0.28, rockSub), organicRock(1, 4517, 2, 0.18, rockSub),
+  ], [rockSub]);
+  const stoneGeometries = useMemo(() => [
+    organicRock(1, 913, 1, 0.21, 3), organicRock(1, 1847, 1, 0.34, 3),
+    organicRock(1, 2911, 1, 0.28, 3), organicRock(1, 4517, 1, 0.18, 3),
   ], []);
   const rockGroups = useMemo(() => rockGeometries.map((_, variant) => rocks.filter(r => r.variant === variant)), [rocks, rockGeometries]);
-  const stoneGroups = useMemo(() => rockGeometries.map((_, variant) => stones.filter(r => r.variant === variant)), [stones, rockGeometries]);
+  const stoneGroups = useMemo(() => [0, 1, 2, 3].map((_, variant) => stones.filter(r => r.variant === variant)), [stones]);
   const maps = useMemo(() => ({
     color: materialTexture("wasteland_cracked_earth", "basecolor"),
     normal: materialTexture("wasteland_cracked_earth", "normal"),
@@ -127,7 +137,7 @@ export function WastelandVisualUpgrade() {
     {rockGeometries.map((geometry, i) => <instancedMesh key={`rock-${i}`} ref={rockRefs[i]!} args={[geometry, undefined, rockGroups[i]!.length]} castShadow receiveShadow>
       <meshStandardMaterial map={maps.color} normalMap={maps.normal} aoMap={maps.orm} roughnessMap={maps.orm} roughness={0.96} metalness={0} />
     </instancedMesh>)}
-    {rockGeometries.map((geometry, i) => <instancedMesh key={`stone-${i}`} ref={stoneRefs[i]!} args={[geometry, undefined, stoneGroups[i]!.length]} receiveShadow>
+    {stoneGeometries.map((geometry, i) => <instancedMesh key={`stone-${i}`} ref={stoneRefs[i]!} args={[geometry, undefined, stoneGroups[i]!.length]} receiveShadow>
       <meshStandardMaterial map={maps.color} normalMap={maps.normal} roughnessMap={maps.orm} roughness={1} />
     </instancedMesh>)}
     <instancedMesh ref={scrubRef} args={[scrubGeometry, undefined, scrub.length]} castShadow><meshStandardMaterial roughness={1} side={THREE.DoubleSide} />

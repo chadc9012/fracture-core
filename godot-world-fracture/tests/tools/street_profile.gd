@@ -2,6 +2,7 @@ extends SceneTree
 ## Times the street slice's per-frame pieces one by one (district, enemies, civilians, traffic, gunplay, the operator) to
 ## find what the frame spends its script time on.
 func _initialize() -> void:
+	load("res://scripts/city/street_slice.gd").force_armed = true     # measure the street with its troopers
 	_run.call_deferred()
 
 func _t(label: String, c: Callable, n := 30) -> void:

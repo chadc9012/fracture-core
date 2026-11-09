@@ -198,7 +198,7 @@ import { Director } from "./Director";
 import { ARENA_POINT, ARENA_RADIUS, CRUCIBLE_LOCKED } from "@/game/crucible";
 import { arenaById, spawnPoint, toWorld } from "@/game/killbox-arenas";
 import { installArena } from "@/game/killbox-arena-install";
-import { PVP_MODES } from "@/game/pvp";
+import { PVP_MODES, rankedDelta, rankedKey } from "@/game/pvp";
 import { configureVoice, speakVoice, stopVoice } from "@/game/voice-director";
 import { recapDue, recapLine } from "@/game/retention";
 import { localSavedAt } from "@/game/cloud-save";
@@ -340,6 +340,13 @@ function useCountedState<T>(name: string, initial: T | (() => T)): [T, React.Dis
   const [value, set] = useState<T>(initial);
   const counted = useMemo<React.Dispatch<React.SetStateAction<T>>>(() => (v) => { setterCalls[name] = (setterCalls[name] ?? 0) + 1; set(v); }, [name]);
   return [value, counted];
+}
+
+/** the save key for a ranked match's result (pvp.ts rankedKey), or nothing for any other activity */
+function rankedResultKey(def: { stages: readonly { kind: string; mode?: string }[] }, run: { startedAt: number; progress?: number; theirScore?: number }, won: boolean): string | null {
+  const stage = def.stages.find((o) => o.kind === "pvp"), m = stage?.mode ? PVP_MODES[stage.mode as keyof typeof PVP_MODES] : undefined;
+  if (!m?.ranked) return null;
+  return rankedKey(run.startedAt, rankedDelta(won, run.progress ?? 0, run.theirScore ?? 0, m.target));
 }
 
 export function GameCanvas() {
@@ -1324,11 +1331,18 @@ export function GameCanvas() {
         let race: { result: NonNullable<ReturnType<typeof raceResultOf>>; reward: Extract<ReturnType<typeof applyRaceResult>, { reward: unknown }>["reward"]; name: string } | undefined;
         // Crucible wins count toward the PvP rank; one unique key per match so the cloud merge's union keeps every win
         if (cur.def.kind === "crucible") next = { ...next, earnedRewards: [...next.earnedRewards, `crucible-win:${cur.def.id}:${cur.run.startedAt}`] };
+        // Ranked: the result moves your rating (pvp.ts rankedDelta), one key per match
+        { const rk = rankedResultKey(cur.def, cur.run, true); if (rk) next = { ...next, earnedRewards: [...next.earnedRewards, rk] }; }
         if (isRaceActivity(cur.def)) { const rec = applyRaceResult(next, cur.def, cur.run); if (!("error" in rec)) { next = rec.progression; race = { result: raceResultOf(cur.run)!, reward: rec.reward, name: cur.def.name }; } }
         setProgression(next);
         setActivityResult({ def: cur.def, ok: true, payout: done.payout, ...(race ? { race } : {}), ...(found?.length ? { revealed: found.length } : {}) });
       }
-    } else if (cur.run.status === "failed") { setActivity(null); setActivityResult({ def: cur.def, ok: false, reason: cur.run.failReason ?? "Failed" }); }
+    } else if (cur.run.status === "failed") {
+      // a ranked loss (or leaving a ranked match early) costs rating too
+      const rk = rankedResultKey(cur.def, cur.run, false);
+      if (rk) { const next = { ...progressionRef.current, earnedRewards: [...progressionRef.current.earnedRewards, rk] }; progressionRef.current = next; setProgression(next); }
+      setActivity(null); setActivityResult({ def: cur.def, ok: false, reason: cur.run.failReason ?? "Failed" });
+    }
   };
   const abandonActivity = () => { if (!activity) return; abandonRun(activity.run); onActivityChange(); };
   const showScenarioRewards = (drops: { scenarioClaim?: Parameters<typeof grantScenarioReward>[1] }[]) => {

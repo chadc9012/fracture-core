@@ -27,9 +27,9 @@ import { ARENA_POINT, ARENA_RADIUS, clearRivals, newCrucible, resetField, rivalS
 import { PVP_MODES, ZONE_RADIUS, fieldSize, newPvp, respawns, stepPvp, stormDamage, type PvpState } from "@/game/pvp";
 import { PvpField } from "./PvpField";
 import { KillboxArena as KillboxArenaView } from "./KillboxArena";
-import { arenaById, belowKillPlane, confine, fractureVisibility, inArenaSpace, spawnPoint, toWorld, type KillboxArena } from "@/game/killbox-arenas";
+import { arenaById, belowKillPlane, confine, extractionSites, fractureVisibility, inArenaSpace, spawnPoint, toWorld, type KillboxArena } from "@/game/killbox-arenas";
 import { installArena, syncShifters } from "@/game/killbox-arena-install";
-import { allyCount, newBots, resetAllies, rivalCount, stepBots, zonePresence, type BotsState } from "@/game/killbox-bots";
+import { allyCount, fieldUnits, newBots, resetAllies, rivalCount, stepBots, zonePresence, type BotsState } from "@/game/killbox-bots";
 import { KillboxBots } from "./KillboxBots";
 import { AREAS, pointWorld } from "@/game/activities";
 import { CoverWall } from "./PropModels";
@@ -2601,7 +2601,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           if (arena) installArena(arena);
           const center = arena ? toWorld(arena, 0, 0) : mode.kind === "royale" ? { x: AREAS[activity!.def.area]!.x, z: AREAS[activity!.def.area]!.z } : pointWorld(activity!.def.area, ARENA_POINT);
           const bots = arena ? newBots(arena, stage.mode, playerClass as RivalClass, Date.now() & 0xffff) : undefined;
-          pvp.current = { st: newPvp(stage.mode, (Date.now() & 0xffff) + 1, arena?.zones, arena ? { allies: allyCount(stage.mode), rivals: rivalCount(stage.mode) } : undefined), kills: sim.rivalKills, team: sim.teamRivalKills ?? 0, deaths: sim.deaths, round: 1, field: { mode: "skirmish", respawn: [], spent: [] }, center, squadWas: sim.squad.enabled, ...(arena ? { arena } : {}), ...(arena && !inArenaSpace(s.x, s.y, s.z) ? { from: { x: s.x, z: s.z } } : {}), ...(bots ? { bots } : {}) };
+          pvp.current = { st: newPvp(stage.mode, (Date.now() & 0xffff) + 1, arena?.zones, arena ? { allies: allyCount(stage.mode), rivals: rivalCount(stage.mode) } : undefined, arena ? extractionSites(arena) : undefined), kills: sim.rivalKills, team: sim.teamRivalKills ?? 0, deaths: sim.deaths, round: 1, field: { mode: "skirmish", respawn: [], spent: [] }, center, squadWas: sim.squad.enabled, ...(arena ? { arena } : {}), ...(arena && !inArenaSpace(s.x, s.y, s.z) ? { from: { x: s.x, z: s.z } } : {}), ...(bots ? { bots } : {}) };
           // team modes field your fireteam: VEX and HOLT (squad.ts) fight beside you for the match
           // (on a built arena the ally bots are your team instead: killbox-bots.ts)
           if (mode.kind !== "ffa" && mode.kind !== "royale") sim.squad.enabled = !arena;
@@ -2613,7 +2613,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         p.kills = sim.rivalKills; p.team = sim.teamRivalKills ?? 0; p.deaths = sim.deaths;
         // a built arena: the bots play the match (killbox-bots.ts). They drive the rival machines' movement and fire (the world AI's
         // own shots are held off), shoot each other, and hand back what the machines and the player take
-        let allyDeaths = 0, presence: Record<string, { us: number; them: number }> | undefined;
+        let allyDeaths = 0, presence: Record<string, { us: number; them: number }> | undefined, units: ReturnType<typeof fieldUnits> | undefined;
         if (p.bots && p.arena) {
           const ar = p.arena, me = { x: s.x - ar.site.x, z: s.z - ar.site.z, alive: sim.hp > 0 };
           const rivals = sim.machines.filter((m) => m.rival && m.living?.startsWith("crucible:")).map((m) => ({ tag: m.living!, cls: m.rival!, x: m.x - ar.site.x, z: m.z - ar.site.z, alive: m.alive }));
@@ -2628,8 +2628,9 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           if (o.playerDamage > 0) hurtPlayer(sim, o.playerDamage, "Rival operator");
           allyDeaths = o.allyDeaths;
           if (mode.kind === "zones") presence = zonePresence(p.bots, st, me, ZONE_RADIUS);
+          if (mode.kind === "extract") units = fieldUnits(p.bots, me);
         }
-        stepPvp(st, { dt, kills, died, px: s.x - p.center.x, pz: s.z - p.center.z, rivalsAlive: sim.machines.filter((m) => m.alive && m.rival).length, allyDeaths, ...(presence ? { presence } : {}) });
+        stepPvp(st, { dt, kills, died, px: s.x - p.center.x, pz: s.z - p.center.z, rivalsAlive: sim.machines.filter((m) => m.alive && m.rival).length, allyDeaths, ...(presence ? { presence } : {}), ...(units ? { units } : {}) });
         if (st.round !== p.round) { resetField(sim, p.field); p.round = st.round; if (p.bots && p.arena) resetAllies(p.bots, p.arena); }
         // the royale field follows you (fresh squads find you as the circle closes); the arena modes spawn round the arena edge
         const fieldAt = mode.kind === "royale" ? { x: s.x, z: s.z } : p.center;

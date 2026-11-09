@@ -1,4 +1,6 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
+const Sound := preload("res://scripts/audio/sound.gd")
 ## Skyways (asset catalog gap 3: vehicles beyond cars): fly the Rift-Jumper helicopter or the Resonant Strike jet, sail the
 ## Scrap-Iron patrol boat or dive the Hydro-Sub skiff over the exported Nexus City (region_3d.gd in PLAY mode), with the
 ## web game's handling rules (vehicle_handling.gd). Aircraft start on the Nexus airport apron, watercraft at the seaport.
@@ -94,9 +96,14 @@ func _pick() -> void:
 	back.pressed.connect(func(): closed.emit())
 	box.add_child(back)
 
+## the engine loop per craft kind (audio/sfx)
+const ENGINE := { "HELI": "rotor", "JET": "jet", "AIRSHIP": "hover", "BOAT": "engine", "SUB": "hover" }
+
 func _start() -> void:
 	var c: Dictionary = CRAFT[craft_id]
 	profile = Handling.profile(String(c.kind))
+	Sound.loop("craft", String(ENGINE.get(String(c.kind), "engine")), -10.0, 0.9)
+	Sound.loop("wind", "water" if String(c.kind) in ["BOAT", "SUB"] else "wind", -20.0, 1.0)
 	top_speed = Handling.BASE_SPEED * float(Handling.FLEET_SPEED.get(craft_id, 1.0))
 	region = Region3D.new()
 	region.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -310,6 +317,7 @@ func _process(dt: float) -> void:
 		state.speed = -state.speed * 0.2
 		want = before
 		controls.toast("Hit a building — hull %d%%" % int(hull_hp * 100))
+		Sound.sfx("explosion" if hit_speed > 30.0 else "land", -4.0)
 		if hull_hp <= 0.0:
 			_reset("The craft is wrecked — back on the pad")
 			return
@@ -333,6 +341,11 @@ func _process(dt: float) -> void:
 		if hull.position.distance_to(r.pos) < RING_R:
 			r.hit = true
 			next_ring += 1
+			Sound.sfx("capture", -6.0)
+			var pr := Gear.profile_load()
+			for g in Progression.event(pr, "ring", 1):
+				controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+			Gear.profile_save(pr)
 			if next_ring >= rings.size():
 				finished = true
 				_finish()
@@ -354,6 +367,9 @@ func _process(dt: float) -> void:
 	cam.look_at(hull.position + Vector3(0, 1.5, 0) + fwd * 6.0, Vector3.UP)
 	controls.show_hull(hull_hp, 0.0, 0.0)
 	var alt: float = hull.position.y - (region.water_level() if String(profile.mode) == "WATER" else region.ground(px, pz))
+	var k := clampf(absf(state.speed) / maxf(top_speed, 1.0), 0.0, 1.0)
+	Sound.loop_set("craft", 0.8 + k * 0.7, -12.0 + k * 6.0)
+	Sound.loop_set("wind", 1.0 + k * 0.4, -26.0 + k * 14.0)
 	_hud.text = "%s\nSPD %3d m/s   ALT %4d m   HULL %d%%\nrings %d / %d   %d:%02d" % [String(CRAFT[craft_id].name), int(absf(state.speed)), int(maxf(0.0, alt)), int(hull_hp * 100), next_ring, rings.size(), int(clock / 60.0), int(fmod(clock, 60.0))]
 
 func _reset(why: String) -> void:
@@ -371,7 +387,11 @@ func _finish() -> void:
 	var nex := 350 if fast else 200
 	var xp := 250 if fast else 150
 	var p := Gear.profile_load()
-	p.nex = int(p.nex) + nex
-	p.xp = int(p.xp) + xp
+	var res := Progression.grant(p, "skyways", nex, xp, "Skyways · %d:%02d" % [int(clock / 60.0), int(fmod(clock, 60.0))])
 	Gear.profile_save(p)
-	controls.toast("Course complete in %d:%02d — +%d Nex, +%d XP" % [int(clock / 60.0), int(fmod(clock, 60.0)), nex, xp])
+	for l in res.lines:
+		controls.toast(String(l))
+
+func _exit_tree() -> void:
+	Sound.loop_stop("craft")
+	Sound.loop_stop("wind")

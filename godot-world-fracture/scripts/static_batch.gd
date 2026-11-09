@@ -13,12 +13,24 @@ extends RefCounted
 ## "dynamic" (things that move or are looked up later), labels, lights, particles and physics bodies. The nodes that held
 ## the folded meshes stay too (they carry each prop's size and place for the obstacle boxes); only the meshes go.
 
+const Phone := preload("res://scripts/phone.gd")
 const CELL := 48.0
 const COPY_CELL := 130.0      # repeated models batch over wider cells: a cell of a tile has too few copies of each
 const MIN_COPIES := 3
 const FLAT := 0.35            # merged pieces lower than this (lane paint, kerbs, puddles) cast no shadow
 
-static func batch(root: Node3D, cell := CELL) -> Dictionary:
+## the merge cell by tier: a phone takes fewer, bigger merged meshes (fewer draws) over finer culling
+static func cell_for_tier() -> float:
+	match Phone.tier():
+		"low":
+			return 130.0
+		"medium":
+			return 96.0
+	return CELL
+
+static func batch(root: Node3D, cell := -1.0) -> Dictionary:
+	if cell <= 0.0:
+		cell = cell_for_tier()
 	var prims := {}      # look key + cell -> { mat, cast, list: [[mesh, surface, xf]] }
 	var copies := {}     # mesh + overrides + cell -> { mi0, list: [xf], nodes: [mi] }
 	var by_mesh := {}    # mesh rid -> count in this root (only meshes used MIN_COPIES+ times are instanced)
@@ -48,12 +60,14 @@ static func batch(root: Node3D, cell := CELL) -> Dictionary:
 				prims[key].list.append([_lean(mi.mesh, lean), s, xf])
 			removed.append(mi)
 		elif int(by_mesh.get(mi.mesh.get_rid(), 0)) >= MIN_COPIES:
+			# copies group by what their materials look like, not which material object they hold: a tinted prop made
+			# from its own StandardMaterial3D instance still batches with every copy tinted the same
 			var over := ""
 			for s in mi.mesh.get_surface_count():
 				var o := mi.get_surface_override_material(s)
-				over += ":%d" % (o.get_instance_id() if o else 0)
+				over += ":" + (_look(o) if o else "")
 			var mo := mi.material_override
-			var key2 := "%d|%s|%d|%d|%d|%d|%d" % [mi.mesh.get_rid().get_id(), over, mo.get_instance_id() if mo else 0, at2.x, at2.y, int(mi.cast_shadow), int(mi.visibility_range_end)]
+			var key2 := "%d|%s|%s|%d|%d|%d|%d" % [mi.mesh.get_rid().get_id(), over, _look(mo) if mo else "", at2.x, at2.y, int(mi.cast_shadow), int(mi.visibility_range_end)]
 			if not copies.has(key2):
 				copies[key2] = { "mi0": mi, "list": [] }
 			copies[key2].list.append(xf)
@@ -85,6 +99,11 @@ static func batch(root: Node3D, cell := CELL) -> Dictionary:
 	for key2 in copies:
 		var c: Dictionary = copies[key2]
 		var mi0: MeshInstance3D = c.mi0
+		if c.list.size() < 2:
+			# one copy in this cell: a one-instance multimesh draws the same and costs a node; keep the original
+			removed.erase(mi0)
+			made += mi0.mesh.get_surface_count()
+			continue
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = mi0.mesh
@@ -111,14 +130,14 @@ static func batch(root: Node3D, cell := CELL) -> Dictionary:
 					mm.mesh = dup
 		# small things fade out with distance (a lamp or a planter is a few pixels past ~140 m)
 		var size := mi0.get_aabb().size * mi0.global_transform.basis.get_scale()
-		if maxf(size.x, maxf(size.y, size.z)) < 1.5:
+		if maxf(size.x, maxf(size.y, size.z)) < Phone.shadowless_below():
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if mi0.visibility_range_end > 0.0:
-			mmi.visibility_range_end = mi0.visibility_range_end
+			mmi.visibility_range_end = minf(mi0.visibility_range_end, Phone.dressing_range()) if mi0.visibility_range_end <= 140.0 else mi0.visibility_range_end
 			mmi.visibility_range_end_margin = mi0.visibility_range_end_margin
 			mmi.visibility_range_fade_mode = mi0.visibility_range_fade_mode
 		elif maxf(size.x, maxf(size.y, size.z)) < 6.0:
-			mmi.visibility_range_end = 140.0
+			mmi.visibility_range_end = Phone.dressing_range()
 			mmi.visibility_range_end_margin = 20.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		root.add_child(mmi)

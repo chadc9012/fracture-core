@@ -1,6 +1,6 @@
 extends Control
 const Phone := preload("res://scripts/phone.gd")
-## The Skyline Casino: the tower at the head of the Nexus block, three places stacked in one scene.
+## The Neon City Grand Casino (owner, Nov 9: Neon City's alone, 380 m, the second-tallest building): the tower on the Neon City hub, three places stacked in one scene.
 ##  - THE FLOOR: a gold-and-crimson gaming hall under coffered chandeliers — banks of slot machines with live screens,
 ##    blackjack, roulette and craps tables, a round centre bar with a lit bottle wall, the cashier cage and the elevators.
 ##  - THE PENTHOUSE: the prestige residence on the 60th floor — a glass-walled living room over the night city, a grand
@@ -101,7 +101,7 @@ func show_view(i: int) -> void:
 	_view = posmod(i, _views.size())
 	cam.position = _views[_view][1]
 	cam.look_at(_views[_view][2])
-	_title.text = "SKYLINE CASINO · " + String(_views[_view][0])
+	_title.text = "NEON CITY GRAND CASINO · " + String(_views[_view][0])
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -481,7 +481,7 @@ void fragment() {
 		_box(Vector3(0.04, 3.4, 0.22), Vector3(x, y + 1.7, -L * 0.5 + 0.52), flat(Color(0.1, 0.07, 0.03), 0.4, 0.5))
 	_label("ELEVATORS · PENTHOUSE · SKYDECK", Vector3(14, y + 4.3, -L * 0.5 + 0.7), 0.0, Color(0.95, 0.85, 0.65), 70, 0.009)
 	# the name over the hall
-	_label("SKYLINE", Vector3(0, y + 7.4, -L * 0.5 + 0.7), 0.0, GOLD, 200, 0.017)
+	_label("GRAND CASINO", Vector3(0, y + 7.4, -L * 0.5 + 0.7), 0.0, GOLD, 200, 0.017)
 	_label("C A S I N O", Vector3(0, y + 6.1, -L * 0.5 + 0.7), 0.0, Color(1.0, 0.3, 0.4), 110, 0.012)
 	# guests
 	_people(y, Rect2(-32, -36, 64, 70), 70, 11)
@@ -739,7 +739,7 @@ void fragment() {
 	_studio(Vector3(-9.0, y, 7.2))
 	# the terrace and its infinity pool
 	_terrace(y)
-	_label("SKYLINE PENTHOUSE · LEVEL 60", Vector3(-3, y + 3.5, 9.8), PI, GOLD, 50, 0.006)
+	_label("GRAND PENTHOUSE · LEVEL 60", Vector3(-3, y + 3.5, 9.8), PI, GOLD, 50, 0.006)
 	# art, plants, pendants
 	var art_cols := [Color(0.7, 0.2, 0.25), Color(0.2, 0.45, 0.7), Color(0.85, 0.65, 0.3)]
 	for k in 3:

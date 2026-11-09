@@ -7,6 +7,7 @@ const Catalog := preload("res://scripts/character/catalog.gd")
 const FaceMorphs := preload("res://scripts/character/face_morphs.gd")
 const SkinShader := preload("res://scripts/character/skin_shader.gd")
 const HairBuilder := preload("res://scripts/character/hair_builder.gd")
+const StandIdle := preload("res://scripts/character/stand_idle.gd")
 
 var look: Dictionary = {}
 var body_root: Node3D
@@ -49,6 +50,8 @@ func build(new_look: Dictionary, animate := true) -> void:
 	add_child(body_root)
 	skeleton = _find(body_root, "Skeleton3D")
 	anim = _find(body_root, "AnimationPlayer")
+	if anim and skeleton and anim.has_animation("idle"):
+		StandIdle.install(anim, skeleton)
 	if anim and animate and anim.has_animation("idle"):
 		anim.get_animation("idle").loop_mode = Animation.LOOP_LINEAR
 		anim.play("idle")

@@ -8,7 +8,7 @@ import { mulberry32 } from "@/game/rng";
 import { CRITTER_BODY, CRITTER_DOWN_TIME, CRITTER_RESPAWN, SPECIES_PROFILE, stepCritter, type Alarms, type Critter } from "@/game/wildlife";
 import type { WorldSim } from "@/game/sim";
 import { buildPopulation, HABITAT, lakeSurfaceAt } from "@/game/wildlife-habitat";
-import { getPerfTier } from "@/game/perf-budget";
+import { getPerfTier, shownInScene } from "@/game/perf-budget";
 import type { RenderTier } from "@/game/performance";
 
 /**
@@ -323,6 +323,7 @@ function FoxModel({ c }: { c: Critter }) {
   const current = useRef<string>("");
   useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
   useFrame((_, dt) => {
+    if (!shownInScene(object)) return; // culled (out of range or the player is indoors): nothing on screen to animate
     const p = SPECIES_PROFILE.FOX;
     const want = c.speed > p.walk * 1.6 ? "Run" : c.speed > 0.08 ? "Walk" : "Survey";
     if (want !== current.current && actions[want]) {

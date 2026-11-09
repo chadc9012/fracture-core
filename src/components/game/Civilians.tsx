@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { NPC_DRAW_RADIUS, animStride, getPerfTier, inViewCone } from "@/game/perf-budget";
+import { NPC_DRAW_RADIUS, animStride, getPerfTier, inViewCone, shownInScene } from "@/game/perf-budget";
 import { ARM_RELAX, IDLE_RELAX, armBones, relaxArm } from "@/game/rest-pose";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
@@ -151,6 +151,7 @@ export function CivilianModel({ role, live, url }: { role: CivilianRole; live: R
     built.obj.visible = !live.current?.far;
     if (live.current?.hidden || live.current?.far) return;
     const pc = pace.current; pc.frame++; pc.owed += Math.min(dt, 0.1);
+    if (!shownInScene(built.obj)) return; // in a room you're not in: time owed, caught up (capped) when it shows again
     built.obj.getWorldPosition(AT); camera.getWorldDirection(FWD);
     const dx = AT.x - camera.position.x, dy = AT.y + 1 - camera.position.y, dz = AT.z - camera.position.z;
     if (pc.frame % animStride(Math.hypot(dx, dz), inViewCone(FWD.x, FWD.y, FWD.z, dx, dy, dz)) !== 0) return;

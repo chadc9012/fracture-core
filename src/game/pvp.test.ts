@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { PVP_MODES, newPvp, stepPvp, royaleRadius, stormDamage, fieldSize, respawns, ROYALE, type PvpEvents, type PvpModeId } from "./pvp";
+import { EXTRACT, PVP_MODES, RANKED, newPvp, rankedDelta, rankedKey, rankedRating, rankedTier, stepPvp, royaleRadius, stormDamage, fieldSize, respawns, ROYALE, type PvpEvents, type PvpModeId, type Unit } from "./pvp";
 
 const quiet = (over: Partial<PvpEvents> = {}): PvpEvents => ({ dt: 0.1, kills: 0, died: false, px: 100, pz: 100, rivalsAlive: 3, ...over });
 function play(mode: PvpModeId, each: (t: number) => Partial<PvpEvents>, seconds = 2000) {
@@ -70,5 +70,72 @@ describe("Killbox modes", () => {
     expect(stormDamage(st, 0)).toBe(0);
     const out = play("royale", (t) => ({ died: t > 30 }), 100);
     expect(out.result).toBe("loss");
+  });
+});
+
+describe("Extraction", () => {
+  const sites = { home: { x: 0, z: 0 }, us: { x: 0, z: 25 }, them: { x: 0, z: -25 } };
+  const field = (me: Partial<Unit>, foes: Partial<Unit>[] = []): Unit[] => [{ id: "player", team: "us", x: 0, z: 0, alive: true, ...me }, ...foes.map((f, i) => ({ id: `r${i}`, team: "them" as const, x: 0, z: -20, alive: true, ...f }))];
+  const step = (st: ReturnType<typeof newPvp>, units: Unit[], dt = 0.1) => stepPvp(st, { dt, kills: 0, died: false, px: 0, pz: 0, rivalsAlive: 4, units });
+
+  it("standing on the core unopposed picks it up; a contested core stays put", () => {
+    const st = newPvp("extraction", 1, undefined, undefined, sites);
+    for (let i = 0; i < 6; i++) step(st, field({}, [{ x: 1, z: 0 }]));
+    expect(st.core!.holder).toBeNull();
+    for (let t = 0; t < EXTRACT.pickTime + 0.2; t += 0.1) step(st, field({}));
+    expect([st.core!.holder, st.core!.carrier]).toEqual(["us", "player"]);
+  });
+  it("the core follows its carrier and scores on the carrier's own pad, then goes home", () => {
+    const st = newPvp("extraction", 1, undefined, undefined, sites);
+    for (let t = 0; t < 1.5; t += 0.1) step(st, field({}));
+    step(st, field({ z: 12 }));
+    expect([st.core!.x, st.core!.z]).toEqual([0, 12]);
+    step(st, field({ z: 24 }));
+    expect(st.us).toBe(1);
+    expect([st.core!.holder, st.core!.x, st.core!.z]).toEqual([null, 0, 0]);
+  });
+  it("the carrier going down drops the core where they fell; left alone it resets home", () => {
+    const st = newPvp("extraction", 1, undefined, undefined, sites);
+    for (let t = 0; t < 1.5; t += 0.1) step(st, field({}));
+    step(st, field({ z: 10 }));
+    step(st, field({ z: 10, alive: false }));
+    expect([st.core!.holder, st.core!.z]).toEqual([null, 10]);
+    for (let t = 0; t < EXTRACT.resetAfter + 0.5; t += 0.1) step(st, field({ z: 30 }));
+    expect([st.core!.x, st.core!.z]).toEqual([0, 0]);
+  });
+  it("their carrier scores on their pad; the first to three wins", () => {
+    const st = newPvp("extraction", 1, undefined, undefined, sites);
+    for (let n = 0; n < 3; n++) {
+      for (let t = 0; t < 1.5; t += 0.1) step(st, field({ z: 30 }, [{ x: 0, z: 0 }]));
+      step(st, field({ z: 30 }, [{ x: 0, z: -24 }]));
+    }
+    expect([st.them, st.result]).toEqual([3, "loss"]);
+  });
+  it("kills don't score in Extraction", () => {
+    const st = newPvp("extraction", 1, undefined, undefined, sites);
+    for (let i = 0; i < 50; i++) stepPvp(st, { dt: 0.1, kills: 1, died: false, px: 0, pz: 30, rivalsAlive: 4, units: field({ z: 30 }) });
+    expect(st.us).toBe(0);
+  });
+});
+
+describe("Ranked", () => {
+  it("is competitive Dominion that moves your rating", () => {
+    expect(PVP_MODES.ranked.kind).toBe("zones");
+    expect(PVP_MODES.ranked.ranked).toBe(true);
+  });
+  it("a win adds more for a bigger margin; a loss costs less when it was close", () => {
+    expect(rankedDelta(true, 150, 140, 150)).toBeLessThan(rankedDelta(true, 150, 40, 150));
+    expect(rankedDelta(true, 150, 149, 150)).toBeGreaterThanOrEqual(20);
+    expect(rankedDelta(false, 140, 150, 150)).toBeGreaterThan(rankedDelta(false, 10, 150, 150));
+    expect(rankedDelta(false, 0, 150, 150)).toBe(-18);
+  });
+  it("the rating is the start plus every ranked result in the save, and picks the tier", () => {
+    const keys = [rankedKey(1, 25), rankedKey(2, 30), rankedKey(3, -10), "crucible-win:killbox-ranked:1", "ranked:bad"];
+    expect(rankedRating(keys)).toBe(RANKED.start + 45);
+    expect(rankedRating([])).toBe(RANKED.start);
+    expect(rankedTier(1000).name).toBe("Bronze");
+    expect(rankedTier(1100).name).toBe("Silver");
+    expect(rankedTier(1800)).toEqual({ name: "Ascendant", floor: 1700, next: null });
+    expect(rankedRating(Array.from({ length: 100 }, (_, i) => rankedKey(i, -18)))).toBe(0);
   });
 });

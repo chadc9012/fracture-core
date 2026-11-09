@@ -34,8 +34,8 @@ export const MALE_FACES: readonly NamedFace[] = [
   f("m-shaved-tattooed", "Shaved & tattooed", "Shaved head, ink up the temple.", "m-goliath", "natural", { brow: 0.3 }, { hair: "bald", marks: ["tattoo-sidehead", "tattoo-tribal"] }),
   f("m-older", "Older", "Grey at the temples, lines at the eyes.", "m-sage", "natural", { cheeks: 0.4, chin: 0.2 }, { hair: "crop", hairColor: "grey", beard: "stubble" }),
   f("m-distinguished", "Distinguished", "White hair and a silver beard.", "m-sage", "fair", { forehead: 0.4, nose: 0.2 }, { hair: "crop", hairColor: "white", beard: "full" }),
-  // owner's operator sheet (Nov 8): short twists over a high fade, a goatee, a cut on the left cheekbone
-  f("m-ronin", "Ronin", "Twists over a fade, a cut under the eye.", "m-cipher", "brown", { jaw: 0.35, cheeks: 0.3, brow: 0.25, noseWidth: 0.15 }, { hair: "twist-fade", hairColor: "espresso", beard: "goatee", marks: ["scar-cheek"] }),
+  // owner's operator sheet (Nov 8/9): his own head (operators.ts m-ronin: goatee and cheek cuts painted in) and his twists
+  f("m-ronin", "Ronin", "His own face: goatee, a cut across the cheek.", "m-ronin", "natural", {}, { hair: "twist-fade", hairColor: "espresso" }),
 ];
 
 export const FEMALE_FACES: readonly NamedFace[] = [

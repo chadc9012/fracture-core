@@ -352,20 +352,30 @@ export function WarMachines({ sim }: { sim: WorldSim }) {
  * speed (a plain hull stands in if the model can't load). Truck y is ground + 1.6 (the sim's
  * eye-height convention for targeting), so the body sits 1.6 m lower. */
 const CONVOY_MODEL = FLEET_MODELS["war-rig"];
+/** Nov 9 perf pass: the war rig is 64k triangles in 61 draw calls, and the sim runs a dozen convoys; on the Nexus plaza they
+ * were ~730 of 781 draw calls and ~770k of 2.0M triangles. Only rigs within this range draw the authored model; farther
+ * ones are a one-draw-call silhouette (a few pixels on a phone), and past FAR they aren't drawn at all. */
+const CONVOY_NEAR = 70, CONVOY_FAR = 320;
+const CONVOY_PROXY_GEO = new THREE.BoxGeometry(2.6, 3.2, 10.5).translate(0, 1.9, 0);
+const CONVOY_PROXY_MAT = new THREE.MeshStandardMaterial({ color: "#5a4334", roughness: 0.8, metalness: 0.3 });
 export function Convoys({ sim }: { sim: WorldSim }) {
   const group = useRef<THREE.Group>(null!);
   const speeds = useMemo(() => sim.trucks.map(() => ({ current: 0 })), [sim.trucks]);
   const last = useRef<{ x: number; z: number }[]>([]);
 
-  useFrame((_, raw) => {
+  useFrame(({ camera }, raw) => {
     const g = group.current;
     if (!g) return;
     const dt = Math.max(1e-3, Math.min(raw, 0.1));
     sim.trucks.forEach((t, i) => {
       const node = g.children[i] as THREE.Group | undefined;
       if (!node) return;
-      node.visible = t.alive;
-      if (!t.alive) return;
+      const d = Math.hypot(t.x - camera.position.x, t.z - camera.position.z);
+      node.visible = t.alive && d < CONVOY_FAR;
+      if (!node.visible) return;
+      const near = d < CONVOY_NEAR;
+      if (node.children[0]) node.children[0].visible = near; // the authored rig
+      if (node.children[1]) node.children[1].visible = !near; // the silhouette
       const p = last.current[i];
       const v = p ? Math.hypot(t.x - p.x, t.z - p.z) / dt : 0;
       const sp = speeds[i]; if (sp) sp.current += (Math.min(v, 30) - sp.current) * Math.min(1, dt * 4);
@@ -379,7 +389,8 @@ export function Convoys({ sim }: { sim: WorldSim }) {
     <group ref={group}>
       {sim.trucks.map((_, i) => (
         <group key={i} visible={false}>
-          <AuthoredVehicle model={CONVOY_MODEL} speedRef={speeds[i]!} lights />
+          <group visible={false}><AuthoredVehicle model={CONVOY_MODEL} speedRef={speeds[i]!} lights /></group>
+          <mesh geometry={CONVOY_PROXY_GEO} material={CONVOY_PROXY_MAT} castShadow={false} />
         </group>
       ))}
     </group>

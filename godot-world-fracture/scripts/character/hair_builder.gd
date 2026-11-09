@@ -162,13 +162,15 @@ func strand(pts: Array[Vector3], r: float, seed: float, r_end := -1.0, segs := 8
 		prev_n = nrm
 		var bin := tan.cross(nrm)
 		var rr := r if r_end < 0.0 else lerpf(r, r_end, t)
-		var shade := shade0 * lerpf(1.0, tip, smoothstep(0.45, 1.0, t))
+		var f := smoothstep(0.5, 1.0, t)
+		# warm tips: sun-lightened ends go gold (red up most, blue least); tip 1 leaves the strand flat
+		var col := Color(shade0 * lerpf(1.0, tip * 1.3, f), shade0 * lerpf(1.0, tip, f), shade0 * lerpf(1.0, tip * 0.55, f)) if tip != 1.0 else Color(shade0, shade0, shade0)
 		for k in sides + 1:
 			var a := float(k) / sides * TAU
 			var o := nrm * cos(a) + bin * sin(a)
 			_v.append(p + o * rr)
 			_n.append(o)
-			_c.append(Color(shade, shade, shade))
+			_c.append(col)
 			_uv.append(Vector2(float(k) / sides, t * 4.0))
 	for s in segs:
 		for k in sides:
@@ -214,13 +216,13 @@ func twist_top(count: int, length: float, radius: float, seed: float, phi_max: f
 			var root := on_skull(phi, th, 0.003)
 			var n := outward(root)
 			var h := (dir_of(0.5 * PI, th) + Vector3(0, 0, 0.35)).normalized()
-			var l := length * (0.75 + rand(seed + (i - 1) * 5) * 0.5)
-			var fall := 0.08 + (phi / phi_max) * 0.3
+			var l := length * (0.75 + rand(seed + (i - 1) * 5) * 0.5) * (1.0 - 0.35 * maxf(0.0, cos(th)) * (phi / phi_max))
+			var fall := 0.28 + (phi / phi_max) * 0.36
 			var side := n.cross(h).normalized()
 			var pts: Array[Vector3] = []
 			for s in 9:
 				var t := s / 8.0
-				var p := root + n * l * (0.75 * t - 0.2 * t * t) + h * l * fall * t * t + Vector3(0, -l * fall * 0.6 * t * t * t, 0)
+				var p := root + n * l * (0.8 * t - 0.25 * t * t) + h * l * fall * 0.75 * t * t + Vector3(0, -l * fall * 1.05 * t * t * t, 0)
 				var a := t * PI * 5.0 + rand(seed + i - 1) * 6.0
 				pts.append(p + side * cos(a) * radius * 0.45 + h * sin(a) * radius * 0.25)
 			strand(pts, radius, seed + i - 1, radius * 0.6, 10, 6, tip)

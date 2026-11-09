@@ -47,5 +47,24 @@ func _init() -> void:
 	r7 = r7 and cleaned.transmog.get("chest", "") == "verdant-warden" and cleaned.items.size() == d.items.size()
 	print("transmog and a clean round trip: ", r7)
 	ok = ok and r7
+	# the Nexus court shops: a stock per day that stays put within the day and turns over, prices, a purchase into the bag
+	var apex := Gear.shop_stock("apex", 20000)
+	var apex2 := Gear.shop_stock("apex", 20000)
+	var apex3 := Gear.shop_stock("apex", 20001)
+	var rusty := Gear.shop_stock("rusty", 20000)
+	var r8: bool = apex.size() == 12 and str(apex) == str(apex2) and str(apex) != str(apex3) and rusty.size() == 4
+	for o in rusty:
+		r8 = r8 and o.rarity == "epic" and int(o.price) == 9750
+	var prof := { "nex": 2000 }
+	var dear: Dictionary = rusty[0]
+	var count: int = d.items.size()
+	var refused := Gear.buy_offer(d, prof, "rusty", dear, 150.0)
+	r8 = r8 and d.items.size() == count and int(prof.nex) == 2000 and refused.begins_with("Needs")
+	prof.nex = 20000
+	Gear.buy_offer(d, prof, "rusty", dear, 150.0)
+	var bought: Dictionary = d.items[d.items.size() - 1]
+	r8 = r8 and int(prof.nex) == 20000 - 9750 and int(bought.power) == 165 and bought.source == "Rusty Trigger" and Gear.equip(d, bought.id)
+	print("court shops (stock, prices, buying): ", r8)
+	ok = ok and r8
 	print("Gear store test: ", ok)
 	quit(0 if ok else 1)

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { PlayerProgression } from "@/game/progression";
 import { activityById, activityState } from "@/game/activities";
 import { CRUCIBLE_LOCKED, CRUCIBLE_MODES, RIVAL_LABEL, rivalLineup, type CrucibleModeId, type RivalClass } from "@/game/crucible";
-import { PVP_MODES } from "@/game/pvp";
+import { PVP_MODES, rankedRating, rankedTier } from "@/game/pvp";
 import { ARENAS, arenasForMode } from "@/game/killbox-arenas";
 import { FRACTURE_RAID, PVP_RANKS } from "@/game/system-foundations";
 import { StarMap, type DeployTarget } from "./StarMap";
@@ -128,7 +128,9 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
   const ids = [...modes.map((m) => m.id), ...Object.values(PVP_MODES).map((m) => m.activity)];
   // win keys are `crucible-win:<activity>:<start time>` (GameCanvas), one per match won
   const wins = ids.reduce((n, id) => n + (progression.earnedRewards.filter((r) => r === `crucible-win:${id}` || r.startsWith(`crucible-win:${id}:`)).length), 0);
-  const rank = PVP_RANKS[Math.min(PVP_RANKS.length - 1, Math.floor(wins / 5))];
+  // the rank is your Ranked rating's tier once you have played Ranked; before that, the old count of wins
+  const rating = rankedRating(progression.earnedRewards), playedRanked = progression.earnedRewards.some((r) => r.startsWith("ranked:"));
+  const tier = rankedTier(rating), rank = playedRanked ? tier.name : PVP_RANKS[Math.min(PVP_RANKS.length - 1, Math.floor(wins / 5))];
   return (
     <Panel label="Killbox">
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-foreground/15 pb-4">
@@ -136,7 +138,7 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
           <p className="ui-kicker text-primary">Arenas · {Object.values(ARENAS).map((a) => a.name).join(" · ")} · Grid-Iron</p>
           <h1 className="mt-1 font-mono text-3xl uppercase tracking-[0.25em]">Killbox</h1>
         </div>
-        <div className="text-right font-mono"><p className="ui-kicker">Rank</p><p className="text-lg text-primary">{rank}</p></div>
+        <div className="text-right font-mono"><p className="ui-kicker">Rank</p><p className="text-lg text-primary">{rank}</p>{playedRanked && <p className="font-mono text-[10px] uppercase text-muted-foreground">Rating {rating}{tier.next ? ` · ${tier.next - rating} to next` : ""}</p>}</div>
       </header>
       {!progression.tutorialComplete && <p className="mt-4 border-l-2 border-primary pl-3 text-sm">{CRUCIBLE_LOCKED}.</p>}
       <p className="mt-4 max-w-3xl text-sm text-muted-foreground">Fight rival operators on the Killbox arenas. Playlists rotate through the arena maps — {Object.values(ARENAS).map((a) => `${a.name} (${a.region})`).join(", ")} — one match to the next; Duel and Skirmish stay on the Grid-Iron Highway in the Wastelands. Online matchmaking isn't live yet, so on the arenas every other slot is a bot: your team's ally bots (VEX, HOLT, KAI, ROOK, SABLE) fight beside you against a full team of rival GOLIATH, NYX and CIPHER operators, and the bots fight each other as well as you. The same scoring will carry over when real players can join.</p>
@@ -173,12 +175,13 @@ function CrucibleView({ progression, playerClass, onLaunch }: { progression: Pla
           if (!def) return null;
           const st = activityState(progression, def);
           return (
-            <article key={m.id} className={`ui-enter flex flex-col justify-between border bg-background/60 p-4 ${m.elite ? "border-fuchsia-400/50" : m.kind === "royale" ? "border-amber-300/50" : "border-foreground/15"}`}>
+            <article key={m.id} className={`ui-enter flex flex-col justify-between border bg-background/60 p-4 ${m.elite ? "border-fuchsia-400/50" : m.ranked ? "border-cyan-300/50" : m.kind === "royale" ? "border-amber-300/50" : "border-foreground/15"}`}>
               <div>
                 <span className="ui-kicker">{m.tagline}</span>
                 <h3 className="mt-2 font-mono text-xl uppercase tracking-wide">{m.name}</h3>
                 <p className="mt-2 text-xs text-muted-foreground">{m.brief}</p>
                 {(() => { const maps = arenasForMode(m.id); return <p className="mt-2 font-mono text-[10px] uppercase text-primary/90">{maps.length ? `${maps.length > 1 ? "Maps" : "Map"} · ${maps.map((a) => a.name).join(" / ")}` : m.kind === "royale" ? "Map · the open world" : "Map · Grid-Iron"}</p>; })()}
+                {m.ranked && <p className="mt-2 font-mono text-[10px] uppercase text-cyan-200/90">Your rating {rating} · {tier.name}{tier.next ? ` (${tier.next} for the next rank)` : ""}</p>}
                 <p className="mt-3 font-mono text-[10px] uppercase text-foreground/80">{def.rewards.nex} NEX · {def.rewards.xp} XP</p>
               </div>
               <Button size="sm" className="mt-4 w-full font-mono uppercase tracking-widest" disabled={!st.available || !progression.tutorialComplete} onClick={() => onLaunch(m.activity)}>

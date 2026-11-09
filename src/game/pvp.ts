@@ -1,5 +1,6 @@
 /** Killbox match modes (owner's PvP brief, Oct 25): Clash, Dominion, Freefall and Lockdown in the Killbox, the 3v3 Killbox:
- * Ascendancy rounds, and Fracture Royale. Pure rules, kept apart from Scene so they are testable.
+ * Ascendancy rounds, and Fracture Royale; from the owner's PvP maps board (Nov 2), Extraction (carry the data core home) and
+ * Ranked (competitive Dominion that moves your rating). Pure rules, kept apart from Scene so they are testable.
  *
  * There is no online multiplayer yet (crucible.ts), so every other player is an AI operator. On a built arena (killbox-arenas.ts) both
  * teams are on the field in full and played by bots (killbox-bots.ts: `allies`, `rivalField`, ally deaths, zone presence); elsewhere: Around you the fight is real:
@@ -8,8 +9,8 @@
  * 6v6 score moves like a 6v6 even though you only see your corner of it. The same scoring takes real players when they can
  * connect. No building mechanic (owner): movement, abilities, vehicles and cover. */
 
-export type PvpModeId = "clash" | "dominion" | "freefall" | "lockdown" | "ascendancy" | "royale";
-export type PvpKind = "team" | "zones" | "ffa" | "rounds" | "royale";
+export type PvpModeId = "clash" | "dominion" | "freefall" | "lockdown" | "ascendancy" | "royale" | "extraction" | "ranked";
+export type PvpKind = "team" | "zones" | "ffa" | "rounds" | "royale" | "extract";
 export type PvpMode = {
   id: PvpModeId; name: string; kind: PvpKind; tagline: string; brief: string;
   /** players per side (team modes), everyone (ffa), or the whole lobby (royale) */
@@ -23,6 +24,8 @@ export type PvpMode = {
   activity: string;
   /** Ascendancy is the elite playlist */
   elite?: boolean;
+  /** Ranked: the result moves your rating (rankedDelta) */
+  ranked?: boolean;
 };
 
 export const PVP_MODES: Readonly<Record<PvpModeId, PvpMode>> = {
@@ -31,6 +34,8 @@ export const PVP_MODES: Readonly<Record<PvpModeId, PvpMode>> = {
   freefall: { id: "freefall", name: "Freefall", kind: "ffa", tagline: "12-player free-for-all", brief: "Everyone for themselves. First to 20 eliminations, or the highest score when time runs out.", teamSize: 1, players: 12, onField: 4, target: 20, timeLimit: 480, activity: "killbox-freefall" },
   lockdown: { id: "lockdown", name: "Lockdown", kind: "rounds", tagline: "4v4 attack and defend", brief: "Rounds alternate: attack the objective and hold it, then defend it. No respawns in a round; first to 4 rounds.", teamSize: 4, players: 8, onField: 4, target: 4, timeLimit: 0, roundTime: 90, activity: "killbox-lockdown" },
   ascendancy: { id: "ascendancy", name: "Killbox: Ascendancy", kind: "rounds", tagline: "Elite 3v3 elimination", brief: "Wipe the other three to take the round. At the buzzer a capture zone decides it. Downed stays down; first to 5.", teamSize: 3, players: 6, onField: 3, target: 5, timeLimit: 0, roundTime: 90, activity: "killbox-ascendancy", elite: true },
+  extraction: { id: "extraction", name: "Extraction", kind: "extract", tagline: "4v4 data-core extraction", brief: "A data core drops in the middle. Grab it and carry it home to your extraction pad; drop it if you go down. First to 3 extractions wins.", teamSize: 4, players: 8, onField: 4, target: 3, timeLimit: 480, activity: "killbox-extraction" },
+  ranked: { id: "ranked", name: "Ranked", kind: "zones", tagline: "5v5 competitive Dominion", brief: "Competitive Dominion, five a side: hold A, B and C, first to 150. Every win and loss moves your rating, and your rating sets your rank.", teamSize: 5, players: 10, onField: 5, target: 150, timeLimit: 600, activity: "killbox-ranked", ranked: true },
   royale: { id: "royale", name: "Fracture Royale", kind: "royale", tagline: "60-player survival", brief: "Twenty squads of three. Scavenge, fight and outrun the closing fracture; the last squad standing wins.", teamSize: 3, players: 60, onField: 3, target: 1, timeLimit: 0, activity: "killbox-royale" },
 };
 export const pvpModeForActivity = (id: string) => Object.values(PVP_MODES).find((m) => m.activity === id);
@@ -44,6 +49,13 @@ export type Zone = { id: "A" | "B" | "C"; /** offset from the arena centre, m */
 export const ZONE_RADIUS = 7, ZONE_CAPTURE_S = 5, ZONE_TICK_S = 2;
 export const ROUND_ZONE_S = 6;
 export const ROYALE = { startRadius: 230, finalRadius: 18, phases: 5, phaseHold: 50, phaseShrink: 35, damagePerSec: [2, 3, 5, 8, 12] as readonly number[], waveEvery: 40 } as const;
+
+/** Extraction: how close you must stand to pick the core up and for how long, the pad's radius, and how long a dropped core lies before it resets */
+export const EXTRACT = { pickRadius: 2.5, pickTime: 1.2, padRadius: 4, resetAfter: 15 } as const;
+export type Core = { x: number; z: number; holder: "us" | "them" | null; /** who carries it: "player" or a bot id */ carrier: string | null; /** pickup progress, + toward us, − toward them */ pick: number; idle: number;
+  /** home (where it drops in) and each team's extraction pad, arena space */ home: { x: number; z: number }; pads: { us: { x: number; z: number }; them: { x: number; z: number } } };
+/** anyone on the field, arena space (Extraction needs to know who is where to hand the core over) */
+export type Unit = { id: string; team: "us" | "them"; x: number; z: number; alive: boolean };
 
 export type PvpState = {
   mode: PvpModeId; clock: number; us: number; them: number;
@@ -60,14 +72,20 @@ export type PvpState = {
   seed: number;
   /** a built arena with bots (killbox-bots.ts): your ally bots and the rivals on the field; the rest of each team fights off-field */
   allies: number; rivalField?: number | undefined;
+  /** Extraction's data core */
+  core?: Core;
 };
 
 export type ZoneSpot = { id: Zone["id"]; dx: number; dz: number };
 /** the open-world arena's zones (Grid-Iron); a built arena (killbox-arenas.ts) passes its own */
 const OPEN_ZONES: readonly ZoneSpot[] = [{ id: "A", dx: -22, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 22, dz: 0 }];
-export function newPvp(mode: PvpModeId, seed = 1, zones: readonly ZoneSpot[] = OPEN_ZONES, /** a bot match: ally bots and rivals on the field */ bots?: { allies: number; rivals: number }): PvpState {
+/** where Extraction's core drops in and each side's pad, when the arena gives none (the open-world arena: your side at +z) */
+const OPEN_EXTRACT = { home: { x: 0, z: 0 }, us: { x: 0, z: 24 }, them: { x: 0, z: -24 } };
+export function newPvp(mode: PvpModeId, seed = 1, zones: readonly ZoneSpot[] = OPEN_ZONES, /** a bot match: ally bots and rivals on the field */ bots?: { allies: number; rivals: number },
+  /** Extraction: the core's drop point and the two pads (killbox-arenas.ts extractionSites) */ extract: { home: { x: number; z: number }; us: { x: number; z: number }; them: { x: number; z: number } } = OPEN_EXTRACT): PvpState {
   const m = PVP_MODES[mode];
-  return { mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed, allies: bots?.allies ?? 0, rivalField: bots?.rivals };
+  const core: Core | undefined = m.kind === "extract" ? { x: extract.home.x, z: extract.home.z, holder: null, carrier: null, pick: 0, idle: 0, home: { ...extract.home }, pads: { us: { ...extract.us }, them: { ...extract.them } } } : undefined;
+  return { ...(core ? { core } : {}), mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed, allies: bots?.allies ?? 0, rivalField: bots?.rivals };
 }
 
 /** deterministic 0..1 from the state's seed (advances it) */
@@ -76,7 +94,9 @@ function rnd(st: PvpState): number { st.seed = (Math.imul(st.seed ^ 0x5bd1e995, 
 /** what the player and the field did this frame */
 export type PvpEvents = { dt: number; kills: number; died: boolean; /** player distance to the arena centre and position offset (for zones) */ px: number; pz: number; /** rivals of this round still standing (rounds) */ rivalsAlive: number;
   /** a bot match: ally bots that went down this frame (a point for them), and who stands in each zone (Dominion captures by presence) */
-  allyDeaths?: number; presence?: Record<string, { us: number; them: number }> };
+  allyDeaths?: number; presence?: Record<string, { us: number; them: number }>;
+  /** Extraction in a bot match: everyone on the field (the player as id "player"); without it the player alone is on the core's field */
+  units?: readonly Unit[] };
 
 /** advance a match one frame; returns true once it is decided */
 export function stepPvp(st: PvpState, e: PvpEvents): boolean {
@@ -105,6 +125,7 @@ export function stepPvp(st: PvpState, e: PvpEvents): boolean {
     }
     case "rounds": stepRounds(st, m, e); break;
     case "royale": stepRoyale(st, m, e); break;
+    case "extract": stepExtract(st, e); break;
   }
   decide(st, m);
   return st.result !== null;
@@ -177,6 +198,50 @@ function stepRounds(st: PvpState, m: PvpMode, e: PvpEvents) {
   }
 }
 
+/** Extraction: the core is picked up by a team standing on it unopposed, follows its carrier, drops where the carrier goes down,
+ * resets home if it lies untouched, and scores when carried onto the carrier's own pad. Kills don't score in this mode. */
+function stepExtract(st: PvpState, e: PvpEvents) {
+  const c = st.core; if (!c) return;
+  let units = e.units;
+  if (!units) {
+    // no bot field (the open-world arena): you alone are on the core's field, and the rivals off-field take a free core after a while
+    units = [{ id: "player", team: "us", x: e.px, z: e.pz, alive: !e.died }];
+    if (c.holder === null && Math.hypot(e.px - c.x, e.pz - c.z) > 12 && rnd(st) < e.dt / 20) { c.holder = "them"; c.carrier = "off-field"; c.pick = 0; }
+    if (c.holder === "them" && c.carrier === "off-field") {
+      if (e.kills > 0) { drop(c, c.home.x, c.home.z); return; }
+      if (rnd(st) < e.dt / 25) { score(st, c, "them"); return; }
+      return;
+    }
+  }
+  if (c.holder) {
+    const k = units.find((u) => u.id === c.carrier);
+    if (!k || !k.alive) { drop(c, c.x, c.z); st.reason = "Core dropped"; return; }
+    c.x = k.x; c.z = k.z;
+    const pad = c.pads[c.holder];
+    if (Math.hypot(k.x - pad.x, k.z - pad.z) < EXTRACT.padRadius) score(st, c, c.holder);
+    return;
+  }
+  const near = units.filter((u) => u.alive && Math.hypot(u.x - c.x, u.z - c.z) < EXTRACT.pickRadius);
+  const us = near.filter((u) => u.team === "us"), them = near.filter((u) => u.team === "them");
+  if (us.length && !them.length) c.pick = Math.max(0, c.pick) + e.dt;
+  else if (them.length && !us.length) c.pick = Math.min(0, c.pick) - e.dt;
+  else if (!near.length) c.pick = 0;
+  if (Math.abs(c.pick) >= EXTRACT.pickTime) {
+    const team = c.pick > 0 ? us : them, by = team.reduce((p, q) => (Math.hypot(q.x - c.x, q.z - c.z) < Math.hypot(p.x - c.x, p.z - c.z) ? q : p));
+    c.holder = by.team; c.carrier = by.id; c.pick = 0; c.idle = 0; st.reason = by.team === "us" ? "Core taken" : "They have the core";
+    return;
+  }
+  // a core lying away from home goes back after a while untouched
+  if (!near.length && Math.hypot(c.x - c.home.x, c.z - c.home.z) > 1) { c.idle += e.dt; if (c.idle >= EXTRACT.resetAfter) { drop(c, c.home.x, c.home.z); st.reason = "Core reset"; } }
+  else c.idle = 0;
+}
+function drop(c: Core, x: number, z: number) { c.x = x; c.z = z; c.holder = null; c.carrier = null; c.pick = 0; c.idle = 0; }
+function score(st: PvpState, c: Core, team: "us" | "them") {
+  if (team === "us") st.us++; else st.them++;
+  st.reason = team === "us" ? "Core extracted" : "They extracted the core";
+  drop(c, c.home.x, c.home.z);
+}
+
 /** the royale circle's radius at a match time */
 export function royaleRadius(t: number): { radius: number; phase: number; closing: boolean } {
   const step = ROYALE.phaseHold + ROYALE.phaseShrink;
@@ -232,6 +297,26 @@ export function fieldSize(st: PvpState): number {
 /** do downed rivals come back this round/match? (no respawns in rounds; royale sends fresh squads in waves instead) */
 export const respawns = (st: PvpState) => PVP_MODES[st.mode].kind !== "rounds";
 
+/** Ranked rating (owner's PvP maps board, "Ranked"): everyone starts at RANKED.start; a win adds 20 plus up to 10 for the margin, a
+ * loss takes 18 less up to 8 for how close it was. The rank is the highest tier your rating has reached the floor of. */
+export const RANKED = { start: 1000, tiers: [["Bronze", 0], ["Silver", 1100], ["Gold", 1250], ["Platinum", 1450], ["Ascendant", 1700]] as readonly (readonly [string, number])[] } as const;
+export function rankedDelta(won: boolean, us: number, them: number, target: number): number {
+  const t = Math.max(1, target);
+  return won ? 20 + Math.round(Math.max(0, Math.min(10, ((us - them) / t) * 20))) : -(18 - Math.round(Math.max(0, Math.min(8, (us / t) * 8))));
+}
+/** a ranked result's save key (one per match, so the cloud merge's union keeps every one): `ranked:<match start>:<delta>` */
+export const rankedKey = (startedAt: number, delta: number) => `ranked:${startedAt}:${delta}`;
+/** your rating from the ranked keys in a save's earned rewards (never below 0) */
+export function rankedRating(earned: readonly string[]): number {
+  let r: number = RANKED.start;
+  for (const k of earned) { const m = /^ranked:\d+:(-?\d+)$/.exec(k); if (m) r = Math.max(0, r + Number(m[1])); }
+  return r;
+}
+export function rankedTier(rating: number): { name: string; floor: number; next: number | null } {
+  let i = 0; while (i + 1 < RANKED.tiers.length && rating >= RANKED.tiers[i + 1]![1]) i++;
+  return { name: RANKED.tiers[i]![0], floor: RANKED.tiers[i]![1], next: RANKED.tiers[i + 1]?.[1] ?? null };
+}
+
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 /** one line of match state for the activity HUD */
 export function pvpLine(st: PvpState): string {
@@ -247,5 +332,9 @@ export function pvpLine(st: PvpState): string {
       return `Round ${st.round} · ${st.usRounds}–${st.themRounds} · ${st.roundOver > 0 ? st.reason : `${role} · ${clock(Math.max(0, rt - st.roundClock))}`}`;
     }
     case "royale": { const z = royaleRadius(st.clock); return `${st.alive} alive · ${Math.ceil(st.alive / m.teamSize)} squads · circle ${Math.round(z.radius)} m${z.closing ? " CLOSING" : ""}`; }
+    case "extract": {
+      const c = st.core, who = !c ? "" : c.holder === null ? (Math.hypot(c.x - c.home.x, c.z - c.home.z) > 1 ? "core dropped" : "core in the middle") : c.carrier === "player" ? "YOU HAVE THE CORE — get it home" : c.holder === "us" ? `${c.carrier?.startsWith("ally:") ? "an ally carries" : "your team carries"} the core` : "THEY HAVE THE CORE — stop the carrier";
+      return `Us ${st.us} – ${st.them} Them · ${who}${left}`;
+    }
   }
 }

@@ -1,4 +1,5 @@
 extends Control
+const Sound := preload("res://scripts/audio/sound.gd")
 ## World Fracture (Godot): the Planetary Director. The globe is home; tapping a continent twice (or OPEN MAP) opens its region
 ## map, and Back returns to the globe. Android's back gesture goes back too.
 
@@ -20,6 +21,15 @@ const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
 const BossArena := preload("res://scripts/combat/boss_arena.gd")
 var boss_arena: Control
+const Title := preload("res://scripts/front/title.gd")
+const SettingsView := preload("res://scripts/front/settings_view.gd")
+const PerfHud := preload("res://scripts/front/perf_hud.gd")
+const ProfileView := preload("res://scripts/progress/profile_view.gd")
+var title: Control
+var settings_view: Control
+## the view a street door opened; when it closes the street comes back
+var _from_street: Control
+var _mission_from_onboarding := false
 const ModesHub := preload("res://scripts/modes/modes_hub.gd")
 var modes: Control
 var descent: Control
@@ -37,6 +47,7 @@ var garage: Control
 var driving: Control
 
 func _ready() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)   # the overlays (title, settings, operator) fill the window
 	# the phone renders the 3D at full resolution; this steps it down only while the frame rate sags (phone.gd)
 	if Phone.on_phone():
 		add_child(Phone.Guard.new())
@@ -44,6 +55,12 @@ func _ready() -> void:
 	bg.color = Data.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	# the front-door overlays (title, settings, operator panel) live on their own layer, over whatever the globe or a mode
+	# adds later and under the frame-time readout
+	_overlays = CanvasLayer.new()
+	_overlays.layer = 50
+	add_child(_overlays)
+	add_child(PerfHud.new())   # the frame-time readout over everything (settings: perf_hud)
 	planet_view = PlanetView.new()
 	planet_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	planet_view.open_map.connect(_open_map)
@@ -124,6 +141,12 @@ func _ready() -> void:
 	sky.add_theme_color_override("font_color", Color(0.5, 0.9, 1.0))
 	sky.pressed.connect(_open_skyways)
 	add_child(sky)
+	var settings_b := Data.button("SETTINGS", true)
+	settings_b.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	settings_b.position = Vector2(400, -130)
+	settings_b.custom_minimum_size = Vector2(130, 52)
+	settings_b.pressed.connect(_open_settings)
+	add_child(settings_b)
 	var rift := Data.button("RIFT GATE", true)
 	rift.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	rift.position = Vector2(260, -130)
@@ -144,9 +167,9 @@ func _ready() -> void:
 	add_child(op_button)
 	get_tree().set_auto_accept_quit(false)
 	get_tree().set_quit_on_go_back(false)
-	# onboarding: the first launch starts in the operator creator
-	if not CharacterStore.exists() and OS.get_cmdline_user_args().find("--shot") < 0:
-		_open_creator.call_deferred(true)
+	# the front door: the title screen (step 7); shots skip it
+	if OS.get_cmdline_user_args().find("--shot") < 0:
+		_open_title.call_deferred()
 	# a capture hook for checking the look off-device: --shot <png> [map:<id>] [sat]
 	var args := OS.get_cmdline_user_args()
 	var i := args.find("--shot")
@@ -211,13 +234,107 @@ func _open_street(night := true, style := "nexus", walk := true) -> void:
 		_close_street()
 		_open_street(not was, st2, walk))
 	street.closed.connect(_close_street)
+	street.door.connect(_street_door)
 	add_child(street)
 	planet_view.set_process(false)
+
+## a hub door on the street: the street waits (hidden, not processing) while the mode runs, then comes back
+func _street_door(id: String) -> void:
+	if not street or _from_street:
+		return
+	var view: Control = null
+	match id:
+		"modes":
+			view = ModesHub.new()
+		"skyways":
+			view = SkywaysView.new()
+		"rift":
+			view = BossArena.new()
+		"descent":
+			view = Descent.new()
+		"apartment":
+			view = Mission01.new()
+			view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if view == null:
+		return
+	_from_street = view
+	street.visible = false
+	street.set_process(false)
+	street._vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	street.sound_off()
+	view.closed.connect(func():
+		_from_street.queue_free()
+		_from_street = null
+		Sound.loops_stop()
+		if street:
+			street.visible = true
+			street.set_process(true)
+			street._vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+			street.sound_on()
+		_sync_later())
+	add_child(view)
+
+## the title screen and what its buttons do
+func _open_title() -> void:
+	if title:
+		return
+	title = Title.new()
+	title.pressed.connect(_title_action)
+	_overlays.add_child(title)
+	planet_view.set_process(false)
+
+func _close_title() -> void:
+	if title:
+		title.queue_free()
+		title = null
+	planet_view.set_process(true)
+
+func _title_action(action: String) -> void:
+	match action:
+		"continue":
+			_close_title()
+			_open_street(true, "nexus", true)
+		"new":
+			_close_title()
+			_open_creator(true)
+		"modes":
+			_close_title()
+			_open_modes()
+		"globe":
+			_close_title()
+		"settings":
+			_open_settings()
+		"operator":
+			_open_profile()
+		"cloud":
+			_close_title()
+			_open_cloud()
+
+func _open_settings() -> void:
+	if settings_view:
+		return
+	settings_view = SettingsView.new()
+	settings_view.closed.connect(func():
+		settings_view.queue_free()
+		settings_view = null)
+	_overlays.add_child(settings_view)
+
+var profile_view: Control
+var _overlays: CanvasLayer
+func _open_profile() -> void:
+	if profile_view:
+		return
+	profile_view = ProfileView.new()
+	profile_view.closed.connect(func():
+		profile_view.queue_free()
+		profile_view = null)
+	_overlays.add_child(profile_view)
 
 func _close_street() -> void:
 	if street:
 		street.queue_free()
 		street = null
+	Sound.ambience("")
 	planet_view.set_process(true)
 	_sync_later()
 
@@ -338,6 +455,7 @@ func _open_creator(first := false) -> void:
 		var was_first: bool = creator.onboarding
 		_close_creator()
 		if was_first:
+			_mission_from_onboarding = true
 			_open_mission())
 	add_child(creator)
 	planet_view.set_process(false)
@@ -360,6 +478,10 @@ func _close_mission() -> void:
 	planet_view.visible = true
 	planet_view.set_process(true)
 	_sync_later()
+	if _mission_from_onboarding:
+		# the opening done: the city is home
+		_mission_from_onboarding = false
+		_open_street(true, "nexus", true)
 
 func _close_creator() -> void:
 	if creator:
@@ -481,6 +603,16 @@ func _shoot(path: String, opts: Array) -> void:
 				street.controls.sprint = String(o).contains("run")
 				if String(o).contains("jump"):
 					street.controls._jump = true
+			# slicewalk:doors stands at the Killbox terminal with its ENTER prompt up
+			if String(o).contains("walk:doors"):
+				street.operator.position = Vector3(-10.0, 0.18, -40.6)
+				street.operator.heading = PI * 1.5
+				street.operator.cam_yaw = PI * 0.5
+			# slicewalk:court=<id>[:still]  starts at a Nexus district court's side street (nexus_districts.gd COURTS ids) and walks in
+			if String(o).contains("court="):
+				street.go_to_court(String(o).split("court=")[1].split(":")[0])
+				if String(o).contains("still"):
+					street.controls.move = Vector2.ZERO
 			# slicewalk:tank walks the operator to the Goliath tank by the garage and climbs in (then drives)
 		if String(o).contains("walk:tank"):
 			for c in street.parked:
@@ -533,9 +665,9 @@ func _shoot(path: String, opts: Array) -> void:
 			if cam_q.size() > 2:
 				var cf := cam_q[1].split(","); var ct := cam_q[2].split(",")
 				street.look_from(Vector3(float(cf[0]), float(cf[1]), float(cf[2])), Vector3(float(ct[0]), float(ct[1]), float(ct[2])))
-		# casino[:view]  the Skyline Casino: 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
+		# casino[:view]  the Neon City Grand Casino (Neon City's alone): 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
 		if String(o).begins_with("casino"):
-			_open_street(false, "nexus", false)
+			_open_street(true, "neon", false)
 			street.open_casino()
 			var cv := String(o).split(":")
 			if cv.size() > 1:
@@ -593,6 +725,13 @@ func _shoot(path: String, opts: Array) -> void:
 				descent.controls.move = Vector2(0.0, 1.0)
 				descent.controls.sprint = true
 				descent.controls.fire = true
+		# title / settings  the front door and the settings screen
+		if String(o) == "title":
+			_open_title()
+		if String(o) == "settings":
+			_open_settings()
+		if String(o) == "operator":
+			_open_profile()
 		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default); :fight holds fire
 		if String(o).begins_with("boss"):
 			boss_arena = BossArena.new()
@@ -701,6 +840,9 @@ func _shoot(path: String, opts: Array) -> void:
 		# season:0..3 shows the regions in spring / summer / autumn / winter
 		if String(o).begins_with("season:"):
 			Region3D.season = int(String(o).substr(7))
+		# bolt: the region's lightning strikes at once and stays lit (Storm Islands, swamps)
+		if String(o) == "bolt":
+			preload("res://scripts/region_weather.gd").hold = true
 		if String(o) == "3d" and region_map:
 			_open_3d(region_map.map_id, null, false)
 		# 3d-at:x,z[,dist,pitch,yaw,lift] the 3D city view orbiting a map point (landmark checks: the casino, the Core Spire)

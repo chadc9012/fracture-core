@@ -1198,6 +1198,13 @@ func _story_event(ev: String) -> void:
 	var lines := story.event(ev, _now)
 	_say(lines, story.phase != before)
 	if story.phase != before:
+		# NOVA's first words are the owner's recorded line (audio/voices); the rest of the beat is captions
+		if story.phase == "SURGE":
+			Sound.voice("nova-first-contact")
+		elif story.phase == "DAZED":
+			Sound.sfx("portal", -4.0)
+		elif story.phase == "CLEAR":
+			Sound.sfx("confirm", -4.0)
 		_on_phase()
 
 func _on_phase() -> void:
@@ -1221,10 +1228,7 @@ func _mission_complete() -> void:
 		return
 	_complete_shown = true
 	var rw := story.reward()
-	profile.xp = int(profile.xp) + int(rw.xp)
-	profile.nex = int(profile.nex) + int(rw.nex)
-	while int(profile.xp) >= int(profile.level) * 1000:
-		profile.level = int(profile.level) + 1
+	Progression.grant(profile, "mission", int(rw.nex), int(rw.xp), "Mission 01")
 	_save_profile()
 	# the Breach anchor drops a weapon into the inventory (gear_store.gd), the first clear only
 	var drop_line := ""

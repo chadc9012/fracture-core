@@ -1,4 +1,6 @@
 extends Control
+const Progression := preload("res://scripts/progress/progression.gd")
+const Sound := preload("res://scripts/audio/sound.gd")
 const Phone := preload("res://scripts/phone.gd")
 ## Killbox in Godot: a match on one of the owner's arenas (arena.gd data) — Kaiju Complex (two blocks of neon-trimmed
 ## rooftops over a Neon City street, joined by three crossings), Fracture Floor (a plaza between two uplink terraces, data
@@ -139,7 +141,8 @@ func _pick_mode() -> void:
 	box.add_child(title)
 	for mid in a.def.get("modes", ["clash"]):
 		var m: Dictionary = Arena.mode(String(mid))
-		if m.is_empty() or String(m.get("kind", "")) == "royale":
+		# Extraction (kind "extract", web pvp.ts) has no Godot rules yet: killbox_match.gd would play it as a deathmatch
+		if m.is_empty() or String(m.get("kind", "")) in ["royale", "extract"]:
 			continue
 		var b := Button.new()
 		b.text = "%s — %s" % [String(m.name).to_upper(), String(m.tagline)]
@@ -215,12 +218,13 @@ func _start() -> void:
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	enemies.operator_team = 1
 	enemies.operator_down.connect(_on_operator_down)
 	enemies.bot_down.connect(_on_bot_down)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
-	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
+	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	var size: int = int(match_state.mode.get("teamSize", 6))
 	if match_state.kind == "ffa":
@@ -491,6 +495,7 @@ func _set_event(on: bool) -> void:
 		operator.obstacles.clear()
 		operator.obstacles.append_array(nb)
 	controls.toast((String(f.name).to_upper() + " — " + String(f.brief)) if on else "The %s ends" % String(f.name))
+	Sound.sfx("portal" if on else "stagger", -6.0)
 
 func _slide_shifters(dt: float) -> void:
 	for sh in _shifter_nodes:
@@ -647,8 +652,18 @@ func _process(dt: float) -> void:
 		return
 	dt = minf(dt, 0.05)
 	var alive_us: int = enemies.alive_on(1) + (1 if enemies.down <= 0.0 and enemies.hull > 0.0 else 0)
+	var owners_before: Array[int] = []
+	for z in match_state.zones:
+		owners_before.append(int(z.owner))
+	var was_over: bool = match_state.over
 	match_state.tick(dt, _presence(), alive_us, enemies.alive_on(0))
+	for i in match_state.zones.size():
+		if int(match_state.zones[i].owner) != owners_before[i]:
+			Sound.sfx("capture" if int(match_state.zones[i].owner) == 1 else "buzzer", -6.0)
+	if match_state.over and not was_over:
+		Sound.sfx("confirm", -2.0)
 	if match_state.round_reset:
+		Sound.sfx("buzzer", -4.0)
 		_new_round()
 	var paused: bool = match_state.is_rounds() and match_state.round_over > 0.0
 	if not paused:
@@ -744,14 +759,21 @@ func _board_text() -> String:
 func _finish() -> void:
 	_paid = true
 	var won := match_state.winner == "us"
-	var nex := 400 if won else 150
-	var xp := 300 if won else 120
+	# the purse: a win pays 250 + 25 a kill (to 600), a loss 100 + 15 a kill (to 300); XP likewise
+	var kills := int(match_state.player_kills)
+	var nex := mini(250 + 25 * kills, 600) if won else mini(100 + 15 * kills, 300)
+	var xp := mini(200 + 20 * kills, 450) if won else mini(80 + 10 * kills, 220)
 	var p := Gear.profile_load()
-	p.nex = int(p.nex) + nex
-	p.xp = int(p.xp) + xp
-	while int(p.xp) >= int(p.level) * 1000:
-		p.level = int(p.level) + 1
+	var res := Progression.grant(p, "killbox_win" if won else "killbox", nex, xp, "Killbox · %s" % String(match_state.mode.name))
 	Gear.profile_save(p)
+	# loot: a win rolls the elite pool, a loss the common one; the drop lands in the inventory
+	var gear := Gear.load_save()
+	var it := Gear.roll_drop(gear, "elite" if won else "enemy", randf(), Gear.operator_power(gear, int(p.level)), randi())
+	if not it.is_empty():
+		Gear.save(gear)
+		res.lines.append("LOOT · %s (%d power)" % [String(it.name), int(it.power)])
+	for l in res.lines:
+		controls.toast(String(l))
 	_done_panel = PanelContainer.new()
 	_done_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_done_panel.position = Vector2(-170, -90)

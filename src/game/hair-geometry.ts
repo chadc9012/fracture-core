@@ -318,13 +318,15 @@ function shadedStrand(pts: THREE.Vector3[], r: number, rEnd: number, seed: numbe
   const pos = g.getAttribute("position") as THREE.BufferAttribute, col = new Float32Array(pos.count * 3);
   const base = 0.82 + rand(seed) * 0.3, c = new THREE.Vector3(), v = new THREE.Vector3();
   for (let i = 0; i <= segs; i++) {
-    const t = i / segs, k = THREE.MathUtils.lerp(1, rEnd / r, t), shade = base * THREE.MathUtils.lerp(1, tip, THREE.MathUtils.smoothstep(t, 0.45, 1));
+    // the tip colour is warm (sun-lightened ends go gold, not grey): red up more than green, blue least
+    const t = i / segs, k = THREE.MathUtils.lerp(1, rEnd / r, t), f = THREE.MathUtils.smoothstep(t, 0.5, 1);
+    const sr = base * THREE.MathUtils.lerp(1, tip * 1.3, f), sg = base * THREE.MathUtils.lerp(1, tip, f), sb = base * THREE.MathUtils.lerp(1, tip * 0.55, f);
     curve.getPointAt(t, c);
     for (let j = 0; j <= radial; j++) {
       const idx = i * (radial + 1) + j;
       v.fromBufferAttribute(pos, idx).sub(c).multiplyScalar(k).add(c);
       pos.setXYZ(idx, v.x, v.y, v.z);
-      col.set([shade, shade, shade], idx * 3);
+      col.set([sr, sg, sb], idx * 3);
     }
   }
   g.setAttribute("color", new THREE.BufferAttribute(col, 3));
@@ -347,16 +349,16 @@ function twistTop(count: number, length: number, radius: number, seed: number, p
       if (phi > hairline(theta) - 0.06) continue;
       const root = onSkull(phi, theta, 0.003), n = outward(root);
       const h = dirOf(0.5 * Math.PI, theta).add(new THREE.Vector3(0, 0, 0.35)).normalize(); // outward, a little forward
-      const L = length * (0.75 + rand(seed + i * 5) * 0.5);
-      const fall = 0.08 + (phi / phiMax) * 0.3; // the outer twists lean over further
+      const L = length * (0.75 + rand(seed + i * 5) * 0.5) * (1 - 0.35 * Math.max(0, Math.cos(theta)) * (phi / phiMax)); // shorter over the brow
+      const fall = 0.28 + (phi / phiMax) * 0.36; // springing up, then out and down like a fountain; the outer ones further
       const side = new THREE.Vector3().crossVectors(n, h).normalize();
       const pts: THREE.Vector3[] = [];
       for (let s = 0; s <= 8; s++) {
         const t = s / 8;
         const p = root.clone()
-          .add(n.clone().multiplyScalar(L * (0.75 * t - 0.2 * t * t)))
-          .add(h.clone().multiplyScalar(L * fall * t * t))
-          .add(new THREE.Vector3(0, -L * fall * 0.6 * t * t * t, 0));
+          .add(n.clone().multiplyScalar(L * (0.8 * t - 0.25 * t * t)))
+          .add(h.clone().multiplyScalar(L * fall * 0.75 * t * t))
+          .add(new THREE.Vector3(0, -L * fall * 1.05 * t * t * t, 0));
         const a = t * Math.PI * 5 + rand(seed + i) * 6; // the two-strand wind
         p.add(side.clone().multiplyScalar(Math.cos(a) * radius * 0.45)).add(h.clone().multiplyScalar(Math.sin(a) * radius * 0.25));
         pts.push(p);
