@@ -17,7 +17,7 @@ func ok(c: bool, what: String) -> void:
 		print("FAIL: ", what)
 
 func _init() -> void:
-	ok(Catalog.faces("male").size() == 20 and Catalog.faces("female").size() == 20, "20 male and 20 female faces")
+	ok(Catalog.faces("male").size() >= 21 and Catalog.faces("female").size() >= 20 and not Catalog.face("male", "m-ronin").is_empty(), "the board's 20 male and 20 female faces, plus Ronin from the owner's operator sheet")
 	ok(Catalog.list("morphs").size() == 10, "ten sculpt sliders")
 	for b: String in ["male", "female"]:
 		for f: Dictionary in Catalog.faces(b):
