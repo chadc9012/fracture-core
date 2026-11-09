@@ -17,6 +17,7 @@ const Gear := preload("res://scripts/gear/gear_store.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const Boss := preload("res://scripts/combat/boss.gd")
 const BossView := preload("res://scripts/combat/boss_view.gd")
+const FractureSet := preload("res://scripts/vfx/fracture_set.gd")
 const REGION := "veridan"
 
 var boss_id := ""
@@ -119,6 +120,13 @@ func _start() -> void:
 	region.world().add_child(boss)
 	var at := operator.position + Vector3(0, 0, -18.0)
 	at.y = region.ground(at.x, at.z)
+	# the arena structures (asset catalog §9): broken pillars round the fight, crystals, conduits, ruins hanging above
+	var rng := RandomNumberGenerator.new()
+	rng.seed = boss_id.hash()
+	var mid := (operator.position + at) * 0.5
+	mid.y = region.ground(mid.x, mid.z)
+	FractureSet.arena_ring(region.world(), mid, 26.0, Color(0.7, 0.35, 1.0), rng, operator.ground_at)
+	FractureSet.relic_container(region.world(), Vector3(mid.x + 16.0, region.ground(mid.x + 16.0, mid.z + 4.0), mid.z + 4.0))
 	boss.setup(boss_id, at, operator, gunplay, enemies, operator.ground_at)
 	boss.obstacles = operator.obstacles
 	boss.heading = PI

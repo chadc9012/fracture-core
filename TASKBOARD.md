@@ -37,7 +37,7 @@ Rows are the lock; `git fetch` before you claim.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
   7. ~~Vegetation / rock gaps, natural effects, VFX~~ — done in region 3D and scripts/vfx/fx.gd (see Done).
-  8. Fantasy & dimensional set (§9) for the Shattered Expanse and boss arenas.
+  8. ~~Fantasy & dimensional set (§9)~~ — builders landed Nov 9 (scripts/vfx/fracture_set.gd) and placed at the Rift Gate and the Neon core; still to place in the Shattered Expanse regions when they get their dressing pass.
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
 - Controller unification: Mission 01's physics player onto scripts/player (the gear, outfit and drops already carry into the mission; the interiors rely on physics bodies, so the rewrite buys nothing playable before Dec 4).
@@ -46,6 +46,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Asset gap 8 (Godot): the Fracture set — crystals, floating ruins, conduits, relic container, arena ring; at the Rift Gate and the Stitched Neon Core | Godot: the Fracture set |
 | Asset gap 2 (Godot): Extraction — pvp.ts stepExtract ported into killbox_match.gd (core, carrier, pads, drop, reset, first to 3), the core and pads in the arena view, bots steer for it; shot hook takes every mode and arena | Godot: Extraction |
 | Step 13, prepared: the release job (keystore secrets → release-signed APK as godot-release), fresh godot-latest notes, store screenshots in docs/store | Godot: ship prep |
 | Step 12, known items: the simple phone HUD (stick / FIRE / JUMP / ENTER; sprint at the stick edge, tap the weapon name to swap, auto-reload) and the gore toggle (off / reduced / full; red / coolant / violet / green by target) | Godot: polish, first pass |

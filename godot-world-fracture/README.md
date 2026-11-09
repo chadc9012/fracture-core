@@ -337,6 +337,14 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**The Fracture set** (`scripts/vfx/fracture_set.gd`, Nov 9; asset catalog part 2 §9): builders for the fantasy and
+dimensional dressing — emissive crystal clusters (one MultiMesh), floating ruins that drift and turn, energy conduits
+with a scrolling core and rings, a relic container ringed with blinking inscriptions, and `arena_ring` for boss arena
+structures (broken pillars, cables overhead to a halo, crystals, ruins). Placed at the Rift Gate's fight (centred on the
+operator and the boss) and around the Stitched Neon Core (four pylons feeding the crown). Rift tears, the portal, the
+hologram and the energy field were already in `scripts/vfx/fx.gd` and `region_flora.gd`; the Shattered Expanse regions
+can take the set when they get their pass. The Rift Gate measures 247 draws / 0.73 M triangles on medium.
+
 **Extraction** (Killbox, Nov 9; asset-gap item 2 closed): `killbox_match.gd` kind `extract` ports pvp.ts `stepExtract` —
 the data core drops at the arena's objective, a team standing on it unopposed for 1.2 s takes it, the carrier runs it to
 their own pad (the middle of their spawns, 4 m), it drops where the carrier goes down, lies 15 s untouched then resets

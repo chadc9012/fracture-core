@@ -16,6 +16,7 @@ const Region3D := preload("res://scripts/region_3d.gd")
 const WildlifeView := preload("res://scripts/wildlife/wildlife_view.gd")
 const Cutscene := preload("res://scripts/mission/cutscene.gd")
 const BossView := preload("res://scripts/combat/boss_view.gd")
+const FractureSet := preload("res://scripts/vfx/fracture_set.gd")
 const Boss := preload("res://scripts/combat/boss.gd")
 var wildlife: Node3D
 const Player := preload("res://scripts/player/operator_player.gd")
@@ -622,6 +623,18 @@ func _place_terminal(at: Vector3, core := false) -> void:
 	l.position.y = bm.size.y * 0.7
 	_terminal.add_child(l)
 	operator.obstacles.append(AABB(at + Vector3(-bm.size.x * 0.5, 0, -bm.size.z * 0.5), bm.size))
+	if core:
+		# the Stitched Neon Core is fed by conduits from four pylons, crystals grown where the Fracture seeps through
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 707
+		for i in 4:
+			var a2 := TAU * i / 4.0 + PI * 0.25
+			var foot := _on_ground(at + Vector3(cos(a2), 0, sin(a2)) * 14.0)
+			# a pylon, and the cable from its head to the core's crown, overhead
+			FractureSet.conduit(region.world(), foot, foot + Vector3(0, 7.0, 0), Color(1.0, 0.3, 0.6), 0.3)
+			FractureSet.conduit(region.world(), foot + Vector3(0, 7.0, 0), at + Vector3(0, 7.2, 0), Color(1.0, 0.3, 0.6))
+		FractureSet.crystals(region.world(), at, 12.0, 6, Color(1.0, 0.35, 0.65), rng, operator.ground_at)
+		FractureSet.floating_ruins(region.world(), at, 10.0, 5, rng, Color(0.2, 0.18, 0.24))
 
 ## fd-06 done: the terminal gives up Dr Aris's World Anchor log (the owner's recording), then the quest pays
 func _hack_done() -> void:
