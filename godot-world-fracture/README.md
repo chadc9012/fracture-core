@@ -192,8 +192,11 @@ City in region PLAY mode. Pick the Rift-Jumper helicopter (lifts from a hover), 
 the runway, sinks when slow), the Scrap-Iron patrol boat (rides the water, beaches on land) or the Hydro-Sub skiff (dives
 between the floor and the surface). Aircraft start on the Nexus airport apron facing the clearest run, watercraft at the
 seaport facing open water; eight rings make a course (over the roofs for aircraft, out across the water for boats) with a
-Nex / XP prize, buildings are solid (a crash and hard landings cost hull; a wreck goes back to the pad). Phone controls in
-`fly` mode: stick = throttle / steer, UP climbs, DOWN descends. Shots: `skyways[:heli|:jet|:boat|:sub][:go]`.
+Nex / XP prize, buildings are solid (a crash and hard landings cost hull; a wreck goes back to the pad). The Leviathan
+cargo airship (AIRSHIP profile: slow, VTOL, wide turns) flies too. Phone controls in `fly` mode: stick = throttle / steer,
+UP climbs, DOWN descends. Shots: `skyways[:heli|:jet|:boat|:sub|:airship][:go]`. On the street, the hub block parks the
+Goliath heavy tank (pivots on the spot, drive_physics `pivot`) and the hover-car (floats 0.9 m) across from the garage —
+ENTER them like any car; their numbers come from vehicle_handling.gd (`hull_perf`). Shot: `slicewalk:tank`.
 
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two

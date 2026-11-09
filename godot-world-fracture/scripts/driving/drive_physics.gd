@@ -9,4 +9,7 @@ static func advance(speed: float, throttle: float, brake: float, profile: Dictio
 	speed = move_toward(speed, 0.0, drag * delta) + force * delta
 	return clampf(speed, -max_speed * 0.35, max_speed)
 static func yaw_delta(speed: float, steer: float, profile: Dictionary, delta: float) -> float:
+	# a tracked vehicle (`pivot`) turns on the spot; wheels need speed to steer
+	if bool(profile.get("pivot", false)):
+		return clampf(steer, -1.0, 1.0) * float(profile.get("steering", 1.0)) * (signf(speed) if absf(speed) > 0.5 else 1.0) * delta
 	return clampf(steer, -1.0, 1.0) * float(profile.get("steering", 1.0)) * clampf(absf(speed) / 8.0, 0.0, 1.0) * signf(speed) * delta

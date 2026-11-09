@@ -54,7 +54,7 @@ func step(dt: float, throttle: float, steer: float, brake: float) -> void:
 		# a kerb, a wall or another car: the car stops short and loses most of its speed
 		speed = move_toward(speed, 0.0, absf(speed) * 0.6 + 2.0 * dt)
 		hits += 1
-	p.y = (ground_at.call(p.x, p.z) as float)
+	p.y = (ground_at.call(p.x, p.z) as float) + (0.9 + sin(Time.get_ticks_msec() * 0.003) * 0.08 if bool(profile.get("hover", false)) else 0.0)
 	node.position = p
 
 ## the three discs along the car, kept inside the bounds and out of the boxes

@@ -55,7 +55,15 @@ const PARKED_BOX := AABB(Vector3(0, -1000, 0), Vector3(0.1, 0.1, 0.1))
 const DriveProfile = preload("res://scripts/driving/drive_profile.gd")
 const GarageState = preload("res://scripts/garage/garage_state.gd")
 ## the parked cars you can take (phase 5): each fleet file's vehicle id for the garage build it drives with
-const CAR_IDS := { "street-racer-lod.glb": "street-racer", "muscle-car-lod.glb": "muscle-car", "security-suv.glb": "security-suv", "tuner.glb": "tuner", "offroad-truck.glb": "offroad-truck" }
+const CAR_IDS := { "street-racer-lod.glb": "street-racer", "muscle-car-lod.glb": "muscle-car", "security-suv.glb": "security-suv", "tuner.glb": "tuner", "offroad-truck.glb": "offroad-truck", "goliath-tank.glb": "goliath-tank", "hover-car.glb": "hover-car" }
+## the hulls that are not garage cars drive on vehicle_handling.gd's numbers (web vehicle-handling.ts): max speed from the
+## base 62 m/s × profile top × fleet speed, braking / acceleration from the profile; the tank pivots on the spot
+const Handling := preload("res://scripts/driving/vehicle_handling.gd")
+static func hull_perf(id: String) -> Dictionary:
+	var kind := Handling.kind_of(id)
+	var p: Dictionary = Handling.profile(kind)
+	var fleet := float(Handling.FLEET_SPEED.get(id, 1.0))
+	return { "max_speed": Handling.BASE_SPEED * float(p.top) * fleet * 0.55, "acceleration": float(p.accel) * 0.35, "steering": float(p.steer), "braking": float(p.brake) * 0.4, "pivot": bool(p.pivot), "hover": kind == "RACER" and id.contains("hover") }
 var parked: Array[Node3D] = []
 var driving_car: RefCounted
 var _near_car: Node3D
@@ -740,6 +748,18 @@ func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
 	_root().add_child(holder)
 	return holder
 
+## scale a hull's children so its longest axis is `length` metres, resting on y = 0
+static func _fit_length(hull: Node3D, length: float) -> void:
+	var a := _aabb(hull)
+	var longest := maxf(a.size.x, a.size.z)
+	if longest < 0.01:
+		return
+	var k := length / longest
+	for ch in hull.get_children():
+		if ch is Node3D:
+			(ch as Node3D).scale *= k
+			(ch as Node3D).position = (ch as Node3D).position * k - Vector3(0, a.position.y * k, 0)
+
 static func _aabb(n: Node) -> AABB:
 	var out := AABB()
 	var first := true
@@ -896,6 +916,21 @@ func _cars() -> void:
 	var half := ROAD_W * 0.5
 	var z := -LENGTH * 0.5 + 20.0
 	var i := 0
+	if _tile_root == null:
+		# the hub block: the Goliath tank and the hover-car wait across from the garage (asset catalog: Vehicles)
+		for spec in [["goliath-tank.glb", Vector3(-(half - 2.6), 0.0, GARAGE_Z + 30.0), 8.0], ["hover-car.glb", Vector3(-(half - 1.6), 0.0, GARAGE_Z + 44.0), 5.0]]:
+			var f2 := String(spec[0])
+			if not ResourceLoader.exists(FLEET + f2):
+				continue
+			var hull := (load(FLEET + f2) as PackedScene).instantiate() as Node3D
+			hull.position = spec[1]
+			hull.rotation_degrees.y = 180.0
+			StreetCar.face_forward(hull)
+			_fit_length(hull, float(spec[2]))
+			hull.set_meta("car", true)
+			hull.set_meta("vehicle", CAR_IDS.get(f2, ""))
+			world.add_child(hull)
+			parked.append(hull)
 	while z < LENGTH * 0.5 - 20.0:
 		var side := 1.0 if i % 2 == 0 else -1.0
 		var f: String = files[i % files.size()]
@@ -1403,8 +1438,11 @@ func close_sports() -> void:
 
 # --------------------------------------------------------------------------------------------- driving
 func _car_name(c: Node3D) -> String:
-	var v := Catalog.vehicle(String(c.get_meta("vehicle", "")))
-	return String(v.get("name", "CAR")).to_upper() if not v.is_empty() else "CAR"
+	var id := String(c.get_meta("vehicle", ""))
+	var v := Catalog.vehicle(id)
+	if v.is_empty():
+		return { "goliath-tank": "GOLIATH HEAVY TANK", "hover-car": "HOVER-CAR" }.get(id, "CAR")
+	return String(v.get("name", "CAR")).to_upper()
 
 ## the operator gets in: the car drives with its garage build, the operator rides along (hidden) so the enemies and the
 ## camera follow the car; the car's box stops being an obstacle to itself
@@ -1412,6 +1450,8 @@ func enter_car(c: Node3D) -> void:
 	var id := String(c.get_meta("vehicle", ""))
 	var state := GarageState.load_or_fresh()
 	var perf: Dictionary = DriveProfile.performance(state, id) if id != "" else { "max_speed": 28.0, "acceleration": 7.0, "steering": 1.0, "braking": 12.0 }
+	if Handling.kind_of(id) != "OFFROAD" or perf.is_empty():
+		perf = hull_perf(id) if Handling.BY_ID.has(id) else perf
 	var car := StreetCar.new(c, id, perf)
 	car.bounds = operator.bounds
 	car.ground_at = operator.ground_at
@@ -1424,8 +1464,8 @@ func enter_car(c: Node3D) -> void:
 	driving_car = car
 	if operator.rig:
 		operator.rig.visible = false
-	operator.cam_dist = 9.0
-	operator.cam_pivot = Vector3(0, 2.4, 0)
+	operator.cam_dist = 14.0 if Handling.BY_ID.has(id) else 9.0
+	operator.cam_pivot = Vector3(0, 3.2 if Handling.BY_ID.has(id) else 2.4, 0)
 	operator.cam_yaw = c.rotation.y
 	controls.set_mode("drive")
 	controls.prompt("")

@@ -21,6 +21,7 @@ const FLEET := "res://models/fleet/"
 const CRAFT := {
 	"rift-helicopter": { "name": "Rift-Jumper Attack Helicopter", "kind": "HELI", "poi": "nexus-airport", "length": 14.0 },
 	"vanguard-jet": { "name": "Resonant Strike Jet", "kind": "JET", "poi": "nexus-airport", "length": 17.0 },
+	"leviathan": { "name": "Leviathan Cargo Airship", "kind": "AIRSHIP", "poi": "nexus-airport", "length": 42.0 },
 	"scrap-patrol-boat": { "name": "Scrap-Iron Patrol Boat", "kind": "BOAT", "poi": "seaport:nexus", "length": 11.0 },
 	"hydro-sub-skiff": { "name": "Hydro-Sub Skiff", "kind": "SUB", "poi": "seaport:nexus", "length": 9.0 },
 }
@@ -139,7 +140,7 @@ func _start() -> void:
 	back.position = Vector2(16, 16)
 	back.pressed.connect(_try_exit)
 	add_child(back)
-	controls.toast("%s · %s" % [String(c.name), "hold UP to lift off" if String(c.kind) == "HELI" else ("throttle up the runway, then UP" if String(c.kind) == "JET" else "throttle out of the harbour")])
+	controls.toast("%s · %s" % [String(c.name), "hold UP to lift off" if String(c.kind) in ["HELI", "AIRSHIP"] else ("throttle up the runway, then UP" if String(c.kind) == "JET" else "throttle out of the harbour")])
 
 ## the authored hulls come at odd sizes: scale to a real length along the nose axis, resting on the origin
 func _fit_hull(length: float) -> void:
@@ -340,6 +341,8 @@ func _process(dt: float) -> void:
 			_mark_next()
 	# chase camera: behind and above by the kind's distances, over the shoulder of the yaw
 	var cd: Vector2 = Handling.camera(profile)
+	var hull_len := float(CRAFT[craft_id].length)
+	cd = Vector2(maxf(cd.x, hull_len * 1.15), cd.y + maxf(0.0, hull_len - 14.0) * 0.3)
 	_cam_yaw = lerp_angle(_cam_yaw, state.yaw, minf(1.0, 3.0 * dt))
 	var back := Vector3(sin(_cam_yaw), 0, cos(_cam_yaw))
 	var cam_pos := hull.position + back * cd.x + Vector3(0, cd.y, 0)

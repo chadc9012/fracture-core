@@ -29,7 +29,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Open (unclaimed, take in order within a phase)
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. PvP modes missing from pvp.ts: Extraction, Ranked (owner's board) — web-side rules + bots (killbox web session), then re-export to Godot.
-  3. Vehicles, remaining: tank and hover-car driving on the street slices (vehicle_handling.gd TANK / RACER), the cargo airship (leviathan hull) in Skyways; new hulls for a yacht and a true hovercraft.
+  3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. Wildlife set (deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile) + behaviours (herds, hunting, nocturnal).
   5. Fracture creatures (Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus) with their fights.
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
@@ -44,6 +44,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Commit |
 | --- | --- |
 | Owner ask (Nov 8 19:31): cleanup pass — PRs #2/#3 landed; every mission and mode played headless (tests/play/playthrough.gd, 104 steps, 0 problems; descent / m01 / raid / race / speedway play tests). FPS: static props merged into batches and MultiMeshes (scripts/static_batch.gd; street on foot 3,009 → ~1,650 draws, speedway 2,557 → ~200), sign lights thinned, light fade distance, collision near-lists (street script time 3.2 → 1.2 ms). Fixes: civilians spawning at NaN, the descent's source guards respawning / soft-lock on reload, Mission 01 dialogue repeating and toasts stacking, a missing armchair model, scatter overlaps in all regions (spacing hash), hair poking through beanies / caps / bandanas. **Gap for the lead:** the Godot build has no audio system at all | see git log "Godot cleanup pass" (Nov 8) |
+| Asset gap 3 (second half): Goliath tank + hover-car driveable on the street (pivot / hover rules), Leviathan airship in Skyways | see git log "Godot: tank, hover-car, airship" (Nov 8) |
 | Asset gap 3 (first half): vehicle_handling.gd (web rules for every kind) + Skyways — helicopter, jet, patrol boat and sub over Nexus City with a ring course, crashes, prizes; fly-mode controls | see git log "Godot: Skyways" (Nov 8) |
 | Owner ask (Nov 8 19:26): Nexus street closer to the night renders — wet-night pass (screen-space mirror overlay for the mobile renderer, dark wet paving with puddles, rain) and the first Meshy street set (bench-neon, kiosk, vending, motorbike, plaza-arch) placed per tile. **For the lead:** the glass towers (models/buildings/neon-v-*, nexus-civic-*) read as crumpled shards up close since the Android fit — worth a gentler collapse on those | see git log "wet night" (Nov 8) |
 | Asset gap 2 (Godot half): Killbox modes — Dominion, Freefall, Lockdown, Ascendancy with a mode picker, zone / objective presence, bot objectives, round resets, per-mode HUD | see git log "Godot Killbox: every mode" (Nov 8) |

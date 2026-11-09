@@ -16,17 +16,18 @@ const HANDLING := {
 	"JET": { "mode": "AIR", "top": 1.6, "accel": 40.0, "brake": 25.0, "reverse": 0.0, "steer": 1.0, "pivot": false, "grip": 1.0, "takeoff": 32.0, "climb": 22.0, "safe_exit": 4.0 },
 	"HELI": { "mode": "AIR", "top": 0.8, "accel": 30.0, "brake": 40.0, "reverse": 10.0, "steer": 1.6, "pivot": false, "grip": 1.0, "takeoff": 0.0, "climb": 9.0, "safe_exit": 4.0 },
 	"BOAT": { "mode": "WATER", "top": 0.75, "accel": 30.0, "brake": 30.0, "reverse": 8.0, "steer": 1.2, "pivot": false, "grip": 0.7, "takeoff": 0.0, "climb": 0.0, "safe_exit": 6.0 },
+	"AIRSHIP": { "mode": "AIR", "top": 0.45, "accel": 9.0, "brake": 14.0, "reverse": 4.0, "steer": 0.45, "pivot": false, "grip": 1.0, "takeoff": 0.0, "climb": 4.5, "safe_exit": 3.0 },
 	"SUB": { "mode": "WATER", "top": 0.5, "accel": 18.0, "brake": 24.0, "reverse": 8.0, "steer": 1.0, "pivot": false, "grip": 0.9, "takeoff": 0.0, "climb": 4.0, "safe_exit": 6.0 },
 }
 ## the web's BY_ID for the fleet hulls that are not plain cars (vehicle-handling.ts); cars fall to OFFROAD / RACER
 const BY_ID := {
 	"goliath-tank": "TANK", "fracture-behemoth": "TANK", "vanguard-jet": "JET", "ai-interceptor": "JET", "rift-helicopter": "HELI",
-	"leviathan": "JET", "scrap-patrol-boat": "BOAT", "hydro-sub-skiff": "SUB", "hover-car": "RACER", "void-skimmer": "JET",
+	"leviathan": "AIRSHIP", "scrap-patrol-boat": "BOAT", "hydro-sub-skiff": "SUB", "hover-car": "RACER", "void-skimmer": "JET",
 	"aether-hoverbike": "RACER", "war-rig": "OFFROAD", "tech-transport": "OFFROAD",
 }
 
 ## the fleet's speed / handling multipliers (vehicles.ts) for the hulls this view flies and sails
-const FLEET_SPEED := { "rift-helicopter": 1.12, "vanguard-jet": 1.8, "scrap-patrol-boat": 0.85, "hydro-sub-skiff": 0.7, "goliath-tank": 0.6, "hover-car": 1.1 }
+const FLEET_SPEED := { "rift-helicopter": 1.12, "vanguard-jet": 1.8, "scrap-patrol-boat": 0.85, "hydro-sub-skiff": 0.7, "goliath-tank": 0.6, "hover-car": 1.1, "leviathan": 1.0 }
 
 static func profile(kind: String) -> Dictionary:
 	return HANDLING.get(kind, HANDLING.OFFROAD)

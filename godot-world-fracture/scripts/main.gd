@@ -455,7 +455,15 @@ func _shoot(path: String, opts: Array) -> void:
 				street.controls.sprint = String(o).contains("run")
 				if String(o).contains("jump"):
 					street.controls._jump = true
-			# slicewalk:district starts at the far end of the hub block walking +z across the tile boundary
+			# slicewalk:tank walks the operator to the Goliath tank by the garage and climbs in (then drives)
+		if String(o).contains("walk:tank"):
+			for c in street.parked:
+				if String(c.get_meta("vehicle", "")) == "goliath-tank":
+					street.operator.position = c.position + Vector3(3.0, 0.18, 0.0)
+					street.enter_car(c)
+			street.controls.scripted = true
+			street.controls.move = Vector2(0.6, 0.8)
+		# slicewalk:district starts at the far end of the hub block walking +z across the tile boundary
 			if String(o).contains("walk:district"):
 				street.controls.scripted = true
 				street.operator.position = Vector3(8.0 + 3.4, 0.18, 125.0)
@@ -547,7 +555,7 @@ func _shoot(path: String, opts: Array) -> void:
 		if String(o).begins_with("skyways"):
 			skyways = SkywaysView.new()
 			skyways.craft_id = "rift-helicopter"
-			for pair in [["jet", "vanguard-jet"], ["boat", "scrap-patrol-boat"], ["sub", "hydro-sub-skiff"]]:
+			for pair in [["jet", "vanguard-jet"], ["boat", "scrap-patrol-boat"], ["sub", "hydro-sub-skiff"], ["airship", "leviathan"]]:
 				if String(o).contains(String(pair[0])):
 					skyways.craft_id = String(pair[1])
 			skyways.closed.connect(_close_skyways)
