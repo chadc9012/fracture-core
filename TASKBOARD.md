@@ -27,7 +27,6 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Session | Since |
 | --- | --- | --- |
 | Bug sweep (owner, Nov 9 12:08: "look into the game for small little bugs and glitches"): engine errors from the playthrough, then screenshots of every screen; small fixes across modules — will note anything in another session's claimed area here instead of editing it | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
-| Owner ask (Nov 9, 06:25): finish Nexus — the one repeating street becomes a walkable street grid with each named district (Spire District + the 420 m Central Tower, Vanguard Command Citadel, Central Transit Plaza, Apex Gear, Rusty Trigger, Cylinder & Co, Scrapyard Bazaar & Southern Docks, The Warrens, Marina, Aqua-Tech Shipyard, Perimeter Wall) as its own area | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
 - Small: the `--shot … slicewalk:drive` capture hook no longer enters the car (driving itself works — street race play test and a headless probe both drive); fix the hook so the drive HUD / radio line can be shot.
@@ -48,6 +47,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Owner ask (Nov 9): finish Nexus — the avenue's six streamed blocks open side streets into eleven walkable district courts (scripts/city/nexus_districts.gd: Perimeter Wall & Ops + North Gate, Vanguard Citadel, Spire District, the 420 m Tech Faction Central Tower, Apex Gear, Rusty Trigger, Cylinder & Co, the Warrens, Scrapyard Bazaar, Southern Docks, Marina & Aqua-Tech Shipyard + the south quay); Apex Gear / Rusty Trigger sell a daily stock (gear_store `shop_stock` / `buy_offer`), Cylinder & Co opens the ironworks garage; the casino is Neon City's alone (Neon City Grand Casino). Owner's phone report: ENTER was read twice so no car could be entered (fixed; every block's cars takeable), aim point ignored boxes behind the operator, touch FIRE drag-aims + aim help, desktop mouse capture, street unarmed with no troopers until Mission 01's Surge. **For the lead:** models/operators/heads/m-ronin.glb (01e5ec5) logs 'Skin bind … Bone_0xx' errors whenever the street opens | see git log "Nexus City districts" (Nov 9) |
 | Step 10 (schedule): economy and progression — one profile through progression.gd (grant / event), the web XP curve with power + hull per level, loot from Killbox / bosses / quests into the inventory, Killbox purse by result and kills, ten daily goals (three a day) with the ledger, the OPERATOR panel on the title and the street | Godot: one profile |
 | Step 9 (schedule): phone performance — frame-time readout, all textures VRAM-compressed at 1024/512 px with tracked .import files, tier-scaled batching / shadows / ranges / LOD / crowds; Nexus firefight 1382 → 1086 draws (medium), 763 (low) | Godot: phone performance |
 | Asset gap 7 (rest): portal, hologram and energy-field VFX (scripts/vfx/fx.gd) at the tears and gates, research stations, vaults and bases, the cities' landmarks and the Nexus hub's Rift Gate; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Portals, holograms, energy fields" (Nov 9) |
