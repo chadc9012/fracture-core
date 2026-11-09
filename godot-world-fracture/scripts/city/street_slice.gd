@@ -43,6 +43,8 @@ var traffic: Node3D
 ## z = k * TILE, so the builders below work in tile-local coordinates (`_tile_root` set while a tile is being built).
 const District = preload("res://scripts/city/district.gd")
 const Civilians = preload("res://scripts/city/civilians.gd")
+const Crowd = preload("res://scripts/city/crowd.gd")
+var crowd: MultiMeshInstance3D
 const StaticBatch = preload("res://scripts/static_batch.gd")
 var civilians: Node3D
 var _shots_seen := 0
@@ -121,6 +123,11 @@ func _ready() -> void:
 	_street()
 	if night:
 		_wet_night()
+	# the sidewalk crowd (crowd.gd): one MultiMesh walking in the shader, denser on a desktop; the district narrows it
+	if style != "coast":
+		crowd = Crowd.new()
+		world.add_child(crowd)
+		crowd.setup(90 if Phone.on_phone() else 160, -LENGTH * 0.5, LENGTH * 0.5, ROAD_W * 0.5 + WALK_W * 0.5, WALK_W)
 	_buildings()
 	_skyline()
 	_props()
@@ -242,6 +249,8 @@ func _spawn_player() -> void:
 	var first_plan: Dictionary = district.update(operator.position.z, true)
 	var act0: Vector2 = district.extent(District.State.ACTIVE)
 	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, 10, 9)
+	if crowd:
+		crowd.set_span(act0.x, act0.y)
 	_apply_district(first_plan)
 	gunplay.killed.connect(func(t: Variant) -> void:
 		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
@@ -359,6 +368,8 @@ func _apply_district(changes: Dictionary) -> void:
 	if civilians:
 		var act2: Vector2 = district.extent(District.State.ACTIVE)
 		civilians.set_span(act2.x, act2.y)
+		if crowd:
+			crowd.set_span(act2.x, act2.y)
 
 ## one block of the avenue at z = k * TILE, deterministic per tile, built with the same builders as the hub block
 func _build_tile(k: int) -> Node3D:
@@ -436,6 +447,8 @@ func _process(dt: float) -> void:
 		if not ch.is_empty():
 			_apply_district(ch)
 	_step_dressing(minf(dt, 0.05))
+	if crowd and operator:
+		crowd.set_player(operator.position)
 	if civilians:
 		civilians.step(minf(dt, 0.05))
 		if gunplay and gunplay.shots_fired != _shots_seen:
