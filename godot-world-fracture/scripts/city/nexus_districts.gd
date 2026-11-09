@@ -350,7 +350,7 @@ func _perimeter() -> void:
 
 func _citadel() -> void:
 	var steel := flat(Color(0.12, 0.13, 0.15), 0.45, 0.75)
-	var glass := facade(Color(0.12, 0.2, 0.28), 0.18, 1.0, Color(0.1, 0.11, 0.13), 4.0, 2.4, Color(0.6, 0.9, 1.0), 0.7)
+	var glass := facade(Color(0.12, 0.2, 0.28), 0.14, 0.6, Color(0.1, 0.11, 0.13), 3.6, 1.6, Color(0.6, 0.9, 1.0), 0.7)
 	_frame(glass, 22.0, steel, 18.0)
 	_back(steel, 30.0)
 	# the Citadel's keep: three stepped tiers against the back, cyan trim at every step
@@ -360,7 +360,7 @@ func _citadel() -> void:
 	s._box(Vector3(1.2, 26.0, 1.2), at(120.0, 0.0, 59.0), steel)
 	for tier in [[90.0, 14.0, 70.0], [100.0, 28.0, 52.0], [110.0, 46.0, 32.0]]:
 		s._box(Vector3(0.2, 0.25, float(tier[2]) + 0.4), at(float(tier[0]) - 0.1, 0.0, float(tier[1])), neon(accent, 4.0))
-	text("VANGUARD COMMAND CITADEL", 89.8, 0.0, 10.5, accent, 110, 0.012)
+	text("VANGUARD COMMAND CITADEL", 89.8, 0.0, 12.4, accent, 120, 0.02)
 	# the gate: two bastions and a lit doorway
 	for zz: float in [-9.0, 9.0]:
 		block(Vector3(6.0, 10.0, 5.0), 88.0, zz, steel)
