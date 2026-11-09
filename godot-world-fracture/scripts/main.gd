@@ -15,6 +15,8 @@ const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 const Descent := preload("res://scripts/mission/descent.gd")
 const ArenaView := preload("res://scripts/killbox/arena_view.gd")
+const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
+var skyways: Control
 const ModesHub := preload("res://scripts/modes/modes_hub.gd")
 var modes: Control
 var descent: Control
@@ -109,6 +111,13 @@ func _ready() -> void:
 	kb.add_theme_color_override("font_color", Color(1.0, 0.45, 0.7))
 	kb.pressed.connect(_open_killbox)
 	add_child(kb)
+	var sky := Data.button("SKYWAYS", true)
+	sky.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	sky.position = Vector2(400, -70)
+	sky.custom_minimum_size = Vector2(130, 52)
+	sky.add_theme_color_override("font_color", Color(0.5, 0.9, 1.0))
+	sky.pressed.connect(_open_skyways)
+	add_child(sky)
 	cloud_line = Label.new()
 	cloud_line.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	cloud_line.position = Vector2(20, -96)
@@ -250,6 +259,19 @@ func _open_killbox() -> void:
 	killbox = ArenaView.new()
 	killbox.closed.connect(_close_killbox)
 	add_child(killbox)
+
+## Skyways: aircraft and watercraft over Nexus City (scripts/flying/)
+func _open_skyways() -> void:
+	if skyways:
+		return
+	skyways = SkywaysView.new()
+	skyways.closed.connect(_close_skyways)
+	add_child(skyways)
+
+func _close_skyways() -> void:
+	if skyways:
+		skyways.queue_free()
+		skyways = null
 
 func _close_killbox() -> void:
 	if killbox:
@@ -517,6 +539,19 @@ func _shoot(path: String, opts: Array) -> void:
 				descent.controls.move = Vector2(0.0, 1.0)
 				descent.controls.sprint = true
 				descent.controls.fire = true
+		# skyways[:heli|:jet|:boat|:sub][:go]  a craft over Nexus City; :go holds throttle and UP
+		if String(o).begins_with("skyways"):
+			skyways = SkywaysView.new()
+			skyways.craft_id = "rift-helicopter"
+			for pair in [["jet", "vanguard-jet"], ["boat", "scrap-patrol-boat"], ["sub", "hydro-sub-skiff"]]:
+				if String(o).contains(String(pair[0])):
+					skyways.craft_id = String(pair[1])
+			skyways.closed.connect(_close_skyways)
+			add_child(skyways)
+			if String(o).contains("go"):
+				skyways.controls.scripted = true
+				skyways.controls.move = Vector2(0.0, 1.0)
+				skyways.controls._brake_held = true
 		# killbox[:fracture|:prime|:skydock][:dominion|:freefall|:lockdown|:ascendancy][:fight]  an arena (Kaiju Complex by
 		# default) in a mode (Clash by default); :fight sprints and fires
 		if String(o).begins_with("killbox"):
@@ -613,6 +648,9 @@ func _shoot(path: String, opts: Array) -> void:
 		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
 	if descent and descent.enemies:
 		print("descent: ", descent.progress, " objective '", descent._objective.text.replace("\n", " / "), "' at ", descent.operator.position.round(), " enemies ", descent.enemies.enemies.size(), " hull ", descent.enemies.hull)
+	if skyways and skyways.state:
+		var sk := skyways
+		print("skyways: ", sk.craft_id, " speed ", sk.state.speed, " y ", sk.hull.position.y, " airborne ", sk.state.airborne, " at ", sk.hull.position.round(), " pad ", sk.pad.round(), " rings ", sk.next_ring, " hull ", sk.hull_hp)
 	if killbox and killbox.match_state:
 		var kb := killbox
 		print("killbox: ", kb.mode_id, " us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " zones ", kb.match_state.zones.map(func(z): return [z.id, z.owner]), " rounds ", kb.match_state.us_rounds, "-", kb.match_state.them_rounds, " board ", kb.match_state.board, " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)

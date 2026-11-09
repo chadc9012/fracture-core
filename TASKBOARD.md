@@ -24,14 +24,13 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Asset gap 3 (Godot): vehicles beyond cars — flight rules (helicopter / VTOL, jet) and the Skyways flight over the exported city with the authored rift-helicopter / vanguard-jet hulls; boat + hover rules after | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-08 |
 | Owner ask (Nov 8, 19:31): cleanup pass — play through every mission, fix performance / FPS, audio and dialogue issues, and unintended overlaps (trees, rocks, props, clothing); lands the playtest + phone-performance PRs #2/#3 against main as its base | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-08 |
 | Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront and Solara Outpost arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. PvP modes missing from pvp.ts: Extraction, Ranked (owner's board) — web-side rules + bots (killbox web session), then re-export to Godot.
-  3. Vehicles with no authored hull: tank, VTOL, jet, helicopter, cargo airship, boat / yacht, submarine, hovercraft.
+  3. Vehicles, remaining: tank and hover-car driving on the street slices (vehicle_handling.gd TANK / RACER), the cargo airship (leviathan hull) in Skyways; new hulls for a yacht and a true hovercraft.
   4. Wildlife set (deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile) + behaviours (herds, hunting, nocturnal).
   5. Fracture creatures (Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus) with their fights.
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
@@ -45,6 +44,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Asset gap 3 (first half): vehicle_handling.gd (web rules for every kind) + Skyways — helicopter, jet, patrol boat and sub over Nexus City with a ring course, crashes, prizes; fly-mode controls | see git log "Godot: Skyways" (Nov 8) |
 | Owner ask (Nov 8 19:26): Nexus street closer to the night renders — wet-night pass (screen-space mirror overlay for the mobile renderer, dark wet paving with puddles, rain) and the first Meshy street set (bench-neon, kiosk, vending, motorbike, plaza-arch) placed per tile. **For the lead:** the glass towers (models/buildings/neon-v-*, nexus-civic-*) read as crumpled shards up close since the Android fit — worth a gentler collapse on those | see git log "wet night" (Nov 8) |
 | Asset gap 2 (Godot half): Killbox modes — Dominion, Freefall, Lockdown, Ascendancy with a mode picker, zone / objective presence, bot objectives, round resets, per-mode HUD | see git log "Godot Killbox: every mode" (Nov 8) |
 | Asset gap 1: Godot takes the web's authored sets — all fleet GLBs, pistol / shotgun / SMG / heavy / launcher / sword with their frames, foliage, the 18 web buildings; civilians on the sidewalks | see git log "Godot: the authored sets" (Nov 8) |
