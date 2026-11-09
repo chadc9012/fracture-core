@@ -699,6 +699,20 @@ func _shoot(path: String, opts: Array) -> void:
 			Region3D.season = int(String(o).substr(7))
 		if String(o) == "3d" and region_map:
 			_open_3d(region_map.map_id, null, false)
+		# 3d-at:x,z[,dist,pitch,yaw,lift] the 3D city view orbiting a map point (landmark checks: the casino, the Core Spire)
+		if String(o).begins_with("3d-at:") and region_map:
+			var a := String(o).substr(6).split(",")
+			_open_3d(region_map.map_id, Vector2(float(a[0]), float(a[1])), false)
+			if a.size() > 2:
+				region_3d._dist = float(a[2])
+			if a.size() > 3:
+				region_3d._pitch = float(a[3])
+			if a.size() > 4:
+				region_3d._yaw = float(a[4])
+			if a.size() > 5:
+				region_3d._target.y += float(a[5])
+			region_3d._apply_cam()
+			print("3d-at cam ", region_3d._cam.global_position, " target ", region_3d._target)
 		if String(o).begins_with("street:") and region_map:
 			var p: Dictionary = {}
 			for q in Data.map(region_map.map_id).pois:

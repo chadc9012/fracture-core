@@ -175,6 +175,8 @@ func _build_civic_roofs() -> void:
 	var stone := Color("#d8cfbb")
 	var clocks: Array[Transform3D] = []
 	for bd in m.buildings:
+		if _is_landmark(bd):
+			continue
 		if String(bd[5]) != "civic" or _bh(bd) > 25.0:
 			continue
 		var p := _loc(bd[0], bd[1])
@@ -893,6 +895,8 @@ func _build_buildings() -> void:
 		var cols := [Color(0.2, 0.9, 1.0), Color(1.0, 0.18, 0.66), Color(0.7, 0.4, 1.0), Color(1.0, 0.8, 0.3)]
 		var i := 0
 		for bd in m.buildings:
+			if _is_landmark(bd):
+				continue
 			if _bh(bd) < 40.0:
 				continue
 			var p := _loc(bd[0], bd[1])
@@ -2030,6 +2034,8 @@ func _build_tower_rooftops_pass_17() -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var count := 0
 	for bd in m.buildings:
+		if _is_landmark(bd):
+			continue
 		var hgt := _bh(bd)
 		if hgt < 75.0:
 			continue
@@ -2127,6 +2133,8 @@ func _build_entrances_pass_18() -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var count := 0
 	for bd in m.buildings:
+		if _is_landmark(bd):
+			continue
 		var hgt := _bh(bd)
 		if hgt < 16.0:
 			continue
@@ -2196,6 +2204,8 @@ func _build_architecture_batch_19_43() -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var count := 0
 	for bd in m.buildings:
+		if _is_landmark(bd):
+			continue
 		var hgt := _bh(bd)
 		var hx: float = bd[2]
 		var hz: float = bd[3]
@@ -2349,6 +2359,8 @@ func _build_facade_fins_batch_19_43() -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var count := 0
 	for bd in m.buildings:
+		if _is_landmark(bd):
+			continue
 		var hgt := _bh(bd)
 		var hx: float = bd[2]
 		var hz: float = bd[3]
@@ -2423,6 +2435,30 @@ func _lm_mat(col: Color, emit := 0.0, metal := 0.0, rough := 0.5) -> StandardMat
 		mt.emission_energy_multiplier = emit
 	return mt
 
+## lit floors behind dark glass: a window grid (4 m floors, 3 m bays) mapped in world space so every curve and tier lines up
+func _lm_windows(lit: Color, glass: Color, energy: float) -> StandardMaterial3D:
+	# 4 bays x 4 floors per tile, about a third of the rooms dark, the rest at a few brightness steps
+	var img := Image.create(32, 32, false, Image.FORMAT_RGB8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	for fy in 4:
+		for bx in 4:
+			var v := 0.0 if rng.randf() < 0.35 else rng.randf_range(0.45, 1.0)
+			for y in 8:
+				for x in 8:
+					var on := y >= 2 and x >= 1
+					img.set_pixel(bx * 8 + x, fy * 8 + y, Color(v, v, v) if on else Color.BLACK)
+	var mt := _lm_mat(glass, 0.0, 0.6, 0.12)
+	mt.emission_enabled = true
+	mt.emission = lit
+	mt.emission_energy_multiplier = energy
+	mt.emission_texture = ImageTexture.create_from_image(img)
+	mt.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	mt.uv1_triplanar = true
+	mt.uv1_world_triplanar = true
+	mt.uv1_scale = Vector3(1.0 / 12.0, 1.0 / 16.0, 1.0 / 12.0)
+	return mt
+
 func _lm_part(parent: Node3D, mesh: Mesh, mat: Material, at: Vector3, scl := Vector3.ONE, rot := Vector3.ZERO) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
@@ -2442,6 +2478,9 @@ func _lm_cyl(r_top: float, r_bot: float, h: float, seg := 32) -> CylinderMesh:
 	c.radial_segments = seg
 	c.rings = 1
 	return c
+
+func _is_landmark(bd: Array) -> bool:
+	return bd.size() > 7 and String(bd[7]) in LANDMARKS
 
 func _build_landmarks() -> void:
 	for bd in _landmark_bds:
@@ -2464,6 +2503,7 @@ func _build_landmarks() -> void:
 ## crown, lasers sweeping the sky, the dance floor, cabana palms and the helipad.
 func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 	var glass := _lm_mat(Color("#141026"), 0.0, 0.6, 0.12)
+	var lit := _lm_windows(Color("#ffb86a"), Color("#120e22"), 0.32)
 	var gold := _lm_mat(Color("#e8b24a"), 1.4, 0.9, 0.3)
 	var violet := _lm_mat(Color("#b04bff"), 3.2)
 	var cyan := _lm_mat(Color("#3fd8ff"), 2.6)
@@ -2471,7 +2511,7 @@ func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 	var deck_y := top - 14.0
 	var unit := _lm_cyl(1.0, 1.0, 1.0, 40)
 	# podium: a wider gold-trimmed drum with the entrance glow
-	_lm_part(root, unit, glass, Vector3(0, 12.0, 0), Vector3(hx * 1.05, 24.0, hz * 1.05))
+	_lm_part(root, unit, lit, Vector3(0, 12.0, 0), Vector3(hx * 1.05, 24.0, hz * 1.05))
 	_lm_part(root, unit, gold, Vector3(0, 24.2, 0), Vector3(hx * 1.08, 0.6, hz * 1.08))
 	_lm_part(root, unit, violet, Vector3(0, 4.0, 0), Vector3(hx * 1.06, 0.5, hz * 1.06))
 	# the shaft in three gently narrowing sections, banded in neon every 12 m
@@ -2480,7 +2520,7 @@ func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 		var y0: float = sc[0]
 		var y1: float = sc[1]
 		var f: float = sc[2]
-		_lm_part(root, unit, glass, Vector3(0, (y0 + y1) * 0.5, 0), Vector3(hx * f, y1 - y0, hz * f))
+		_lm_part(root, unit, lit, Vector3(0, (y0 + y1) * 0.5, 0), Vector3(hx * f, y1 - y0, hz * f))
 		_lm_part(root, unit, gold, Vector3(0, y1, 0), Vector3(hx * (f + 0.03), 0.8, hz * (f + 0.03)))
 		var y := y0 + 12.0
 		var i := 0
@@ -2586,7 +2626,7 @@ func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 ## with a beacon.
 func _core_spire(root: Node3D, hx: float, hz: float, top: float) -> void:
 	var steel := _lm_mat(Color("#c9d3de"), 0.0, 0.7, 0.25)
-	var dark := _lm_mat(Color("#1a2433"), 0.0, 0.5, 0.15)
+	var dark := _lm_windows(Color("#bfe9ff"), Color("#141c28"), 0.22)
 	var cyan := _lm_mat(Color("#4fe3ff"), 3.0)
 	var white := _lm_mat(Color("#eaf6ff"), 4.0)
 	var box := BoxMesh.new()
