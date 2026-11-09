@@ -26,13 +26,16 @@
  * Solara Outpost (Solara, Relay Mesa; the first day map): a desert relay outpost on a mesa, a raised relay deck in the middle and a hab
  * roof on each flank. Its fracture event is the Solar Flare: blinding glare, the panel arrays fold flat and heat shields rise.
  *
+ * Frostveil Ring (Frostveil, Beacon Shaft): a frozen ring of deck round a bottomless shaft, a beacon platform in the middle on four
+ * bridges and two corner watchtowers. Its fracture event is the Whiteout: blinding snow, ice walls across the bridges, the heated screens die.
+ *
  * Playlists rotate through the maps that list them (`arenaForRun`). */
 import type { Deck } from "./district-decks";
 import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
@@ -51,7 +54,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -535,7 +538,67 @@ export const SOLARA_OUTPOST: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST };
+/* ---------------- Frostveil Ring ---------------- */
+
+// a frozen ring of deck round a bottomless shaft in the Frostveil, in icy twilight under the aurora: the ring itself (each team
+// spawns on its north or south arm), a beacon platform in the middle of the shaft (zone B, the frozen beacon hanging over it) joined
+// to the ring by four bridges, and a watchtower on two corners (4.5 m up, by a steel stair) for the high ground
+const FR_ROOFS: ArenaRoof[] = [
+  { id: "north-arm", name: "North Ring", x0: -32, x1: 32, z0: 18, z1: 30, top: 20 },
+  { id: "south-arm", name: "South Ring", x0: -32, x1: 32, z0: -30, z1: -18, top: 20 },
+  { id: "west-arm", name: "West Ring", x0: -32, x1: -20, z0: -18, z1: 18, top: 20 },
+  { id: "east-arm", name: "East Ring", x0: 20, x1: 32, z0: -18, z1: 18, top: 20 },
+  { id: "beacon", name: "Beacon Platform", x0: -7, x1: 7, z0: -6, z1: 6, top: 20 },
+  { id: "tower-nw", name: "Northwest Watchtower", x0: -32, x1: -24, z0: 22, z1: 30, top: 24.5 },
+  { id: "tower-se", name: "Southeast Watchtower", x0: 24, x1: 32, z0: -30, z1: -22, top: 24.5 },
+];
+const FR_WALKS: ArenaWalk[] = [
+  { id: "bridge-n", x: -3, z: 12, along: "z", length: 14, width: 4, top: 20, topB: 20, rails: true },
+  { id: "bridge-s", x: 3, z: -12, along: "z", length: 14, width: 4, top: 20, topB: 20, rails: true },
+  { id: "bridge-w", x: -13.5, z: 3, along: "x", length: 15, width: 4, top: 20, topB: 20, rails: true },
+  { id: "bridge-e", x: 13.5, z: -3, along: "x", length: 15, width: 4, top: 20, topB: 20, rails: true },
+  { id: "tower-stair-nw", x: -20, z: 26, along: "x", length: 8, width: 3, top: 24.5, topB: 20, rails: true },
+  { id: "tower-stair-se", x: 20, z: -26, along: "x", length: 8, width: 3, top: 20, topB: 24.5, rails: true },
+];
+// the watchtowers' faces: walled from the ring, open where their stairs arrive
+const FR_LEDGES: ArenaWall[] = [
+  { ax: -24, az: 22, bx: -24, bz: 24.5, base: 19.5, top: 24.5 }, { ax: -24, az: 27.5, bx: -24, bz: 30, base: 19.5, top: 24.5 }, { ax: -32, az: 22, bx: -24, bz: 22, base: 19.5, top: 24.5 },
+  { ax: 24, az: -22, bx: 24, bz: -24.5, base: 19.5, top: 24.5 }, { ax: 24, az: -27.5, bx: 24, bz: -30, base: 19.5, top: 24.5 }, { ax: 32, az: -22, bx: 24, bz: -22, base: 19.5, top: 24.5 },
+];
+const FR_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 24, w: 6, d: 1.2, h: 1.2 },
+  { id: "crates", kind: "crate", x: 10, z: 22, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "generator", kind: "hvac", x: -26, z: 10, w: 2, d: 3, h: 1.8 },
+  { id: "fuel-tank", kind: "tank", x: 26, z: 14, w: 2.6, d: 2.6, h: 2.6 },
+  { id: "container", kind: "container", x: 28, z: 6, w: 2.4, d: 6, h: 2.6 },
+  { id: "beacon-barrier", kind: "barrier", x: 4, z: 4, w: 2, d: 1, h: 1.1 },
+  { id: "ring-barrier", kind: "barrier", x: -24, z: -8, w: 1.2, d: 3, h: 1.2 },
+]);
+const FR_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // heated screens on the ring, that die in the whiteout…
+  { id: "screen-a", x: -12, z: 22, w: 4, d: 1, h: 2, phase: "up" },
+  { id: "screen-b", x: 26, z: -6, w: 1, d: 4, h: 2, phase: "up" },
+  // …and the ice walls that freeze across half of the bridges
+  { id: "ice-n", x: -4.2, z: 13, w: 1.6, d: 1, h: 2.4, phase: "down" },
+  { id: "ice-w", x: -14, z: 4.2, w: 1, d: 1.6, h: 2.4, phase: "down" },
+]);
+
+export const FROSTVEIL_RING: KillboxArena = {
+  id: "frostveil-ring", name: "Frostveil Ring", region: "Frostveil · Beacon Shaft", size: "medium",
+  blurb: "A frozen ring of deck round a bottomless shaft, under the aurora. Fight round the ring, take a watchtower, or cross a bridge to the beacon platform in the middle. In a whiteout the snow blinds you, ice walls freeze across the bridges and the heated screens die.",
+  site: { x: 1100, z: 1180 }, base: ARENA_ALTITUDE, look: "frostveil-ring",
+  roofs: FR_ROOFS, walks: FR_WALKS, cover: FR_COVER, ledges: FR_LEDGES, shifters: FR_SHIFTERS,
+  spawns: {
+    us: [[-14, 27], [0, 28], [14, 27], [24, 26], [30, 21], [-8, 27]],
+    them: [[14, -27], [0, -28], [-14, -27], [-24, -26], [-30, -21], [8, -27]],
+  },
+  zones: [{ id: "A", dx: -26, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 26, dz: 0 }], objective: [0, 0],
+  killPlane: 12,
+  fracture: { name: "Whiteout", brief: "A whiteout sweeps the ring: the snow blinds you, ice walls freeze across the bridges and the heated screens die.", first: 85, every: 140, length: 25, warn: 10, visibility: 0.35 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST, "frostveil-ring": FROSTVEIL_RING };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));

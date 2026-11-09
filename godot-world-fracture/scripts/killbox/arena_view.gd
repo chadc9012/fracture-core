@@ -29,6 +29,7 @@ const LOOKS := {
 	"glass-spire": { "trim": [Color(0.22, 0.91, 1.0), Color(0.77, 0.42, 1.0), Color(0.6, 1.0, 0.78)], "facade": Color(0.11, 0.16, 0.24), "roof": Color(0.23, 0.24, 0.28), "sky": Color(0.02, 0.03, 0.08), "fog": Color(0.12, 0.16, 0.32), "sign": "GLASS SPIRE", "sign_color": Color(0.22, 0.91, 1.0) },
 	"riverfront": { "trim": [Color(1.0, 0.24, 0.94), Color(0.22, 0.91, 1.0), Color(1.0, 0.85, 0.63)], "facade": Color(0.1, 0.09, 0.13), "roof": Color(0.29, 0.29, 0.33), "sky": Color(0.03, 0.02, 0.07), "fog": Color(0.18, 0.12, 0.3), "sign": "RIVERFRONT", "sign_color": Color(0.22, 0.91, 1.0) },
 	"solara-outpost": { "trim": [Color(1.0, 0.6, 0.2), Color(0.95, 0.95, 0.9), Color(0.3, 0.6, 1.0)], "facade": Color(0.82, 0.72, 0.55), "roof": Color(0.8, 0.68, 0.48), "sky": Color(0.45, 0.68, 0.9), "fog": Color(0.92, 0.84, 0.7), "sign": "SOLARA", "sign_color": Color(1.0, 0.6, 0.2) },
+	"frostveil-ring": { "trim": [Color(0.37, 0.88, 1.0), Color(1.0, 0.76, 0.48), Color(0.3, 0.95, 0.6)], "facade": Color(0.23, 0.27, 0.33), "roof": Color(0.75, 0.8, 0.86), "sky": Color(0.05, 0.09, 0.2), "fog": Color(0.55, 0.65, 0.78), "sign": "FROSTVEIL", "sign_color": Color(0.37, 0.88, 1.0) },
 	"prime-roof": { "trim": [Color(0.75, 0.3, 1.0), Color(1.0, 0.3, 0.5), Color(0.4, 0.5, 1.0)], "facade": Color(0.09, 0.07, 0.13), "roof": Color(0.11, 0.1, 0.15), "sky": Color(0.04, 0.01, 0.07), "fog": Color(0.22, 0.1, 0.32), "sign": "KILLBOX PRIME", "sign_color": Color(0.75, 0.3, 1.0) },
 }
 

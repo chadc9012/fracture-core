@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, RIVERFRONT as RF, SOLARA_OUTPOST as SO, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, RIVERFRONT as RF, SOLARA_OUTPOST as SO, FROSTVEIL_RING as FR, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates through all eight maps match to match", () => {
+  it("each arena playlist rotates through all nine maps match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost"]);
-      expect([0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "kaiju-complex"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring"]);
+      expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
@@ -401,5 +401,27 @@ describe("Solara Outpost", () => {
     expect(up.every((s) => s.id.startsWith("panels") && shifterLift(SO, s, 5) === 1 && shifterLift(SO, s, t) === 0)).toBe(true);
     expect(down.every((s) => s.id.startsWith("shield") && shifterLift(SO, s, 5) === 0 && shifterLift(SO, s, t) === 1)).toBe(true);
     expect(fractureVisibility(SO, t)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe("Frostveil Ring", () => {
+  it("the shaft is open in the middle and railed except at the bridges; the watchtowers are walled from the ring but for their stairs", () => {
+    clearWalls(); setWalls("fr", arenaWalls(FR));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(FR, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, FR.base + feet); };
+    expect(surfaceAt(FR, 12, 12)).toBe(-Infinity); // the shaft
+    expect(surfaceAt(FR, -3, 12)).toBe(20); expect(surfaceAt(FR, 0, 0)).toBe(20); expect(surfaceAt(FR, -28, 26)).toBe(24.5);
+    expect(hit(10, 17.8, 20)).toBe(true); // the ring's rail over the shaft
+    expect(hit(-3, 17.8, 20)).toBe(false); // the north bridge's mouth
+    expect(hit(7.2, 0, 20)).toBe(true); // the beacon platform's rail
+    expect(hit(-23.8, 23, 20)).toBe(true); // the watchtower's wall
+    expect(hit(-23.8, 26, 24.4)).toBe(false); // its stair mouth
+    expect(hit(-24.2, 23, 24.5)).toBe(false); // you can drop off it
+    clearWalls();
+  });
+  it("the Whiteout freezes the ice walls across the bridges and kills the heated screens, in blinding snow", () => {
+    const t = FR.fracture.first + 10, up = FR.shifters.filter((s) => s.phase === "up"), down = FR.shifters.filter((s) => s.phase === "down");
+    expect(up.every((s) => s.id.startsWith("screen") && shifterLift(FR, s, 5) === 1 && shifterLift(FR, s, t) === 0)).toBe(true);
+    expect(down.every((s) => s.id.startsWith("ice") && shifterLift(FR, s, 5) === 0 && shifterLift(FR, s, t) === 1)).toBe(true);
+    expect(fractureVisibility(FR, t)).toBeCloseTo(0.35, 5);
   });
 });
