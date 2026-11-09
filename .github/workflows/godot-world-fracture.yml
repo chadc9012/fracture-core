@@ -83,7 +83,7 @@ jobs:
           gh release delete godot-latest --yes --cleanup-tag || true
           gh release create godot-latest godot-world-fracture/build/android/WorldFracture-Godot.apk \
             --title "World Fracture in Godot (latest)" \
-            --notes "Built from ${GITHUB_SHA::7}. The Godot build of World Fracture — title screen, operator creator, Apartment 12-04 and Act 1 (fd-02 to fd-07, Vyrak), the Nexus street hub with doors to Killbox (11 maps, 5 modes), Skyways, the Rift Gate's six bosses, the garage, the Galleria, the casino and the Sports District, driving and racing, the globe as the travel map, sound and radio, one profile with daily goals. Open this page on your Android phone, tap WorldFracture-Godot.apk and allow installs when asked. The frame-time readout bottom-right is on by default (Settings turns it off); the gate is 30 fps on the Nexus street." \
+            --notes "Built from ${GITHUB_SHA::7}. The Godot build of World Fracture — title screen, operator creator, Apartment 12-04 and Act 1 (fd-02 to fd-07, Vyrak), the Nexus street hub with doors to Killbox (11 maps, 7 modes), Skyways, the Rift Gate's six bosses, the garage, the Galleria, the casino and the Sports District, driving and racing, the globe as the travel map, sound and radio, one profile with daily goals. Open this page on your Android phone, tap WorldFracture-Godot.apk and allow installs when asked. The frame-time readout bottom-right is on by default (Settings turns it off); the gate is 30 fps on the Nexus street." \
             --prerelease
 
   # The release APK (schedule step 13): run by hand once the signing keystore is in the repository secrets —

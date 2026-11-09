@@ -85,5 +85,59 @@ func _init() -> void:
 	var r5: bool = clash.over and clash.winner == "us" and clash.kind == "team"
 	print("Clash still decides on the clock: ", r5)
 	ok = ok and r5
+	# Extraction (pvp.ts stepExtract): the core is taken by a team on it unopposed for 1.2 s, rides its carrier, scores on the
+	# carrier's own pad, drops where the carrier dies, resets home after 15 s untouched; kills never score; first to 3
+	var ex := Match.new(Arena.mode("extraction"), [])
+	ex.set_sites(Vector2(0, 0), Vector2(0, 30), Vector2(0, -30))
+	var r6: bool = ex.kind == "extract" and ex.target() == 3
+	var me := { "id": "player", "team": 1, "x": 0.0, "z": 0.0, "alive": true }
+	var foe := { "id": "bot:1", "team": 0, "x": 20.0, "z": 0.0, "alive": true }
+	# contested: nobody picks it up
+	var both := { "id": "bot:2", "team": 0, "x": 1.0, "z": 0.0, "alive": true }
+	for i in 40:
+		ex.tick(0.05, {}, 1, 1, [me, both, foe])
+	r6 = r6 and int(ex.core.holder) == -1
+	both.x = 20.0
+	for i in 30:
+		ex.tick(0.05, {}, 1, 1, [me, both, foe])
+	r6 = r6 and int(ex.core.holder) == 1 and String(ex.core.carrier) == "player" and ex.core_event == "Core taken"
+	# it rides with me; a kill scores nothing
+	me.z = 10.0
+	ex.tick(0.05, {}, 1, 1, [me, both, foe])
+	r6 = r6 and is_equal_approx(ex.core_at().y, 10.0)
+	ex.score(1, true)
+	r6 = r6 and ex.us == 0 and ex.player_kills == 1
+	# onto the pad: one extraction, the core goes home
+	me.z = 28.0
+	ex.tick(0.05, {}, 1, 1, [me, both, foe])
+	r6 = r6 and ex.us == 1 and int(ex.core.holder) == -1 and ex.core_at() == Vector2.ZERO and ex.core_event == "Core extracted"
+	# they take it, the carrier dies: the core drops where he fell, lies 15 s, then resets home
+	me.z = 28.0
+	foe.x = 0.5
+	foe.z = 0.0
+	for i in 30:
+		ex.tick(0.05, {}, 1, 1, [me, both, foe])
+	r6 = r6 and int(ex.core.holder) == 0 and String(ex.core.carrier) == "bot:1"
+	foe.x = 5.0
+	foe.z = -12.0
+	ex.tick(0.05, {}, 1, 1, [me, both, foe])
+	foe.alive = false
+	ex.tick(0.05, {}, 1, 1, [me, both, foe])
+	r6 = r6 and int(ex.core.holder) == -1 and ex.core_at().is_equal_approx(Vector2(5.0, -12.0)) and ex.core_event == "Core dropped"
+	r6 = r6 and ex.core_text() == "core dropped"
+	for i in 310:
+		ex.tick(0.05, {}, 1, 1, [me, both])
+	r6 = r6 and ex.core_at() == Vector2.ZERO and ex.core_event == "Core reset" and ex.core_text() == "core in the middle"
+	# three extractions win it
+	ex.us = 2
+	me.x = 0.0
+	me.z = 0.0
+	for i in 30:
+		ex.tick(0.05, {}, 1, 1, [me, both])
+	me.z = 29.0
+	ex.tick(0.05, {}, 1, 1, [me, both])
+	r6 = r6 and ex.over and ex.winner == "us" and ex.us == 3
+	print("Extraction: pick-up unopposed, carry, pad, drop on death, reset, first to 3: ", r6)
+	ok = ok and r6
 	print("Modes test: ", ok)
 	quit(0 if ok else 1)

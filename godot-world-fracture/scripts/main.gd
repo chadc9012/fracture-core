@@ -786,10 +786,10 @@ func _shoot(path: String, opts: Array) -> void:
 		if String(o).begins_with("killbox"):
 			killbox = ArenaView.new()
 			killbox.arena_id = "kaiju-complex"
-			for mid in ["dominion", "freefall", "lockdown", "ascendancy"]:
+			for mid in ["dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"]:
 				if String(o).contains(mid):
 					killbox.mode_id = mid
-			for id in ["fracture-floor", "killbox-prime", "skydock"]:
+			for id in ["fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift"]:
 				if String(o).contains(String(id).split("-")[0] if id != "killbox-prime" else "prime"):
 					killbox.arena_id = id
 			killbox.closed.connect(_close_killbox)

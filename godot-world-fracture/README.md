@@ -316,6 +316,14 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Extraction** (Killbox, Nov 9; asset-gap item 2 closed): `killbox_match.gd` kind `extract` ports pvp.ts `stepExtract` —
+the data core drops at the arena's objective, a team standing on it unopposed for 1.2 s takes it, the carrier runs it to
+their own pad (the middle of their spawns, 4 m), it drops where the carrier goes down, lies 15 s untouched then resets
+home; kills do not score; first to 3. `arena_view.gd` draws the core (a lit cube that rides over the carrier) and the two
+EXTRACT pads, feeds the rules everyone's position, steers the bots (the carrier for its pad, the carrier's team around it,
+the other team at the carrier or the loose core) and toasts the core's events. Ranked plays as Dominion to 150. Only
+Fracture Royale is still hidden from the Godot picker. `tests/killbox/modes_test.gd` covers the rules.
+
 **Ship** (schedule step 13, Nov 9, prepared): the `Godot APK` workflow gained a **release** job (run it by hand from the
 Actions tab once the signing keystore is in the repository secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_USER`,
 `ANDROID_KEYSTORE_PASS`) — a release-signed APK, version code from the run number, published as the `godot-release`

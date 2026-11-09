@@ -33,7 +33,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Open (unclaimed, take in order within a phase)
 - Owner: add the release keystore secrets (ANDROID_KEYSTORE_BASE64 / _USER / _PASS) and run the Godot APK workflow's release job; read the frame-time readout on the S22 Ultra in a Nexus firefight (gate: 30 fps); check the cloud save both ways; send the playtest bug list for step 12.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
-  2. Done in the web build (Nov 9): Extraction and Ranked are in pvp.ts with bots and re-exported; left for Godot: Extraction's core rules in killbox_match.gd (port pvp.ts `stepExtract`; it is hidden from the Godot picker until then — Ranked already plays there as Dominion).
+  2. ~~Extraction in Godot~~ — done Nov 9 (see Done); Fracture Royale remains the one web mode without Godot rules.
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
@@ -48,6 +48,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Asset gap 2 (Godot): Extraction — pvp.ts stepExtract ported into killbox_match.gd (core, carrier, pads, drop, reset, first to 3), the core and pads in the arena view, bots steer for it; shot hook takes every mode and arena | Godot: Extraction |
 | Step 13, prepared: the release job (keystore secrets → release-signed APK as godot-release), fresh godot-latest notes, store screenshots in docs/store | Godot: ship prep |
 | Step 12, known items: the simple phone HUD (stick / FIRE / JUMP / ENTER; sprint at the stick edge, tap the weapon name to swap, auto-reload) and the gore toggle (off / reduced / full; red / coolant / violet / green by target) | Godot: polish, first pass |
 | Owner ask (Nov 9): finish Nexus — the avenue's six streamed blocks open side streets into eleven walkable district courts (scripts/city/nexus_districts.gd: Perimeter Wall & Ops + North Gate, Vanguard Citadel, Spire District, the 420 m Tech Faction Central Tower, Apex Gear, Rusty Trigger, Cylinder & Co, the Warrens, Scrapyard Bazaar, Southern Docks, Marina & Aqua-Tech Shipyard + the south quay); Apex Gear / Rusty Trigger sell a daily stock (gear_store `shop_stock` / `buy_offer`), Cylinder & Co opens the ironworks garage; the casino is Neon City's alone (Neon City Grand Casino). Owner's phone report: ENTER was read twice so no car could be entered (fixed; every block's cars takeable), aim point ignored boxes behind the operator, touch FIRE drag-aims + aim help, desktop mouse capture, street unarmed with no troopers until Mission 01's Surge. **For the lead:** models/operators/heads/m-ronin.glb (01e5ec5) logs 'Skin bind … Bone_0xx' errors whenever the street opens | see git log "Nexus City districts" (Nov 9) |
