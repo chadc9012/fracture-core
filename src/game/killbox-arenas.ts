@@ -23,13 +23,16 @@
  * Riverfront (Neon City, River District): two promenades across a river, joined by two road bridges and a low footbridge between the
  * quays. Its fracture event is the Flood Alert: barriers rise across the bridges and the quay, and the rain comes down in sheets.
  *
+ * Solara Outpost (Solara, Relay Mesa; the first day map): a desert relay outpost on a mesa, a raised relay deck in the middle and a hab
+ * roof on each flank. Its fracture event is the Solar Flare: blinding glare, the panel arrays fold flat and heat shields rise.
+ *
  * Playlists rotate through the maps that list them (`arenaForRun`). */
 import type { Deck } from "./district-decks";
 import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
@@ -48,7 +51,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -473,7 +476,66 @@ export const RIVERFRONT: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT };
+/* ---------------- Solara Outpost ---------------- */
+
+// a solar relay outpost on a mesa top in the Solara desert, in the heat of the day: an open sandy yard, the relay deck in the middle
+// 3.5 m up (zone B) reached by a ramp from each side, and a prefab hab module on each flank whose roof (4 m up, by a steel stair)
+// holds a zone of its own; solar panel arrays and machinery for cover
+const SO_ROOFS: ArenaRoof[] = [
+  { id: "yard", name: "Outpost Yard", x0: -36, x1: 36, z0: -30, z1: 30, top: 20 },
+  { id: "relay-deck", name: "Relay Deck", x0: -8, x1: 8, z0: -8, z1: 8, top: 23.5 },
+  { id: "hab-west", name: "West Hab Roof", x0: -30, x1: -20, z0: 8, z1: 20, top: 24 },
+  { id: "hab-east", name: "East Hab Roof", x0: 20, x1: 30, z0: -20, z1: -8, top: 24 },
+];
+const SO_WALKS: ArenaWalk[] = [
+  { id: "deck-ramp-w", x: -12, z: 0, along: "x", length: 8, width: 4, top: 20, topB: 23.5, rails: true },
+  { id: "deck-ramp-e", x: 12, z: 0, along: "x", length: 8, width: 4, top: 23.5, topB: 20, rails: true },
+  { id: "hab-stair-w", x: -25, z: 4, along: "z", length: 8, width: 3, top: 20, topB: 24, rails: true },
+  { id: "hab-stair-e", x: 25, z: -4, along: "z", length: 8, width: 3, top: 24, topB: 20, rails: true },
+];
+// the deck's and the habs' faces: walled from the yard, open where the ramps and stairs arrive
+const SO_LEDGES: ArenaWall[] = [
+  ...[-8, 8].flatMap((x) => [[-8, -2], [2, 8]].map(([a, b]) => ({ ax: x, az: a!, bx: x, bz: b!, base: 19.5, top: 23.5 }))),
+  ...[-8, 8].map((z) => ({ ax: -8, az: z, bx: 8, bz: z, base: 19.5, top: 23.5 })),
+  { ax: -30, az: 8, bx: -30, bz: 20, base: 19.5, top: 24 }, { ax: -20, az: 8, bx: -20, bz: 20, base: 19.5, top: 24 }, { ax: -30, az: 20, bx: -20, bz: 20, base: 19.5, top: 24 },
+  { ax: -30, az: 8, bx: -26.5, bz: 8, base: 19.5, top: 24 }, { ax: -23.5, az: 8, bx: -20, bz: 8, base: 19.5, top: 24 },
+  { ax: 30, az: -8, bx: 30, bz: -20, base: 19.5, top: 24 }, { ax: 20, az: -8, bx: 20, bz: -20, base: 19.5, top: 24 }, { ax: 30, az: -20, bx: 20, bz: -20, base: 19.5, top: 24 },
+  { ax: 30, az: -8, bx: 26.5, bz: -8, base: 19.5, top: 24 }, { ax: 23.5, az: -8, bx: 20, bz: -8, base: 19.5, top: 24 },
+];
+const SO_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 25, w: 6, d: 1.2, h: 1.2 },
+  { id: "water-tank", kind: "tank", x: 10, z: 18, w: 3, d: 3, h: 3 },
+  { id: "container", kind: "container", x: -10, z: 14, w: 6, d: 2.4, h: 2.6 },
+  { id: "generator", kind: "hvac", x: 18, z: 6, w: 3, d: 2, h: 1.8 },
+  { id: "crates", kind: "crate", x: -14, z: -4, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "deck-barrier", kind: "barrier", x: -4, z: 12, w: 4, d: 1.2, h: 1.2 },
+  { id: "hab-crates", kind: "crate", x: -27, z: 17, w: 1.6, d: 1.6, h: 1.2 },
+]);
+const SO_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // solar panel arrays standing in the yard, that fold flat when the flare hits…
+  { id: "panels-a", x: -14, z: 21, w: 6, d: 1, h: 2.4, phase: "up" },
+  { id: "panels-b", x: 24, z: 14, w: 1, d: 6, h: 2.4, phase: "up" },
+  // …and the heat shields that rise out of the yard to cover the open ground
+  { id: "shield-n", x: 3, z: 12, w: 4, d: 1, h: 2.2, phase: "down" },
+  { id: "shield-w", x: -20, z: 0, w: 1, d: 5, h: 2.2, phase: "down" },
+]);
+
+export const SOLARA_OUTPOST: KillboxArena = {
+  id: "solara-outpost", name: "Solara Outpost", region: "Solara · Relay Mesa", size: "medium",
+  blurb: "A solar relay outpost on a desert mesa in the heat of the day. Take the relay deck in the middle, or the hab roofs on the flanks. When a solar flare hits, the glare is blinding, the panel arrays fold flat and heat shields rise.",
+  site: { x: 800, z: 1180 }, base: ARENA_ALTITUDE, look: "solara-outpost",
+  roofs: SO_ROOFS, walks: SO_WALKS, cover: SO_COVER, ledges: SO_LEDGES, shifters: SO_SHIFTERS,
+  spawns: {
+    us: [[-18, 27], [0, 28], [18, 27], [-33, 25], [33, 25], [-8, 27]],
+    them: [[18, -27], [0, -28], [-18, -27], [33, -25], [-33, -25], [8, -28]],
+  },
+  zones: [{ id: "A", dx: -25, dz: 14 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 25, dz: -14 }], objective: [0, 0],
+  killPlane: 12,
+  fracture: { name: "Solar Flare", brief: "A solar flare hits the mesa: the glare is blinding, the panel arrays fold flat and heat shields rise across the open yard.", first: 80, every: 140, length: 25, warn: 10, visibility: 0.5 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));
