@@ -197,7 +197,26 @@ go to the team spawns; the Billboard Blackout event douses the signs for 30 s. W
 150 / 120. The worn gear carries over (guns, hull bonus, outfit tint). The KILLBOX button opens the arena picker: Fracture
 Floor (nexus-grid look; Grid Rewrite sinks the standing data pillars and raises others, swapping the obstacle boxes) and
 Killbox Prime (prime-roof; Containment Lock rings the capture zone in glass) are built from the same data with their own
-palette, sign and zone rings. Skydock (the other session's fourth map) plays through the same view with a dusk palette. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
+palette, sign and zone rings. Skydock (the other session's fourth map) plays through the same view with a dusk palette. **Modes** (Nov 8, after the
+arena a mode picker lists what the map allows, rules in `killbox_match.gd` mirroring pvp.ts): Clash; Dominion — zones
+A / B / C capture by unopposed presence in 5 s, a contested zone holds, every held zone ticks a point each 2 s on top of
+kills, first to 150, rings recolour to the holder and bots walk to zones their team doesn't hold; Freefall — 12 players
+each for themselves, a board of kills (the rival who last hit you takes yours), first to 20; Lockdown — 4v4, attack and
+defend alternate, no respawns in a round, attackers win by a wipe or 10 s unopposed on the objective, defenders by a wipe,
+the clock or an unopposed plant, first to 4 rounds; Ascendancy — 3v3, a wipe takes the round, at the 90 s buzzer the
+middle zone opens and whoever holds it takes it, first to 5. Shots: `killbox[:<arena>][:dominion|:freefall|:lockdown|:ascendancy][:fight]`. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
+
+**Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
+`docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
+mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through
+the depth buffer (14 steps) and adds what the screen shows where it lands, blurred down the mips and smeared vertically
+like wet asphalt, weighted by a puddle mask, rain-ring wobble and Fresnel; nothing is added where the ray misses, so dry
+patches stay matte (skipped on gl_compatibility). The paving goes dark and glossy with puddles (`wet` in `paving()`), and
+a GPU particle box of rain streaks follows the camera (700 on a phone). The Meshy street set (`models/city/street/`, made
+from concept images in the owner's Meshy account, shrunk in the page to phone budgets): neon benches by the shopfronts,
+holo info kiosks, drinks machines against the buildings, superbikes on the pavement, and on the hub block the NEXUS CITY
+· CENTRAL DISTRICT gateway arch over the avenue (solid only at its pillars). Placed per tile by `_street_set()`.
+Shot: `slice:look=x,y,z,tx,ty,tz` aims the look-dev camera.
 
 **Game Modes** (`scripts/modes/modes_hub.gd`, the ⚔ GAME MODES button on the globe; the owner, Nov 8: PvP, Raids and
 Races are separate modes): a hub of three tiles in the look of the owner's boards (`docs/reference/pvp-maps.png` — navy
@@ -240,3 +259,17 @@ xvfb-run godot --path godot-world-fracture --rendering-driver opengl3 --resoluti
 ```
 
 `.github/workflows/godot-world-fracture.yml` builds the Android APK and publishes it as the `godot-latest` release.
+
+## Whole-game playthrough and phone performance
+
+`godot --headless --path godot-world-fracture --script res://tests/play/playthrough.gd` plays everything a player can reach
+(garage, driving, every street style day and night with its overlays, the operator creator, every region's map and 3D view,
+Mission 01, the descent, every Killbox arena, a raid, a street race, the speedway). It flags screens that don't open or
+close, cars that don't move, leaked nodes and any node with a NaN transform. The mission play tests run as scenes:
+`godot --headless --path godot-world-fracture res://tests/mission/descent_play.tscn` (also `m01_play`, `raid/raid_play`,
+`racing/street_race_play`, `racing/speedway_play`).
+
+Static scenery is merged after a build by `scripts/static_batch.gd`: primitive pieces by material per 48 m cell, repeated
+models into MultiMeshes, lights fading with distance. Anything that moves or animates must carry `set_meta("dynamic", true)`
+or it gets frozen into a batch. Measuring tools live in `tests/tools/` (`draw_breakdown`, `street_profile`, `overlap_scan`,
+`region_spacing`); the `--shot … perf:<json>` capture writes draw calls and the heaviest nodes.

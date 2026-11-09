@@ -60,7 +60,6 @@ Frostveil Ring, Thalassia Dome, Void Rift. Modes on the board: Team Deathmatch, 
 Confirmed, Free For All, Ranked. Features: multi-level, tactical cover, vertical play, dynamic events, day / night / weather.
 
 Have: the first four maps as data in `src/game/killbox-arenas.ts` (session_01HeBvGGZzSqLVyhhF3TcmJd is adding the rest in
-board order) and exported to Godot (`godot-world-fracture/data/killbox.json`), where `scripts/killbox/` plays Clash (= Team
-Deathmatch) on every arena. The game's mode ids map to the board as: clash → Team Deathmatch, dominion → Domination,
+board order) and exported to Godot (`godot-world-fracture/data/killbox.json`), where `scripts/killbox/` plays Clash, Dominion, Freefall, Lockdown and Ascendancy on every arena (Nov 8). The game's mode ids map to the board as: clash → Team Deathmatch, dominion → Domination,
 lockdown → Control, ascendancy → Kill Confirmed, freefall → Free For All, royale → Fracture Royale (board: none). Extraction
 and Ranked are not in `pvp.ts` yet.

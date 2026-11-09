@@ -27,6 +27,8 @@ const LOOKS := {
 	"skydock": { "trim": [Color(1.0, 0.75, 0.2), Color(0.9, 0.95, 1.0), Color(0.3, 0.8, 1.0)], "facade": Color(0.12, 0.13, 0.16), "roof": Color(0.16, 0.17, 0.2), "sky": Color(0.05, 0.06, 0.1), "fog": Color(0.3, 0.3, 0.38), "sign": "SKYDOCK", "sign_color": Color(1.0, 0.75, 0.2) },
 	"neon-yard": { "trim": [Color(1.0, 0.24, 0.94), Color(0.22, 0.91, 1.0), Color(1.0, 0.69, 0.18)], "facade": Color(0.1, 0.1, 0.13), "roof": Color(0.27, 0.27, 0.31), "sky": Color(0.03, 0.02, 0.07), "fog": Color(0.2, 0.12, 0.32), "sign": "NEON YARD", "sign_color": Color(1.0, 0.24, 0.94) },
 	"glass-spire": { "trim": [Color(0.22, 0.91, 1.0), Color(0.77, 0.42, 1.0), Color(0.6, 1.0, 0.78)], "facade": Color(0.11, 0.16, 0.24), "roof": Color(0.23, 0.24, 0.28), "sky": Color(0.02, 0.03, 0.08), "fog": Color(0.12, 0.16, 0.32), "sign": "GLASS SPIRE", "sign_color": Color(0.22, 0.91, 1.0) },
+	"riverfront": { "trim": [Color(1.0, 0.24, 0.94), Color(0.22, 0.91, 1.0), Color(1.0, 0.85, 0.63)], "facade": Color(0.1, 0.09, 0.13), "roof": Color(0.29, 0.29, 0.33), "sky": Color(0.03, 0.02, 0.07), "fog": Color(0.18, 0.12, 0.3), "sign": "RIVERFRONT", "sign_color": Color(0.22, 0.91, 1.0) },
+	"solara-outpost": { "trim": [Color(1.0, 0.6, 0.2), Color(0.95, 0.95, 0.9), Color(0.3, 0.6, 1.0)], "facade": Color(0.82, 0.72, 0.55), "roof": Color(0.8, 0.68, 0.48), "sky": Color(0.45, 0.68, 0.9), "fog": Color(0.92, 0.84, 0.7), "sign": "SOLARA", "sign_color": Color(1.0, 0.6, 0.2) },
 	"prime-roof": { "trim": [Color(0.75, 0.3, 1.0), Color(1.0, 0.3, 0.5), Color(0.4, 0.5, 1.0)], "facade": Color(0.09, 0.07, 0.13), "roof": Color(0.11, 0.1, 0.15), "sky": Color(0.04, 0.01, 0.07), "fog": Color(0.22, 0.1, 0.32), "sign": "KILLBOX PRIME", "sign_color": Color(0.75, 0.3, 1.0) },
 }
 
@@ -54,6 +56,11 @@ var look: Dictionary = LOOKS["neon-rooftops"]
 var _shifted := false
 var _shifter_nodes: Array = []   # [{node, up_y, down_y, phase}]
 var _picker: Control
+## bots by board id (ffa) and the zone rings for recolouring
+var _bot_ids := {}
+var _zone_rings := {}
+var _obj_ring: MeshInstance3D
+var _obj_label: Label3D
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -77,11 +84,11 @@ func _pick() -> void:
 	box.add_theme_constant_override("separation", 14)
 	_picker.add_child(box)
 	var title := Label.new()
-	title.text = "KILLBOX · CLASH"
+	title.text = "KILLBOX"
 	title.add_theme_font_size_override("font_size", 26)
 	box.add_child(title)
 	var sub := Label.new()
-	sub.text = "Pick the arena. Six a side with your trooper squad; every elimination scores, first to 75."
+	sub.text = "Pick the arena, then the mode. Your trooper squad fights beside you; the other team is bots too."
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sub.custom_minimum_size = Vector2(492, 0)
 	sub.modulate = Color(0.8, 0.85, 0.9)
@@ -93,7 +100,7 @@ func _pick() -> void:
 		b.custom_minimum_size = Vector2(0, 64)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.add_theme_color_override("font_color", (LOOKS.get(String(a.def.look), look) as Dictionary).sign_color)
-		b.pressed.connect(func(): arena_id = id; _picker.queue_free(); _picker = null; _start())
+		b.pressed.connect(func(): arena_id = id; _picker.queue_free(); _picker = null; _pick_mode())
 		box.add_child(b)
 		var blurb := Label.new()
 		blurb.text = String(a.def.blurb)
@@ -108,11 +115,53 @@ func _pick() -> void:
 	back.pressed.connect(func(): closed.emit())
 	box.add_child(back)
 
+## the mode list for the chosen arena (pvp.ts PVP_MODES the arena lists; Fracture Royale is not on these maps)
+func _pick_mode() -> void:
+	var a := Arena.new(arena_id)
+	_picker = Control.new()
+	_picker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_picker)
+	var bg := ColorRect.new()
+	bg.color = Color(0.02, 0.02, 0.05, 0.96)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_picker.add_child(bg)
+	var box := VBoxContainer.new()
+	box.position = Vector2(24, 80)
+	box.custom_minimum_size = Vector2(492, 0)
+	box.add_theme_constant_override("separation", 12)
+	_picker.add_child(box)
+	var title := Label.new()
+	title.text = String(a.def.name).to_upper()
+	title.add_theme_font_size_override("font_size", 26)
+	box.add_child(title)
+	for mid in a.def.get("modes", ["clash"]):
+		var m: Dictionary = Arena.mode(String(mid))
+		if m.is_empty() or String(m.get("kind", "")) == "royale":
+			continue
+		var b := Button.new()
+		b.text = "%s — %s" % [String(m.name).to_upper(), String(m.tagline)]
+		b.custom_minimum_size = Vector2(0, 52)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.pressed.connect(func(): mode_id = String(mid); _picker.queue_free(); _picker = null; _start())
+		box.add_child(b)
+		var brief := Label.new()
+		brief.text = String(m.brief)
+		brief.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		brief.custom_minimum_size = Vector2(492, 0)
+		brief.add_theme_font_size_override("font_size", 13)
+		brief.modulate = Color(0.65, 0.7, 0.78)
+		box.add_child(brief)
+	var back := Button.new()
+	back.text = "← ARENAS"
+	back.custom_minimum_size = Vector2(0, 48)
+	back.pressed.connect(func(): _picker.queue_free(); _picker = null; arena_id = ""; _pick())
+	box.add_child(back)
+
 func _start() -> void:
 	_rng.seed = 31
 	arena = Arena.new(arena_id)
 	look = LOOKS.get(String(arena.def.look), LOOKS["neon-rooftops"])
-	match_state = Match.new(Arena.mode(mode_id))
+	match_state = Match.new(Arena.mode(mode_id), arena.def.get("zones", []))
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.02, 0.04)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -171,12 +220,26 @@ func _start() -> void:
 	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	var size: int = int(match_state.mode.get("teamSize", 6))
-	for i in size - 1:
-		var e: RefCounted = enemies.spawn(BOT_TYPES[i % BOT_TYPES.size()], arena.spawn("us", [], i + 1), [], 1)
-		e.state = Enemies.State.ENGAGE
-	for i in size:
-		var e2: RefCounted = enemies.spawn(BOT_TYPES[i % BOT_TYPES.size()], arena.spawn("them", [], i), [], 0)
-		e2.state = Enemies.State.ENGAGE
+	if match_state.kind == "ffa":
+		# everyone for themselves: each bot its own team, half from each side's spawns
+		var n: int = int(match_state.mode.get("players", 12)) - 1
+		for i in n:
+			var side := "them" if i % 2 == 0 else "us"
+			var e0: RefCounted = enemies.spawn(BOT_TYPES[i % BOT_TYPES.size()], arena.spawn(side, [], (i / 2) + 1), [], 2 + i)
+			e0.state = Enemies.State.ENGAGE
+			_bot_ids[e0] = "bot-%d" % (i + 1)
+	else:
+		for i in size - 1:
+			var e: RefCounted = enemies.spawn(BOT_TYPES[i % BOT_TYPES.size()], arena.spawn("us", [], i + 1), [], 1)
+			e.state = Enemies.State.ENGAGE
+			e.set_meta("slot", i + 1)
+		for i in size:
+			var e2: RefCounted = enemies.spawn(BOT_TYPES[i % BOT_TYPES.size()], arena.spawn("them", [], i), [], 0)
+			e2.state = Enemies.State.ENGAGE
+			e2.set_meta("slot", i)
+	enemies.respawn_enabled = not match_state.is_rounds()
+	if match_state.is_rounds():
+		_objective_marker()
 	hud = Label.new()
 	hud.position = Vector2(16, 60)
 	hud.add_theme_font_size_override("font_size", 22)
@@ -186,7 +249,7 @@ func _start() -> void:
 	add_child(hud)
 	board = Label.new()
 	board.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	board.position = Vector2(-200, 60)
+	board.position = Vector2(-230, 96)
 	board.add_theme_font_size_override("font_size", 15)
 	board.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	add_child(board)
@@ -195,7 +258,7 @@ func _start() -> void:
 	back.position = Vector2(16, 16)
 	back.pressed.connect(func(): closed.emit())
 	add_child(back)
-	controls.toast("%s · %s — first to %d" % [String(arena.def.name), String(match_state.mode.name), match_state.target()])
+	controls.toast("%s · %s — %s" % [String(arena.def.name), String(match_state.mode.name), String(match_state.mode.brief)])
 
 # --------------------------------------------------------------------------------------------- the look
 func _mat(c: Color, rough := 0.8, metal := 0.0, emit := 0.0) -> StandardMaterial3D:
@@ -400,6 +463,7 @@ func _zones() -> void:
 		ring.position = Vector3(x, top + 0.05, zz)
 		ring.material_override = _mat(look.trim[1], 0.5, 0.0, 1.5)
 		world.add_child(ring)
+		_zone_rings[String(z.id)] = ring
 		var l3 := Label3D.new()
 		l3.text = String(z.id)
 		l3.font_size = 160
@@ -433,12 +497,24 @@ func _slide_shifters(dt: float) -> void:
 		mi.position.y = move_toward(mi.position.y, want, 2.5 * dt)
 
 # --------------------------------------------------------------------------------------------- the match
-func _on_bot_down(e: RefCounted, _by_team: int, by_player: bool) -> void:
-	if (e as Enemies.Enemy).team == 0:
+func _on_bot_down(e: RefCounted, by_team: int, by_player: bool) -> void:
+	var en := e as Enemies.Enemy
+	if match_state.kind == "ffa":
+		# the kill goes on the killer's board line; a fall is nobody's
+		var killer := ""
+		if not by_player:
+			for o in enemies.enemies:
+				if o.team == by_team and _bot_ids.has(o):
+					killer = String(_bot_ids[o])
+					break
+		if by_player or killer != "":
+			match_state.score(0, by_player, killer)
+	elif en.team == 0:
 		match_state.score(1, by_player)
 	else:
 		match_state.score(0)
-	_respawn_bot(e)
+	if not match_state.is_rounds():
+		_respawn_bot(e)
 
 func _respawn_bot(e: RefCounted) -> void:
 	var en := e as Enemies.Enemy
@@ -448,20 +524,143 @@ func _respawn_bot(e: RefCounted) -> void:
 			threats.append(o.mover.position)
 	if en.team == 0:
 		threats.append(operator.position)
-	en.spawn = arena.spawn("us" if en.team == 1 else "them", threats)
+	if match_state.kind == "ffa":
+		en.spawn = arena.spawn("them" if en.team % 2 == 0 else "us", threats)
+	else:
+		en.spawn = arena.spawn("us" if en.team == 1 else "them", threats)
 	en.timer = 4.0
 
 func _on_operator_down() -> void:
-	match_state.score(0)
+	if match_state.kind == "ffa":
+		# the rival who shot you last takes the point
+		var killer := ""
+		for o in enemies.enemies:
+			if o.has_meta("hit_operator") and _bot_ids.has(o):
+				killer = String(_bot_ids[o])
+		if killer == "" and not _bot_ids.is_empty():
+			killer = String(_bot_ids.values()[_rng.randi() % _bot_ids.size()])
+		match_state.score(0, false, killer)
+	elif match_state.kind != "rounds":
+		match_state.score(0)
 	match_state.player_died()
-	_respawn_t = 4.0
+	if not match_state.is_rounds():
+		_respawn_t = 4.0
+
+## who stands in each zone (Dominion) or on the objective (rounds): counts of us / them within ZONE_RADIUS
+func _presence() -> Dictionary:
+	var out := {}
+	var spots: Array = []
+	if match_state.kind == "zones":
+		for z in match_state.zones:
+			spots.append([String(z.id), Vector3(float(z.dx), 0, float(z.dz))])
+	elif match_state.is_rounds():
+		spots.append(["obj", _objective_point()])
+	for sp in spots:
+		var c := { "us": 0, "them": 0 }
+		var at: Vector3 = sp[1]
+		if enemies.down <= 0.0 and Vector2(operator.position.x - at.x, operator.position.z - at.z).length() < Match.ZONE_RADIUS:
+			c.us += 1
+		for e in enemies.enemies:
+			if not e.target.alive():
+				continue
+			if Vector2(e.mover.position.x - at.x, e.mover.position.z - at.z).length() < Match.ZONE_RADIUS:
+				if e.team == 1:
+					c.us += 1
+				else:
+					c.them += 1
+		out[sp[0]] = c
+	return out
+
+## the rounds objective: the arena's middle zone (zone B when there is one, else the centre)
+func _objective_point() -> Vector3:
+	var zs: Array = arena.def.get("zones", [])
+	for z in zs:
+		if String(z.id) == "B":
+			return Vector3(float(z.dx), 0, float(z.dz))
+	if not zs.is_empty():
+		return Vector3(float(zs[0].dx), 0, float(zs[0].dz))
+	return Vector3.ZERO
+
+func _objective_marker() -> void:
+	var at := _objective_point()
+	var top: float = arena.surface_at(at.x, at.z)
+	if top == -INF:
+		top = 20.0
+	_obj_ring = MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = Match.ZONE_RADIUS - 0.5
+	tm.outer_radius = Match.ZONE_RADIUS
+	_obj_ring.mesh = tm
+	_obj_ring.position = Vector3(at.x, top + 0.08, at.z)
+	_obj_ring.material_override = _mat(Color(1.0, 0.85, 0.2), 0.5, 0.0, 2.0)
+	world.add_child(_obj_ring)
+	_obj_label = Label3D.new()
+	_obj_label.text = "OBJECTIVE"
+	_obj_label.font_size = 120
+	_obj_label.pixel_size = 0.012
+	_obj_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_obj_label.modulate = Color(1.0, 0.85, 0.2)
+	_obj_label.position = Vector3(at.x, top + 4.0, at.z)
+	world.add_child(_obj_label)
+
+## where the bots go when nothing is in sight: zones they don't hold (Dominion), the objective (rounds), nowhere (Clash / FFA)
+func _steer_bots() -> void:
+	for e in enemies.enemies:
+		if match_state.kind == "zones":
+			var best: Variant = null
+			var best_d := INF
+			for z in match_state.zones:
+				if int(z.owner) == e.team:
+					continue
+				var at := Vector3(float(z.dx), e.mover.position.y, float(z.dz))
+				var d: float = e.mover.position.distance_to(at)
+				if d < best_d:
+					best_d = d
+					best = at
+			e.goal = best
+		elif match_state.is_rounds():
+			var p := _objective_point()
+			var attack: bool = ((e.team == 1) == match_state.attacking) if String(match_state.mode.id) == "lockdown" else match_state.objective_open()
+			e.goal = Vector3(p.x, e.mover.position.y, p.z) if attack else null
+		else:
+			e.goal = null
+
+func _new_round() -> void:
+	enemies.revive_all()
+	for e in enemies.enemies:
+		e.spawn = arena.spawn("us" if e.team == 1 else "them", [], int(e.get_meta("slot", 0)))
+		e.mover.position = e.spawn
+	enemies.hull = enemies.hull_max
+	enemies.down = 0.0
+	operator.position = arena.spawn("us")
+	operator.velocity = Vector3.ZERO
+	var role := ""
+	if String(match_state.mode.id) == "lockdown":
+		role = " — ATTACK the objective" if match_state.attacking else " — DEFEND the objective"
+	controls.toast("%s · Round %d%s" % [match_state.reason, match_state.round, role])
 
 func _process(dt: float) -> void:
 	if not match_state:
 		return
 	dt = minf(dt, 0.05)
-	match_state.tick(dt)
-	enemies.step(dt)
+	var alive_us: int = enemies.alive_on(1) + (1 if enemies.down <= 0.0 and enemies.hull > 0.0 else 0)
+	match_state.tick(dt, _presence(), alive_us, enemies.alive_on(0))
+	if match_state.round_reset:
+		_new_round()
+	var paused: bool = match_state.is_rounds() and match_state.round_over > 0.0
+	if not paused:
+		enemies.step(dt)
+	_steer_bots()
+	for zid in _zone_rings:
+		for z in match_state.zones:
+			if String(z.id) == zid:
+				var ring: MeshInstance3D = _zone_rings[zid]
+				var c: Color = Color(0.25, 0.6, 1.0) if int(z.owner) == 1 else (Color(1.0, 0.3, 0.3) if int(z.owner) == 0 else look.trim[1])
+				(ring.material_override as StandardMaterial3D).albedo_color = c
+				(ring.material_override as StandardMaterial3D).emission = c
+	if _obj_ring:
+		_obj_ring.visible = match_state.objective_open()
+		_obj_label.visible = _obj_ring.visible
 	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down)
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
@@ -484,7 +683,7 @@ func _process(dt: float) -> void:
 			e.state = Enemies.State.ENGAGE
 		if e.state != Enemies.State.DOWN and e.mover.position.y < arena.kill_plane():
 			e.target.hp = 0.0
-	if not match_state.over:
+	if not match_state.over and not paused:
 		operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 		if controls.take_next():
 			gunplay.next_weapon()
@@ -500,10 +699,44 @@ func _process(dt: float) -> void:
 	var g = gunplay.gun()
 	controls.weapon_name.text = g.display_name()
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
-	hud.text = "US %d   THEM %d   ·   %s" % [match_state.us, match_state.them, match_state.clock_text()]
-	board.text = "%s · first to %d\nyou: %d kills · %d deaths" % [String(match_state.mode.name), match_state.target(), match_state.player_kills, match_state.player_deaths]
+	hud.text = _hud_line()
+	board.text = _board_text()
 	if match_state.over and not _paid:
 		_finish()
+
+func _hud_line() -> String:
+	var m := match_state
+	match m.kind:
+		"zones":
+			return "US %d   THEM %d   ·   zones %d / %d   ·   %s" % [m.us, m.them, m.held(1), m.held(0), m.clock_text()]
+		"ffa":
+			return "YOU %d   BEST %d   ·   %s" % [m.us, m.them, m.clock_text()]
+		"rounds":
+			var alive: String = "%d v %d" % [enemies.alive_on(1) + (1 if enemies.down <= 0.0 and enemies.hull > 0.0 else 0), enemies.alive_on(0)]
+			return "ROUNDS %d – %d   ·   %s   ·   %s" % [m.us_rounds, m.them_rounds, alive, m.clock_text()]
+	return "US %d   THEM %d   ·   %s" % [m.us, m.them, m.clock_text()]
+
+func _board_text() -> String:
+	var m := match_state
+	var head := "%s · first to %d" % [String(m.mode.name), m.target()]
+	if m.kind == "ffa":
+		var rows: Array = []
+		for k in m.board:
+			rows.append([int(m.board[k]), String(k)])
+		rows.sort_custom(func(a, b): return a[0] > b[0])
+		var lines := head
+		for i in mini(5, rows.size()):
+			lines += "\n%s  %d" % [rows[i][1], rows[i][0]]
+		return lines
+	if m.kind == "zones":
+		var owned := ""
+		for z in m.zones:
+			owned += "%s:%s " % [String(z.id), "us" if int(z.owner) == 1 else ("them" if int(z.owner) == 0 else "—")]
+		return "%s\n%s\nyou: %d kills · %d deaths" % [head, owned, m.player_kills, m.player_deaths]
+	if m.kind == "rounds":
+		var role := ("ATTACK" if m.attacking else "DEFEND") if String(m.mode.id) == "lockdown" else ("ZONE OPEN" if m.objective_open() else "wipe them")
+		return "%s\n%s\nyou: %d kills" % [head, role, m.player_kills]
+	return "%s\nyou: %d kills · %d deaths" % [head, m.player_kills, m.player_deaths]
 
 func _finish() -> void:
 	_paid = true

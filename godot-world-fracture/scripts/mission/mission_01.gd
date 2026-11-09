@@ -440,8 +440,10 @@ func _interior_env() -> void:
 	int_env.glow_enabled = true
 	int_env.glow_intensity = 0.55
 	int_env.glow_hdr_threshold = 1.1
-	int_env.ssao_enabled = true
-	int_env.ssr_enabled = true
+	# SSAO / SSR exist only on Forward+ (the phone's mobile renderer warns and ignores them every time the flat opens)
+	var forward_plus := RenderingServer.get_current_rendering_method() == "forward_plus"
+	int_env.ssao_enabled = forward_plus
+	int_env.ssr_enabled = forward_plus
 	int_sun = DirectionalLight3D.new()
 	int_sun.light_color = Color(1.0, 0.8, 0.6)
 	int_sun.light_energy = 1.8

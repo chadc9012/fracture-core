@@ -20,13 +20,19 @@
  * Glass Spire (Nexus City, Spire Crown): an open plaza on a glass tower top round a raised crown, with a sky garden down each flank.
  * Its fracture event is the Spire Shatter: the glass panels shatter and blast shutters rise across the lanes.
  *
+ * Riverfront (Neon City, River District): two promenades across a river, joined by two road bridges and a low footbridge between the
+ * quays. Its fracture event is the Flood Alert: barriers rise across the bridges and the quay, and the rain comes down in sheets.
+ *
+ * Solara Outpost (Solara, Relay Mesa; the first day map): a desert relay outpost on a mesa, a raised relay deck in the middle and a hab
+ * roof on each flank. Its fracture event is the Solar Flare: blinding glare, the panel arrays fold flat and heat shields rise.
+ *
  * Playlists rotate through the maps that list them (`arenaForRun`). */
 import type { Deck } from "./district-decks";
 import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
@@ -45,7 +51,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -406,7 +412,130 @@ export const GLASS_SPIRE: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE };
+/* ---------------- Riverfront ---------------- */
+
+// a river through Neon City at night: a promenade on each bank (each team spawns on one), and three lanes across the water: a
+// steel road bridge on each flank at promenade height, and in the middle a low footbridge between two stone quays 3.5 m down,
+// reached from each bank by a flight of stairs at either end of its quay. Falling in the river is a death
+const RF_ROOFS: ArenaRoof[] = [
+  { id: "north-bank", name: "North Promenade", x0: -40, x1: 40, z0: 12, z1: 32, top: 20 },
+  { id: "south-bank", name: "South Promenade", x0: -40, x1: 40, z0: -32, z1: -12, top: 20 },
+  { id: "north-quay", name: "North Quay", x0: -6, x1: 6, z0: 8, z1: 12, top: 16.5 },
+  { id: "south-quay", name: "South Quay", x0: -6, x1: 6, z0: -12, z1: -8, top: 16.5 },
+  // the landings at the head of each quay stair
+  { id: "north-landing-w", name: "North Quay Steps", x0: -18, x1: -14, z0: 8, z1: 12, top: 20 },
+  { id: "north-landing-e", name: "North Quay Steps", x0: 14, x1: 18, z0: 8, z1: 12, top: 20 },
+  { id: "south-landing-w", name: "South Quay Steps", x0: -18, x1: -14, z0: -12, z1: -8, top: 20 },
+  { id: "south-landing-e", name: "South Quay Steps", x0: 14, x1: 18, z0: -12, z1: -8, top: 20 },
+];
+const RF_WALKS: ArenaWalk[] = [
+  // the road bridges (flat, at promenade height; each overlaps a metre into the banks)
+  { id: "west-bridge", x: -30, z: 0, along: "z", length: 26, width: 6, top: 20, topB: 20, rails: true },
+  { id: "east-bridge", x: 30, z: 0, along: "z", length: 26, width: 6, top: 20, topB: 20, rails: true },
+  // the footbridge between the quays
+  { id: "footbridge", x: 0, z: 0, along: "z", length: 18, width: 4, top: 16.5, topB: 16.5, rails: true },
+  // quay stairs: down from each landing to the quay
+  { id: "north-stair-w", x: -10, z: 10, along: "x", length: 8, width: 4, top: 20, topB: 16.5, rails: true },
+  { id: "north-stair-e", x: 10, z: 10, along: "x", length: 8, width: 4, top: 16.5, topB: 20, rails: true },
+  { id: "south-stair-w", x: -10, z: -10, along: "x", length: 8, width: 4, top: 20, topB: 16.5, rails: true },
+  { id: "south-stair-e", x: 10, z: -10, along: "x", length: 8, width: 4, top: 16.5, topB: 20, rails: true },
+];
+// the bank's face over the stairs and the quay: walled from below (you cannot step up it), open to drop off from the promenade
+const RF_LEDGES: ArenaWall[] = [12, -12].map((z) => ({ ax: -14, az: z, bx: 14, bz: z, base: 16, top: 20 }));
+const RF_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 26, w: 6, d: 1.2, h: 1.2 },
+  { id: "stall", kind: "container", x: -22, z: 20, w: 6, d: 2.4, h: 2.6 },
+  { id: "planter", kind: "planter", x: 12, z: 18, w: 4, d: 2, h: 1.1 },
+  { id: "kiosk", kind: "console", x: -8, z: 16, w: 1.6, d: 1.6, h: 1.6 },
+  { id: "crates", kind: "crate", x: 34, z: 18, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "bridge-barrier", kind: "barrier", x: -31.5, z: 3, w: 2, d: 1.2, h: 1.2 },
+  { id: "quay-crates", kind: "crate", x: -3, z: 10.6, w: 1.4, d: 1.4, h: 1.2 },
+]);
+const RF_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // glass windbreaks on the promenade that fold away when the alert sounds…
+  { id: "screen-a", x: -14, z: 20, w: 4, d: 1, h: 2.4, phase: "up" },
+  { id: "screen-b", x: 26, z: 16, w: 1, d: 4, h: 2.4, phase: "up" },
+  // …and the flood barriers that rise across half of each bridge end and along the quay
+  { id: "flood-bridge-n", x: -31.5, z: 6, w: 3, d: 1, h: 1.6, phase: "down" },
+  { id: "flood-bridge-s", x: -28.5, z: -6, w: 3, d: 1, h: 1.6, phase: "down" },
+  { id: "flood-quay", x: 3.5, z: 9, w: 3, d: 1, h: 1.6, phase: "down" },
+]);
+
+export const RIVERFRONT: KillboxArena = {
+  id: "riverfront", name: "Riverfront", region: "Neon City · River District", size: "medium",
+  blurb: "A river through Neon City at night. Hold your promenade, cross on the steel road bridges, or drop to the quays and fight over the low footbridge. When the flood alert sounds, barriers rise across the bridges and the rain comes down hard.",
+  site: { x: 500, z: 1180 }, base: ARENA_ALTITUDE, look: "riverfront",
+  roofs: RF_ROOFS, walks: RF_WALKS, cover: RF_COVER, ledges: RF_LEDGES, shifters: RF_SHIFTERS,
+  spawns: {
+    us: [[-18, 28], [0, 29], [18, 28], [-34, 26], [34, 26], [-8, 28]],
+    them: [[18, -28], [0, -29], [-18, -28], [34, -26], [-34, -26], [8, -28]],
+  },
+  zones: [{ id: "A", dx: -30, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 30, dz: 0 }], objective: [0, 0],
+  killPlane: 11,
+  fracture: { name: "Flood Alert", brief: "Sirens on the river: the rain comes down in sheets, flood barriers rise across the bridges and the quay, and the windbreaks fold away.", first: 80, every: 135, length: 25, warn: 10, visibility: 0.6 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+/* ---------------- Solara Outpost ---------------- */
+
+// a solar relay outpost on a mesa top in the Solara desert, in the heat of the day: an open sandy yard, the relay deck in the middle
+// 3.5 m up (zone B) reached by a ramp from each side, and a prefab hab module on each flank whose roof (4 m up, by a steel stair)
+// holds a zone of its own; solar panel arrays and machinery for cover
+const SO_ROOFS: ArenaRoof[] = [
+  { id: "yard", name: "Outpost Yard", x0: -36, x1: 36, z0: -30, z1: 30, top: 20 },
+  { id: "relay-deck", name: "Relay Deck", x0: -8, x1: 8, z0: -8, z1: 8, top: 23.5 },
+  { id: "hab-west", name: "West Hab Roof", x0: -30, x1: -20, z0: 8, z1: 20, top: 24 },
+  { id: "hab-east", name: "East Hab Roof", x0: 20, x1: 30, z0: -20, z1: -8, top: 24 },
+];
+const SO_WALKS: ArenaWalk[] = [
+  { id: "deck-ramp-w", x: -12, z: 0, along: "x", length: 8, width: 4, top: 20, topB: 23.5, rails: true },
+  { id: "deck-ramp-e", x: 12, z: 0, along: "x", length: 8, width: 4, top: 23.5, topB: 20, rails: true },
+  { id: "hab-stair-w", x: -25, z: 4, along: "z", length: 8, width: 3, top: 20, topB: 24, rails: true },
+  { id: "hab-stair-e", x: 25, z: -4, along: "z", length: 8, width: 3, top: 24, topB: 20, rails: true },
+];
+// the deck's and the habs' faces: walled from the yard, open where the ramps and stairs arrive
+const SO_LEDGES: ArenaWall[] = [
+  ...[-8, 8].flatMap((x) => [[-8, -2], [2, 8]].map(([a, b]) => ({ ax: x, az: a!, bx: x, bz: b!, base: 19.5, top: 23.5 }))),
+  ...[-8, 8].map((z) => ({ ax: -8, az: z, bx: 8, bz: z, base: 19.5, top: 23.5 })),
+  { ax: -30, az: 8, bx: -30, bz: 20, base: 19.5, top: 24 }, { ax: -20, az: 8, bx: -20, bz: 20, base: 19.5, top: 24 }, { ax: -30, az: 20, bx: -20, bz: 20, base: 19.5, top: 24 },
+  { ax: -30, az: 8, bx: -26.5, bz: 8, base: 19.5, top: 24 }, { ax: -23.5, az: 8, bx: -20, bz: 8, base: 19.5, top: 24 },
+  { ax: 30, az: -8, bx: 30, bz: -20, base: 19.5, top: 24 }, { ax: 20, az: -8, bx: 20, bz: -20, base: 19.5, top: 24 }, { ax: 30, az: -20, bx: 20, bz: -20, base: 19.5, top: 24 },
+  { ax: 30, az: -8, bx: 26.5, bz: -8, base: 19.5, top: 24 }, { ax: 23.5, az: -8, bx: 20, bz: -8, base: 19.5, top: 24 },
+];
+const SO_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "spawn-wall", kind: "barrier", x: 0, z: 25, w: 6, d: 1.2, h: 1.2 },
+  { id: "water-tank", kind: "tank", x: 10, z: 18, w: 3, d: 3, h: 3 },
+  { id: "container", kind: "container", x: -10, z: 14, w: 6, d: 2.4, h: 2.6 },
+  { id: "generator", kind: "hvac", x: 18, z: 6, w: 3, d: 2, h: 1.8 },
+  { id: "crates", kind: "crate", x: -14, z: -4, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "deck-barrier", kind: "barrier", x: -4, z: 12, w: 4, d: 1.2, h: 1.2 },
+  { id: "hab-crates", kind: "crate", x: -27, z: 17, w: 1.6, d: 1.6, h: 1.2 },
+]);
+const SO_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // solar panel arrays standing in the yard, that fold flat when the flare hits…
+  { id: "panels-a", x: -14, z: 21, w: 6, d: 1, h: 2.4, phase: "up" },
+  { id: "panels-b", x: 24, z: 14, w: 1, d: 6, h: 2.4, phase: "up" },
+  // …and the heat shields that rise out of the yard to cover the open ground
+  { id: "shield-n", x: 3, z: 12, w: 4, d: 1, h: 2.2, phase: "down" },
+  { id: "shield-w", x: -20, z: 0, w: 1, d: 5, h: 2.2, phase: "down" },
+]);
+
+export const SOLARA_OUTPOST: KillboxArena = {
+  id: "solara-outpost", name: "Solara Outpost", region: "Solara · Relay Mesa", size: "medium",
+  blurb: "A solar relay outpost on a desert mesa in the heat of the day. Take the relay deck in the middle, or the hab roofs on the flanks. When a solar flare hits, the glare is blinding, the panel arrays fold flat and heat shields rise.",
+  site: { x: 800, z: 1180 }, base: ARENA_ALTITUDE, look: "solara-outpost",
+  roofs: SO_ROOFS, walks: SO_WALKS, cover: SO_COVER, ledges: SO_LEDGES, shifters: SO_SHIFTERS,
+  spawns: {
+    us: [[-18, 27], [0, 28], [18, 27], [-33, 25], [33, 25], [-8, 27]],
+    them: [[18, -27], [0, -28], [-18, -27], [33, -25], [-33, -25], [8, -28]],
+  },
+  zones: [{ id: "A", dx: -25, dz: 14 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 25, dz: -14 }], objective: [0, 0],
+  killPlane: 12,
+  fracture: { name: "Solar Flare", brief: "A solar flare hits the mesa: the glare is blinding, the panel arrays fold flat and heat shields rise across the open yard.", first: 80, every: 140, length: 25, warn: 10, visibility: 0.5 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 export const arenasForMode = (mode: PvpModeId): KillboxArena[] => Object.values(ARENAS).filter((a) => a.modes.includes(mode));

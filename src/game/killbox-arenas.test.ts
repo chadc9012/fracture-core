@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { clearDecks, districtDeckAt, registerDeck } from "./district-decks";
 import { clearWalls, collideWalls, setWalls } from "./walls";
-import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
+import { ARENAS, FRACTURE_FLOOR as D, KAIJU_COMPLEX as A, KILLBOX_PRIME as P, NEON_YARD as Y, GLASS_SPIRE as G, RIVERFRONT as RF, SOLARA_OUTPOST as SO, SKYDOCK as S, overArena, SHIFT_SECONDS, arenaForRun, arenaParapets, arenasForMode, shifterBlockers, shifterLift, solidShifters, arenaDecks, arenaForMode, arenaSolids, arenaWalls, belowKillPlane, confine, fractureAt, fractureLine, fractureVisibility, spawnPoint, surfaceAt, toWorld } from "./killbox-arenas";
 import { PVP_MODES, ZONE_RADIUS } from "./pvp";
 import { activityById, currentTarget, startActivity } from "./activities";
 import { DEFAULT_PROGRESSION } from "./progression";
@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates through all six maps match to match", () => {
+  it("each arena playlist rotates through all eight maps match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire"]);
-      expect([0, 1, 2, 3, 4, 5, 6].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "kaiju-complex"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost"]);
+      expect([0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
@@ -357,5 +357,49 @@ describe("Glass Spire", () => {
     expect(glass.every((s) => shifterLift(G, s, 5) === 1 && shifterLift(G, s, t) === 0)).toBe(true);
     expect(shutters.every((s) => shifterLift(G, s, 5) === 0 && shifterLift(G, s, t) === 1)).toBe(true);
     expect(fractureVisibility(G, t)).toBeCloseTo(0.7, 5);
+  });
+});
+
+describe("Riverfront", () => {
+  it("the banks are walled over the quay and its stairs but open to drop off; the river edges are railed; the landings join the bank", () => {
+    clearWalls(); setWalls("rf", arenaWalls(RF));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(RF, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, RF.base + feet); };
+    expect(hit(0, 11.8, 16.5)).toBe(true); // the bank's face from the quay
+    expect(hit(-8, 11.8, 18.2)).toBe(true); // and from part way up the stair: no stepping across
+    expect(hit(0, 12.2, 20)).toBe(false); // from the promenade you can drop to the quay
+    expect(hit(-16, 11.8, 20)).toBe(false); // the landing opens onto the promenade
+    expect(hit(-36, 12.2, 20)).toBe(true); // the promenade's river rail
+    expect(hit(-4, 8.2, 16.5)).toBe(true); // the quay's river edge
+    expect(hit(0, 8.2, 16.5)).toBe(false); // the footbridge mouth
+    clearWalls();
+    expect(surfaceAt(RF, 0, 0)).toBe(16.5); expect(surfaceAt(RF, -30, 0)).toBe(20); expect(surfaceAt(RF, 20, 0)).toBe(-Infinity);
+  });
+  it("the Flood Alert raises the flood barriers and folds the windbreaks, in a downpour", () => {
+    const t = RF.fracture.first + 10, screens = RF.shifters.filter((s) => s.id.startsWith("screen")), flood = RF.shifters.filter((s) => s.id.startsWith("flood"));
+    expect(flood).toHaveLength(6);
+    expect(screens.every((s) => shifterLift(RF, s, 5) === 1 && shifterLift(RF, s, t) === 0)).toBe(true);
+    expect(flood.every((s) => shifterLift(RF, s, 5) === 0 && shifterLift(RF, s, t) === 1)).toBe(true);
+    expect(fractureVisibility(RF, t)).toBeCloseTo(0.6, 5);
+  });
+});
+
+describe("Solara Outpost", () => {
+  it("the relay deck and the hab roofs are walled from the yard except at their ramps and stairs, and open to drop off", () => {
+    clearWalls(); setWalls("so", arenaWalls(SO));
+    const hit = (dx: number, dz: number, feet: number) => { const w = toWorld(SO, dx, dz); return collideWalls({ x: w.x, z: w.z }, 0.45, SO.base + feet); };
+    expect(hit(0, 8.2, 20)).toBe(true); // the deck's face from the yard
+    expect(hit(-8.2, 0, 23)).toBe(false); // the west ramp's top
+    expect(hit(0, 7.8, 23.5)).toBe(false); // from the deck you can drop off
+    expect(hit(-19.8, 14, 20)).toBe(true); // the west hab's wall
+    expect(hit(-25, 7.8, 23.6)).toBe(false); // its stair mouth
+    expect(hit(-35.8, 0, 20)).toBe(true); // the mesa's edge
+    clearWalls();
+    expect(surfaceAt(SO, 0, 0)).toBe(23.5); expect(surfaceAt(SO, -25, 14)).toBe(24); expect(surfaceAt(SO, 25, -14)).toBe(24);
+  });
+  it("the Solar Flare folds the panel arrays and raises the heat shields, in blinding glare", () => {
+    const t = SO.fracture.first + 10, up = SO.shifters.filter((s) => s.phase === "up"), down = SO.shifters.filter((s) => s.phase === "down");
+    expect(up.every((s) => s.id.startsWith("panels") && shifterLift(SO, s, 5) === 1 && shifterLift(SO, s, t) === 0)).toBe(true);
+    expect(down.every((s) => s.id.startsWith("shield") && shifterLift(SO, s, 5) === 0 && shifterLift(SO, s, t) === 1)).toBe(true);
+    expect(fractureVisibility(SO, t)).toBeCloseTo(0.5, 5);
   });
 });
