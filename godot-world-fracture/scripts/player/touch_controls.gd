@@ -163,11 +163,32 @@ func show_hull(frac: float, hurt: float, down_left: float) -> void:
 var _toast: Label
 var _toast_t := 0.0
 ## a line at the top of the screen for a few seconds (a pickup, a message)
+## a message across the top. Two in the same moment used to overwrite each other (a quest's "complete · +XP · +Nex"
+## was replaced by the next quest's title in the same frame and never seen): now each stays at least MIN_TOAST seconds
+## and the next waits its turn; the same line twice is shown once.
+const MIN_TOAST := 2.2
+var _toast_queue: Array[String] = []
+
 func toast(text: String) -> void:
+	if _toast and _toast_t > 0.0 and _toast.text != "":
+		if _toast.text == text or _toast_queue.has(text):
+			return
+		if 3.0 - _toast_t < MIN_TOAST:
+			_toast_queue.append(text)
+			return
+	_show_toast(text)
+
+func _show_toast(text: String) -> void:
 	if not _toast:
 		_toast = Label.new()
-		_toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
-		_toast.position = Vector2(-150, 110)
+		# across the top, centred and wrapped: a fixed 150 px offset put long lines off-centre and off a phone's edge
+		_toast.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		_toast.offset_top = 110
+		_toast.offset_left = 24
+		_toast.offset_right = -24
+		_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_toast.add_theme_font_size_override("font_size", 18)
 		_toast.modulate = Color(0.95, 0.85, 0.5)
 		add_child(_toast)
@@ -253,7 +274,9 @@ func take_look() -> Vector2:
 func _process(_dt: float) -> void:
 	if _toast and _toast_t > 0.0:
 		_toast_t -= _dt
-		if _toast_t <= 0.0:
+		if not _toast_queue.is_empty() and 3.0 - _toast_t >= MIN_TOAST:
+			_show_toast(_toast_queue.pop_front())
+		elif _toast_t <= 0.0:
 			_toast.text = ""
 	if scripted:
 		return

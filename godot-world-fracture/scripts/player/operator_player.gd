@@ -117,10 +117,18 @@ func _slide(to: Vector2, from: Vector2, y: float) -> Vector2:
 	var p := to
 	p.x = clampf(p.x, bounds.position.x + RADIUS, bounds.end.x - RADIUS)
 	p.y = clampf(p.y, bounds.position.y + RADIUS, bounds.end.y - RADIUS)
+	# the boxes within reach this step, found once: every walker, enemy and the operator runs this over every box on the
+	# street (~1,000), and most are far away
+	var reach := RADIUS + (to - from).length() + 0.5
+	var near: Array[AABB] = []
+	for box in obstacles:
+		if p.x < box.position.x - reach or p.x > box.end.x + reach or p.y < box.position.z - reach or p.y > box.end.z + reach:
+			continue
+		if box.end.y <= y + STEP or box.position.y > y + 1.7:
+			continue
+		near.append(box)
 	for i in 2:   # two passes settle corners
-		for box in obstacles:
-			if box.end.y <= y + STEP or box.position.y > y + 1.7:
-				continue
+		for box in near:
 			var cx := clampf(p.x, box.position.x, box.end.x)
 			var cz := clampf(p.y, box.position.z, box.end.z)
 			var d := p - Vector2(cx, cz)
@@ -191,7 +199,12 @@ func _clear_camera(pivot: Vector3, want: Vector3) -> Vector3:
 	var len := dir.length()
 	if len < 0.01:
 		return want
+	var lo := Vector3(minf(pivot.x, want.x), minf(pivot.y, want.y), minf(pivot.z, want.z)) - Vector3.ONE * 0.25
+	var hi := Vector3(maxf(pivot.x, want.x), maxf(pivot.y, want.y), maxf(pivot.z, want.z)) + Vector3.ONE * 0.25
 	for box in obstacles:
+		# only boxes the camera line's own bounds touch (a cheap reject for the ~1,000 on the street)
+		if box.end.x < lo.x or box.position.x > hi.x or box.end.z < lo.z or box.position.z > hi.z or box.end.y < lo.y or box.position.y > hi.y:
+			continue
 		var g := box.grow(0.25)
 		if g.has_point(pivot):
 			continue

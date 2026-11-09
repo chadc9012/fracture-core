@@ -69,6 +69,8 @@ func _ready() -> void:
 	_atrium()
 	_shops()
 	_food_court()
+	# nothing in the mall moves: fold its boxes, shopfront pieces and repeated fittings for the phone (static_batch.gd)
+	preload("res://scripts/static_batch.gd").batch(world)
 	cam = Camera3D.new()
 	cam.fov = 62.0
 	cam.near = 0.05

@@ -61,6 +61,18 @@ func step(dt: float, throttle: float, steer: float, brake: float) -> void:
 func _resolve(p: Vector3) -> Vector3:
 	var f := forward()
 	var out := p
+	# the boxes within reach of the car this step, found once (the street has ~1,000; a car touches a handful)
+	var reach := HALF_LENGTH + RADIUS * 2.0 + 1.0
+	var near: Array[int] = []
+	for bi in obstacles.size():
+		if bi == skip:
+			continue
+		var bb: AABB = obstacles[bi]
+		if p.x < bb.position.x - reach or p.x > bb.end.x + reach or p.z < bb.position.z - reach or p.z > bb.end.z + reach:
+			continue
+		if bb.end.y < 0.3 or bb.position.y > 1.5:
+			continue
+		near.append(bi)
 	for pass_ in 2:
 		for k: float in [-1.0, 0.0, 1.0]:
 			var c := out + f * (k * HALF_LENGTH)
@@ -69,11 +81,9 @@ func _resolve(p: Vector3) -> Vector3:
 			if cx != c.x or cz != c.z:
 				out += Vector3(cx - c.x, 0, cz - c.z)
 				c = Vector3(cx, c.y, cz)
-			for bi in obstacles.size():
-				if bi == skip:
-					continue
+			for bi in near:
 				var box: AABB = obstacles[bi]
-				if box.end.y < 0.3 or box.position.y > 1.5:
+				if c.x < box.position.x - RADIUS or c.x > box.end.x + RADIUS or c.z < box.position.z - RADIUS or c.z > box.end.z + RADIUS:
 					continue
 				var qx := clampf(c.x, box.position.x, box.end.x)
 				var qz := clampf(c.z, box.position.z, box.end.z)

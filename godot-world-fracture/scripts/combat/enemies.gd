@@ -50,6 +50,9 @@ class Enemy:
 	## 0 = hostile to the operator (the default); 1 = the operator's own team (Killbox allies): bots fight the other team
 	var team := 0
 	var tint := Color(0, 0, 0, 0)
+	## a one-off (a mission's guard): once down it stays down instead of standing again at its spawn
+	var stays_down := false
+	var fell := false          # has been down at least once
 
 var player: Node3D
 var gunplay: Node3D
@@ -210,6 +213,9 @@ func step(dt: float) -> void:
 func _step_enemy(e: Enemy, dt: float) -> void:
 	var m: Node3D = e.mover
 	if e.state == State.DOWN:
+		e.fell = true
+		if e.stays_down:
+			return
 		e.timer -= dt
 		if e.timer <= 0.0:
 			e.state = State.PATROL
@@ -318,7 +324,12 @@ func _clear(from: Vector3, to: Vector3) -> bool:
 	if len < 0.01:
 		return true
 	dir /= len
+	var lo := Vector3(minf(from.x, to.x), minf(from.y, to.y), minf(from.z, to.z))
+	var hi := Vector3(maxf(from.x, to.x), maxf(from.y, to.y), maxf(from.z, to.z))
 	for b in player.obstacles:
+		# only boxes inside the sight line's own bounds can block it
+		if b.end.x < lo.x or b.position.x > hi.x or b.end.z < lo.z or b.position.z > hi.z or b.end.y < lo.y or b.position.y > hi.y:
+			continue
 		var p: Variant = b.intersects_ray(from, dir)
 		if p != null and from.distance_to(p) < len:
 			return false

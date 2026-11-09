@@ -18,8 +18,23 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func step(name: String) -> void:
+	if steps > 0:
+		_finite_check()
 	steps += 1
 	print("STEP %d %s" % [steps, name])
+
+## a 3D node with a NaN / infinite transform is never drawn and the renderer rejects it every frame (the street's
+## civilians spawned at z = NaN for a while); any such node is a problem for the step that made it
+func _finite_check() -> void:
+	var bad := 0
+	var first := ""
+	for n in root.find_children("*", "Node3D", true, false):
+		if not (n as Node3D).transform.is_finite():
+			bad += 1
+			if first == "":
+				first = "%s (%s)" % [n.name, n.get_parent().get_script().resource_path.get_file() if n.get_parent() and n.get_parent().get_script() else n.get_parent().name]
+	if bad > 0:
+		problem("%d nodes have a non-finite transform, first %s" % [bad, first])
 
 func problem(text: String) -> void:
 	problems.append(text)
@@ -69,7 +84,10 @@ func _run() -> void:
 	await leak_check("operator creator", base)
 	await _play_regions()
 	await leak_check("regions", base)
+	await _play_modes()
+	await leak_check("missions and modes", base)
 
+	_finite_check()
 	print("playthrough: %d steps, %d problems" % [steps, problems.size()])
 	for p in problems:
 		print("  - ", p)
@@ -268,3 +286,66 @@ func _play_regions() -> void:
 			await frames(4)
 		main._close_map()
 		await frames(4)
+
+# ---------------------------------------------------------------- missions and game modes
+## each one opened, played for a stretch (the operator or the car moving) and closed: errors, NaNs and leaks show here
+func _play_modes() -> void:
+	step("mission 01")
+	main._open_mission()
+	await frames(30)
+	if main.mission == null:
+		problem("Mission 01 did not open")
+	else:
+		main._close_mission()
+	await frames(4)
+	step("fracture descent")
+	main._open_descent()
+	await frames(10)
+	if main.descent == null:
+		problem("the Fracture Descent did not open")
+	else:
+		main.descent.controls.move = Vector2(0, 1)
+		await frames(40)
+		main.descent.controls.move = Vector2.ZERO
+		main._close_descent()
+	await frames(4)
+	for id in load("res://scripts/killbox/arena.gd").arena_ids():
+		step("killbox %s" % id)
+		main._open_killbox()
+		await frames(3)
+		var kb = main.killbox
+		if kb == null:
+			problem("the Killbox did not open")
+			break
+		if kb._picker:
+			kb._picker.queue_free()
+			kb._picker = null
+		kb.arena_id = String(id)
+		kb._start()
+		await frames(10)
+		kb.controls.move = Vector2(0, 1)
+		kb.controls.fire = true
+		await frames(60)
+		kb.controls.fire = false
+		kb.controls.move = Vector2.ZERO
+		main._close_killbox()
+		await frames(4)
+	step("raid 01")
+	main._open_modes()
+	main.modes.open_mode("raids")
+	main.modes._launch_raid("broken-gate")
+	await frames(60)
+	main._close_modes()
+	await frames(4)
+	step("street race")
+	main._open_modes()
+	main.modes.open_mode("races")
+	main.modes._launch_race("neon-circuit")
+	await frames(60)
+	main._close_modes()
+	await frames(4)
+	step("speedway")
+	main._open_race()
+	await frames(60)
+	main._close_race()
+	await frames(4)

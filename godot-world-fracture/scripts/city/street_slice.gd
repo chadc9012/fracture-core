@@ -42,6 +42,7 @@ var traffic: Node3D
 ## z = k * TILE, so the builders below work in tile-local coordinates (`_tile_root` set while a tile is being built).
 const District = preload("res://scripts/city/district.gd")
 const Civilians = preload("res://scripts/city/civilians.gd")
+const StaticBatch = preload("res://scripts/static_batch.gd")
 var civilians: Node3D
 var _shots_seen := 0
 var district: RefCounted
@@ -120,6 +121,8 @@ func _ready() -> void:
 		_neon()
 		if style == "neon":
 			_neon()   # Neon City: twice the signage
+	# the phone's draw budget: the block's static pieces folded into a few meshes per cell (static_batch.gd)
+	StaticBatch.batch(world)
 	cam = Camera3D.new()
 	cam.fov = 58.0
 	cam.near = 0.05
@@ -222,9 +225,12 @@ func _spawn_player() -> void:
 	# civilians (civilians.gd): ten walkers on the sidewalks of the active blocks
 	civilians = Civilians.new()
 	world.add_child(civilians)
+	# the district's first update has to come before the walkers are placed: before it every tile is frozen, the active
+	# span is (INF, -INF) and every walker spawned at z = NaN (the renderer then rejected their transforms every frame)
+	var first_plan: Dictionary = district.update(operator.position.z, true)
 	var act0: Vector2 = district.extent(District.State.ACTIVE)
 	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, 10, 9)
-	_apply_district(district.update(operator.position.z, true))
+	_apply_district(first_plan)
 	gunplay.killed.connect(func(t: Variant) -> void:
 		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
 		var source := "enemy"
@@ -359,6 +365,7 @@ func _build_tile(k: int) -> Node3D:
 	_dressing()
 	if night:
 		_neon()
+	StaticBatch.batch(root)
 	_rng.seed = keep_seed
 	_tile_root = null
 	_tile_k = 0
@@ -872,6 +879,7 @@ func _cars() -> void:
 						gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 						break
 					up = up.get_parent()
+			StaticBatch.compact(car)   # ~40 draws a car down to one per look
 			if _tile_root:
 				var a := _aabb(car)
 				car.set_meta("size", Vector3(a.size.x, a.size.y, a.size.z))
@@ -912,10 +920,19 @@ func _sign(text: String, c: Color, pos: Vector3, yaw_deg: float, vertical: bool)
 	label.position = Vector3(0, 0, 0.14)
 	label.shaded = false
 	holder.add_child(label)
+	# a glow light only where no other sign has one within 14 m: a light per sign was ~190 lights a night street, and
+	# the phone's renderer pays for every one (and lights a mesh with 8 at most); the emissive neon and the glow carry the rest
+	var at := pos + Basis(Vector3.UP, deg_to_rad(yaw_deg)) * Vector3(0, 0, 1.2)
+	var lit: Array = _root().get_meta("sign_lights", [])
+	for q: Vector3 in lit:
+		if q.distance_to(at) < 14.0:
+			return
+	lit.append(at)
+	_root().set_meta("sign_lights", lit)
 	var glow := OmniLight3D.new()
 	glow.light_color = c
-	glow.light_energy = 1.4
-	glow.omni_range = 7.0
+	glow.light_energy = 2.0
+	glow.omni_range = 9.0
 	glow.position = Vector3(0, 0, 1.2)
 	holder.add_child(glow)
 
@@ -1075,6 +1092,7 @@ func _hub_dressing() -> void:
 		ring.material_override = _neon_mat(cyan if i != 1 else Color(0.75, 0.4, 1.0), 2.0)
 		ring.position = spire + Vector3(0, 10.0 - i * 14.0, 0)
 		ring.rotation_degrees = Vector3(8.0 * (i - 1), 0, 6.0 * (1 - i))
+		ring.set_meta("dynamic", true)   # turns every frame
 		world.add_child(ring)
 		_rings.append(ring)
 	# the district sign by the spawn: where the shops, the armoury, the garage, the arena and the apartments are
@@ -1122,6 +1140,7 @@ func _hub_dressing() -> void:
 		frame.rotation_degrees.y = mi.rotation_degrees.y
 	# the train: three cars on the beam, running +z and looping
 	_train = Node3D.new()
+	_train.set_meta("dynamic", true)   # runs the length of the street
 	_train.position = Vector3(-(ROAD_W * 0.5 - 3.0), 14.4, -LENGTH * 0.5)
 	world.add_child(_train)
 	var shell := flat(Color(0.9, 0.92, 0.95), 0.3, 0.6)
@@ -1200,6 +1219,7 @@ func _garage_front() -> void:
 			car.position = spec[1]
 			car.rotation_degrees.y = float(spec[2])
 			car.set_meta("car", true)
+			StaticBatch.compact(car)
 			world.add_child(car)
 
 func open_garage() -> void:

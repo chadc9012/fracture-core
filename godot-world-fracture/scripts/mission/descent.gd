@@ -102,6 +102,14 @@ func _ready() -> void:
 	add_child(back)
 	_begin(progress.current)
 
+## where a downed operator comes back: the last relay locked (not the chapter's start, up to 400 m back)
+func _respawn_point() -> Vector3:
+	if not quest.is_empty() and String(quest.kind) == "trace" and int(progress.relay) > 0:
+		return _on_ground(_relays[mini(int(progress.relay), 3) - 1] - _dir * 15.0)
+	if not quest.is_empty() and String(quest.kind) == "reach":
+		return _on_ground(_relays[2] - _dir * 15.0)
+	return _spawn_origin
+
 func _on_ground(p: Vector3) -> Vector3:
 	var half: float = region.span() * 0.5 - 25.0
 	var q := Vector3(clampf(p.x, -half, half), 0, clampf(p.z, -half, half))
@@ -124,6 +132,9 @@ func _begin(id: String) -> void:
 			_spawn_t = 1.0
 		"trace":
 			_set_waypoint(_relays[mini(int(progress.relay), 2)], true)
+			if int(progress.relay) >= 3:
+				# picked up at the source (a reload, or back from the globe): its guards are there again
+				_spawn_guards()
 		"reach":
 			_set_waypoint(_edge, true)
 	_refresh()
@@ -168,11 +179,9 @@ func _on_kill(_t: Variant) -> void:
 		progress.kills = int(progress.kills) + 1
 		if int(progress.kills) >= int(quest.amount):
 			_complete()
-	elif quest.kind == "trace" and int(progress.relay) >= 3 and enemies.kills >= _source_kills + 3:
-		_complete()
 	_refresh()
 
-var _source_kills := 0
+var _guards: Array = []      # the source's guards: fd-03 is done when all three are down
 var _respawn_t := 0.0
 
 func _complete() -> void:
@@ -231,7 +240,7 @@ func _refresh() -> void:
 			if int(progress.relay) < 3:
 				_objective.text = "%s\nRelay %d / 3 · %d m" % [quest.title, int(progress.relay) + 1, int(d)]
 			else:
-				_objective.text = "%s\nBreak the source: %d / 3 guards down" % [quest.title, clampi(enemies.kills - _source_kills, 0, 3)]
+				_objective.text = "%s\nBreak the source: %d / 3 guards down" % [quest.title, _guards_down()]
 		"reach":
 			_objective.text = "%s\n%s · %d m" % [quest.title, quest.label, int(d)]
 
@@ -243,7 +252,7 @@ func _process(dt: float) -> void:
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:
-			operator.position = _spawn_origin
+			operator.position = _respawn_point()
 			operator.velocity = Vector3.ZERO
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if controls.take_next():
@@ -269,14 +278,14 @@ func _process(dt: float) -> void:
 				if int(progress.relay) < 3:
 					_set_waypoint(_relays[int(progress.relay)], true)
 				else:
-					# the source: a marksman and two scouts guard it
-					_source_kills = enemies.kills
-					_set_waypoint(_relays[2], false)
-					for k in 3:
-						var a := k * TAU / 3.0
-						enemies.spawn("marksman" if k == 0 else "scout", _on_ground(_relays[2] + Vector3(cos(a), 0, sin(a)) * 12.0))
+					_spawn_guards()
 					controls.toast("The source is guarded")
 				_save()
+			elif int(progress.relay) >= 3 and _guards.size() == 3 and _guards_down() >= 3:
+				# counted from the guards themselves: the kill counter only catches up on the next enemy step, so
+				# checking it from the kill signal missed the third guard and left the chapter stuck
+				_complete()
+				return
 			_refresh()
 		"reach":
 			var d2 := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
@@ -284,6 +293,25 @@ func _process(dt: float) -> void:
 				_complete()
 			elif Engine.get_process_frames() % 15 == 0:
 				_refresh()
+
+## the source: a marksman and two scouts guard it (once; they stay down when shot, they don't respawn into it)
+func _spawn_guards() -> void:
+	if not _guards.is_empty():
+		return
+	# the marker stays over the source until it's broken (picked up after a reload you start back at the crash site)
+	_set_waypoint(_relays[2], true)
+	for k in 3:
+		var a := k * TAU / 3.0
+		var e: RefCounted = enemies.spawn("marksman" if k == 0 else "scout", _on_ground(_relays[2] + Vector3(cos(a), 0, sin(a)) * 12.0))
+		e.stays_down = true      # a shot guard stays down (they used to stand again 8 s later)
+		_guards.append(e)
+
+func _guards_down() -> int:
+	var n := 0
+	for e in _guards:
+		if e.state == Enemies.State.DOWN or e.fell:
+			n += 1
+	return n
 
 func _alive() -> int:
 	var n := 0

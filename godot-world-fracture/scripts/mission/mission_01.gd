@@ -271,6 +271,20 @@ func _hero(file: String, height: float, pos: Vector3, yaw_deg: float, solid := t
 		_block(Vector3(absf(rotated.x), sz.y, absf(rotated.z)) * Vector3(0.9, 1.0, 0.9), pos + Vector3(0, sz.y * 0.5, 0))
 	return h
 
+## an upholstered armchair (there is no armchair model: the scene asked for armchair.glb, which never existed, so the
+## apartment and the lobby lounge had empty spots and a warning on every load): seat, back and two arms, one solid
+func _armchair(pos: Vector3, yaw_deg: float, col: Color) -> void:
+	var holder := Node3D.new()
+	world.add_child(holder)
+	holder.position = pos
+	holder.rotation_degrees.y = yaw_deg
+	var cloth := Materials.surface("fabric_pattern_07", col, 0.5)
+	_box(Vector3(0.82, 0.42, 0.78), Vector3(0, 0.21, 0.02), cloth, holder)
+	_box(Vector3(0.82, 0.55, 0.18), Vector3(0, 0.66, 0.36), cloth, holder)
+	for sx: float in [-0.46, 0.46]:
+		_box(Vector3(0.14, 0.6, 0.86), Vector3(sx, 0.3, 0.02), cloth, holder)
+	_block(Vector3(0.95, 0.9, 0.9), Vector3(0, 0.45, 0.02), holder)
+
 var _stone: StandardMaterial3D
 ## polished white stone for counters and tables (the tile sets read as tiles on furniture)
 func _stone_top() -> StandardMaterial3D:
@@ -523,7 +537,7 @@ func _apartment() -> void:
 		_solid(Vector3(4.0, 0.45, 1.0), c + Vector3(2.0, 0.23, 1.4), sofa)
 		_box(Vector3(4.0, 0.7, 0.3), c + Vector3(2.0, 0.6, 1.85), sofa)
 		_solid(Vector3(1.0, 0.45, 2.2), c + Vector3(-0.4, 0.23, 0.2), sofa)
-	_hero("armchair.glb", 0.95, c + Vector3(-0.4, 0, -2.6), 60.0)
+	_armchair(c + Vector3(-0.4, 0, -2.6), 60.0, Color(0.32, 0.33, 0.36))
 	var table_id: String = haven.get("table", "")
 	if table_id == "table-glass":
 		var steel := flat(Color(0.55, 0.57, 0.6), 0.3, 0.9)
@@ -726,8 +740,8 @@ func _lobby() -> void:
 		_solid(Vector3(3.6, 0.45, 1.0), c + Vector3(-7.0, 0.23, 6.8), sofa)
 		_box(Vector3(3.6, 0.7, 0.3), c + Vector3(-7.0, 0.6, 7.25), sofa)
 		_solid(Vector3(1.0, 0.45, 2.6), c + Vector3(-9.6, 0.23, 5.0), sofa)
-	_hero("armchair.glb", 0.95, c + Vector3(-3.6, 0, 4.2), -120.0)
-	_hero("armchair.glb", 0.95, c + Vector3(-10.4, 0, 3.4), 120.0)
+	_armchair(c + Vector3(-3.6, 0, 4.2), -120.0, Color(0.55, 0.53, 0.56))
+	_armchair(c + Vector3(-10.4, 0, 3.4), 120.0, Color(0.55, 0.53, 0.56))
 	_solid(Vector3(1.8, 0.4, 1.0), c + Vector3(-6.6, 0.2, 4.8), _stone_top())
 	_person("mara", "woman.glb", c + Vector3(-5.0, 0, 5.2), PI * 0.8, func() -> void: _npc("mara", "f-athletic", "female", "nyx", c + Vector3(-5.0, 0, 5.2), PI * 0.8))
 	_interact("lobby", c + Vector3(-5.0, 0, 5.2), 2.0, "Say hi to Mara", func() -> void: _morning("neighbour"), func() -> bool: return _todo("neighbour"), "neighbour")
@@ -816,7 +830,7 @@ func _todo(step: String) -> bool:
 
 func _morning(step: String) -> void:
 	var lines := story.mark(step, _now)
-	_say(lines)
+	_say(lines, story.phase == "ALARM")
 	if story.phase == "ALARM":
 		_alarm_on()
 	_save()
@@ -1180,7 +1194,7 @@ func _on_hurt(_h: float) -> void:
 func _story_event(ev: String) -> void:
 	var before := story.phase
 	var lines := story.event(ev, _now)
-	_say(lines)
+	_say(lines, story.phase != before)
 	if story.phase != before:
 		_on_phase()
 
@@ -1381,8 +1395,22 @@ func _use() -> void:
 	(_focus.act as Callable).call()
 
 # --------------------------------------------------------------------------------------------- subtitles
-func _say(lines: Array) -> void:
+## queue subtitle lines. A line already on screen or already waiting is not queued again (pressing an interaction over
+## and over used to stack the same line a dozen times, holding the story's next beat back behind it). `interrupt` drops
+## what was waiting and shows the first new line now: the story's beats (the alarm, the cinematic, the surge) never
+## wait behind chatter.
+func _say(lines: Array, interrupt := false) -> void:
+	if lines.is_empty():
+		return
+	if interrupt:
+		_lines.clear()
+		_line_t = 0.0
 	for l in lines:
+		var text := String(l[1])
+		if _sub_text.get_parent().visible and _sub_text.text == text and _line_t > 0.0:
+			continue
+		if _lines.any(func(q: Array) -> bool: return String(q[1]) == text):
+			continue
 		_lines.append(l)
 	if _line_t <= 0.0:
 		_next_line()

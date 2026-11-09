@@ -274,6 +274,9 @@ func _build_slope_rock() -> void:
 			if slope < 0.8 or rng.randf() > 0.06 + high * 0.1:
 				continue
 			var s := rng.randf_range(1.2, 3.0) * (1.0 + slope * 0.3)
+			# rocks may cluster into an outcrop, but never through a tree
+			if not _space_free(lx, lz, s * 0.9):
+				continue
 			rocks.append(Transform3D(Basis.from_euler(Vector3(rng.randf_range(-0.4, 0.4), rng.randf() * TAU, rng.randf_range(-0.4, 0.4))).scaled(Vector3(s * 1.4, s * 0.8, s)), Vector3(lx, y - s * 0.25, lz)))
 	if rocks.is_empty():
 		return
@@ -454,6 +457,8 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	if CITY_ROAD_MARKINGS:
 		_build_road_markings_batch_19_43()
 	_build_rings()
+	_space = {}
+	space_rejected = 0
 	_build_trees()
 	_build_slope_rock()
 	_build_floating()
@@ -1056,9 +1061,14 @@ func _build_trees() -> void:
 				if y < _water + 0.5:
 					continue
 				var s := 0.75 + fposmod(roll * 13.7, 1.0) * 0.7
+				# the trunk and the crown's core (the crown's skirt may brush a neighbour's, as in a real forest)
+				if not _space_claim(lx, lz, 1.1 * s):
+					continue
 				trees.append(Transform3D(Basis(Vector3.UP, roll * TAU).scaled(Vector3(s, s * (0.9 + roll * 0.4), s)), Vector3(lx, y - 0.2, lz)))
 			elif cv == crystal and roll < 0.12 and shards.size() < 4000:
 				var s2 := 0.6 + roll * 8.0
+				if not _space_claim(lx, lz, 0.35 * s2):
+					continue
 				shards.append(Transform3D(Basis.from_euler(Vector3((roll - 0.06) * 3.0, roll * 40.0, (0.06 - roll) * 2.0)).scaled(Vector3(s2 * 0.5, s2 * 1.6, s2 * 0.5)), Vector3(lx, _h(lx, lz), lz)))
 	if not trees.is_empty():
 		var cold := map_id == "frostspire"
@@ -1079,6 +1089,37 @@ func _build_trees() -> void:
 		mat.roughness = 0.1
 		mat.metallic = 0.3
 		_multimesh(cm, shards, mat)
+
+# ---------------- spacing: trees, rocks and shards never stand inside each other ----------------
+## Scattered things are placed on a jittered grid, and two neighbours could land on top of each other (a pine growing out
+## of another pine's trunk, a boulder through a trunk, a crystal through a tree). Each placed thing claims a footprint
+## circle in a 6 m hash; a new one that would overlap a claimed footprint is dropped.
+const SPACE_CELL := 6.0
+var _space := {}
+var space_rejected := 0
+
+func _space_free(x: float, z: float, r: float) -> bool:
+	var c := Vector2i(floori(x / SPACE_CELL), floori(z / SPACE_CELL))
+	var reach := int(ceil((r + 4.0) / SPACE_CELL))
+	for dj in range(-reach, reach + 1):
+		for di in range(-reach, reach + 1):
+			for q: Vector3 in _space.get(c + Vector2i(di, dj), []):
+				if Vector2(q.x - x, q.y - z).length() < q.z + r:
+					space_rejected += 1
+					return false
+	return true
+
+func _space_take(x: float, z: float, r: float) -> void:
+	var c := Vector2i(floori(x / SPACE_CELL), floori(z / SPACE_CELL))
+	if not _space.has(c):
+		_space[c] = []
+	_space[c].append(Vector3(x, z, r))
+
+func _space_claim(x: float, z: float, r: float) -> bool:
+	if not _space_free(x, z, r):
+		return false
+	_space_take(x, z, r)
+	return true
 
 const CLEAR_N := 256
 func _cell(lx: float, lz: float) -> int:
@@ -1268,11 +1309,15 @@ func _build_floating() -> void:
 			var lz := p.y + sin(ang) * d
 			var ly := top + r * 0.06 * (1.0 - d / r) - 0.3
 			var sc := 0.8 + rng.randf() * 0.7
+			if not _space_claim(lx, lz, 1.1 * sc):
+				continue
 			trees.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc * (0.9 + rng.randf() * 0.4), sc)), Vector3(lx, ly, lz)))
 		for bi in 3 + int(r / 12.0):
 			var ang2 := rng.randf() * TAU
 			var d2 := (0.4 + rng.randf() * 0.5) * r
 			var bs := 1.2 + rng.randf() * 2.4
+			if not _space_claim(p.x + cos(ang2) * d2, p.y + sin(ang2) * d2, bs):
+				continue
 			boulders.append(Transform3D(Basis.from_euler(Vector3(rng.randf(), rng.randf() * TAU, rng.randf())).scaled(Vector3(bs, bs * 0.7, bs)),
 				Vector3(p.x + cos(ang2) * d2, top + r * 0.06 * (1.0 - d2 / r) + bs * 0.2, p.y + sin(ang2) * d2)))
 	if not trees.is_empty():

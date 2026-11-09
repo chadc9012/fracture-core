@@ -162,6 +162,15 @@ func _attach_head(body_head: int) -> void:
 	var gear := _gear(hb, hair_col)
 	if gear:
 		holder.add_child(gear)
+	# headgear over built hair: tuck the hair under it (a beanie's shell sits 24 mm out, a cap's 16, a bandana's 14)
+	if hair_mesh and look.headgear in ["beanie", "beanie-red", "cap", "bandana"]:
+		var lift: float = { "beanie": 0.024, "beanie-red": 0.024, "cap": 0.016, "bandana": 0.014 }[look.headgear]
+		var mean_r := (hb.radii.x + hb.radii.y + (hb.az_front + hb.az_back) * 0.5) / 3.0
+		var hm2 := hair_mesh.material_override as ShaderMaterial
+		hm2.set_shader_parameter("tuck", 1.0)
+		hm2.set_shader_parameter("skull_c", hb.centre)
+		hm2.set_shader_parameter("skull_r", Vector3(hb.radii.x, hb.radii.y, (hb.az_front + hb.az_back) * 0.5))
+		hm2.set_shader_parameter("tuck_k", 1.0 + (lift - 0.004) / mean_r)
 
 ## vertex normals rebuilt after the sculpt, welded by position so the head's UV seams don't show
 static func _normals(vs: PackedVector3Array, idx: PackedInt32Array, old: PackedVector3Array) -> PackedVector3Array:
@@ -281,6 +290,22 @@ render_mode cull_disabled;
 uniform vec3 tint : source_color = vec3(0.07);
 uniform float curly = 0.0;
 uniform float knit = 0.0;
+// under a beanie, cap or bandana: the hair above the band is pressed inside the headgear's shell instead of poking
+// through it (skull_c / skull_r are the fitted skull in head space; tuck_k how far out the shell sits, in skull radii)
+uniform float tuck = 0.0;
+uniform vec3 skull_c = vec3(0.0, 0.09, -0.005);
+uniform vec3 skull_r = vec3(0.085, 0.11, 0.1);
+uniform float tuck_k = 1.12;
+void vertex() {
+	if (tuck > 0.5) {
+		vec3 v = VERTEX - skull_c;
+		float k = length(v / skull_r);
+		if (k > tuck_k) {
+			float up = smoothstep(-0.015, 0.02, v.y);
+			VERTEX = mix(VERTEX, skull_c + v / k * tuck_k, up);
+		}
+	}
+}
 float h1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n1(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(h1(i), h1(i + vec2(1, 0)), f.x), mix(h1(i + vec2(0, 1)), h1(i + vec2(1, 1)), f.x), f.y); }

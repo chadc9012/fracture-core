@@ -1,4 +1,5 @@
 extends Control
+const StaticBatch = preload("res://scripts/static_batch.gd")
 const Phone := preload("res://scripts/phone.gd")
 ## The racing venue (the Dec 4 plan, phase 5): Nexus Speedway as a scene — the track laid along track.gd's centreline (asphalt
 ## segments, red-and-white kerbs, grass, a wall at the edge), grandstands full of seats on the straights, the pit lane and
@@ -78,6 +79,8 @@ func _ready() -> void:
 		_stands()
 		_pit()
 	_gantry()
+	# the venue's static pieces (stands, kerbs, barriers, pit garages: ~2,500 boxes) folded for the phone; before the cars
+	StaticBatch.batch(world)
 	cam = Camera3D.new()
 	cam.fov = 62.0
 	cam.near = 0.1
@@ -270,6 +273,7 @@ func _gantry() -> void:
 		m.emission_energy_multiplier = 0.0
 		mi.material_override = m
 		mi.position = s0 + side * ((i - 2) * 1.2) + Vector3(0, 6.5, 0)
+		mi.set_meta("dynamic", true)   # the start lights change colour
 		world.add_child(mi)
 		lights.append(mi)
 
@@ -416,6 +420,7 @@ func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 	else:
 		node = Node3D.new()
 	StreetCar.face_forward(node)
+	StaticBatch.compact(node)
 	world.add_child(node)
 	node.transform = at
 	var perf := { "max_speed": 34.0, "acceleration": 11.0, "steering": 1.1, "braking": 16.0 }
