@@ -139,7 +139,8 @@ func _pick_mode() -> void:
 	box.add_child(title)
 	for mid in a.def.get("modes", ["clash"]):
 		var m: Dictionary = Arena.mode(String(mid))
-		if m.is_empty() or String(m.get("kind", "")) == "royale":
+		# Extraction (kind "extract", web pvp.ts) has no Godot rules yet: killbox_match.gd would play it as a deathmatch
+		if m.is_empty() or String(m.get("kind", "")) in ["royale", "extract"]:
 			continue
 		var b := Button.new()
 		b.text = "%s — %s" % [String(m.name).to_upper(), String(m.tagline)]

@@ -28,14 +28,12 @@ Rows are the lock; `git fetch` before you claim.
 | --- | --- | --- |
 | Step 7: front door and the loop — title screen → operator → Apartment 12-04 → the Nexus street hub with in-world doors to garage / mall / Killbox / airport / Rift Gate / Descent; settings screen; the globe as the travel map | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
 | Asset gap 5 (Godot): Fracture creatures & bosses — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus as boss fights (web phases + poise rules, attacks, adds) on the authored boss / enemy GLBs | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
-| Killbox bots and the PvP maps board's arenas (all eleven built, Void Rift last), then the web Killbox's Extraction and Ranked modes in pvp.ts (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
-| Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront, Solara Outpost, Frostveil Ring and Thalassia Dome arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
 - Step 10 (after step 7 lands): economy and progression — one profile for XP / levels / Nex across every mode, loot into the inventory from Killbox, bosses and missions, shop prices, daily goals.
 - Step 11 (after step 7 lands): story — fd-05 onward (Verdant Forest → Neon City), cutscene playback from the web's story data, Vyrak as the act boss at the Rift Gate.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
-  2. PvP modes missing from pvp.ts: Extraction, Ranked (owner's board) — web-side rules + bots (killbox web session), then re-export to Godot.
+  2. Done in the web build (Nov 9): Extraction and Ranked are in pvp.ts with bots and re-exported; left for Godot: Extraction's core rules in killbox_match.gd (port pvp.ts `stepExtract`; it is hidden from the Godot picker until then — Ranked already plays there as Dominion).
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
