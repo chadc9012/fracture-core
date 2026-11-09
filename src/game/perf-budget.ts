@@ -87,7 +87,16 @@ export function setPerfTier(next: RenderTier) { if (next !== tier) { tier = next
  * past `near` metres: every 2nd; off screen: every 6th. The skipped time is carried into the next step, so clips keep pace. */
 export function animStride(dist: number, inView: boolean, near = 14): number {
   if (!inView) return 6;
+  // a body a city block away is a few pixels tall on a phone: a quarter of the steps reads the same (Nov 9 perf pass)
+  if (dist > 60) return 4;
   return dist > near ? 2 : 1;
+}
+/** false when the object or any parent is hidden (a pocket room's CameraNear group while you're elsewhere, a far LOD): its
+ * skeleton isn't drawn, so there's nothing to animate. Nov 9: ~45 shopkeepers in every other room and the outdoor
+ * townspeople and foxes were all stepping their mixers while the player stood in Apartment 12-04. */
+export function shownInScene(o: { visible: boolean; parent: unknown } | null): boolean {
+  for (let p = o as { visible: boolean; parent: unknown } | null; p; p = p.parent as typeof p) if (!p.visible) return false;
+  return true;
 }
 /** on screen, roughly: within a cone around the camera's forward direction (cosine of the half-angle; generous, so bodies at
  * the screen edge never stutter). `fx,fy,fz` is the unit forward vector, `dx,dy,dz` camera-to-body. */

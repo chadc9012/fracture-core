@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { farProxies, isProxied, PROXY_COLOR, PROXY_RADIUS, PROXY_MAX, foliageTris, heavyShadows, LIGHT_CAP, maxInstances, nearestWithin, pickLights, regionModelTris, setPerfTier, getPerfTier, perfTierVersion } from "./perf-budget";
+import { farProxies, isProxied, PROXY_COLOR, PROXY_RADIUS, PROXY_MAX, foliageTris, heavyShadows, LIGHT_CAP, maxInstances, nearestWithin, pickLights, regionModelTris, setPerfTier, getPerfTier, perfTierVersion, shownInScene, animStride } from "./perf-budget";
 import { DPR_FLOOR, effectiveTier, MIN_STEP_SECONDS, onDecline, stepDownTier } from "./quality-governor";
 
 describe("budgets", () => {
@@ -73,5 +73,20 @@ describe("far silhouettes", () => {
   test("trees, rocks and standing dead trunks keep a far proxy; plants do not", () => {
     for (const k of ["fir", "broadleaf", "rock", "log"] as const) { expect(isProxied(k)).toBe(true); expect(PROXY_RADIUS[k]).toBeGreaterThan(0); expect(PROXY_COLOR[k]).toMatch(/^#[0-9a-f]{6}$/); }
     for (const k of ["shrub", "fern"] as const) expect(isProxied(k)).toBe(false);
+  });
+});
+
+describe("shownInScene (Nov 9: hidden rooms' shopkeepers stopped animating)", () => {
+  test("hidden anywhere up the parents means not shown", () => {
+    const room = { visible: false, parent: null };
+    const body = { visible: true, parent: { visible: true, parent: room } };
+    expect(shownInScene(body)).toBe(false);
+    room.visible = true;
+    expect(shownInScene(body)).toBe(true);
+  });
+  test("a far body in view steps a quarter as often", () => {
+    expect(animStride(80, true)).toBe(4);
+    expect(animStride(30, true)).toBe(2);
+    expect(animStride(5, true)).toBe(1);
   });
 });
