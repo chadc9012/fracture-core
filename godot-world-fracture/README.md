@@ -382,7 +382,10 @@ region under the same operator, guns, troopers and gear (wildlife in the wilds o
 letterbox, an orbiting camera, speaker and caption, tap to advance, SKIP) open each quest and carry the owner's
 recordings — Mara at the crash site, Dr Aris's World Anchor log from the terminal, Serik Vale's recording at the core,
 Vaelith's first contact as the act's last word (Act 2 is the Ember Peaks) — with Vyrak's lines from dragon-covenant.ts
-before and after the fight. `tests/mission/descent_play.tscn` plays the whole act headless: the forest on foot, the
+before and after the fight. The beats speak: `Cutscene.line(id)` takes a voiced campaign line (`scripts/cinema/lines.gd`; the forest arrival M06, Fixer
+Sable in Neon City M11, Vyrak's Covenant of Ash M09 / M10 before, at the stagger and after the fight — the owner's
+canon over the web's placeholder lines), and a written beat whose speaker and text are in the index is voiced too.
+`tests/mission/descent_play.tscn` plays the whole act headless: the forest on foot, the
 crossing, the fog skipped forward, the relay, the terminal under drones, three waves, Vyrak shot down, the Covenant.
 
 **Economy and progression** (`scripts/progress/`, schedule step 10, Nov 9): one profile. Every mode pays through

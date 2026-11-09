@@ -1,5 +1,6 @@
 extends Node3D
 const Sound := preload("res://scripts/audio/sound.gd")
+const Lines := preload("res://scripts/cinema/lines.gd")
 ## A Fracture boss on the field (boss.gd rules): the authored hull scaled to the row's size, walking the ground toward the
 ## operator while the rules say APPROACH, turning to face it otherwise, flaring red on a telegraph, glowing at the core
 ## while staggered or at a weak point. Attacks land as the rules fire them — LUNGE / SLAM hit the operator inside the
@@ -181,6 +182,8 @@ func step(dt: float) -> void:
 			"stagger":
 				Sound.sfx("stagger", -4.0)
 				toast.call("STAGGERED — hit the core")
+				if rules.id == "vyrak":
+					Sound.voice_path(Lines.path("M09_007"))   # NOVA: "Chest weak point exposed…"
 			"dead":
 				if not _killed:
 					_killed = true

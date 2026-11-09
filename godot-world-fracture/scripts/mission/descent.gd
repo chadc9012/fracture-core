@@ -560,6 +560,17 @@ func _opening(id: String) -> void:
 	_seen[id] = true
 	var look := operator.position
 	match id:
+		"fd-02":
+			# the draft's Verdant Forest arrival (M06), over Mara's recording from the crash site
+			cutscene.play([
+				Cutscene.line("M06_001", look, { "orbit": { "radius": 9.0, "height": 3.0, "deg0": 10.0, "deg1": 60.0 } }),
+				Cutscene.line("M06_003", look, { "orbit": { "radius": 7.0, "height": 2.5, "deg0": 60.0, "deg1": 100.0 } }),
+			], region.camera())
+		"fd-03":
+			cutscene.play([
+				Cutscene.line("M06_006", look, { "orbit": { "radius": 8.0, "height": 3.0, "deg0": 120.0, "deg1": 170.0 } }),
+				Cutscene.line("M06_007", look, { "orbit": { "radius": 7.0, "height": 2.5, "deg0": 170.0, "deg1": 210.0 } }),
+			], region.camera())
 		"fd-05":
 			cutscene.play([
 				Cutscene.beat("NOVA", String(quest.line), 5.0, look, { "orbit": { "radius": 9.0, "height": 3.0, "deg0": 20.0, "deg1": 70.0 } }),
@@ -567,8 +578,9 @@ func _opening(id: String) -> void:
 			], region.camera())
 		"fd-06":
 			cutscene.play([
-				Cutscene.beat("NOVA", String(quest.line), 5.0, look, { "orbit": { "radius": 9.0, "height": 3.5, "deg0": 200.0, "deg1": 250.0 } }),
-				Cutscene.beat("NOVA", "The Blackout Protocol terminal is in the Underlink. Stay on it while I pull the archive — the district will notice.", 4.5, look, { "orbit": { "radius": 7.0, "height": 2.5, "deg0": 250.0, "deg1": 290.0 } }),
+				Cutscene.line("M11_001", look, { "orbit": { "radius": 9.0, "height": 3.5, "deg0": 200.0, "deg1": 250.0 } }),
+				Cutscene.line("M11_002", look, { "orbit": { "radius": 7.0, "height": 2.5, "deg0": 250.0, "deg1": 280.0 } }),
+				Cutscene.beat("NOVA", "The Blackout Protocol terminal is in the Underlink. Stay on it while I pull the archive — the district will notice.", 4.5, look, { "orbit": { "radius": 7.0, "height": 2.5, "deg0": 280.0, "deg1": 310.0 } }),
 			], region.camera())
 		"fd-07":
 			cutscene.play([
@@ -669,8 +681,9 @@ func _core_breached() -> void:
 		Cutscene.beat("NOVA", "Core open. There is a recording wired into it — Vanguard, old. Serik Vale.", 4.0, look, { "orbit": { "radius": 12.0, "height": 4.0, "deg0": 160.0, "deg1": 200.0 }, "look_up": 3.0 }),
 		Cutscene.beat("Serik Vale · recording", "", 9.0, look, { "voice": "serik-vale-warning", "orbit": { "radius": 9.0, "height": 3.5, "deg0": 200.0, "deg1": 250.0 }, "look_up": 3.0 }),
 		Cutscene.beat("Serik Vale · recording", "If the Anchor wakes again, don't let the system make the choice for you.", 4.0, look, { "orbit": { "radius": 9.0, "height": 3.5, "deg0": 250.0, "deg1": 280.0 }, "look_up": 3.0 }),
-		Cutscene.beat("Vyrak", "Another small thing with a borrowed spark. Show me why the Fracture chose you.", 5.0, look + Vector3(0, 0, -20), { "orbit": { "radius": 16.0, "height": 5.0, "deg0": 60.0, "deg1": 110.0 }, "look_up": 2.5 }),
-		Cutscene.beat("NOVA", "Its armor sheds under heat. Break the chest plates and the core is exposed.", 4.0, look + Vector3(0, 0, -20), { "orbit": { "radius": 12.0, "height": 4.0, "deg0": 110.0, "deg1": 140.0 }, "look_up": 2.5 }),
+		Cutscene.line("M09_001", look + Vector3(0, 0, -20), { "orbit": { "radius": 16.0, "height": 5.0, "deg0": 60.0, "deg1": 110.0 }, "look_up": 2.5 }),
+		Cutscene.line("M09_003", look + Vector3(0, 0, -20), { "orbit": { "radius": 13.0, "height": 4.5, "deg0": 110.0, "deg1": 130.0 }, "look_up": 2.5 }),
+		Cutscene.line("M09_004", look + Vector3(0, 0, -20), { "orbit": { "radius": 12.0, "height": 4.0, "deg0": 130.0, "deg1": 150.0 }, "look_up": 2.5 }),
 	], region.camera())
 	_summon_vyrak()
 	cutscene.finished.connect(func(): controls.toast("VYRAK, THE ASHEN COVENANT"), CONNECT_ONE_SHOT)
@@ -701,7 +714,8 @@ func _on_vyrak_down(_id: String, reward: Dictionary) -> void:
 		controls.toast(String(l))
 	var look: Vector3 = boss.position
 	cutscene.play([
-		Cutscene.beat("Vyrak", "Enough. You fight like one who will not be ruled. Then I will not rule you — I will walk beside you.", 6.0, look, { "orbit": { "radius": 14.0, "height": 5.0, "deg0": 40.0, "deg1": 100.0 }, "look_up": 2.0 }),
-		Cutscene.beat("NOVA", "Its mass is collapsing… it's choosing a smaller form. I think it just joined us.", 4.5, look, { "orbit": { "radius": 10.0, "height": 3.5, "deg0": 100.0, "deg1": 150.0 }, "look_up": 2.0 }),
+		Cutscene.line("M09_011", look, { "orbit": { "radius": 14.0, "height": 5.0, "deg0": 40.0, "deg1": 100.0 }, "look_up": 2.0 }),
+		Cutscene.line("M10_003", look, { "orbit": { "radius": 10.0, "height": 3.5, "deg0": 100.0, "deg1": 130.0 }, "look_up": 2.0 }),
+		Cutscene.line("M10_002", look, { "orbit": { "radius": 11.0, "height": 3.5, "deg0": 130.0, "deg1": 170.0 }, "look_up": 2.0 }),
 	], region.camera())
 	cutscene.finished.connect(_complete, CONNECT_ONE_SHOT)

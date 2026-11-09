@@ -46,6 +46,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Act 1 voiced (lead, Nov 9): the descent's cutscenes take the campaign draft's voiced lines through `Cutscene.line(id)` / `Lines` — the forest arrival (M06), Fixer Sable in Neon City (M11), Vyrak's Covenant of Ash before, during (M09_007 at the stagger) and after the fight (M09 / M10); a written beat whose speaker + text is in the index picks up its voice; tests/mission/cutscene_test.gd | Godot: Act 1 voiced |
 | Asset gap 8 (Godot): the Fracture set — crystals, floating ruins, conduits, relic container, arena ring; at the Rift Gate and the Stitched Neon Core | Godot: the Fracture set |
 | Asset gap 2 (Godot): Extraction — pvp.ts stepExtract ported into killbox_match.gd (core, carrier, pads, drop, reset, first to 3), the core and pads in the arena view, bots steer for it; shot hook takes every mode and arena | Godot: Extraction |
 | Step 13, prepared: the release job (keystore secrets → release-signed APK as godot-release), fresh godot-latest notes, store screenshots in docs/store | Godot: ship prep |

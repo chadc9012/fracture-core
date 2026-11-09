@@ -9,6 +9,7 @@ extends Control
 signal finished
 
 const Sound := preload("res://scripts/audio/sound.gd")
+const Lines := preload("res://scripts/cinema/lines.gd")
 
 var playing := false
 var _beats: Array = []
@@ -91,6 +92,17 @@ func _next() -> void:
 	var v := String(b.get("voice", ""))
 	if v != "":
 		Sound.voice(v)
+	elif b.has("line"):
+		# a voiced line from the campaign dialogue (scripts/cinema/lines.gd): the beat lasts at least the recording
+		var dur := Sound.voice_path(Lines.path(String(b.line)))
+		if dur > 0.0:
+			b.seconds = maxf(float(b.get("seconds", 0.0)), dur + 0.7)
+	else:
+		var id := Lines.find(String(b.get("speaker", "")).to_upper(), String(b.get("text", "")))
+		if id != "":
+			var dur2 := Sound.voice_path(Lines.path(id))
+			if dur2 > 0.0:
+				b.seconds = maxf(float(b.get("seconds", 0.0)), dur2 + 0.7)
 	_place(b, 0.0)
 
 func _place(b: Dictionary, k: float) -> void:
@@ -133,6 +145,15 @@ func _end() -> void:
 	playing = false
 	visible = false
 	finished.emit()
+
+## a beat from a voiced campaign line by id (speaker and text from the index, the recording plays)
+static func line(id: String, look: Variant = null, extra := {}) -> Dictionary:
+	var pr := Lines.pair(id)
+	var b := { "speaker": String(pr[0]).capitalize() if String(pr[0]) != "NOVA" and String(pr[0]) != "PLAYER" else ("NOVA" if String(pr[0]) == "NOVA" else "You"), "text": String(pr[1]), "seconds": 3.0, "line": id }
+	if look != null:
+		b.look = look
+	b.merge(extra)
+	return b
 
 ## a NOVA / speaker beat helper
 static func beat(speaker: String, text: String, seconds := 4.0, look: Variant = null, extra := {}) -> Dictionary:
