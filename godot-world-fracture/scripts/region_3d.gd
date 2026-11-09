@@ -37,7 +37,8 @@ const ROAD := {
 
 var map_id := ""
 ## the named supertall landmarks drawn by _build_landmarks instead of the plain extrusion (map data: carto-features.ts)
-const LANDMARKS := ["Nexus Core Spire", "Neon City Grand Casino"]
+const Nexus := preload("res://scripts/region_nexus.gd")
+const LANDMARKS := ["Nexus Core Spire", "Neon City Grand Casino", "The Fracture Spire", "Lighthouse Point", "Nexus Beach Wheel"]
 var _landmark_bds: Array = []
 var _spin: Array[Node3D] = []
 var m: Dictionary = {}
@@ -485,6 +486,8 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	if CITY_ROAD_MARKINGS:
 		_build_road_markings_batch_19_43()
 	_build_rings()
+	if id == "nexus-region":
+		Nexus.dress(self)   # the board's waterfalls and yachts (region_nexus.gd)
 	_space = {}
 	space_rejected = 0
 	_build_trees()
@@ -2598,6 +2601,8 @@ func _build_landmarks() -> void:
 		var hgt := _bh(bd) + (_h(p.x, p.y) - base) + 0.6
 		if String(bd[7]) == "Neon City Grand Casino":
 			_grand_casino(root, float(bd[2]), float(bd[3]), hgt)
+		elif String(bd[7]) in Nexus.LANDMARKS:
+			Nexus.landmark(self, root, String(bd[7]), float(bd[2]), float(bd[3]), hgt)
 		else:
 			_core_spire(root, float(bd[2]), float(bd[3]), hgt)
 

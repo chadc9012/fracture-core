@@ -66,7 +66,33 @@ const KEYS: readonly { u: number; v: number; r: number }[] = [
   { u: 180, v: 420, r: 70 }, { u: 320, v: 470, r: 58 }, { u: 450, v: 410, r: 46 }, { u: 260, v: 560, r: 40 }, { u: 80, v: 520, r: 34 },
 ];
 /** the river: from the snow under Aether Ridge past Emerald Lake, round the city's west side to the harbour */
-const RIVER: readonly [number, number][] = [[-140, -560], [-230, -430], [-300, -300], [-330, -150], [-290, -20], [-230, 100], [-150, 190], [-90, 262]];
+const RIVER_LINE: readonly [number, number][] = [[-140, -560], [-230, -430], [-300, -300], [-330, -150], [-290, -20], [-230, 100], [-150, 190], [-90, 262]];
+/** the river's course: the line above, densified and swung into meanders (wider in the lowland, tight in the hills) */
+const RIVER: readonly [number, number][] = (() => {
+  const out: [number, number][] = [];
+  for (let i = 1; i < RIVER_LINE.length; i++) {
+    const [ax, az] = RIVER_LINE[i - 1]!, [bx, bz] = RIVER_LINE[i]!, L = Math.hypot(bx - ax, bz - az), nx = -(bz - az) / L, nz = (bx - ax) / L;
+    for (let k = 0; k < 8; k++) {
+      const t = k / 8, g = (i - 1 + t) / (RIVER_LINE.length - 1), amp = 6 + 22 * g;
+      const w = Math.sin((i - 1 + t) * Math.PI * 1.7) * amp;
+      out.push([ax + (bx - ax) * t + nx * w, az + (bz - az) * t + nz * w]);
+    }
+  }
+  out.push(RIVER_LINE[RIVER_LINE.length - 1]!);
+  return out;
+})();
+/** the board's waterfalls: off Aether Ridge into the river and the lake, and over the sea cliffs (local u, v; `to` is the
+ * direction the water falls, `drop` how high the cliff behind it stands). The ground is raised into a cliff at each. */
+export const NR_FALLS: readonly { id: string; name: string; u: number; v: number; to: number; drop: number }[] = [
+  { id: "whisper", name: "Whispering Falls", u: -300, v: -350, to: Math.PI * 0.5, drop: 30 },
+  { id: "ridge", name: "Ridge Falls", u: -150, v: -470, to: Math.PI * 0.65, drop: 34 },
+  { id: "emerald", name: "Emerald Falls", u: -470, v: -235, to: Math.PI * 0.5, drop: 18 },
+  { id: "west", name: "Westcliff Falls", u: -820, v: -260, to: Math.PI, drop: 24 },
+  { id: "south", name: "Southreach Falls", u: -470, v: 530, to: Math.PI * 0.5, drop: 26 },
+  { id: "east", name: "Eastcliff Falls", u: 838, v: 120, to: 0, drop: 24 },
+  { id: "light", name: "Lighthouse Falls", u: 760, v: 410, to: Math.PI * 0.4, drop: 20 },
+  { id: "north", name: "Northcliff Falls", u: 640, v: -620, to: -Math.PI * 0.5, drop: 26 },
+];
 const LAKE = { u: -470, v: -150, r: 60 };   // Emerald Lake
 const CITY = { u: 0, v: -20, r: 230 };       // Nexus City
 const PEAKS: readonly { u: number; v: number; h: number; r: number }[] = [
@@ -125,6 +151,15 @@ export function nrHeight(x: number, z: number): number {
     for (const c of CANYONS) cut = Math.max(cut, 1 - smooth(10, 34, polyDist(c.map(([a, b]) => [a, b] as [number, number]), u, v)));
     h += mesa * (1 - cut * 0.92);
   }
+  // a cliff behind every waterfall: the ground lifted in a lobe uphill of the lip, dropping sharply at it
+  for (const fl of NR_FALLS) {
+    const du = u - fl.u, dv = v - fl.v, back = -(du * Math.cos(fl.to) + dv * Math.sin(fl.to)), side = Math.abs(-du * Math.sin(fl.to) + dv * Math.cos(fl.to));
+    if (back > -6 && back < 200 && side < 110) {
+      // a headland: sheer at the lip, rounding off into the hills behind and to the sides
+      const lift = fl.drop * smooth(-6, 3, back) * (1 - smooth(20 + 25 * fbm(dv * 0.03, du * 0.03, 88), 105, side)) * (1 - smooth(50, 200, back)) * (0.85 + 0.3 * fbm(u * 0.02, v * 0.02, 89));
+      h = Math.max(h, 3 + lift);
+    }
+  }
   // the city, the districts and the base stand on graded ground
   const flat = (cu: number, cv: number, r: number, to: number) => { const t = 1 - smooth(r * 0.75, r * 1.15, Math.hypot(u - cu, v - cv)); h = h + (to - h) * t; };
   flat(CITY.u, CITY.v, CITY.r, 7);
@@ -161,7 +196,7 @@ export function nrCover(x: number, z: number, h: number, slope: number): Cover {
   if (inZone(u, v, SPIRE, 1.1, 84)) return fbm(u * 0.04, v * 0.04, 79) > 0.55 ? "crystal" : "rift";
   if (inZone(u, v, OBSIDIAN, 1.05, 85)) { const dob = Math.hypot(u - OBSIDIAN.u, v - OBSIDIAN.v); return fbm(u * 0.05, v * 0.05, 80) > 0.62 ? "lava" : dob < OBSIDIAN.r * 0.55 ? "basalt" : "ash"; }
   // the Ironcrest Outlands
-  if (inZone(u, v, OUTLANDS, 1.1, 86)) return slope > 0.9 ? "cliff" : fbm(u * 0.03, v * 0.03, 81) > 0.5 ? "sandstone" : "desert";
+  if (inZone(u, v, OUTLANDS, 1.1, 86)) return slope > 0.9 ? "cliff" : fbm(u * 0.03, v * 0.03, 81) > 0.32 ? "sandstone" : "dirt";
   if (h > 95) return "snow";
   if (h > 70) return slope > 0.8 ? "rock" : "snow";
   if (slope > 1.1) return "cliff";
@@ -204,8 +239,14 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
     const [dx, dz] = nr(d.u, d.v);
     let placed = 0;
     for (let tries = 0; placed < d.n && tries < d.n * 30; tries++) {
-      const a = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * d.r, u = d.u + Math.cos(a) * rr, v = d.v + Math.sin(a) * rr;
+      const a = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * d.r;
+      let u = d.u + Math.cos(a) * rr, v = d.v + Math.sin(a) * rr;
       const hx = d.use === "house" ? 5 + rnd() * 3 : 8 + rnd() * 7, hz = d.use === "house" ? 4 + rnd() * 3 : 7 + rnd() * 6;
+      // inside the ring, buildings stand in the street grid's blocks (55 m, streets 6.4 m wide), clear of the kerbs
+      if (Math.hypot(u - CITY.u, v - CITY.v) < CITY.r * 0.92) {
+        const snap = (w: number, c: number, half: number) => { const b = Math.floor((w - c) / 55) * 55 + c + 27.5, room = Math.max(0, 27.5 - 3.2 - half - 2); return b + Math.max(-room, Math.min(room, w - b)); };
+        u = snap(u, CITY.u, hx); v = snap(v, CITY.v, hz);
+      }
       const [x, z] = nr(u, v);
       if (!dry(u, v, 2.5)) continue;
       if (Math.hypot(x - sx, z - sz) < 40) continue;
@@ -224,6 +265,18 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
   const [stx, stz] = nr(120, 150);
   f.rings.push({ x: stx, z: stz, r: 18, kind: "arena", name: "Nexus Stadium" });
 
+  // the city's street grid: a block every 55 m inside the ring, the avenues' boulevards wider
+  for (let g = -4; g <= 4; g++) {
+    const off = g * 55, half = Math.sqrt(Math.max(0, (CITY.r * 0.92) ** 2 - off * off));
+    if (half < 30) continue;
+    const [px, pz] = nr(CITY.u + off, CITY.v), [qx, qz] = nr(CITY.u, CITY.v + off);
+    f.pavements.push({ x: px, z: pz, hx: 3.2, hz: half, yaw: 0, kind: "street" }, { x: qx, z: qz, hx: half, hz: 3.2, yaw: 0, kind: "street" });
+  }
+  const [cpx, cpz] = nr(CITY.u + 30, CITY.v - 20);
+  f.pavements.push({ x: cpx, z: cpz, hx: 24, hz: 24, yaw: 0, kind: "plaza" });
+  // Nexus Beach's Ferris wheel
+  const [wx, wz] = nr(BEACH.u + 70, BEACH.v - 40);
+  f.buildings.push({ x: wx, z: wz, hx: 6, hz: 3, yaw: 0, use: "entertainment", h: 0.5, m: 40, name: "Nexus Beach Wheel" });
   // the ring road round the city and the avenues out to every district of the region
   const ring: [number, number][] = [];
   for (let i = 0; i <= 24; i++) { const a = (i / 24) * Math.PI * 2; ring.push(nr(CITY.u + Math.cos(a) * 250, CITY.v + Math.sin(a) * 215)); }
@@ -312,7 +365,7 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
   P("westgate", "Westgate", "village", nr(-200, -50), 1, "Residential district on the west bank.");
   P("novahq", "NOVA HQ", "civic", nr(-80, -30), 1, "Operator Command.");
   P("riverside", "Riverside", "village", nr(-150, 90), 1, "Suburbs and housing along the river.");
-  P("tech", "Tech Quarter", "research", nr(170, -90), 1, "R&D and upgrades.");
+  P("tech", "Tech Quarter", "civic", nr(170, -90), 1, "R&D and upgrades.");
   P("arena", "Arena District", "arena", [ax, az], 1, "Tournaments and events at the Nexus Arena.");
   P("stadium", "Nexus Stadium", "arena", [stx, stz], 2, "Sports, tournaments, events.");
   P("ent", "Entertainment District", "entertainment", nr(40, 90), 1, "Nightlife, the casino and the arena.");
@@ -340,7 +393,7 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
   P("verdant", "Verdant Expanse", "park", nr(-470, -300), 0, "The forest zone: Lv 10–35.");
   P("eldergrove", "Eldergrove Ruins", "ruins", nr(-560, -330), 2, "Old stones in the deep wood.");
   P("wilds", "Verdant Wilds", "park", nr(-400, -380), 2, "Untamed forest.");
-  P("falls", "Whispering Falls", "falls", nr(-300, -330), 2, "Falls off the ridge into the river.");
+  for (const fl of NR_FALLS) P(`falls-${fl.id}`, fl.name, "falls", nr(fl.u, fl.v), fl.id === "whisper" ? 1 : 2, "Water off the cliffs.");
   P("lake", "Emerald Lake", "lake", nr(LAKE.u, LAKE.v), 1, "Clear green water under the forest.");
   P("mossveil", "Mossveil Village", "village", nr(-365, -236), 2, "A hamlet on the forest edge.");
   P("ironcrest", "Ironcrest Outlands", "camp", nr(OUTLANDS.u, OUTLANDS.v), 0, "Rugged wilderness: Lv 15–40.");
