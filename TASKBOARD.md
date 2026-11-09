@@ -24,6 +24,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Asset catalog gap 2: PvP modes in Godot's Killbox — Dominion, Control (lockdown), Kill Confirmed (ascendancy), Free For All (freefall) with a mode picker; Extraction + Ranked in pvp.ts stay with the web Killbox session | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-08 |
 | Owner ask (Nov 8, 19:31): cleanup pass — play through every mission, fix performance / FPS, audio and dialogue issues, and unintended overlaps (trees, rocks, props, clothing); lands the playtest + phone-performance PRs #2/#3 against main as its base | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-08 |
 | Nexus street, closer to the owner's Nov 8 night renders (owner asked directly, Nov 8 19:26: "better quality … add more … looks basic"): wet-night pass for the street slice (dark wet paving, neon reflection decals, puddles, rain, reflection probes, light pools) and the NEXUS_STREET_SET Meshy props in priority order into models/city/street | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-08 |
 | Killbox bots, Skydock, Neon Yard, Glass Spire and Riverfront arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
