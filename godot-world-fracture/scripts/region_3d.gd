@@ -46,8 +46,8 @@ var m: Dictionary = {}
 static var season := -1
 const SEASONS := ["SPRING", "SUMMER", "AUTUMN", "WINTER"]
 ## the lands that stay as they are all year: the tropics, the deserts, the fire, the ice, the deep
-const NO_WINTER := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire", "neon-city", "nexus"]
-const EVERGREEN := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire"]
+const NO_WINTER := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire", "neon-city", "nexus", "nexus-region"]
+const EVERGREEN := ["nexus-region", "nexus", "azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire"]
 var _season_btn: Button
 var _ground_mat: ShaderMaterial
 var _base_pal := PackedVector3Array()
@@ -588,6 +588,10 @@ func _style_for(id: String) -> Dictionary:
 	match id:
 		"neon-city":
 			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#2a1240", "fog_d": 0.0026, "sun": 0.12, "sun_col": "#8fa6ff", "sun_el": 30.0, "amb": 0.35, "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.15}, true)
+		"nexus-region":
+			# the Nexus Region board: the same evening as the capital, but the sun still up over the land so the forests read
+			# green, the bay turquoise and the snow white (the city close up keeps the deeper dusk)
+			s.merge({"top": "#34479a", "hor": "#f3a77a", "fog": "#8a8cc0", "fog_d": 0.00045, "sun": 1.15, "sun_col": "#ffd9b0", "sun_el": 24.0, "amb": 0.62, "night": 0.3, "neon": 0.3, "ordered": 1.0, "wet": 0.0, "sat": 1.15, "exp": 0.92}, true)
 		"nexus":
 			# the owner's Nexus City board (Nov 9): the capital at dusk — an indigo sky going orange and pink at the horizon, a
 			# low warm sun on cream and white towers lit gold with blue and violet accents, palms along the shore, the Core
@@ -1250,12 +1254,15 @@ func _build_trees() -> void:
 	if not trees.is_empty():
 		var cold := map_id in ["frostspire", "frostveil"]
 		if map_id in ["azure-isles", "nexus", "nexus-region"] and _palms(trees):
-			# the two thirds the palms leave: bamboo clumps among them (and no conifers on the isles)
+			# the two thirds the palms leave: bamboo clumps among them (and no conifers on the isles); on the Nexus boards
+			# oaks, blossom and the forest's conifers
 			var rest: Array[Transform3D] = []
 			for i in trees.size():
 				if i % 3 != 0:
 					rest.append(trees[i])
-			Flora.plant(self, rest)
+			var left := Flora.plant(self, rest)
+			if map_id != "azure-isles" and not left.is_empty():
+				_multimesh(_tree_mesh(false), left, _tree_material(false))
 		else:
 			# the region's species mix (oak, cherry, baobab, bamboo, alien flora); the conifers take what is left
 			var pines := Flora.plant(self, trees)
@@ -1468,7 +1475,8 @@ func _apply_season() -> void:
 	if _season_btn:
 		_season_btn.text = SEASONS[sn]
 	for tm in _tree_mats:
-		tm.set_shader_parameter("season", sn)
+		# the capital's boards are a tropical coast: its trees stay in summer leaf whatever the season
+		tm.set_shader_parameter("season", 1 if map_id in ["nexus", "nexus-region"] else sn)
 	if _weather:
 		_weather.set_winter(sn == 3 and map_id not in NO_WINTER)
 	if not _ground_mat or _base_pal.is_empty():

@@ -14,6 +14,7 @@ import type { CartoMap, CartoSource, Cover } from "./carto-maps";
 import type { CartoArea, CartoBuilding, CartoFeatures, CartoPavement, CartoPoi, CartoRoad } from "./carto-features";
 import { WATER_LEVEL } from "./terrain";
 import { BOARD_LANDS } from "./board-lands";
+import { NEXUS_REGION } from "./nexus-region";
 
 /** the lands are designed with the sea at 0; the painter and the 3D views get world heights (sea at WATER_LEVEL) */
 const WATER = 0;
@@ -265,5 +266,7 @@ export const NEW_LANDS: readonly NewLand[] = [
   { map: SR_MAP, source: { height: (x, z) => srHeight(x, z) + WATER_LEVEL, cover: (x, z, h, s) => srCover(x, z, h - WATER_LEVEL, s) }, features: () => srFeatures(SR_MAP) },
   // the planetary board's farmland, island and ice-cap regions (board-lands.ts)
   ...BOARD_LANDS,
+  // the Nexus Region board (owner, Nov 9): the capital's lands, opened first on the Nexus continent
+  NEXUS_REGION,
 ];
 export const newLand = (id: string) => NEW_LANDS.find((l) => l.map.id === id) ?? null;

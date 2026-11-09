@@ -25,6 +25,9 @@ static func mix_for(id: String) -> Dictionary:
 			return {"baobab": 1.0}
 		"wastelands":
 			return {"baobab": 0.45}
+		"nexus-region", "nexus":
+			# the Nexus boards: broadleaf parks and the Verdant Expanse, blossom on the riverside (palms come first)
+			return {"oak": 0.45, "cherry": 0.15}
 		"azure-isles", "shattered-reefs":
 			return {"bamboo": 0.4}
 		"crystal-badlands":

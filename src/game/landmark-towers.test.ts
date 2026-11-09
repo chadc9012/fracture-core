@@ -10,7 +10,7 @@ describe("landmark towers (owner, Nov 9 2026)", () => {
   test("the Nexus Core Spire is the tallest building in the game at 420 m", () => {
     const core = byName("Nexus Core Spire");
     expect(core.length).toBeGreaterThan(0);
-    expect(core.every((r) => r.map === "nexus" && height(r.b) === CORE_SPIRE_M)).toBe(true);
+    expect(core.every((r) => (r.map === "nexus" || r.map === "nexus-region") && height(r.b) === CORE_SPIRE_M)).toBe(true);
     expect(CORE_SPIRE_M).toBe(420);
   });
   test("the Neon City Grand Casino is the second tallest at 380 m, and nothing else comes near either", () => {

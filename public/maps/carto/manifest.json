@@ -86,6 +86,11 @@
    "url": "/maps/carto/old-harrow.png",
    "data": "/maps/carto/old-harrow.data.png",
    "size": 1536
+  },
+  "nexus-region": {
+   "url": "/maps/carto/nexus-region.png",
+   "data": "/maps/carto/nexus-region.data.png",
+   "size": 1536
   }
  }
 }
