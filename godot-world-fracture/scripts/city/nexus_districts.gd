@@ -339,7 +339,7 @@ func _perimeter() -> void:
 	s._box(Vector3(0.1, 1.2, 16.0), at(50.0 - 0.06, -38.0, 4.6), flat(Color(0.05, 0.05, 0.05), 0.5))
 	text("PERIMETER OPERATIONS", 49.9, -38.0, 4.65, accent, 72, 0.01)
 	s._box(Vector3(0.1, 2.2, 3.0), at(50.0 - 0.07, -32.0, 1.3), neon(Color(1.0, 0.8, 0.5), 1.0))
-	var jersey := flat(Color(0.62, 0.62, 0.6), 0.85)
+	var jersey := flat(Color(0.4, 0.4, 0.39), 0.85)
 	for i in 6:
 		block(Vector3(0.7, 1.0, 3.2), 72.0 + (i % 2) * 6.0, -6.0 + i * 3.8, jersey)
 	for i in 5:
