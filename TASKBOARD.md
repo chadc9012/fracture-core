@@ -26,6 +26,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Asset gap 7 (Godot region 3D): vegetation and rock gaps — oak, cherry blossom, baobab, bamboo, alien flora, vines; rock arches, cave mouths, ice spires — and natural effects (flowing lava, snowfall, storm lightning, rift tears) | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
 | Step 7: front door and the loop — title screen → operator → Apartment 12-04 → the Nexus street hub with in-world doors to garage / mall / Killbox / airport / Rift Gate / Descent; settings screen; the globe as the travel map | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
 | Asset gap 5 (Godot): Fracture creatures & bosses — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus as boss fights (web phases + poise rules, attacks, adds) on the authored boss / enemy GLBs | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
 
