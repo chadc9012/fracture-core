@@ -646,8 +646,8 @@ func _cylinder() -> void:
 		s._box(Vector3(0.25, 7.0, 10.0), at(94.0 - 0.1, zz, 3.68), flat(Color(0.95, 0.85, 0.65) * 0.45, 0.4, 0.0, 1.4 if s.night else 0.5))
 		s._box(Vector3(0.4, 0.3, 11.0), at(94.0 - 0.2, zz, 7.4), neon(accent, 4.0))
 	s._box(Vector3(0.6, 3.0, 96.0), at(94.0 - 0.3, 0.0, 12.0), steel)
-	text("CYLINDER & CO", 93.5, 0.0, 12.2, accent, 200, 0.016)
-	text("HEAVY MOTORWORKS · OFF-ROAD · ARMOUR", 93.5, 0.0, 9.7, Color(1.0, 0.9, 0.7), 56, 0.011)
+	text("CYLINDER & CO", 93.25, 0.0, 12.0, accent, 200, 0.03)
+	text("HEAVY MOTORWORKS · OFF-ROAD · ARMOUR", 93.25, 0.0, 9.4, Color(1.0, 0.9, 0.7), 64, 0.016)
 	# the yard: trucks waiting on the apron, tyre stacks, drums, a lift
 	vehicle("offroad-truck.glb", 5.6, 72.0, -28.0, 90.0)
 	vehicle("war-rig.glb", 12.0, 68.0, 34.0, 0.0)
