@@ -10,6 +10,7 @@
  *  - Azure Isles (the board's "Azure Isles" biome; on the Shattered Reefs' sea): a chain of tropical islands — a green
  *    volcanic main isle with jungle, white beaches and a reef-ringed lagoon, the resort strip of Coral Bay, the marina and
  *    the Azure Shipyard, a lighthouse cay and sandbar islets.
+ *  - Old Harrow (the Town region): a walled market town on a river bend under a castle hill (see below).
  *  - Frostveil Ice Cap (Frost Spire's polar plateau): a high, wind-scoured ice sheet breaking into the sea at an ice shelf,
  *    crevasse fields, wind-carved ridges, nunataks of black rock, icebergs offshore, the Frostveil Research Station, the
  *    Glacier Cave and a buried relay mast. */
@@ -351,15 +352,137 @@ function fvFeatures(): CartoFeatures {
   return f;
 }
 
+/* =================================================================== */
+/* Old Harrow (the Town region)                                         */
+/* =================================================================== */
+/** The board's Town Region ("smaller settlements, trade, quests, and local culture"): a walled market town on a river
+ * bend under a castle hill — an old quarter of crooked lanes and timber houses, Market Street with its stalls, the
+ * Cathedral of the Dawn, the Guildhall and its quest board, the Gilded Tankard inn, the smithy and the stables, a canal
+ * cut across the bend with stone bridges, and round it the hamlets, mills and woods of the Harrow vale. */
+const OH = { x: 40000, z: 20000, reach: 420 } as const;
+const oh = (u: number, v: number): [number, number] => [OH.x + u, OH.z + v];
+const OH_RIVER: readonly [number, number][] = [[-420, -120], [-260, -80], [-140, -150], [-20, -170], [90, -120], [150, -20], [140, 100], [220, 200], [420, 260]].map(([u, v]) => oh(u!, v!));
+const OH_CANAL: readonly [number, number][] = [[-30, -165], [-20, -60], [10, 40], [130, 70]].map(([u, v]) => oh(u!, v!));
+const OH_CASTLE = { u: -150, v: 60, r: 70 };
+const OH_TOWN = { u: 40, v: -40, r: 110 };
+const OH_HAMLETS = [{ u: -300, v: 250, name: "Bramblecote" }, { u: 300, v: -260, name: "Ashford" }, { u: -320, v: -300, name: "Wyke End" }];
+function ohHeight(x: number, z: number): number {
+  const u = x - OH.x, v = z - OH.z;
+  let h = 10 + (fbm(u * 0.005, v * 0.005, 81) - 0.5) * 16 + 10 * smooth(150, 420, Math.hypot(u, v));
+  const dc = Math.hypot(u - OH_CASTLE.u, v - OH_CASTLE.v);
+  h += 30 * (1 - smooth(OH_CASTLE.r * 0.35, OH_CASTLE.r * 1.3, dc));
+  // the town sits on a flattened terrace inside the bend
+  const dt = Math.hypot(u - OH_TOWN.u, v - OH_TOWN.v);
+  h = h + (8 - h) * (1 - smooth(OH_TOWN.r * 0.8, OH_TOWN.r * 1.25, dt));
+  const r = polyDist(OH_RIVER, x, z), rw = 9;
+  h = h + (Math.min(h, 3 + r.d * 0.05) - h) * (1 - smooth(rw, rw * 5, r.d));
+  h -= (1 - smooth(rw * 0.5, rw, r.d)) * 5;
+  const c = polyDist(OH_CANAL, x, z);
+  h -= (1 - smooth(2.5, 4.5, c.d)) * 9;
+  return h;
+}
+function ohCover(x: number, z: number, h: number, slope: number): Cover {
+  const u = x - OH.x, v = z - OH.z;
+  if (h < WATER) return polyDist(OH_CANAL, x, z).d < 6 || polyDist(OH_RIVER, x, z).d < 14 ? "river" : "lake";
+  if (Math.hypot(u - OH_TOWN.u, v - OH_TOWN.v) < OH_TOWN.r) return "town";
+  if (Math.hypot(u - OH_CASTLE.u, v - OH_CASTLE.v) < 30) return "paved";
+  for (const hm of OH_HAMLETS) if (Math.hypot(u - hm.u, v - hm.v) < 34) return "town";
+  if (slope > 0.9) return "rock";
+  const n = fbm(u * 0.012, v * 0.012, 82);
+  if (n > 0.6) return "denseForest";
+  if (n > 0.5) return "forest";
+  const g = hash(Math.floor((u + 1000) / 44), Math.floor((v + 1000) / 32), 83);
+  return g < 0.3 ? "crop" : g < 0.65 ? "meadow" : "grass";
+}
+function ohFeatures(): CartoFeatures {
+  const f = empty(), rnd = rng(91);
+  const [tx, tz] = oh(OH_TOWN.u, OH_TOWN.v);
+  // the old quarter: crooked lanes radiating from the market place, timber houses packed along them
+  const lanes: [number, number][][] = [];
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * Math.PI * 2 + 0.3, pts: [number, number][] = [[tx, tz]];
+    for (let s2 = 1; s2 <= 4; s2++) { const r = s2 * 26, w = Math.sin(s2 * 1.3 + k) * 0.18; pts.push([tx + Math.cos(a + w) * r, tz + Math.sin(a + w) * r]); }
+    lanes.push(pts);
+    f.roads.push({ cls: "street", pts, width: 5, ...(k === 0 ? { name: "Market Street" } : k === 3 ? { name: "Tanners Row" } : k === 5 ? { name: "Chapel Lane" } : {}) });
+  }
+  // a ring lane inside the walls
+  const ring: [number, number][] = [];
+  for (let i = 0; i <= 20; i++) { const a = (i / 20) * Math.PI * 2; ring.push([tx + Math.cos(a) * 70, tz + Math.sin(a) * 66]); }
+  f.roads.push({ cls: "street", pts: ring, width: 4.5, name: "Wall Walk" });
+  f.pavements.push({ x: tx, z: tz, hx: 16, hz: 12, yaw: 0.2, kind: "plaza" });
+  // houses along each lane, both sides, gable-ends to the street
+  for (const pts of lanes) for (let i = 1; i < pts.length; i++) {
+    const [ax, az2] = pts[i - 1]!, [bx, bz] = pts[i]!, yaw = Math.atan2(bz - az2, bx - ax), L = Math.hypot(bx - ax, bz - az2);
+    for (let t = 6; t < L - 3; t += 7 + rnd() * 2) for (const side of [-1, 1]) {
+      if (rnd() < 0.15) continue;
+      const px = ax + Math.cos(yaw) * t - Math.sin(yaw) * side * 7.5, pz = az2 + Math.sin(yaw) * t + Math.cos(yaw) * side * 7.5;
+      f.buildings.push({ x: px, z: pz, hx: 3 + rnd() * 0.8, hz: 4 + rnd() * 1.5, yaw: -yaw, use: rnd() > 0.7 ? "store" : "house", h: 0.2, m: 6 + rnd() * 5 });
+    }
+  }
+  // market stalls round the market place
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; f.buildings.push({ x: tx + Math.cos(a) * 11, z: tz + Math.sin(a) * 8, hx: 1.4, hz: 1.1, yaw: a, use: "store", h: 0.05, m: 2.6 }); }
+  // the landmarks
+  const at = (du: number, dv: number): [number, number] => [tx + du, tz + dv];
+  const B = (p: [number, number], hx: number, hz: number, yaw: number, use: CartoBuilding["use"], m: number, name: string) => f.buildings.push({ x: p[0], z: p[1], hx, hz, yaw, use, h: Math.min(1, m / 40), m, name });
+  B(at(30, -36), 7, 16, 0.2, "civic", 26, "Cathedral of the Dawn");
+  B(at(36, -58), 3, 3, 0.2, "civic", 44, "Dawn Spire");
+  B(at(-24, 22), 9, 6, 0.2, "civic", 12, "Guildhall");
+  B(at(20, 26), 7, 5, -0.3, "entertainment", 10, "The Gilded Tankard");
+  B(at(-46, -30), 5, 4, 0.6, "industrial", 7, "Ironmonger's Smithy");
+  B(at(54, 24), 10, 5, 0.1, "industrial", 7, "Harrow Stables");
+  B(at(-8, -48), 6, 6, 0.4, "store", 9, "Apothecary");
+  // the town wall: towers round the ring, the two gates
+  for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; f.buildings.push({ x: tx + Math.cos(a) * 84, z: tz + Math.sin(a) * 80, hx: 3, hz: 3, yaw: a, use: "civic", h: 0.3, m: 13, ...(i === 0 ? { name: "East Gate" } : i === 5 ? { name: "West Gate" } : {}) }); }
+  f.rings.push({ x: tx, z: tz, r: 84, kind: "fence", name: "Town wall" });
+  // Harrow Castle on its hill: the keep, the curtain wall's towers
+  const [cx, cz] = oh(OH_CASTLE.u, OH_CASTLE.v);
+  f.buildings.push({ x: cx, z: cz, hx: 9, hz: 9, yaw: 0.3, use: "civic", h: 0.8, m: 30, name: "Harrow Keep" });
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 + 0.3; f.buildings.push({ x: cx + Math.cos(a) * 24, z: cz + Math.sin(a) * 22, hx: 3.2, hz: 3.2, yaw: a, use: "civic", h: 0.5, m: 17 }); }
+  f.rings.push({ x: cx, z: cz, r: 26, kind: "fence", name: "Curtain wall" });
+  // the hamlets
+  for (const hm of OH_HAMLETS) {
+    const [hx2, hz2] = oh(hm.u, hm.v);
+    for (let i = 0; i < 7; i++) { const a = rnd() * Math.PI * 2, r = 8 + rnd() * 18; f.buildings.push({ x: hx2 + Math.cos(a) * r, z: hz2 + Math.sin(a) * r, hx: 3 + rnd(), hz: 4 + rnd(), yaw: a, use: "house", h: 0.18, m: 6 }); }
+    f.pois.push({ id: `oh-${hm.name.toLowerCase().replace(/ /g, "-")}`, name: hm.name, cat: "village", x: hx2, z: hz2, rank: 2, blurb: "A hamlet of the Harrow vale." });
+  }
+  // the water mill and the bridges
+  const [mx, mz] = oh(-200, -95);
+  f.buildings.push({ x: mx, z: mz, hx: 5, hz: 5, yaw: 0.3, use: "industrial", h: 0.3, m: 10, name: "Harrow Mill" });
+  // roads: the king's road through both gates, roads out to the hamlets and the castle, bridges over the river and canal
+  f.roads.push({ cls: "main", pts: [oh(-420, 40), oh(-240, 10), oh(-60, -40), [tx - 84, tz], [tx + 84, tz], oh(220, -60), oh(300, -260)], width: 7, name: "King's Road" });
+  f.roads.push({ cls: "main", pts: [oh(-60, -40), oh(-110, 30), [cx + 10, cz - 20]], width: 5, name: "Castle Climb" });
+  f.roads.push({ cls: "track", pts: [oh(-240, 10), oh(-280, 150), oh(-300, 250)], width: 4, name: "Bramble Lane" });
+  f.roads.push({ cls: "track", pts: [oh(-60, -40), oh(-200, -200), oh(-320, -300)], width: 4, name: "Wyke Lane" });
+  f.roads.push({ cls: "bridge", pts: [oh(-40, -175), oh(-36, -146)], width: 6, name: "Old Stone Bridge" });
+  f.roads.push({ cls: "bridge", pts: [oh(145, -46), oh(165, -50)], width: 6, name: "East Bridge" });
+  f.roads.push({ cls: "boardwalk", pts: [oh(118, 72), oh(150, 84)], width: 3, name: "Canal Quay" });
+  const P = (id: string, name: string, cat: CartoPoi["cat"], p: [number, number], rank: number, blurb: string) => f.pois.push({ id: `oh-${id}`, name, cat, x: p[0], z: p[1], rank, blurb });
+  P("town", "Old Harrow", "village", [tx, tz - 18], 0, "A walled market town on the river bend: trade, gossip and work for anyone with a blade.");
+  P("market", "Market Square", "store", [tx, tz], 1, "Stalls of every guild under the Dawn Spire; market day is every seventh.");
+  P("guild", "Guildhall · Quest Board", "civic", at(-24, 30), 1, "The quest board: bounties, escorts and errands from the whole vale.");
+  P("inn", "The Gilded Tankard", "entertainment", at(20, 34), 1, "Rooms, ale, music and the best rumours in town.");
+  P("cathedral", "Cathedral of the Dawn", "temple", at(30, -36), 1, "Its spire is the first thing to catch the sun in the vale.");
+  P("castle", "Harrow Castle", "landmark", [cx, cz - 14], 1, "The old lords' keep on its hill; the town grew under its walls.");
+  P("smithy", "Ironmonger's Smithy", "store", at(-46, -30), 2, "Blades mended, gear forged.");
+  P("mill", "Harrow Mill", "landmark", [mx, mz], 2, "The river turns the wheel; the vale's grain comes here.");
+  P("bridge", "Old Stone Bridge", "landmark", oh(-38, -160), 2, "Seven arches, older than the town.");
+  f.areas.push({ name: "Harrow Vale", x: OH.x, z: OH.z - OH.reach * 0.84, kind: "valley", rank: 0 });
+  f.areas.push({ name: "River Harrow", x: oh(-260, -110)[0], z: oh(-260, -110)[1], kind: "river", rank: 1 });
+  f.areas.push({ name: "Harrow Wood", x: oh(220, 260)[0], z: oh(220, 260)[1], kind: "forest", rank: 2 });
+  return f;
+}
+
 /* ---------------- the registry ---------------- */
 
 const GF_MAP: CartoMap = { id: "goldenreach", name: "Goldenreach Farmlands", sub: "Farmland · ranches · river valley", kind: "region", x: GF.x, z: GF.z, reach: GF.reach, regionId: "goldenreach" };
 const AZ_MAP: CartoMap = { id: "azure-isles", name: "Azure Isles", sub: "Tropical isles · beaches · resorts", kind: "region", x: AZ.x, z: AZ.z, reach: AZ.reach, regionId: "azure-isles" };
 const FV_MAP: CartoMap = { id: "frostveil", name: "Frostveil Ice Cap", sub: "Ice sheet · crevasses · ice shelf", kind: "region", x: FV.x, z: FV.z, reach: FV.reach, regionId: "frostveil" };
+const OH_MAP: CartoMap = { id: "old-harrow", name: "Old Harrow", sub: "Market town · castle · river vale", kind: "city", x: OH.x, z: OH.z, reach: OH.reach, regionId: "old-harrow" };
 /** the land ids, with the continent of the canon board each one belongs to */
-export const BOARD_LAND_CONTINENT = { goldenreach: "verdant-forest", "azure-isles": "shattered-reefs", frostveil: "frost-spire" } as const;
+export const BOARD_LAND_CONTINENT = { goldenreach: "verdant-forest", "azure-isles": "shattered-reefs", frostveil: "frost-spire", "old-harrow": "verdant-forest" } as const;
 export const BOARD_LANDS: readonly NewLand[] = [
   { map: GF_MAP, source: { height: (x, z) => gfHeight(x, z) + WATER_LEVEL, cover: (x, z, h, s) => gfCover(x, z, h - WATER_LEVEL, s) }, features: gfFeatures },
   { map: AZ_MAP, source: { height: (x, z) => azHeight(x, z) + WATER_LEVEL, cover: (x, z, h, s) => azCover(x, z, h - WATER_LEVEL, s) }, features: azFeatures },
   { map: FV_MAP, source: { height: (x, z) => fvHeight(x, z) + WATER_LEVEL, cover: (x, z, h, s) => fvCover(x, z, h - WATER_LEVEL, s) }, features: fvFeatures },
+  { map: OH_MAP, source: { height: (x, z) => ohHeight(x, z) + WATER_LEVEL, cover: (x, z, h, s) => ohCover(x, z, h - WATER_LEVEL, s) }, features: ohFeatures },
 ];

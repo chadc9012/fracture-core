@@ -244,6 +244,18 @@ header steps SPRING / SUMMER / AUTUMN / WINTER (it starts on the real calendar's
 recolour live — blossom and fresh green, gold and rust, snow on the ground and bare crowns where winter comes (not in the
 tropics, deserts, volcano, ice or the deep). Shots: `map:<id> 3d`, `season:0..3`.
 
+**The Town and Floating Islands regions, deepened** (owner, Nov 8 22:12: "start"): **Old Harrow** (`board-lands.ts`,
+off Verdant Forest on the globe — Riverdale stays as it is because the live world plays there) is the board's town region:
+a walled old quarter of crooked lanes and gabled houses round the market square and its stalls, the Guildhall · Quest Board,
+the Gilded Tankard, smithy and stables, the cathedral and the Dawn Spire, gates in the walls, Harrow Keep and the castle on
+its hill, three hamlets, the mill on the river, the canal and the King's Road, all under a dusk sky. Every region's low
+houses, shops, civic and works buildings (under 18 m, outside the glass cities, Thalassia, the badlands and the ice) now
+get pitched gable roofs instead of flat tops, and autumn and winter recolour only about half the trees so the conifers stay
+green. **The Storm Islands** get 5–7 small islets drifting round each island, waterfalls pouring off the rims (scrolling
+additive curtains), violet crystal clusters on top and hanging beneath, glowing violet light under the named islands,
+tumbling debris (one MultiMesh, rotated and bobbed in the vertex shader) and a storm sky. Shots: `map:old-harrow 3d`,
+`map:storm 3d`.
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through

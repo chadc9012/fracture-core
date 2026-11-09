@@ -23,7 +23,7 @@ import { lavaFissures } from "./set-pieces";
 import { frozenFall } from "./frost-dressing";
 
 export type CartoBounds = { x0: number; z0: number; span: number };
-export type CartoMapId = "nexus" | "neon-city" | "riverdale" | "thalassia" | "veridan" | "frostspire" | "ember" | "wastelands" | "solara" | "swamps" | "storm" | "crystal-badlands" | "shattered-reefs" | "goldenreach" | "azure-isles" | "frostveil";
+export type CartoMapId = "nexus" | "neon-city" | "riverdale" | "thalassia" | "veridan" | "frostspire" | "ember" | "wastelands" | "solara" | "swamps" | "storm" | "crystal-badlands" | "shattered-reefs" | "goldenreach" | "azure-isles" | "frostveil" | "old-harrow";
 export type CartoMap = { id: CartoMapId; name: string; sub: string; kind: "city" | "region"; x: number; z: number; reach: number; regionId: string };
 
 const R = (id: string) => REGIONS.find((r) => r.id === id)!;

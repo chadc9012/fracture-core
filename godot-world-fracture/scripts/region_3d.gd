@@ -586,9 +586,13 @@ func _style_for(id: String) -> Dictionary:
 			# keep the dunes' shading and the sand's colour
 			s.merge({"top": "#4f8cc4", "hor": "#e9c99a", "fog": "#d8b98e", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95}, true)
 		"storm":
-			s.merge({"top": "#2c3646", "hor": "#6d7a89", "fog": "#58636f", "fog_d": 0.0035, "sun": 0.85, "sun_col": "#dfe8ff", "sun_el": 30.0, "amb": 0.6}, true)
+			# the board's floating islands: a violet storm dusk, warm low sun through the clouds, the crystals glowing
+			s.merge({"top": "#252a58", "hor": "#a585c0", "fog": "#6a6390", "fog_d": 0.0026, "sun": 1.0, "sun_col": "#ffc79a", "sun_el": 14.0, "amb": 0.65, "sat": 1.1}, true)
 		"crystal-badlands":
 			s.merge({"top": "#241c4a", "hor": "#d39a7c", "fog": "#6a5676", "fog_d": 0.0014, "sun": 1.0, "sun_col": "#ffc6a0", "sun_el": 22.0, "amb": 0.85, "night": 0.3}, true)
+		"old-harrow":
+			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on
+			s.merge({"top": "#2f3f6a", "hor": "#f0a468", "fog": "#a88468", "fog_d": 0.0016, "sun": 0.95, "sun_col": "#ffb27a", "sun_el": 9.0, "amb": 0.55, "night": 0.4, "sat": 1.05}, true)
 		"goldenreach":
 			# late-afternoon gold over the fields
 			s.merge({"top": "#5e8fc4", "hor": "#f0d6a8", "fog": "#d8c49e", "fog_d": 0.0010, "sun": 1.35, "sun_col": "#ffd9a0", "sun_el": 24.0, "amb": 0.55, "sat": 1.05}, true)
@@ -859,9 +863,12 @@ func _build_buildings() -> void:
 					for t in [[0, 1, 2], [0, 2, 3]]:
 						_tri(st, [ledge[t[0]], ledge[t[1]], ledge[t[2]]], [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], Vector3.UP, Color(wall.darkened(0.16), 1.0), seed)
 			last_corners = tier_corners
-		var roof := [Vector3(last_corners[0].x, top, last_corners[0].y), Vector3(last_corners[1].x, top, last_corners[1].y), Vector3(last_corners[2].x, top, last_corners[2].y), Vector3(last_corners[3].x, top, last_corners[3].y)]
-		for t in [[0, 1, 2], [0, 2, 3]]:
-			_tri(st, [roof[t[0]], roof[t[1]], roof[t[2]]], [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], Vector3.UP, Color(wall.darkened(0.1), 1.0), seed)
+		if _pitched(use, hgt, hx, hz):
+			_gable(st, last_corners, top, hx, hz, wall, seed)
+		else:
+			var roof := [Vector3(last_corners[0].x, top, last_corners[0].y), Vector3(last_corners[1].x, top, last_corners[1].y), Vector3(last_corners[2].x, top, last_corners[2].y), Vector3(last_corners[3].x, top, last_corners[3].y)]
+			for t in [[0, 1, 2], [0, 2, 3]]:
+				_tri(st, [roof[t[0]], roof[t[1]], roof[t[2]]], [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], Vector3.UP, Color(wall.darkened(0.1), 1.0), seed)
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	var mat := ShaderMaterial.new()
@@ -1058,6 +1065,56 @@ func _build_rings() -> void:
 		mi.material_override = mat
 		mi.position = Vector3(p.x, y, p.y)
 		_world.add_child(mi)
+
+## Houses, shops and small halls outside the big cities get a pitched roof (the board's town, farm and resort pictures):
+## a gable along the long side in terracotta, slate or weathered timber
+const PITCH_USES := ["house", "store", "civic", "industrial", "school", "entertainment"]
+func _pitched(use: String, hgt: float, hx: float, hz: float) -> bool:
+	if map_id in ["nexus", "neon-city", "thalassia", "crystal-badlands", "frostveil"]:
+		return false
+	return use in PITCH_USES and hgt < 18.0 and maxf(hx, hz) < 16.0
+
+func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float, wall: Color, seed: float) -> void:
+	const ROOFS := [Color("#8e4a33"), Color("#6b3a2c"), Color("#4b5058"), Color("#5e4a3a"), Color("#9a5a3c")]
+	var roof_col: Color = ROOFS[int(seed * 997.0) % ROOFS.size()]
+	# the ridge runs along the longer pair of edges; c[0]-c[1] is the local x edge
+	var along_x := hx >= hz
+	var a0: Vector2 = c[0]
+	var a1: Vector2 = c[1]
+	var a2: Vector2 = c[2]
+	var a3: Vector2 = c[3]
+	var rise := minf(hx, hz) * 0.75 + 0.3
+	var r0: Vector2
+	var r1: Vector2
+	var slopes: Array
+	var ends: Array
+	if along_x:
+		r0 = (a0 + a3) * 0.5
+		r1 = (a1 + a2) * 0.5
+		slopes = [[a0, a1, r1, r0], [a3, r0, r1, a2]]
+		ends = [[a0, r0, a3], [a1, a2, r1]]
+	else:
+		r0 = (a0 + a1) * 0.5
+		r1 = (a3 + a2) * 0.5
+		slopes = [[a1, a2, r1, r0], [a0, r0, r1, a3]]
+		ends = [[a0, a1, r0], [a3, r1, a2]]
+	var y := func(v: Vector2, ridge: bool) -> Vector3: return Vector3(v.x, top + (rise if ridge else 0.0), v.y)
+	for q in slopes:
+		var p0: Vector3 = y.call(q[0], false)
+		var p1: Vector3 = y.call(q[1], false)
+		var p2: Vector3 = y.call(q[2], true)
+		var p3: Vector3 = y.call(q[3], true)
+		var n := (p1 - p0).cross(p3 - p0).normalized()
+		if n.y < 0.0:
+			n = -n
+		for t in [[p0, p1, p2], [p0, p2, p3]]:
+			_tri(st, t, [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], n, Color(roof_col, 1.0), seed)
+	for e in ends:
+		var q0: Vector3 = y.call(e[0], false)
+		var q1: Vector3 = y.call(e[1], e[1] == r0 or e[1] == r1)
+		var q2: Vector3 = y.call(e[2], e[2] == r0 or e[2] == r1)
+		var n2 := (q1 - q0).cross(q2 - q0).normalized()
+		_tri(st, [q0, q1, q2], [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], n2, Color(wall.darkened(0.05), 1.0), seed)
 
 ## forests (and pines on the cold maps) and the crystal fields, scattered where the land cover says, from the map's data
 func _build_trees() -> void:
@@ -1287,8 +1344,8 @@ void fragment() {
 	vec3 leaf = mix(vec3(0.1, 0.2, 0.09), vec3(0.22, 0.32, 0.13), n);
 	if (evergreen < 0.5 && cold < 0.5) {
 		if (season == 0) leaf = n > 0.72 ? mix(vec3(0.85, 0.5, 0.65), vec3(0.95, 0.75, 0.85), fract(n * 7.0)) : leaf * vec3(1.15, 1.35, 1.05);
-		if (season == 2) leaf = mix(vec3(0.62, 0.22, 0.06), vec3(0.85, 0.55, 0.12), fract(n * 5.3)) * (n > 0.85 ? 0.6 : 1.0);
-		if (season == 3) leaf = mix(vec3(0.24, 0.2, 0.17), vec3(0.32, 0.27, 0.22), n);
+		if (season == 2 && n > 0.42) leaf = mix(vec3(0.62, 0.22, 0.06), vec3(0.85, 0.55, 0.12), fract(n * 5.3)) * (n > 0.9 ? 0.6 : 1.0);
+		if (season == 3 && n > 0.42) leaf = mix(vec3(0.24, 0.2, 0.17), vec3(0.32, 0.27, 0.22), n);
 	}
 	vec3 c = hy < 2.6 ? vec3(0.22, 0.15, 0.1) : leaf * (0.75 + 0.35 * smoothstep(2.6, 10.0, hy));
 	if ((cold > 0.5 || (season == 3 && evergreen < 0.5)) && hy > 2.6) c = mix(c, vec3(0.88, 0.92, 0.96), smoothstep(5.0, 9.5, hy) * 0.8);
@@ -1435,6 +1492,178 @@ func _build_floating() -> void:
 		sm.radial_segments = 7
 		sm.rings = 4
 		_multimesh(sm, boulders, rock)
+	_floating_extras(floats, rock, grass)
+
+## The board's Floating Islands region ("levitating landmasses, anti-gravity zones, and otherworldly resources"): round the
+## six named islands a swarm of smaller torn-off islets at every height; waterfalls pouring off the rims into nothing and
+## fading to mist; violet and cyan crystal clusters on the tops and hanging from the undersides (the otherworldly resource);
+## and rubble that hangs and bobs in the air round each island (the anti-gravity zones), moving in the vertex shader.
+func _floating_extras(floats: Array, rock: Material, grass: Material) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	var falls := SurfaceTool.new()
+	falls.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var crystals: Array[Transform3D] = []
+	var debris: Array[Transform3D] = []
+	var islets := SurfaceTool.new()
+	islets.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var caps := SurfaceTool.new()
+	caps.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var sources: Array = []
+	for f in floats:
+		var p := _loc(f.x, f.z)
+		sources.append([p, float(f.r), float(f.top)])
+		# islets: 5-7 per island, 3-12 m across, scattered round it and up to 60 m above or below
+		for k in 5 + rng.randi() % 3:
+			var a := rng.randf() * TAU
+			var d := float(f.r) * (1.6 + rng.randf() * 2.2)
+			var ir := 3.0 + rng.randf() * 9.0
+			var ip := p + Vector2(cos(a), sin(a)) * d
+			var itop := float(f.top) + rng.randf_range(-60.0, 50.0)
+			_islet(islets, caps, ip, ir, itop, rng)
+			sources.append([ip, ir, itop])
+	for src in sources:
+		var p: Vector2 = src[0]
+		var r: float = src[1]
+		var top: float = src[2]
+		# waterfalls off the bigger rims
+		if r >= 9.0:
+			for w in (2 if r >= 20.0 else 1):
+				var a := rng.randf() * TAU
+				var width := clampf(r * 0.12, 1.6, 4.5)
+				var drop := r * 2.2 + rng.randf() * 60.0
+				var c := p + Vector2(cos(a), sin(a)) * r * 0.96
+				var side := Vector2(-sin(a), cos(a)) * width * 0.5
+				var out := Vector2(cos(a), sin(a))
+				# a curtain that leaves the lip, arcs out a little and falls; v runs down it for the shader
+				var steps := 6
+				for i in steps:
+					var t0 := float(i) / steps
+					var t1 := float(i + 1) / steps
+					var o0 := out * (sqrt(t0) * 4.0)
+					var o1 := out * (sqrt(t1) * 4.0)
+					var y0 := top + 0.6 - drop * t0
+					var y1 := top + 0.6 - drop * t1
+					var q := [Vector3(c.x - side.x + o0.x, y0, c.y - side.y + o0.y), Vector3(c.x + side.x + o0.x, y0, c.y + side.y + o0.y),
+						Vector3(c.x + side.x * (1.0 + t1) + o1.x, y1, c.y + side.y * (1.0 + t1) + o1.y), Vector3(c.x - side.x * (1.0 + t1) + o1.x, y1, c.y - side.y * (1.0 + t1) + o1.y)]
+					var uvs := [Vector2(0, t0), Vector2(1, t0), Vector2(1, t1), Vector2(0, t1)]
+					for tri in [[0, 1, 2], [0, 2, 3]]:
+						for vi in tri:
+							falls.set_uv(uvs[vi])
+							falls.add_vertex(q[vi])
+		# crystals: a cluster on top, a few hanging under the tip
+		var nc := 2 + int(r / 10.0)
+		for i in nc:
+			var a2 := rng.randf() * TAU
+			var d2 := rng.randf() * r * 0.6
+			var s2 := 0.6 + rng.randf() * (1.2 + r * 0.04)
+			crystals.append(Transform3D(Basis.from_euler(Vector3(rng.randf_range(-0.35, 0.35), rng.randf() * TAU, rng.randf_range(-0.35, 0.35))).scaled(Vector3(s2 * 0.6, s2 * 2.2, s2 * 0.6)),
+				Vector3(p.x + cos(a2) * d2, top + 0.4, p.y + sin(a2) * d2)))
+		for i in 1 + int(r / 14.0):
+			var s3 := 0.8 + rng.randf() * 2.0
+			crystals.append(Transform3D(Basis(Vector3.RIGHT, PI).scaled(Vector3(s3 * 0.6, s3 * 2.6, s3 * 0.6)),
+				Vector3(p.x + rng.randf_range(-r, r) * 0.3, top - r * 1.2 - rng.randf() * r * 0.4, p.y + rng.randf_range(-r, r) * 0.3)))
+		# hovering rubble
+		for i in 6 + int(r / 3.0):
+			var a4 := rng.randf() * TAU
+			var d4 := r * (1.05 + rng.randf() * 0.9)
+			var s4 := 0.3 + rng.randf() * 1.4
+			debris.append(Transform3D(Basis.from_euler(Vector3(rng.randf() * TAU, rng.randf() * TAU, rng.randf() * TAU)).scaled(Vector3(s4, s4 * 0.7, s4)),
+				Vector3(p.x + cos(a4) * d4, top - rng.randf() * r * 1.4 + 2.0, p.y + sin(a4) * d4)))
+	var im := MeshInstance3D.new()
+	islets.generate_normals()
+	im.mesh = islets.commit()
+	im.material_override = rock
+	_world.add_child(im)
+	var cm2 := MeshInstance3D.new()
+	caps.generate_normals()
+	cm2.mesh = caps.commit()
+	cm2.material_override = grass
+	_world.add_child(cm2)
+	# the falls: white water scrolling down, thinning into mist at the foot
+	var fsh := Shader.new()
+	fsh.code = """shader_type spatial;
+render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+void fragment() {
+	float streak = n(vec2(UV.x * 9.0, UV.y * 6.0 - TIME * 1.6)) * 0.7 + n(vec2(UV.x * 23.0, UV.y * 14.0 - TIME * 2.6)) * 0.4;
+	float edge = smoothstep(0.0, 0.2, UV.x) * smoothstep(1.0, 0.8, UV.x);
+	float fade = 1.0 - smoothstep(0.55, 1.0, UV.y);
+	ALBEDO = vec3(0.75, 0.86, 0.95) * streak * edge * fade * 0.9;
+}"""
+	var fm := ShaderMaterial.new()
+	fm.shader = fsh
+	var fmi := MeshInstance3D.new()
+	fmi.mesh = falls.commit()
+	fmi.material_override = fm
+	fmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_world.add_child(fmi)
+	# crystals
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.0
+	cyl.bottom_radius = 0.6
+	cyl.height = 2.0
+	cyl.radial_segments = 6
+	cyl.rings = 1
+	var cmat := StandardMaterial3D.new()
+	cmat.albedo_color = Color(0.6, 0.45, 1.0, 0.85)
+	cmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	cmat.emission_enabled = true
+	cmat.emission = Color(0.55, 0.3, 1.0)
+	cmat.emission_energy_multiplier = 2.4
+	cmat.roughness = 0.1
+	_multimesh(cyl, crystals, cmat, 900.0, false)
+	# hovering rubble: bobs and turns slowly in the vertex shader, each piece on its own phase
+	var dsh := Shader.new()
+	dsh.code = """shader_type spatial;
+void vertex() {
+	vec3 o = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	float ph = fract(sin(dot(o.xz, vec2(12.9898, 78.233))) * 43758.5453) * 6.2831;
+	float a = TIME * 0.3 + ph;
+	VERTEX.xz = mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a))) * VERTEX.xz;
+	VERTEX.y += sin(TIME * 0.6 + ph) * 0.8 / max(length(MODEL_MATRIX[1].xyz), 0.01);
+}
+void fragment() { ALBEDO = vec3(0.36, 0.34, 0.4); ROUGHNESS = 0.95; }"""
+	var dm := ShaderMaterial.new()
+	dm.shader = dsh
+	var rk := SphereMesh.new()
+	rk.radius = 1.0
+	rk.height = 1.6
+	rk.radial_segments = 5
+	rk.rings = 3
+	_multimesh(rk, debris, dm, 800.0, false)
+	# a cold glow from the crystals under each named island
+	for f in floats:
+		var p := _loc(f.x, f.z)
+		var l := OmniLight3D.new()
+		l.light_color = Color(0.6, 0.4, 1.0)
+		l.light_energy = 2.0
+		l.omni_range = float(f.r) * 2.5
+		l.position = Vector3(p.x, float(f.top) - float(f.r) * 1.2, p.y)
+		_world.add_child(l)
+
+## a small torn-off islet: a jagged cone under a grassed cap
+func _islet(under: SurfaceTool, cap: SurfaceTool, p: Vector2, r: float, top: float, rng: RandomNumberGenerator) -> void:
+	const SEG := 9
+	var depth := r * (1.3 + rng.randf() * 0.8)
+	var rim: Array[Vector3] = []
+	for i in SEG:
+		var a := i * TAU / SEG
+		var j := 1.0 + (rng.randf() - 0.5) * 0.35
+		rim.append(Vector3(p.x + cos(a) * r * j, top, p.y + sin(a) * r * j))
+	var mid: Array[Vector3] = []
+	for i in SEG:
+		var a := i * TAU / SEG
+		mid.append(Vector3(p.x + cos(a) * r * 0.55 * (0.8 + rng.randf() * 0.4), top - depth * 0.45, p.y + sin(a) * r * 0.55 * (0.8 + rng.randf() * 0.4)))
+	var tip := Vector3(p.x + rng.randf_range(-r, r) * 0.25, top - depth, p.y + rng.randf_range(-r, r) * 0.25)
+	for i in SEG:
+		var i2 := (i + 1) % SEG
+		for v in [rim[i], mid[i], rim[i2], rim[i2], mid[i], mid[i2], mid[i], tip, mid[i2]]:
+			under.add_vertex(v)
+		for v in [Vector3(p.x, top + r * 0.08, p.y), rim[i2] + Vector3(0, 0.3, 0), rim[i] + Vector3(0, 0.3, 0)]:
+			cap.add_vertex(v)
 
 ## street lights along the roads at night (the wet-neon city frames): a glowing head every 24 m on both kerbs
 func _build_lamps() -> void:

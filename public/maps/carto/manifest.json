@@ -81,6 +81,11 @@
    "url": "/maps/carto/frostveil.png",
    "data": "/maps/carto/frostveil.data.png",
    "size": 1536
+  },
+  "old-harrow": {
+   "url": "/maps/carto/old-harrow.png",
+   "data": "/maps/carto/old-harrow.data.png",
+   "size": 1536
   }
  }
 }
