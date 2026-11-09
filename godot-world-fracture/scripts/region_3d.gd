@@ -1477,6 +1477,13 @@ func stand_point() -> Vector3:
 ## walkable height at a local point (operator_player.gd ground_at)
 func ground(lx: float, lz: float) -> float:
 	return _ground(lx, lz)
+## the terrain height alone (below the water where the sea is) and the sea level, for boats and subs
+func terrain(lx: float, lz: float) -> float:
+	return _h(lx, lz)
+func water_level() -> float:
+	return _water
+func over_water(lx: float, lz: float) -> bool:
+	return _h(lx, lz) < _water - 0.3
 ## the buildings as world boxes (local space, metres from the region centre), for the on-foot movers to slide around
 func building_boxes() -> Array[AABB]:
 	var out: Array[AABB] = []

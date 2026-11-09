@@ -108,6 +108,7 @@ func _hud() -> void:
 			cross.draw_line(d * 5.0, d * 14.0, c, 2.0)
 		cross.draw_circle(Vector2.ZERO, 1.6, c))
 	add_child(cross)
+	crosshair = cross
 	weapon_name = Label.new()
 	weapon_name.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	weapon_name.position = Vector2(20, -80)
@@ -220,17 +221,30 @@ var _prompt_label: Label
 func set_mode(m: String) -> void:
 	mode = m
 	var drive := m == "drive"
+	var fly := m == "fly"
 	if _jump_button:
-		_jump_button.text = "BRAKE" if drive else "JUMP"
+		_jump_button.text = "BRAKE" if drive else ("UP" if fly else "JUMP")
 	if _sprint_button:
 		_sprint_button.visible = not drive
+		_sprint_button.text = "DOWN" if fly else "SPRINT"
 		_sprint_button.button_pressed = false
 	for b in [_fire_button, _reload_button, _swap_button]:
 		if b:
-			b.visible = not drive
-	if drive:
+			b.visible = not drive and not fly
+	if crosshair:
+		crosshair.visible = not fly
+	if drive or fly:
 		_sprint_held = false
 		fire = false
+
+var crosshair: Control
+
+## flight (mode "fly"): UP held (or Space) climbs, DOWN toggled (or Shift) descends — 0..1
+func ascend() -> float:
+	return 1.0 if (_brake_held or (not touch_ui and Input.is_key_pressed(KEY_SPACE))) else 0.0
+
+func descend() -> float:
+	return 1.0 if (_sprint_held or (not touch_ui and Input.is_key_pressed(KEY_SHIFT))) else 0.0
 
 func take_reload() -> bool:
 	var r := _reload

@@ -185,6 +185,16 @@ the spawn (trading hub / armory / garage / arena / apartments) and five lit bill
 concept art (`textures/billboards/`). Every block tile gets the bollards, banners, blossoms and track; the hub block adds
 the rings, sign, billboards and train. Shots: `slicewalk` is now the night; `slicedaywalk` the day.
 
+**Skyways** (`scripts/flying/skyways_view.gd`, the SKYWAYS button; asset catalog gap 3): aircraft and watercraft with the
+web game's handling (`scripts/driving/vehicle_handling.gd`, a pure port of vehicle-handling.ts — RACER / OFFROAD / TANK /
+JET / HELI / BOAT / SUB profiles, `step`, exits, chase distances; tests/driving/handling_test.gd) over the exported Nexus
+City in region PLAY mode. Pick the Rift-Jumper helicopter (lifts from a hover), the Resonant Strike jet (needs 32 m/s on
+the runway, sinks when slow), the Scrap-Iron patrol boat (rides the water, beaches on land) or the Hydro-Sub skiff (dives
+between the floor and the surface). Aircraft start on the Nexus airport apron facing the clearest run, watercraft at the
+seaport facing open water; eight rings make a course (over the roofs for aircraft, out across the water for boats) with a
+Nex / XP prize, buildings are solid (a crash and hard landings cost hull; a wreck goes back to the pad). Phone controls in
+`fly` mode: stick = throttle / steer, UP climbs, DOWN descends. Shots: `skyways[:heli|:jet|:boat|:sub][:go]`.
+
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two
 blocks over a Neon City street, joined by the west catwalk, the billboard bridge and the east catwalk, with the cover,
