@@ -2,12 +2,14 @@ extends Node3D
 ## Draws and runs the wildlife (wildlife.gd rules) over a region in PLAY mode. Bodies: the fox is the real rigged fox GLB
 ## (models/animals/fox.glb, Khronos sample: Survey / Walk / Run clips driven by speed); every other species is a stand-in
 ## of boxes in the species colour, sized by its `body`, with a head that dips to graze and legs that swing with the gait
-## phase — to be replaced by Meshy animals (docs/asset-catalog.md, Animals & creatures) without touching the rules.
+## phase. A species with a fitted Meshy body in models/wildlife/<species>.glb wears that instead (docs/asset-catalog.md).
 ## Every ground animal is a gunplay Target: a hit drops it (wildlife.shoot) and it lies there before a new one comes home.
 
 const Wildlife := preload("res://scripts/wildlife/wildlife.gd")
 const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const FOX := "res://models/animals/fox.glb"
+## Meshy bodies (catalog tiles, Nov 8), fitted by scripts/fit-meshy-asset.py to the species `body` length, nose +z, feet at 0
+const MESHY := "res://models/wildlife/%s.glb"
 
 var rules: Wildlife
 var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
@@ -91,6 +93,11 @@ func _body(c: Wildlife.Critter) -> void:
 				ap.get_animation(n).loop_mode = Animation.LOOP_LINEAR
 			ap.play("Survey")
 			root.set_meta("anim", ap)
+	elif ResourceLoader.exists(MESHY % c.species.to_lower()):
+		# a Meshy animal: a still body (no rig yet), already in metres at the species length, so only the critter's size
+		var body := (load(MESHY % c.species.to_lower()) as PackedScene).instantiate() as Node3D
+		body.scale = Vector3.ONE * c.size
+		root.add_child(body)
 	else:
 		var sz: Vector3 = p.body * c.size
 		var col: Color = p.color
