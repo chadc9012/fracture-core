@@ -23,8 +23,6 @@ export const OUTFITS: readonly Outfit[] = [
   o("racer", "Racer", "A sponsor-patched racing jacket.", "Racer", 1600, "Cylinder & Co Heavy Motorworks", "#c82a2a", "#f2f2f2", "#41e6ff", "#1a1d24"),
   o("gym", "Gym", "Tank top and training shorts.", "Gym", 600, "Scrapyard Bazaar", "#f2f2f2", "#2a2e36", "#59ff7a", "#4a5058"),
   o("casual", "Casual", "A tee and worn denim.", "Casual", 500, "Scrapyard Bazaar", "#8aa0b8", "#2a3a5c", "#92e9f5", "#6a6e74"),
-  // owner's operator sheet (Nov 8): navy hooded long coat, black harness and plates, cyan glow in the trims
-  o("ronin", "Shadow Ronin", "Navy hooded long coat, black harness, cyan glow.", "Tactical", 2400, "Apex Gear", "#16181f", "#1c2340", "#3fe6ff", "#9a7a3a"),
   // seasonal (seasonal.ts): sold only while the event runs
   o("halloween-witch", "Haunted Coven", "Black and violet, cobweb lace.", "Halloween", 2500, "Halloween Collection", "#15161c", "#3b1a66", "#7a3aff", "#c85a14", "halloween"),
   o("winter-festive", "Festive Red", "Red and white, fur trim.", "Winter", 2500, "Winter Collection", "#8a1f1f", "#f2f2f2", "#9fd8ff", "#c9a24a", "winter"),

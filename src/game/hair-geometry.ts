@@ -311,6 +311,62 @@ function tufts(count: number, length: number, radius: number, seed: number, spik
   return out;
 }
 
+/** a tapered tube along `pts` whose colour runs from the strand's shade at the root to `tip` times it at the end */
+function shadedStrand(pts: THREE.Vector3[], r: number, rEnd: number, seed: number, tip: number, segs = 10, radial = 6): THREE.BufferGeometry {
+  const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+  const g = new THREE.TubeGeometry(curve, segs, r, radial, false);
+  const pos = g.getAttribute("position") as THREE.BufferAttribute, col = new Float32Array(pos.count * 3);
+  const base = 0.82 + rand(seed) * 0.3, c = new THREE.Vector3(), v = new THREE.Vector3();
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs, k = THREE.MathUtils.lerp(1, rEnd / r, t), shade = base * THREE.MathUtils.lerp(1, tip, THREE.MathUtils.smoothstep(t, 0.45, 1));
+    curve.getPointAt(t, c);
+    for (let j = 0; j <= radial; j++) {
+      const idx = i * (radial + 1) + j;
+      v.fromBufferAttribute(pos, idx).sub(c).multiplyScalar(k).add(c);
+      pos.setXYZ(idx, v.x, v.y, v.z);
+      col.set([shade, shade, shade], idx * 3);
+    }
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const n = g.toNonIndexed();
+  n.computeVertexNormals();
+  return n;
+}
+
+/** short twists over the top of the head (operator-styling.ts twistTop): each rises off the scalp, then tips over and falls
+ * outward, wound as two strands (a small helix), lighter or darker at the ends by `tip` */
+function twistTop(count: number, length: number, radius: number, seed: number, phiMax: number, tip: number): THREE.BufferGeometry[] {
+  const out: THREE.BufferGeometry[] = [];
+  const rings = Math.max(3, Math.round(Math.sqrt(count * 0.6)));
+  let i = 0;
+  for (let ring = 0; ring < rings; ring++) {
+    const phi = 0.03 * Math.PI + (ring / (rings - 1)) * (phiMax - 0.03 * Math.PI);
+    const per = Math.max(3, Math.round((count / rings) * (0.35 + 1.3 * Math.sin(phi))));
+    for (let k = 0; k < per; k++, i++) {
+      const theta = ((k + 0.5 + rand(seed + i) * 0.4) / per) * Math.PI * 2 + ring * 0.37;
+      if (phi > hairline(theta) - 0.06) continue;
+      const root = onSkull(phi, theta, 0.003), n = outward(root);
+      const h = dirOf(0.5 * Math.PI, theta).add(new THREE.Vector3(0, 0, 0.35)).normalize(); // outward, a little forward
+      const L = length * (0.75 + rand(seed + i * 5) * 0.5);
+      const fall = 0.08 + (phi / phiMax) * 0.3; // the outer twists lean over further
+      const side = new THREE.Vector3().crossVectors(n, h).normalize();
+      const pts: THREE.Vector3[] = [];
+      for (let s = 0; s <= 8; s++) {
+        const t = s / 8;
+        const p = root.clone()
+          .add(n.clone().multiplyScalar(L * (0.75 * t - 0.2 * t * t)))
+          .add(h.clone().multiplyScalar(L * fall * t * t))
+          .add(new THREE.Vector3(0, -L * fall * 0.6 * t * t * t, 0));
+        const a = t * Math.PI * 5 + rand(seed + i) * 6; // the two-strand wind
+        p.add(side.clone().multiplyScalar(Math.cos(a) * radius * 0.45)).add(h.clone().multiplyScalar(Math.sin(a) * radius * 0.25));
+        pts.push(p);
+      }
+      out.push(shadedStrand(pts, radius, radius * 0.6, seed + i, tip));
+    }
+  }
+  return out;
+}
+
 /** a fringe over the forehead: swept to one side (`sweep` ±1), straight (0), or pushed up and back (`up`) */
 function fringe(sweep: -1 | 0 | 1, lift: number, up: boolean): THREE.BufferGeometry[] {
   if (up) {
@@ -409,6 +465,7 @@ export function hairGeometry(style: HairDef, skull: Skull = DEFAULT_SKULL): THRE
       case "crown": parts.push(...crown()); break;
       case "tufts": parts.push(...tufts(p.count, p.length, p.radius, p.seed, p.spiky ?? false, p.curl ?? false)); break;
       case "sideBraid": parts.push(...sideBraid(p.side, p.length)); break;
+      case "twistTop": parts.push(...twistTop(p.count, p.length, p.radius, p.seed, p.phiMax, p.tip ?? 1)); break;
     }
   }
   if (!parts.length) return null;

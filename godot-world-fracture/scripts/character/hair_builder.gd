@@ -145,8 +145,8 @@ static func _catmull(pts: Array[Vector3], t: float) -> Vector3:
 	return 0.5 * ((2.0 * p1) + (-p0 + p2) * u + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * u * u + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * u * u * u)
 
 ## a tube along a curve through pts, radius r tapering to r_end
-func strand(pts: Array[Vector3], r: float, seed: float, r_end := -1.0, segs := 8, sides := 5) -> void:
-	var shade := 0.82 + rand(seed) * 0.3
+func strand(pts: Array[Vector3], r: float, seed: float, r_end := -1.0, segs := 8, sides := 5, tip := 1.0) -> void:
+	var shade0 := 0.82 + rand(seed) * 0.3
 	var base := _v.size()
 	var prev_n := Vector3.ZERO
 	for s in segs + 1:
@@ -162,6 +162,7 @@ func strand(pts: Array[Vector3], r: float, seed: float, r_end := -1.0, segs := 8
 		prev_n = nrm
 		var bin := tan.cross(nrm)
 		var rr := r if r_end < 0.0 else lerpf(r, r_end, t)
+		var shade := shade0 * lerpf(1.0, tip, smoothstep(0.45, 1.0, t))
 		for k in sides + 1:
 			var a := float(k) / sides * TAU
 			var o := nrm * cos(a) + bin * sin(a)
@@ -196,6 +197,33 @@ func hanging(root: Vector3, length: float, r: float, seed: float, curl := false)
 		var a := t * PI * 7.0 + seed
 		pts.append(_catmull(path, t) + side * cos(a) * 0.012 * t + n * sin(a) * 0.012 * t)
 	strand(pts, r, seed, -1.0, 20)
+
+## short twists over the top of the head (web hair-geometry.ts twistTop): each rises off the scalp, tips over and falls
+## outward, wound as two strands, lighter or darker at the ends by `tip`
+func twist_top(count: int, length: float, radius: float, seed: float, phi_max: float, tip: float) -> void:
+	var rings := maxi(3, roundi(sqrt(count * 0.6)))
+	var i := 0
+	for ring in rings:
+		var phi := 0.03 * PI + float(ring) / (rings - 1) * (phi_max - 0.03 * PI)
+		var per := maxi(3, roundi(float(count) / rings * (0.35 + 1.3 * sin(phi))))
+		for k in per:
+			var th := (k + 0.5 + rand(seed + i) * 0.4) / per * TAU + ring * 0.37
+			i += 1
+			if phi > hairline(th) - 0.06:
+				continue
+			var root := on_skull(phi, th, 0.003)
+			var n := outward(root)
+			var h := (dir_of(0.5 * PI, th) + Vector3(0, 0, 0.35)).normalized()
+			var l := length * (0.75 + rand(seed + (i - 1) * 5) * 0.5)
+			var fall := 0.08 + (phi / phi_max) * 0.3
+			var side := n.cross(h).normalized()
+			var pts: Array[Vector3] = []
+			for s in 9:
+				var t := s / 8.0
+				var p := root + n * l * (0.75 * t - 0.2 * t * t) + h * l * fall * t * t + Vector3(0, -l * fall * 0.6 * t * t * t, 0)
+				var a := t * PI * 5.0 + rand(seed + i - 1) * 6.0
+				pts.append(p + side * cos(a) * radius * 0.45 + h * sin(a) * radius * 0.25)
+			strand(pts, radius, seed + i - 1, radius * 0.6, 10, 6, tip)
 
 func roots(count: int, seed: float) -> Array[Vector3]:
 	var out: Array[Vector3] = []
@@ -450,6 +478,7 @@ func build(style: Dictionary) -> ArrayMesh:
 			"crown": crown_braid()
 			"tufts": tufts(int(p.count), p.length, p.radius, p.seed, _g(p, "spiky", false), _g(p, "curl", false))
 			"sideBraid": side_braid(int(p.side), p.length)
+			"twistTop": twist_top(int(p.count), p.length, p.radius, p.seed, p.phiMax, _g(p, "tip", 1.0))
 	return take()
 
 ## the skin-toned skull that closes a head whose cut hair is taken away, just under the skull surface

@@ -28,7 +28,10 @@ export type HairPart =
   | { kind: "cornrows"; rows: number; hang?: number }
   | { kind: "crown" }
   | { kind: "tufts"; count: number; length: number; radius: number; seed: number; spiky?: boolean; curl?: boolean }
-  | { kind: "sideBraid"; side: -1 | 1; length: number };
+  | { kind: "sideBraid"; side: -1 | 1; length: number }
+  /** short two-strand twists rooted on the top of the head only (down to `phiMax`), standing up then falling outward;
+   * `tip` lightens (>1) or darkens the last third of each twist */
+  | { kind: "twistTop"; count: number; length: number; radius: number; seed: number; phiMax: number; tip?: number };
 
 export type HairDef = {
   id: string; label: string; blurb: string;
@@ -68,6 +71,8 @@ export const HAIR_STYLES: readonly HairDef[] = [
   built("freeform-locs", "Freeform locs", "Thick, uneven locs.", M, { kind: "cap", thick: 0.01 }, { kind: "hanging", count: 26, length: 0.2, jitter: 0.16, radius: 0.012, seed: 13 }),
   built("dreads-tied", "Locs tied back", "Locs gathered at the back.", M, { kind: "cap", thick: 0.008 }, { kind: "tied", count: 30, radius: 0.0085 }),
   built("locs-bun", "Locs bun", "Locs gathered up into a bun.", F, { kind: "cap", thick: 0.008 }, { kind: "tied", count: 30, radius: 0.0085, bun: true }),
+  // owner's operator sheet (Nov 8): short twists on top, sun-lightened at the ends, over a high skin fade
+  built("twist-fade", "Twists & fade", "Short twists on top, lighter at the tips, faded high at the sides.", M, { kind: "cap", thick: 0.005, sideThick: 0, phiMax: 0.4 * PI }, { kind: "twistTop", count: 110, length: 0.05, radius: 0.0058, seed: 83, phiMax: 0.36 * PI, tip: 3 }),
   built("twists", "Twists", "Fine two-strand twists.", M, { kind: "cap", thick: 0.006 }, { kind: "hanging", count: 60, length: 0.17, jitter: 0.09, radius: 0.0045, seed: 23 }),
   built("cornrows", "Cornrows", "Rows braided back along the scalp.", MF, { kind: "cap", thick: 0.001, shade: 0.85 }, { kind: "cornrows", rows: 7 }),
   built("braids", "Braids", "Rows along the scalp into short braids.", M, { kind: "cap", thick: 0.001, shade: 0.85 }, { kind: "cornrows", rows: 6, hang: 0.1 }),
