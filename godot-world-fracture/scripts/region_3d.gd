@@ -1762,6 +1762,9 @@ func _declutter() -> void:
 	order.sort_custom(func(a, b): return a.rank < b.rank or (a.rank == b.rank and a.node.global_position.distance_to(_cam.global_position) < b.node.global_position.distance_to(_cam.global_position)))
 	for e in order:
 		var l: Label3D = e.node
+		if bool(l.get_meta("hidden", false)):
+			l.visible = false
+			continue
 		var wp := l.global_position
 		if _cam.is_position_behind(wp) or wp.distance_to(_cam.global_position) > l.visibility_range_end:
 			l.visible = false
@@ -1800,8 +1803,33 @@ func _build_labels() -> void:
 		l.no_depth_test = false
 		l.position = Vector3(at.x, maxf(y, _water) + 9.0, at.y)
 		l.visibility_range_end = 1200.0 if int(p.rank) == 0 else (420.0 if int(p.rank) == 1 else 180.0)
+		l.set_meta("cat", String(p.get("cat", "")))
 		_world.add_child(l)
 		_labels.append({"node": l, "rank": int(p.rank)})
+	_fit_labels()
+
+## the POI labels are sized for the city overview; on foot (STREET / PLAY) they shrink to a street sign, show only
+## nearby, and the transit stations stay out of the way altogether
+func _fit_labels() -> void:
+	var foot := mode == Mode.STREET or mode == Mode.PLAY
+	for e in _labels:
+		var l := e.node as Label3D
+		var rank := int(e.rank)
+		var cat := String(l.get_meta("cat", ""))
+		if foot:
+			l.pixel_size = 0.0007
+			l.font_size = 22
+			l.outline_size = 6
+			l.visibility_range_end = 220.0 if rank == 0 else (110.0 if rank == 1 else 60.0)
+			l.set_meta("hidden", cat in ["station", "transit"])
+			l.visible = not bool(l.get_meta("hidden"))
+		else:
+			l.pixel_size = 0.0016
+			l.font_size = 30
+			l.outline_size = 10
+			l.visibility_range_end = 1200.0 if rank == 0 else (420.0 if rank == 1 else 180.0)
+			l.set_meta("hidden", false)
+			l.visible = true
 
 func _floating_top(x: float, z: float) -> float:
 	for f in m.get("floating", []):
@@ -1824,6 +1852,7 @@ func set_mode(md: Mode) -> void:
 		_jump.visible = mode != Mode.PLAY
 	_pad_city.visible = mode == Mode.CITY
 	_pad_street.visible = mode == Mode.STREET
+	_fit_labels()
 	if mode == Mode.STREET or mode == Mode.PLAY:
 		_stand_near(Vector2(_target.x, _target.z))
 	if mode == Mode.PLAY:
