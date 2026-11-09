@@ -1,4 +1,5 @@
 extends Control
+const Settings := preload("res://scripts/front/settings_store.gd")
 ## On-foot input for the phone and the desk, one overlay over the 3D view: a virtual stick where the thumb lands on the left
 ## half of the screen, look-drag anywhere on the right half, JUMP, SPRINT, FIRE, RELOAD and SWAP buttons (phone), WASD / arrows + Space + Shift,
 ## left mouse to fire, right-drag look, R and Q on a keyboard; a crosshair and the magazine read-out. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
@@ -123,6 +124,17 @@ func _hud() -> void:
 	weapon_name.add_theme_font_size_override("font_size", 16)
 	weapon_name.modulate = Color(0.75, 0.85, 0.95)
 	add_child(weapon_name)
+	# a tap on the weapon's name (or the magazine) swaps weapons: the simple HUD has no SWAP button
+	var swap_tap := Control.new()
+	swap_tap.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	swap_tap.position = Vector2(10, -96)
+	swap_tap.size = Vector2(240, 90)
+	swap_tap.mouse_filter = Control.MOUSE_FILTER_STOP
+	swap_tap.gui_input.connect(func(e: InputEvent) -> void:
+		if (e is InputEventScreenTouch and (e as InputEventScreenTouch).pressed) or (e is InputEventMouseButton and (e as InputEventMouseButton).pressed):
+			_next = true
+			swap_tap.accept_event())
+	add_child(swap_tap)
 	ammo = Label.new()
 	ammo.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	ammo.position = Vector2(20, -56)
@@ -237,6 +249,11 @@ func prompt(text: String) -> void:
 		add_child(_prompt_label)
 	_prompt_label.text = (text + "  ·  E") if text != "" else ""
 
+## the simple phone HUD (settings "simple_hud", the owner's ask): stick, FIRE, JUMP and ENTER only — sprint is the stick
+## pushed to its edge, a tap on the weapon's name swaps, an empty magazine reloads itself (gunplay does that on the pull)
+func simple() -> bool:
+	return touch_ui and bool(Settings.get_value("simple_hud"))
+
 func set_mode(m: String) -> void:
 	mode = m
 	var drive := m == "drive"
@@ -244,12 +261,14 @@ func set_mode(m: String) -> void:
 	if _jump_button:
 		_jump_button.text = "BRAKE" if drive else ("UP" if fly else "JUMP")
 	if _sprint_button:
-		_sprint_button.visible = not drive
+		_sprint_button.visible = not drive and (fly or not simple())
 		_sprint_button.text = "DOWN" if fly else "SPRINT"
 		_sprint_button.button_pressed = false
-	for b in [_fire_button, _reload_button, _swap_button]:
+	if _fire_button:
+		_fire_button.visible = not drive and not fly and weapons_out
+	for b in [_reload_button, _swap_button]:
 		if b:
-			b.visible = not drive and not fly and weapons_out
+			b.visible = not drive and not fly and weapons_out and not simple()
 	if crosshair:
 		crosshair.visible = not fly and (weapons_out or drive)
 	if drive or fly:
@@ -322,7 +341,7 @@ func _process(_dt: float) -> void:
 	if scripted:
 		return
 	if touch_ui:
-		sprint = _sprint_held
+		sprint = _sprint_held or (simple() and mode == "foot" and move.length() > 0.92)
 		return
 	# keyboard
 	var k := Vector2.ZERO

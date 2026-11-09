@@ -137,6 +137,8 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 	else:
 		_drone_body(e)
 	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
+	# what it bleeds (gunplay.spark): machines coolant, people red
+	e.target.set_meta("blood", Color(0.2, 0.9, 1.0) if type in ["drone", "sentinel", "turret"] else Color(0.85, 0.1, 0.08))
 	e.target.set_meta("enemy", e)
 	e.target.set_meta("roster", self)     # gunplay's aim help skips the operator's own team
 	gunplay.targets.append(e.target)

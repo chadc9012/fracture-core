@@ -59,6 +59,28 @@ func _ready() -> void:
 	simple.button_pressed = bool(s.simple_hud)
 	simple.toggled.connect(func(on: bool): Store.set_value("simple_hud", on))
 	box.add_child(simple)
+	# gore: off (puffs), reduced (a spark of the right colour), full (a spray that lingers). Machines bleed coolant, Fracture
+	# creatures violet, wildlife green — never a gore level on the troopers' faces (the owner's board)
+	var gl := Label.new()
+	gl.text = "Gore"
+	gl.add_theme_font_size_override("font_size", 14)
+	box.add_child(gl)
+	var grow := HBoxContainer.new()
+	grow.add_theme_constant_override("separation", 8)
+	var gore_buttons: Array[Button] = []
+	for opt in ["off", "reduced", "full"]:
+		var gb := Button.new()
+		gb.text = String(opt).to_upper()
+		gb.toggle_mode = true
+		gb.custom_minimum_size = Vector2(150, 44)
+		gb.button_pressed = String(s.get("gore", "reduced")) == opt
+		gb.pressed.connect(func():
+			Store.set_value("gore", opt)
+			for other in gore_buttons:
+				other.button_pressed = other == gb)
+		gore_buttons.append(gb)
+		grow.add_child(gb)
+	box.add_child(grow)
 	var perf := CheckButton.new()
 	perf.text = "Frame-time readout (fps · ms · draws · tris · vram)"
 	perf.button_pressed = bool(s.get("perf_hud", true))

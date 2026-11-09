@@ -1,4 +1,5 @@
 extends Node3D
+const Settings := preload("res://scripts/front/settings_store.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## Shooting on foot (the Dec 4 plan, phase 2): the operator's gun in the right hand (the web game's authored rifle GLBs —
 ## rifle, rifle-sniper, rifle-fusion — on the RightHand bone, barrel along the bone's +Z as OperatorModel.tsx mounts them),
@@ -205,7 +206,16 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		if tr.t <= 0.0:
 			tr.node.queue_free()
 		else:
-			(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / 0.09, 0.0, 1.0)
+			if tr.has("vel"):
+				# a droplet falls; a splash just fades over its life
+				var v: Vector3 = tr.vel
+				if v != Vector3.ZERO:
+					v.y -= 9.8 * dt
+					tr.vel = v
+					(tr.node as Node3D).global_position += v * dt
+				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / float(tr.life), 0.0, 1.0)
+			else:
+				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / 0.09, 0.0, 1.0)
 			keep.append(tr)
 	_tracers = keep
 	if _flash:
@@ -251,7 +261,7 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 			hit_t = t
 	var end := from + dir * dist
 	tracer(from, end)
-	spark(end, hit_t != null)
+	spark(end, hit_t != null, Color(hit_t.get_meta("blood", Color(0.85, 0.1, 0.08))) if hit_t != null else Color.WHITE)
 	if hit_t:
 		var head := end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
 		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult
@@ -298,20 +308,37 @@ func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
 		_flash.global_position = from
 		_flash_t = 0.05
 
-func spark(at: Vector3, flesh: bool) -> void:
+## a hit's spark. On a body the colour is the target's `blood` meta (troopers red, machines cyan coolant, Fracture
+## creatures violet, wildlife green) and the amount follows the gore setting: off — a grey puff; reduced — one spark;
+## full — a spray of droplets that fall and a splash that lingers a few seconds
+func spark(at: Vector3, flesh: bool, blood := Color(0.85, 0.1, 0.08)) -> void:
+	var gore := String(Settings.get_value("gore"))
+	if flesh and gore == "off":
+		_dot(at, Color(0.6, 0.6, 0.6, 0.6), 0.08, 0.15)
+		return
+	_dot(at, blood if flesh else Color(1.0, 0.9, 0.6), 0.06, 0.12)
+	if flesh and gore == "full":
+		for i in 6:
+			var v := Vector3(randf() - 0.5, randf() * 0.8, randf() - 0.5) * 3.0
+			_dot(at, blood, 0.03 + randf() * 0.03, 0.45 + randf() * 0.3, v)
+		_dot(at - Vector3(0, 0.02, 0), Color(blood.r, blood.g, blood.b, 0.85), 0.16, 4.0, Vector3.ZERO, true)
+
+func _dot(at: Vector3, col: Color, r: float, life: float, vel := Vector3.ZERO, flat := false) -> void:
 	var mi := MeshInstance3D.new()
 	var s := SphereMesh.new()
-	s.radius = 0.06
-	s.height = 0.12
+	s.radius = r
+	s.height = r * (0.25 if flat else 2.0)
+	s.radial_segments = 8
+	s.rings = 4
 	mi.mesh = s
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = Color(1.0, 0.3, 0.2) if flesh else Color(1.0, 0.9, 0.6)
+	m.albedo_color = col
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mi.material_override = m
 	add_child(mi)
 	mi.global_position = at
-	_tracers.append({ "node": mi, "t": 0.12 })
+	_tracers.append({ "node": mi, "t": life, "vel": vel, "life": life })
 
 ## a practice dummy: a post with a plate, standing on the ground at `at`
 func add_dummy(at: Vector3, hp := 30.0) -> Target:

@@ -123,6 +123,7 @@ func _body(c: Wildlife.Critter) -> void:
 	if gunplay and int(p.loco) == Wildlife.Loco.GROUND:
 		var sz2: Vector3 = p.body * c.size
 		var t := Gunplay.Target.new(AABB(Vector3.ZERO, sz2), 12.0 * sz2.y, root)
+		t.set_meta("blood", Color(0.3, 0.9, 0.3))   # the owner's board: green for the wild things
 		gunplay.targets.append(t)
 		_targets[c] = t
 

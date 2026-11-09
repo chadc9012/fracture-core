@@ -316,6 +316,15 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Polish, first pass** (schedule step 12, Nov 9 — the known items while the owner's playtest list is awaited): the
+**simple phone HUD** (settings "Simple phone HUD", on by default; `touch_controls.gd simple()`) keeps the stick, FIRE,
+JUMP and ENTER: sprint is the stick pushed to its edge, a tap on the weapon's name swaps, an empty magazine reloads
+itself on the pull; RELOAD / SWAP / SPRINT come back with the switch off. The **gore** setting (OFF / REDUCED / FULL,
+default reduced) drives `gunplay.spark`: off is a grey puff, reduced one spark in the target's colour, full a spray of
+droplets that fall and a splash that lingers; colours follow the owner's board — troopers red, machines (drones) cyan
+coolant, Fracture creatures violet, wildlife green (a target's `blood` meta). Kills return half a magazine to every
+carried gun (`gunplay.scavenge`).
+
 **Act 1: the story past the forest** (`scripts/mission/descent.gd`, `cutscene.gd`, schedule step 11, Nov 9): the Fracture
 Descent now runs fd-02 to fd-07, the web chain's words and rewards (quests.ts). After the forest, **fd-05 Crossing the
 Shrouded Swamps** (region `swamps`, from the Drowned Ruins: hold out 90 s in the fog while patrols come out of the reeds,
