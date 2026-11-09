@@ -598,14 +598,16 @@ func _rusty() -> void:
 	# the shop: a steel door under a red neon trigger in the back wall
 	s._box(Vector3(0.3, 3.4, 3.0), at(COURT_OUT - 0.15, 0.0, 1.88), flat(Color(0.2, 0.2, 0.22), 0.5, 0.8))
 	s._box(Vector3(0.2, 0.15, 3.4), at(COURT_OUT - 0.3, 0.0, 3.75), neon(accent, 5.0))
-	text("RUSTY TRIGGER", COURT_OUT - 0.4, 0.0, 6.4, accent, 150, 0.013)
-	text("NO QUESTIONS", COURT_OUT - 0.4, 0.0, 4.6, Color(1.0, 0.75, 0.3), 56, 0.01)
+	text("RUSTY TRIGGER", COURT_OUT - 0.4, 0.0, 7.4, accent, 160, 0.03)
+	text("NO QUESTIONS", COURT_OUT - 0.4, 0.0, 4.9, Color(1.0, 0.75, 0.3), 64, 0.016)
 	# the alley: chain-link fence, dumpsters, drums, pallets, a wreck and graffiti
-	var fence := flat(Color(0.5, 0.52, 0.55), 0.6, 0.7)
+	var fence := flat(Color(0.3, 0.32, 0.34), 0.6, 0.7)
+	fence.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fence.albedo_color.a = 0.28     # chain-link: you see the alley through it
 	for zz: float in [-30.0, 30.0]:
 		block(Vector3(40.0, 3.2, 0.1), 70.0, zz, fence)
 		for i in 6:
-			s._box(Vector3(0.12, 3.4, 0.12), at(50.0 + i * 8.0, zz, 1.88), fence)
+			s._box(Vector3(0.12, 3.4, 0.12), at(50.0 + i * 8.0, zz, 1.88), flat(Color(0.3, 0.32, 0.34), 0.6, 0.7))
 	for i in 4:
 		block(Vector3(3.6, 1.6, 1.9), 100.0 + (i % 2) * 14.0, -50.0 + i * 30.0, flat(Color(0.12, 0.28, 0.16), 0.8, 0.4), 0.18)
 	var drum := flat(Color(0.45, 0.2, 0.1), 0.85, 0.5)
