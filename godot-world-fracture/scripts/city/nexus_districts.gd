@@ -397,9 +397,9 @@ func _spire() -> void:
 	s._box(Vector3(10.2, 0.2, 40.0), at(COURT_OUT + 14.0, 0.0, a * 0.62 - 3.0), neon(Color(0.85, 0.95, 1.0), 3.0))
 	for zz: float in [-38.0, 38.0]:
 		s._box(Vector3(28.4, 0.4, 40.4), at(COURT_OUT + 14.0, zz, (a if zz < 0.0 else a * 0.86) + 0.2), neon(Color(0.85, 0.95, 1.0), 2.0))
-	text("THE SPIRE DISTRICT", COURT_OUT - 0.3, 0.0, 22.0, accent, 140, 0.014)
+	text("THE SPIRE DISTRICT", COURT_OUT - 0.3, 0.0, 20.0, accent, 160, 0.032)
 	# the sky garden: a fountain, blossom trees, benches and the drop-off
-	var stone := flat(Color(0.82, 0.8, 0.76), 0.4)
+	var stone := flat(Color(0.4, 0.4, 0.42), 0.5)
 	var fountain := MeshInstance3D.new()
 	var basin := CylinderMesh.new()
 	basin.top_radius = 9.0
