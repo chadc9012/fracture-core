@@ -110,7 +110,7 @@ func _ready() -> void:
 	gm.add_theme_color_override("font_color", Color(1.0, 0.8, 0.5))
 	gm.pressed.connect(_open_modes)
 	add_child(gm)
-	var fd := Data.button("▶ FRACTURE DESCENT · fd-02…04", true)
+	var fd := Data.button("▶ FRACTURE DESCENT · ACT 1 · fd-02…07", true)
 	fd.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	fd.position = Vector2(-450, -198)
 	fd.custom_minimum_size = Vector2(430, 56)
@@ -699,7 +699,28 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_cloud()
 		# descent[:fight|:wild]  the Fracture Descent in the Verdant Forest; :fight sprints and fires; :wild stands by the deer herd
 		if String(o).begins_with("descent"):
+			# descent[:wild] [:fd-05|:fd-06|:fd-07] [:vyrak]: the quest to stand in (the chain is set to it), vyrak summons the boss
+			for qid in ["fd-05", "fd-06", "fd-07"]:
+				if String(o).contains(qid):
+					var f := FileAccess.open("user://quests.json", FileAccess.WRITE)
+					f.store_string(JSON.stringify({ "done": [], "current": qid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 3 if String(o).contains("vyrak") else 0, "stage": 1 if qid == "fd-05" else 0 }))
+					f.close()
 			_open_descent()
+			if descent.cutscene and descent.cutscene.playing:
+				descent.cutscene._end()
+			if String(o).contains("vyrak") and descent.quest.get("id", "") == "fd-07":
+				descent.operator.position = descent.waypoint + Vector3(6, 0, 10)
+				descent.operator.position.y = descent.region.ground(descent.operator.position.x, descent.operator.position.z)
+				descent.operator.heading = 0.0
+				descent.operator.cam_yaw = 0.0
+				if descent.boss:
+					descent.boss.position = descent.waypoint + Vector3(2, 0, -6)
+					descent.boss.position.y = descent.region.ground(descent.boss.position.x, descent.boss.position.z)
+			elif String(o).contains("fd-0"):
+				descent.operator.position = descent.waypoint + Vector3(5, 0, 9)
+				descent.operator.position.y = descent.region.ground(descent.operator.position.x, descent.operator.position.z)
+				descent.operator.heading = 0.0
+				descent.operator.cam_yaw = 0.0
 			if String(o).contains("wild"):
 				# the shot: bring a deer herd, the fox and a wolf to the open ground at the crash site so the bodies show
 				var sp: Vector3 = descent.region.stand_point()

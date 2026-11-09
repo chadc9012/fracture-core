@@ -316,6 +316,20 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Act 1: the story past the forest** (`scripts/mission/descent.gd`, `cutscene.gd`, schedule step 11, Nov 9): the Fracture
+Descent now runs fd-02 to fd-07, the web chain's words and rewards (quests.ts). After the forest, **fd-05 Crossing the
+Shrouded Swamps** (region `swamps`, from the Drowned Ruins: hold out 90 s in the fog while patrols come out of the reeds,
+then purge the Drowned Relay's three guards), **fd-06 Signals in the Static** (Neon City, the Underlink: hold the Blackout
+Protocol terminal 30 s while the district answers with drones, heat rising), **fd-07 Full Lockdown** (Neon City, the
+Directorate: three lockdown waves at the Stitched Neon Core, then **Vyrak, the Ashen Covenant** as the act boss — the
+Rift Gate's boss rules and hull, counted as a Rift Gate clear). Each quest names its world; moving on rebuilds the
+region under the same operator, guns, troopers and gear (wildlife in the wilds only). **Cutscenes** (`cutscene.gd`:
+letterbox, an orbiting camera, speaker and caption, tap to advance, SKIP) open each quest and carry the owner's
+recordings — Mara at the crash site, Dr Aris's World Anchor log from the terminal, Serik Vale's recording at the core,
+Vaelith's first contact as the act's last word (Act 2 is the Ember Peaks) — with Vyrak's lines from dragon-covenant.ts
+before and after the fight. `tests/mission/descent_play.tscn` plays the whole act headless: the forest on foot, the
+crossing, the fog skipped forward, the relay, the terminal under drones, three waves, Vyrak shot down, the Covenant.
+
 **Economy and progression** (`scripts/progress/`, schedule step 10, Nov 9): one profile. Every mode pays through
 `progression.gd` `grant()` — Killbox (a win 250 + 25 Nex a kill to 600, a loss 100 + 15; XP likewise), the Rift Gate
 bosses, Descent quests, the Hollow Star, races, Skyways courses, Mission 01 — onto `user://profile.json` (cloud-merged).

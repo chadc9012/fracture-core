@@ -48,6 +48,13 @@ var _flash: OmniLight3D
 var _flash_t := 0.0
 var _rng := RandomNumberGenerator.new()
 
+## a kill resupplies: every carried gun gets half a magazine back into its reserve (to the frame's full reserve), so a
+## long fight — a Fracture boss, a lockdown — is paced by kills rather than ended by an empty bag
+func scavenge() -> void:
+	for g in guns:
+		var f: Dictionary = Weapons.FRAMES.get(g.frame, {})
+		g.reserve = mini(int(g.reserve) + maxi(1, int(f.get("mag", 10)) / 2), int(f.get("reserve", 0)))
+
 func gun() -> Weapons.Gun:
 	return guns[current]
 
@@ -259,6 +266,7 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 			if hit_t.node:
 				hit_t.node.visible = false
 			Sound.sfx_at("down", end, from, -4.0)
+			scavenge()
 			killed.emit(hit_t)
 
 func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
