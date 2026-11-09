@@ -712,7 +712,6 @@ func _shoot(path: String, opts: Array) -> void:
 			if a.size() > 5:
 				region_3d._target.y += float(a[5])
 			region_3d._apply_cam()
-			print("3d-at cam ", region_3d._cam.global_position, " target ", region_3d._target)
 		if String(o).begins_with("street:") and region_map:
 			var p: Dictionary = {}
 			for q in Data.map(region_map.map_id).pois:
