@@ -316,6 +316,15 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Ship** (schedule step 13, Nov 9, prepared): the `Godot APK` workflow gained a **release** job (run it by hand from the
+Actions tab once the signing keystore is in the repository secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_USER`,
+`ANDROID_KEYSTORE_PASS`) — a release-signed APK, version code from the run number, published as the `godot-release`
+release; without the secrets it stops at the keystore step and says what to add. The `godot-latest` debug build keeps
+publishing on every push with up-to-date notes. **Store screenshots** at phone resolution (1080 × 2340) are rendered
+by the shot hooks into `docs/store/` (title, the Nexus street, Killbox, the Rift Gate, Skyways, Vyrak at the core, the
+operator panel). Left for the owner: the keystore, the phone fps reading, and the cloud save checked both ways on the
+phone (`cloud` from the title: sign in, save, load on the Mac).
+
 **Polish, first pass** (schedule step 12, Nov 9 — the known items while the owner's playtest list is awaited): the
 **simple phone HUD** (settings "Simple phone HUD", on by default; `touch_controls.gd simple()`) keeps the stick, FIRE,
 JUMP and ENTER: sprint is the stick pushed to its edge, a tap on the weapon's name swaps, an empty magazine reloads
