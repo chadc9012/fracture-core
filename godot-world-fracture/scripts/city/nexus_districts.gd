@@ -800,7 +800,7 @@ func _marina() -> void:
 	var shed := flat(Color(0.2, 0.3, 0.34), 0.5, 0.6)
 	_frame(white, 20.0, white, 18.0)
 	# the basin fills the court's +z half: a quay rail round it, the water down at -1 m, pontoons and the boats
-	var rail := flat(Color(0.85, 0.87, 0.9), 0.3, 0.8)
+	var rail := flat(Color(0.32, 0.34, 0.37), 0.4, 0.8)
 	block(Vector3(COURT_OUT - MOUTH_OUT - 10.0, 1.1, 0.15), (MOUTH_OUT + COURT_OUT + 10.0) * 0.5, 4.0, rail, 0.18)
 	marker(Vector3(COURT_OUT - MOUTH_OUT - 10.0, 1.1, COURT_HALF - 4.0), (MOUTH_OUT + COURT_OUT + 10.0) * 0.5, 4.0 + (COURT_HALF - 4.0) * 0.5, 0.18)
 	var water := MeshInstance3D.new()
