@@ -3,6 +3,7 @@ const Sound := preload("res://scripts/audio/sound.gd")
 const Phone := preload("res://scripts/phone.gd")
 const Flora := preload("res://scripts/region_flora.gd")
 const Weather := preload("res://scripts/region_weather.gd")
+const Barks := preload("res://scripts/cinema/barks.gd")
 ## A region in 3D (owner's map packs: "3D City" and "Street View"), built from the same data as its map: the ground from the
 ## exported height grid, coloured by land cover; the sea; every building extruded to its height with floors and windows; the
 ## roads, bridges, rails and paved ground; domes, arenas and hazard rings; forests and crystal fields; the Storm Islands in the
@@ -49,6 +50,7 @@ var _ground_mat: ShaderMaterial
 var _base_pal := PackedVector3Array()
 var _tree_mats: Array[ShaderMaterial] = []
 var _weather: Node3D
+var _barks: Control   # the region's ambient voices, in Street View (the owner's campaign draft, AMB_*)
 var mode: Mode = Mode.CITY
 var _ox := 0.0
 var _oz := 0.0
@@ -442,6 +444,11 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	map_id = id
 	m = Data.map(id)
 	Sound.ambience(Sound.bed_for(id))
+	if _barks == null:
+		_barks = Barks.new()
+		add_child(_barks)
+	_barks.region = String(Barks.MAP_REGION.get(id, ""))
+	_barks.visible = start_mode == Mode.STREET
 	if m.is_empty():
 		return
 	_split_ruins()
@@ -1853,6 +1860,8 @@ func set_mode(md: Mode) -> void:
 	_pad_city.visible = mode == Mode.CITY
 	_pad_street.visible = mode == Mode.STREET
 	_fit_labels()
+	if _barks:
+		_barks.visible = mode == Mode.STREET
 	if mode == Mode.STREET or mode == Mode.PLAY:
 		_stand_near(Vector2(_target.x, _target.z))
 	if mode == Mode.PLAY:

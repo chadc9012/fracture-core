@@ -7,17 +7,20 @@ func ok(c: bool, w: String) -> void:
 		print("FAIL: ", w)
 func _init() -> void:
 	var s := Story.new()
-	ok(s.phase == "MORNING" and s.tracker().size() == 6, "starts on the six-step morning")
+	ok(s.phase == "MORNING" and s.tracker().size() == 5, "starts on the five-step morning at home")
 	ok(s.powers() == 0, "a civilian")
-	for st: String in ["dress", "breakfast", "phone", "news", "neighbour"]:
+	var early := s.mark("news", 0.5)
+	ok(early.size() == 1 and not s.done.has("news") and s.phase == "MORNING", "the news waits for the rest of the morning")
+	for st: String in ["dress", "breakfast", "phone", "mail"]:
 		s.mark(st, 1.0)
-	ok(s.phase == "MORNING", "five steps is not the morning")
+	ok(s.phase == "MORNING" and s.news_ready(), "four steps, then the news")
 	ok(s.mark("dress", 1.0).is_empty(), "a step counts once")
-	var l := s.mark("mail", 2.0)
-	ok(s.phase == "ALARM" and l.size() >= 4, "the sixth step brings the alarm")
+	s.mark("news", 2.0)
+	ok(s.phase == "ALARM", "the news is the Fracture")
+	ok(Story.ALARM_LINES.size() == 2 and Story.HALL_LINES.size() == 4, "the alarm and the corridor have their lines")
 	ok(not s.exit_building(3.0) or s.phase == "CINE", "out of the doors starts the cinematic")
 	var s2 := Story.new()
-	for st: String in ["dress", "breakfast", "phone", "news", "neighbour", "mail"]:
+	for st: String in ["dress", "breakfast", "phone", "mail", "news"]:
 		s2.mark(st, 0.0)
 	ok(s2.rescue().size() == 1 and s2.rescued, "Mara can be freed during the alarm")
 	ok(s2.rescue().is_empty(), "only once")
@@ -38,6 +41,9 @@ func _init() -> void:
 	ok(s2.reward().xp == 850, "the rescue pays extra")
 	var s3 := Story.new()
 	s3.restore({ "phase": "SURGE", "done": ["dress", "breakfast", "phone", "news", "neighbour", "mail"], "rescued": false })
-	ok(s3.phase == "ALARM", "a reload mid-fight restarts the escape")
+	ok(s3.phase == "ALARM" and not s3.done.has("neighbour"), "a reload mid-fight restarts the escape (an old save's lobby steps dropped)")
+	var s4 := Story.new()
+	s4.restore({ "phase": "MORNING", "done": ["dress", "breakfast", "phone", "neighbour"], "rescued": false })
+	ok(s4.phase == "MORNING" and s4.morning_left().size() == 2, "an old morning save keeps the steps that still exist")
 	print("mission 01: %d failed" % fails)
 	quit(1 if fails else 0)

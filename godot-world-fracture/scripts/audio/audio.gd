@@ -259,6 +259,20 @@ func voice(id: String) -> void:
 	_voice.play()
 	_duck(true)
 
+## a voiced line from anywhere (the cutscenes and the mission's subtitles: audio/voices/lines); returns its length
+func voice_path(path: String) -> float:
+	var s := _stream(path)
+	last = ["voice", path]
+	if s == null:
+		return 0.0
+	_voice.stream = s
+	_voice.play()
+	_duck(true)
+	return s.get_length()
+
+func voice_stop() -> void:
+	_voice.stop()
+
 func _duck(on: bool) -> void:
 	_music.volume_db = _music_base_db + (DUCK_DB if on else 0.0)
 

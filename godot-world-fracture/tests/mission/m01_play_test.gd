@@ -27,12 +27,15 @@ func use_tag(tag: String) -> void:
 
 func _ready() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://mission01.json"))
+	Mission.skip_cinema = true
 	m = Mission.new()
 	add_child(m)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	ok(m.room == "apt" and m.story.phase == "MORNING", "wakes in 12-04")
-	for t: String in ["dress", "breakfast", "phone", "news"]:
+	await use_tag("news")
+	ok(m.story.phase == "MORNING" and not m.story.done.has("news"), "the news waits")
+	for t: String in ["dress", "breakfast", "phone", "mail"]:
 		await use_tag(t)
 	await use_tag("to_hall")
 	ok(m.room == "hall", "out in the corridor")
@@ -41,10 +44,18 @@ func _ready() -> void:
 	await use_tag("front")
 	ok(m.story.phase == "MORNING" and m.room == "lobby", "the doors wait for the morning to be done")
 	await use_tag("neighbour")
-	await use_tag("mail")
-	ok(m.story.phase == "ALARM", "the Fracture hits after the mail")
+	ok(m.story.phase == "MORNING", "Mara in the lobby is a chat, not a step")
+	await use_tag("elev_up")
+	ok(m.room == "hall", "back up to 12")
+	await use_tag("to_apt")
+	await use_tag("news")
+	ok(m.story.phase == "ALARM" and m._alarm_set, "the news is the Fracture: the alarm is on")
+	await use_tag("to_hall")
+	await use_tag("stairs")
+	ok(m._first_power and m.room == "lounge", "the stairwell: the first power, then down to the Sky Lounge")
+	await use_tag("stairs")
 	await use_tag("front")
-	ok(m.story.phase == "CINE" or m.room == "street", "...but the doors are open in the alarm")
+	ok(m.story.phase == "CINE" or m.room == "street", "...and the doors are open in the alarm")
 	# start over at the alarm from the corridor to check the stairs and Mara
 	await get_tree().create_timer(1.0).timeout
 	m._cine_t = -1.0

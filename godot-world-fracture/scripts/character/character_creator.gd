@@ -33,6 +33,10 @@ var _tab_buttons := {}
 var _cam_target := Vector3.ZERO
 
 func _ready() -> void:
+	# a tab asked for by name in any case ("face", "Beard & Marks"); anything unknown opens BODY rather than an empty panel
+	tab = tab.to_upper()
+	if not tab in TABS:
+		tab = "BODY"
 	if look.is_empty():
 		look = Store.load_look() if Store.exists() else Store.default_look()
 	var bg := ColorRect.new()

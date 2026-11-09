@@ -289,6 +289,27 @@ plazas and campuses, figures over the shops, emblems over the venues (Nexus, Neo
 nearby). `energy_field()` is a hex-plated dome with a bright rim, rising pulses and a glow where it meets the ground —
 over research stations (blue) and the vaults and bunkered bases (amber), sized to the buildings under it.
 
+**Cinematics and voiced dialogue** (owner, Nov 9: "give it a Destiny feel … visuals for the cutaway and cutscenes for
+storyline audio for dialogue"; two packages, see `docs/story/dialogue-integration.md`):
+- `scripts/cinema/cutscene.gd` plays in-engine cutscenes on a shot list: camera moves between positions and look-at
+  targets (or following Callables), letterbox bars, a filmic grade (vignette, teal-and-amber split, grain, chromatic
+  fringe with the shake), wide-tracked title cards, voiced subtitles, score cues and effects from `audio/cinema/`,
+  comic-style art cutaways, tap to advance and hold to skip. A newer `play()` takes over from one already running.
+- `scripts/cinema/lines.gd` is the voiced-line index (`data/dialogue/voices.json`): every line of the owner's campaign
+  draft and of Mission 01's opening, by id or by [speaker, text]. PLAYER lines play in the voice of the body the player
+  built (`_m` / `_f` / `_r`). The mission's subtitles look every line up and play it, holding the subtitle for the line.
+- `scripts/cinema/barks.gd`: ambient voices in every region's Street View (AMB_*), and one-off calls (`say(id)`; the
+  races use it).
+- Mission 01 (`scripts/mission/m01_cinema.gd`): "The Day the World Fractured" — sunrise over Nexus City and the
+  apartment on a new game; the news, the disturbance, the sky splitting and NOVA's interface when the player watches
+  the news (now the last step of a morning at home); the broken stairwell on 12 (the draft's Missions 01–02, the first
+  power) the first time the player takes the stairs in the alarm; the new world and the title after the Breach.
+  Captures: `--shot … m1:op-0`, `m1:fr-4` (from that shot index), `m1:fp-0`, `m1:nw-0`; `Mission.skip_cinema` skips them
+  (the play test sets it).
+- Voices: `tools/make_voices.py` (Piper local TTS from github.com/rhasspy/piper v0.0.2 voices, a cast voice per speaker,
+  per-character treatment in ffmpeg; the owner's ten recordings from `assets-src/voices-provided/` are kept as
+  recorded). Music and effects: `tools/make_cinema_audio.py` (synthesized). Re-run either after changing the lines.
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through

@@ -38,6 +38,7 @@ var player: RefCounted        # street_car.gd
 var rivals: Array = []        # [{sc, entry, skill}]
 var obstacles: Array[AABB] = []
 var countdown := 3.5
+var _barks: Control
 var cam_yaw := 0.0
 var hud: Label
 var board: Label
@@ -463,6 +464,11 @@ func _process(dt: float) -> void:
 				(l.material_override as StandardMaterial3D).emission = Color(0.1, 0.9, 0.2)
 				(l.material_override as StandardMaterial3D).emission_energy_multiplier = 3.0
 			race.start()
+			# the owner's campaign draft: a rival's needle on the street, NOVA on the line (VEHICLES_005 / 004)
+			if _barks == null:
+				_barks = preload("res://scripts/cinema/barks.gd").new()
+				add_child(_barks)
+			_barks.say("VEHICLES_005" if track.street() else "VEHICLES_004")
 		hud.text = "GET READY" if countdown > 0.5 else "GO"
 		_place_camera(dt)
 		return

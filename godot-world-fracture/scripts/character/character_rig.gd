@@ -63,6 +63,30 @@ func build(new_look: Dictionary, animate := true) -> void:
 		head_point = skeleton.get_bone_global_rest(hb).origin
 	_attach_head(hb)
 
+## a head cut from one frame can carry binds to bones another frame's skeleton lacks (the Warlock frame's coat bones,
+## Bone_0xx): those verts would stay frozen at rest while the body moves, and the engine logs an error per bind. Each
+## missing bind is re-pointed at the head bone, with the head bone's bind pose, so the verts ride the head.
+static func _fit_skin(skin: Skin, sk: Skeleton3D) -> Skin:
+	if skin == null or sk == null:
+		return skin
+	var head_i := -1
+	var missing: Array[int] = []
+	for i in skin.get_bind_count():
+		var nm := String(skin.get_bind_name(i))
+		if nm == "":
+			continue
+		if sk.find_bone(nm) < 0:
+			missing.append(i)
+		elif nm.ends_with("Head") and not nm.contains("Top"):
+			head_i = i
+	if missing.is_empty() or head_i < 0:
+		return skin
+	var out: Skin = skin.duplicate()
+	for i in missing:
+		out.set_bind_name(i, skin.get_bind_name(head_i))
+		out.set_bind_pose(i, skin.get_bind_pose(head_i))
+	return out
+
 func _attach_head(body_head: int) -> void:
 	var hs: PackedScene = load(Catalog.head_path(look.head))
 	if not hs:
@@ -125,7 +149,7 @@ func _attach_head(body_head: int) -> void:
 	head_mesh = MeshInstance3D.new()
 	head_mesh.name = "Head"
 	head_mesh.mesh = mesh
-	head_mesh.skin = src.skin
+	head_mesh.skin = _fit_skin(src.skin, skeleton)
 	skeleton.add_child(head_mesh)
 	head_mesh.skeleton = head_mesh.get_path_to(skeleton)
 	hroot.free()

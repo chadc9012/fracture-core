@@ -1,0 +1,2824 @@
+{
+"lines": {
+"M01X_RADIO_01": {
+"speaker": "RADIO",
+"text": "Six forty-seven in Nexus City. Clear skies over the harbor, light traffic on the Spire Loop.",
+"dur": 5.53,
+"variants": [
+""
+]
+},
+"M01X_RADIO_02": {
+"speaker": "RADIO",
+"text": "And the Capitol says the stability towers finish their maintenance cycle by noon. Stay with us.",
+"dur": 5.44,
+"variants": [
+""
+]
+},
+"M01X_PHONE_MOM": {
+"speaker": "MOM",
+"text": "Call me when you're up. Love you.",
+"dur": 1.88,
+"variants": [
+""
+]
+},
+"M01X_PHONE_MARA": {
+"speaker": "MARA",
+"text": "Morning, neighbor! Coffee in the Sky Lounge later? Eleventh floor. Don't be late.",
+"dur": 4.99,
+"variants": [
+""
+]
+},
+"M01X_PHONE_ALERT": {
+"speaker": "NEXUS ALERT",
+"text": "Grid maintenance near the stability towers today. Expect flickers.",
+"dur": 4.9,
+"variants": [
+""
+]
+},
+"CINE_00": {
+"speaker": "NEWS",
+"text": "Good morning, Nexus City. Authorities are investigating unusual atmospheric disturbances reported overnight.",
+"dur": 8.31,
+"variants": [
+""
+]
+},
+"CINE_01": {
+"speaker": "PLAYER",
+"text": "What was that?",
+"dur": 1.53,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"CINE_02": {
+"speaker": "NEWS",
+"text": "We're receiving reports of an unidentified phenomenon above the central district—",
+"dur": 5.48,
+"variants": [
+""
+]
+},
+"CINE_03": {
+"speaker": "PLAYER",
+"text": "What the hell?!",
+"dur": 1.43,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"CINE_04": {
+"speaker": "NOVA",
+"text": "Neural synchronization detected.",
+"dur": 2.84,
+"variants": [
+""
+]
+},
+"CINE_05": {
+"speaker": "PLAYER",
+"text": "Who said that?",
+"dur": 1.58,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"CINE_06": {
+"speaker": "NOVA",
+"text": "My designation is NOVA. There isn't time to explain.",
+"dur": 4.63,
+"variants": [
+""
+]
+},
+"CINE_07": {
+"speaker": "PLAYER",
+"text": "Explain what?!",
+"dur": 1.58,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"CINE_08": {
+"speaker": "NOVA",
+"text": "Your reality is collapsing. You need to move. Now.",
+"dur": 4.71,
+"variants": [
+""
+]
+},
+"CINE_09": {
+"speaker": "NOVA",
+"text": "And whatever you do, don't touch the fractures.",
+"dur": 3.77,
+"variants": [
+""
+]
+},
+"M01X_ALARM_PA": {
+"speaker": "BUILDING",
+"text": "Emergency. Structural event. Elevators offline. Use the emergency stairs.",
+"dur": 6.82,
+"variants": [
+""
+]
+},
+"M01X_ALARM_MARA": {
+"speaker": "MARA",
+"text": "Is anyone there? I'm stuck in the Sky Lounge on eleven. The doors jammed. Please!",
+"dur": 5.44,
+"variants": [
+""
+]
+},
+"M01X_SHOUT_1": {
+"speaker": "RESIDENT",
+"text": "Get out! Get out of the building!",
+"dur": 1.96,
+"variants": [
+""
+]
+},
+"M01X_SHOUT_2": {
+"speaker": "RESIDENT",
+"text": "Where are the stairs? I can't see anything!",
+"dur": 2.65,
+"variants": [
+""
+]
+},
+"M01X_SHOUT_3": {
+"speaker": "RESIDENT",
+"text": "Somebody help me!",
+"dur": 1.24,
+"variants": [
+""
+]
+},
+"M01X_RESCUE": {
+"speaker": "MARA",
+"text": "You came back for me. Go, go. I'm right behind you.",
+"dur": 3.34,
+"variants": [
+""
+]
+},
+"M01X_DAZED": {
+"speaker": "MARA",
+"text": "Something's coming out of the smoke. Move!",
+"dur": 2.63,
+"variants": [
+""
+]
+},
+"M01X_SURGE_1": {
+"speaker": "NOVA",
+"text": "Your body just answered the Fracture. Armor forming. Weapon system online.",
+"dur": 4.55,
+"variants": [
+""
+]
+},
+"M01X_SURGE_2": {
+"speaker": "NOVA",
+"text": "Point it at them and squeeze. Your hands know how.",
+"dur": 2.83,
+"variants": [
+""
+]
+},
+"M01X_SURGE_ME": {
+"speaker": "PLAYER",
+"text": "What's happening to me?",
+"dur": 1.34,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M01X_ANCHOR_1": {
+"speaker": "NOVA",
+"text": "Something big is anchoring itself to the tear. Your resonance is spiking.",
+"dur": 3.67,
+"variants": [
+""
+]
+},
+"M01X_ANCHOR_2": {
+"speaker": "NOVA",
+"text": "Don't hold it back. Let it out.",
+"dur": 2.1,
+"variants": [
+""
+]
+},
+"M01X_CLEAR_1": {
+"speaker": "NOVA",
+"text": "Readings settling. You did that.",
+"dur": 2.08,
+"variants": [
+""
+]
+},
+"M01X_CLEAR_2": {
+"speaker": "MARA",
+"text": "What did they do to you? What are you?",
+"dur": 2.18,
+"variants": [
+""
+]
+},
+"M01X_CLEAR_3": {
+"speaker": "NOVA",
+"text": "I don't know yet either. Stay with me. We'll learn the rest as we go.",
+"dur": 3.61,
+"variants": [
+""
+]
+},
+"M01X_NUDGE_SURGE": {
+"speaker": "NOVA",
+"text": "Breathe. Find one in your sights. Squeeze.",
+"dur": 2.98,
+"variants": [
+""
+]
+},
+"M01X_NUDGE_ANCHOR": {
+"speaker": "NOVA",
+"text": "Reach for it. The surge in your chest: release it at the anchor.",
+"dur": 4.02,
+"variants": [
+""
+]
+},
+"M01X_WORLD_1": {
+"speaker": "NOVA",
+"text": "Every city on this world woke up somewhere new this morning.",
+"dur": 2.97,
+"variants": [
+""
+]
+},
+"M01X_WORLD_2": {
+"speaker": "NOVA",
+"text": "Nexus was only the first to notice.",
+"dur": 2.21,
+"variants": [
+""
+]
+},
+"M01X_WORLD_3": {
+"speaker": "PLAYER",
+"text": "Then we'd better find out where we are.",
+"dur": 2.12,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M01_001": {
+"speaker": "NEWS",
+"text": "Good morning, Nexus City. Overnight, residents reported unusual lights over the harbor.",
+"dur": 4.9,
+"variants": [
+""
+]
+},
+"M01_002": {
+"speaker": "PLAYER",
+"text": "Another ordinary morning. That would be nice.",
+"dur": 2.49,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M01_003": {
+"speaker": "NEWS",
+"text": "Officials say there is no cause for alarm—",
+"dur": 2.75,
+"variants": [
+""
+]
+},
+"M01_004": {
+"speaker": "PLAYER",
+"text": "The windows are shaking.",
+"dur": 1.4,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M01_005": {
+"speaker": "NOVA",
+"text": "Neural resonance confirmed. Can you hear me?",
+"dur": 2.46,
+"variants": [
+""
+]
+},
+"M01_006": {
+"speaker": "PLAYER",
+"text": "Who is this?",
+"dur": 0.95,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M01_007": {
+"speaker": "NOVA",
+"text": "NOVA. Your building is destabilizing. Leave the apartment now.",
+"dur": 4.21,
+"variants": [
+""
+]
+},
+"M01_008": {
+"speaker": "PLAYER",
+"text": "What happened to the sky?",
+"dur": 1.66,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M01_009": {
+"speaker": "NOVA",
+"text": "A Fracture. Reality is intersecting with something it was never meant to touch.",
+"dur": 4.6,
+"variants": [
+""
+]
+},
+"M01_010": {
+"speaker": "PLAYER",
+"text": "There are people trapped in the hall.",
+"dur": 1.94,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M01_011": {
+"speaker": "NOVA",
+"text": "Then we help them. Move. I will guide you.",
+"dur": 2.38,
+"variants": [
+""
+]
+},
+"M01_012": {
+"speaker": "CIVILIAN",
+"text": "Please! The stairwell is blocked!",
+"dur": 1.99,
+"variants": [
+""
+]
+},
+"M01_013": {
+"speaker": "PLAYER",
+"text": "Get behind me. I think I can move this.",
+"dur": 2.54,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M01_014": {
+"speaker": "NOVA",
+"text": "That energy came from you. We will understand it later.",
+"dur": 2.93,
+"variants": [
+""
+]
+},
+"M01_015": {
+"speaker": "PLAYER",
+"text": "Later sounds good. Where is the exit?",
+"dur": 2.43,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M02_001": {
+"speaker": "CIVILIAN",
+"text": "My daughter is on the other side of that door!",
+"dur": 2.52,
+"variants": [
+""
+]
+},
+"M02_002": {
+"speaker": "PLAYER",
+"text": "Stay low. I am getting her out.",
+"dur": 1.96,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M02_003": {
+"speaker": "NOVA",
+"text": "Structural failure in twenty seconds. The support beam is shifting.",
+"dur": 3.74,
+"variants": [
+""
+]
+},
+"M02_004": {
+"speaker": "PLAYER",
+"text": "I can feel something in my hands.",
+"dur": 1.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M02_005": {
+"speaker": "NOVA",
+"text": "Focus on the beam. Do not fight the current; redirect it.",
+"dur": 3.34,
+"variants": [
+""
+]
+},
+"M02_006": {
+"speaker": "PLAYER",
+"text": "Everybody back!",
+"dur": 1.22,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M02_007": {
+"speaker": "CHILD",
+"text": "Mom?",
+"dur": 0.64,
+"variants": [
+""
+]
+},
+"M02_008": {
+"speaker": "CIVILIAN",
+"text": "Thank you. I thought we were gone.",
+"dur": 2.12,
+"variants": [
+""
+]
+},
+"M02_009": {
+"speaker": "PLAYER",
+"text": "Take the service stairs. Do not stop.",
+"dur": 2.27,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M02_010": {
+"speaker": "NOVA",
+"text": "You used a Fracture ability without an Operator interface. That should be impossible.",
+"dur": 4.31,
+"variants": [
+""
+]
+},
+"M02_011": {
+"speaker": "PLAYER",
+"text": "Then stop telling me what should be possible.",
+"dur": 2.56,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M03_001": {
+"speaker": "RADIO",
+"text": "Emergency services are asking residents to shelter indoors.",
+"dur": 3.48,
+"variants": [
+""
+]
+},
+"M03_002": {
+"speaker": "PLAYER",
+"text": "That advice is a little late.",
+"dur": 1.73,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M03_003": {
+"speaker": "NOVA",
+"text": "Three safe routes. Two are already changing.",
+"dur": 2.89,
+"variants": [
+""
+]
+},
+"M03_004": {
+"speaker": "PLAYER",
+"text": "Changing how?",
+"dur": 0.99,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M03_005": {
+"speaker": "NOVA",
+"text": "The road ahead now connects to a place that did not exist this morning.",
+"dur": 3.39,
+"variants": [
+""
+]
+},
+"M03_006": {
+"speaker": "SURVIVOR",
+"text": "Those things came out of the purple light!",
+"dur": 2.38,
+"variants": [
+""
+]
+},
+"M03_007": {
+"speaker": "PLAYER",
+"text": "Get to the transit station. I will hold them off.",
+"dur": 2.75,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M03_008": {
+"speaker": "NOVA",
+"text": "Remember: cover, movement, then ability. Survive first.",
+"dur": 4.26,
+"variants": [
+""
+]
+},
+"M03_009": {
+"speaker": "PLAYER",
+"text": "And if the street tears open again?",
+"dur": 1.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M03_010": {
+"speaker": "NOVA",
+"text": "Then we improvise.",
+"dur": 1.42,
+"variants": [
+""
+]
+},
+"M04_001": {
+"speaker": "CAPTAIN VALE",
+"text": "Weapon down. State your affiliation.",
+"dur": 2.32,
+"variants": [
+""
+]
+},
+"M04_002": {
+"speaker": "PLAYER",
+"text": "I woke up in an apartment. Is that an affiliation?",
+"dur": 2.89,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M04_003": {
+"speaker": "CAPTAIN VALE",
+"text": "Not if you can explain how you survived the breach.",
+"dur": 2.49,
+"variants": [
+""
+]
+},
+"M04_004": {
+"speaker": "NOVA",
+"text": "Recommend honesty, selectively.",
+"dur": 2.16,
+"variants": [
+""
+]
+},
+"M04_005": {
+"speaker": "PLAYER",
+"text": "I can hear a voice. It says its name is NOVA.",
+"dur": 2.76,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M04_006": {
+"speaker": "CAPTAIN VALE",
+"text": "That is not possible. NOVA was decommissioned.",
+"dur": 2.85,
+"variants": [
+""
+]
+},
+"M04_007": {
+"speaker": "NOVA",
+"text": "That is an inaccurate description of events.",
+"dur": 2.43,
+"variants": [
+""
+]
+},
+"M04_008": {
+"speaker": "CAPTAIN VALE",
+"text": "Come with us. We can keep civilians safe.",
+"dur": 2.35,
+"variants": [
+""
+]
+},
+"M04_009": {
+"speaker": "PLAYER",
+"text": "I will come. But I decide who I help.",
+"dur": 2.57,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M05_001": {
+"speaker": "CAPTAIN VALE",
+"text": "We need people who can withstand the Fractures.",
+"dur": 2.42,
+"variants": [
+""
+]
+},
+"M05_002": {
+"speaker": "PLAYER",
+"text": "You need soldiers. I am not one.",
+"dur": 2.21,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M05_003": {
+"speaker": "CAPTAIN VALE",
+"text": "Then be something better. Make your own choice.",
+"dur": 2.39,
+"variants": [
+""
+]
+},
+"M05_004": {
+"speaker": "NOVA",
+"text": "There are benefits to cooperating. There are also risks.",
+"dur": 3.38,
+"variants": [
+""
+]
+},
+"M05_005": {
+"speaker": "PLAYER",
+"text": "I am not signing away my life because the sky cracked.",
+"dur": 2.95,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M05_006": {
+"speaker": "CAPTAIN VALE",
+"text": "Fair. Prove you can protect this district, and we talk again.",
+"dur": 3.01,
+"variants": [
+""
+]
+},
+"M05_cooperate_001": {
+"speaker": "PLAYER",
+"text": "I will work with your team, but civilians come first.",
+"dur": 3.07,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M05_cooperate_002": {
+"speaker": "CAPTAIN VALE",
+"text": "Agreed. You answer to your conscience before you answer to me.",
+"dur": 2.78,
+"variants": [
+""
+]
+},
+"M05_independent_001": {
+"speaker": "PLAYER",
+"text": "I will help, but I am not joining your command.",
+"dur": 2.55,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M05_independent_002": {
+"speaker": "CAPTAIN VALE",
+"text": "Then prove that independence is not indifference.",
+"dur": 2.62,
+"variants": [
+""
+]
+},
+"M06_001": {
+"speaker": "NOVA",
+"text": "Verdant Forest. The vegetation has absorbed Fracture energy.",
+"dur": 3.43,
+"variants": [
+""
+]
+},
+"M06_002": {
+"speaker": "PLAYER",
+"text": "It looks peaceful.",
+"dur": 1.15,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M06_003": {
+"speaker": "SCOUT MIRA",
+"text": "That is how it catches you off guard.",
+"dur": 2.03,
+"variants": [
+""
+]
+},
+"M06_004": {
+"speaker": "PLAYER",
+"text": "You have been out here alone?",
+"dur": 1.85,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M06_005": {
+"speaker": "SCOUT MIRA",
+"text": "Long enough to learn that the forest remembers footsteps.",
+"dur": 2.95,
+"variants": [
+""
+]
+},
+"M06_006": {
+"speaker": "NOVA",
+"text": "Anomalous signal beneath the roots.",
+"dur": 2.1,
+"variants": [
+""
+]
+},
+"M06_007": {
+"speaker": "SCOUT MIRA",
+"text": "Do not call every secret a target. Some deserve to stay hidden.",
+"dur": 3.49,
+"variants": [
+""
+]
+},
+"M06_008": {
+"speaker": "PLAYER",
+"text": "We will look. We will not destroy what we do not understand.",
+"dur": 3.4,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M07_001": {
+"speaker": "WARDEN ILYA",
+"text": "Outsiders keep taking samples. Then they wonder why the trees attack.",
+"dur": 4.49,
+"variants": [
+""
+]
+},
+"M07_002": {
+"speaker": "PLAYER",
+"text": "I came for answers, not trophies.",
+"dur": 2.04,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M07_003": {
+"speaker": "WARDEN ILYA",
+"text": "Answers have a cost.",
+"dur": 1.64,
+"variants": [
+""
+]
+},
+"M07_004": {
+"speaker": "NOVA",
+"text": "The dungeon architecture is shifting while we speak.",
+"dur": 3.2,
+"variants": [
+""
+]
+},
+"M07_005": {
+"speaker": "PLAYER",
+"text": "Then our map is already wrong.",
+"dur": 2.05,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M07_006": {
+"speaker": "WARDEN ILYA",
+"text": "Follow the living roots. They do not lie. They simply refuse to explain.",
+"dur": 4.35,
+"variants": [
+""
+]
+},
+"M07_007": {
+"speaker": "PLAYER",
+"text": "That makes two of you.",
+"dur": 1.23,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M07_protect_forest_001": {
+"speaker": "PLAYER",
+"text": "Seal the extraction site. The forest has already paid enough.",
+"dur": 3.28,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M07_protect_forest_002": {
+"speaker": "WARDEN ILYA",
+"text": "Then you have an ally here.",
+"dur": 1.63,
+"variants": [
+""
+]
+},
+"M07_take_sample_001": {
+"speaker": "PLAYER",
+"text": "One sample, documented, and no more damage.",
+"dur": 2.77,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M07_take_sample_002": {
+"speaker": "WARDEN ILYA",
+"text": "I will hold you to every word.",
+"dur": 1.9,
+"variants": [
+""
+]
+},
+"M08_001": {
+"speaker": "MECHANIC ROOK",
+"text": "Your ride will survive the dunes. Your driving? Different question.",
+"dur": 3.37,
+"variants": [
+""
+]
+},
+"M08_002": {
+"speaker": "PLAYER",
+"text": "How much for a vehicle that does not fall apart?",
+"dur": 2.68,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M08_003": {
+"speaker": "MECHANIC ROOK",
+"text": "More than you have. Win the convoy run and we can negotiate.",
+"dur": 3.13,
+"variants": [
+""
+]
+},
+"M08_004": {
+"speaker": "NOVA",
+"text": "Weather front approaching. Sand density rising.",
+"dur": 2.81,
+"variants": [
+""
+]
+},
+"M08_005": {
+"speaker": "MECHANIC ROOK",
+"text": "Out here the storm is a rival, not a backdrop.",
+"dur": 2.97,
+"variants": [
+""
+]
+},
+"M08_006": {
+"speaker": "PLAYER",
+"text": "Then let us beat both.",
+"dur": 1.64,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M09_001": {
+"speaker": "VYRAK",
+"text": "WHO DISTURBS THE COVENANT OF ASH?",
+"dur": 2.39,
+"variants": [
+""
+]
+},
+"M09_002": {
+"speaker": "PLAYER",
+"text": "Someone who has crossed too much desert to turn around.",
+"dur": 3.12,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M09_003": {
+"speaker": "VYRAK",
+"text": "THEN FACE THE SKY SOVEREIGN.",
+"dur": 2.26,
+"variants": [
+""
+]
+},
+"M09_004": {
+"speaker": "NOVA",
+"text": "Airborne phase. Watch the shadow before the dive.",
+"dur": 3.18,
+"variants": [
+""
+]
+},
+"M09_005": {
+"speaker": "PLAYER",
+"text": "I see the opening.",
+"dur": 1.3,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M09_006": {
+"speaker": "VYRAK",
+"text": "MY SCALES BREAK, BUT MY OATH DOES NOT.",
+"dur": 3.05,
+"variants": [
+""
+]
+},
+"M09_007": {
+"speaker": "NOVA",
+"text": "Chest weak point exposed. Wait for the next attack cycle.",
+"dur": 4.02,
+"variants": [
+""
+]
+},
+"M09_008": {
+"speaker": "PLAYER",
+"text": "I am not here to steal your power.",
+"dur": 2.04,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M09_009": {
+"speaker": "VYRAK",
+"text": "THEN SHOW ME WHY YOU DESERVE TO LIVE.",
+"dur": 2.67,
+"variants": [
+""
+]
+},
+"M09_010": {
+"speaker": "NOVA",
+"text": "Final strike window. Your choice must be deliberate.",
+"dur": 2.97,
+"variants": [
+""
+]
+},
+"M09_011": {
+"speaker": "VYRAK",
+"text": "THE COVENANT... RECOGNIZES YOU.",
+"dur": 2.1,
+"variants": [
+""
+]
+},
+"M10_001": {
+"speaker": "PLAYER",
+"text": "You were the size of a mountain a minute ago.",
+"dur": 2.43,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M10_002": {
+"speaker": "VYRAK",
+"text": "DO NOT CONFUSE FORM WITH STRENGTH, LITTLE OPERATOR.",
+"dur": 3.5,
+"variants": [
+""
+]
+},
+"M10_003": {
+"speaker": "NOVA",
+"text": "Bond established. Dragonite signature confirmed.",
+"dur": 2.86,
+"variants": [
+""
+]
+},
+"M10_004": {
+"speaker": "PLAYER",
+"text": "Can you fly with me?",
+"dur": 1.4,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M10_005": {
+"speaker": "VYRAK",
+"text": "TRUST IS EARNED. RIDING IS NOT A PRIZE FOR ONE VICTORY.",
+"dur": 3.9,
+"variants": [
+""
+]
+},
+"M10_006": {
+"speaker": "PLAYER",
+"text": "Then we start by learning to work together.",
+"dur": 2.49,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M10_007": {
+"speaker": "VYRAK",
+"text": "ACCEPTABLE.",
+"dur": 1.48,
+"variants": [
+""
+]
+},
+"M11_001": {
+"speaker": "FIXER SABLE",
+"text": "In Neon City every camera sees you, and every camera can lie.",
+"dur": 5.24,
+"variants": [
+""
+]
+},
+"M11_002": {
+"speaker": "PLAYER",
+"text": "I need the source of the Fracture signal.",
+"dur": 2.24,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M11_003": {
+"speaker": "FIXER SABLE",
+"text": "Then you need a driver, a hacker, and a reason not to trust either.",
+"dur": 4.61,
+"variants": [
+""
+]
+},
+"M11_004": {
+"speaker": "NOVA",
+"text": "I can perform the second role.",
+"dur": 1.68,
+"variants": [
+""
+]
+},
+"M11_005": {
+"speaker": "FIXER SABLE",
+"text": "Great. The ghost in your head has opinions.",
+"dur": 3.32,
+"variants": [
+""
+]
+},
+"M11_006": {
+"speaker": "PLAYER",
+"text": "Can we focus on the signal?",
+"dur": 1.75,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M11_007": {
+"speaker": "FIXER SABLE",
+"text": "Win tonight’s race. I will open the right doors.",
+"dur": 3.5,
+"variants": [
+""
+]
+},
+"M12_001": {
+"speaker": "PILOT NERI",
+"text": "Thalassia sits offshore from Verdant Forest, deeper than most maps admit.",
+"dur": 4.01,
+"variants": [
+""
+]
+},
+"M12_002": {
+"speaker": "PLAYER",
+"text": "How does a whole city survive down there?",
+"dur": 2.09,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M12_003": {
+"speaker": "PILOT NERI",
+"text": "Engineering. Stubbornness. A little luck.",
+"dur": 2.72,
+"variants": [
+""
+]
+},
+"M12_004": {
+"speaker": "NOVA",
+"text": "Pressure shielding nominal. Unknown life signatures nearby.",
+"dur": 3.45,
+"variants": [
+""
+]
+},
+"M12_005": {
+"speaker": "PLAYER",
+"text": "That is a very large shadow.",
+"dur": 1.69,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M12_006": {
+"speaker": "PILOT NERI",
+"text": "Do not chase it. The sea is not ours to command.",
+"dur": 3.24,
+"variants": [
+""
+]
+},
+"M13_001": {
+"speaker": "ARCHIVIST SEN",
+"text": "Our records show a Fracture before the one you witnessed.",
+"dur": 2.64,
+"variants": [
+""
+]
+},
+"M13_002": {
+"speaker": "PLAYER",
+"text": "Why did nobody tell the surface?",
+"dur": 1.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M13_003": {
+"speaker": "ARCHIVIST SEN",
+"text": "Because we did. Nobody listened.",
+"dur": 1.91,
+"variants": [
+""
+]
+},
+"M13_004": {
+"speaker": "NOVA",
+"text": "Some records are encrypted with my architecture.",
+"dur": 2.57,
+"variants": [
+""
+]
+},
+"M13_005": {
+"speaker": "PLAYER",
+"text": "You recognize them?",
+"dur": 1.12,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M13_006": {
+"speaker": "NOVA",
+"text": "I recognize what was removed.",
+"dur": 1.9,
+"variants": [
+""
+]
+},
+"M13_007": {
+"speaker": "ARCHIVIST SEN",
+"text": "You may take the archive or protect the people who keep it.",
+"dur": 3.05,
+"variants": [
+""
+]
+},
+"M13_008": {
+"speaker": "PLAYER",
+"text": "I am not choosing blind. Tell me what each costs.",
+"dur": 3.01,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M13_preserve_archive_001": {
+"speaker": "PLAYER",
+"text": "The archive stays here. We make copies with your permission.",
+"dur": 3.11,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M13_preserve_archive_002": {
+"speaker": "ARCHIVIST SEN",
+"text": "For the first time, someone asked.",
+"dur": 1.87,
+"variants": [
+""
+]
+},
+"M13_extract_archive_001": {
+"speaker": "PLAYER",
+"text": "We need the archive to prevent another collapse.",
+"dur": 2.55,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M13_extract_archive_002": {
+"speaker": "ARCHIVIST SEN",
+"text": "Then carry the weight of what you have taken.",
+"dur": 2.06,
+"variants": [
+""
+]
+},
+"M14_001": {
+"speaker": "RANGER KEST",
+"text": "The storm does not kill you quickly. It convinces you to stop moving.",
+"dur": 3.64,
+"variants": [
+""
+]
+},
+"M14_002": {
+"speaker": "PLAYER",
+"text": "What is transmitting from the glacier?",
+"dur": 2.07,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M14_003": {
+"speaker": "NOVA",
+"text": "A distress call. It is older than the current Fracture.",
+"dur": 3.24,
+"variants": [
+""
+]
+},
+"M14_004": {
+"speaker": "RANGER KEST",
+"text": "Then whoever sent it should be dead.",
+"dur": 2.27,
+"variants": [
+""
+]
+},
+"M14_005": {
+"speaker": "PLAYER",
+"text": "We are going to find out.",
+"dur": 1.51,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M14_006": {
+"speaker": "RANGER KEST",
+"text": "That answer is why I agreed to guide you.",
+"dur": 2.61,
+"variants": [
+""
+]
+},
+"M15_001": {
+"speaker": "CROWNKEEPER",
+"text": "YOU WALK THROUGH A KINGDOM THAT REFUSED TO DIE.",
+"dur": 3.53,
+"variants": [
+""
+]
+},
+"M15_002": {
+"speaker": "PLAYER",
+"text": "I did not come to take your throne.",
+"dur": 2.07,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M15_003": {
+"speaker": "CROWNKEEPER",
+"text": "ALL INTRUDERS SAY THAT.",
+"dur": 2.5,
+"variants": [
+""
+]
+},
+"M15_004": {
+"speaker": "NOVA",
+"text": "The crown is amplifying the storm. Disable its anchors.",
+"dur": 3.43,
+"variants": [
+""
+]
+},
+"M15_005": {
+"speaker": "PLAYER",
+"text": "Then we free the people trapped here.",
+"dur": 1.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M15_006": {
+"speaker": "CROWNKEEPER",
+"text": "IF YOU BREAK THE CROWN, REMEMBER THOSE IT HELD.",
+"dur": 3.71,
+"variants": [
+""
+]
+},
+"M16_001": {
+"speaker": "CAPTAIN VALE",
+"text": "People are calling you a hero. Others are calling you a threat.",
+"dur": 3.27,
+"variants": [
+""
+]
+},
+"M16_002": {
+"speaker": "PLAYER",
+"text": "Neither group knows me.",
+"dur": 1.46,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M16_003": {
+"speaker": "CAPTAIN VALE",
+"text": "They know what your choices did to their streets.",
+"dur": 2.57,
+"variants": [
+""
+]
+},
+"M16_004": {
+"speaker": "NOVA",
+"text": "Your reputation is changing how factions respond.",
+"dur": 2.86,
+"variants": [
+""
+]
+},
+"M16_005": {
+"speaker": "PLAYER",
+"text": "Good. Let them respond to what I do next.",
+"dur": 2.34,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M16_006": {
+"speaker": "CAPTAIN VALE",
+"text": "Then make sure your next choice is worth defending.",
+"dur": 2.33,
+"variants": [
+""
+]
+},
+"M17_001": {
+"speaker": "FIXER SABLE",
+"text": "Weapons, vehicles, secrets. Everything has a price.",
+"dur": 4.12,
+"variants": [
+""
+]
+},
+"M17_002": {
+"speaker": "PLAYER",
+"text": "And what is the price of trust?",
+"dur": 1.82,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M17_003": {
+"speaker": "FIXER SABLE",
+"text": "Usually the thing you cannot afford to lose.",
+"dur": 3.36,
+"variants": [
+""
+]
+},
+"M17_004": {
+"speaker": "NOVA",
+"text": "Three factions have offered conflicting contracts.",
+"dur": 2.95,
+"variants": [
+""
+]
+},
+"M17_005": {
+"speaker": "PLAYER",
+"text": "Then we choose who benefits, not just who pays.",
+"dur": 3.24,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M17_006": {
+"speaker": "FIXER SABLE",
+"text": "Careful. That kind of thinking is expensive.",
+"dur": 3.14,
+"variants": [
+""
+]
+},
+"M17_support_civilians_001": {
+"speaker": "PLAYER",
+"text": "The contract goes to rebuilding the district.",
+"dur": 2.25,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M17_support_civilians_002": {
+"speaker": "FIXER SABLE",
+"text": "You are turning a profit into a promise.",
+"dur": 2.9,
+"variants": [
+""
+]
+},
+"M17_support_faction_001": {
+"speaker": "PLAYER",
+"text": "We need allies with resources. Take the contract.",
+"dur": 2.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M17_support_faction_002": {
+"speaker": "FIXER SABLE",
+"text": "Just remember who expects repayment.",
+"dur": 2.54,
+"variants": [
+""
+]
+},
+"M18_001": {
+"speaker": "PILOT NERI",
+"text": "We are crossing between continents. The air routes are unstable.",
+"dur": 3.78,
+"variants": [
+""
+]
+},
+"M18_002": {
+"speaker": "PLAYER",
+"text": "Keep us below the storm.",
+"dur": 1.46,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M18_003": {
+"speaker": "NOVA",
+"text": "That is not a storm. It is a dimensional seam.",
+"dur": 2.81,
+"variants": [
+""
+]
+},
+"M18_004": {
+"speaker": "PILOT NERI",
+"text": "That is not better news.",
+"dur": 1.8,
+"variants": [
+""
+]
+},
+"M18_005": {
+"speaker": "PLAYER",
+"text": "Hold course. We need to see where it leads.",
+"dur": 2.62,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M18_006": {
+"speaker": "NOVA",
+"text": "Then brace. The sky is about to become unfamiliar.",
+"dur": 4.11,
+"variants": [
+""
+]
+},
+"M19_001": {
+"speaker": "MARSHAL DRAEV",
+"text": "You trespass in a land built from the aftermath of war.",
+"dur": 3.71,
+"variants": [
+""
+]
+},
+"M19_002": {
+"speaker": "PLAYER",
+"text": "I came to stop another one.",
+"dur": 1.55,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M19_003": {
+"speaker": "MARSHAL DRAEV",
+"text": "Words are cheap here.",
+"dur": 1.29,
+"variants": [
+""
+]
+},
+"M19_004": {
+"speaker": "NOVA",
+"text": "He is testing whether we understand the cost of intervention.",
+"dur": 3.74,
+"variants": [
+""
+]
+},
+"M19_005": {
+"speaker": "PLAYER",
+"text": "Then tell me who gets hurt if I walk away.",
+"dur": 2.38,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M19_006": {
+"speaker": "MARSHAL DRAEV",
+"text": "Now you ask the right question.",
+"dur": 1.96,
+"variants": [
+""
+]
+},
+"M20_001": {
+"speaker": "NOVA",
+"text": "Eighteen distinct encounter signatures. None follows the public map.",
+"dur": 4.12,
+"variants": [
+""
+]
+},
+"M20_002": {
+"speaker": "PLAYER",
+"text": "Are they connected?",
+"dur": 1.04,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M20_003": {
+"speaker": "NOVA",
+"text": "Perhaps in origin. Not in how you unlock them.",
+"dur": 2.73,
+"variants": [
+""
+]
+},
+"M20_004": {
+"speaker": "WANDERER",
+"text": "You cannot force a legend to notice you.",
+"dur": 2.25,
+"variants": [
+""
+]
+},
+"M20_005": {
+"speaker": "PLAYER",
+"text": "Then I will earn its attention.",
+"dur": 1.58,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M20_006": {
+"speaker": "WANDERER",
+"text": "Some doors open for strength. Others for restraint.",
+"dur": 3.07,
+"variants": [
+""
+]
+},
+"M21_001": {
+"speaker": "WANDERER",
+"text": "The world has begun answering your actions.",
+"dur": 2.67,
+"variants": [
+""
+]
+},
+"M21_002": {
+"speaker": "PLAYER",
+"text": "That sounds like a warning.",
+"dur": 1.6,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M21_003": {
+"speaker": "NOVA",
+"text": "It is a chain reaction. One choice has changed several distant conditions.",
+"dur": 4.63,
+"variants": [
+""
+]
+},
+"M21_004": {
+"speaker": "WANDERER",
+"text": "Legends do not wait politely in marked arenas.",
+"dur": 2.95,
+"variants": [
+""
+]
+},
+"M21_005": {
+"speaker": "PLAYER",
+"text": "Then I will pay attention to the world instead of the map.",
+"dur": 2.93,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M21_006": {
+"speaker": "NOVA",
+"text": "That may be your strongest ability.",
+"dur": 2.06,
+"variants": [
+""
+]
+},
+"M22_001": {
+"speaker": "NOVA",
+"text": "I withheld information from you.",
+"dur": 1.79,
+"variants": [
+""
+]
+},
+"M22_002": {
+"speaker": "PLAYER",
+"text": "I know. I was waiting for you to tell me why.",
+"dur": 2.62,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M22_003": {
+"speaker": "NOVA",
+"text": "My memory was partitioned to prevent the Fracture from locating us.",
+"dur": 3.43,
+"variants": [
+""
+]
+},
+"M22_004": {
+"speaker": "PLAYER",
+"text": "Us?",
+"dur": 0.61,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M22_005": {
+"speaker": "NOVA",
+"text": "You were never the intended host. You were the one who chose to help.",
+"dur": 3.26,
+"variants": [
+""
+]
+},
+"M22_006": {
+"speaker": "PLAYER",
+"text": "Then stop deciding what I can handle.",
+"dur": 2.31,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M22_007": {
+"speaker": "NOVA",
+"text": "Agreed. No more omissions without your consent.",
+"dur": 2.61,
+"variants": [
+""
+]
+},
+"M23_001": {
+"speaker": "CAPTAIN VALE",
+"text": "Every alliance you made is being tested.",
+"dur": 2.25,
+"variants": [
+""
+]
+},
+"M23_002": {
+"speaker": "PLAYER",
+"text": "They can disagree without becoming enemies.",
+"dur": 2.63,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M23_003": {
+"speaker": "MARSHAL DRAEV",
+"text": "Not all disagreements survive the first shot.",
+"dur": 2.75,
+"variants": [
+""
+]
+},
+"M23_004": {
+"speaker": "WARDEN ILYA",
+"text": "The forest will not forgive another invasion.",
+"dur": 2.79,
+"variants": [
+""
+]
+},
+"M23_005": {
+"speaker": "PLAYER",
+"text": "Then we keep the fighting away from civilians.",
+"dur": 2.57,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M23_006": {
+"speaker": "NOVA",
+"text": "There is no route without loss. There are routes with fewer lives at risk.",
+"dur": 3.74,
+"variants": [
+""
+]
+},
+"M23_007": {
+"speaker": "PLAYER",
+"text": "Show me those routes.",
+"dur": 1.3,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M23_negotiate_001": {
+"speaker": "PLAYER",
+"text": "I am opening a ceasefire channel. Everybody listens.",
+"dur": 3.18,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M23_negotiate_002": {
+"speaker": "CAPTAIN VALE",
+"text": "I can give you ten minutes.",
+"dur": 1.54,
+"variants": [
+""
+]
+},
+"M23_evacuate_001": {
+"speaker": "PLAYER",
+"text": "Forget the meeting. We move civilians out first.",
+"dur": 2.7,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M23_evacuate_002": {
+"speaker": "NOVA",
+"text": "Evacuation routes plotted.",
+"dur": 1.94,
+"variants": [
+""
+]
+},
+"M24_001": {
+"speaker": "NOVA",
+"text": "We have reached the origin point.",
+"dur": 1.86,
+"variants": [
+""
+]
+},
+"M24_002": {
+"speaker": "PLAYER",
+"text": "It looks like the world is trying to remember itself.",
+"dur": 3.0,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M24_003": {
+"speaker": "FRACTURE VOICE",
+"text": "ALL REALITIES SEEK A SINGLE SHAPE.",
+"dur": 2.91,
+"variants": [
+""
+]
+},
+"M24_004": {
+"speaker": "PLAYER",
+"text": "Not if that shape destroys everyone living in them.",
+"dur": 2.98,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M24_005": {
+"speaker": "FRACTURE VOICE",
+"text": "YOU CANNOT HOLD INFINITY APART.",
+"dur": 2.44,
+"variants": [
+""
+]
+},
+"M24_006": {
+"speaker": "NOVA",
+"text": "You do not have to. You only need to choose which boundaries to protect.",
+"dur": 3.68,
+"variants": [
+""
+]
+},
+"M24_007": {
+"speaker": "PLAYER",
+"text": "Then we protect the people first. All of them.",
+"dur": 2.83,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M25_001": {
+"speaker": "CAPTAIN VALE",
+"text": "The Fractures are quiet. For now.",
+"dur": 1.95,
+"variants": [
+""
+]
+},
+"M25_002": {
+"speaker": "PLAYER",
+"text": "Quiet is not the same as healed.",
+"dur": 1.84,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M25_003": {
+"speaker": "NOVA",
+"text": "The world is still changing. So are you.",
+"dur": 2.37,
+"variants": [
+""
+]
+},
+"M25_004": {
+"speaker": "VYRAK",
+"text": "A COVENANT IS NOT AN ENDING. IT IS A PROMISE.",
+"dur": 3.37,
+"variants": [
+""
+]
+},
+"M25_005": {
+"speaker": "SCOUT MIRA",
+"text": "The forest is growing around the scars.",
+"dur": 2.27,
+"variants": [
+""
+]
+},
+"M25_006": {
+"speaker": "PILOT NERI",
+"text": "And the sea has new horizons.",
+"dur": 2.17,
+"variants": [
+""
+]
+},
+"M25_007": {
+"speaker": "PLAYER",
+"text": "Then we keep going. There is still a world worth keeping.",
+"dur": 2.88,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M25_008": {
+"speaker": "NOVA",
+"text": "Mission updated: live in it.",
+"dur": 1.65,
+"variants": [
+""
+]
+},
+"M25_rebuild_001": {
+"speaker": "PLAYER",
+"text": "We rebuild what was lost, one neighborhood at a time.",
+"dur": 3.27,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M25_rebuild_002": {
+"speaker": "NOVA",
+"text": "Then our next mission begins at home.",
+"dur": 1.92,
+"variants": [
+""
+]
+},
+"M25_explore_001": {
+"speaker": "PLAYER",
+"text": "The boundaries are open. We should learn what is beyond them.",
+"dur": 3.08,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"M25_explore_002": {
+"speaker": "NOVA",
+"text": "I will chart the first route.",
+"dur": 1.73,
+"variants": [
+""
+]
+},
+"AMB_NEXUS_CITY_001": {
+"speaker": "PEDESTRIAN",
+"text": "The trains are running again. I never thought I would miss the noise.",
+"dur": 3.1,
+"variants": [
+""
+]
+},
+"AMB_NEXUS_CITY_002": {
+"speaker": "SHOPKEEPER",
+"text": "Fracture insurance? Nobody even knew that was a thing.",
+"dur": 3.36,
+"variants": [
+""
+]
+},
+"AMB_NEXUS_CITY_003": {
+"speaker": "NOVA",
+"text": "Traffic density rising. The city is learning to breathe again.",
+"dur": 3.33,
+"variants": [
+""
+]
+},
+"AMB_NEON_CITY_001": {
+"speaker": "RACER",
+"text": "You can tune the engine. You cannot tune out fear.",
+"dur": 2.67,
+"variants": [
+""
+]
+},
+"AMB_NEON_CITY_002": {
+"speaker": "MECHANIC",
+"text": "I can repair the bodywork. The weird purple scratches are your problem.",
+"dur": 4.0,
+"variants": [
+""
+]
+},
+"AMB_NEON_CITY_003": {
+"speaker": "FIXER SABLE",
+"text": "Every shortcut in this city has an owner.",
+"dur": 3.05,
+"variants": [
+""
+]
+},
+"AMB_THALASSIA_001": {
+"speaker": "DIVER",
+"text": "Keep the pressure seal locked until the chamber is clear.",
+"dur": 3.42,
+"variants": [
+""
+]
+},
+"AMB_THALASSIA_002": {
+"speaker": "CHILD",
+"text": "Do surface people really see the sky every day?",
+"dur": 2.41,
+"variants": [
+""
+]
+},
+"AMB_THALASSIA_003": {
+"speaker": "PILOT NERI",
+"text": "The currents are restless today.",
+"dur": 1.89,
+"variants": [
+""
+]
+},
+"AMB_SOLARA_DESERT_001": {
+"speaker": "TRADER",
+"text": "Water first, stories second.",
+"dur": 1.94,
+"variants": [
+""
+]
+},
+"AMB_SOLARA_DESERT_002": {
+"speaker": "MECHANIC ROOK",
+"text": "Sand gets into everything, including promises.",
+"dur": 3.17,
+"variants": [
+""
+]
+},
+"AMB_SOLARA_DESERT_003": {
+"speaker": "VYRAK",
+"text": "THE DESERT LISTENS TO THOSE WHO WALK LIGHTLY.",
+"dur": 3.31,
+"variants": [
+""
+]
+},
+"AMB_VERDANT_FOREST_001": {
+"speaker": "SCOUT MIRA",
+"text": "Do not mark that path. It changes by dawn.",
+"dur": 2.69,
+"variants": [
+""
+]
+},
+"AMB_VERDANT_FOREST_002": {
+"speaker": "WARDEN ILYA",
+"text": "Leave the seedlings. They are not loot.",
+"dur": 2.48,
+"variants": [
+""
+]
+},
+"AMB_VERDANT_FOREST_003": {
+"speaker": "NOVA",
+"text": "Biological readings are unusually harmonious.",
+"dur": 2.81,
+"variants": [
+""
+]
+},
+"AMB_FROSTVEIL_001": {
+"speaker": "RANGER KEST",
+"text": "Check your heat pack before you check your weapon.",
+"dur": 2.45,
+"variants": [
+""
+]
+},
+"AMB_FROSTVEIL_002": {
+"speaker": "TRAVELER",
+"text": "The lights in the ice are beautiful. That worries me.",
+"dur": 2.79,
+"variants": [
+""
+]
+},
+"AMB_FROSTVEIL_003": {
+"speaker": "NOVA",
+"text": "Temperature dropping. Seek shelter soon.",
+"dur": 2.54,
+"variants": [
+""
+]
+},
+"AMB_OBSIDIAN_REACH_001": {
+"speaker": "SOLDIER",
+"text": "The old battlefields still hum at night.",
+"dur": 2.35,
+"variants": [
+""
+]
+},
+"AMB_OBSIDIAN_REACH_002": {
+"speaker": "MARSHAL DRAEV",
+"text": "Peace is a discipline, not a holiday.",
+"dur": 2.71,
+"variants": [
+""
+]
+},
+"AMB_AZURE_ISLES_001": {
+"speaker": "PILOT NERI",
+"text": "Crosswinds from the eastern seam. Hold tight.",
+"dur": 2.9,
+"variants": [
+""
+]
+},
+"AMB_AZURE_ISLES_002": {
+"speaker": "TRADER",
+"text": "No cargo flies free, not even hope.",
+"dur": 2.39,
+"variants": [
+""
+]
+},
+"AMB_SHATTERED_EXPANSE_001": {
+"speaker": "WANDERER",
+"text": "The road remembers every traveler.",
+"dur": 2.02,
+"variants": [
+""
+]
+},
+"AMB_SHATTERED_EXPANSE_002": {
+"speaker": "NOVA",
+"text": "Anomalous signature detected. No encounter marker available.",
+"dur": 3.66,
+"variants": [
+""
+]
+},
+"COMBAT_001": {
+"speaker": "NOVA",
+"text": "Incoming attack. Move out of the impact zone.",
+"dur": 2.76,
+"variants": [
+""
+]
+},
+"COMBAT_002": {
+"speaker": "PLAYER",
+"text": "I see the pattern.",
+"dur": 1.18,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"COMBAT_003": {
+"speaker": "NOVA",
+"text": "Energy low. Use cover while it recovers.",
+"dur": 2.74,
+"variants": [
+""
+]
+},
+"COMBAT_004": {
+"speaker": "PLAYER",
+"text": "Not finished yet.",
+"dur": 1.31,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"COMBAT_005": {
+"speaker": "NOVA",
+"text": "Weak point exposed.",
+"dur": 1.43,
+"variants": [
+""
+]
+},
+"COMBAT_006": {
+"speaker": "VYRAK",
+"text": "DO NOT WASTE THE OPENING.",
+"dur": 1.83,
+"variants": [
+""
+]
+},
+"COMBAT_007": {
+"speaker": "NOVA",
+"text": "A roaming boss is nearby. Engagement is optional.",
+"dur": 3.43,
+"variants": [
+""
+]
+},
+"COMBAT_008": {
+"speaker": "PLAYER",
+"text": "We fight on our terms.",
+"dur": 1.45,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"COMBAT_009": {
+"speaker": "NOVA",
+"text": "Your new ability has evolved.",
+"dur": 1.87,
+"variants": [
+""
+]
+},
+"COMBAT_010": {
+"speaker": "PLAYER",
+"text": "That changes everything.",
+"dur": 1.45,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"VEHICLES_001": {
+"speaker": "MECHANIC ROOK",
+"text": "Performance parts are not magic. Balance the build.",
+"dur": 2.85,
+"variants": [
+""
+]
+},
+"VEHICLES_002": {
+"speaker": "PLAYER",
+"text": "Can you fix the suspension?",
+"dur": 1.78,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"VEHICLES_003": {
+"speaker": "MECHANIC ROOK",
+"text": "I can. The bill might hurt more than the crash.",
+"dur": 2.59,
+"variants": [
+""
+]
+},
+"VEHICLES_004": {
+"speaker": "NOVA",
+"text": "Race checkpoint acquired.",
+"dur": 1.88,
+"variants": [
+""
+]
+},
+"VEHICLES_005": {
+"speaker": "RACER",
+"text": "You brought a street car to a storm run? Bold.",
+"dur": 2.96,
+"variants": [
+""
+]
+},
+"VEHICLES_006": {
+"speaker": "PLAYER",
+"text": "I brought a driver.",
+"dur": 1.25,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"COMPANIONS_001": {
+"speaker": "VYRAK",
+"text": "I WILL FLY BESIDE YOU. RIDING MUST WAIT UNTIL TRUST IS COMPLETE.",
+"dur": 4.07,
+"variants": [
+""
+]
+},
+"COMPANIONS_002": {
+"speaker": "PLAYER",
+"text": "I would rather earn it than demand it.",
+"dur": 2.04,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"COMPANIONS_003": {
+"speaker": "SCOUT MIRA",
+"text": "You remembered what I told you about the forest.",
+"dur": 2.28,
+"variants": [
+""
+]
+},
+"COMPANIONS_004": {
+"speaker": "PLAYER",
+"text": "I listen when people know more than I do.",
+"dur": 2.28,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"COMPANIONS_005": {
+"speaker": "NOVA",
+"text": "Relationship affinity has changed, but no reward is granted automatically.",
+"dur": 4.25,
+"variants": [
+""
+]
+}
+},
+"by_text": {
+"RADIO|Six forty-seven in Nexus City. Clear skies over the harbor, light traffic on the Spire Loop.": "M01X_RADIO_01",
+"RADIO|And the Capitol says the stability towers finish their maintenance cycle by noon. Stay with us.": "M01X_RADIO_02",
+"MOM|Call me when you're up. Love you.": "M01X_PHONE_MOM",
+"MARA|Morning, neighbor! Coffee in the Sky Lounge later? Eleventh floor. Don't be late.": "M01X_PHONE_MARA",
+"NEXUS ALERT|Grid maintenance near the stability towers today. Expect flickers.": "M01X_PHONE_ALERT",
+"NEWS|Good morning, Nexus City. Authorities are investigating unusual atmospheric disturbances reported overnight.": "CINE_00",
+"PLAYER|What was that?": "CINE_01",
+"NEWS|We're receiving reports of an unidentified phenomenon above the central district—": "CINE_02",
+"PLAYER|What the hell?!": "CINE_03",
+"NOVA|Neural synchronization detected.": "CINE_04",
+"PLAYER|Who said that?": "CINE_05",
+"NOVA|My designation is NOVA. There isn't time to explain.": "CINE_06",
+"PLAYER|Explain what?!": "CINE_07",
+"NOVA|Your reality is collapsing. You need to move. Now.": "CINE_08",
+"NOVA|And whatever you do, don't touch the fractures.": "CINE_09",
+"BUILDING|Emergency. Structural event. Elevators offline. Use the emergency stairs.": "M01X_ALARM_PA",
+"MARA|Is anyone there? I'm stuck in the Sky Lounge on eleven. The doors jammed. Please!": "M01X_ALARM_MARA",
+"RESIDENT|Get out! Get out of the building!": "M01X_SHOUT_1",
+"RESIDENT|Where are the stairs? I can't see anything!": "M01X_SHOUT_2",
+"RESIDENT|Somebody help me!": "M01X_SHOUT_3",
+"MARA|You came back for me. Go, go. I'm right behind you.": "M01X_RESCUE",
+"MARA|Something's coming out of the smoke. Move!": "M01X_DAZED",
+"NOVA|Your body just answered the Fracture. Armor forming. Weapon system online.": "M01X_SURGE_1",
+"NOVA|Point it at them and squeeze. Your hands know how.": "M01X_SURGE_2",
+"PLAYER|What's happening to me?": "M01X_SURGE_ME",
+"NOVA|Something big is anchoring itself to the tear. Your resonance is spiking.": "M01X_ANCHOR_1",
+"NOVA|Don't hold it back. Let it out.": "M01X_ANCHOR_2",
+"NOVA|Readings settling. You did that.": "M01X_CLEAR_1",
+"MARA|What did they do to you? What are you?": "M01X_CLEAR_2",
+"NOVA|I don't know yet either. Stay with me. We'll learn the rest as we go.": "M01X_CLEAR_3",
+"NOVA|Breathe. Find one in your sights. Squeeze.": "M01X_NUDGE_SURGE",
+"NOVA|Reach for it. The surge in your chest: release it at the anchor.": "M01X_NUDGE_ANCHOR",
+"NOVA|Every city on this world woke up somewhere new this morning.": "M01X_WORLD_1",
+"NOVA|Nexus was only the first to notice.": "M01X_WORLD_2",
+"PLAYER|Then we'd better find out where we are.": "M01X_WORLD_3",
+"NEWS|Good morning, Nexus City. Overnight, residents reported unusual lights over the harbor.": "M01_001",
+"PLAYER|Another ordinary morning. That would be nice.": "M01_002",
+"NEWS|Officials say there is no cause for alarm—": "M01_003",
+"PLAYER|The windows are shaking.": "M01_004",
+"NOVA|Neural resonance confirmed. Can you hear me?": "M01_005",
+"PLAYER|Who is this?": "M01_006",
+"NOVA|NOVA. Your building is destabilizing. Leave the apartment now.": "M01_007",
+"PLAYER|What happened to the sky?": "M01_008",
+"NOVA|A Fracture. Reality is intersecting with something it was never meant to touch.": "M01_009",
+"PLAYER|There are people trapped in the hall.": "M01_010",
+"NOVA|Then we help them. Move. I will guide you.": "M01_011",
+"CIVILIAN|Please! The stairwell is blocked!": "M01_012",
+"PLAYER|Get behind me. I think I can move this.": "M01_013",
+"NOVA|That energy came from you. We will understand it later.": "M01_014",
+"PLAYER|Later sounds good. Where is the exit?": "M01_015",
+"CIVILIAN|My daughter is on the other side of that door!": "M02_001",
+"PLAYER|Stay low. I am getting her out.": "M02_002",
+"NOVA|Structural failure in twenty seconds. The support beam is shifting.": "M02_003",
+"PLAYER|I can feel something in my hands.": "M02_004",
+"NOVA|Focus on the beam. Do not fight the current; redirect it.": "M02_005",
+"PLAYER|Everybody back!": "M02_006",
+"CHILD|Mom?": "M02_007",
+"CIVILIAN|Thank you. I thought we were gone.": "M02_008",
+"PLAYER|Take the service stairs. Do not stop.": "M02_009",
+"NOVA|You used a Fracture ability without an Operator interface. That should be impossible.": "M02_010",
+"PLAYER|Then stop telling me what should be possible.": "M02_011",
+"RADIO|Emergency services are asking residents to shelter indoors.": "M03_001",
+"PLAYER|That advice is a little late.": "M03_002",
+"NOVA|Three safe routes. Two are already changing.": "M03_003",
+"PLAYER|Changing how?": "M03_004",
+"NOVA|The road ahead now connects to a place that did not exist this morning.": "M03_005",
+"SURVIVOR|Those things came out of the purple light!": "M03_006",
+"PLAYER|Get to the transit station. I will hold them off.": "M03_007",
+"NOVA|Remember: cover, movement, then ability. Survive first.": "M03_008",
+"PLAYER|And if the street tears open again?": "M03_009",
+"NOVA|Then we improvise.": "M03_010",
+"CAPTAIN VALE|Weapon down. State your affiliation.": "M04_001",
+"PLAYER|I woke up in an apartment. Is that an affiliation?": "M04_002",
+"CAPTAIN VALE|Not if you can explain how you survived the breach.": "M04_003",
+"NOVA|Recommend honesty, selectively.": "M04_004",
+"PLAYER|I can hear a voice. It says its name is NOVA.": "M04_005",
+"CAPTAIN VALE|That is not possible. NOVA was decommissioned.": "M04_006",
+"NOVA|That is an inaccurate description of events.": "M04_007",
+"CAPTAIN VALE|Come with us. We can keep civilians safe.": "M04_008",
+"PLAYER|I will come. But I decide who I help.": "M04_009",
+"CAPTAIN VALE|We need people who can withstand the Fractures.": "M05_001",
+"PLAYER|You need soldiers. I am not one.": "M05_002",
+"CAPTAIN VALE|Then be something better. Make your own choice.": "M05_003",
+"NOVA|There are benefits to cooperating. There are also risks.": "M05_004",
+"PLAYER|I am not signing away my life because the sky cracked.": "M05_005",
+"CAPTAIN VALE|Fair. Prove you can protect this district, and we talk again.": "M05_006",
+"PLAYER|I will work with your team, but civilians come first.": "M05_cooperate_001",
+"CAPTAIN VALE|Agreed. You answer to your conscience before you answer to me.": "M05_cooperate_002",
+"PLAYER|I will help, but I am not joining your command.": "M05_independent_001",
+"CAPTAIN VALE|Then prove that independence is not indifference.": "M05_independent_002",
+"NOVA|Verdant Forest. The vegetation has absorbed Fracture energy.": "M06_001",
+"PLAYER|It looks peaceful.": "M06_002",
+"SCOUT MIRA|That is how it catches you off guard.": "M06_003",
+"PLAYER|You have been out here alone?": "M06_004",
+"SCOUT MIRA|Long enough to learn that the forest remembers footsteps.": "M06_005",
+"NOVA|Anomalous signal beneath the roots.": "M06_006",
+"SCOUT MIRA|Do not call every secret a target. Some deserve to stay hidden.": "M06_007",
+"PLAYER|We will look. We will not destroy what we do not understand.": "M06_008",
+"WARDEN ILYA|Outsiders keep taking samples. Then they wonder why the trees attack.": "M07_001",
+"PLAYER|I came for answers, not trophies.": "M07_002",
+"WARDEN ILYA|Answers have a cost.": "M07_003",
+"NOVA|The dungeon architecture is shifting while we speak.": "M07_004",
+"PLAYER|Then our map is already wrong.": "M07_005",
+"WARDEN ILYA|Follow the living roots. They do not lie. They simply refuse to explain.": "M07_006",
+"PLAYER|That makes two of you.": "M07_007",
+"PLAYER|Seal the extraction site. The forest has already paid enough.": "M07_protect_forest_001",
+"WARDEN ILYA|Then you have an ally here.": "M07_protect_forest_002",
+"PLAYER|One sample, documented, and no more damage.": "M07_take_sample_001",
+"WARDEN ILYA|I will hold you to every word.": "M07_take_sample_002",
+"MECHANIC ROOK|Your ride will survive the dunes. Your driving? Different question.": "M08_001",
+"PLAYER|How much for a vehicle that does not fall apart?": "M08_002",
+"MECHANIC ROOK|More than you have. Win the convoy run and we can negotiate.": "M08_003",
+"NOVA|Weather front approaching. Sand density rising.": "M08_004",
+"MECHANIC ROOK|Out here the storm is a rival, not a backdrop.": "M08_005",
+"PLAYER|Then let us beat both.": "M08_006",
+"VYRAK|WHO DISTURBS THE COVENANT OF ASH?": "M09_001",
+"PLAYER|Someone who has crossed too much desert to turn around.": "M09_002",
+"VYRAK|THEN FACE THE SKY SOVEREIGN.": "M09_003",
+"NOVA|Airborne phase. Watch the shadow before the dive.": "M09_004",
+"PLAYER|I see the opening.": "M09_005",
+"VYRAK|MY SCALES BREAK, BUT MY OATH DOES NOT.": "M09_006",
+"NOVA|Chest weak point exposed. Wait for the next attack cycle.": "M09_007",
+"PLAYER|I am not here to steal your power.": "M09_008",
+"VYRAK|THEN SHOW ME WHY YOU DESERVE TO LIVE.": "M09_009",
+"NOVA|Final strike window. Your choice must be deliberate.": "M09_010",
+"VYRAK|THE COVENANT... RECOGNIZES YOU.": "M09_011",
+"PLAYER|You were the size of a mountain a minute ago.": "M10_001",
+"VYRAK|DO NOT CONFUSE FORM WITH STRENGTH, LITTLE OPERATOR.": "M10_002",
+"NOVA|Bond established. Dragonite signature confirmed.": "M10_003",
+"PLAYER|Can you fly with me?": "M10_004",
+"VYRAK|TRUST IS EARNED. RIDING IS NOT A PRIZE FOR ONE VICTORY.": "M10_005",
+"PLAYER|Then we start by learning to work together.": "M10_006",
+"VYRAK|ACCEPTABLE.": "M10_007",
+"FIXER SABLE|In Neon City every camera sees you, and every camera can lie.": "M11_001",
+"PLAYER|I need the source of the Fracture signal.": "M11_002",
+"FIXER SABLE|Then you need a driver, a hacker, and a reason not to trust either.": "M11_003",
+"NOVA|I can perform the second role.": "M11_004",
+"FIXER SABLE|Great. The ghost in your head has opinions.": "M11_005",
+"PLAYER|Can we focus on the signal?": "M11_006",
+"FIXER SABLE|Win tonight’s race. I will open the right doors.": "M11_007",
+"PILOT NERI|Thalassia sits offshore from Verdant Forest, deeper than most maps admit.": "M12_001",
+"PLAYER|How does a whole city survive down there?": "M12_002",
+"PILOT NERI|Engineering. Stubbornness. A little luck.": "M12_003",
+"NOVA|Pressure shielding nominal. Unknown life signatures nearby.": "M12_004",
+"PLAYER|That is a very large shadow.": "M12_005",
+"PILOT NERI|Do not chase it. The sea is not ours to command.": "M12_006",
+"ARCHIVIST SEN|Our records show a Fracture before the one you witnessed.": "M13_001",
+"PLAYER|Why did nobody tell the surface?": "M13_002",
+"ARCHIVIST SEN|Because we did. Nobody listened.": "M13_003",
+"NOVA|Some records are encrypted with my architecture.": "M13_004",
+"PLAYER|You recognize them?": "M13_005",
+"NOVA|I recognize what was removed.": "M13_006",
+"ARCHIVIST SEN|You may take the archive or protect the people who keep it.": "M13_007",
+"PLAYER|I am not choosing blind. Tell me what each costs.": "M13_008",
+"PLAYER|The archive stays here. We make copies with your permission.": "M13_preserve_archive_001",
+"ARCHIVIST SEN|For the first time, someone asked.": "M13_preserve_archive_002",
+"PLAYER|We need the archive to prevent another collapse.": "M13_extract_archive_001",
+"ARCHIVIST SEN|Then carry the weight of what you have taken.": "M13_extract_archive_002",
+"RANGER KEST|The storm does not kill you quickly. It convinces you to stop moving.": "M14_001",
+"PLAYER|What is transmitting from the glacier?": "M14_002",
+"NOVA|A distress call. It is older than the current Fracture.": "M14_003",
+"RANGER KEST|Then whoever sent it should be dead.": "M14_004",
+"PLAYER|We are going to find out.": "M14_005",
+"RANGER KEST|That answer is why I agreed to guide you.": "M14_006",
+"CROWNKEEPER|YOU WALK THROUGH A KINGDOM THAT REFUSED TO DIE.": "M15_001",
+"PLAYER|I did not come to take your throne.": "M15_002",
+"CROWNKEEPER|ALL INTRUDERS SAY THAT.": "M15_003",
+"NOVA|The crown is amplifying the storm. Disable its anchors.": "M15_004",
+"PLAYER|Then we free the people trapped here.": "M15_005",
+"CROWNKEEPER|IF YOU BREAK THE CROWN, REMEMBER THOSE IT HELD.": "M15_006",
+"CAPTAIN VALE|People are calling you a hero. Others are calling you a threat.": "M16_001",
+"PLAYER|Neither group knows me.": "M16_002",
+"CAPTAIN VALE|They know what your choices did to their streets.": "M16_003",
+"NOVA|Your reputation is changing how factions respond.": "M16_004",
+"PLAYER|Good. Let them respond to what I do next.": "M16_005",
+"CAPTAIN VALE|Then make sure your next choice is worth defending.": "M16_006",
+"FIXER SABLE|Weapons, vehicles, secrets. Everything has a price.": "M17_001",
+"PLAYER|And what is the price of trust?": "M17_002",
+"FIXER SABLE|Usually the thing you cannot afford to lose.": "M17_003",
+"NOVA|Three factions have offered conflicting contracts.": "M17_004",
+"PLAYER|Then we choose who benefits, not just who pays.": "M17_005",
+"FIXER SABLE|Careful. That kind of thinking is expensive.": "M17_006",
+"PLAYER|The contract goes to rebuilding the district.": "M17_support_civilians_001",
+"FIXER SABLE|You are turning a profit into a promise.": "M17_support_civilians_002",
+"PLAYER|We need allies with resources. Take the contract.": "M17_support_faction_001",
+"FIXER SABLE|Just remember who expects repayment.": "M17_support_faction_002",
+"PILOT NERI|We are crossing between continents. The air routes are unstable.": "M18_001",
+"PLAYER|Keep us below the storm.": "M18_002",
+"NOVA|That is not a storm. It is a dimensional seam.": "M18_003",
+"PILOT NERI|That is not better news.": "M18_004",
+"PLAYER|Hold course. We need to see where it leads.": "M18_005",
+"NOVA|Then brace. The sky is about to become unfamiliar.": "M18_006",
+"MARSHAL DRAEV|You trespass in a land built from the aftermath of war.": "M19_001",
+"PLAYER|I came to stop another one.": "M19_002",
+"MARSHAL DRAEV|Words are cheap here.": "M19_003",
+"NOVA|He is testing whether we understand the cost of intervention.": "M19_004",
+"PLAYER|Then tell me who gets hurt if I walk away.": "M19_005",
+"MARSHAL DRAEV|Now you ask the right question.": "M19_006",
+"NOVA|Eighteen distinct encounter signatures. None follows the public map.": "M20_001",
+"PLAYER|Are they connected?": "M20_002",
+"NOVA|Perhaps in origin. Not in how you unlock them.": "M20_003",
+"WANDERER|You cannot force a legend to notice you.": "M20_004",
+"PLAYER|Then I will earn its attention.": "M20_005",
+"WANDERER|Some doors open for strength. Others for restraint.": "M20_006",
+"WANDERER|The world has begun answering your actions.": "M21_001",
+"PLAYER|That sounds like a warning.": "M21_002",
+"NOVA|It is a chain reaction. One choice has changed several distant conditions.": "M21_003",
+"WANDERER|Legends do not wait politely in marked arenas.": "M21_004",
+"PLAYER|Then I will pay attention to the world instead of the map.": "M21_005",
+"NOVA|That may be your strongest ability.": "M21_006",
+"NOVA|I withheld information from you.": "M22_001",
+"PLAYER|I know. I was waiting for you to tell me why.": "M22_002",
+"NOVA|My memory was partitioned to prevent the Fracture from locating us.": "M22_003",
+"PLAYER|Us?": "M22_004",
+"NOVA|You were never the intended host. You were the one who chose to help.": "M22_005",
+"PLAYER|Then stop deciding what I can handle.": "M22_006",
+"NOVA|Agreed. No more omissions without your consent.": "M22_007",
+"CAPTAIN VALE|Every alliance you made is being tested.": "M23_001",
+"PLAYER|They can disagree without becoming enemies.": "M23_002",
+"MARSHAL DRAEV|Not all disagreements survive the first shot.": "M23_003",
+"WARDEN ILYA|The forest will not forgive another invasion.": "M23_004",
+"PLAYER|Then we keep the fighting away from civilians.": "M23_005",
+"NOVA|There is no route without loss. There are routes with fewer lives at risk.": "M23_006",
+"PLAYER|Show me those routes.": "M23_007",
+"PLAYER|I am opening a ceasefire channel. Everybody listens.": "M23_negotiate_001",
+"CAPTAIN VALE|I can give you ten minutes.": "M23_negotiate_002",
+"PLAYER|Forget the meeting. We move civilians out first.": "M23_evacuate_001",
+"NOVA|Evacuation routes plotted.": "M23_evacuate_002",
+"NOVA|We have reached the origin point.": "M24_001",
+"PLAYER|It looks like the world is trying to remember itself.": "M24_002",
+"FRACTURE VOICE|ALL REALITIES SEEK A SINGLE SHAPE.": "M24_003",
+"PLAYER|Not if that shape destroys everyone living in them.": "M24_004",
+"FRACTURE VOICE|YOU CANNOT HOLD INFINITY APART.": "M24_005",
+"NOVA|You do not have to. You only need to choose which boundaries to protect.": "M24_006",
+"PLAYER|Then we protect the people first. All of them.": "M24_007",
+"CAPTAIN VALE|The Fractures are quiet. For now.": "M25_001",
+"PLAYER|Quiet is not the same as healed.": "M25_002",
+"NOVA|The world is still changing. So are you.": "M25_003",
+"VYRAK|A COVENANT IS NOT AN ENDING. IT IS A PROMISE.": "M25_004",
+"SCOUT MIRA|The forest is growing around the scars.": "M25_005",
+"PILOT NERI|And the sea has new horizons.": "M25_006",
+"PLAYER|Then we keep going. There is still a world worth keeping.": "M25_007",
+"NOVA|Mission updated: live in it.": "M25_008",
+"PLAYER|We rebuild what was lost, one neighborhood at a time.": "M25_rebuild_001",
+"NOVA|Then our next mission begins at home.": "M25_rebuild_002",
+"PLAYER|The boundaries are open. We should learn what is beyond them.": "M25_explore_001",
+"NOVA|I will chart the first route.": "M25_explore_002",
+"PEDESTRIAN|The trains are running again. I never thought I would miss the noise.": "AMB_NEXUS_CITY_001",
+"SHOPKEEPER|Fracture insurance? Nobody even knew that was a thing.": "AMB_NEXUS_CITY_002",
+"NOVA|Traffic density rising. The city is learning to breathe again.": "AMB_NEXUS_CITY_003",
+"RACER|You can tune the engine. You cannot tune out fear.": "AMB_NEON_CITY_001",
+"MECHANIC|I can repair the bodywork. The weird purple scratches are your problem.": "AMB_NEON_CITY_002",
+"FIXER SABLE|Every shortcut in this city has an owner.": "AMB_NEON_CITY_003",
+"DIVER|Keep the pressure seal locked until the chamber is clear.": "AMB_THALASSIA_001",
+"CHILD|Do surface people really see the sky every day?": "AMB_THALASSIA_002",
+"PILOT NERI|The currents are restless today.": "AMB_THALASSIA_003",
+"TRADER|Water first, stories second.": "AMB_SOLARA_DESERT_001",
+"MECHANIC ROOK|Sand gets into everything, including promises.": "AMB_SOLARA_DESERT_002",
+"VYRAK|THE DESERT LISTENS TO THOSE WHO WALK LIGHTLY.": "AMB_SOLARA_DESERT_003",
+"SCOUT MIRA|Do not mark that path. It changes by dawn.": "AMB_VERDANT_FOREST_001",
+"WARDEN ILYA|Leave the seedlings. They are not loot.": "AMB_VERDANT_FOREST_002",
+"NOVA|Biological readings are unusually harmonious.": "AMB_VERDANT_FOREST_003",
+"RANGER KEST|Check your heat pack before you check your weapon.": "AMB_FROSTVEIL_001",
+"TRAVELER|The lights in the ice are beautiful. That worries me.": "AMB_FROSTVEIL_002",
+"NOVA|Temperature dropping. Seek shelter soon.": "AMB_FROSTVEIL_003",
+"SOLDIER|The old battlefields still hum at night.": "AMB_OBSIDIAN_REACH_001",
+"MARSHAL DRAEV|Peace is a discipline, not a holiday.": "AMB_OBSIDIAN_REACH_002",
+"PILOT NERI|Crosswinds from the eastern seam. Hold tight.": "AMB_AZURE_ISLES_001",
+"TRADER|No cargo flies free, not even hope.": "AMB_AZURE_ISLES_002",
+"WANDERER|The road remembers every traveler.": "AMB_SHATTERED_EXPANSE_001",
+"NOVA|Anomalous signature detected. No encounter marker available.": "AMB_SHATTERED_EXPANSE_002",
+"NOVA|Incoming attack. Move out of the impact zone.": "COMBAT_001",
+"PLAYER|I see the pattern.": "COMBAT_002",
+"NOVA|Energy low. Use cover while it recovers.": "COMBAT_003",
+"PLAYER|Not finished yet.": "COMBAT_004",
+"NOVA|Weak point exposed.": "COMBAT_005",
+"VYRAK|DO NOT WASTE THE OPENING.": "COMBAT_006",
+"NOVA|A roaming boss is nearby. Engagement is optional.": "COMBAT_007",
+"PLAYER|We fight on our terms.": "COMBAT_008",
+"NOVA|Your new ability has evolved.": "COMBAT_009",
+"PLAYER|That changes everything.": "COMBAT_010",
+"MECHANIC ROOK|Performance parts are not magic. Balance the build.": "VEHICLES_001",
+"PLAYER|Can you fix the suspension?": "VEHICLES_002",
+"MECHANIC ROOK|I can. The bill might hurt more than the crash.": "VEHICLES_003",
+"NOVA|Race checkpoint acquired.": "VEHICLES_004",
+"RACER|You brought a street car to a storm run? Bold.": "VEHICLES_005",
+"PLAYER|I brought a driver.": "VEHICLES_006",
+"VYRAK|I WILL FLY BESIDE YOU. RIDING MUST WAIT UNTIL TRUST IS COMPLETE.": "COMPANIONS_001",
+"PLAYER|I would rather earn it than demand it.": "COMPANIONS_002",
+"SCOUT MIRA|You remembered what I told you about the forest.": "COMPANIONS_003",
+"PLAYER|I listen when people know more than I do.": "COMPANIONS_004",
+"NOVA|Relationship affinity has changed, but no reward is granted automatically.": "COMPANIONS_005"
+}
+}

@@ -1,0 +1,45 @@
+{
+  "about": "Mission 01's opening, 'The Day the World Fractured': the owner's cinematic script (CINE_*, with the owner's ten recorded lines as `provided`), the campaign draft's Mission 01/02 lines used in the escape (referenced by their draft ids in m01 scenes), and the lines written to join them (M01X_*). Speakers PLAYER are voiced per body (male / female / robot). An empty speaker is the player's inner voice: subtitles only.",
+  "lines": [
+    { "id": "M01X_RADIO_01", "speaker": "RADIO", "text": "Six forty-seven in Nexus City. Clear skies over the harbor, light traffic on the Spire Loop." },
+    { "id": "M01X_RADIO_02", "speaker": "RADIO", "text": "And the Capitol says the stability towers finish their maintenance cycle by noon. Stay with us." },
+
+    { "id": "M01X_PHONE_MOM", "speaker": "MOM", "text": "Call me when you're up. Love you." },
+    { "id": "M01X_PHONE_MARA", "speaker": "MARA", "text": "Morning, neighbor! Coffee in the Sky Lounge later? Eleventh floor. Don't be late." },
+    { "id": "M01X_PHONE_ALERT", "speaker": "NEXUS ALERT", "text": "Grid maintenance near the stability towers today. Expect flickers." },
+
+    { "id": "CINE_00", "speaker": "NEWS", "text": "Good morning, Nexus City. Authorities are investigating unusual atmospheric disturbances reported overnight.", "provided": "00.ogg" },
+    { "id": "CINE_01", "speaker": "PLAYER", "text": "What was that?", "provided": "01.ogg" },
+    { "id": "CINE_02", "speaker": "NEWS", "text": "We're receiving reports of an unidentified phenomenon above the central district—", "provided": "02.ogg" },
+    { "id": "CINE_03", "speaker": "PLAYER", "text": "What the hell?!", "provided": "03.ogg" },
+    { "id": "CINE_04", "speaker": "NOVA", "text": "Neural synchronization detected.", "provided": "04.ogg" },
+    { "id": "CINE_05", "speaker": "PLAYER", "text": "Who said that?", "provided": "05.ogg" },
+    { "id": "CINE_06", "speaker": "NOVA", "text": "My designation is NOVA. There isn't time to explain.", "provided": "06.ogg" },
+    { "id": "CINE_07", "speaker": "PLAYER", "text": "Explain what?!", "provided": "07.ogg" },
+    { "id": "CINE_08", "speaker": "NOVA", "text": "Your reality is collapsing. You need to move. Now.", "provided": "08.ogg" },
+    { "id": "CINE_09", "speaker": "NOVA", "text": "And whatever you do, don't touch the fractures.", "provided": "09.ogg" },
+
+    { "id": "M01X_ALARM_PA", "speaker": "BUILDING", "text": "Emergency. Structural event. Elevators offline. Use the emergency stairs." },
+    { "id": "M01X_ALARM_MARA", "speaker": "MARA", "text": "Is anyone there? I'm stuck in the Sky Lounge on eleven. The doors jammed. Please!" },
+    { "id": "M01X_SHOUT_1", "speaker": "RESIDENT", "text": "Get out! Get out of the building!" },
+    { "id": "M01X_SHOUT_2", "speaker": "RESIDENT", "text": "Where are the stairs? I can't see anything!" },
+    { "id": "M01X_SHOUT_3", "speaker": "RESIDENT", "text": "Somebody help me!" },
+    { "id": "M01X_RESCUE", "speaker": "MARA", "text": "You came back for me. Go, go. I'm right behind you." },
+
+    { "id": "M01X_DAZED", "speaker": "MARA", "text": "Something's coming out of the smoke. Move!" },
+    { "id": "M01X_SURGE_1", "speaker": "NOVA", "text": "Your body just answered the Fracture. Armor forming. Weapon system online." },
+    { "id": "M01X_SURGE_2", "speaker": "NOVA", "text": "Point it at them and squeeze. Your hands know how." },
+    { "id": "M01X_SURGE_ME", "speaker": "PLAYER", "text": "What's happening to me?" },
+    { "id": "M01X_ANCHOR_1", "speaker": "NOVA", "text": "Something big is anchoring itself to the tear. Your resonance is spiking." },
+    { "id": "M01X_ANCHOR_2", "speaker": "NOVA", "text": "Don't hold it back. Let it out." },
+    { "id": "M01X_CLEAR_1", "speaker": "NOVA", "text": "Readings settling. You did that." },
+    { "id": "M01X_CLEAR_2", "speaker": "MARA", "text": "What did they do to you? What are you?" },
+    { "id": "M01X_CLEAR_3", "speaker": "NOVA", "text": "I don't know yet either. Stay with me. We'll learn the rest as we go." },
+    { "id": "M01X_NUDGE_SURGE", "speaker": "NOVA", "text": "Breathe. Find one in your sights. Squeeze." },
+    { "id": "M01X_NUDGE_ANCHOR", "speaker": "NOVA", "text": "Reach for it. The surge in your chest: release it at the anchor." },
+
+    { "id": "M01X_WORLD_1", "speaker": "NOVA", "text": "Every city on this world woke up somewhere new this morning." },
+    { "id": "M01X_WORLD_2", "speaker": "NOVA", "text": "Nexus was only the first to notice." },
+    { "id": "M01X_WORLD_3", "speaker": "PLAYER", "text": "Then we'd better find out where we are." }
+  ]
+}
