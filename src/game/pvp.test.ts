@@ -139,3 +139,38 @@ describe("Ranked", () => {
     expect(rankedRating(Array.from({ length: 100 }, (_, i) => rankedKey(i, -18)))).toBe(0);
   });
 });
+
+describe("Rounds with ally bots", () => {
+  const ev = (over: Partial<PvpEvents>): PvpEvents => ({ dt: 0.1, kills: 0, died: false, px: 0, pz: 30, rivalsAlive: 3, alliesAlive: 2, objectiveUs: 0, ...over });
+  it("going down doesn't end the round while your allies stand; it ends when the last of them falls", () => {
+    const st = newPvp("ascendancy", 1, undefined, { allies: 2, rivals: 3 });
+    for (let i = 0; i < 20; i++) stepPvp(st, ev({}));
+    stepPvp(st, ev({ died: true }));
+    expect([st.out, st.round, st.themRounds]).toEqual([true, 1, 0]);
+    for (let i = 0; i < 20; i++) stepPvp(st, ev({ alliesAlive: 1 }));
+    expect(st.round).toBe(1);
+    stepPvp(st, ev({ alliesAlive: 0 }));
+    expect([st.out, st.round, st.themRounds, st.reason]).toEqual([false, 2, 1, "Your team went down"]);
+  });
+  it("your allies can still win the round you sat out", () => {
+    const st = newPvp("ascendancy", 1, undefined, { allies: 2, rivals: 3 });
+    for (let i = 0; i < 20; i++) stepPvp(st, ev({}));
+    stepPvp(st, ev({ died: true }));
+    stepPvp(st, ev({ rivalsAlive: 0 }));
+    expect([st.usRounds, st.out]).toEqual([1, false]);
+  });
+  it("an ally on the objective holds it; you don't while you're down", () => {
+    const st = newPvp("ascendancy", 1, undefined, { allies: 2, rivals: 3 });
+    const rt = PVP_MODES.ascendancy.roundTime ?? 90;
+    for (let t = 0; t < rt + 0.5; t += 0.1) stepPvp(st, ev({}));
+    stepPvp(st, ev({ died: true }));
+    for (let t = 0; t < 12; t += 0.1) stepPvp(st, ev({ px: 0, pz: 0, objectiveUs: 1 }));
+    expect(st.usRounds).toBe(1);
+  });
+  it("with no ally bots a death still ends the round as before", () => {
+    const st = newPvp("ascendancy", 1);
+    for (let i = 0; i < 20; i++) stepPvp(st, quiet({}));
+    stepPvp(st, quiet({ died: true }));
+    expect([st.themRounds, st.reason]).toEqual([1, "You went down"]);
+  });
+});

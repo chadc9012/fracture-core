@@ -29,7 +29,7 @@ import { PvpField } from "./PvpField";
 import { KillboxArena as KillboxArenaView } from "./KillboxArena";
 import { arenaById, belowKillPlane, confine, extractionSites, fractureVisibility, inArenaSpace, spawnPoint, toWorld, type KillboxArena } from "@/game/killbox-arenas";
 import { installArena, syncShifters } from "@/game/killbox-arena-install";
-import { allyCount, fieldUnits, newBots, resetAllies, rivalCount, stepBots, zonePresence, type BotsState } from "@/game/killbox-bots";
+import { allyCount, fieldUnits, newBots, resetAllies, rivalCount, roundPresence, stepBots, zonePresence, type BotsState } from "@/game/killbox-bots";
 import { KillboxBots } from "./KillboxBots";
 import { AREAS, pointWorld } from "@/game/activities";
 import { CoverWall } from "./PropModels";
@@ -788,7 +788,7 @@ function SceneImpl({
   const relaySpawned = useRef("");
   const crucible = useRef<CrucibleState | null>(null);
   // Killbox modes (pvp.ts): the match state, the counters it diffs, the round it last staffed, and the rival field
-  const pvp = useRef<{ st: PvpState; kills: number; team: number; deaths: number; round: number; field: CrucibleState; center: { x: number; z: number }; squadWas: boolean; /** the built map it plays on (killbox-arenas.ts), if any, and where you were before you dropped in */ arena?: KillboxArena; from?: { x: number; z: number }; /** a built arena's bots (killbox-bots.ts): your teammates, and the brains that drive the rivals */ bots?: BotsState } | null>(null);
+  const pvp = useRef<{ st: PvpState; kills: number; team: number; deaths: number; round: number; field: CrucibleState; center: { x: number; z: number }; squadWas: boolean; /** the built map it plays on (killbox-arenas.ts), if any, and where you were before you dropped in */ arena?: KillboxArena; from?: { x: number; z: number }; /** where you sit out a round after going down */ outSpot?: { x: number; z: number } | undefined; /** a built arena's bots (killbox-bots.ts): your teammates, and the brains that drive the rivals */ bots?: BotsState } | null>(null);
   /** a Killbox arena match: the open world is hidden while you are up in the arena, and its fracture event dims sight (1 = clear) */
   const arenaShown = useRef(false), arenaVis = useRef(1);
   const [pvpView, setPvpView] = useState<PvpState | null>(null);
@@ -1972,7 +1972,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     s.comboTime = Math.max(0, s.comboTime - dt);
     if (s.comboTime <= 0) s.combo = 0;
     // in a vehicle Space is the handbrake and the pad's RT is the throttle, so neither fires: mouse or pad X (2) fires the guns, RMB / pad Y (3) the ordnance
-    const trigger = civ ? false : s.inVehicle ? mouse.current.fire || !!padNow[2] : held.has("Space") || mouse.current.fire || padState.current.fire;
+    const trigger = civ || pvp.current?.st.out ? false : s.inVehicle ? mouse.current.fire || !!padNow[2] : held.has("Space") || mouse.current.fire || padState.current.fire;
     const secondaryTrigger = s.inVehicle && (mouse.current.aim || !!padNow[3]);
     // rounds leave from just under the eye, along the camera ray: the old +0.95 (2.55 m up, from before the life-size pass)
     // flew over a standing trooper's head and drew first-person tracers ~5 degrees above the crosshair, never crossing it
@@ -2613,9 +2613,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         p.kills = sim.rivalKills; p.team = sim.teamRivalKills ?? 0; p.deaths = sim.deaths;
         // a built arena: the bots play the match (killbox-bots.ts). They drive the rival machines' movement and fire (the world AI's
         // own shots are held off), shoot each other, and hand back what the machines and the player take
-        let allyDeaths = 0, presence: Record<string, { us: number; them: number }> | undefined, units: ReturnType<typeof fieldUnits> | undefined;
+        let allyDeaths = 0, presence: Record<string, { us: number; them: number }> | undefined, units: ReturnType<typeof fieldUnits> | undefined, rounds: ReturnType<typeof roundPresence> | undefined;
         if (p.bots && p.arena) {
-          const ar = p.arena, me = { x: s.x - ar.site.x, z: s.z - ar.site.z, alive: sim.hp > 0 };
+          // a player sitting out a round (pvp.ts `out`) is off the field: the bots neither shoot at nor count them
+          const ar = p.arena, me = { x: s.x - ar.site.x, z: s.z - ar.site.z, alive: sim.hp > 0 && !st.out };
           const rivals = sim.machines.filter((m) => m.rival && m.living?.startsWith("crucible:")).map((m) => ({ tag: m.living!, cls: m.rival!, x: m.x - ar.site.x, z: m.z - ar.site.z, alive: m.alive }));
           const o = stepBots(p.bots, { arena: ar, st, dt, player: me, rivals });
           for (const m of sim.machines) {
@@ -2629,9 +2630,16 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           allyDeaths = o.allyDeaths;
           if (mode.kind === "zones") presence = zonePresence(p.bots, st, me, ZONE_RADIUS);
           if (mode.kind === "extract") units = fieldUnits(p.bots, me);
+          if (mode.kind === "rounds") rounds = roundPresence(p.bots, ar, ZONE_RADIUS);
         }
-        stepPvp(st, { dt, kills, died, px: s.x - p.center.x, pz: s.z - p.center.z, rivalsAlive: sim.machines.filter((m) => m.alive && m.rival).length, allyDeaths, ...(presence ? { presence } : {}), ...(units ? { units } : {}) });
-        if (st.round !== p.round) { resetField(sim, p.field); p.round = st.round; if (p.bots && p.arena) resetAllies(p.bots, p.arena); }
+        stepPvp(st, { dt, kills, died, px: s.x - p.center.x, pz: s.z - p.center.z, rivalsAlive: sim.machines.filter((m) => m.alive && m.rival).length, allyDeaths, ...(presence ? { presence } : {}), ...(units ? { units } : {}), ...(rounds ?? {}) });
+        if (st.round !== p.round) { resetField(sim, p.field); p.round = st.round; p.outSpot = undefined; if (p.bots && p.arena) resetAllies(p.bots, p.arena); }
+        // down for the rest of the round: held at your side's spawn, weapons down, until the team plays it out
+        if (st.out && p.arena) {
+          if (!p.outSpot) { const pt = spawnPoint(p.arena, "us", [], 0); p.outSpot = toWorld(p.arena, pt.x, pt.z); }
+          s.x = p.outSpot.x; s.z = p.outSpot.z; s.y = walkHeight(s.x, s.z) + 1.6; s.vy = 0; s.vSpeed = 0; velocity.set(0, 0, 0);
+          sim.hp = Math.max(sim.hp, 1);
+        }
         // the royale field follows you (fresh squads find you as the circle closes); the arena modes spawn round the arena edge
         const fieldAt = mode.kind === "royale" ? { x: s.x, z: s.z } : p.center;
         const ar = p.arena;

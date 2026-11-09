@@ -64,6 +64,8 @@ export type PvpState = {
   zones: Zone[];
   /** rounds */
   round: number; roundClock: number; usRounds: number; themRounds: number; attacking: boolean; plant: number; zoneHold: number; roundRivalsLeft: number; roundOver: number;
+  /** rounds with ally bots: you went down this round and your team plays it out (you sit at your spawn until the next round) */
+  out: boolean; alliesLeft: number;
   /** royale */
   alive: number; phase: number; radius: number; nextWave: number;
   /** the match result once decided */
@@ -85,7 +87,7 @@ export function newPvp(mode: PvpModeId, seed = 1, zones: readonly ZoneSpot[] = O
   /** Extraction: the core's drop point and the two pads (killbox-arenas.ts extractionSites) */ extract: { home: { x: number; z: number }; us: { x: number; z: number }; them: { x: number; z: number } } = OPEN_EXTRACT): PvpState {
   const m = PVP_MODES[mode];
   const core: Core | undefined = m.kind === "extract" ? { x: extract.home.x, z: extract.home.z, holder: null, carrier: null, pick: 0, idle: 0, home: { ...extract.home }, pads: { us: { ...extract.us }, them: { ...extract.them } } } : undefined;
-  return { ...(core ? { core } : {}), mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed, allies: bots?.allies ?? 0, rivalField: bots?.rivals };
+  return { ...(core ? { core } : {}), mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, out: false, alliesLeft: bots?.allies ?? 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed, allies: bots?.allies ?? 0, rivalField: bots?.rivals };
 }
 
 /** deterministic 0..1 from the state's seed (advances it) */
@@ -95,6 +97,8 @@ function rnd(st: PvpState): number { st.seed = (Math.imul(st.seed ^ 0x5bd1e995, 
 export type PvpEvents = { dt: number; kills: number; died: boolean; /** player distance to the arena centre and position offset (for zones) */ px: number; pz: number; /** rivals of this round still standing (rounds) */ rivalsAlive: number;
   /** a bot match: ally bots that went down this frame (a point for them), and who stands in each zone (Dominion captures by presence) */
   allyDeaths?: number; presence?: Record<string, { us: number; them: number }>;
+  /** rounds in a bot match: your ally bots still standing, and how many of them stand on the objective */
+  alliesAlive?: number; objectiveUs?: number;
   /** Extraction in a bot match: everyone on the field (the player as id "player"); without it the player alone is on the core's field */
   units?: readonly Unit[] };
 
@@ -164,7 +168,7 @@ function stepZones(st: PvpState, e: PvpEvents) {
 function endRound(st: PvpState, m: PvpMode, won: boolean, why: string) {
   if (won) st.usRounds++; else st.themRounds++;
   st.reason = why; st.roundOver = 3; // a short pause before the next round
-  st.round++; st.roundClock = 0; st.plant = 0; st.zoneHold = 0; st.roundRivalsLeft = m.onField;
+  st.round++; st.roundClock = 0; st.plant = 0; st.zoneHold = 0; st.roundRivalsLeft = m.onField; st.out = false;
   if (m.id === "lockdown") st.attacking = !st.attacking;
   st.us = st.usRounds; st.them = st.themRounds;
 }
@@ -173,8 +177,14 @@ function stepRounds(st: PvpState, m: PvpMode, e: PvpEvents) {
   if (st.roundOver > 0) { st.roundOver = Math.max(0, st.roundOver - e.dt); return; }
   st.roundClock += e.dt;
   st.roundRivalsLeft = e.rivalsAlive;
-  const onObjective = Math.hypot(e.px, e.pz) < ZONE_RADIUS;
-  if (e.died) { endRound(st, m, false, "You went down"); return; }
+  // with ally bots your going down doesn't end the round: you sit it out and it ends when the whole team is down
+  if (e.alliesAlive !== undefined) {
+    st.alliesLeft = e.alliesAlive;
+    if (e.died && !st.out) { if (e.alliesAlive > 0) { st.out = true; st.reason = "You're down — your team fights on"; } else { endRound(st, m, false, "Your team went down"); return; } }
+    if (st.out && e.alliesAlive === 0) { endRound(st, m, false, "Your team went down"); return; }
+  } else if (e.died) { endRound(st, m, false, "You went down"); return; }
+  // the objective is held by you (while you're up) or any ally bot standing on it
+  const onObjective = (!st.out && Math.hypot(e.px, e.pz) < ZONE_RADIUS) || (e.objectiveUs ?? 0) > 0;
   if (st.roundClock > 1 && e.rivalsAlive === 0) { endRound(st, m, true, "Rivals wiped"); return; }
   const rt = m.roundTime ?? 90;
   if (m.id === "lockdown") {
@@ -329,7 +339,8 @@ export function pvpLine(st: PvpState): string {
     case "rounds": {
       const rt = m.roundTime ?? 90, z = st.roundClock >= rt;
       const role = m.id === "lockdown" ? (st.attacking ? "ATTACK" : `DEFEND · plant ${Math.round(st.plant * 100)}%`) : z ? "ZONE OPEN — take the centre" : `${st.roundRivalsLeft} rival${st.roundRivalsLeft === 1 ? "" : "s"} left`;
-      return `Round ${st.round} · ${st.usRounds}–${st.themRounds} · ${st.roundOver > 0 ? st.reason : `${role} · ${clock(Math.max(0, rt - st.roundClock))}`}`;
+      const down = st.out ? ` · YOU'RE DOWN — ${st.alliesLeft} all${st.alliesLeft === 1 ? "y" : "ies"} left` : "";
+      return `Round ${st.round} · ${st.usRounds}–${st.themRounds} · ${st.roundOver > 0 ? st.reason : `${role} · ${clock(Math.max(0, rt - st.roundClock))}${down}`}`;
     }
     case "royale": { const z = royaleRadius(st.clock); return `${st.alive} alive · ${Math.ceil(st.alive / m.teamSize)} squads · circle ${Math.round(z.radius)} m${z.closing ? " CLOSING" : ""}`; }
     case "extract": {

@@ -288,6 +288,12 @@ export function zonePresence(s: BotsState, st: PvpState, player: { x: number; z:
   return out;
 }
 
+/** rounds: your ally bots still up, and how many of them stand on the objective (pvp.ts PvpEvents alliesAlive / objectiveUs) */
+export function roundPresence(s: BotsState, a: KillboxArena, radius: number): { alliesAlive: number; objectiveUs: number } {
+  const up = s.allies.filter((b) => b.alive);
+  return { alliesAlive: up.length, objectiveUs: up.filter((b) => Math.hypot(b.x - a.objective[0], b.z - a.objective[1]) < radius).length };
+}
+
 /** everyone on the field for Extraction's core (pvp.ts Unit): you as "player", the ally bots and the rivals by their ids */
 export function fieldUnits(s: BotsState, player: { x: number; z: number; alive: boolean }): Unit[] {
   return [{ id: "player", team: "us", x: player.x, z: player.z, alive: player.alive },
