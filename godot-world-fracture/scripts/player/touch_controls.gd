@@ -36,6 +36,8 @@ var _stick_id := -1
 var _stick_origin := Vector2.ZERO
 var _look_id := -1
 var _mouse_look := false
+## on a computer: a click into the game takes the mouse (look by moving it, left button fires), Esc gives it back
+var _captured := false
 var _stick_base: Control
 var _stick_knob: Control
 var _sprint_held := false
@@ -79,6 +81,10 @@ func _ready() -> void:
 		shoot.position = Vector2(-250, -160)
 		shoot.button_down.connect(func(): fire = true)
 		shoot.button_up.connect(func(): fire = false)
+		# hold FIRE and slide the thumb to aim while shooting (the button keeps the touch, so the drag is read here)
+		shoot.gui_input.connect(func(e: InputEvent) -> void:
+			if e is InputEventScreenDrag:
+				look_delta += (e as InputEventScreenDrag).relative)
 		add_child(shoot)
 		_fire_button = shoot
 		var rl := _button("RELOAD")
@@ -96,6 +102,8 @@ func _ready() -> void:
 		add_child(nx)
 		_swap_button = nx
 	_hud()
+	if not touch_ui and not scripted:
+		toast.call_deferred("Click to aim with the mouse · Esc frees the cursor")
 
 ## crosshair, the weapon's name and its magazine
 func _hud() -> void:
@@ -241,14 +249,22 @@ func set_mode(m: String) -> void:
 		_sprint_button.button_pressed = false
 	for b in [_fire_button, _reload_button, _swap_button]:
 		if b:
-			b.visible = not drive and not fly
+			b.visible = not drive and not fly and weapons_out
 	if crosshair:
-		crosshair.visible = not fly
+		crosshair.visible = not fly and (weapons_out or drive)
 	if drive or fly:
 		_sprint_held = false
 		fire = false
 
 var crosshair: Control
+var weapons_out := true
+
+## unarmed (before Mission 01 arms the operator): no FIRE / RELOAD / SWAP and no crosshair on foot
+func set_armed(on: bool) -> void:
+	weapons_out = on
+	if not on:
+		fire = false
+	set_mode(mode)
 
 ## flight (mode "fly"): UP held (or Space) climbs, DOWN toggled (or Shift) descends — 0..1
 func ascend() -> float:
@@ -331,6 +347,42 @@ var _r_was := false
 var _q_was := false
 var _space_was := false
 
+func _capture(on: bool) -> void:
+	if touch_ui or scripted:
+		return
+	if on == _captured:
+		return
+	_captured = on
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE
+	if not on:
+		fire = false
+		_mouse_look = false
+
+func _exit_tree() -> void:
+	_capture(false)
+
+## while the mouse is taken every move looks and the left button fires (the cursor is hidden, so nothing else is clicked)
+func _input(event: InputEvent) -> void:
+	if touch_ui or not _captured:
+		return
+	if not is_visible_in_tree():
+		_capture(false)
+		return
+	if event is InputEventMouseMotion:
+		look_delta += (event as InputEventMouseMotion).relative
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			fire = mb.pressed
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			if mb.pressed:
+				_next = true
+		get_viewport().set_input_as_handled()
+	elif event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE:
+		_capture(false)
+		get_viewport().set_input_as_handled()
+
 func _gui_input(event: InputEvent) -> void:
 	if touch_ui:
 		if event is InputEventScreenTouch:
@@ -370,7 +422,10 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
-			fire = mb.pressed
+			if mb.pressed and not scripted:
+				_capture(true)     # the first click takes the mouse; it does not fire
+			else:
+				fire = mb.pressed
 			accept_event()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT:
 			_mouse_look = mb.pressed

@@ -58,6 +58,43 @@ func _run() -> void:
 			ok(Nexus.area_at(p) == String(Nexus.NAMES[id]), "%s: the area reads %s" % [id, Nexus.area_at(p)])
 			seen[id] = true
 	ok(seen.size() == 11, "all eleven named districts are walkable (%d)" % seen.size())
+	# a car parked on any block can be taken (it leaves its block, so the block can unload behind it)
+	var tile_car: Node3D = null
+	for c in st.parked:
+		if is_instance_valid(c) and c.get_parent() != st.world:
+			tile_car = c
+			break
+	ok(tile_car != null, "the streamed blocks' parked cars are takeable (%d in the list)" % st.parked.size())
+	if tile_car:
+		st.operator.position = tile_car.global_position + Vector3(2.4, 0, 0)
+		st.operator.position.y = 0.18
+		await frames(3)
+		ok(st._near_car == tile_car, "walking up to it offers ENTER")
+		st.controls._enter = true
+		await frames(3)
+		ok(st.driving_car != null and tile_car.get_parent() == st.world, "ENTER drives it, and it now belongs to the world")
+		if st.driving_car:
+			st.exit_car()
+			await frames(2)
+	# aiming: a box between the camera and the operator does not pull the aim point back to the camera
+	var gp = st.gunplay
+	var cam: Camera3D = st.cam
+	var keep: Array[AABB] = gp.obstacles.duplicate()
+	gp.obstacles.append(AABB(cam.global_position - Vector3(0.3, 0.3, 0.3), Vector3(0.6, 0.6, 0.6)))
+	var ap: Vector3 = gp.aim_point(cam)
+	ok(cam.global_position.distance_to(ap) > cam.global_position.distance_to(st.operator.eye()), "the aim point lies past the operator with a box at the camera (%.1f m)" % cam.global_position.distance_to(ap))
+	gp.obstacles.resize(keep.size())
+	# unarmed until Mission 01 arms the operator: no gun in hand, no FIRE, no shots
+	st.armed = false
+	st._fit_gear()
+	var shots: int = gp.shots_fired
+	st.controls.fire = true
+	await create_timer(0.5).timeout
+	st.controls.fire = false
+	ok(gp.holstered and gp.shots_fired == shots and not st.controls.weapons_out, "unarmed: holstered, FIRE hidden, nothing fired")
+	st.armed = true
+	st._fit_gear()
+	ok(not gp.holstered and st.controls.weapons_out, "armed again: the gun is back")
 	# the court shops
 	for shop in ["apex", "rusty"]:
 		st._enter_door(shop)

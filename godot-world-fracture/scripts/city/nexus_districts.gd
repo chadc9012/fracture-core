@@ -489,7 +489,7 @@ static func central_tower(slice, parent: Node3D) -> Node3D:
 	root.name = "central_tower"
 	parent.add_child(root)
 	var night: bool = slice.night
-	var glass := facade(Color(0.34, 0.47, 0.62), 0.28 if night else 0.06, 1.5 if night else 0.35, Color(0.12, 0.13, 0.15), 4.2, 1.8, Color(0.75, 0.92, 1.0), 0.9)
+	var glass := facade(Color(0.34, 0.47, 0.62), 0.24 if night else 0.06, 0.8 if night else 0.3, Color(0.12, 0.13, 0.15), 4.2, 1.8, Color(0.75, 0.92, 1.0), 0.9)
 	var trim: StandardMaterial3D = slice._neon_mat(Color(0.3, 0.9, 1.0), 3.0)
 	# podium, shaft, two setbacks, the crown and the mast: 60 + 240 + 60 + 25 + 15 + 20 = 420 m
 	var stages := [[46.0, 0.0, 60.0], [38.0, 60.0, 240.0], [32.0, 300.0, 60.0], [24.0, 360.0, 25.0], [16.0, 385.0, 15.0]]

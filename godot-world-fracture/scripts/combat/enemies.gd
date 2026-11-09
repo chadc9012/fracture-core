@@ -136,6 +136,7 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 		_drone_body(e)
 	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
 	e.target.set_meta("enemy", e)
+	e.target.set_meta("roster", self)     # gunplay's aim help skips the operator's own team
 	gunplay.targets.append(e.target)
 	enemies.append(e)
 	return e

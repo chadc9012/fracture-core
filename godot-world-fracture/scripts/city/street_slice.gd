@@ -73,6 +73,10 @@ const StaticBatch = preload("res://scripts/static_batch.gd")
 const Nexus = preload("res://scripts/city/nexus_districts.gd")
 const ShopView = preload("res://scripts/gear/shop_view.gd")
 var shop_overlay: Control
+## the operator carries a weapon on the street only once Mission 01's Fracture has armed them (the story starts unarmed in
+## the apartment); before that the street is calm: no troopers. Tests and perf tools set `force_armed`.
+static var force_armed := false
+var armed := true
 var _area := ""
 var _casino_at := Vector3.INF
 var civilians: Node3D
@@ -266,18 +270,35 @@ func _spawn_player() -> void:
 	world.add_child(gunplay)
 	gunplay.setup(operator, operator.obstacles)
 	_spawn = operator.position
+	armed = force_armed or story_armed()
 	# two practice dummies by the garage, and the block's cyber troopers (enemies.gd) further down
 	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0)]:
 		gunplay.add_dummy(spot)
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	if armed:
+		_troopers(half)
+	enemies.operator_down.connect(func(): _respawn_timer = 5.0)
+	_after_enemies()
+
+## the block's cyber troopers (only once the operator is armed)
+func _troopers(half: float) -> void:
 	enemies.spawn("scout", Vector3(-(half + 3.0), 0.18, -10.0), [Vector3(-(half + 3.0), 0.18, -10.0), Vector3(-(half + 3.0), 0.18, -40.0)])
 	enemies.spawn("elite", Vector3(half + 3.5, 0.18, -48.0), [Vector3(half + 3.5, 0.18, -48.0), Vector3(half + 3.5, 0.18, -30.0)])
 	enemies.spawn("executor", Vector3(-2.0, 0.0, -70.0), [Vector3(-2.0, 0.0, -70.0), Vector3(3.0, 0.0, -56.0)])
 	enemies.spawn("marksman", Vector3(-(half + 4.0), 0.18, -95.0), [Vector3(-(half + 4.0), 0.18, -95.0), Vector3(-(half + 4.0), 0.18, -85.0)])
 	enemies.spawn("drone", Vector3(0.0, 4.0, -25.0), [Vector3(0.0, 4.0, -25.0), Vector3(0.0, 4.0, -60.0)])
-	enemies.operator_down.connect(func(): _respawn_timer = 5.0)
+
+## Mission 01 has reached the Surge (the operator's powers and the rifle): from then on the street is walked armed
+static func story_armed() -> bool:
+	var f := FileAccess.open("user://mission01.json", FileAccess.READ)
+	if not f:
+		return false
+	var d: Variant = JSON.parse_string(f.get_as_text())
+	return d is Dictionary and String(d.get("phase", "")) in ["SURGE", "ANCHOR", "CLEAR", "DONE"]
+
+func _after_enemies() -> void:
 	# the gear (gear_store.gd): the worn weapons become the gun list; kills roll drops into the bag
 	gear = Gear.load_save()
 	wallet = Gear.profile_load()
@@ -314,6 +335,9 @@ func _spawn_player() -> void:
 
 func _fit_gear() -> void:
 	gunplay.set_loadout(Gear.loadout(gear))
+	gunplay.set_holstered(not armed)
+	if controls:
+		controls.set_armed(armed)
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	if enemies:
 		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear)
@@ -385,10 +409,18 @@ func _apply_district(changes: Dictionary) -> void:
 			tiles[k] = { "root": null, "slots": [] }
 		var t: Dictionary = tiles[k]
 		if want == District.State.ACTIVE:
-			if t.root == null:
+			var fresh: bool = t.root == null
+			if fresh:
 				t.root = _build_tile(k)
 			if (t.slots as Array).is_empty():
 				_slot_boxes(t, _tile_boxes(k, t.root))
+			elif fresh:
+				_tile_boxes(k, t.root)     # same build, same order: only marks the cars' box slots
+			if fresh:
+				for c in (t.root as Node3D).get_children():
+					if c.has_meta("car") and c.has_meta("box_slot"):
+						c.set_meta("box_index", int(t.slots[int(c.get_meta("box_slot"))]))
+						parked.append(c as Node3D)
 		elif want == District.State.SIMULATED:
 			if (t.slots as Array).is_empty():
 				# coming from frozen: the boxes come from a build that is dropped straight away
@@ -456,6 +488,8 @@ func _tile_boxes(k: int, root: Node3D) -> Array[AABB]:
 		if not n or not n.has_meta("size"):
 			continue
 		var sz: Vector3 = n.get_meta("size")
+		if n.has_meta("car"):
+			n.set_meta("box_slot", out.size())     # where its box lands in the tile's slots (enter_car parks it)
 		var file := String(n.get_meta("file")) if n.has_meta("file") else ""
 		if file.contains("palm") or file.begins_with("street-lamp"):
 			sz = Vector3(0.6, sz.y, 0.6)
@@ -529,12 +563,22 @@ func _process(dt: float) -> void:
 			_area = area
 			if area != "" and area != "NEXUS AVENUE":
 				controls.toast(area)
-	# a parked car within reach: the prompt, and ENTER / E takes it
+	# a parked car within reach: the prompt, and ENTER / E takes it (a tile's cars leave the list when the tile goes)
 	var near: Node3D = null
+	var gone := false
 	for c in parked:
-		if c.visible and c.position.distance_to(operator.position) < 3.2:
+		if not is_instance_valid(c) or c.is_queued_for_deletion():
+			gone = true
+			continue
+		if c.visible and c.global_position.distance_to(operator.position) < 3.2:
 			near = c
 			break
+	if gone:
+		var keep: Array[Node3D] = []
+		for c in parked:
+			if is_instance_valid(c) and not c.is_queued_for_deletion():
+				keep.append(c)
+		parked = keep
 	# a hub door within reach outranks a car
 	var door_id := ""
 	var door_label := ""
@@ -547,10 +591,13 @@ func _process(dt: float) -> void:
 		_near_door = door_id
 		_near_car = near
 		controls.prompt(("ENTER " + door_label) if door_id != "" else (("ENTER " + _car_name(near)) if near else ""))
-	if controls.take_enter() and door_id != "":
+	# one ENTER press, read once: a door within reach takes it, else a car (reading it twice ate every press on the way
+	# to the car check, so no car could be entered once the hub doors arrived)
+	var pressed_enter: bool = controls.take_enter()
+	if pressed_enter and door_id != "":
 		_enter_door(door_id)
 		return
-	if controls.take_enter() and near:
+	if pressed_enter and near:
 		enter_car(near)
 		return
 	if gunplay:
@@ -558,8 +605,8 @@ func _process(dt: float) -> void:
 			gunplay.next_weapon()
 		gunplay.step(minf(dt, 0.05), cam, controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())
 		var g = gunplay.gun()
-		controls.weapon_name.text = g.display_name()
-		controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
+		controls.weapon_name.text = g.display_name() if armed else "UNARMED"
+		controls.ammo.text = "" if not armed else ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
 
 # --------------------------------------------------------------------------------------------- light, sky, haze
 func _environment() -> void:
@@ -1067,6 +1114,9 @@ func _cars() -> void:
 			if _tile_root:
 				var a := _aabb(car)
 				car.set_meta("size", Vector3(a.size.x, a.size.y, a.size.z))
+				# any parked car can be taken, not only the hub's (owner, Nov 9): it joins `parked` once its box has a slot
+				car.set_meta("car", true)
+				car.set_meta("vehicle", CAR_IDS.get(f, ""))
 				_tile_root.add_child(car)
 			else:
 				car.set_meta("car", true)
@@ -1696,6 +1746,15 @@ func _car_name(c: Node3D) -> String:
 ## the operator gets in: the car drives with its garage build, the operator rides along (hidden) so the enemies and the
 ## camera follow the car; the car's box stops being an obstacle to itself
 func enter_car(c: Node3D) -> void:
+	if c.get_parent() != world:
+		# a car from a streamed block: it leaves the block (which may unload behind it) and gets a box slot of its own
+		var old := int(c.get_meta("box_index", -1))
+		if old >= 0:
+			operator.obstacles[old] = PARKED_BOX
+		c.reparent(world, true)
+		c.remove_meta("size")
+		c.set_meta("box_index", operator.obstacles.size())
+		operator.obstacles.append(PARKED_BOX)
 	var id := String(c.get_meta("vehicle", ""))
 	var state := GarageState.load_or_fresh()
 	var perf: Dictionary = DriveProfile.performance(state, id) if id != "" else { "max_speed": 28.0, "acceleration": 7.0, "steering": 1.0, "braking": 12.0 }

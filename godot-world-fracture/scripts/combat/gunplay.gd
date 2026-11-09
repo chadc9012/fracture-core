@@ -33,6 +33,10 @@ var guns: Array = []
 var current := 0
 var warm := 0.0               # seconds since the last shot, for the combat clip
 var kills := 0
+## no weapon in hand: before Mission 01's Fracture arms the operator the street is walked unarmed (owner, Nov 9)
+var holstered := false
+## aim help: shots go to a live foe within this many degrees of the crosshair (on by default on a touch screen)
+var assist_deg := 4.5 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")) else 0.0
 var shots_fired := 0
 var hits_landed := 0
 
@@ -91,7 +95,11 @@ func _mount() -> void:
 
 func _show_current() -> void:
 	for f in _models:
-		(_models[f] as Node3D).visible = f == gun().frame
+		(_models[f] as Node3D).visible = f == gun().frame and not holstered
+
+func set_holstered(on: bool) -> void:
+	holstered = on
+	_show_current()
 
 ## the worn weapons from the gear (gear_store.gd loadout): one gun per worn slot, its item's name and power multiplier
 func set_loadout(list: Array) -> void:
@@ -126,20 +134,51 @@ func muzzle() -> Vector3:
 func aim_point(cam: Camera3D) -> Vector3:
 	var from := cam.global_position
 	var dir := -cam.global_transform.basis.z
+	# only what lies past the operator counts: a box between the camera and the operator's shoulder (a wall the camera
+	# backed against, a parked car behind) pulled the aim point to the camera and every shot went sideways
+	var near := from.distance_to(player.eye()) + 0.4 if player else 1.5
 	var best := 400.0
 	for b in obstacles:
 		var p: Variant = b.intersects_ray(from, dir)
 		if p != null:
-			best = minf(best, from.distance_to(p))
+			var dd := from.distance_to(p)
+			if dd > near:
+				best = minf(best, dd)
+			elif b.has_point(from + dir * (near + 0.1)):
+				best = minf(best, near + 0.1)     # the box reaches past the operator: it is the first thing hit
 	for t in targets:
 		if t.alive():
 			var p2: Variant = t.box.intersects_ray(from, dir)
-			if p2 != null:
+			if p2 != null and from.distance_to(p2) > near:
 				best = minf(best, from.distance_to(p2))
-	return from + dir * maxf(best, 1.5)
+	# aim help on a touch screen: a live target within `assist_deg` of the crosshair, nearer than what the ray hits, is
+	# where the shot goes (thumbs cannot hold a crosshair on a strafing trooper the way a mouse can)
+	if assist_deg > 0.0:
+		var pick: Target = null
+		var pick_a := deg_to_rad(assist_deg)
+		for t in targets:
+			if not t.alive():
+				continue
+			if t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team:
+				continue     # an ally bot
+			var c: Vector3 = t.box.get_center()
+			var to_c := c - from
+			var dc := to_c.length()
+			if dc <= near or dc > minf(best + 1.0, 120.0):
+				continue
+			var a := dir.angle_to(to_c)
+			if a < pick_a:
+				pick_a = a
+				pick = t
+		if pick:
+			return pick.box.get_center() + Vector3(0, pick.box.size.y * 0.15, 0)
+	return from + dir * maxf(best, near + 0.1)
 
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
+	if holstered:
+		trigger = false
+		reload = false
 	if reload and gun().reload():
 		Sound.sfx("reload", -4.0)
 	var was_reloading := gun().reloading > 0.0
