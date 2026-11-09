@@ -27,6 +27,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Session | Since |
 | --- | --- | --- |
 | Bug sweep (owner, Nov 9 12:08: "look into the game for small little bugs and glitches"): engine errors from the playthrough, then screenshots of every screen; small fixes across modules — will note anything in another session's claimed area here instead of editing it | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
+| Owner ask (Nov 9 12:38): the Nexus Region after the owner's "Nexus Region v1.0" board (natural coastline; full region) — a new region map `nexus-region` (src/game/nexus-region.ts, a NewLand: Aether Ridge, Verdant Expanse, Ironcrest Outlands, Southreach, Nexus City's districts, Harbor, Beach, Azure Keys, Lighthouse Point, Eastpoint, Obsidian Cliffs, NOVA Research Complex, the Fracture Spire), opened first on the Nexus continent; region 3D only — not the Nexus street slice / districts (session_01PQQ… and the districts work own those) | session_01HeBvGF1Wp7cNYHiTnBkJXG | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
 - Small: the `--shot … slicewalk:drive` capture hook no longer enters the car (driving itself works — street race play test and a headless probe both drive); fix the hook so the drive HUD / radio line can be shot.
