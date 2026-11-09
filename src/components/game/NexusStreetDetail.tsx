@@ -114,7 +114,7 @@ export function NexusStreetScans() {
   const leaves = useMemo<GlbInstance[]>(() => plantersAt().flatMap((p) => [-0.45, 0.45].map((o, k) => ({ ...along(p, o), y: p.y + 0.7, yaw: p.i * 1.7 + k * 2.4, scale: 1.25 + ((p.i + k) % 3) * 0.08 }))), []);
   const cafeSets = useMemo<GlbInstance[]>(() => terracesAt().flatMap((p) => [-0.85, 0.85].map((o, k) => ({ ...along(p, o), y: p.y + 0.04, yaw: -p.a + (k ? Math.PI / 2 : -Math.PI / 2) + 0.2 }))), []);
   return <group name="nexus-street-scans">
-    <InstancedGlb url={LEAVES} items={leaves} sway={0.05} />
+    <InstancedGlb url={LEAVES} items={leaves} sway={0.05} shadows={false} />
     <InstancedGlb url={CAFE_SET} items={cafeSets} />
   </group>;
 }
