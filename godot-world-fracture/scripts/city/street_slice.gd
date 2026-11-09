@@ -477,17 +477,17 @@ func _environment() -> void:
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_exposure = 1.05
-	env.ssr_enabled = true
+	env.ssr_enabled = Data.forward_plus()
 	env.ssr_max_steps = 96
 	env.ssr_fade_in = 0.1
 	env.ssr_fade_out = 2.5
-	env.ssao_enabled = true
+	env.ssao_enabled = Data.forward_plus()
 	env.ssao_radius = 1.4
 	env.ssao_intensity = 1.6
-	env.ssil_enabled = true
+	env.ssil_enabled = Data.forward_plus()
 	var lite := OS.get_environment("SLICE_LITE")   # "gi" drops SDFGI, "fog" drops volumetric fog, "all" both
 	# SDFGI stalls the software Vulkan used for testing; opt in with SLICE_GI=1 on a real GPU
-	env.sdfgi_enabled = OS.get_environment("SLICE_GI") == "1" and lite != "gi" and lite != "all"
+	env.sdfgi_enabled = Data.forward_plus() and OS.get_environment("SLICE_GI") == "1" and lite != "gi" and lite != "all"
 	env.sdfgi_use_occlusion = true
 	env.sdfgi_cascades = 4
 	env.sdfgi_min_cell_size = 0.25
@@ -500,7 +500,7 @@ func _environment() -> void:
 	env.fog_density = 0.0016
 	env.fog_sun_scatter = 0.35
 	env.fog_aerial_perspective = 0.55
-	env.volumetric_fog_enabled = lite != "fog" and lite != "all"
+	env.volumetric_fog_enabled = Data.forward_plus() and lite != "fog" and lite != "all"
 	env.volumetric_fog_density = 0.006
 	env.volumetric_fog_albedo = Color(0.95, 0.85, 0.75)
 	env.volumetric_fog_anisotropy = 0.55
@@ -859,6 +859,19 @@ func _cars() -> void:
 			car.position = Vector3(side * (half - 1.4), 0.0, z + _rng.randf_range(-2.0, 2.0))
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
 			StreetCar.face_forward(car)
+			# a fleet car is ~40 draws (21 material pieces, 5 per wheel): past 110 m it is a few pixels, so it fades out,
+			# and the wheels leave their shadow to the body's
+			for g in car.find_children("*", "GeometryInstance3D", true, false):
+				var gi := g as GeometryInstance3D
+				gi.visibility_range_end = 110.0
+				gi.visibility_range_end_margin = 15.0
+				gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+				var up: Node = gi
+				while up != car:
+					if String(up.name).begins_with("Steer") or String(up.name).containsn("wheel"):
+						gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+						break
+					up = up.get_parent()
 			if _tile_root:
 				var a := _aabb(car)
 				car.set_meta("size", Vector3(a.size.x, a.size.y, a.size.z))

@@ -468,6 +468,10 @@ func _shoot(path: String, opts: Array) -> void:
 					street.gunplay.aim_at(street.gunplay.targets[0], street.cam)
 			if String(o).contains("garage"):
 				street.open_garage()
+			var cam_q := String(o).split(":")
+			if cam_q.size() > 2:
+				var cf := cam_q[1].split(","); var ct := cam_q[2].split(",")
+				street.look_from(Vector3(float(cf[0]), float(cf[1]), float(cf[2])), Vector3(float(ct[0]), float(ct[1]), float(ct[2])))
 		# casino[:view]  the Skyline Casino: 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
 		if String(o).begins_with("casino"):
 			_open_street(false, "nexus", false)
@@ -598,8 +602,15 @@ func _shoot(path: String, opts: Array) -> void:
 	for o in opts:
 		if String(o).begins_with("frames:"):
 			frames = int(String(o).substr(7))
+	var perf := ""
+	for o in opts:
+		if String(o).begins_with("perf:"):
+			perf = String(o).substr(5)
+	var times: Array[float] = []
 	for f in frames:
+		var t0 := Time.get_ticks_usec()
 		await get_tree().process_frame
+		times.append((Time.get_ticks_usec() - t0) / 1000.0)
 	if street and street.gunplay:
 		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
 	if descent and descent.enemies:
@@ -626,4 +637,79 @@ func _shoot(path: String, opts: Array) -> void:
 			st.append("%s:%d:%.0f@%s" % [e.type, e.state, e.target.hp, str(e.mover.position.round())])
 		print("enemies: hull ", street.enemies.hull, " deaths ", street.enemies.deaths, " kills ", street.enemies.kills, " ", ", ".join(st))
 	get_viewport().get_texture().get_image().save_png(path)
+	if perf != "":
+		_write_perf(perf, opts, times)
 	get_tree().quit()
+
+## --shot ... perf:<file.json>: what the last frame cost (draw calls, objects, primitives are what limit a phone; frame
+## times on a software renderer only compare scenes with each other)
+func _write_perf(file: String, opts: Array, times: Array[float]) -> void:
+	var tail := times.slice(maxi(0, times.size() - 30))
+	tail.sort()
+	var out := {
+		"scene": " ".join(opts.filter(func(o): return not String(o).begins_with("perf:") and not String(o).begins_with("frames:"))),
+		"draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		"objects": Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
+		"primitives": Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
+		"nodes": Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+		"static_mb": Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
+		"video_mb": Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0,
+		"frame_ms_median": tail[tail.size() / 2] if not tail.is_empty() else 0.0,
+	}
+	out["heaviest"] = _heaviest_geometry()
+	out["most_drawn"] = _most_drawn()
+	var f := FileAccess.open(file, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(out))
+
+## the scene's biggest triangle counts (whole node, before culling), named by the node and its parent's script
+func _heaviest_geometry() -> Array:
+	var rows: Array = []
+	var stack: Array[Node] = [get_tree().root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		var tris := 0
+		var count := 1
+		if n is MultiMeshInstance3D and (n as MultiMeshInstance3D).multimesh and (n as MultiMeshInstance3D).multimesh.mesh:
+			var mm := (n as MultiMeshInstance3D).multimesh
+			tris = _mesh_tris(mm.mesh)
+			count = mm.visible_instance_count if mm.visible_instance_count >= 0 else mm.instance_count
+		elif n is MeshInstance3D and (n as MeshInstance3D).mesh:
+			tris = _mesh_tris((n as MeshInstance3D).mesh)
+		if tris * count < 20000:
+			continue
+		var gi := n as GeometryInstance3D
+		var owner_script: Script = n.get_parent().get_script() if n.get_parent() else null
+		rows.append({"node": "%s/%s" % [owner_script.resource_path.get_file() if owner_script else n.get_parent().name, n.name],
+			"tris": tris * count, "per": tris, "count": count, "shadow": gi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF,
+			"range": gi.visibility_range_end})
+	rows.sort_custom(func(a, b): return a.tris > b.tris)
+	return rows.slice(0, 12)
+
+## separate (non-instanced) mesh nodes grouped by their parent's name and mesh class: what costs draw calls one by one
+func _most_drawn() -> Array:
+	var groups := {}
+	var stack: Array[Node] = [get_tree().root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh and (n as Node3D).is_visible_in_tree():
+			var mesh := (n as MeshInstance3D).mesh
+			var key := "%s/%s x%d surf" % [n.get_parent().name.left(24), mesh.get_class() if mesh.resource_path == "" else mesh.resource_path.get_file(), mesh.get_surface_count()]
+			groups[key] = groups.get(key, 0) + mesh.get_surface_count()
+	var rows: Array = []
+	for k in groups:
+		rows.append({"what": k, "draws": groups[k]})
+	rows.sort_custom(func(a, b): return a.draws > b.draws)
+	return rows.slice(0, 15)
+
+func _mesh_tris(mesh: Mesh) -> int:
+	var t := 0
+	for s in mesh.get_surface_count():
+		var arr := mesh.surface_get_arrays(s)
+		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		t += (idx.size() if idx.size() > 0 else (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
+	return t

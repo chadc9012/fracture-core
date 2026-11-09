@@ -27,6 +27,35 @@ func _ready() -> void:
 	var idx = _json(GEN + "maps/index.json")
 	map_index = idx if idx is Array else []
 
+# ---------------------------------------------------------------- render quality (phone vs PC)
+
+## true on the Forward+ renderer (PC); the phone runs Mobile, which has no SSR, SSAO, SSIL, SDFGI or volumetric fog
+static func forward_plus() -> bool:
+	return RenderingServer.get_current_rendering_method() == "forward_plus"
+
+## a phone (or any non-Forward+ renderer): cheaper anti-aliasing and a slightly lower 3D resolution
+static func phone() -> bool:
+	return OS.has_feature("mobile") or not forward_plus()
+
+## Every 3D SubViewport goes through here. A phone (S22 Ultra: 3088 x 1440) gets 2x MSAA, no FXAA on top, and draws the 3D at
+## 80 % of the screen; 4x MSAA plus FXAA at full resolution was most of a frame's fill cost there. PC keeps 4x.
+static func tune_viewport(vp: SubViewport) -> void:
+	if phone():
+		vp.msaa_3d = Viewport.MSAA_2X
+		vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+		vp.scaling_3d_scale = 0.8
+	else:
+		vp.msaa_3d = Viewport.MSAA_4X
+
+## Screen-space and volumetric effects only where the renderer has them (on Mobile they are skipped with a warning each)
+static func pc_effects(env: Environment, ssr := true, ssao := true, ssil := true, fog := true) -> void:
+	var on := forward_plus()
+	env.ssr_enabled = on and ssr
+	env.ssao_enabled = on and ssao
+	env.ssil_enabled = on and ssil
+	env.volumetric_fog_enabled = on and fog
+
 func _json(path: String) -> Variant:
 	if not FileAccess.file_exists(path):
 		push_warning("missing %s: run bun scripts/export-godot-data.ts" % path)
