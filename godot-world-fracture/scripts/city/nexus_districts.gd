@@ -462,7 +462,7 @@ func _tower_plaza() -> void:
 	_frame(glass, 46.0, glass, 30.0)
 	# a low glass balustrade at the back so the tower stands clear
 	block(Vector3(1.0, 1.2, COURT_HALF * 2.0), COURT_OUT + 4.0, 0.0, flat(Color(0.3, 0.45, 0.55), 0.1, 0.6))
-	var stone := flat(Color(0.75, 0.75, 0.78), 0.35, 0.1)
+	var stone := flat(Color(0.42, 0.43, 0.46), 0.5, 0.1)
 	# the lit ring of bollards round the base and the forecourt steps
 	for i in 20:
 		var a := TAU * i / 20.0
