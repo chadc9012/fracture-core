@@ -26,13 +26,14 @@ Rows are the lock; `git fetch` before you claim.
 | --- | --- | --- |
 | Asset gap 5 (Godot): Fracture creatures & bosses — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus as boss fights (web phases + poise rules, attacks, adds) on the authored boss / enemy GLBs | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
 | Killbox bots and the PvP maps board's arenas (all eleven built, Void Rift last), then the web Killbox's Extraction and Ranked modes in pvp.ts (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
+| Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront, Solara Outpost, Frostveil Ring and Thalassia Dome arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. PvP modes missing from pvp.ts: Extraction, Ranked (owner's board) — web-side rules + bots (killbox web session), then re-export to Godot.
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
-  5. Fracture creatures (Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus) with their fights.
+  5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
   7. Vegetation / rock gaps (cherry blossom, baobab, bamboo, alien flora, vines; arch, cave, ice), natural effects (waterfall, lava, snow, lightning), VFX (rift, portal, hologram, energy field).
   8. Fantasy & dimensional set (§9) for the Shattered Expanse and boss arenas.
@@ -44,6 +45,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Asset gap 5 (fights): the six Fracture bosses at the Rift Gate — phases, poise / stagger / weak point, telegraphed attacks, summons, rewards, on the authored boss hulls | see git log "Godot: the Rift Gate" (Nov 9) |
 | Owner ask (Nov 8 22:12, "start"): the Town and Floating Islands regions deepened — Old Harrow (a new walled market town: market, guildhall quest board, tavern, cathedral, castle, hamlets, mill) and the Storm Islands (islets, waterfalls, crystals, drifting debris, storm sky); gabled roofs on low buildings everywhere; autumn/winter keeps the conifers green; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Old Harrow and the Storm Islands" (Nov 8) |
 | Owner ask (Nov 8 21:43): the Planetary World Overview's missing regions — Goldenreach Farmlands, Azure Isles, Frostveil Ice Cap (board-lands.ts: maps, satellite, Godot 3D, on the globe) — and seasons in the region 3D view; plus the sidewalk crowd (crowd.gd) | see git log "regions" / "crowd" (Nov 8) |
 | Asset gap 4 (behaviours): wildlife rules — herds, alarms, predators hunting and feeding, nocturnal rest, raptor stoops, birds, fish and shark, crocodile banks — on stand-in bodies + the rigged fox in the Descent forest | see git log "Godot: wildlife" (Nov 8) |

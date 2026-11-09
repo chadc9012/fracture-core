@@ -210,6 +210,19 @@ are stand-in bodies in species colours with gaits, heads and wings until the Mes
 animal a gunplay target. The Fracture Descent forest is populated by `populate()`. Test: tests/wildlife/wildlife_test.gd.
 Shot: `descent:wild`.
 
+**Rift Gate — Fracture bosses** (`scripts/combat/boss.gd`, `boss_view.gd`, `boss_arena.gd`; the RIFT GATE button; asset
+catalog gap 5): the six creatures on the owner's board — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak the Ashen
+Covenant, Astravore, Rust Colossus — as boss fights at the Verdant Forest crash-site clearing on the authored boss / elite
+hulls (models/bosses: frost-wolf, aberration-elite, abyssal-boss, skyborn-boss, aberration-boss, guardian-boss, scaled to
+2.6–9 m). `boss.gd` is the web game's boss systems ported pure: three phases by hull (ENGAGED / OVERDRIVEN / OVERLOADED,
+speed / damage / cooldown multipliers), poise from sustained fire (×1.6 per damage, 4/s decay) breaking into a 4 s stagger
+at ×2.25 damage with a 6 s refractory, a weak point (×1.6) for 5 s on every phase flare, and an attack cycle per boss —
+telegraph (red ring on the ground, the row's seconds ÷ phase speed), then LUNGE / SLAM (area hits), VOLLEY (bolts), BREATH
+(a burning cone) or SUMMON (adds through enemies.gd, more per phase), then a cooldown. The HUD carries the boss bar with
+hull, phase and poise; the core glows cyan in a punish window. A first clear pays the row's Nex / XP (600 / 400 for the
+Hound up to 2500 / 1500 for the Colossus), repeats a third; `profile.boss_clears` remembers. Tests:
+tests/combat/boss_test.gd. Shots: `boss[:<id>][:fight]`.
+
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two
 blocks over a Neon City street, joined by the west catwalk, the billboard bridge and the east catwalk, with the cover,

@@ -17,6 +17,8 @@ const Descent := preload("res://scripts/mission/descent.gd")
 const ArenaView := preload("res://scripts/killbox/arena_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
+const BossArena := preload("res://scripts/combat/boss_arena.gd")
+var boss_arena: Control
 const ModesHub := preload("res://scripts/modes/modes_hub.gd")
 var modes: Control
 var descent: Control
@@ -118,6 +120,13 @@ func _ready() -> void:
 	sky.add_theme_color_override("font_color", Color(0.5, 0.9, 1.0))
 	sky.pressed.connect(_open_skyways)
 	add_child(sky)
+	var rift := Data.button("RIFT GATE", true)
+	rift.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	rift.position = Vector2(260, -130)
+	rift.custom_minimum_size = Vector2(130, 52)
+	rift.add_theme_color_override("font_color", Color(0.85, 0.55, 1.0))
+	rift.pressed.connect(_open_boss)
+	add_child(rift)
 	cloud_line = Label.new()
 	cloud_line.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	cloud_line.position = Vector2(20, -96)
@@ -259,6 +268,19 @@ func _open_killbox() -> void:
 	killbox = ArenaView.new()
 	killbox.closed.connect(_close_killbox)
 	add_child(killbox)
+
+## the Rift Gate: the six Fracture bosses (scripts/combat/boss*.gd)
+func _open_boss() -> void:
+	if boss_arena:
+		return
+	boss_arena = BossArena.new()
+	boss_arena.closed.connect(_close_boss)
+	add_child(boss_arena)
+
+func _close_boss() -> void:
+	if boss_arena:
+		boss_arena.queue_free()
+		boss_arena = null
 
 ## Skyways: aircraft and watercraft over Nexus City (scripts/flying/)
 func _open_skyways() -> void:
@@ -567,6 +589,20 @@ func _shoot(path: String, opts: Array) -> void:
 				descent.controls.move = Vector2(0.0, 1.0)
 				descent.controls.sprint = true
 				descent.controls.fire = true
+		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default); :fight holds fire
+		if String(o).begins_with("boss"):
+			boss_arena = BossArena.new()
+			boss_arena.boss_id = "rift-hound"
+			for id in ["crystal-stalker", "abyssal-leviathan", "vyrak", "astravore", "colossus"]:
+				if String(o).contains(id):
+					boss_arena.boss_id = id
+			boss_arena.closed.connect(_close_boss)
+			add_child(boss_arena)
+			if String(o).contains("fight"):
+				boss_arena.controls.scripted = true
+				boss_arena.controls.fire = true
+				boss_arena.operator.heading = PI
+				boss_arena.operator.cam_yaw = 0.0
 		# skyways[:heli|:jet|:boat|:sub][:go]  a craft over Nexus City; :go holds throttle and UP
 		if String(o).begins_with("skyways"):
 			skyways = SkywaysView.new()
@@ -686,6 +722,9 @@ func _shoot(path: String, opts: Array) -> void:
 		print("gunplay: shots ", street.gunplay.shots_fired, " hits ", street.gunplay.hits_landed, " kills ", street.gunplay.kills, " mag ", street.gunplay.gun().ammo_text())
 	if descent and descent.enemies:
 		print("descent: ", descent.progress, " objective '", descent._objective.text.replace("\n", " / "), "' at ", descent.operator.position.round(), " enemies ", descent.enemies.enemies.size(), " hull ", descent.enemies.hull)
+	if boss_arena and boss_arena.boss:
+		var br: RefCounted = boss_arena.boss.rules
+		print("boss: ", br.id, " hull ", br.hull, "/", br.hull_max, " phase ", br.phase, " step ", br.step, " poise ", br.poise, " at ", boss_arena.boss.position.round(), " operator hull ", boss_arena.enemies.hull, " adds ", boss_arena.enemies.enemies.size())
 	if skyways and skyways.state:
 		var sk := skyways
 		print("skyways: ", sk.craft_id, " speed ", sk.state.speed, " y ", sk.hull.position.y, " airborne ", sk.state.airborne, " at ", sk.hull.position.round(), " pad ", sk.pad.round(), " rings ", sk.next_ring, " hull ", sk.hull_hp)
