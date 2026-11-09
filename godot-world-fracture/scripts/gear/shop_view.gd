@@ -8,7 +8,9 @@ signal changed
 
 const Gear := preload("res://scripts/gear/gear_store.gd")
 
-var shop := "nova"          # "nova" | "haven"
+var shop := "nova"          # "nova" | "haven" (the mall), "apex" | "rusty" (the Nexus avenue's court shops)
+var op_power := 100.0       # what a bought weapon or armour piece rolls around (gear_store.buy_offer)
+var back_label := "← MALL"
 var gear: Dictionary
 var profile: Dictionary
 var _nex: Label
@@ -26,14 +28,14 @@ func _ready() -> void:
 	head.add_theme_constant_override("separation", 14)
 	add_child(head)
 	var close := Button.new()
-	close.text = "← MALL"
+	close.text = back_label
 	close.custom_minimum_size = Vector2(100, 44)
 	close.pressed.connect(func(): closed.emit())
 	head.add_child(close)
 	var title := Label.new()
-	title.text = "NOVA THREADS" if shop == "nova" else "HAVEN HOME"
+	title.text = { "nova": "NOVA THREADS", "haven": "HAVEN HOME", "apex": "APEX GEAR", "rusty": "RUSTY TRIGGER" }.get(shop, shop.to_upper())
 	title.add_theme_font_size_override("font_size", 22)
-	title.modulate = Color(0.95, 0.4, 0.75) if shop == "nova" else Color(0.95, 0.75, 0.4)
+	title.modulate = { "nova": Color(0.95, 0.4, 0.75), "haven": Color(0.95, 0.75, 0.4), "apex": Color(0.3, 1.0, 0.6), "rusty": Color(1.0, 0.3, 0.2) }.get(shop, Color.WHITE)
 	head.add_child(title)
 	_nex = Label.new()
 	_nex.add_theme_font_size_override("font_size", 18)
@@ -65,6 +67,11 @@ func refresh() -> void:
 			var worn: bool = gear.outfit == o.id
 			var tag: String = "worn" if worn else ("owned · tap to wear" if owned else ("%d Nex" % int(o.price) if o.price != null else String(o.source)))
 			_list.add_child(_row("%s · %s" % [o.name, o.style], String(o.blurb) + (("  (" + String(o.source) + ")") if not owned else ""), tag, worn, func(): _line.text = Gear.buy_outfit(gear, profile, String(o.id)); changed.emit(); refresh()))
+	elif shop == "apex" or shop == "rusty":
+		_line.text = _line.text if _line.text != "" else ("Today's stock · new each day" if shop == "apex" else "Boss-grade, no questions · stock turns over daily")
+		for o in Gear.shop_stock(shop, Gear.today()):
+			var kind := ("%s · %s" % [Gear.SLOT_NAME.get(String(o.slot), String(o.slot)), String(o.rarity).capitalize()])
+			_list.add_child(_row("%s · %s" % [o.name, kind], "%s · rolls ~%d power" % [String(o.element).capitalize(), int(op_power) + int(Gear.SHOPS[shop].bonus)], "%d Nex" % int(o.price), false, func(): _line.text = Gear.buy_offer(gear, profile, shop, o, op_power); changed.emit(); refresh()))
 	else:
 		for f in Gear.FURNITURE:
 			var owned: bool = f.id in gear.furniture

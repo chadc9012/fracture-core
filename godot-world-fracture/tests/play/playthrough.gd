@@ -194,6 +194,14 @@ func _play_street() -> void:
 			for overlay in [["garage", "garage_overlay"], ["mall", "mall_overlay"], ["casino", "casino_overlay"], ["sports", "sports_overlay"]]:
 				if not sl.has_method("open_" + overlay[0]):
 					continue
+				if overlay[0] == "casino" and style != "neon":
+					# the casino is Neon City's alone: it must stay shut anywhere else
+					sl.open_casino()
+					await frames(2)
+					if sl.casino_overlay != null:
+						problem("a casino opened on the %s street" % style)
+						sl.close_casino()
+					continue
 				step("street %s %s" % [style, overlay[0]])
 				sl.call("open_" + overlay[0])
 				await frames(8)

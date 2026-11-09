@@ -381,3 +381,16 @@ Static scenery is merged after a build by `scripts/static_batch.gd`: primitive p
 models into MultiMeshes, lights fading with distance. Anything that moves or animates must carry `set_meta("dynamic", true)`
 or it gets frozen into a batch. Measuring tools live in `tests/tools/` (`draw_breakdown`, `street_profile`, `overlap_scan`,
 `region_spacing`); the `--shot … perf:<json>` capture writes draw calls and the heaviest nodes.
+
+## Nexus City districts
+
+The Nexus avenue (street_slice.gd, `style == "nexus"`) is the hub tile (Central Transit Plaza) and six streamed blocks, and
+every block opens side streets into district courts built with the block by `scripts/city/nexus_districts.gd`:
+Perimeter Wall & Operations and the Vanguard Command Citadel at the North Gate end, the Spire District, the Tech Faction
+Central Tower (420 m, the tallest building in the game, always built) and Apex Gear, then south of the hub Rusty Trigger,
+Cylinder & Co Heavy Motorworks, the Warrens, the Scrapyard Bazaar, and the Southern Docks / Marina & Aqua-Tech Shipyard at
+the quay. Courts are tile-local boxes with obstacle markers; the avenue leaves each court's frontage to the court's own
+blocks (`Nexus.in_frontage`, `_court_here`, `_in_mouth`). Apex Gear and Rusty Trigger sell from gear_store.gd
+`shop_stock` / `buy_offer` (a daily stock); Cylinder & Co opens the garage on the `ironworks` shop. The casino is Neon
+City's alone (the Neon City Grand Casino on the Neon hub). Shots: `--shot slicewalk:court=<id>[:still]`. Test:
+`godot --headless --path godot-world-fracture --script res://tests/city/nexus_walk_test.gd`.

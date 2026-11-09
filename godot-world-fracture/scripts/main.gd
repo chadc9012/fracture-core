@@ -582,6 +582,11 @@ func _shoot(path: String, opts: Array) -> void:
 				street.operator.position = Vector3(-10.0, 0.18, -40.6)
 				street.operator.heading = PI * 1.5
 				street.operator.cam_yaw = PI * 0.5
+			# slicewalk:court=<id>[:still]  starts at a Nexus district court's side street (nexus_districts.gd COURTS ids) and walks in
+			if String(o).contains("court="):
+				street.go_to_court(String(o).split("court=")[1].split(":")[0])
+				if String(o).contains("still"):
+					street.controls.move = Vector2.ZERO
 			# slicewalk:tank walks the operator to the Goliath tank by the garage and climbs in (then drives)
 		if String(o).contains("walk:tank"):
 			for c in street.parked:
@@ -634,9 +639,9 @@ func _shoot(path: String, opts: Array) -> void:
 			if cam_q.size() > 2:
 				var cf := cam_q[1].split(","); var ct := cam_q[2].split(",")
 				street.look_from(Vector3(float(cf[0]), float(cf[1]), float(cf[2])), Vector3(float(ct[0]), float(ct[1]), float(ct[2])))
-		# casino[:view]  the Skyline Casino: 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
+		# casino[:view]  the Neon City Grand Casino (Neon City's alone): 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
 		if String(o).begins_with("casino"):
-			_open_street(false, "nexus", false)
+			_open_street(true, "neon", false)
 			street.open_casino()
 			var cv := String(o).split(":")
 			if cv.size() > 1:

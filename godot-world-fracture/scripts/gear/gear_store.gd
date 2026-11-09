@@ -270,3 +270,74 @@ static func buy_furniture(d: Dictionary, profile: Dictionary, id: String) -> Str
 	profile.nex = int(profile.nex) - price
 	d.furniture.append(id)
 	return "Bought %s · -%d Nex · delivered to Apartment 12-04" % [f.name, price]
+
+# --------------------------------------------------------------------------------------------- the Nexus court shops
+## Apex Gear (the Nexus avenue's gear shop) and Rusty Trigger (the black market in the alley off tile 1): weapons from the
+## catalogue and armour pieces from the sets, a stock that turns over each day. Apex sells shop and loot weapons up to
+## rare plus armour; Rusty Trigger a few boss-pool epics at a mark-up and a better power roll. An item bought is a new
+## item in the bag at the operator's power plus the shop's bonus, like a drop.
+const RARITY_PRICE := { "common": 600, "uncommon": 1400, "rare": 3000, "epic": 6500, "exotic": 14000 }
+const ARMOR_PRICE := 1800
+const SHOPS := {
+	"apex": { "name": "Apex Gear", "weapons": 8, "armor": 4, "rarities": ["common", "uncommon", "rare"], "via": ["shop", "loot"], "markup": 1.0, "bonus": 5 },
+	"rusty": { "name": "Rusty Trigger", "weapons": 4, "armor": 0, "rarities": ["epic"], "via": ["boss"], "markup": 1.5, "bonus": 15 },
+}
+
+static func _daily_order(ids: Array, day: int, salt: String) -> Array:
+	var keyed: Array = []
+	for i in ids.size():
+		keyed.append([hash("%s|%d|%s" % [salt, day, str(ids[i])]), i])
+	keyed.sort_custom(func(a, b): return a[0] < b[0])
+	var out: Array = []
+	for kv in keyed:
+		out.append(ids[kv[1]])
+	return out
+
+## today's offers: [{offer, name, slot, rarity, element, price, kind, …}]
+static func shop_stock(shop: String, day: int) -> Array:
+	var spec: Dictionary = SHOPS.get(shop, {})
+	if spec.is_empty():
+		return []
+	var pool: Array = []
+	for w in data().get("weapons", []):
+		if String(w.rarity) in spec.rarities and String(w.via) in spec.via:
+			pool.append(w)
+	var out: Array = []
+	for w in _daily_order(pool, day, shop).slice(0, int(spec.weapons)):
+		out.append({ "offer": "w:" + String(w.id), "kind": "weapon", "name": w.name, "slot": w.slot, "rarity": w.rarity, "element": w.element, "frame": w.frame, "cls": w.cls,
+			"price": int(round(float(RARITY_PRICE.get(String(w.rarity), 3000)) * float(spec.markup))) })
+	if int(spec.armor) > 0:
+		var pieces: Array = []
+		for st in data().get("armorSets", []):
+			for slot in ARMOR_SLOTS:
+				pieces.append([st, slot])
+		for pc in _daily_order(pieces, day, shop + "-armor").slice(0, int(spec.armor)):
+			var st: Dictionary = pc[0]
+			out.append({ "offer": "a:%s:%s" % [st.id, pc[1]], "kind": "armor", "name": st.pieces[pc[1]], "slot": pc[1], "rarity": "rare", "element": st.element, "set": st.id,
+				"price": int(round(ARMOR_PRICE * float(spec.markup))) })
+	return out
+
+## buys one offer with the profile's Nex: the item lands in the bag at the operator's power + the shop's bonus
+static func buy_offer(d: Dictionary, profile: Dictionary, shop: String, offer: Dictionary, op_power: float) -> String:
+	var spec: Dictionary = SHOPS.get(shop, {})
+	if spec.is_empty() or offer.is_empty():
+		return "Not for sale"
+	var price := int(offer.price)
+	if int(profile.nex) < price:
+		return "Needs %d Nex (you have %d)" % [price, int(profile.nex)]
+	profile.nex = int(profile.nex) - price
+	var it := { "name": offer.name, "slot": offer.slot, "element": offer.element, "frame": str(offer.get("frame", "")), "cls": str(offer.get("cls", "")) }
+	if offer.has("set"):
+		it.set = offer.set
+	if offer.kind == "weapon":
+		it.rarity = offer.rarity
+	it.id = "shop-%d" % int(d.next_id)
+	d.next_id = int(d.next_id) + 1
+	it.power = int(clampf(op_power + float(spec.bonus), 80.0, 500.0))
+	it.level = 1
+	it.source = String(spec.name)
+	d.items.append(it)
+	return "Bought %s · %d power · -%d Nex" % [offer.name, int(it.power), price]
+
+static func today() -> int:
+	return int(Time.get_unix_time_from_system() / 86400.0)
