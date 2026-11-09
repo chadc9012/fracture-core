@@ -14,6 +14,8 @@ web-build (`src/`) feature work beyond verification and fixes.
 Append a row under *Claimed*, with your session link and the date, then push. Move it to *Done* with the commit when it lands.
 Rows are the lock; `git fetch` before you claim.
 
+## Schedule from Nov 9 (roadmap doc, "Schedule from Nov 9 to Dec 4"): 7 front door + loop (lead) → 8 sound (lead) → 9 phone performance (lead + owner's test) → 10 economy & progression and 11 story (parallel sessions, claim here) → 12 polish → 13 ship. The Dec 4 build phases below are closed.
+
 ## Phases (in order; each gates the next)
 1. **Close out the web build** — melee as Fracture Blade skins/stats (option 1), server-side mission-run guard, phone verification.
 2. **Godot on-foot player and combat** — third-person operator in the street slices, rifle/sniper/fusion frames, 5 enemy types, HUD.
@@ -24,11 +26,14 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Step 7: front door and the loop — title screen → operator → Apartment 12-04 → the Nexus street hub with in-world doors to garage / mall / Killbox / airport / Rift Gate / Descent; settings screen; the globe as the travel map | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
 | Asset gap 5 (Godot): Fracture creatures & bosses — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak, Astravore, Colossus as boss fights (web phases + poise rules, attacks, adds) on the authored boss / enemy GLBs | lead (session_015nUG7fd8rEqjsn12yh1Fh7) | 2026-11-09 |
 | Killbox bots and the PvP maps board's arenas (all eleven built, Void Rift last), then the web Killbox's Extraction and Ranked modes in pvp.ts (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 | Killbox bots, Skydock, Neon Yard, Glass Spire, Riverfront, Solara Outpost, Frostveil Ring and Thalassia Dome arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
+- Step 10 (after step 7 lands): economy and progression — one profile for XP / levels / Nex across every mode, loot into the inventory from Killbox, bosses and missions, shop prices, daily goals.
+- Step 11 (after step 7 lands): story — fd-05 onward (Verdant Forest → Neon City), cutscene playback from the web's story data, Vyrak as the act boss at the Rift Gate.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. PvP modes missing from pvp.ts: Extraction, Ranked (owner's board) — web-side rules + bots (killbox web session), then re-export to Godot.
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
