@@ -199,6 +199,18 @@ Floor (nexus-grid look; Grid Rewrite sinks the standing data pillars and raises 
 Killbox Prime (prime-roof; Containment Lock rings the capture zone in glass) are built from the same data with their own
 palette, sign and zone rings. Skydock (the other session's fourth map) plays through the same view with a dusk palette. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
 
+**Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
+`docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
+mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through
+the depth buffer (14 steps) and adds what the screen shows where it lands, blurred down the mips and smeared vertically
+like wet asphalt, weighted by a puddle mask, rain-ring wobble and Fresnel; nothing is added where the ray misses, so dry
+patches stay matte (skipped on gl_compatibility). The paving goes dark and glossy with puddles (`wet` in `paving()`), and
+a GPU particle box of rain streaks follows the camera (700 on a phone). The Meshy street set (`models/city/street/`, made
+from concept images in the owner's Meshy account, shrunk in the page to phone budgets): neon benches by the shopfronts,
+holo info kiosks, drinks machines against the buildings, superbikes on the pavement, and on the hub block the NEXUS CITY
+· CENTRAL DISTRICT gateway arch over the avenue (solid only at its pillars). Placed per tile by `_street_set()`.
+Shot: `slice:look=x,y,z,tx,ty,tz` aims the look-dev camera.
+
 **Game Modes** (`scripts/modes/modes_hub.gd`, the ⚔ GAME MODES button on the globe; the owner, Nov 8: PvP, Raids and
 Races are separate modes): a hub of three tiles in the look of the owner's boards (`docs/reference/pvp-maps.png` — navy
 panels with glowing edges, angled title plates, a picture per tile, a strip of modes and features), each opening its own

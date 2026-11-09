@@ -421,6 +421,11 @@ func _shoot(path: String, opts: Array) -> void:
 		# slice[day][coast|neon][walk][garage]  the street slice as a look-dev shot (fixed camera), or on foot with "walk"
 		if String(o).begins_with("slice"):
 			_open_street(String(o).contains("night") or not String(o).contains("day"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"), String(o).contains("walk"))
+			# slice:look=x,y,z,tx,ty,tz  the look-dev camera from a point at a target (street set and wet-night checks)
+			if String(o).contains("look="):
+				var v := String(o).split("look=")[1].split(",")
+				if v.size() >= 6:
+					street.look_from(Vector3(float(v[0]), float(v[1]), float(v[2])), Vector3(float(v[3]), float(v[4]), float(v[5])))
 			# slicewalk:run holds the stick forward-right with sprint for the shot; slicewalk:jump also jumps once
 			if String(o).contains("walk:"):
 				street.controls.scripted = true

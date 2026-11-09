@@ -1,5 +1,6 @@
 extends Control
 const Phone := preload("res://scripts/phone.gd")
+const WetNight := preload("res://scripts/city/wet_night.gd")
 ## Nexus City street slice: one block of a Nexus avenue at golden hour, built to chase the owner's concept frames (wet
 ## reflective asphalt, palms and planters, a café terrace, mid-rise apartments over shopfronts, glass towers behind, warm
 ## low sun through haze). Meshy-generated props from res://models/city/, the fleet cars parked at the kerb.
@@ -109,12 +110,15 @@ func _ready() -> void:
 	vp.add_child(world)
 	_environment()
 	_street()
+	if night:
+		_wet_night()
 	_buildings()
 	_skyline()
 	_props()
 	_cars()
 	_garage_front()
 	_dressing()
+	_street_set()
 	_hub_dressing()
 	if night:
 		_neon()
@@ -357,6 +361,7 @@ func _build_tile(k: int) -> Node3D:
 	_props()
 	_cars()
 	_dressing()
+	_street_set()
 	if night:
 		_neon()
 	_rng.seed = keep_seed
@@ -397,6 +402,7 @@ func _slot_boxes(t: Dictionary, boxes: Array[AABB]) -> void:
 
 var _respawn_timer := 0.0
 func _process(dt: float) -> void:
+	WetNight.follow(_rain, cam)
 	if not operator or not controls:
 		return
 	if mall_overlay or casino_overlay or sports_overlay or garage_overlay or inventory_overlay:
@@ -599,6 +605,8 @@ uniform sampler2D grain_n : hint_normal, repeat_enable;
 uniform bool has_n = false;
 uniform vec3 lo_col = vec3(0.60, 0.55, 0.49);
 uniform vec3 hi_col = vec3(0.70, 0.65, 0.57);
+uniform float wet = 0.0;   // night rain: darker stone, glossy, puddles in the low spots
+uniform sampler2D puddle_noise : hint_default_white, repeat_enable;
 varying vec3 wpos;
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 void fragment() {
@@ -609,8 +617,11 @@ void fragment() {
 	float tint = fract(sin(dot(id, vec2(12.9898, 78.233))) * 43758.5453);
 	float g = texture(grain, wpos.xz * 0.6).r;
 	vec3 stone = mix(lo_col, hi_col, tint) * (0.88 + 0.2 * g);
-	ALBEDO = mix(stone * 0.62, stone, joint);
-	ROUGHNESS = mix(0.35, 0.78 + 0.08 * tint, joint);
+	float puddle = wet * smoothstep(0.52, 0.64, texture(puddle_noise, wpos.xz * 0.02).r * 0.8 + texture(puddle_noise, wpos.xz * 0.08).r * 0.3);
+	float damp = clamp(wet * 0.6 + puddle, 0.0, 1.0);
+	ALBEDO = mix(stone * 0.62, stone, joint) * mix(1.0, 0.45, damp);
+	ROUGHNESS = mix(mix(0.35, 0.78 + 0.08 * tint, joint), 0.08, damp);
+	SPECULAR = mix(0.5, 0.8, damp);
 	if (has_n) { NORMAL_MAP = texture(grain_n, wpos.xz * 0.5).xyz; NORMAL_MAP_DEPTH = 0.6; }
 }
 """
@@ -651,6 +662,9 @@ func _street() -> void:
 	var half := ROAD_W * 0.5
 	_box(Vector3(ROAD_W, 0.1, LENGTH), Vector3(0, -0.05, 0), asphalt())
 	var pave := paving()
+	_pavings.append(pave)
+	if night:
+		_wet_paving(pave)
 	if style == "coast":
 		# pink and sand terrazzo for the Art Deco strip
 		pave.set_shader_parameter("lo_col", Vector3(0.78, 0.62, 0.58))
@@ -671,6 +685,30 @@ func _street() -> void:
 	while x < half - 0.5:
 		_box(Vector3(0.9, 0.012, 4.0), Vector3(x, 0.006, -62.0), paint)
 		x += 1.8
+
+## the rain-soaked night of the owner's renders (scripts/city/wet_night.gd): the walks go dark and glossy, a mirror
+## overlay on the road and both walks, rain round the camera
+var _rain: GPUParticles3D
+## every paving material this slice made (tiles stream in later), so the night can wet them all
+var _pavings: Array[ShaderMaterial] = []
+
+func _wet_paving(sm: ShaderMaterial) -> void:
+	sm.set_shader_parameter("wet", 0.9)
+	sm.set_shader_parameter("puddle_noise", _noise_tex(0.004, 4, 512))
+	sm.set_shader_parameter("lo_col", Vector3(0.17, 0.17, 0.2))
+	sm.set_shader_parameter("hi_col", Vector3(0.24, 0.24, 0.28))
+
+func _wet_night() -> void:
+	var half := ROAD_W * 0.5
+	for sm: ShaderMaterial in _pavings:
+		_wet_paving(sm)
+	if WetNight.supported():
+		var road := WetNight.overlay_material(0.95, 0.55)
+		WetNight.overlay(world, Vector2(ROAD_W, LENGTH), Vector3(0, 0.0, 0), road)
+		var walks := WetNight.overlay_material(0.7, 0.35)
+		for side: float in [-1.0, 1.0]:
+			WetNight.overlay(world, Vector2(WALK_W, LENGTH), Vector3(side * (half + WALK_W * 0.5), 0.18, 0), walks)
+	_rain = WetNight.rain(world, 700 if Phone.on_phone() else 1400)
 
 # --------------------------------------------------------------------------------------------- loading models
 ## a Meshy prop scaled so its height is `height` metres, base on the ground, centred on x/z
@@ -953,6 +991,86 @@ void fragment() {
 		mi.position = Vector3(side * (half + 0.3), _rng.randf_range(24.0, 34.0), -40.0 - i * 26.0)
 		mi.rotation_degrees.y = 90.0 if side < 0 else -90.0
 		_root().add_child(mi)
+
+# --------------------------------------------------------------------------------------------- the street set
+## The Meshy street set from the owner's Nov 8 renders (docs/reference/NEXUS_STREET_SET.md; models/city/street): neon
+## benches by the shopfronts, holo info kiosks on the walks, drinks machines against the buildings, superbikes parked
+## up on the pavement, and on the hub block the NEXUS CITY · CENTRAL DISTRICT arch over the avenue. Per tile, seeded;
+## each piece is a prop (so it blocks the operator); the arch blocks only at its two pillars.
+const SET := "street/"
+
+func _street_set() -> void:
+	if style == "coast":
+		return
+	var half := ROAD_W * 0.5
+	var z0 := -LENGTH * 0.5
+	var k := 0
+	# benches by the building line, facing the road
+	var z := z0 + 30.0
+	while z < LENGTH * 0.5 - 10.0:
+		var side := 1.0 if k % 2 == 0 else -1.0
+		if not (_tile_k == 0 and side > 0.0 and absf(z - GARAGE_Z) < 16.0):
+			prop(SET + "bench-neon.glb", 1.0, Vector3(side * (half + WALK_W - 1.1), 0.18, z), -90.0 * side)
+		z += 46.0
+		k += 1
+	# holo kiosks out on the walk, two per block
+	for at: Vector2 in [Vector2(1.0, z0 + 74.0), Vector2(-1.0, z0 + 168.0)]:
+		if _tile_k == 0 and at.x > 0.0 and absf(at.y - GARAGE_Z) < 16.0:
+			continue
+		prop(SET + "kiosk.glb", 2.4, Vector3(at.x * (half + 3.2), 0.18, at.y), -90.0 * at.x)
+	# drinks machines against the buildings
+	k = 0
+	z = z0 + 52.0
+	while z < LENGTH * 0.5 - 10.0:
+		var side2 := -1.0 if k % 2 == 0 else 1.0
+		if not (_tile_k == 0 and side2 > 0.0 and absf(z - GARAGE_Z) < 16.0):
+			prop(SET + "vending.glb", 2.0, Vector3(side2 * (half + WALK_W - 0.55), 0.18, z), -90.0 * side2)
+		z += 64.0
+		k += 1
+	# superbikes parked up on the pavement by the kerb, angled
+	for at2: Vector2 in [Vector2(-1.0, z0 + 40.0), Vector2(1.0, z0 + 112.0), Vector2(-1.0, z0 + 200.0)]:
+		if _tile_k == 0 and at2.x > 0.0 and absf(at2.y - GARAGE_Z) < 16.0:
+			continue
+		prop(SET + "motorbike.glb", 1.15, Vector3(at2.x * (half + 1.9), 0.18, at2.y), 30.0 * at2.x)
+	# the gateway over the avenue at the far end of the hub block
+	if _tile_k == 0:
+		var arch := prop(SET + "plaza-arch.glb", 22.0, Vector3(0, 0.0, z0 + 14.0), 0.0)
+		if arch:
+			var sz: Vector3 = arch.get_meta("size")
+			arch.remove_meta("size")
+			# its two pillars, about a sixth of the span each, are the solid parts
+			var pw := sz.x * 0.17
+			for sd: float in [-1.0, 1.0]:
+				var pillar := Node3D.new()
+				pillar.position = arch.position + Vector3(sd * (sz.x * 0.5 - pw * 0.5), 0, 0)
+				pillar.set_meta("size", Vector3(pw, sz.y, sz.z))
+				pillar.set_meta("file", "arch-pillar")
+				_root().add_child(pillar)
+			# the name across the gateway, hung under the header on both faces
+			for face: float in [1.0, -1.0]:
+				var title := Label3D.new()
+				title.text = "NEXUS CITY"
+				title.font_size = 200
+				title.outline_size = 0
+				title.pixel_size = 0.012
+				title.modulate = Color(0.85, 0.97, 1.0) * 1.8
+				title.shaded = false
+				title.double_sided = false
+				title.position = arch.position + Vector3(0, sz.y * 0.6, face * (sz.z * 0.5 + 0.3))
+				title.rotation.y = 0.0 if face > 0.0 else PI
+				_root().add_child(title)
+				var sub := title.duplicate() as Label3D
+				sub.text = "CENTRAL DISTRICT"
+				sub.font_size = 90
+				sub.modulate = Color(0.45, 0.9, 1.0) * 1.6
+				sub.position.y -= 1.7
+				_root().add_child(sub)
+			var glow := OmniLight3D.new()
+			glow.light_color = Color(0.2, 0.9, 1.0)
+			glow.light_energy = 3.0
+			glow.omni_range = 22.0
+			glow.position = arch.position + Vector3(0, sz.y * 0.55, 3.0)
+			_root().add_child(glow)
 
 # --------------------------------------------------------------------------------------------- the reference dressing
 ## Nexus City as the owner's Nov 8 references draw it: cyan bollard lights along the kerbs, WORLD FRACTURE banners on the
