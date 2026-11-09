@@ -802,6 +802,9 @@ func _shoot(path: String, opts: Array) -> void:
 		# season:0..3 shows the regions in spring / summer / autumn / winter
 		if String(o).begins_with("season:"):
 			Region3D.season = int(String(o).substr(7))
+		# bolt: the region's lightning strikes at once and stays lit (Storm Islands, swamps)
+		if String(o) == "bolt":
+			preload("res://scripts/region_weather.gd").hold = true
 		if String(o) == "3d" and region_map:
 			_open_3d(region_map.map_id, null, false)
 		if String(o).begins_with("street:") and region_map:

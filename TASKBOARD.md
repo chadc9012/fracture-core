@@ -26,7 +26,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Asset gap 7 (Godot region 3D): vegetation and rock gaps — oak, cherry blossom, baobab, bamboo, alien flora, vines; rock arches, cave mouths, ice spires — and natural effects (flowing lava, snowfall, storm lightning, rift tears) | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
 - Step 10 (step 7 landed Nov 9 — open now): economy and progression — one profile for XP / levels / Nex across every mode, loot into the inventory from Killbox, bosses and missions, shop prices, daily goals.
@@ -37,7 +36,7 @@ Rows are the lock; `git fetch` before you claim.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
-  7. Vegetation / rock gaps (cherry blossom, baobab, bamboo, alien flora, vines; arch, cave, ice), natural effects (waterfall, lava, snow, lightning), VFX (rift, portal, hologram, energy field).
+  7. ~~Vegetation / rock gaps, natural effects~~ — done in region 3D (see Done); still open: portal, hologram and energy-field VFX.
   8. Fantasy & dimensional set (§9) for the Shattered Expanse and boss arenas.
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
@@ -48,6 +47,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Commit |
 | --- | --- |
 | Step 7 (schedule): the front door and the loop — title screen, settings (graphics tier / sensitivity / audio), the Nexus street as the hub with in-world doors to Apartment 12-04, Killbox, Skyways, the crash-site Descent, the Rift Gate, garage, mall, casino, sports; systems open over the paused street and return to it; tests/front/loop_play.tscn | Godot: the front door |
+| Asset gap 7 (Godot region 3D): oak, cherry blossom, baobab, bamboo, alien flora, vines; sandstone and sea arches, cave mouths, ice spires; flowing lava, snowfall, storm lightning, rift tears; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Trees, rocks and weather" (Nov 9) |
 | Asset gap 5 (fights): the six Fracture bosses at the Rift Gate — phases, poise / stagger / weak point, telegraphed attacks, summons, rewards, on the authored boss hulls | see git log "Godot: the Rift Gate" (Nov 9) |
 | Owner ask (Nov 8 22:12, "start"): the Town and Floating Islands regions deepened — Old Harrow (a new walled market town: market, guildhall quest board, tavern, cathedral, castle, hamlets, mill) and the Storm Islands (islets, waterfalls, crystals, drifting debris, storm sky); gabled roofs on low buildings everywhere; autumn/winter keeps the conifers green; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Old Harrow and the Storm Islands" (Nov 8) |
 | Owner ask (Nov 8 21:43): the Planetary World Overview's missing regions — Goldenreach Farmlands, Azure Isles, Frostveil Ice Cap (board-lands.ts: maps, satellite, Godot 3D, on the globe) — and seasons in the region 3D view; plus the sidewalk crowd (crowd.gd) | see git log "regions" / "crowd" (Nov 8) |

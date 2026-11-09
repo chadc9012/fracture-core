@@ -1,5 +1,7 @@
 extends Control
 const Phone := preload("res://scripts/phone.gd")
+const Flora := preload("res://scripts/region_flora.gd")
+const Weather := preload("res://scripts/region_weather.gd")
 ## A region in 3D (owner's map packs: "3D City" and "Street View"), built from the same data as its map: the ground from the
 ## exported height grid, coloured by land cover; the sea; every building extruded to its height with floors and windows; the
 ## roads, bridges, rails and paved ground; domes, arenas and hazard rings; forests and crystal fields; the Storm Islands in the
@@ -45,6 +47,7 @@ var _season_btn: Button
 var _ground_mat: ShaderMaterial
 var _base_pal := PackedVector3Array()
 var _tree_mats: Array[ShaderMaterial] = []
+var _weather: Node3D
 var mode: Mode = Mode.CITY
 var _ox := 0.0
 var _oz := 0.0
@@ -477,6 +480,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	space_rejected = 0
 	_build_trees()
 	_build_slope_rock()
+	Flora.rocks(self, _clearings())
 	_build_floating()
 	_build_ruins()
 	if id == "thalassia":
@@ -489,6 +493,12 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_cam.near = 0.2
 	_cam.fov = 62.0
 	_world.add_child(_cam)
+	_weather = Weather.new()
+	_weather.ground_at = func(x: float, z: float) -> float: return maxf(_h(x, z), _water)
+	_weather.focus_at = func() -> Vector3: return _target if mode != Mode.STREET else _eye + Vector3(-sin(_look_yaw), 0, -cos(_look_yaw)) * 220.0
+	_world.add_child(_weather)
+	_weather.setup(id, _env, current_season() == 3 and id not in NO_WINTER)
+	_weather.follow(_cam)
 	var p := Vector2(_ox, _oz) if at == null else Vector2(at.x, at.y)
 	_target = Vector3(p.x - _ox, 0, p.y - _oz)
 	_target.y = _h(_target.x, _target.z)
@@ -1132,6 +1142,8 @@ func _build_trees() -> void:
 		if ci >= 0:
 			chance[ci] = pair[1]
 	var crystal := covers.find("crystal")
+	var rift := covers.find("rift")
+	var tears: Array[Vector3] = []
 	var stride := maxi(2, int(w / 300.0))
 	var clear := _clearings()
 	var trees: Array[Transform3D] = []
@@ -1156,6 +1168,9 @@ func _build_trees() -> void:
 				if not _space_claim(lx, lz, 1.1 * s):
 					continue
 				trees.append(Transform3D(Basis(Vector3.UP, roll * TAU).scaled(Vector3(s, s * (0.9 + roll * 0.4), s)), Vector3(lx, y - 0.2, lz)))
+			elif cv == rift and rift >= 0 and roll < 0.02 and tears.size() < 60:
+				if _space_claim(lx, lz, 6.0):
+					tears.append(Vector3(lx, _h(lx, lz), lz))
 			elif cv == crystal and roll < 0.12 and shards.size() < 4000:
 				var s2 := 0.6 + roll * 8.0
 				if not _space_claim(lx, lz, 0.35 * s2):
@@ -1164,9 +1179,19 @@ func _build_trees() -> void:
 	if not trees.is_empty():
 		var cold := map_id in ["frostspire", "frostveil"]
 		if map_id == "azure-isles" and _palms(trees):
-			pass
+			# the two thirds the palms leave: bamboo clumps among them (and no conifers on the isles)
+			var rest: Array[Transform3D] = []
+			for i in trees.size():
+				if i % 3 != 0:
+					rest.append(trees[i])
+			Flora.plant(self, rest)
 		else:
-			_multimesh(_tree_mesh(cold), trees, _tree_material(cold))
+			# the region's species mix (oak, cherry, baobab, bamboo, alien flora); the conifers take what is left
+			var pines := Flora.plant(self, trees)
+			if not pines.is_empty():
+				_multimesh(_tree_mesh(cold), pines, _tree_material(cold))
+	if not tears.is_empty():
+		Flora.rift_tears(self, tears)
 	if not shards.is_empty():
 		var cm := CylinderMesh.new()
 		cm.top_radius = 0.0
@@ -1373,6 +1398,8 @@ func _apply_season() -> void:
 		_season_btn.text = SEASONS[sn]
 	for tm in _tree_mats:
 		tm.set_shader_parameter("season", sn)
+	if _weather:
+		_weather.set_winter(sn == 3 and map_id not in NO_WINTER)
 	if not _ground_mat or _base_pal.is_empty():
 		return
 	var covers: Array = Data.styles.get("covers", [])
@@ -1634,6 +1661,7 @@ void fragment() { ALBEDO = vec3(0.36, 0.34, 0.4); ROUGHNESS = 0.95; }"""
 	rk.radial_segments = 5
 	rk.rings = 3
 	_multimesh(rk, debris, dm, 800.0, false)
+	Flora.vines(self, sources)
 	# a cold glow from the crystals under each named island
 	for f in floats:
 		var p := _loc(f.x, f.z)

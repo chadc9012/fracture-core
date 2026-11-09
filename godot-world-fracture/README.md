@@ -269,6 +269,18 @@ additive curtains), violet crystal clusters on top and hanging beneath, glowing 
 tumbling debris (one MultiMesh, rotated and bobbed in the vertex shader) and a storm sky. Shots: `map:old-harrow 3d`,
 `map:storm 3d`.
 
+**Trees, rocks and weather** (asset catalog item 7; `scripts/region_flora.gd`, `scripts/region_weather.gd`): every region
+deals its forest places out between species by a hash of their position — broadleaf oaks (they follow the seasons with
+the conifers), cherry blossom (pink in spring, red in autumn, bare in winter) in the temperate regions and towns, baobabs
+in Solara and the Wastelands, bamboo clumps among the Azure Isles and Shattered Reefs palms, and glowing alien flora
+(stalks with pulsing teal or magenta bulbs) in the Crystal Badlands and on the Storm Islands. Vines hang and sway under
+the floating islands. Eroded sandstone arches stand in the deserts and the badlands (and sea arches at the isles' and
+reefs' waterlines), cave mouths open in the mountain and forest slopes, ice spires stand in groups on the ice. Lava now
+flows: crust plates drift over molten seams that breathe. The Crystal Badlands' void rifts split upward as tall violet
+tears with dark shards floating round them. Weather: snow falls round the camera on the ice and the high mountains, and
+wherever winter comes when the header is on WINTER; lightning strikes round what the camera is looking at every few
+seconds on the Storm Islands and in the Shrouded Swamps, flashing the scene. Shot option `bolt` strikes at once and holds.
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through

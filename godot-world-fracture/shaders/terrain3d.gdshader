@@ -45,10 +45,15 @@ void fragment() {
 		float rip = sin(w.x * 0.5 + w.y * 0.3 + vnoise(w * 0.03) * 8.0);
 		c += (vec3(8.0, 6.0, 4.0) * rip + vec3(12.0, 10.0, 8.0) * grain) / 255.0;
 	} else if (cover == i_lava || cover == i_magma) {
+		// a lava flow: cooled crust plates drifting downstream, molten seams glowing between them, the seams breathing
+		vec2 fl = w * 0.14 + vec2(TIME * 0.025, TIME * 0.04);
+		float seam = 1.0 - abs(vnoise(fl + vnoise(w * 0.05) * 2.0) * 2.0 - 1.0);
 		float v = 1.0 - abs(vnoise(w * 0.18 + TIME * 0.03) * 2.0 - 1.0);
-		float hot = cover == i_magma ? 1.0 : smoothstep(0.75, 0.97, v);
-		c = mix(vec3(0.12, 0.08, 0.07), vec3(1.0, 0.6, 0.2), hot);
-		emit = vec3(1.0, 0.42, 0.1) * hot * 2.4;
+		float breathe = 0.85 + 0.15 * sin(TIME * 1.3 + vnoise(w * 0.02) * 6.0);
+		float hot = cover == i_magma ? 1.0 : max(smoothstep(0.8, 0.97, seam), smoothstep(0.86, 0.99, v)) * breathe;
+		vec3 crust = vec3(0.12, 0.08, 0.07) * (0.8 + 0.4 * vnoise(fl * 3.0));
+		c = mix(crust, vec3(1.0, 0.6, 0.2), hot);
+		emit = mix(vec3(0.9, 0.22, 0.05), vec3(1.0, 0.42, 0.1), hot) * hot * 2.4;
 	} else if (cover == i_crystal) {
 		float sp = vnoise(w * 1.3);
 		emit = vec3(0.55, 0.35, 1.0) * smoothstep(0.7, 0.95, sp) * 1.2;
