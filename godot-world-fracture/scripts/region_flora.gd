@@ -555,3 +555,55 @@ void fragment() {
 	dark.emission = Color(0.35, 0.12, 0.7)
 	dark.emission_energy_multiplier = 0.3
 	r._multimesh(bm, bits, dark, 900.0, false)
+
+# ---------------------------------------------------------------- landmark VFX: portals, energy fields, holograms
+
+const Fx := preload("res://scripts/vfx/fx.gd")
+const PORTAL_POIS := ["z-tear", "cb-rifts", "vault-gate"]
+const FIELD_POIS := ["sr-vault", "base-03", "base-02"]
+const HOLO_CITIES := ["nexus", "neon-city", "thalassia"]
+const HOLO_CATS := ["store", "mall", "university", "park", "entertainment", "casino", "nightclub", "arena", "landmark", "civic", "research"]
+
+## the tears and gates get a standing portal, research stations and vaults an energy dome sized to the buildings under
+## it, and the cities' landmarks a hologram on their tallest roof (globes over the plazas, figures over the shops)
+static func landmark_fx(r: Node) -> void:
+	var id: String = r.map_id
+	var holos := 0
+	var cols := [Color(0.3, 0.9, 1.0), Color(1.0, 0.35, 0.85), Color(1.0, 0.78, 0.3), Color(0.5, 1.0, 0.6)]
+	for p in r.m.pois:
+		var pid := String(p.id)
+		var cat := String(p.get("cat", ""))
+		var at: Vector2 = r._loc(p.x, p.z)
+		var gy: float = r._h(at.x, at.y)
+		if pid in PORTAL_POIS:
+			# stood 12 m off the place, inside the clearing kept round every place (Street View starts on the place
+			# itself), facing back at it
+			var dir := Vector2(-at.x, -at.y).normalized() if at.length() > 1.0 else Vector2(1, 0)
+			var pp := at + dir.rotated(0.6) * 12.0
+			var po := Fx.portal(5.5, Color(0.75, 0.35, 1.0) if pid != "vault-gate" else Color(0.35, 0.85, 1.0))
+			po.position = Vector3(pp.x, minf(r._h(pp.x, pp.y), r._h(pp.x + 5.0, pp.y)) - 0.3, pp.y)
+			po.rotation.y = atan2(at.x - pp.x, at.y - pp.y)
+			r._world.add_child(po)
+		elif cat == "research" or pid in FIELD_POIS:
+			# the dome covers the station's buildings: the farthest one within 70 m, plus a margin
+			var reach := 22.0
+			for bd in r.m.buildings:
+				var b: Vector2 = r._loc(bd[0], bd[1])
+				var d := b.distance_to(at)
+				if d < 70.0:
+					reach = maxf(reach, d + maxf(float(bd[2]), float(bd[3])) + 6.0)
+			var f := Fx.energy_field(minf(reach, 80.0), Color(0.35, 0.75, 1.0) if cat == "research" else Color(1.0, 0.6, 0.25))
+			f.position = Vector3(at.x, gy - 1.0, at.y)
+			r._world.add_child(f)
+		elif id in HOLO_CITIES and cat in HOLO_CATS and holos < 16:
+			# on the tallest roof within 25 m, or standing in the open
+			var top := gy
+			for bd in r.m.buildings:
+				var b2: Vector2 = r._loc(bd[0], bd[1])
+				if b2.distance_to(at) < 25.0:
+					top = maxf(top, r._h(b2.x, b2.y) + r._bh(bd))
+			var kind := "globe" if cat in ["park", "landmark", "university", "civic", "research"] else ("figure" if cat in ["store", "mall"] else "emblem")
+			var hg := Fx.hologram(kind, cols[holos % cols.size()], 20.0)
+			hg.position = Vector3(at.x, top + 0.2, at.y)
+			r._world.add_child(hg)
+			holos += 1

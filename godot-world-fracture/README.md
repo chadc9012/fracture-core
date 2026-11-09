@@ -281,6 +281,14 @@ tears with dark shards floating round them. Weather: snow falls round the camera
 wherever winter comes when the header is on WINTER; lightning strikes round what the camera is looking at every few
 seconds on the Storm Islands and in the Shrouded Swamps, flashing the scene. Shot option `bolt` strikes at once and holds.
 
+**Portals, holograms, energy fields** (`scripts/vfx/fx.gd`, reusable): `portal()` is a dark ring on two footings with a
+glowing lip, a swirling vortex inside (spiral noise pulled inward) and sparks drawn into it — the Nexus hub's RIFT GATE,
+the Fracture Tear, the Void Rifts and the Wastelands' Vault Gate (12 m off the place, facing it). `hologram()` is a
+projector, its light cone and a slowly turning figure with scanlines, rim light and flicker — globes over the cities'
+plazas and campuses, figures over the shops, emblems over the venues (Nexus, Neon City, Thalassia, on the tallest roof
+nearby). `energy_field()` is a hex-plated dome with a bright rim, rising pulses and a glow where it meets the ground —
+over research stations (blue) and the vaults and bunkered bases (amber), sized to the buildings under it.
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through

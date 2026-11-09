@@ -26,7 +26,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Asset gap 7 (rest): VFX — portal, hologram, energy field as reusable nodes (scripts/vfx/fx.gd), placed at the region landmarks (tears and gates, research stations and vaults, the cities' landmarks) and the Nexus hub's Rift Gate | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
 | Owner ask (Nov 9, 06:25): finish Nexus — the one repeating street becomes a walkable street grid with each named district (Spire District + the 420 m Central Tower, Vanguard Command Citadel, Central Transit Plaza, Apex Gear, Rusty Trigger, Cylinder & Co, Scrapyard Bazaar & Southern Docks, The Warrens, Marina, Aqua-Tech Shipyard, Perimeter Wall) as its own area | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
@@ -39,7 +38,7 @@ Rows are the lock; `git fetch` before you claim.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
   6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
-  7. ~~Vegetation / rock gaps, natural effects~~ — done in region 3D (see Done); still open: portal, hologram and energy-field VFX.
+  7. ~~Vegetation / rock gaps, natural effects, VFX~~ — done in region 3D and scripts/vfx/fx.gd (see Done).
   8. Fantasy & dimensional set (§9) for the Shattered Expanse and boss arenas.
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
@@ -50,6 +49,7 @@ Rows are the lock; `git fetch` before you claim.
 | Task | Commit |
 | --- | --- |
 | Step 9 (schedule): phone performance — frame-time readout, all textures VRAM-compressed at 1024/512 px with tracked .import files, tier-scaled batching / shadows / ranges / LOD / crowds; Nexus firefight 1382 → 1086 draws (medium), 763 (low) | Godot: phone performance |
+| Asset gap 7 (rest): portal, hologram and energy-field VFX (scripts/vfx/fx.gd) at the tears and gates, research stations, vaults and bases, the cities' landmarks and the Nexus hub's Rift Gate; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Portals, holograms, energy fields" (Nov 9) |
 | Step 8 (schedule): sound — buses, the Audio autoload + Sound front, 35 designed cues, regional ambience beds, the owner's seven radio stations in every car (spoiler archive excluded), title music, NOVA / Mara recorded lines, engine / craft loops; tests/audio | Godot: sound |
 | Step 7 (schedule): the front door and the loop — title screen, settings (graphics tier / sensitivity / audio), the Nexus street as the hub with in-world doors to Apartment 12-04, Killbox, Skyways, the crash-site Descent, the Rift Gate, garage, mall, casino, sports; systems open over the paused street and return to it; tests/front/loop_play.tscn | Godot: the front door |
 | Asset gap 7 (Godot region 3D): oak, cherry blossom, baobab, bamboo, alien flora, vines; sandstone and sea arches, cave mouths, ice spires; flowing lava, snowfall, storm lightning, rift tears; session_01PQQWemhLWEFEw4j69oN1tq | see git log "Trees, rocks and weather" (Nov 9) |

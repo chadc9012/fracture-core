@@ -488,6 +488,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	if id == "thalassia":
 		preload("res://scripts/thalassia_city.gd").new().build(_world, m, _loc, _h)
 	_build_lamps()
+	Flora.landmark_fx(self)
 	_build_labels()
 	_apply_season()
 	_cam = Camera3D.new()

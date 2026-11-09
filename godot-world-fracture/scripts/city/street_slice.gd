@@ -1407,28 +1407,15 @@ func _doors() -> void:
 				_box(Vector3(3.2, 0.1, 1.6), Vector3(0, 3.2, 0), flat(Color(0.2, 0.22, 0.25), 0.4, 0.5), holder)
 				_box(Vector3(2.6, 0.5, 0.06), Vector3(0, 2.75, 0.6), _neon_mat(col, 2.5), holder)
 			"portal":
-				var ring := MeshInstance3D.new()
-				var tm := TorusMesh.new()
-				tm.inner_radius = 1.6
-				tm.outer_radius = 1.9
-				ring.mesh = tm
-				ring.rotation.x = PI * 0.5
-				ring.position = Vector3(0, 2.1, 0)
-				ring.material_override = _neon_mat(col, 3.5)
-				holder.add_child(ring)
-				var light := OmniLight3D.new()
-				light.light_color = col
-				light.light_energy = 3.0
-				light.omni_range = 10.0
-				light.position = Vector3(0, 2.0, 0)
-				holder.add_child(light)
+				# the Rift Gate: a ring standing on the walk with a live vortex in it (scripts/vfx/fx.gd)
+				holder.add_child(preload("res://scripts/vfx/fx.gd").portal(1.7, col))
 		if kind != "none":
 			var name_l := Label3D.new()
 			name_l.text = String(d.label)
 			name_l.font_size = 64
 			name_l.pixel_size = 0.008
 			name_l.modulate = col * 1.6
-			name_l.position = Vector3(0, 3.7 if kind != "kiosk" else 2.5, 0)
+			name_l.position = Vector3(0, 2.5 if kind == "kiosk" else (4.8 if kind == "portal" else 3.7), 0)
 			name_l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 			name_l.shaded = false
 			holder.add_child(name_l)
