@@ -24,6 +24,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Owner ask (Nov 8, 19:31): cleanup pass — play through every mission, fix performance / FPS, audio and dialogue issues, and unintended overlaps (trees, rocks, props, clothing); lands the playtest + phone-performance PRs #2/#3 against main as its base | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-08 |
 | Killbox bots, Skydock, Neon Yard and Glass Spire arenas, then the PvP maps board in order (web build, exported to Godot's killbox.json; the owner asked for this directly in session, Nov 2 21:14 — outside the Dec 4 scope by the owner's own call) | session_01HeBvGGZzSqLVyhhF3TcmJd | 2026-11-02 |
 
 ## Open (unclaimed, take in order within a phase)
