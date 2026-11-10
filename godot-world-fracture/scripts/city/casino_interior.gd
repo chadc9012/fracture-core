@@ -461,7 +461,19 @@ void fragment() {
 		for side: float in [-1.0, 1.0]:
 			for k in 6:
 				_slot(Vector3(-30.0 + k * 2.0 + 3.0, y, z0 + side * 1.3), PI if side < 0 else 0.0, bank * 6 + k + (0 if side < 0 else 50))
-		_label("JACKPOT  $ %s" % ["2,481,900", "731,250", "1,090,400", "466,820"][bank], Vector3(-22.0, y + 4.2, z0), 0.0, Color(1.0, 0.25, 0.35), 80, 0.01)
+		# the bank's jackpot on a sign board at the bank's aisle end, facing the walkway: the four boards share one plane,
+		# so from the entrance they line up edge to edge instead of covering each other (bug sweep, Nov 9: the floating
+		# signs faced the entrance and stacked into one unreadable smear)
+		var jp: String = "JACKPOT  $ %s" % ["2,481,900", "731,250", "1,090,400", "466,820"][bank]
+		var sx := -15.4
+		var sh := y + 4.0
+		_box(Vector3(0.16, 1.1, 6.4), Vector3(sx, sh, z0), flat(Color(0.05, 0.02, 0.03), 0.4))
+		_box(Vector3(0.2, 0.08, 6.6), Vector3(sx, sh + 0.58, z0), flat(GOLD, 0.25, 0.9))
+		_box(Vector3(0.2, 0.08, 6.6), Vector3(sx, sh - 0.58, z0), flat(GOLD, 0.25, 0.9))
+		_box(Vector3(0.08, sh - y - 0.6, 0.08), Vector3(sx, y + (sh - y - 0.6) * 0.5, z0 - 3.0), flat(GOLD, 0.25, 0.9))
+		_box(Vector3(0.08, sh - y - 0.6, 0.08), Vector3(sx, y + (sh - y - 0.6) * 0.5, z0 + 3.0), flat(GOLD, 0.25, 0.9))
+		_label(jp, Vector3(sx + 0.1, sh, z0), PI * 0.5, Color(1.0, 0.25, 0.35), 80, 0.01)
+		_label(jp, Vector3(sx - 0.1, sh, z0), -PI * 0.5, Color(1.0, 0.25, 0.35), 80, 0.01)
 	# tables on the right
 	for k in 3:
 		_blackjack(Vector3(10.0 + k * 7.5, y, 18.0))

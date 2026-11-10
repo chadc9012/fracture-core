@@ -940,12 +940,13 @@ static func _aabb(n: Node) -> AABB:
 # --------------------------------------------------------------------------------------------- buildings
 func _buildings() -> void:
 	var half := ROAD_W * 0.5 + WALK_W
-	# which blocks line the street, and how tall each kind stands (m)
-	var kinds: Array = [["apartment.glb", 22.0], ["brick.glb", 21.0], ["office.glb", 34.0], ["apartment.glb", 25.0], ["brick.glb", 19.0], ["../buildings/nexus-civic-a.glb", 24.0], ["../buildings/nexus-terrace-a.glb", 20.0], ["../buildings/nexus-civic-b.glb", 26.0]]
+	# which blocks line the street, and how tall each kind stands (m). The Meshy office, brick, deco and villa blocks are out
+	# (bug sweep, Nov 9): their meshes are torn and their facades crinkle like foil; the fleet's own towers stand in.
+	var kinds: Array = [["apartment.glb", 22.0], ["../buildings/nexus-civic-a.glb", 22.0], ["../buildings/nexus-civic-c.glb", 34.0], ["apartment.glb", 25.0], ["../buildings/nexus-terrace-b.glb", 16.0], ["../buildings/nexus-civic-a.glb", 24.0], ["../buildings/nexus-terrace-a.glb", 20.0], ["../buildings/nexus-civic-b.glb", 26.0]]
 	if style == "coast":
-		kinds = [["deco.glb", 15.0], ["villa.glb", 12.0], ["deco.glb", 17.0], ["villa.glb", 11.0]]
+		kinds = [["../buildings/riverdale-corner.glb", 15.0], ["../buildings/nexus-terrace-b.glb", 14.0], ["../buildings/riverdale-corner.glb", 17.0], ["../buildings/nexus-terrace-b.glb", 12.0]]
 	elif style == "neon":
-		kinds = [["deco.glb", 16.0], ["brick.glb", 18.0], ["apartment.glb", 20.0], ["../buildings/neon-block-a.glb", 24.0], ["deco.glb", 14.0], ["office.glb", 28.0], ["../buildings/neon-block-b.glb", 22.0], ["../buildings/neon-tower-b.glb", 36.0]]
+		kinds = [["../buildings/neon-v-D.glb", 22.0], ["../buildings/neon-v-A.glb", 24.0], ["apartment.glb", 20.0], ["../buildings/neon-block-a.glb", 24.0], ["../buildings/neon-v-C.glb", 30.0], ["../buildings/neon-tower-a.glb", 34.0], ["../buildings/neon-block-b.glb", 22.0], ["../buildings/neon-tower-b.glb", 36.0]]
 	var k := 0
 	for side: float in [-1.0, 1.0]:
 		var z := -LENGTH * 0.5 + 6.0
