@@ -109,6 +109,7 @@ var driving_car: RefCounted
 var _near_car: Node3D
 const InventoryView = preload("res://scripts/gear/inventory_view.gd")
 const ProfileView := preload("res://scripts/progress/profile_view.gd")
+const CivicProps := preload("res://scripts/city/civic_props.gd")
 const OutfitLook = preload("res://scripts/gear/outfit_look.gd")
 var wallet: Dictionary = {}   # the profile (xp, nex, level) while the street is open; mission_01.gd has its own `profile`
 var gear: Dictionary = {}
@@ -177,6 +178,7 @@ func _ready() -> void:
 	_hub_dressing()
 	if style != "coast":
 		_doors()
+	_civic_life()
 	if night:
 		_neon()
 		if style == "neon":
@@ -502,6 +504,7 @@ func _build_tile(k: int) -> Node3D:
 	_cars()
 	_dressing()
 	_street_set()
+	_civic_life()
 	if night:
 		_neon()
 	if style == "nexus":
@@ -1355,6 +1358,17 @@ func _street_set() -> void:
 # --------------------------------------------------------------------------------------------- the reference dressing
 ## Nexus City as the owner's Nov 8 references draw it: cyan bollard lights along the kerbs, WORLD FRACTURE banners on the
 ## lamp posts, cherry-blossom trees between the palms, and the monorail on its pylons over the far lane. Built per tile.
+## everyday life on the sidewalks (civic_props.gd): vending machines, ATMs, food stalls, café seating, parcels — on
+## every tile, kept clear of the hub's doors; each carries a `size` meta so the obstacle passes take its footprint
+func _civic_life() -> void:
+	if style == "coast":
+		return
+	var avoid: Array = []
+	if _tile_root == null:
+		for d in _door_spots:
+			avoid.append(d.pos)
+	CivicProps.dress(_root(), LENGTH, style, _rng, avoid)
+
 func _dressing() -> void:
 	var half := ROAD_W * 0.5
 	var cyan := Color(0.2, 0.9, 1.0)
