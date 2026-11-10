@@ -1110,6 +1110,9 @@ func _build_roads() -> void:
 
 func _build_rings() -> void:
 	for r in m.rings:
+		# the Nexus Region draws its docks as quays, cranes, piers and yachts (region_nexus.gd), not a grey disc on the water
+		if map_id == "nexus-region" and r[3] == "dock":
+			continue
 		var p := _loc(r[0], r[1])
 		var rad: float = r[2]
 		var y := _h(p.x, p.y)

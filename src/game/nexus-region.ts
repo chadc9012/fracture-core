@@ -188,9 +188,9 @@ export function nrCover(x: number, z: number, h: number, slope: number): Cover {
   }
   if (h < WATER + 1.8) return "beach";
   if (inZone(u, v, CITY, 0.95)) return "urban";
-  if (inZone(u, v, SOUTHREACH, 0.9)) return "paved";
+  if (inZone(u, v, SOUTHREACH, 0.9)) return "town";
   if (inZone(u, v, EASTPOINT, 0.9)) return "urban";
-  if (inZone(u, v, NOVA, 0.85)) return "paved";
+  if (inZone(u, v, NOVA, 0.85)) return "town";
   if (Math.hypot(u - BEACH.u, v - BEACH.v) < 70 && h < WATER + 5) return "beach";
   // the Fracture Spire's corruption and the volcanic Obsidian Cliffs
   if (inZone(u, v, SPIRE, 1.1, 84)) return fbm(u * 0.04, v * 0.04, 79) > 0.55 ? "crystal" : "rift";
@@ -360,7 +360,7 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
 
   // the board's places
   P("city", "Nexus City", "landmark", nr(CITY.u, CITY.v), 0, "The capital and central hub: Lv 1–60+.");
-  P("core", "The Core", "spire", [sx, sz], 0, "The Central Business District under the Nexus Core Spire.");
+  P("core", "The Core", "spire", [sx, sz + 60], 0, "The Central Business District under the Nexus Core Spire.");
   P("heights", "Aether Heights", "village", nr(-110, -150), 1, "The luxury district: penthouse towers over the river.");
   P("westgate", "Westgate", "village", nr(-200, -50), 1, "Residential district on the west bank.");
   P("novahq", "NOVA HQ", "civic", nr(-80, -30), 1, "Operator Command.");
@@ -373,7 +373,7 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
   P("harbor", "Nexus Harbor", "port", nr(HARBOR.u, HARBOR.v + 10), 0, "Trade and shipping: Lv 5–40.");
   P("marina", "Nexus Marina", "dock", nr(360, 255), 2, "Yachts and charters.");
   P("beach", "Nexus Beach", "park", nr(BEACH.u, BEACH.v), 0, "Recreation and sports: Lv 1–25.");
-  P("keys", "Azure Keys", "village", nr(k0.u, k0.v - 20), 0, "Isles and resorts: island housing, leisure, fishing. Lv 10–40.");
+  P("keys", "Azure Keys", "village", nr(k0.u - 30, k0.v + 10), 0, "Isles and resorts: island housing, leisure, fishing. Lv 10–40.");
   P("light", "Lighthouse Point", "viewpoint", [lx, lz], 1, "Coastal Watch: Lv 10–30.");
   P("eastpoint", "Eastpoint", "village", [epx, epz], 0, "The industrial zone: Lv 20–45.");
   P("steel", "Nexus Steelworks", "outpost", nr(EASTPOINT.u - 0, EASTPOINT.v - 60), 2, "Furnaces and rolling mills.");
@@ -385,8 +385,8 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
   P("nova", "NOVA Research Complex", "research", [nx, nz], 0, "The main facility: story, upgrades, tech. Lv 20–50.");
   P("spire", "The Fracture Spire", "spire", [fx, fz], 0, "The endgame zone: Lv 50+.");
   P("gate", "Fracture Gate", "hazard", nr(560, -560), 2, "Where the corruption breaks through.");
-  P("ridge", "Aether Ridge", "peak", nr(-40, -610), 0, "The mountain range: Lv 35–60.");
-  P("observatory", "Summit Observatory", "viewpoint", nr(-40, -600), 2, "Telescopes over the whole region.");
+  P("ridge", "Aether Ridge", "peak", nr(-90, -640), 0, "The mountain range: Lv 35–60.");
+  P("observatory", "Summit Observatory", "viewpoint", nr(-40, -580), 2, "Telescopes over the whole region.");
   P("frostwatch", "Frostwatch Station", "outpost", nr(150, -520), 2, "A weather and watch post in the snow.");
   P("monolith", "Aether Monolith", "landmark", nr(-200, -520), 2, "A standing stone humming with power.");
   P("crater", "Skyline Crater", "cave", nr(CRATER.u, CRATER.v), 2, "A dungeon in the crater floor.");
