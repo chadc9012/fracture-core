@@ -337,6 +337,13 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Combat details** (asset catalog part 2 §5, Nov 9): shell casings eject from every shot (brass slivers thrown right and
+up, tumbling, landing and lying for a moment; the fusion frame throws none; capped at 14 live so a burst on the phone
+stays a few draws), bullet impacts leave a scorched disc on surfaces for five seconds, and enemies **flinch** when hit — a
+jolt back along the shot and a lean that eases out (more for a headshot). With the gore setting and the blood colours
+that makes four of the ten on the board; holsters, magazines, attachments, armour damage, energy shields, debris and
+destructible cover remain.
+
 **The Fracture set** (`scripts/vfx/fracture_set.gd`, Nov 9; asset catalog part 2 §9): builders for the fantasy and
 dimensional dressing — emissive crystal clusters (one MultiMesh), floating ruins that drift and turn, energy conduits
 with a scrolling core and rings, a relic container ringed with blinking inscriptions, and `arena_ring` for boss arena

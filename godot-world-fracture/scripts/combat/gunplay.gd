@@ -199,21 +199,32 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
 		for k in Weapons.pellets(gun().frame):
 			_fire_one(cam, moving_speed)
+		_eject(cam)
 	# tracers and the flash fade
 	var keep: Array = []
 	for tr in _tracers:
 		tr.t -= dt
 		if tr.t <= 0.0:
+			if tr.has("casing"):
+				_casings -= 1
 			tr.node.queue_free()
 		else:
 			if tr.has("vel"):
-				# a droplet falls; a splash just fades over its life
+				# a droplet falls; a casing tumbles, lands and lies there; a splash just fades over its life
 				var v: Vector3 = tr.vel
+				var nd := tr.node as Node3D
 				if v != Vector3.ZERO:
 					v.y -= 9.8 * dt
+					nd.global_position += v * dt
+					if tr.has("casing"):
+						nd.rotation += Vector3(tr.spin) * dt
+						if nd.global_position.y <= float(tr.floor) + 0.02 and v.y < 0.0:
+							nd.global_position.y = float(tr.floor) + 0.02
+							v = Vector3(v.x * 0.4, -v.y * 0.25, v.z * 0.4) if absf(v.y) > 0.6 else Vector3.ZERO
+							if v == Vector3.ZERO:
+								nd.rotation = Vector3(PI * 0.5, nd.rotation.y, 0)
 					tr.vel = v
-					(tr.node as Node3D).global_position += v * dt
-				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / float(tr.life), 0.0, 1.0)
+				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / float(tr.life), 0.0, 1.0) if not tr.has("casing") else (0.0 if tr.t > 0.4 else 1.0 - tr.t / 0.4)
 			else:
 				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / 0.09, 0.0, 1.0)
 			keep.append(tr)
@@ -317,11 +328,43 @@ func spark(at: Vector3, flesh: bool, blood := Color(0.85, 0.1, 0.08)) -> void:
 		_dot(at, Color(0.6, 0.6, 0.6, 0.6), 0.08, 0.15)
 		return
 	_dot(at, blood if flesh else Color(1.0, 0.9, 0.6), 0.06, 0.12)
+	if not flesh:
+		# the bullet's mark on the surface (asset catalog §5 bullet impacts): a scorched disc that fades over a few seconds
+		_dot(at, Color(0.08, 0.07, 0.06, 0.9), 0.07, 5.0, Vector3.ZERO, true)
 	if flesh and gore == "full":
 		for i in 6:
 			var v := Vector3(randf() - 0.5, randf() * 0.8, randf() - 0.5) * 3.0
 			_dot(at, blood, 0.03 + randf() * 0.03, 0.45 + randf() * 0.3, v)
 		_dot(at - Vector3(0, 0.02, 0), Color(blood.r, blood.g, blood.b, 0.85), 0.16, 4.0, Vector3.ZERO, true)
+
+## a shell casing out of the ejection port (asset catalog §5): a brass sliver thrown to the right and up, falling and
+## tumbling for a moment; the fusion frame throws none. Capped so a long burst on the phone stays a few draws.
+const CASINGS_MAX := 14
+var _casings := 0
+func _eject(cam: Camera3D) -> void:
+	if gun().frame == "FUSION" or _casings >= CASINGS_MAX:
+		return
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.012
+	cm.bottom_radius = 0.012
+	cm.height = 0.05
+	cm.radial_segments = 6
+	cm.rings = 1
+	mi.mesh = cm
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.85, 0.65, 0.25)
+	m.metallic = 0.9
+	m.roughness = 0.35
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	var right := cam.global_transform.basis.x
+	mi.global_position = muzzle() - (-cam.global_transform.basis.z) * 0.5 + right * 0.12
+	mi.rotation = Vector3(randf() * TAU, randf() * TAU, 0)
+	var vel := right * (1.6 + randf() * 0.8) + Vector3.UP * (2.2 + randf()) + (-cam.global_transform.basis.z) * (randf() - 0.5) * 0.6
+	_casings += 1
+	_tracers.append({ "node": mi, "t": 1.6, "vel": vel, "life": 1.6, "spin": Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * 20.0, "floor": player.position.y, "casing": true })
 
 func _dot(at: Vector3, col: Color, r: float, life: float, vel := Vector3.ZERO, flat := false) -> void:
 	var mi := MeshInstance3D.new()

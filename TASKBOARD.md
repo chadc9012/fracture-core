@@ -36,7 +36,7 @@ Rows are the lock; `git fetch` before you claim.
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
-  6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5), character appearance (§4).
+  6. City infrastructure and interiors (part 2 §1–2), civilian life props (§3), combat details (§5: casings, impacts, flinch, gore done; holsters / magazines / attachments / armour damage / shields / debris / destructible cover open), character appearance (§4).
   7. ~~Vegetation / rock gaps, natural effects, VFX~~ — done in region 3D and scripts/vfx/fx.gd (see Done).
   8. ~~Fantasy & dimensional set (§9)~~ — builders landed Nov 9 (scripts/vfx/fracture_set.gd) and placed at the Rift Gate and the Neon core; still to place in the Shattered Expanse regions when they get their dressing pass.
 
@@ -47,6 +47,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Asset gap 6, combat details (§5): shell casings, bullet impact marks, enemy hit reactions (flinch) — with the gore pass, four of the ten | Godot: combat details |
 | Act 1 voiced (lead, Nov 9): the descent's cutscenes take the campaign draft's voiced lines through `Cutscene.line(id)` / `Lines` — the forest arrival (M06), Fixer Sable in Neon City (M11), Vyrak's Covenant of Ash before, during (M09_007 at the stagger) and after the fight (M09 / M10); a written beat whose speaker + text is in the index picks up its voice; tests/mission/cutscene_test.gd | Godot: Act 1 voiced |
 | Asset gap 8 (Godot): the Fracture set — crystals, floating ruins, conduits, relic container, arena ring; at the Rift Gate and the Stitched Neon Core | Godot: the Fracture set |
 | Asset gap 2 (Godot): Extraction — pvp.ts stepExtract ported into killbox_match.gd (core, carrier, pads, drop, reset, first to 3), the core and pads in the arena view, bots steer for it; shot hook takes every mode and arena | Godot: Extraction |

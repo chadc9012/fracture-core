@@ -47,6 +47,8 @@ class Enemy:
 	var goal: Variant = null
 	var cool := 0.0
 	var timer := 0.0
+	var flinch := 0.0
+	var flinch_dir := Vector3.ZERO
 	var strafe := 1.0
 	var burst_left := 0
 	var burst_cool := 0.0
@@ -328,6 +330,14 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 			m.heading = lerp_angle(m.heading, atan2(to_player.x, to_player.z), minf(1.0, 8.0 * dt))
 			if m.rig:
 				m.rig.rotation.y = m.heading
+	# the flinch: a jolt back along the shot and a lean that eases out
+	if e.flinch > 0.0:
+		e.flinch = maxf(0.0, e.flinch - dt)
+		m.position += e.flinch_dir * dt * 1.2 * e.flinch
+		if m.rig:
+			m.rig.rotation.x = -e.flinch * 0.6
+	elif m.rig and m.rig.rotation.x != 0.0:
+		m.rig.rotation.x = lerpf(m.rig.rotation.x, 0.0, minf(1.0, 10.0 * dt))
 
 func _toward(d: Vector3) -> Vector2:
 	# operator_player with cam_yaw 0: stick y walks -z, stick x walks +x
@@ -469,7 +479,11 @@ func _on_target_killed(_t: Gunplay.Target) -> void:
 
 func _on_target_hit(t: Gunplay.Target, _damage: float, head: bool) -> void:
 	if t.has_meta("enemy"):
-		_last_hitter[t.get_meta("enemy")] = OPERATOR_HIT
+		var hit_e: Enemy = t.get_meta("enemy")
+		_last_hitter[hit_e] = OPERATOR_HIT
+		# the hit reaction (asset catalog §5): a flinch — the body jolts back and recovers over a third of a second
+		hit_e.flinch = 0.35 if not head else 0.5
+		hit_e.flinch_dir = (hit_e.mover.position - player.position).normalized()
 		if head:
 			_tally("headshot", 1)
 
