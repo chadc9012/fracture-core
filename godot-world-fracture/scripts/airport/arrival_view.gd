@@ -1,7 +1,7 @@
 extends Control
 ## Off the plane in another region (airport.gd DESTINATIONS): the region in 3D, walked on foot with the shared stack (the
 ## operator, the worn guns, region_3d.gd PLAY mode), from the region's airport if it has one, else its stand point. There is
-## no terminal here yet, so weapons are as in the wilds (out once the story has armed the operator). FLIGHTS opens the
+## no terminal on this map (a region's airport is its own view: FLIGHTS walks you back in), so weapons are as in the wilds (out once the story has armed the operator). FLIGHTS opens the
 ## return desk: a one-way ticket to Nexus City or Neon City, bought and boarded on the spot (`flew(code)`).
 
 signal closed
@@ -109,7 +109,17 @@ func _flights() -> void:
 	box.add_child(t)
 	var msg := Label.new()
 	msg.modulate = Color(1.0, 0.7, 0.6)
+	if Air.AIRPORTS.has(dest):
+		# this region has its own airport: walk back into the terminal (tickets, shops, hangars there)
+		var walk := Button.new()
+		walk.text = "✈ %s · walk in" % String(Air.AIRPORTS[dest].name)
+		walk.custom_minimum_size = Vector2(0, 48)
+		walk.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		walk.pressed.connect(func(): flew.emit(dest))
+		box.add_child(walk)
 	for home in Air.AIRPORTS:
+		if home == dest:
+			continue
 		var price := Air.fare(home)
 		var b := Button.new()
 		b.text = "✈ %s (%s) · %d Nex" % [String(Air.AIRPORTS[home].name), home, price]

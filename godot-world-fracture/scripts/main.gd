@@ -286,6 +286,8 @@ func _show_from_street(view: Control) -> void:
 		_sync_later())
 	if view.has_signal("flew"):
 		view.flew.connect(_flown.bind(view))
+	if view.has_signal("outside"):
+		view.outside.connect(_walk_out.bind(view))
 	add_child(view)
 
 func _airport_view(code: String, arriving: bool) -> Control:
@@ -293,6 +295,17 @@ func _airport_view(code: String, arriving: bool) -> Control:
 	v.code = code
 	v.arriving = arriving
 	return v
+
+## walked out of a region's airport (Azure Isles, Frostveil, Solara): that region on foot
+func _walk_out(code: String, from_view: Control) -> void:
+	if _from_street != from_view:
+		return
+	var next := ArrivalView.new()
+	next.dest = code
+	_from_street = null
+	from_view.queue_free()
+	Sound.loops_stop()
+	_show_from_street(next)
 
 ## a flight took off: the old view goes, the destination opens over the street (the other airport, or a region)
 func _flown(to: String, from_view: Control) -> void:
@@ -726,6 +739,8 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_street(ac == "NEC", "neon" if ac == "NEC" else "nexus", true)
 			await get_tree().process_frame
 			_street_door("airport")
+			if ac not in ["NXC", "NEC"] and _from_street:
+				_flown(ac, _from_street)   # a region's airport: as if flown in
 			if aq.size() > 3 and _from_street:
 				var af := aq[2].split(","); var at := aq[3].split(",")
 				_from_street.look_from(Vector3(float(af[0]), float(af[1]), float(af[2])), Vector3(float(at[0]), float(at[1]), float(at[2])))

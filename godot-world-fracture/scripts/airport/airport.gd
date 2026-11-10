@@ -7,9 +7,14 @@ extends RefCounted
 ##   { "tickets": [{ "id", "from", "to", "fare" }], "hangars": { "<airport>": "<bay>" }, "aircraft": { "<airport>": [craft ids] } }
 
 ## the two international airports, after the owner's reference renders (Nexus by day, Neon City at night)
+## `street` airports open from a city street (AIRPORT EXPRESS) and leave back onto it; the others stand in a region (Nov 9,
+## the owner's network: Azure Isles, Frostveil, Solara first) — you fly in, and walk out into the region.
 const AIRPORTS := {
-	"NXC": { "name": "Nexus City International Airport", "city": "Nexus City", "region": "nexus", "style": "nexus", "night": false },
-	"NEC": { "name": "Neon City International Airport", "city": "Neon City", "region": "neon-city", "style": "neon", "night": true },
+	"NXC": { "name": "Nexus City International Airport", "city": "Nexus City", "region": "nexus", "style": "nexus", "night": false, "street": true },
+	"NEC": { "name": "Neon City International Airport", "city": "Neon City", "region": "neon-city", "style": "neon", "night": true, "street": true },
+	"AZI": { "name": "Azure Isles International Airport", "city": "Azure Isles", "region": "azure-isles", "style": "tropical", "night": false, "street": false },
+	"FRV": { "name": "Frostveil International Airport", "city": "Frostveil", "region": "frostveil", "style": "arctic", "night": false, "street": false },
+	"SOL": { "name": "Solara Desert International Airport", "city": "Solara", "region": "solara", "style": "desert", "night": false, "street": false },
 }
 ## where flights go: code -> name, the region you land in ("" = on the owner's boards but not open yet, shown and not sold),
 ## the fare in Nex, and the region's own name for arrivals. NXC / NEC land in the other airport's terminal.
@@ -55,9 +60,6 @@ static func air(profile: Dictionary) -> Dictionary:
 			a[k] = [] if k == "tickets" else {}
 	profile["air"] = a
 	return a
-
-static func other(code: String) -> String:
-	return "NEC" if code == "NXC" else "NXC"
 
 ## every destination sold from `from` (open regions only, never itself), in the order the board lists them
 static func routes(from: String) -> Array:

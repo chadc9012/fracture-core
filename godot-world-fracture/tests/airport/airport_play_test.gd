@@ -139,3 +139,29 @@ func _run() -> void:
 		y.closed.emit()
 		await _frames(6)
 	ok(m._from_street == null and m.street != null and m.street.visible, "and back to the street")
+	# a region's airport: fly to Frostveil International, walk out into Frostveil, walk back in
+	m.street._enter_door("airport")
+	await _frames(6)
+	var a: Control = m._from_street
+	Air.buy_ticket(a.profile, a.code, "FRV")
+	a._board("FRV")
+	a._flight.t = 8.0
+	await _frames(10)
+	var fr: Control = m._from_street
+	ok(fr != null and fr.get("code") == "FRV" and fr.in_region and fr.arriving and fr._snow != null, "landed at Frostveil International (snow falling)")
+	if fr == null:
+		return
+	fr._use("exit")
+	await _frames(10)
+	var out: Control = m._from_street
+	ok(out != null and out.get("dest") == "FRV" and out.operator != null, "walked out into Frostveil on foot")
+	if out == null:
+		return
+	out.flew.emit("FRV")
+	await _frames(10)
+	var back_in: Control = m._from_street
+	ok(back_in != null and back_in.get("code") == "FRV", "and back into the terminal")
+	if back_in:
+		back_in.closed.emit()
+		await _frames(6)
+	ok(m._from_street == null and m.street != null and m.street.visible, "leaving a region's airport by the menu goes back to the street")

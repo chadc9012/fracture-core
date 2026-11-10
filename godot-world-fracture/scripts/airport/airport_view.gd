@@ -16,6 +16,8 @@ extends Control
 
 signal closed
 signal flew(code: String)
+## walked out of a region's airport into the region (main.gd opens it on foot)
+signal outside(code: String)
 
 const Air := preload("res://scripts/airport/airport.gd")
 const Phone := preload("res://scripts/phone.gd")
@@ -52,9 +54,33 @@ const SHOPS := [ # id, label, z centre, colour
 ]
 const HANGAR_X := [86.0, 122.0, 158.0]         # bay centres; each 30 m wide (x), 30 m deep (z -14..16), door at z -14
 const RUNWAY_Z := -140.0
+## each airport's look (airport.gd AIRPORTS style): sky, land, apron, walls, roof, accents, trees, what stands round it
+const LOOKS := {
+	"nexus": { "top": Color(0.22, 0.45, 0.82), "hor": Color(0.72, 0.82, 0.92), "fog": Color(0.75, 0.82, 0.9), "fogd": 0.0006,
+		"land": Color(0.36, 0.5, 0.3), "apron": Color(0.62, 0.64, 0.67), "wall": Color(0.88, 0.89, 0.92), "roof": Color(0.92, 0.93, 0.95),
+		"a1": Color(0.25, 0.6, 1.0), "a2": Color(1.0, 0.82, 0.35), "tree": "palm", "skyline": "nexus", "airline": "NEXUSAIR", "extras": [] },
+	"neon": { "top": Color(0.03, 0.02, 0.08), "hor": Color(0.28, 0.1, 0.32), "fog": Color(0.25, 0.12, 0.3), "fogd": 0.0011,
+		"land": Color(0.08, 0.06, 0.12), "apron": Color(0.3, 0.28, 0.36), "wall": Color(0.25, 0.22, 0.32), "roof": Color(0.18, 0.16, 0.24),
+		"a1": Color(0.78, 0.35, 1.0), "a2": Color(0.25, 0.85, 1.0), "tree": "palm", "skyline": "neon", "airline": "NEONAIR", "extras": [] },
+	# oceanfront runways, a seaplane pier, white resorts (owner: "luxury terminals, seaplanes, resort transportation")
+	"tropical": { "top": Color(0.12, 0.45, 0.9), "hor": Color(0.62, 0.86, 0.95), "fog": Color(0.7, 0.88, 0.95), "fogd": 0.00025,
+		"land": Color(0.78, 0.66, 0.45), "apron": Color(0.8, 0.8, 0.78), "wall": Color(0.97, 0.97, 0.95), "roof": Color(0.98, 0.98, 0.97),
+		"a1": Color(0.1, 0.8, 0.78), "a2": Color(1.0, 0.55, 0.35), "tree": "palm", "skyline": "", "airline": "AZURE AIR", "extras": ["ocean", "seaplanes", "resorts"] },
+	# glaciers and snow peaks, heated (bare) runways, rescue orange (owner: "blizzards, difficult landings, rescue missions")
+	"arctic": { "top": Color(0.45, 0.55, 0.68), "hor": Color(0.86, 0.89, 0.93), "fog": Color(0.86, 0.89, 0.93), "fogd": 0.0012,
+		"land": Color(0.95, 0.97, 1.0), "apron": Color(0.66, 0.69, 0.73), "wall": Color(0.8, 0.84, 0.9), "roof": Color(0.95, 0.97, 1.0),
+		"a1": Color(0.35, 0.8, 1.0), "a2": Color(1.0, 0.5, 0.15), "tree": "conifer", "skyline": "", "airline": "FROSTLINE", "extras": ["mountains", "snow"] },
+	# sandstone and gold, solar roofs, dunes and mesas (owner: "sandstone architecture, solar roofs, desert airstrips")
+	"desert": { "top": Color(0.2, 0.45, 0.85), "hor": Color(0.92, 0.76, 0.55), "fog": Color(0.92, 0.8, 0.62), "fogd": 0.00035,
+		"land": Color(0.78, 0.56, 0.32), "apron": Color(0.74, 0.68, 0.6), "wall": Color(0.88, 0.7, 0.5), "roof": Color(0.1, 0.14, 0.28),
+		"a1": Color(1.0, 0.72, 0.25), "a2": Color(0.3, 0.75, 1.0), "tree": "palm", "skyline": "", "airline": "SOLARA AIR", "extras": ["dunes", "solar"] },
+}
 const CAFE := [["Flat white", 8], ["Cold brew", 9], ["Chicken wrap", 14], ["Fruit cup", 7]]
 
 var night := false
+var look: Dictionary
+## a region's airport (not a city street's): you walk out of it into the region
+var in_region := false
 var accent := Color(0.4, 0.8, 1.0)
 var accent2 := Color(1.0, 0.85, 0.4)
 var profile: Dictionary
@@ -84,15 +110,19 @@ var _taxi: Node3D                # an airliner forever taking off down the runwa
 var _taxi_t := 0.0
 var _crowds: Array = []
 var _hud: Label
+var _land: MeshInstance3D
+var _snow: CPUParticles3D
 var _look: Array = []            # [from, to] for a fixed look-dev camera (main.gd --shot airport:...)
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var a: Dictionary = Air.AIRPORTS.get(code, Air.AIRPORTS.NXC)
 	night = bool(a.night)
-	return_style = String(a.style)
-	accent = Color(0.78, 0.35, 1.0) if night else Color(0.25, 0.6, 1.0)
-	accent2 = Color(0.25, 0.85, 1.0) if night else Color(1.0, 0.82, 0.35)
+	look = LOOKS.get(String(a.style), LOOKS.nexus)
+	in_region = not bool(a.get("street", true))
+	return_style = "" if in_region else String(a.style)
+	accent = look.a1
+	accent2 = look.a2
 	profile = Gear.profile_load()
 	Air.air(profile)
 	gear = Gear.load_save()
@@ -122,6 +152,7 @@ func _ready() -> void:
 	_airstrip()
 	_hangars()
 	_skyline()
+	_extras()
 	_people()
 	StaticBatch.batch(static_root)
 	cam = Camera3D.new()
@@ -161,6 +192,8 @@ func _ready() -> void:
 func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
 	_step_taxi(dt)
+	if _snow and operator:
+		_snow.global_position = operator.global_position + Vector3(0, 14, 0)
 	if not _flight.is_empty():
 		_step_flight(dt)
 		return
@@ -311,7 +344,10 @@ func _use(id: String) -> void:
 	elif id.begins_with("craft:"):
 		_aircraft_panel()
 	elif id == "exit":
-		closed.emit()
+		if in_region:
+			outside.emit(code)
+		else:
+			closed.emit()
 
 func _panel_open(title: String, col: Color) -> VBoxContainer:
 	_panel = Control.new()
@@ -510,7 +546,7 @@ func _board(to: String) -> void:
 	_panel_close()
 	controls.visible = false
 	_hud.visible = false
-	var plane := _airliner(accent, "NEXUSAIR" if code == "NXC" else "NEONAIR")
+	var plane := _airliner(accent, String(look.airline))
 	plane.position = Vector3(-260, 0, RUNWAY_Z)
 	plane.rotation.y = -PI * 0.5      # nose to +x
 	world.add_child(plane)
@@ -657,9 +693,9 @@ func _environment() -> void:
 		sky.ground_bottom_color = Color(0.02, 0.01, 0.03)
 		sky.sun_angle_max = 0.0
 	else:
-		sky.sky_top_color = Color(0.22, 0.45, 0.82)
-		sky.sky_horizon_color = Color(0.72, 0.82, 0.92)
-		sky.ground_horizon_color = Color(0.6, 0.62, 0.6)
+		sky.sky_top_color = look.top
+		sky.sky_horizon_color = look.hor
+		sky.ground_horizon_color = (look.hor as Color).darkened(0.15)
 		sky.ground_bottom_color = Color(0.2, 0.2, 0.2)
 		sky.sun_angle_max = 25.0
 	var s := Sky.new()
@@ -678,8 +714,8 @@ func _environment() -> void:
 	env.glow_bloom = 0.1 if night else 0.02
 	env.glow_hdr_threshold = 1.0
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.25, 0.12, 0.3) if night else Color(0.75, 0.82, 0.9)
-	env.fog_density = 0.0011 if night else 0.0006
+	env.fog_light_color = look.fog
+	env.fog_density = look.fogd
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
@@ -712,15 +748,18 @@ func _environment() -> void:
 func _ground() -> void:
 	# the land round the airport out to the city: grass verges by day, dark ground at night
 	var land := MeshInstance3D.new()
+	_land = land
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(5000, 5000)
 	land.mesh = pm
 	land.position = Vector3(0, -0.25, -300)
-	land.material_override = Materials.surface("rubber_tiles", Color(0.36, 0.5, 0.3) if not night else Color(0.08, 0.06, 0.12), 12.0, 1.0)
+	land.material_override = Materials.surface("rubber_tiles" if look.tree == "palm" and code in ["NXC", "NEC"] else "brushed_concrete", look.land, 12.0, 1.0)
 	land.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(land)
 	# the airstrip's concrete, everything outside the building
-	_box(Vector3(900, 0.2, 520), Vector3(0, -0.1, -110), Materials.surface("brushed_concrete", Color(0.62, 0.64, 0.67) if not night else Color(0.3, 0.28, 0.36), 6.0))
+	# the airside concrete: apron, gates and hangar fronts (the runway and taxiway are asphalt over the land)
+	_box(Vector3(440, 0.2, 210), Vector3(15, -0.1, -79), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.18), 6.0))
+	_box(Vector3(130, 0.2, 60), Vector3(0, -0.1, 50), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.18), 6.0))
 	# the terminal's floor
 	_box(Vector3(96, 0.12, 56), Vector3(0, 0.0, -2), Materials.pbr("marble_tiles", Color(0.92, 0.92, 0.94) if not night else Color(0.55, 0.5, 0.65), 3.0, 0.5))
 	# the forecourt plaza and the road
@@ -734,7 +773,7 @@ func _ground() -> void:
 func _terminal() -> void:
 	var frame := _mat(Color(0.78, 0.8, 0.84) if not night else Color(0.2, 0.2, 0.26), 0.35, 0.8)
 	var glass := _glass(Color(0.55, 0.75, 0.95) if not night else Color(0.5, 0.3, 0.8))
-	var wall := Materials.pbr("painted_plaster_wall", Color(0.88, 0.89, 0.92) if not night else Color(0.25, 0.22, 0.32), 3.0)
+	var wall := Materials.pbr("brick_4" if look == LOOKS.desert else "painted_plaster_wall", look.wall, 3.0)
 	# the facade (z 26): a glass curtain wall on mullions, open at the doors (x -7..7)
 	for side in [-1.0, 1.0]:
 		var cx: float = side * 27.5
@@ -824,7 +863,7 @@ func _roof(frame: Material) -> void:
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
-	var m := _mat(Color(0.92, 0.93, 0.95) if not night else Color(0.18, 0.16, 0.24), 0.4, 0.55)
+	var m := _mat(look.roof, 0.25 if look == LOOKS.desert else 0.4, 0.85 if look == LOOKS.desert else 0.55)   # Solara's roof is solar panels
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mi.material_override = m
 	world.add_child(mi)
@@ -903,13 +942,13 @@ func _forecourt() -> void:
 		car.position = Vector3(-8, 0.1, 48)
 		car.rotation.y = PI * 0.5
 		static_root.add_child(car)
-	_spot("exit", "CITY SHUTTLE · BACK TO THE STREET", Vector3(8, 0, 43.0))
+	_spot("exit", ("EXIT · %s ON FOOT" % String(Air.AIRPORTS[code].city).to_upper()) if in_region else "CITY SHUTTLE · BACK TO THE STREET", Vector3(8, 0, 43.0))
 	_box(Vector3(3.2, 0.1, 1.6), Vector3(8, 3.2, 43.0), _mat(Color(0.2, 0.22, 0.25), 0.4, 0.5))
 	_box(Vector3(2.6, 0.5, 0.06), Vector3(8, 2.75, 43.6), _glow(accent2, 2.4))
-	_text("CITY SHUTTLE", Vector3(8, 3.8, 43.0), 64, accent2, 0.0, null, true)
+	_text("EXIT · %s" % String(Air.AIRPORTS[code].city).to_upper() if in_region else "CITY SHUTTLE", Vector3(8, 3.8, 43.0), 64, accent2, 0.0, null, true)
 
 func _palm(at: Vector3, seed: int) -> void:
-	var p := _model("res://models/foliage/palm-%s.glb" % ["a", "b", "c"][posmod(seed, 3)])
+	var p := _model("res://models/foliage/conifer.glb") if look.tree == "conifer" else _model("res://models/foliage/palm-%s.glb" % ["a", "b", "c"][posmod(seed, 3)])
 	_cyl(1.0, 0.7, at + Vector3(0, 0.35, 0), _mat(Color(0.5, 0.52, 0.55), 0.6, 0.3), null, 1.1)
 	obstacles.append(AABB(at - Vector3(1.0, 0, 1.0), Vector3(2.0, 0.7, 2.0)))
 	if p:
@@ -1034,7 +1073,7 @@ func _gates() -> void:
 		_box(Vector3(3.2, 3.2, 18), Vector3(x, 4.6, -39.5), jb)
 		_box(Vector3(0.6, 3.0, 0.6), Vector3(x, 1.5, -46), jb)
 		_box(Vector3(3.3, 0.15, 18.1), Vector3(x, 6.2, -39.5), _glow(accent, 1.5))
-		var plane := _airliner(accent if i % 2 == 0 else accent2, "NEXUSAIR" if code == "NXC" else "NEONAIR")
+		var plane := _airliner(accent if i % 2 == 0 else accent2, String(look.airline))
 		plane.position = Vector3(x + 6.0, 0, -66)
 		plane.rotation.y = PI     # nose to the terminal
 		static_root.add_child(plane)
@@ -1158,7 +1197,7 @@ func _airstrip() -> void:
 			world.add_child(o)
 			lit += 1
 	# the airliner on the runway (always rolling, for life)
-	_taxi = _airliner(accent2, "NEXUSAIR" if code == "NXC" else "NEONAIR")
+	_taxi = _airliner(accent2, String(look.airline))
 	_taxi.rotation.y = -PI * 0.5
 	world.add_child(_taxi)
 
@@ -1238,6 +1277,8 @@ func _craft_model(id: String, length: float) -> Node3D:
 
 # --------------------------------------------------------------------------------------------- the city behind and the people
 func _skyline() -> void:
+	if String(look.skyline) == "":
+		return
 	var files := ["nexus-spire", "nexus-civic-a", "nexus-civic-b", "nexus-civic-c", "nexus-terrace-a", "nexus-terrace-b"] if not night else \
 		["neon-tower-a", "neon-tower-b", "neon-tower-c", "neon-v-A", "neon-v-B", "neon-v-C"]
 	var rng := RandomNumberGenerator.new()
@@ -1271,3 +1312,141 @@ func _people() -> void:
 		world.add_child(c)
 		c.setup(int(36 * n), float(s[0]), float(s[1]), float(s[2]), float(s[3]), int(s[4]))
 		_crowds.append(c)
+
+# --------------------------------------------------------------------------------------------- what stands round a region's airport
+func _extras() -> void:
+	var ex: Array = look.extras
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(code)
+	if "ocean" in ex:
+		# an island: the land stops short of the runway ends, which run out over the lagoon on piers
+		(_land.mesh as PlaneMesh).size = Vector2(760, 620)
+		_land.position = Vector3(0, -0.25, -120)
+		var sea := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(6000, 6000)
+		sea.mesh = pm
+		var w := StandardMaterial3D.new()
+		w.albedo_color = Color(0.0, 0.4, 0.58)
+		w.metallic = 0.4
+		w.roughness = 0.06
+		sea.material_override = w
+		sea.position = Vector3(0, -0.7, -300)
+		sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		world.add_child(sea)
+		var shallows := MeshInstance3D.new()
+		var sp := PlaneMesh.new()
+		sp.size = Vector2(840, 700)
+		shallows.mesh = sp
+		shallows.material_override = _mat(Color(0.1, 0.62, 0.66), 0.1, 0.2)
+		shallows.position = Vector3(0, -0.5, -120)
+		world.add_child(shallows)
+		for side in [-1.0, 1.0]:   # the runway's pier ends
+			for k in 5:
+				_cyl(1.2, 3.0, Vector3(side * (390.0 + k * 8.0), -1.5, RUNWAY_Z), _mat(Color(0.7, 0.7, 0.68), 0.6))
+	if "seaplanes" in ex:
+		var pier := Vector3(392, 0, -20)
+		_box(Vector3(80, 0.5, 5), pier + Vector3(40, 0.1, 0), Materials.pbr("brown_planks_03", Color(0.9, 0.85, 0.75), 4.0))
+		for k in 9:
+			_cyl(0.3, 2.4, pier + Vector3(5.0 + k * 9.0, -1.0, 2.6), _mat(Color(0.4, 0.32, 0.25), 0.8), null, -1, 8)
+			_cyl(0.3, 2.4, pier + Vector3(5.0 + k * 9.0, -1.0, -2.6), _mat(Color(0.4, 0.32, 0.25), 0.8), null, -1, 8)
+		_text("SEAPLANE TERMINAL", pier + Vector3(6, 4.5, 0), 120, accent2, 0.0, null, true)
+		for k in 3:
+			var sp := _airliner(accent if k != 1 else accent2, String(look.airline))
+			sp.scale = Vector3.ONE * 0.32
+			sp.position = pier + Vector3(25.0 + k * 22.0, -0.3, 10.0 if k % 2 == 0 else -10.0)
+			sp.rotation.y = PI * 0.5
+			for side in [-1.0, 1.0]:   # floats
+				var f := _cyl(0.6, 9.0, Vector3(side * 2.4, 0.4, 0), _mat(Color(0.95, 0.95, 0.95), 0.3), sp)
+				f.rotation.x = PI * 0.5
+			static_root.add_child(sp)
+	if "resorts" in ex:
+		for k in 7:
+			var at := Vector3(-330.0 + k * 22.0, 0, -320.0 - (k % 3) * 18.0)
+			var h := rng.randf_range(10, 26)
+			_box(Vector3(18, h, 12), at + Vector3(0, h * 0.5, 0), _mat(Color(0.97, 0.97, 0.95), 0.5))
+			for f in int(h / 3.2):
+				_box(Vector3(18.2, 0.35, 12.2), at + Vector3(0, 2.2 + f * 3.2, 0), _mat(Color(0.2, 0.75, 0.75), 0.2, 0.3))
+			_palm(at + Vector3(12, 0, 8), k)
+		for k in 30:   # palms all over the island
+			var at := Vector3(rng.randf_range(-360, 360), 0, rng.randf_range(-400, 170))
+			if absf(at.z - RUNWAY_Z) < 40.0 or (at.z > -110.0 and at.z < 30.0 and at.x > -130.0 and at.x < 230.0) or (absf(at.x) < 70.0 and at.z > 20.0):
+				continue
+			_palm(at, k + 11)
+	if "mountains" in ex:
+		var rock := _mat(Color(0.45, 0.5, 0.58), 0.9)
+		var snowcap := _mat(Color(0.95, 0.97, 1.0), 0.6)
+		for k in 16:
+			var a := -PI * 0.15 - k * PI * 0.7 / 15.0 - PI * 0.5
+			var r := rng.randf_range(900, 1300)
+			var at := Vector3(cos(a) * r, 0, sin(a) * r)
+			var h := rng.randf_range(260, 520)
+			var base := rng.randf_range(220, 380)
+			_cyl(base, h, at + Vector3(0, h * 0.5, 0), rock, null, 0.0, 9).rotation.y = rng.randf() * TAU
+			_cyl(base * 0.42, h * 0.42, at + Vector3(0, h * 0.79, 0), snowcap, null, 0.0, 9).rotation.y = rng.randf() * TAU
+		for k in 40:   # pines in the snow beyond the fences
+			var at := Vector3(rng.randf_range(-420, 420), 0, rng.randf_range(-440, 200))
+			if absf(at.z - RUNWAY_Z) < 45.0 or (at.z > -120.0 and at.z < 30.0 and at.x > -140.0 and at.x < 230.0) or (absf(at.x) < 70.0 and at.z > 20.0):
+				continue
+			_palm(at, k)
+	if "snow" in ex:
+		_snow = CPUParticles3D.new()
+		_snow.set_meta("dynamic", true)
+		_snow.amount = int(900 * Phone.crowd()) + 200
+		_snow.lifetime = 6.0
+		_snow.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+		_snow.emission_box_extents = Vector3(45, 2, 45)
+		_snow.direction = Vector3(0.3, -1, 0.1)
+		_snow.spread = 12.0
+		_snow.gravity = Vector3(0.4, -1.2, 0)
+		_snow.initial_velocity_min = 1.2
+		_snow.initial_velocity_max = 2.4
+		_snow.local_coords = false
+		var q := QuadMesh.new()
+		q.size = Vector2(0.07, 0.07)
+		var qm := StandardMaterial3D.new()
+		qm.albedo_color = Color(1, 1, 1, 0.9)
+		qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		q.material = qm
+		_snow.mesh = q
+		world.add_child(_snow)
+		# snow drifts along the walls and on the hangar roofs
+		for x in HANGAR_X:
+			_box(Vector3(26, 0.6, 12), Vector3(x, 15.0, 1), _mat(Color(0.97, 0.98, 1.0), 0.7))
+		_box(Vector3(120, 0.5, 2.0), Vector3(0, 0.25, 79), _mat(Color(0.97, 0.98, 1.0), 0.7))
+	if "dunes" in ex:
+		var sand := _mat(Color(0.8, 0.58, 0.34), 0.95)
+		for k in 26:
+			var a := rng.randf() * TAU
+			var r := rng.randf_range(520, 1400)
+			var d := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 1.0
+			sm.height = 2.0
+			d.mesh = sm
+			d.material_override = sand
+			d.position = Vector3(cos(a) * r, -4.0, sin(a) * r - 150.0)
+			d.scale = Vector3(rng.randf_range(80, 200), rng.randf_range(14, 40), rng.randf_range(40, 110))
+			d.rotation.y = rng.randf() * TAU
+			static_root.add_child(d)
+		var mesa := _mat(Color(0.72, 0.4, 0.25), 0.95)
+		for k in 7:
+			var a := -PI * 0.5 + rng.randf_range(-1.2, 1.2)
+			var r := rng.randf_range(900, 1500)
+			var h := rng.randf_range(90, 180)
+			var w := rng.randf_range(120, 260)
+			_cyl(w, h, Vector3(cos(a) * r, h * 0.5, sin(a) * r), mesa, null, w * 0.82, 10)
+	if "solar" in ex:
+		# solar fields beside the forecourt and along the apron fence
+		var panel := _mat(Color(0.06, 0.1, 0.24), 0.15, 0.85)
+		var frame := _mat(Color(0.75, 0.75, 0.78), 0.4, 0.8)
+		for row in 6:
+			for side in [-1.0, 1.0]:
+				var at := Vector3(side * (90.0 + row * 9.0), 1.4, 52.0)
+				var p := _box(Vector3(5.0, 0.12, 40.0), at, panel)
+				p.rotation.z = -0.45
+				_box(Vector3(0.2, 1.4, 40.0), at + Vector3(0, -0.8, 0), frame)
+		for k in 14:   # the gold-sandstone trim on the terminal's long walls
+			_box(Vector3(0.5, 1.2, 0.5), Vector3(-45.0 + k * 7.0, WALL_H + 0.6, 26.4), _mat(Color(0.95, 0.75, 0.4), 0.5, 0.4))

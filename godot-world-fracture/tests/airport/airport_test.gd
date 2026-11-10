@@ -46,5 +46,9 @@ func _init() -> void:
 	# saves round-trip through JSON (ints come back as floats)
 	var back: Dictionary = JSON.parse_string(JSON.stringify(rich))
 	check("state survives a JSON save", Air.owns_hangar(back, "NXC") and Air.aircraft_at(back, "NXC").size() == 1 and Air.buy_hangar(back, "NEC", "H1").begins_with("Hangar"))
+	# the network: two city airports off the streets, three in regions, every airport also a destination
+	check("city airports open from streets", Air.AIRPORTS.NXC.street and Air.AIRPORTS.NEC.street and not Air.AIRPORTS.FRV.street)
+	check("every airport is a destination with its own region", Air.AIRPORTS.keys().all(func(c): return Air.DESTINATIONS.has(c) and Air.DESTINATIONS[c].region == Air.AIRPORTS[c].region))
+	check("a hangar can be leased at a region airport", Air.buy_hangar({ "nex": 9000 }, "SOL", "H3").begins_with("Hangar H3"))
 	print("ALL PASS" if ok else "SOME FAILED")
 	quit(0 if ok else 1)
