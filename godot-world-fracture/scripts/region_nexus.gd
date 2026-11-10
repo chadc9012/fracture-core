@@ -12,6 +12,9 @@ static func dress(r: Node) -> void:
 	_courts(r)
 	_harbor(r)
 	_stadiums(r)
+	_southreach(r)
+	_eastpoint(r)
+	_villas(r)
 
 # ---------------------------------------------------------------------------------------------------------------- falls
 
@@ -205,13 +208,16 @@ static func _harbor(r: Node) -> void:
 	var orange := _mat(Color("#e8742b"), 0.0, 0.3, 0.5)
 	var blue := _mat(Color("#2b6fe8"), 0.0, 0.3, 0.5)
 	var lamp := _mat(Color("#fff0b5"), 3.0)
-	# the quay line: from the dock ring back toward the land, find the shore
+	# the quay: the harbour apron nearest the dock ring; the cranes stand along its sea edge, booms out over the water
 	var shore := dock
-	for s in range(0, 80, 2):
-		var q := dock + Vector2(0, -float(s))
-		if r._h(q.x, q.y) > r._water + 0.5:
-			shore = q
-			break
+	var best := INF
+	for pv in r.m.pavements:
+		if String(pv[5]) != "apron":
+			continue
+		var at: Vector2 = r._loc(float(pv[0]), float(pv[1]))
+		if at.distance_to(dock) < best:
+			best = at.distance_to(dock)
+			shore = at + Vector2(0, float(pv[3]) - 3.0)
 	var gy: float = r._h(shore.x, shore.y)
 	for k in 4:
 		var c := Node3D.new()
@@ -282,6 +288,152 @@ static func _stadiums(r: Node) -> void:
 			var p := Vector3(cos(a) * (rad + 5.0), 0, sin(a) * (rad + 5.0) * 0.78)
 			_part(root, BoxMesh.new(), stand, p + Vector3(0, 11.0, 0), Vector3(0.8, 22.0, 0.8))
 			_part(root, BoxMesh.new(), lamp, p + Vector3(0, 22.5, 0), Vector3(3.0, 1.6, 0.6), Vector3(0, -a, 0))
+
+## a named building's spot on the map (local), or INF
+static func _named(r: Node, name: String) -> Vector2:
+	for bd in r.m.buildings:
+		if bd.size() > 7 and String(bd[7]) == name:
+			return r._loc(float(bd[0]), float(bd[1]))
+	return Vector2.INF
+
+## Southreach: three arched hangars along the airfield, a radar dish turning on its tower, a comms mast with red lights
+static func _southreach(r: Node) -> void:
+	var hq := _named(r, "Nexus Defense HQ")
+	if hq == Vector2.INF:
+		return
+	var steel := _mat(Color("#7c8a7a"), 0.0, 0.5, 0.5)
+	var dark := _mat(Color("#2d3530"))
+	var white := _mat(Color("#e9eef2"), 0.0, 0.3, 0.4)
+	var red := _mat(Color("#ff3b30"), 4.0)
+	for rd in r.m.roads:
+		if String(rd.get("name", "")) != "Southreach Airfield":
+			continue
+		var a: Vector2 = r._loc(float(rd.pts[0][0]), float(rd.pts[0][1]))
+		var b: Vector2 = r._loc(float(rd.pts[1][0]), float(rd.pts[1][1]))
+		var dir := (b - a).normalized()
+		var nrm := Vector2(-dir.y, dir.x)
+		for k in 3:
+			var at := a.lerp(b, 0.25 + 0.25 * k) + nrm * 26.0
+			var gy: float = r._h(at.x, at.y)
+			var h := Node3D.new()
+			h.position = Vector3(at.x, gy, at.y)
+			h.rotation.y = atan2(dir.x, dir.y)
+			r._world.add_child(h)
+			var arch := CylinderMesh.new()
+			arch.top_radius = 8.0
+			arch.bottom_radius = 8.0
+			arch.height = 22.0
+			arch.radial_segments = 16
+			_part(h, arch, steel, Vector3(0, 0, 0), Vector3(1, 1, 0.75), Vector3(0, 0, PI * 0.5)).rotation = Vector3(PI * 0.5, 0, 0)
+			_part(h, BoxMesh.new(), dark, Vector3(0, 3.0, 11.05), Vector3(10.0, 6.0, 0.2))
+	# the radar: a turning dish on a lattice tower beside the HQ
+	var rt := hq + Vector2(-40, -30)
+	var gy2: float = r._h(rt.x, rt.y)
+	var tower := Node3D.new()
+	tower.position = Vector3(rt.x, gy2, rt.y)
+	r._world.add_child(tower)
+	_part(tower, BoxMesh.new(), steel, Vector3(0, 7.0, 0), Vector3(2.4, 14.0, 2.4))
+	var turn := Node3D.new()
+	turn.position = Vector3(0, 15.0, 0)
+	turn.set_meta("spin", 0.8)
+	tower.add_child(turn)
+	r._spin.append(turn)
+	var dish := SphereMesh.new()
+	dish.radius = 4.5
+	dish.height = 2.2
+	dish.is_hemisphere = true
+	_part(turn, dish, white, Vector3(0, 0, 1.0), Vector3.ONE, Vector3(-PI * 0.4, 0, 0))
+	# the comms mast with its red lights
+	var mt := hq + Vector2(30, -36)
+	var gy3: float = r._h(mt.x, mt.y)
+	_part(r._world, BoxMesh.new(), white, Vector3(mt.x, gy3 + 18.0, mt.y), Vector3(0.8, 36.0, 0.8))
+	for y in [12.0, 24.0, 36.5]:
+		_part(r._world, SphereMesh.new(), red, Vector3(mt.x, gy3 + y, mt.y), Vector3.ONE * 0.9)
+
+## Eastpoint: smokestacks banded red and white with smoke rising, and round storage tanks beside the steelworks
+static func _eastpoint(r: Node) -> void:
+	var works := _named(r, "Nexus Steelworks")
+	var yard := _named(r, "Logistics Center")
+	if works == Vector2.INF:
+		return
+	var brick := _mat(Color("#8c4a3a"), 0.0, 0.0, 0.8)
+	var white := _mat(Color("#e8e8e8"))
+	var red := _mat(Color("#c0392b"))
+	var tank := _mat(Color("#cfd6dc"), 0.0, 0.6, 0.35)
+	var smoke := _mat(Color(0.75, 0.75, 0.78, 0.35))
+	smoke.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	smoke.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 6262
+	for k in 3:
+		var at := works + Vector2(-22.0 + k * 22.0, -26.0)
+		var gy: float = r._h(at.x, at.y)
+		var h := 34.0 + k * 6.0
+		var stack := CylinderMesh.new()
+		stack.top_radius = 1.6
+		stack.bottom_radius = 2.4
+		stack.height = h
+		stack.radial_segments = 14
+		_part(r._world, stack, brick, Vector3(at.x, gy + h * 0.5, at.y))
+		var band := CylinderMesh.new()
+		band.top_radius = 1.7
+		band.bottom_radius = 1.75
+		band.height = 3.0
+		band.radial_segments = 14
+		_part(r._world, band, red, Vector3(at.x, gy + h - 5.0, at.y))
+		_part(r._world, band, white, Vector3(at.x, gy + h - 2.0, at.y))
+		for i in 4:
+			var puff := SphereMesh.new()
+			puff.radius = 2.5 + i * 1.6
+			puff.height = (2.5 + i * 1.6) * 1.6
+			_part(r._world, puff, smoke, Vector3(at.x + i * 2.5, gy + h + 3.0 + i * 4.5, at.y - i * 1.2))
+	var base := yard if yard != Vector2.INF else works + Vector2(40, 40)
+	for k in 5:
+		var at := base + Vector2(-30.0 + (k % 3) * 18.0, 24.0 + float(k / 3) * 18.0)
+		var gy: float = r._h(at.x, at.y)
+		var t := CylinderMesh.new()
+		t.top_radius = 6.5
+		t.bottom_radius = 6.5
+		t.height = 9.0
+		t.radial_segments = 20
+		_part(r._world, t, tank, Vector3(at.x, gy + 4.5, at.y))
+
+## the Azure Keys' villas: a turquoise pool beside each and a pier out to the water
+static func _villas(r: Node) -> void:
+	var keys := Vector2.INF
+	for p in r.m.pois:
+		if String(p.id) == "nr-keys":
+			keys = r._loc(float(p.x), float(p.z))
+	if keys == Vector2.INF:
+		return
+	var pool := _mat(Color("#2fd3e0"), 0.6, 0.2, 0.05)
+	var deck := _mat(Color("#c9a77a"))
+	var wood := _mat(Color("#8a6a48"))
+	for bd in r.m.buildings:
+		if String(bd[5]) != "house":
+			continue
+		var at: Vector2 = r._loc(float(bd[0]), float(bd[1]))
+		if at.distance_to(keys) > 420.0:
+			continue
+		# the way to the water: the first of 12 directions that reaches it within 30 m
+		var to := Vector2.ZERO
+		for k in 12:
+			var d := Vector2(cos(k * TAU / 12.0), sin(k * TAU / 12.0))
+			if r._h(at.x + d.x * 22.0, at.y + d.y * 22.0) < r._water - 0.3:
+				to = d
+				break
+		if to == Vector2.ZERO:
+			continue
+		var gy: float = r._h(at.x, at.y)
+		var side := Vector2(-to.y, to.x)
+		var pp := at + side * 7.0
+		_part(r._world, BoxMesh.new(), deck, Vector3(pp.x, r._h(pp.x, pp.y) + 0.15, pp.y), Vector3(6.0, 0.3, 6.0))
+		_part(r._world, BoxMesh.new(), pool, Vector3(pp.x, r._h(pp.x, pp.y) + 0.32, pp.y), Vector3(4.2, 0.1, 4.2))
+		var a := at + to * 5.0
+		var b := at + to * 24.0
+		var mid := (a + b) * 0.5
+		var pier := _part(r._world, BoxMesh.new(), wood, Vector3(mid.x, r._water + 0.6, mid.y), Vector3(1.6, 0.3, a.distance_to(b)))
+		pier.rotation.y = atan2(to.x, to.y)
 
 static func _disc(rad: float) -> CylinderMesh:
 	var d := CylinderMesh.new()
