@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ibco1msswybu"
-path="res://.godot/imported/civ-female.glb-c85d64040d883d820059592fc44f5624.scn"
+uid="uid://b2hgpb73l1avu"
+path="res://.godot/imported/civ-nyx-male.glb-976a25fe026fb33f5f4eda812d31d4dc.scn"
 
 [deps]
 
-source_file="res://models/operators/bodies/civ-female.glb"
-dest_files=["res://.godot/imported/civ-female.glb-c85d64040d883d820059592fc44f5624.scn"]
+source_file="res://models/operators/bodies/civ-nyx-male.glb"
+dest_files=["res://.godot/imported/civ-nyx-male.glb-976a25fe026fb33f5f4eda812d31d4dc.scn"]
 
 [params]
 

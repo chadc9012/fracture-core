@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cu15gkcgavaxc"
-path="res://.godot/imported/civ-male.glb-3a75ea9251db600ec8ac6bbfe767802d.scn"
+uid="uid://d1pe663g2i02a"
+path="res://.godot/imported/civ-cipher-male.glb-cb12616204b04e49f3b7951e41f4d11f.scn"
 
 [deps]
 
-source_file="res://models/operators/bodies/civ-male.glb"
-dest_files=["res://.godot/imported/civ-male.glb-3a75ea9251db600ec8ac6bbfe767802d.scn"]
+source_file="res://models/operators/bodies/civ-cipher-male.glb"
+dest_files=["res://.godot/imported/civ-cipher-male.glb-cb12616204b04e49f3b7951e41f4d11f.scn"]
 
 [params]
 

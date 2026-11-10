@@ -45,7 +45,7 @@ func build(new_look: Dictionary, animate := true) -> void:
 	look = new_look
 	for c in get_children():
 		c.free()
-	var ps: PackedScene = load(Catalog.body_path(look.frame, look.body))
+	var ps: PackedScene = load(Catalog.body_path(look.frame, look.body, bool(look.get("civ", false))))
 	body_root = ps.instantiate()
 	add_child(body_root)
 	skeleton = _find(body_root, "Skeleton3D")

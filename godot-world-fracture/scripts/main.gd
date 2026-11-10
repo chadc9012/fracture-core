@@ -823,6 +823,11 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_settings()
 		if String(o) == "operator":
 			_open_profile()
+		# creator[:<tab>]  the operator creator on a tab (body by default)
+		if String(o).begins_with("creator"):
+			_open_creator()
+			if String(o).contains(":"):
+				creator.show_tab(String(o).get_slice(":", 1).to_upper())
 		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default); :fight holds fire
 		if String(o).begins_with("boss"):
 			boss_arena = BossArena.new()

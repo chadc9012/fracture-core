@@ -62,8 +62,15 @@ static func swatch(key: String, id: String) -> Variant:
 	var hex: String = s.get("hex", "")
 	return Color(hex) if hex != "" else null
 
-static func body_path(frame: String, body: String) -> String:
+static func body_path(frame: String, body: String, civ := false) -> String:
+	# in regular clothes (the creator, home in Mission 01): the same build dressed in a sweater, jeans and trainers
+	# (scripts/build-operator-civilian.py); a robot has no other clothes
+	if civ and body != "robot":
+		return "res://models/operators/bodies/civ-%s-%s.glb" % [frame, body]
 	return "res://models/operators/bodies/%s-%s.glb" % [frame, body]
+
+## the creator calls the three builds by the body they make, not by the armour that is fitted to them later
+const BUILDS := { "nyx": ["SLIM", "Lean and light"], "cipher": ["ATHLETIC", "Average height, fit"], "goliath": ["HEAVY", "Broad, big frame"] }
 
 static func head_path(id: String) -> String:
 	return "res://models/operators/heads/%s.glb" % id

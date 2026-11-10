@@ -219,7 +219,7 @@ func dress(civ: bool) -> void:
 	civilian = civ
 	if civ:
 		look = look.duplicate(true)
-		look.frame = "civ"
+		look.civ = true
 		look.headgear = "none"
 	rig.build(look)
 	_lock_root_motion()

@@ -11,8 +11,11 @@ const Catalog := preload("res://scripts/character/catalog.gd")
 const Store := preload("res://scripts/character/character_store.gd")
 const Rig := preload("res://scripts/character/character_rig.gd")
 const FaceMorphs := preload("res://scripts/character/face_morphs.gd")
-const TABS := ["BODY", "FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS", "GEAR"]
-const FACE_TABS := ["FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS", "GEAR"]
+# the creator makes the person: body, face, skin, hair, facial hair and markings, shown in regular clothes. Armour and gear
+# are not chosen here (owner, Nov 10: "operators creator shouldn't have a armor option"); the build picked here is the
+# one the armour is fitted to in the game
+const TABS := ["BODY", "FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS"]
+const FACE_TABS := ["FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS"]
 
 var look: Dictionary = {}
 var tab := "BODY"
@@ -239,7 +242,12 @@ func _stage_input(e: InputEvent) -> void:
 		turn += (e as InputEventScreenDrag).relative.x * 0.01
 
 func _rebuild() -> void:
-	rig.build(look)
+	# the person in regular clothes: no armour, no gear
+	var shown := look.duplicate(true)
+	shown.civ = true
+	shown.headgear = "none"
+	shown.wear = []
+	rig.build(shown)
 
 func _changed(rebuild_panel := false) -> void:
 	_dirty = true
@@ -316,19 +324,20 @@ func _fill() -> void:
 	var robot: bool = look.body == "robot"
 	match tab:
 		"BODY":
-			_section("BODY TYPE")
+			_section("GENDER")
 			var g := _grid(3)
 			for b: String in ["male", "female", "robot"]:
 				_choice(g, b.to_upper(), look.body == b, func() -> void:
 					look = Store.clean({"frame": look.frame, "body": b, "name": look.get("name", ""), "face": Catalog.faces(b)[0].id if Catalog.faces(b).size() else ""}, true)
 					_changed(true))
-			_section("FRAME")
-			for fr: Dictionary in Catalog.frames():
-				var fid: String = fr.id
-				_choice(_content, "%s — %s" % [fr.label, fr.blurb], look.frame == fid, func() -> void:
+			_section("BODY TYPE")
+			var gb := _grid(3)
+			for fid: String in ["nyx", "cipher", "goliath"]:
+				var bl: Array = Catalog.BUILDS[fid]
+				_choice(gb, String(bl[0]), look.frame == fid, func() -> void:
 					look.frame = fid
 					look.head = look.head if not robot else Catalog.default_head(fid, "robot")
-					_changed(true))
+					_changed(true), String(bl[1]))
 		"FACE":
 			if robot:
 				_section("HEAD")
@@ -435,32 +444,4 @@ func _fill() -> void:
 						marks.append(mid)
 					look.marks = marks
 					_changed(true), m.blurb)
-		"GEAR":
-			_section("FACE")
-			var g7 := _grid(2)
-			for a: Dictionary in Catalog.list("accessories"):
-				var aid: String = a.id
-				_choice(g7, a.label, look.accessory == aid, func() -> void:
-					look.accessory = aid
-					_changed(true), a.blurb)
-			_section("HEAD")
-			var g8 := _grid(2)
-			for h: Dictionary in Catalog.list("headgear"):
-				var gid: String = h.id
-				_choice(g8, h.label, look.headgear == gid, func() -> void:
-					look.headgear = gid
-					_changed(true), h.blurb)
-			if look.body != "robot":
-				_section("WEAR")
-				var g9 := _grid(2)
-				for w: Dictionary in Rig.WEAR:
-					var wid: String = w.id
-					var on: bool = wid in look.get("wear", [])
-					_choice(g9, ("✓ " if on else "") + String(w.label), on, func() -> void:
-						var wear: Array = look.get("wear", []).duplicate()
-						if wid in wear:
-							wear.erase(wid)
-						else:
-							wear.append(wid)
-						look.wear = wear
-						_changed(true), w.blurb)
+
