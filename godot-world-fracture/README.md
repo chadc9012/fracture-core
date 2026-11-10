@@ -289,6 +289,27 @@ plazas and campuses, figures over the shops, emblems over the venues (Nexus, Neo
 nearby). `energy_field()` is a hex-plated dome with a bright rim, rising pulses and a glow where it meets the ground —
 over research stations (blue) and the vaults and bunkered bases (amber), sized to the buildings under it.
 
+**Cinematics and voiced dialogue** (owner, Nov 9: "give it a Destiny feel … visuals for the cutaway and cutscenes for
+storyline audio for dialogue"; two packages, see `docs/story/dialogue-integration.md`):
+- `scripts/cinema/cutscene.gd` plays in-engine cutscenes on a shot list: camera moves between positions and look-at
+  targets (or following Callables), letterbox bars, a filmic grade (vignette, teal-and-amber split, grain, chromatic
+  fringe with the shake), wide-tracked title cards, voiced subtitles, score cues and effects from `audio/cinema/`,
+  comic-style art cutaways, tap to advance and hold to skip. A newer `play()` takes over from one already running.
+- `scripts/cinema/lines.gd` is the voiced-line index (`data/dialogue/voices.json`): every line of the owner's campaign
+  draft and of Mission 01's opening, by id or by [speaker, text]. PLAYER lines play in the voice of the body the player
+  built (`_m` / `_f` / `_r`). The mission's subtitles look every line up and play it, holding the subtitle for the line.
+- `scripts/cinema/barks.gd`: ambient voices in every region's Street View (AMB_*), and one-off calls (`say(id)`; the
+  races use it).
+- Mission 01 (`scripts/mission/m01_cinema.gd`): "The Day the World Fractured" — sunrise over Nexus City and the
+  apartment on a new game; the news, the disturbance, the sky splitting and NOVA's interface when the player watches
+  the news (now the last step of a morning at home); the broken stairwell on 12 (the draft's Missions 01–02, the first
+  power) the first time the player takes the stairs in the alarm; the new world and the title after the Breach.
+  Captures: `--shot … m1:op-0`, `m1:fr-4` (from that shot index), `m1:fp-0`, `m1:nw-0`; `Mission.skip_cinema` skips them
+  (the play test sets it).
+- Voices: `tools/make_voices.py` (Piper local TTS from github.com/rhasspy/piper v0.0.2 voices, a cast voice per speaker,
+  per-character treatment in ffmpeg; the owner's ten recordings from `assets-src/voices-provided/` are kept as
+  recorded). Music and effects: `tools/make_cinema_audio.py` (synthesized). Re-run either after changing the lines.
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through
@@ -315,6 +336,64 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 (the audio buses, for step 8), a simple HUD switch. The globe stays the travel map (WORLD MAP). The loop is played
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
+
+**Combat details** (asset catalog part 2 §5, Nov 9): shell casings eject from every shot (brass slivers thrown right and
+up, tumbling, landing and lying for a moment; the fusion frame throws none; capped at 14 live so a burst on the phone
+stays a few draws), bullet impacts leave a scorched disc on surfaces for five seconds, and enemies **flinch** when hit — a
+jolt back along the shot and a lean that eases out (more for a headshot). With the gore setting and the blood colours
+that makes four of the ten on the board; holsters, magazines, attachments, armour damage, energy shields, debris and
+destructible cover remain.
+
+**The Fracture set** (`scripts/vfx/fracture_set.gd`, Nov 9; asset catalog part 2 §9): builders for the fantasy and
+dimensional dressing — emissive crystal clusters (one MultiMesh), floating ruins that drift and turn, energy conduits
+with a scrolling core and rings, a relic container ringed with blinking inscriptions, and `arena_ring` for boss arena
+structures (broken pillars, cables overhead to a halo, crystals, ruins). Placed at the Rift Gate's fight (centred on the
+operator and the boss) and around the Stitched Neon Core (four pylons feeding the crown). Rift tears, the portal, the
+hologram and the energy field were already in `scripts/vfx/fx.gd` and `region_flora.gd`; the Shattered Expanse regions
+can take the set when they get their pass. The Rift Gate measures 247 draws / 0.73 M triangles on medium.
+
+**Extraction** (Killbox, Nov 9; asset-gap item 2 closed): `killbox_match.gd` kind `extract` ports pvp.ts `stepExtract` —
+the data core drops at the arena's objective, a team standing on it unopposed for 1.2 s takes it, the carrier runs it to
+their own pad (the middle of their spawns, 4 m), it drops where the carrier goes down, lies 15 s untouched then resets
+home; kills do not score; first to 3. `arena_view.gd` draws the core (a lit cube that rides over the carrier) and the two
+EXTRACT pads, feeds the rules everyone's position, steers the bots (the carrier for its pad, the carrier's team around it,
+the other team at the carrier or the loose core) and toasts the core's events. Ranked plays as Dominion to 150. Only
+Fracture Royale is still hidden from the Godot picker. `tests/killbox/modes_test.gd` covers the rules.
+
+**Ship** (schedule step 13, Nov 9, prepared): the `Godot APK` workflow gained a **release** job (run it by hand from the
+Actions tab once the signing keystore is in the repository secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_USER`,
+`ANDROID_KEYSTORE_PASS`) — a release-signed APK, version code from the run number, published as the `godot-release`
+release; without the secrets it stops at the keystore step and says what to add. The `godot-latest` debug build keeps
+publishing on every push with up-to-date notes. **Store screenshots** at phone resolution (1080 × 2340) are rendered
+by the shot hooks into `docs/store/` (title, the Nexus street, Killbox, the Rift Gate, Skyways, Vyrak at the core, the
+operator panel). Left for the owner: the keystore, the phone fps reading, and the cloud save checked both ways on the
+phone (`cloud` from the title: sign in, save, load on the Mac).
+
+**Polish, first pass** (schedule step 12, Nov 9 — the known items while the owner's playtest list is awaited): the
+**simple phone HUD** (settings "Simple phone HUD", on by default; `touch_controls.gd simple()`) keeps the stick, FIRE,
+JUMP and ENTER: sprint is the stick pushed to its edge, a tap on the weapon's name swaps, an empty magazine reloads
+itself on the pull; RELOAD / SWAP / SPRINT come back with the switch off. The **gore** setting (OFF / REDUCED / FULL,
+default reduced) drives `gunplay.spark`: off is a grey puff, reduced one spark in the target's colour, full a spray of
+droplets that fall and a splash that lingers; colours follow the owner's board — troopers red, machines (drones) cyan
+coolant, Fracture creatures violet, wildlife green (a target's `blood` meta). Kills return half a magazine to every
+carried gun (`gunplay.scavenge`).
+
+**Act 1: the story past the forest** (`scripts/mission/descent.gd`, `cutscene.gd`, schedule step 11, Nov 9): the Fracture
+Descent now runs fd-02 to fd-07, the web chain's words and rewards (quests.ts). After the forest, **fd-05 Crossing the
+Shrouded Swamps** (region `swamps`, from the Drowned Ruins: hold out 90 s in the fog while patrols come out of the reeds,
+then purge the Drowned Relay's three guards), **fd-06 Signals in the Static** (Neon City, the Underlink: hold the Blackout
+Protocol terminal 30 s while the district answers with drones, heat rising), **fd-07 Full Lockdown** (Neon City, the
+Directorate: three lockdown waves at the Stitched Neon Core, then **Vyrak, the Ashen Covenant** as the act boss — the
+Rift Gate's boss rules and hull, counted as a Rift Gate clear). Each quest names its world; moving on rebuilds the
+region under the same operator, guns, troopers and gear (wildlife in the wilds only). **Cutscenes** (`cutscene.gd`:
+letterbox, an orbiting camera, speaker and caption, tap to advance, SKIP) open each quest and carry the owner's
+recordings — Mara at the crash site, Dr Aris's World Anchor log from the terminal, Serik Vale's recording at the core,
+Vaelith's first contact as the act's last word (Act 2 is the Ember Peaks) — with Vyrak's lines from dragon-covenant.ts
+before and after the fight. The beats speak: `Cutscene.line(id)` takes a voiced campaign line (`scripts/cinema/lines.gd`; the forest arrival M06, Fixer
+Sable in Neon City M11, Vyrak's Covenant of Ash M09 / M10 before, at the stagger and after the fight — the owner's
+canon over the web's placeholder lines), and a written beat whose speaker and text are in the index is voiced too.
+`tests/mission/descent_play.tscn` plays the whole act headless: the forest on foot, the
+crossing, the fog skipped forward, the relay, the terminal under drones, three waves, Vyrak shot down, the Covenant.
 
 **Economy and progression** (`scripts/progress/`, schedule step 10, Nov 9): one profile. Every mode pays through
 `progression.gd` `grant()` — Killbox (a win 250 + 25 Nex a kill to 600, a loss 100 + 15; XP likewise), the Rift Gate
@@ -430,3 +509,26 @@ blocks (`Nexus.in_frontage`, `_court_here`, `_in_mouth`). Apex Gear and Rusty Tr
 `shop_stock` / `buy_offer` (a daily stock); Cylinder & Co opens the garage on the `ironworks` shop. The casino is Neon
 City's alone (the Neon City Grand Casino on the Neon hub). Shots: `--shot slicewalk:court=<id>[:still]`. Test:
 `godot --headless --path godot-world-fracture --script res://tests/city/nexus_walk_test.gd`.
+
+## Airports (owner, Nov 9)
+
+Nexus City International (NXC, by day) and Neon City International (NEC, at night), after the owner's three reference
+renders. The street's AIRPORT EXPRESS stop opens the city's own airport (`scripts/airport/airport_view.gd`): the
+forecourt with the globe fountain, the check-in hall (TICKETS: one-way economy fares, refunds at 90%), the departures
+board (`airport.gd departures`, live clock), the shops (Sky Duty Free → Nova Threads outfits, Aero Gear → Apex stock,
+Cloud Nine Café), security (three lanes: through with a boarding pass from this airport or a hangar lease here), the
+gate lounge with six gates and jet bridges, the apron door, the apron, taxiway and runway, the control tower and three
+private hangars. **Weapons are stowed landside, in the terminal, the shops and the lounge; they come out on the
+airstrip (apron / runway) and inside a hangar you lease**, and only once the story has armed the operator (Mission 01's
+Surge). A leased hangar opens its door, keeps the aircraft you buy (helicopter / jet / airship) and has a target range;
+YOUR AIRCRAFT → FLY takes one out over that city in Skyways (`skyways_view.gd region_id`). BOARD at your ticket's gate
+plays the take-off and main.gd opens the destination: the other airport's arrivals hall (leaving it puts you on that
+city's street) or the region on foot (`arrival_view.gd`, with a FLIGHTS desk home). Region airports (Nov 9, the owner's network, first three): Azure Isles International (AZI: island, lagoon, runway ends on
+piers, seaplane terminal, resorts), Frostveil International (FRV: snow, falling snow, glaciers and peaks, pines, rescue
+orange) and Solara Desert International (SOL: sandstone walls, a solar-panel roof, solar fields, dunes and mesas). Flights
+to them land in their terminal; the forecourt EXIT walks you out into the region (`outside` signal → arrival_view.gd),
+and that view's FLIGHTS desk walks you back in. Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
+(state in the profile under `air`, so it rides the cloud save); add an airport as an `AIRPORTS` row and a destination
+as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove, Obsidian
+Reach). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
+whole trip through main.gd). Shots: `--shot airport[:NXC|NEC[:x,y,z:tx,ty,tz]]`.

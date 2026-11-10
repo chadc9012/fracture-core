@@ -65,3 +65,11 @@ static func radio_line() -> String:
 static func voice(id: String) -> void:
 	if inst:
 		inst.voice(id)
+
+## play a voiced line by its file (scripts/cinema/lines.gd path()); returns its length in seconds, 0 if none
+static func voice_path(path: String) -> float:
+	return inst.voice_path(path) if inst else 0.0
+
+static func voice_stop() -> void:
+	if inst:
+		inst.voice_stop()

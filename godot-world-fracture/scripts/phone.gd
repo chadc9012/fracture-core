@@ -108,7 +108,9 @@ static func fit_viewport(vp: SubViewport) -> void:
 			vp.scaling_3d_scale = scale
 			_views.append(vp)
 			vp.positional_shadow_atlas_size = 2048
-			vp.mesh_lod_threshold = 4.0
+			# 4 px simplified meshes until they shattered (owner's phone test, Nov 9): the Meshy city models and the bodies
+			# import without LODs now (their faces split into shards when simplified) and the rest keep a gentler threshold
+			vp.mesh_lod_threshold = 2.0
 		_:
 			vp.msaa_3d = Viewport.MSAA_4X
 

@@ -1,0 +1,72 @@
+[
+  {
+    "speaker": "NEWS",
+    "text": "Good morning, Nexus City. Authorities are investigating unusual atmospheric disturbances reported overnight.",
+    "panel": 0,
+    "audio": "res://audio/00.ogg",
+    "duration": 8.72
+  },
+  {
+    "speaker": "PLAYER",
+    "text": "What was that?",
+    "panel": 0,
+    "audio": "res://audio/01.ogg",
+    "duration": 1.94
+  },
+  {
+    "speaker": "NEWS",
+    "text": "We are receiving reports of an unidentified phenomenon above the central district.",
+    "panel": 2,
+    "audio": "res://audio/02.ogg",
+    "duration": 5.89
+  },
+  {
+    "speaker": "PLAYER",
+    "text": "What the hell?",
+    "panel": 2,
+    "audio": "res://audio/03.ogg",
+    "duration": 1.84
+  },
+  {
+    "speaker": "NOVA",
+    "text": "Neural synchronization detected.",
+    "panel": 1,
+    "audio": "res://audio/04.ogg",
+    "duration": 3.19
+  },
+  {
+    "speaker": "PLAYER",
+    "text": "Who said that?",
+    "panel": 1,
+    "audio": "res://audio/05.ogg",
+    "duration": 1.99
+  },
+  {
+    "speaker": "NOVA",
+    "text": "My designation is Nova. There is not time to explain.",
+    "panel": 1,
+    "audio": "res://audio/06.ogg",
+    "duration": 4.98
+  },
+  {
+    "speaker": "PLAYER",
+    "text": "Explain what?",
+    "panel": 1,
+    "audio": "res://audio/07.ogg",
+    "duration": 1.99
+  },
+  {
+    "speaker": "NOVA",
+    "text": "Your reality is collapsing. You need to move. Now.",
+    "panel": 2,
+    "audio": "res://audio/08.ogg",
+    "duration": 5.06
+  },
+  {
+    "speaker": "NOVA",
+    "text": "And whatever you do, do not touch the fractures.",
+    "panel": 3,
+    "audio": "res://audio/09.ogg",
+    "duration": 4.12
+  }
+]

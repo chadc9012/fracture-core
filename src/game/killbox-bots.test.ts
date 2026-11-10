@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { ARENAS, FRACTURE_FLOOR, KAIJU_COMPLEX, KILLBOX_PRIME, extractionSites, spawnPoint, surfaceAt, type KillboxArena } from "./killbox-arenas";
-import { ALLY_NAMES, BOT, allyCount, clearShot, fieldUnits, newBots, resetAllies, rivalCount, routeVia, stairsFrom, stepBots, walkable, zonePresence, type BotsState, type RivalView } from "./killbox-bots";
+import { ALLY_NAMES, BOT, allyCount, clearShot, fieldUnits, newBots, roundPresence, resetAllies, rivalCount, routeVia, stairsFrom, stepBots, walkable, zonePresence, type BotsState, type RivalView } from "./killbox-bots";
 import { PVP_MODES, ZONE_RADIUS, newPvp, stepPvp, type PvpModeId } from "./pvp";
 import type { RivalClass } from "./crucible";
 
@@ -24,7 +24,7 @@ function playOut(arena: KillboxArena, mode: PvpModeId, seconds = 900) {
     }
     playerHurt += o.playerDamage; allyDeaths += o.allyDeaths;
     const killsNow = rivals.filter((r) => !r.alive).length;
-    stepPvp(st, { dt, kills: PVP_MODES[mode].kind === "ffa" ? 0 : fell, died: false, px: player.x, pz: player.z, rivalsAlive: n - killsNow, allyDeaths: o.allyDeaths, ...(PVP_MODES[mode].kind === "zones" ? { presence: zonePresence(bots, st, player, ZONE_RADIUS) } : {}), ...(PVP_MODES[mode].kind === "extract" ? { units: fieldUnits(bots, player) } : {}) });
+    stepPvp(st, { dt, kills: PVP_MODES[mode].kind === "ffa" ? 0 : fell, died: false, px: player.x, pz: player.z, rivalsAlive: n - killsNow, allyDeaths: o.allyDeaths, ...(PVP_MODES[mode].kind === "zones" ? { presence: zonePresence(bots, st, player, ZONE_RADIUS) } : {}), ...(PVP_MODES[mode].kind === "extract" ? { units: fieldUnits(bots, player) } : {}), ...(PVP_MODES[mode].kind === "rounds" ? roundPresence(bots, arena, ZONE_RADIUS) : {}) });
     if (st.round !== round) { round = st.round; resetAllies(bots, arena); for (const [i, r] of rivals.entries()) { const p = spawnPoint(arena, "them", [], i); Object.assign(r, { x: p.x, z: p.z, alive: true, hp: 9 }); } }
   }
   return { st, bots, allyDeaths, rivalDeaths, playerHurt };

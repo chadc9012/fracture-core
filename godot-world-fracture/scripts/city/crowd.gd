@@ -90,6 +90,12 @@ void vertex() {
 	c_skin = skins[int(fract(hsh * 7.31) * 5.0) % 5];
 }
 void fragment() {
+	// people right at the camera dissolve (screen-door dither), so nobody fills the frame as a mannequin or gets cut by
+	// the near plane when the camera swings past them
+	float near_cam = smoothstep(2.6, 5.0, length(VERTEX));
+	vec2 fc = floor(FRAGCOORD.xy);
+	float ign = fract(52.9829189 * fract(0.06711056 * fc.x + 0.00583715 * fc.y));   // interleaved gradient noise
+	if (near_cam < 1.0 && ign > near_cam) { discard; }
 	vec3 col = part > 1.5 ? vec3(0.04, 0.03, 0.03) : (part > 0.5 ? c_trousers : c_jacket);
 	ALBEDO = mix(col, c_skin, skin);
 	ROUGHNESS = mix(part > 0.5 && part < 1.5 ? 0.85 : 0.6, 0.5, skin);

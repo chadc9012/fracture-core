@@ -9,12 +9,16 @@ extends "res://scripts/city/street_slice.gd"
 
 signal finished
 
+const TouchPad := preload("res://scripts/player/touch_controls.gd")
 const Story := preload("res://scripts/mission/m01_story.gd")
 const Player := preload("res://scripts/mission/player.gd")
 const Echo := preload("res://scripts/mission/echo.gd")
 const Rig := preload("res://scripts/character/character_rig.gd")
 const CStore := preload("res://scripts/character/character_store.gd")
 const Materials := preload("res://scripts/city/materials.gd")
+const Cutscene := preload("res://scripts/cinema/cutscene.gd")
+const Cinema := preload("res://scripts/mission/m01_cinema.gd")
+const Lines := preload("res://scripts/cinema/lines.gd")
 const SAVE := "user://mission01.json"
 const PROFILE := "user://profile.json"
 
@@ -58,6 +62,16 @@ var _complete_shown := false
 var profile := { "xp": 0, "nex": 0, "level": 1 }
 var touch := false
 var _mouse_captured := false
+## the cinematics (m01_cinema.gd on cutscene.gd); tests and shot captures set skip_cinema to jump straight past them
+static var skip_cinema := false
+var _cs: Control
+var _cine_props := {}
+var _stairwell := {}
+var _alarm_set := false
+var _hall_said := false
+var _first_power := false
+var _siren: AudioStreamPlayer
+var _shout_t := 4.0
 
 # HUD
 var hud: Control
@@ -130,6 +144,8 @@ func _ready() -> void:
 	_lounge()
 	_lobby()
 	_interior_skyline()
+	_cine_props = { "cracks": Cinema.window_cracks(self), "tear": Cinema.sky_tear(self), "nova": Cinema.nova_ui(self, APT + Vector3(5.0, 0, -2.4)) }
+	_stairwell = Cinema.stairwell(self)
 	world = street_root
 	we = WorldEnvironment.new()
 	_vp3.add_child(we)
@@ -144,6 +160,13 @@ func _ready() -> void:
 	_cine_cam.far = 2500.0
 	street_root.add_child(_cine_cam)
 	_build_hud()
+	_cs = Cutscene.new()
+	add_child(_cs)
+	_cs.cam = _cine_cam
+	_siren = AudioStreamPlayer.new()
+	_siren.bus = "SFX"
+	_siren.volume_db = -18.0
+	add_child(_siren)
 	_load()
 	if story.phase == "DONE":
 		_go_street(RES_DOOR + Vector3(3, 0, 0), -PI / 2, false)
@@ -151,10 +174,13 @@ func _ready() -> void:
 		op.set_powers(3)
 	elif story.phase == "ALARM":
 		_go_room("hall", HALL + Vector3(0, 0, 4), PI, false)
-		_alarm_on()
+		_after_fracture(false)
 	else:
 		_go_room("apt", APT + Vector3(-5.4, 0, -1.4), -1.25, false)
-		_say([["", "Apartment 1204. Morning light through the glass. Just another day in Nexus City."]])
+		if story.done.is_empty() and not skip_cinema:
+			_play_opening.call_deferred()
+		else:
+			_say([["", "Apartment 12-04. Morning light through the glass. Just another day in Nexus City."]])
 	_update_hud()
 
 # --------------------------------------------------------------------------------------------- saving
@@ -263,7 +289,14 @@ func _text(t: String, pos: Vector3, yaw: float, c: Color, size := 64, px := 0.00
 	return l
 
 ## a Meshy hero model (models/city/<file>) scaled to `height`, with a collision box round it; false when it isn't there
+## Meshy furniture whose meshes my in-browser decimation (Nov 8) tore apart (the faces no longer join, so the sofa, the
+## island and the bed read as shredded — bug sweep, Nov 9): the apartment builds its own pieces instead, until they are
+## regenerated from Meshy
+const TORN := ["bed.glb", "sofa.glb", "kitchen-island.glb"]
+
 func _hero(file: String, height: float, pos: Vector3, yaw_deg: float, solid := true) -> Node3D:
+	if file in TORN:
+		return null
 	var h := prop(file, height, pos, yaw_deg)
 	if h and solid:
 		var sz: Vector3 = h.get_meta("size")
@@ -613,6 +646,11 @@ func _apartment() -> void:
 	# the door to the corridor, and the number
 	_box(Vector3(1.1, 2.3, 0.1), c + Vector3(1.0, 1.15, 5.42), Materials.pbr("wood_floor", Color(0.2, 0.15, 0.12), 1.0, 0.5))
 	_text("12-04", c + Vector3(1.0, 2.55, 5.36), PI, GOLD, 48, 0.006)
+	var envelope := _box(Vector3(0.24, 0.01, 0.16), c + Vector3(0.6, 0.01, 4.95), flat(Color(0.95, 0.93, 0.88), 0.7))
+	envelope.rotation.y = 0.4
+	_interact("apt", c + Vector3(0.4, 0, 4.4), 1.0, "Pick up the envelope", func() -> void:
+		envelope.visible = false
+		_morning("mail"), func() -> bool: return _todo("mail"), "mail")
 	_interact("apt", c + Vector3(1.0, 0, 4.8), 1.4, "Go out to the corridor", func() -> void: _go_room("hall", HALL + Vector3(1.0, 0, -6.0), 0.0), func() -> bool: return true, "to_hall")
 
 var _news: ShaderMaterial
@@ -624,6 +662,7 @@ func _news_mat() -> ShaderMaterial:
 shader_type spatial;
 render_mode unshaded;
 uniform float alarm = 0.0;
+uniform float noise = 0.0;
 void fragment() {
 	vec2 uv = UV;
 	vec3 bg = mix(vec3(0.05, 0.12, 0.3), vec3(0.1, 0.25, 0.5), uv.y);
@@ -631,6 +670,9 @@ void fragment() {
 	float anchor = smoothstep(0.2, 0.18, length((uv - vec2(0.3, 0.55)) * vec2(1.0, 1.6)));
 	vec3 c = bg + vec3(0.9, 0.2, 0.25) * ticker * 0.5 + vec3(0.8, 0.7, 0.6) * anchor;
 	c = mix(c, vec3(1.0, 0.1, 0.1) * (0.5 + 0.5 * sin(TIME * 8.0)), alarm);
+	// the signal lost: snow and rolling bars
+	float sn = fract(sin(dot(floor(uv * vec2(160.0, 90.0)) + floor(TIME * 24.0), vec2(12.9898, 78.233))) * 43758.5453);
+	c = mix(c, vec3(sn) * (0.7 + 0.3 * step(0.5, fract(uv.y * 3.0 + TIME * 1.7))), noise * (1.0 - alarm));
 	ALBEDO = c * 1.4;
 }
 """
@@ -665,7 +707,9 @@ func _hallway() -> void:
 	_text("EXIT · STAIRS", c + Vector3(0, 2.6, -12.85), 0.0, Color(0.2, 1.0, 0.3), 40, 0.006)
 	_interact("hall", c + Vector3(0, 0, -11.8), 1.6, "Emergency stairs", func() -> void:
 		if story.phase == "ALARM":
-			_say([["", "Twelve flights of dark stairwell. On 11, a slab of ceiling blocks the way down. The only way through is the Sky Lounge."]])
+			if not _first_power:
+				await _play_first_power()
+			_say([["", "Down the stairwell. On 11 the flight is gone — the only way on is through the Sky Lounge."]])
 			_go_room("lounge", LOUNGE + Vector3(-5.5, 0, 4.0), PI * 0.8)
 		else:
 			_go_room("lobby", LOBBY + Vector3(9.0, 0, -6.0), -PI / 2), func() -> bool: return true, "stairs")
@@ -746,14 +790,14 @@ func _lobby() -> void:
 	_armchair(c + Vector3(-10.4, 0, 3.4), 120.0, Color(0.55, 0.53, 0.56))
 	_solid(Vector3(1.8, 0.4, 1.0), c + Vector3(-6.6, 0.2, 4.8), _stone_top())
 	_person("mara", "woman.glb", c + Vector3(-5.0, 0, 5.2), PI * 0.8, func() -> void: _npc("mara", "f-athletic", "female", "nyx", c + Vector3(-5.0, 0, 5.2), PI * 0.8))
-	_interact("lobby", c + Vector3(-5.0, 0, 5.2), 2.0, "Say hi to Mara", func() -> void: _morning("neighbour"), func() -> bool: return _todo("neighbour"), "neighbour")
+	_interact("lobby", c + Vector3(-5.0, 0, 5.2), 2.0, "Say hi to Mara", func() -> void: _say([["MARA", "Morning, neighbor! Coffee in the Sky Lounge later? Eleventh floor. Don't be late."]]), func() -> bool: return story.phase == "MORNING", "neighbour")
 	# the mail room alcove (west wall): a grid of lockers
 	_solid(Vector3(0.6, 3.0, 6.0), c + Vector3(-12.6, 1.5, -2.0), flat(Color(0.2, 0.2, 0.22), 0.4, 0.6))
 	for r in 5:
 		for k in 8:
 			_box(Vector3(0.04, 0.5, 0.65), c + Vector3(-12.28, 0.5 + r * 0.55, -4.6 + k * 0.72), flat(Color(0.55, 0.56, 0.6), 0.25, 0.9))
 	_text("MAIL & PACKAGES", c + Vector3(-12.26, 3.4, -2.0), PI / 2, Color(0.6, 0.85, 1.0), 64, 0.008)
-	_interact("lobby", c + Vector3(-11.4, 0, -2.0), 1.8, "Pick up your mail", func() -> void: _morning("mail"), func() -> bool: return _todo("mail"), "mail")
+	_interact("lobby", c + Vector3(-11.4, 0, -2.0), 1.8, "Pick up your mail", func() -> void: _say([["", "Nothing in the box today. Whatever came for 12-04 came to the door."]]), func() -> bool: return story.phase == "MORNING", "mailbox")
 	# elevators (west, north end) and the stair door (east, north end)
 	for dz: float in [-1.2, 0.0, 1.2]:
 		_box(Vector3(0.08, 2.6, 1.0), c + Vector3(-12.85, 1.3, -7.0 + dz * 0.0 + dz), flat(GOLD, 0.2, 1.0))
@@ -828,21 +872,103 @@ func _interact(rm: String, at: Vector3, r: float, label: String, act: Callable, 
 	_interacts.append({ "room": rm, "at": at, "r": r, "label": label, "act": act, "cond": cond, "tag": tag })
 
 func _todo(step: String) -> bool:
-	return story.phase == "MORNING" and not story.done.has(step)
+	return story.phase == "MORNING" and not story.done.has(step) and Story.MORNING.any(func(st: Dictionary) -> bool: return st.id == step)
 
 func _morning(step: String) -> void:
+	if step == Story.LAST and story.news_ready():
+		# the news is the Fracture: the cinematic, then the escape
+		story.mark(step, _now)
+		_save()
+		_update_hud()
+		await _play_cine(Cinema.fracture(self, _cine_props))
+		_after_fracture(true)
+		return
 	var lines := story.mark(step, _now)
-	_say(lines, story.phase == "ALARM")
-	if story.phase == "ALARM":
-		_alarm_on()
+	_say(lines)
 	_save()
 	_update_hud()
+
+# --------------------------------------------------------------------------------------------- the cinematics
+## play a shot list (m01_cinema.gd) with the HUD down and the player held; skip_cinema skips it outright
+func _play_cine(shots: Array) -> void:
+	if skip_cinema:
+		return
+	_busy = true
+	op.frozen = true
+	op.move = Vector2.ZERO
+	op.fire_held = false
+	hud.visible = false
+	_lines.clear()
+	_line_t = 0.0
+	_next_line()
+	_release_mouse()
+	_cs.play(shots)
+	await _cs.finished
+	_cs.music("")
+	hud.visible = true
+	op.frozen = false
+	op.cam.current = true
+	_busy = false
+
+func _play_opening() -> void:
+	# a capture (shot()) or a story beat may already be playing something; the opening is only for a fresh morning
+	if _cs.playing or story.phase != "MORNING" or not story.done.is_empty():
+		return
+	await _play_cine(Cinema.opening(self))
+	if room != "apt" or story.phase != "MORNING":
+		return   # stopped by a jump to another moment
+	_set_world(false)
+	_say([["", "Apartment 12-04. Just another day in Nexus City."]])
+
+## after the Fracture (played, skipped or loaded from a save): the cracks, the split sky, the dead TV, the buckled door,
+## the alarm, the siren; NOVA's interface closes and the building's warnings and Mara's call come through
+func _after_fracture(fresh: bool) -> void:
+	if _alarm_set:
+		return
+	_alarm_set = true
+	_alarm_on()
+	(_cine_props.cracks as Node3D).visible = true
+	var tear: MeshInstance3D = _cine_props.tear
+	tear.visible = true
+	(tear.material_override as ShaderMaterial).set_shader_parameter("open", 1.0)
+	(_cine_props.nova as Node3D).visible = false
+	_news_mat().set_shader_parameter("noise", 1.0)
+	var mother: Node3D = _stairwell.get("mother")
+	if mother:
+		mother.visible = true
+	_siren.stream = load("res://audio/cinema/siren.ogg")
+	if _siren.stream is AudioStreamOggVorbis:
+		(_siren.stream as AudioStreamOggVorbis).loop = true
+	_siren.play()
+	if fresh:
+		op.global_position = APT + Vector3(2.0, 0.05, 2.6)
+		op.snap_camera(PI)
+		_say(Story.ALARM_LINES.duplicate(), true)
+	_update_hud()
+
+## the stairwell on 12, the first time: the mother, the slab, the first power
+func _play_first_power() -> void:
+	_first_power = true
+	op.global_position = HALL + Vector3(0.0, 0.05, -10.4)
+	op.velocity = Vector3.ZERO
+	op.snap_camera(0.0)
+	await _play_cine(Cinema.first_power(self, _stairwell))
+	if is_instance_valid(_stairwell.get("body")):
+		(_stairwell.body as Node).queue_free()
+	(_stairwell.slab as Node3D).visible = false
+	for k in ["mother", "child"]:
+		var n: Node3D = _stairwell.get(k)
+		if n:
+			n.visible = false
 
 func _go_room(rm: String, at: Vector3, yaw: float, fade := true) -> void:
 	if fade:
 		await _fade_out()
 	room = rm
 	_set_world(false)
+	if rm == "hall" and story.phase == "ALARM" and not _hall_said:
+		_hall_said = true
+		_say(Story.HALL_LINES.duplicate())
 	op.global_position = at + Vector3(0, 0.05, 0)
 	op.velocity = Vector3.ZERO
 	op.snap_camera(yaw)
@@ -888,7 +1014,11 @@ func _fade_in() -> void:
 	_busy = false
 
 # --------------------------------------------------------------------------------------------- the alarm
+var _alarm_lit := false
 func _alarm_on() -> void:
+	if _alarm_lit:
+		return
+	_alarm_lit = true
 	_news_mat().set_shader_parameter("alarm", 1.0)
 	# every interior light goes red and pulses; the sun dims to a bruised violet through the glass
 	for l in int_root.find_children("*", "OmniLight3D", true, false):
@@ -911,6 +1041,7 @@ func _alarm_on() -> void:
 func _exit_to_street() -> void:
 	if not story.exit_building(_now):
 		return
+	_siren.stop()
 	_save()
 	await _fade_out()
 	room = "street"
@@ -1189,9 +1320,14 @@ func _on_echo_died(e: Node3D) -> void:
 	elif _echoes.is_empty():
 		_story_event("wave_clear")
 
+var _low_call := -99.0
 func _on_hurt(_h: float) -> void:
 	if story.phase == "DAZED":
 		_story_event("threat")
+	# NOVA's combat call (the owner's campaign draft, COMBAT_003) when the operator is hurting, not more than every 25 s
+	elif story.phase in ["SURGE", "ANCHOR"] and op.hp < 45.0 and _now - _low_call > 25.0:
+		_low_call = _now
+		_say([Lines.pair("COMBAT_003")])
 
 func _story_event(ev: String) -> void:
 	var before := story.phase
@@ -1200,7 +1336,7 @@ func _story_event(ev: String) -> void:
 	if story.phase != before:
 		# NOVA's first words are the owner's recorded line (audio/voices); the rest of the beat is captions
 		if story.phase == "SURGE":
-			Sound.voice("nova-first-contact")
+			_cs.sfx("surge", -3.0)
 		elif story.phase == "DAZED":
 			Sound.sfx("portal", -4.0)
 		elif story.phase == "CLEAR":
@@ -1215,10 +1351,11 @@ func _on_phase() -> void:
 			_burst(op.global_position + Vector3(0, 1.0, 0), Color(0.3, 0.85, 1.0), 24)
 		if story.phase != "DAZED" or _echoes.is_empty():
 			_spawn_wave.call_deferred()
-	if story.phase == "DONE":
-		_mission_complete()
 	_save()
 	_update_hud()
+	if story.phase == "DONE" and not _complete_shown:
+		await _play_cine(Cinema.new_world(self))
+		_mission_complete()
 
 var _dropped_before := false
 func _mission_complete() -> void:
@@ -1344,6 +1481,13 @@ func _process(delta: float) -> void:
 					var s: float = c.get_meta("spin")
 					(c as Node3D).rotation += Vector3(s, s * 0.7, 0) * delta
 					(c as Node3D).position.y = fmod((c as Node3D).position.y + delta * s * 0.4, 7.0)
+	# the corridor in the alarm: residents shouting somewhere down the hall between the lines
+	if room == "hall" and story.phase == "ALARM" and not _busy:
+		_shout_t -= delta
+		if _shout_t <= 0.0 and _line_t <= 0.0:
+			_shout_t = randf_range(5.0, 9.0)
+			var sid: String = ["M01X_SHOUT_1", "M01X_SHOUT_2", "M01X_SHOUT_3"][randi() % 3]
+			_cs.sfx_path(Lines.path(sid), -9.0)
 	# the cinematic
 	if _cine_t >= 0.0:
 		_cinematic(delta)
@@ -1428,11 +1572,17 @@ func _next_line() -> void:
 		_sub_text.get_parent().visible = false
 		return
 	var l: Array = _lines.pop_front()
-	_sub_name.text = String(l[0])
+	_sub_name.text = String(l[0]) if String(l[0]) != "PLAYER" else "YOU"
 	_sub_name.add_theme_color_override("font_color", { "NOVA": Color(0.4, 0.9, 1.0), "MARA": Color(1.0, 0.7, 0.4), "ELLIS": GOLD, "BUILDING": Color(1.0, 0.35, 0.3), "NEXUS ALERT": Color(1.0, 0.35, 0.3) }.get(String(l[0]), Color(0.85, 0.85, 0.9)))
 	_sub_text.text = String(l[1])
 	_sub_text.get_parent().visible = true
 	_line_t = clampf(String(l[1]).length() * 0.06, 2.6, 6.5)
+	# the voiced lines (scripts/cinema/lines.gd): the subtitle stays up as long as the line is spoken
+	var id := Lines.find(String(l[0]), String(l[1]))
+	if id != "":
+		var d := Sound.voice_path(Lines.path(id))
+		if d > 0.0:
+			_line_t = d + 0.35
 
 # --------------------------------------------------------------------------------------------- input
 func _read_input() -> void:
@@ -1675,7 +1825,10 @@ func _build_hud() -> void:
 	_btns.append(back)
 	var use := Data.button("USE", true)
 	_place(use, Control.PRESET_CENTER, -70, 100, 140, 52)
-	use.pressed.connect(_use)
+	if touch:
+		TouchPad.bind(use, _use)
+	else:
+		use.pressed.connect(_use)
 	hud.add_child(use)
 	_btns.append(use)
 	use.name = "USE"
@@ -1691,12 +1844,12 @@ func _build_hud() -> void:
 			match p[0]:
 				"FIRE":
 					_fire_btn = b
-					b.button_down.connect(func() -> void: op.fire_held = true)
-					b.button_up.connect(func() -> void: op.fire_held = false)
-				"BLAST": b.pressed.connect(func() -> void: op.blast())
-				"DASH": b.pressed.connect(func() -> void: op.dash())
-				"MELEE": b.pressed.connect(func() -> void: op.melee())
-				"RELOAD": b.pressed.connect(func() -> void: op.reload())
+					TouchPad.bind(b, func() -> void: op.fire_held = true, func() -> void: op.fire_held = false)
+				# every pad button answers any finger, so it works with a thumb on the move stick
+				"BLAST": TouchPad.bind(b, func() -> void: op.blast())
+				"DASH": TouchPad.bind(b, func() -> void: op.dash())
+				"MELEE": TouchPad.bind(b, func() -> void: op.melee())
+				"RELOAD": TouchPad.bind(b, func() -> void: op.reload())
 	_location_text()
 
 func _update_hud() -> void:
@@ -1848,22 +2001,64 @@ func _draw_minimap() -> void:
 # --------------------------------------------------------------------------------------------- shots (testing)
 ## jump straight to a moment: "apt", "lobby", "hall", "lounge", "street", "cine", "dazed", "surge", "anchor", "done"
 func shot(moment: String) -> void:
+	_cs.stop()
+	# cutscene captures: "op-2" plays the opening from its third shot, "fr-5" the Fracture from its sixth, "fp-4" the
+	# stairwell, "nw-1" the new world
+	if moment.length() > 3 and moment[2] == "-":
+		var from := int(moment.substr(3))
+		var shots: Array = []
+		match moment.substr(0, 2):
+			"op":
+				shots = Cinema.opening(self)
+			"fr":
+				_go_room("apt", APT + Vector3(5.9, 0, -0.5), -PI / 2, false)
+				for st: String in ["dress", "breakfast", "phone", "mail"]:
+					story.mark(st, 0.0)
+				story.mark("news", 0.0)
+				shots = Cinema.fracture(self, _cine_props)
+				if from > 0:
+					(_cine_props.cracks as Node3D).visible = true
+				if from > 4:
+					_alarm_on()
+					var tear: MeshInstance3D = _cine_props.tear
+					tear.visible = true
+					(tear.material_override as ShaderMaterial).set_shader_parameter("open", 1.0)
+				if from > 5:
+					(_cine_props.nova as Node3D).visible = true
+			"fp":
+				story.phase = "ALARM"
+				_go_room("hall", HALL + Vector3(0, 0, -10.4), 0.0, false)
+				_after_fracture(false)
+				op.global_position = HALL + Vector3(0.0, 0.05, -10.4)
+				op.snap_camera(0.0)
+				shots = Cinema.first_power(self, _stairwell)
+			"nw":
+				for s: String in ["dress", "breakfast", "phone", "mail", "news"]:
+					story.mark(s, 0.0)
+				_alarm_on()
+				story.exit_building(0.0)
+				_go_street(Vector3(1.0, 0, -6.0), 0.0, false)
+				_set_fracture(true)
+				shots = Cinema.new_world(self)
+		_first_power = true
+		_play_cine(shots.slice(from))
+		return
 	match moment:
 		"lobby":
-			for s: String in ["dress", "breakfast", "phone", "news"]:
+			for s: String in ["dress", "breakfast", "phone", "mail"]:
 				story.mark(s, 0.0)
 			_go_room("lobby", LOBBY + Vector3(6.0, 0, 6.0), 0.46, false)
 		"hall":
 			_go_room("hall", HALL + Vector3(0.5, 0, 9.0), 0.0, false)
 		"lounge":
-			for s: String in ["dress", "breakfast", "phone", "news", "neighbour", "mail"]:
+			for s: String in ["dress", "breakfast", "phone", "mail", "news"]:
 				story.mark(s, 0.0)
 			_alarm_on()
 			_go_room("lounge", LOUNGE + Vector3(2.0, 0, 3.0), 1.22, false)
 		"apt2":
 			_go_room("apt", APT + Vector3(6.5, 0, 3.8), 0.76, false)
 		"cine", "dazed", "surge", "anchor", "done":
-			for s: String in ["dress", "breakfast", "phone", "news", "neighbour", "mail"]:
+			for s: String in ["dress", "breakfast", "phone", "mail", "news"]:
 				story.mark(s, 0.0)
 			_alarm_on()
 			if moment == "cine":

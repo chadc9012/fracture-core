@@ -3,6 +3,7 @@ const Sound := preload("res://scripts/audio/sound.gd")
 const Phone := preload("res://scripts/phone.gd")
 const Flora := preload("res://scripts/region_flora.gd")
 const Weather := preload("res://scripts/region_weather.gd")
+const Barks := preload("res://scripts/cinema/barks.gd")
 ## A region in 3D (owner's map packs: "3D City" and "Street View"), built from the same data as its map: the ground from the
 ## exported height grid, coloured by land cover; the sea; every building extruded to its height with floors and windows; the
 ## roads, bridges, rails and paved ground; domes, arenas and hazard rings; forests and crystal fields; the Storm Islands in the
@@ -54,6 +55,7 @@ var _ground_mat: ShaderMaterial
 var _base_pal := PackedVector3Array()
 var _tree_mats: Array[ShaderMaterial] = []
 var _weather: Node3D
+var _barks: Control   # the region's ambient voices, in Street View (the owner's campaign draft, AMB_*)
 var mode: Mode = Mode.CITY
 var _ox := 0.0
 var _oz := 0.0
@@ -449,6 +451,11 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	map_id = id
 	m = Data.map(id)
 	Sound.ambience(Sound.bed_for(id))
+	if _barks == null:
+		_barks = Barks.new()
+		add_child(_barks)
+	_barks.region = String(Barks.MAP_REGION.get(id, ""))
+	_barks.visible = start_mode == Mode.STREET
 	if m.is_empty():
 		return
 	_split_ruins()
@@ -1837,17 +1844,28 @@ func _declutter() -> void:
 		return
 	var placed: Array[Rect2] = []
 	var vs := _vp.get_visible_rect().size
+	# names are sized against the view's height: on an upright phone that made them as wide as the screen, so they
+	# shrink with a narrow view
+	var shrink := clampf(vs.x / maxf(vs.y, 1.0) * 1.4, 0.55, 1.0)
 	var order := _labels.duplicate()
 	order.sort_custom(func(a, b): return a.rank < b.rank or (a.rank == b.rank and a.node.global_position.distance_to(_cam.global_position) < b.node.global_position.distance_to(_cam.global_position)))
 	for e in order:
 		var l: Label3D = e.node
+		if bool(l.get_meta("hidden", false)):
+			l.visible = false
+			continue
 		var wp := l.global_position
 		if _cam.is_position_behind(wp) or wp.distance_to(_cam.global_position) > l.visibility_range_end:
 			l.visible = false
 			continue
+		l.pixel_size = float(l.get_meta("px", l.pixel_size)) * shrink
 		var sp := _cam.unproject_position(wp)
-		var w := l.text.length() * 11.0 + 14.0
-		var r := Rect2(sp - Vector2(w / 2.0, 12), Vector2(w, 24))
+		# the name's real size on screen: a fixed-size Label3D is pixel_size × font_size tall at one metre, so a fraction
+		# of the view's height. The old guess (11 px a letter) was a third of the real width on a phone, so names that
+		# looked apart to the guess sat on top of each other (owner's phone test, Nov 9)
+		var gh := l.pixel_size * float(l.font_size) / (2.0 * tan(deg_to_rad(_cam.fov) * 0.5)) * vs.y
+		var w := float(l.text.length()) * gh * 0.56 + gh * 0.8
+		var r := Rect2(sp - Vector2(w / 2.0, gh * 0.65), Vector2(w, gh * 1.3))
 		var ok := Rect2(Vector2.ZERO, vs).intersects(r)
 		for q in placed:
 			if q.intersects(r):
@@ -1872,15 +1890,43 @@ func _build_labels() -> void:
 		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		l.fixed_size = true
 		l.pixel_size = 0.0016
+		l.set_meta("px", 0.0016)
 		l.font_size = 30
 		l.outline_size = 10
 		l.modulate = Color(Data.styles.poi.get(p.cat, {"color": "#ffffff"}).color).lightened(0.45)
 		l.outline_modulate = Color(0.02, 0.05, 0.09, 0.9)
-		l.no_depth_test = false
+		l.no_depth_test = true    # over the towers: a name half behind a building could not be read (the declutter keeps them apart)
 		l.position = Vector3(at.x, maxf(y, _water) + 9.0, at.y)
 		l.visibility_range_end = 1200.0 if int(p.rank) == 0 else (420.0 if int(p.rank) == 1 else 180.0)
+		l.set_meta("cat", String(p.get("cat", "")))
 		_world.add_child(l)
 		_labels.append({"node": l, "rank": int(p.rank)})
+	_fit_labels()
+
+## the POI labels are sized for the city overview; on foot (STREET / PLAY) they shrink to a street sign, show only
+## nearby, and the transit stations stay out of the way altogether
+func _fit_labels() -> void:
+	var foot := mode == Mode.STREET or mode == Mode.PLAY
+	for e in _labels:
+		var l := e.node as Label3D
+		var rank := int(e.rank)
+		var cat := String(l.get_meta("cat", ""))
+		if foot:
+			l.pixel_size = 0.0007
+			l.set_meta("px", 0.0007)
+			l.font_size = 22
+			l.outline_size = 6
+			l.visibility_range_end = 220.0 if rank == 0 else (110.0 if rank == 1 else 60.0)
+			l.set_meta("hidden", cat in ["station", "transit"])
+			l.visible = not bool(l.get_meta("hidden"))
+		else:
+			l.pixel_size = 0.0016
+			l.set_meta("px", 0.0016)
+			l.font_size = 30
+			l.outline_size = 10
+			l.visibility_range_end = 1200.0 if rank == 0 else (420.0 if rank == 1 else 180.0)
+			l.set_meta("hidden", false)
+			l.visible = true
 
 func _floating_top(x: float, z: float) -> float:
 	for f in m.get("floating", []):
@@ -1903,6 +1949,9 @@ func set_mode(md: Mode) -> void:
 		_jump.visible = mode != Mode.PLAY
 	_pad_city.visible = mode == Mode.CITY
 	_pad_street.visible = mode == Mode.STREET
+	_fit_labels()
+	if _barks:
+		_barks.visible = mode == Mode.STREET
 	if mode == Mode.STREET or mode == Mode.PLAY:
 		_stand_near(Vector2(_target.x, _target.z))
 	if mode == Mode.PLAY:

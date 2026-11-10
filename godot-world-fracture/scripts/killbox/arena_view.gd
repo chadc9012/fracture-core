@@ -141,8 +141,8 @@ func _pick_mode() -> void:
 	box.add_child(title)
 	for mid in a.def.get("modes", ["clash"]):
 		var m: Dictionary = Arena.mode(String(mid))
-		# Extraction (kind "extract", web pvp.ts) has no Godot rules yet: killbox_match.gd would play it as a deathmatch
-		if m.is_empty() or String(m.get("kind", "")) in ["royale", "extract"]:
+		# Fracture Royale (kind "royale") has no Godot rules yet
+		if m.is_empty() or String(m.get("kind", "")) == "royale":
 			continue
 		var b := Button.new()
 		b.text = "%s — %s" % [String(m.name).to_upper(), String(m.tagline)]
@@ -168,6 +168,10 @@ func _start() -> void:
 	arena = Arena.new(arena_id)
 	look = LOOKS.get(String(arena.def.look), LOOKS["neon-rooftops"])
 	match_state = Match.new(Arena.mode(mode_id), arena.def.get("zones", []))
+	if match_state.kind == "extract":
+		# the core drops at the arena's objective, each team extracts at the middle of its own spawns (killbox-arenas.ts)
+		var obj: Array = arena.def.get("objective", [0, 0])
+		match_state.set_sites(Vector2(float(obj[0]), float(obj[1])), _spawn_mid("us"), _spawn_mid("them"))
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.02, 0.04)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -240,13 +244,17 @@ func _start() -> void:
 			var e: RefCounted = enemies.spawn(BOT_TYPES[i % BOT_TYPES.size()], arena.spawn("us", [], i + 1), [], 1)
 			e.state = Enemies.State.ENGAGE
 			e.set_meta("slot", i + 1)
+			_bot_ids[e] = "ally:%d" % (i + 1)
 		for i in size:
 			var e2: RefCounted = enemies.spawn(BOT_TYPES[i % BOT_TYPES.size()], arena.spawn("them", [], i), [], 0)
 			e2.state = Enemies.State.ENGAGE
 			e2.set_meta("slot", i)
+			_bot_ids[e2] = "bot:%d" % (i + 1)
 	enemies.respawn_enabled = not match_state.is_rounds()
 	if match_state.is_rounds():
 		_objective_marker()
+	if match_state.kind == "extract":
+		_extract_props()
 	hud = Label.new()
 	hud.position = Vector2(16, 60)
 	hud.add_theme_font_size_override("font_size", 22)
@@ -630,6 +638,20 @@ func _steer_bots() -> void:
 			var p := _objective_point()
 			var attack: bool = ((e.team == 1) == match_state.attacking) if String(match_state.mode.id) == "lockdown" else match_state.objective_open()
 			e.goal = Vector3(p.x, e.mover.position.y, p.z) if attack else null
+		elif match_state.kind == "extract":
+			# the core's field: the carrier runs for its pad, the carrier's team screens it, the other team hunts the carrier
+			# or the loose core
+			var c: Dictionary = match_state.core
+			var at := Vector2(float(c.x), float(c.z))
+			var pad: Vector2 = c.pad_us if e.team == 1 else c.pad_them
+			if int(c.holder) < 0:
+				e.goal = Vector3(at.x, e.mover.position.y, at.y)
+			elif String(c.carrier) == String(_bot_ids.get(e, "")):
+				e.goal = Vector3(pad.x, e.mover.position.y, pad.y)
+			elif int(c.holder) == e.team:
+				e.goal = Vector3(at.x, e.mover.position.y, at.y) + Vector3(randf() - 0.5, 0, randf() - 0.5) * 8.0 if randf() < 0.2 else e.goal
+			else:
+				e.goal = Vector3(at.x, e.mover.position.y, at.y)
 		else:
 			e.goal = null
 
@@ -656,7 +678,9 @@ func _process(dt: float) -> void:
 	for z in match_state.zones:
 		owners_before.append(int(z.owner))
 	var was_over: bool = match_state.over
-	match_state.tick(dt, _presence(), alive_us, enemies.alive_on(0))
+	match_state.tick(dt, _presence(), alive_us, enemies.alive_on(0), _units() if match_state.kind == "extract" else [])
+	if match_state.kind == "extract":
+		_extract_frame()
 	for i in match_state.zones.size():
 		if int(match_state.zones[i].owner) != owners_before[i]:
 			Sound.sfx("capture" if int(match_state.zones[i].owner) == 1 else "buzzer", -6.0)
@@ -732,6 +756,8 @@ func _hud_line() -> String:
 		"rounds":
 			var alive: String = "%d v %d" % [enemies.alive_on(1) + (1 if enemies.down <= 0.0 and enemies.hull > 0.0 else 0), enemies.alive_on(0)]
 			return "ROUNDS %d – %d   ·   %s   ·   %s" % [m.us_rounds, m.them_rounds, alive, m.clock_text()]
+		"extract":
+			return "US %d   THEM %d   ·   %s   ·   %s" % [m.us, m.them, m.core_text(), m.clock_text()]
 	return "US %d   THEM %d   ·   %s" % [m.us, m.them, m.clock_text()]
 
 func _board_text() -> String:
@@ -790,3 +816,85 @@ func _finish() -> void:
 	b.pressed.connect(func(): closed.emit())
 	v.add_child(b)
 	add_child(_done_panel)
+
+# --------------------------------------------------------------------------------------------- Extraction
+var _core_node: Node3D
+var _core_light: OmniLight3D
+
+func _spawn_mid(side: String) -> Vector2:
+	var list: Array = arena.def.spawns[side]
+	var m := Vector2.ZERO
+	for p in list:
+		m += Vector2(float(p[0]), float(p[1]))
+	return m / maxf(1.0, list.size())
+
+## everyone on the field for the rules: the operator is "player", bots by their ids
+func _units() -> Array:
+	var out: Array = [{ "id": "player", "team": 1, "x": operator.position.x, "z": operator.position.z, "alive": enemies.down <= 0.0 and enemies.hull > 0.0 }]
+	for e in enemies.enemies:
+		out.append({ "id": String(_bot_ids.get(e, "bot")), "team": int(e.team), "x": e.mover.position.x, "z": e.mover.position.z, "alive": e.target.alive() })
+	return out
+
+## the data core (a spinning lit cube) and the two extraction pads
+func _extract_props() -> void:
+	var c: Dictionary = match_state.core
+	for pair in [[c.pad_us, look.trim[0]], [c.pad_them, Color(1.0, 0.45, 0.3)]]:
+		var pad: Vector2 = pair[0]
+		var top: float = arena.surface_at(pad.x, pad.y)
+		if top == -INF:
+			top = 0.0
+		var ring := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = Match.PAD_RADIUS - 0.4
+		tm.outer_radius = Match.PAD_RADIUS
+		ring.mesh = tm
+		ring.position = Vector3(pad.x, top + 0.05, pad.y)
+		ring.material_override = _mat(pair[1], 0.5, 0.0, 1.5)
+		world.add_child(ring)
+		var l3 := Label3D.new()
+		l3.text = "EXTRACT"
+		l3.font_size = 120
+		l3.pixel_size = 0.01
+		l3.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l3.modulate = pair[1]
+		l3.position = Vector3(pad.x, top + 2.6, pad.y)
+		world.add_child(l3)
+	_core_node = Node3D.new()
+	world.add_child(_core_node)
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.7, 0.7, 0.7)
+	mi.mesh = bm
+	mi.material_override = _mat(Color(0.3, 0.95, 1.0), 0.3, 0.6, 3.0)
+	mi.position.y = 0.9
+	_core_node.add_child(mi)
+	_core_light = OmniLight3D.new()
+	_core_light.light_color = Color(0.3, 0.95, 1.0)
+	_core_light.light_energy = 3.0
+	_core_light.omni_range = 12.0
+	_core_light.position.y = 1.4
+	_core_node.add_child(_core_light)
+	_extract_frame()
+
+## the core follows the rules' position (on the ground when loose, over the carrier's head when carried); events toast
+func _extract_frame() -> void:
+	if _core_node == null:
+		return
+	var at: Vector2 = match_state.core_at()
+	var top: float = arena.surface_at(at.x, at.y)
+	if top == -INF:
+		top = 0.0
+	var carried: bool = int(match_state.core.holder) >= 0
+	_core_node.position = Vector3(at.x, top + (1.6 if carried else 0.0), at.y)
+	_core_node.rotation.y += 0.03
+	_core_light.light_color = Color(0.3, 0.95, 1.0) if not carried else (look.trim[0] if int(match_state.core.holder) == 1 else Color(1.0, 0.45, 0.3))
+	if match_state.core_event != "":
+		controls.toast(match_state.core_event)
+		var ev := String(match_state.core_event)
+		if ev.begins_with("Core extracted"):
+			Sound.sfx("capture", -4.0)
+		elif ev.begins_with("They extracted"):
+			Sound.sfx("buzzer", -4.0)
+		elif ev == "Core taken" or ev == "They have the core":
+			Sound.sfx("pickup", -6.0)
+		match_state.core_event = ""

@@ -184,7 +184,12 @@ func _light(pos: Vector3, c: Color, energy: float, rng: float) -> void:
 	world.add_child(o)
 
 ## a Meshy prop scaled to `height`, base on the floor
+## Meshy props whose meshes are torn (open faces, glass panes in shards): left out until they are remade; every caller
+## builds without them (owner's phone test, Nov 9)
+const SHATTERED := ["planter.glb", "bus-shelter.glb", "apartment.glb", "brick.glb", "office.glb", "deco.glb", "villa.glb"]
 func prop(file: String, height: float, pos: Vector3, yaw := 0.0) -> Node3D:
+	if file.get_file() in SHATTERED:
+		return null
 	var path := MODELS + file
 	if not ResourceLoader.exists(path):
 		return null

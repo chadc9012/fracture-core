@@ -1,5 +1,6 @@
 extends Node3D
 const Sound := preload("res://scripts/audio/sound.gd")
+const Lines := preload("res://scripts/cinema/lines.gd")
 ## A Fracture boss on the field (boss.gd rules): the authored hull scaled to the row's size, walking the ground toward the
 ## operator while the rules say APPROACH, turning to face it otherwise, flaring red on a telegraph, glowing at the core
 ## while staggered or at a weak point. Attacks land as the rules fire them — LUNGE / SLAM hit the operator inside the
@@ -88,6 +89,7 @@ func setup(boss_id: String, at: Vector3, op: Node3D, g: Node3D, en: Node3D, grou
 	add_child(_ring)
 	# the target box: the body's footprint
 	target = Gunplay.Target.new(AABB(at + Vector3(-size * 0.35, 0, -size * 0.35), Vector3(size * 0.7, size, size * 0.7)), rules.hull_max, body)
+	target.set_meta("blood", Color(0.7, 0.3, 1.0))   # Fracture creatures bleed violet
 	gunplay.targets.append(target)
 	gunplay.hit.connect(_on_hit)
 
@@ -180,6 +182,8 @@ func step(dt: float) -> void:
 			"stagger":
 				Sound.sfx("stagger", -4.0)
 				toast.call("STAGGERED — hit the core")
+				if rules.id == "vyrak":
+					Sound.voice_path(Lines.path("M09_007"))   # NOVA: "Chest weak point exposed…"
 			"dead":
 				if not _killed:
 					_killed = true

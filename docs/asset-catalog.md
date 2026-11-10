@@ -48,7 +48,7 @@ Status: briefs saved; Meshy generation waits on the owner's account (the API is 
 | Natural environments (10) | Tree roots, fallen logs, moss, mushrooms, wildflowers, reeds, coral reefs, underwater caves, sandstone cliffs, glaciers |
 | Wildlife behavior (10) | Bird nests, animal tracks, fish schools, insect swarms, animal dens, predator hunting, fleeing herds, roosting birds, underwater predators, nocturnal wildlife |
 | Vehicles & transportation (10) | Car dashboards, vehicle interiors, motorcycle helmets, traffic signs, aircraft cockpits, ship bridges, vehicle damage, tire smoke, exhaust effects, landing gear |
-| Fantasy & dimensional (10) | Fracture crystals, floating ruins, ancient structures, dimensional gates, corrupted vegetation, energy conduits, relic containers, magical inscriptions, reality distortions, boss arena structures |
+| Fantasy & dimensional (10) | Fracture crystals, floating ruins, ancient structures, dimensional gates, corrupted vegetation, energy conduits, relic containers, magical inscriptions, reality distortions, boss arena structures — Godot has crystals, floating ruins, conduits, relic containers + inscriptions, boss arena structures (scripts/vfx/fracture_set.gd, Nov 9), the portal / rift tears / energy field (fx.gd, region_flora.gd); ancient structures and corrupted vegetation still procedural stand-ins |
 
 Have today (web): fallen logs, mushrooms, lily pads, reeds, basalt (wild-geometry.ts); traffic lights / lamps / rails
 (street-geometry.ts, road-dressing.ts); mall shops; shell casings / impacts / tire smoke partial. Everything else is open.
@@ -60,6 +60,6 @@ Frostveil Ring, Thalassia Dome, Void Rift. Modes on the board: Team Deathmatch, 
 Confirmed, Free For All, Ranked. Features: multi-level, tactical cover, vertical play, dynamic events, day / night / weather.
 
 Have: the first four maps as data in `src/game/killbox-arenas.ts` (session_01HeBvGGZzSqLVyhhF3TcmJd is adding the rest in
-board order) and exported to Godot (`godot-world-fracture/data/killbox.json`), where `scripts/killbox/` plays Clash, Dominion, Freefall, Lockdown and Ascendancy on every arena (Nov 8). The game's mode ids map to the board as: clash → Team Deathmatch, dominion → Domination,
-lockdown → Control, ascendancy → Kill Confirmed, freefall → Free For All, royale → Fracture Royale (board: none). Extraction
-and Ranked are not in `pvp.ts` yet.
+board order) and exported to Godot (`godot-world-fracture/data/killbox.json`), where `scripts/killbox/` plays Clash, Dominion, Freefall, Lockdown, Ascendancy, Extraction and Ranked on every arena (Nov 8–9). The game's mode ids map to the board as: clash → Team Deathmatch, dominion → Domination,
+lockdown → Control, ascendancy → Kill Confirmed, freefall → Free For All, royale → Fracture Royale (board: none), extraction → Extraction, ranked → Ranked (Nov 9: both in pvp.ts and in Godot;
+Fracture Royale is the one mode without Godot rules).

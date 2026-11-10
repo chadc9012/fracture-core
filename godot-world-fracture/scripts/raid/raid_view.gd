@@ -1123,3 +1123,11 @@ func _end_panel(head: String, body: String, button: String, act: Callable) -> vo
 	btn.pressed.connect(act)
 	v.add_child(btn)
 	add_child(_panel)
+
+# the raid's 3D world is freed child by child before the view (and its SubViewport) goes: freeing the whole world root
+# along with its viewport made the renderer look up a material it had already let go ('Parameter "material" is null',
+# bug sweep Nov 9)
+func _exit_tree() -> void:
+	if is_instance_valid(world):
+		for c in world.get_children():
+			c.free()

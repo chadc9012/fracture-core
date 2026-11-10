@@ -20,6 +20,7 @@ const Records := preload("res://scripts/driving/drive_records.gd")
 const Catalog := preload("res://scripts/garage/catalog.gd")
 const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
 const Materials := preload("res://scripts/city/materials.gd")
+const Sound := preload("res://scripts/audio/sound.gd")
 const FLEET := "res://models/fleet/"
 const PROFILE := "user://profile.json"
 const RIVAL_FILES := ["muscle-car-lod.glb", "street-racer-lod.glb", "tuner.glb"]
@@ -38,6 +39,7 @@ var player: RefCounted        # street_car.gd
 var rivals: Array = []        # [{sc, entry, skill}]
 var obstacles: Array[AABB] = []
 var countdown := 3.5
+var _barks: Control
 var cam_yaw := 0.0
 var hud: Label
 var board: Label
@@ -92,6 +94,14 @@ func _ready() -> void:
 	controls = TouchControls.new()
 	add_child(controls)
 	controls.set_mode("drive")
+	# a race has no gun and no hull: no crosshair, no hull bar, no weapon read-out
+	if controls.crosshair:
+		controls.crosshair.visible = false
+	for n in [controls.hull_back, controls.hull_fill, controls.weapon_name, controls.ammo]:
+		if n:
+			n.visible = false
+	if controls.touch_ui:
+		controls.toast.call_deferred("The car drives itself · steer with your left thumb · hold BRAKE for the corners")
 	hud = Label.new()
 	hud.position = Vector2(16, 60)
 	hud.add_theme_font_size_override("font_size", 22)
@@ -451,11 +461,26 @@ func _grid() -> void:
 	race.add("You", true)
 	cam_yaw = player.yaw()
 
+var _engine_on := false
+var _lit_was := 0
+
+func _exit_tree() -> void:
+	Sound.loop_stop("race_engine")
+
 func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
+	# the race had no sound at all: the engine idles on the grid and climbs with the speed, the lights beep
+	if not _engine_on:
+		_engine_on = true
+		Sound.loop("race_engine", "engine", -10.0, 0.6)
+	Sound.loop_set("race_engine", 0.6 + clampf(absf(player.speed) / maxf(float(player.profile.max_speed), 1.0), 0.0, 1.0) * 1.3, -10.0 + clampf(absf(player.speed) / 30.0, 0.0, 1.0) * 5.0)
 	if countdown > 0.0:
 		countdown -= dt
 		var lit := clampi(int(ceil((3.5 - countdown) / 0.7)), 0, 5)
+		if lit != _lit_was:
+			_lit_was = lit
+			if lit > 0:
+				Sound.sfx("click", -4.0, 0.0)
 		for i in lights.size():
 			(lights[i].material_override as StandardMaterial3D).emission_energy_multiplier = 3.0 if i < lit else 0.0
 		if countdown <= 0.0:
@@ -463,12 +488,28 @@ func _process(dt: float) -> void:
 				(l.material_override as StandardMaterial3D).emission = Color(0.1, 0.9, 0.2)
 				(l.material_override as StandardMaterial3D).emission_energy_multiplier = 3.0
 			race.start()
+			# the owner's campaign draft: a rival's needle on the street, NOVA on the line (VEHICLES_005 / 004)
+			if _barks == null:
+				_barks = preload("res://scripts/cinema/barks.gd").new()
+				add_child(_barks)
+			_barks.say("VEHICLES_005" if track.street() else "VEHICLES_004")
 		hud.text = "GET READY" if countdown > 0.5 else "GO"
 		_place_camera(dt)
 		return
 	# the player's car
 	var throttle: float = controls.move.y
 	var steer: float = -controls.move.x
+	if controls.touch_ui and not controls.scripted:
+		# phone racing (owner's phone test, Nov 9: "racing sucks"): the car drives itself forward, the left thumb only
+		# steers (pull the stick down to reverse), BRAKE slows for the corners, and a light steering assist holds the
+		# racing line when the thumb is off the stick
+		throttle = controls.move.y if controls.move.y < -0.45 else 1.0
+		steer = -controls.move.x
+		if absf(steer) < 0.12:
+			var ahead: Vector3 = track.ahead(player.node.position, 16.0)
+			var to2: Vector3 = ahead - player.node.position
+			var err2 := wrapf(atan2(-to2.x, -to2.z) - player.node.rotation.y, -PI, PI)
+			steer = clampf(err2 * 1.2, -0.4, 0.4)
 	if not controls.touch_ui and not controls.scripted:
 		throttle = (1.0 if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) else 0.0)
 		steer = (1.0 if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) else 0.0) - (1.0 if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) else 0.0)
@@ -545,6 +586,10 @@ func _place_camera(dt: float) -> void:
 	var k := 1.0 if dt >= 1.0 else 1.0 - exp(-10.0 * dt)
 	cam.position = cam.position.lerp(want, k)
 	cam.look_at(pivot + Vector3(0, 0.6, 0))
+	# an upright phone keeps the width of the road in view rather than the sky
+	var vs := get_viewport_rect().size
+	cam.keep_aspect = Camera3D.KEEP_WIDTH if vs.y > vs.x else Camera3D.KEEP_HEIGHT
+	cam.fov = 78.0 if vs.y > vs.x else 62.0
 
 static func _fmt(t: float) -> String:
 	if t <= 0.0:

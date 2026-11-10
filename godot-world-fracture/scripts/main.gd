@@ -20,6 +20,9 @@ const ArenaView := preload("res://scripts/killbox/arena_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
 const BossArena := preload("res://scripts/combat/boss_arena.gd")
+const Airport := preload("res://scripts/airport/airport.gd")
+const AirportView := preload("res://scripts/airport/airport_view.gd")
+const ArrivalView := preload("res://scripts/airport/arrival_view.gd")
 var boss_arena: Control
 const Title := preload("res://scripts/front/title.gd")
 const SettingsView := preload("res://scripts/front/settings_view.gd")
@@ -47,6 +50,11 @@ var garage: Control
 var driving: Control
 
 func _ready() -> void:
+	preload("res://scripts/front/settings_store.gd").apply_orientation()   # the player's saved screen orientation
+	# the UI is laid out for a 540 px wide portrait phone; turned sideways the same rule would shrink every button to half
+	# its size, so the design size turns with the screen (540 × 1170 upright, 1170 × 540 on its side)
+	get_tree().root.size_changed.connect(_fit_design_size)
+	_fit_design_size()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)   # the overlays (title, settings, operator) fill the window
 	# the phone renders the 3D at full resolution; this steps it down only while the frame rate sags (phone.gd)
 	if Phone.on_phone():
@@ -114,7 +122,7 @@ func _ready() -> void:
 	gm.add_theme_color_override("font_color", Color(1.0, 0.8, 0.5))
 	gm.pressed.connect(_open_modes)
 	add_child(gm)
-	var fd := Data.button("▶ FRACTURE DESCENT · fd-02…04", true)
+	var fd := Data.button("▶ FRACTURE DESCENT · ACT 1 · fd-02…07", true)
 	fd.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	fd.position = Vector2(-450, -198)
 	fd.custom_minimum_size = Vector2(430, 56)
@@ -255,24 +263,73 @@ func _street_door(id: String) -> void:
 		"apartment":
 			view = Mission01.new()
 			view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		"airport":
+			# the city's own airport: Neon City International from Neon City's street, Nexus City International otherwise
+			view = _airport_view("NEC" if street.style == "neon" else "NXC", false)
 	if view == null:
 		return
-	_from_street = view
 	street.visible = false
 	street.set_process(false)
 	street._vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	street.sound_off()
+	_show_from_street(view)
+
+## puts a system over the hidden street; closing it brings the street back (in the city you left from, if you flew)
+func _show_from_street(view: Control) -> void:
+	_from_street = view
 	view.closed.connect(func():
+		var come_back: String = String(_from_street.get("return_style")) if _from_street.get("return_style") != null else ""
 		_from_street.queue_free()
 		_from_street = null
 		Sound.loops_stop()
-		if street:
+		if street and come_back != "" and come_back != street.style:
+			# you flew to the other city: its street, at its usual hour
+			var walk: bool = street.walk
+			_close_street()
+			_open_street(come_back == "neon", come_back, walk)
+		elif street:
 			street.visible = true
 			street.set_process(true)
 			street._vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 			street.sound_on()
 		_sync_later())
+	if view.has_signal("flew"):
+		view.flew.connect(_flown.bind(view))
+	if view.has_signal("outside"):
+		view.outside.connect(_walk_out.bind(view))
 	add_child(view)
+
+func _airport_view(code: String, arriving: bool) -> Control:
+	var v := AirportView.new()
+	v.code = code
+	v.arriving = arriving
+	return v
+
+## walked out of a region's airport (Azure Isles, Frostveil, Solara): that region on foot
+func _walk_out(code: String, from_view: Control) -> void:
+	if _from_street != from_view:
+		return
+	var next := ArrivalView.new()
+	next.dest = code
+	_from_street = null
+	from_view.queue_free()
+	Sound.loops_stop()
+	_show_from_street(next)
+
+## a flight took off: the old view goes, the destination opens over the street (the other airport, or a region)
+func _flown(to: String, from_view: Control) -> void:
+	if _from_street != from_view:
+		return
+	var next: Control
+	if Airport.AIRPORTS.has(to):
+		next = _airport_view(to, true)
+	else:
+		next = ArrivalView.new()
+		next.dest = to
+	_from_street = null
+	from_view.queue_free()
+	Sound.loops_stop()
+	_show_from_street(next)
 
 ## the title screen and what its buttons do
 func _open_title() -> void:
@@ -614,14 +671,14 @@ func _shoot(path: String, opts: Array) -> void:
 				if String(o).contains("still"):
 					street.controls.move = Vector2.ZERO
 			# slicewalk:tank walks the operator to the Goliath tank by the garage and climbs in (then drives)
-		if String(o).contains("walk:tank"):
-			for c in street.parked:
-				if String(c.get_meta("vehicle", "")) == "goliath-tank":
-					street.operator.position = c.position + Vector3(3.0, 0.18, 0.0)
-					street.enter_car(c)
-			street.controls.scripted = true
-			street.controls.move = Vector2(0.6, 0.8)
-		# slicewalk:district starts at the far end of the hub block walking +z across the tile boundary
+			if String(o).contains("walk:tank"):
+				for c in street.parked:
+					if String(c.get_meta("vehicle", "")) == "goliath-tank":
+						street.operator.position = c.position + Vector3(3.0, 0.18, 0.0)
+						street.enter_car(c)
+				street.controls.scripted = true
+				street.controls.move = Vector2(0.6, 0.8)
+			# slicewalk:district starts at the far end of the hub block walking +z across the tile boundary
 			if String(o).contains("walk:district"):
 				street.controls.scripted = true
 				street.operator.position = Vector3(8.0 + 3.4, 0.18, 125.0)
@@ -637,12 +694,17 @@ func _shoot(path: String, opts: Array) -> void:
 			# slicewalk:drive[:N] takes the nearest parked car and drives forward with the stick for N frames
 			if String(o).contains("walk:drive"):
 				street.controls.scripted = true
-				var nearest: Node3D = null
-				for c in street.parked:
-					if nearest == null or c.position.distance_to(street.operator.position) < nearest.position.distance_to(street.operator.position):
-						nearest = c
-				street.enter_car(nearest)
-				street.controls.move = Vector2(-0.12, 1.0)   # pull out toward the road
+				# a frame later: the street's first frame settles the operator and the parked cars before anyone climbs in
+				var st := street
+				get_tree().process_frame.connect(func():
+					var nearest: Node3D = null
+					for c in st.parked:
+						if nearest == null or c.position.distance_to(st.operator.position) < nearest.position.distance_to(st.operator.position):
+							nearest = c
+					if nearest:
+						st.enter_car(nearest)
+						st.controls.move = Vector2(-0.12, 1.0)   # pull out toward the road
+					, CONNECT_ONE_SHOT)
 			if String(o).contains("walk:shop"):
 				street.open_mall()
 				street.mall_overlay.open_shop("haven" if String(o).contains("haven") else "nova")
@@ -679,6 +741,18 @@ func _shoot(path: String, opts: Array) -> void:
 			var sv := String(o).split(":")
 			if sv.size() > 1:
 				street.sports_overlay.show_view(int(sv[1]))
+		# airport[:NXC|NEC[:x,y,z:tx,ty,tz]]  Nexus / Neon City International from its street's door; a camera to look from
+		if String(o).begins_with("airport"):
+			var aq := String(o).split(":")
+			var ac := aq[1] if aq.size() > 1 else "NXC"
+			_open_street(ac == "NEC", "neon" if ac == "NEC" else "nexus", true)
+			await get_tree().process_frame
+			_street_door("airport")
+			if ac not in ["NXC", "NEC"] and _from_street:
+				_flown(ac, _from_street)   # a region's airport: as if flown in
+			if aq.size() > 3 and _from_street:
+				var af := aq[2].split(","); var at := aq[3].split(",")
+				_from_street.look_from(Vector3(float(af[0]), float(af[1]), float(af[2])), Vector3(float(at[0]), float(at[1]), float(at[2])))
 		# mall[:view]  the Galleria mall interior
 		if String(o).begins_with("mall"):
 			_open_street(false, "nexus", false)
@@ -703,7 +777,28 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_cloud()
 		# descent[:fight|:wild]  the Fracture Descent in the Verdant Forest; :fight sprints and fires; :wild stands by the deer herd
 		if String(o).begins_with("descent"):
+			# descent[:wild] [:fd-05|:fd-06|:fd-07] [:vyrak]: the quest to stand in (the chain is set to it), vyrak summons the boss
+			for qid in ["fd-05", "fd-06", "fd-07"]:
+				if String(o).contains(qid):
+					var f := FileAccess.open("user://quests.json", FileAccess.WRITE)
+					f.store_string(JSON.stringify({ "done": [], "current": qid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 3 if String(o).contains("vyrak") else 0, "stage": 1 if qid == "fd-05" else 0 }))
+					f.close()
 			_open_descent()
+			if descent.cutscene and descent.cutscene.playing:
+				descent.cutscene._end()
+			if String(o).contains("vyrak") and descent.quest.get("id", "") == "fd-07":
+				descent.operator.position = descent.waypoint + Vector3(6, 0, 10)
+				descent.operator.position.y = descent.region.ground(descent.operator.position.x, descent.operator.position.z)
+				descent.operator.heading = 0.0
+				descent.operator.cam_yaw = 0.0
+				if descent.boss:
+					descent.boss.position = descent.waypoint + Vector3(2, 0, -6)
+					descent.boss.position.y = descent.region.ground(descent.boss.position.x, descent.boss.position.z)
+			elif String(o).contains("fd-0"):
+				descent.operator.position = descent.waypoint + Vector3(5, 0, 9)
+				descent.operator.position.y = descent.region.ground(descent.operator.position.x, descent.operator.position.z)
+				descent.operator.heading = 0.0
+				descent.operator.cam_yaw = 0.0
 			if String(o).contains("wild"):
 				# the shot: bring a deer herd, the fox and a wolf to the open ground at the crash site so the bodies show
 				var sp: Vector3 = descent.region.stand_point()
@@ -764,10 +859,10 @@ func _shoot(path: String, opts: Array) -> void:
 		if String(o).begins_with("killbox"):
 			killbox = ArenaView.new()
 			killbox.arena_id = "kaiju-complex"
-			for mid in ["dominion", "freefall", "lockdown", "ascendancy"]:
+			for mid in ["dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"]:
 				if String(o).contains(mid):
 					killbox.mode_id = mid
-			for id in ["fracture-floor", "killbox-prime", "skydock"]:
+			for id in ["fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift"]:
 				if String(o).contains(String(id).split("-")[0] if id != "killbox-prime" else "prime"):
 					killbox.arena_id = id
 			killbox.closed.connect(_close_killbox)
@@ -991,3 +1086,12 @@ func _mesh_tris(mesh: Mesh) -> int:
 		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
 		t += (idx.size() if idx.size() > 0 else (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
 	return t
+
+func _fit_design_size() -> void:
+	var r := get_tree().root
+	var sz := Vector2(DisplayServer.window_get_size())
+	if sz.x <= 0 or sz.y <= 0:
+		return
+	var want := Vector2i(1170, 540) if sz.x > sz.y else Vector2i(540, 1170)
+	if r.content_scale_size != want:
+		r.content_scale_size = want

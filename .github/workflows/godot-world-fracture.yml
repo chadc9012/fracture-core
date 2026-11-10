@@ -83,5 +83,71 @@ jobs:
           gh release delete godot-latest --yes --cleanup-tag || true
           gh release create godot-latest godot-world-fracture/build/android/WorldFracture-Godot.apk \
             --title "World Fracture in Godot (latest)" \
-            --notes "Built from ${GITHUB_SHA::7}. The Godot version of World Fracture, moving over piece by piece: the planet globe, every region map (Crystal Badlands and The Shattered Reefs included) and every region in 3D (3D City and Street View) so far. Open this page on your Android phone, tap WorldFracture-Godot.apk and allow installs when asked." \
+            --notes "Built from ${GITHUB_SHA::7}. The Godot build of World Fracture — title screen, operator creator, Apartment 12-04 and Act 1 (fd-02 to fd-07, Vyrak), the Nexus street hub with doors to Killbox (11 maps, 7 modes), Skyways, the Rift Gate's six bosses, the garage, the Galleria, the casino and the Sports District, driving and racing, the globe as the travel map, sound and radio, one profile with daily goals. Open this page on your Android phone, tap WorldFracture-Godot.apk and allow installs when asked. The frame-time readout bottom-right is on by default (Settings turns it off); the gate is 30 fps on the Nexus street." \
             --prerelease
+
+  # The release APK (schedule step 13): run by hand once the signing keystore is in the repository secrets —
+  #   ANDROID_KEYSTORE_BASE64 (the .keystore / .jks file, base64), ANDROID_KEYSTORE_USER, ANDROID_KEYSTORE_PASS.
+  # Signed with the release key, version code from the run number, published as the "godot-release" release (not a
+  # prerelease). Without the secrets the job stops at the keystore step and says so.
+  release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      GODOT: "4.6.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: oven-sh/setup-bun@v2
+      - name: Export the world data from the web game
+        run: |
+          bun install --frozen-lockfile
+          bun scripts/export-godot-data.ts
+      - name: Install Godot and export templates
+        run: |
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT}-stable/Godot_v${GODOT}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && mv Godot_v${GODOT}-stable_linux.x86_64 /usr/local/bin/godot
+          curl -sSL -o tpl.tpz "https://github.com/godotengine/godot/releases/download/${GODOT}-stable/Godot_v${GODOT}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT}.stable
+          unzip -q -j tpl.tpz 'templates/android_*' 'templates/version.txt' -d ~/.local/share/godot/export_templates/${GODOT}.stable
+      - name: The release keystore
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KS" ]; then
+            echo "::error::No ANDROID_KEYSTORE_BASE64 secret: add the release keystore (base64), ANDROID_KEYSTORE_USER and ANDROID_KEYSTORE_PASS to the repository secrets, then run this job again."
+            exit 1
+          fi
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.6.tres <<EOT
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOT
+          sed -i 's/^ *//' ~/.config/godot/editor_settings-4.6.tres
+      - name: Export the release APK
+        working-directory: godot-world-fracture
+        env:
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ runner.temp }}/release.keystore
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          # the version code counts up with every release run; the name is the date
+          sed -i "s/^version\/code=.*/version\/code=${GITHUB_RUN_NUMBER}/" export_presets.cfg
+          sed -i "s/^version\/name=.*/version\/name=\"1.0.${GITHUB_RUN_NUMBER}\"/" export_presets.cfg
+          mkdir -p build/android
+          godot --headless --import || true
+          godot --headless --export-release "Android" build/android/WorldFracture.apk
+          ls -la build/android
+      - uses: actions/upload-artifact@v4
+        with: { name: WorldFracture-release, path: godot-world-fracture/build/android/WorldFracture.apk }
+      - name: Publish the godot-release release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release delete godot-release --yes --cleanup-tag || true
+          gh release create godot-release godot-world-fracture/build/android/WorldFracture.apk \
+            --title "World Fracture (release build 1.0.${GITHUB_RUN_NUMBER})" \
+            --notes "Release-signed APK built from ${GITHUB_SHA::7}: the Godot build of World Fracture — Act 1, the Nexus hub and every mode. Installs over itself on later releases (same key); it does not install over the debug godot-latest build, uninstall that first."

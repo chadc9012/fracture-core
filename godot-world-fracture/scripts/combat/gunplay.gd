@@ -1,4 +1,5 @@
 extends Node3D
+const Settings := preload("res://scripts/front/settings_store.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## Shooting on foot (the Dec 4 plan, phase 2): the operator's gun in the right hand (the web game's authored rifle GLBs —
 ## rifle, rifle-sniper, rifle-fusion — on the RightHand bone, barrel along the bone's +Z as OperatorModel.tsx mounts them),
@@ -36,7 +37,7 @@ var kills := 0
 ## no weapon in hand: before Mission 01's Fracture arms the operator the street is walked unarmed (owner, Nov 9)
 var holstered := false
 ## aim help: shots go to a live foe within this many degrees of the crosshair (on by default on a touch screen)
-var assist_deg := 4.5 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")) else 0.0
+var assist_deg := 7.0 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")) else 0.0
 var shots_fired := 0
 var hits_landed := 0
 
@@ -47,6 +48,13 @@ var _tracers: Array = []
 var _flash: OmniLight3D
 var _flash_t := 0.0
 var _rng := RandomNumberGenerator.new()
+
+## a kill resupplies: every carried gun gets half a magazine back into its reserve (to the frame's full reserve), so a
+## long fight — a Fracture boss, a lockdown — is paced by kills rather than ended by an empty bag
+func scavenge() -> void:
+	for g in guns:
+		var f: Dictionary = Weapons.FRAMES.get(g.frame, {})
+		g.reserve = mini(int(g.reserve) + maxi(1, int(f.get("mag", 10)) / 2), int(f.get("reserve", 0)))
 
 func gun() -> Weapons.Gun:
 	return guns[current]
@@ -92,6 +100,53 @@ func _mount() -> void:
 		_held.add_child(m)
 		_models[f] = m
 	_show_current()
+
+## aim help on a touch screen while the trigger is held: the camera eases toward the nearest live foe within 14° of the
+## crosshair, faster the closer it already is (a thumb cannot track a strafing trooper the way a mouse can)
+func _pull_aim(dt: float, cam: Camera3D) -> void:
+	if not cam or not is_instance_valid(cam) or not player:
+		return
+	var from := cam.global_position
+	var dir := -cam.global_transform.basis.z
+	var best: Target = null
+	var best_a := deg_to_rad(14.0)
+	for t in targets:
+		if not t.alive():
+			continue
+		if t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team:
+			continue
+		var c: Vector3 = t.box.get_center() + Vector3(0, t.box.size.y * 0.15, 0)
+		var to_c := c - from
+		if to_c.length() > 80.0 or to_c.length() < 1.0:
+			continue
+		var a := dir.angle_to(to_c)
+		if a < best_a:
+			best_a = a
+			best = t
+	if best == null:
+		return
+	var c2: Vector3 = best.box.get_center() + Vector3(0, best.box.size.y * 0.15, 0)
+	var d2 := (c2 - from).normalized()
+	var want_yaw := atan2(-d2.x, -d2.z)
+	var want_pitch := asin(clampf(d2.y, -1.0, 1.0))
+	var k := minf(1.0, dt * lerpf(9.0, 3.0, best_a / deg_to_rad(14.0)))
+	player.cam_yaw = lerp_angle(player.cam_yaw, want_yaw, k)
+	player.cam_pitch = clampf(lerpf(player.cam_pitch, want_pitch, k * 0.6), -0.9, 0.45)
+
+## the gun rides the right hand but points where the crosshair does. Hung off the hand bone at a fixed angle it followed
+## the unarmed walk and run clips' arm swing, so it pointed at the sky, behind the back or hung upside down (owner's phone
+## test, Nov 9: "my gun was upside down"); now the barrel aims at the crosshair's point from wherever the hand is
+func _point_gun(cam: Camera3D) -> void:
+	if not _held or not _hand or holstered or not cam or not is_instance_valid(cam):
+		return
+	var at := _hand.global_position
+	var dir := aim_point(cam) - at
+	if dir.length() < 0.5:
+		dir = -cam.global_transform.basis.z
+	dir = dir.normalized()
+	if absf(dir.y) > 0.98:
+		return
+	_held.global_transform = Transform3D(Basis.looking_at(-dir, Vector3.UP), at)
 
 func _show_current() -> void:
 	for f in _models:
@@ -176,6 +231,9 @@ func aim_point(cam: Camera3D) -> Vector3:
 
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
+	if trigger and assist_deg > 0.0 and not holstered:
+		_pull_aim(dt, cam)
+	_point_gun(cam)
 	if holstered:
 		trigger = false
 		reload = false
@@ -191,14 +249,34 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
 		for k in Weapons.pellets(gun().frame):
 			_fire_one(cam, moving_speed)
+		_eject(cam)
 	# tracers and the flash fade
 	var keep: Array = []
 	for tr in _tracers:
 		tr.t -= dt
 		if tr.t <= 0.0:
+			if tr.has("casing"):
+				_casings -= 1
 			tr.node.queue_free()
 		else:
-			(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / 0.09, 0.0, 1.0)
+			if tr.has("vel"):
+				# a droplet falls; a casing tumbles, lands and lies there; a splash just fades over its life
+				var v: Vector3 = tr.vel
+				var nd := tr.node as Node3D
+				if v != Vector3.ZERO:
+					v.y -= 9.8 * dt
+					nd.global_position += v * dt
+					if tr.has("casing"):
+						nd.rotation += Vector3(tr.spin) * dt
+						if nd.global_position.y <= float(tr.floor) + 0.02 and v.y < 0.0:
+							nd.global_position.y = float(tr.floor) + 0.02
+							v = Vector3(v.x * 0.4, -v.y * 0.25, v.z * 0.4) if absf(v.y) > 0.6 else Vector3.ZERO
+							if v == Vector3.ZERO:
+								nd.rotation = Vector3(PI * 0.5, nd.rotation.y, 0)
+					tr.vel = v
+				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / float(tr.life), 0.0, 1.0) if not tr.has("casing") else (0.0 if tr.t > 0.4 else 1.0 - tr.t / 0.4)
+			else:
+				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / 0.09, 0.0, 1.0)
 			keep.append(tr)
 	_tracers = keep
 	if _flash:
@@ -244,7 +322,7 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 			hit_t = t
 	var end := from + dir * dist
 	tracer(from, end)
-	spark(end, hit_t != null)
+	spark(end, hit_t != null, Color(hit_t.get_meta("blood", Color(0.85, 0.1, 0.08))) if hit_t != null else Color.WHITE)
 	if hit_t:
 		var head := end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
 		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult
@@ -259,6 +337,7 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 			if hit_t.node:
 				hit_t.node.visible = false
 			Sound.sfx_at("down", end, from, -4.0)
+			scavenge()
 			killed.emit(hit_t)
 
 func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
@@ -290,20 +369,69 @@ func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
 		_flash.global_position = from
 		_flash_t = 0.05
 
-func spark(at: Vector3, flesh: bool) -> void:
+## a hit's spark. On a body the colour is the target's `blood` meta (troopers red, machines cyan coolant, Fracture
+## creatures violet, wildlife green) and the amount follows the gore setting: off — a grey puff; reduced — one spark;
+## full — a spray of droplets that fall and a splash that lingers a few seconds
+func spark(at: Vector3, flesh: bool, blood := Color(0.85, 0.1, 0.08)) -> void:
+	var gore := String(Settings.get_value("gore"))
+	if flesh and gore == "off":
+		_dot(at, Color(0.6, 0.6, 0.6, 0.6), 0.08, 0.15)
+		return
+	_dot(at, blood if flesh else Color(1.0, 0.9, 0.6), 0.06, 0.12)
+	if not flesh:
+		# the bullet's mark on the surface (asset catalog §5 bullet impacts): a scorched disc that fades over a few seconds
+		_dot(at, Color(0.08, 0.07, 0.06, 0.9), 0.07, 5.0, Vector3.ZERO, true)
+	if flesh and gore == "full":
+		for i in 6:
+			var v := Vector3(randf() - 0.5, randf() * 0.8, randf() - 0.5) * 3.0
+			_dot(at, blood, 0.03 + randf() * 0.03, 0.45 + randf() * 0.3, v)
+		_dot(at - Vector3(0, 0.02, 0), Color(blood.r, blood.g, blood.b, 0.85), 0.16, 4.0, Vector3.ZERO, true)
+
+## a shell casing out of the ejection port (asset catalog §5): a brass sliver thrown to the right and up, falling and
+## tumbling for a moment; the fusion frame throws none. Capped so a long burst on the phone stays a few draws.
+const CASINGS_MAX := 14
+var _casings := 0
+func _eject(cam: Camera3D) -> void:
+	if gun().frame == "FUSION" or _casings >= CASINGS_MAX:
+		return
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.012
+	cm.bottom_radius = 0.012
+	cm.height = 0.05
+	cm.radial_segments = 6
+	cm.rings = 1
+	mi.mesh = cm
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.85, 0.65, 0.25)
+	m.metallic = 0.9
+	m.roughness = 0.35
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	var right := cam.global_transform.basis.x
+	mi.global_position = muzzle() - (-cam.global_transform.basis.z) * 0.5 + right * 0.12
+	mi.rotation = Vector3(randf() * TAU, randf() * TAU, 0)
+	var vel := right * (1.6 + randf() * 0.8) + Vector3.UP * (2.2 + randf()) + (-cam.global_transform.basis.z) * (randf() - 0.5) * 0.6
+	_casings += 1
+	_tracers.append({ "node": mi, "t": 1.6, "vel": vel, "life": 1.6, "spin": Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * 20.0, "floor": player.position.y, "casing": true })
+
+func _dot(at: Vector3, col: Color, r: float, life: float, vel := Vector3.ZERO, flat := false) -> void:
 	var mi := MeshInstance3D.new()
 	var s := SphereMesh.new()
-	s.radius = 0.06
-	s.height = 0.12
+	s.radius = r
+	s.height = r * (0.25 if flat else 2.0)
+	s.radial_segments = 8
+	s.rings = 4
 	mi.mesh = s
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = Color(1.0, 0.3, 0.2) if flesh else Color(1.0, 0.9, 0.6)
+	m.albedo_color = col
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mi.material_override = m
 	add_child(mi)
 	mi.global_position = at
-	_tracers.append({ "node": mi, "t": 0.12 })
+	_tracers.append({ "node": mi, "t": life, "vel": vel, "life": life })
 
 ## a practice dummy: a post with a plate, standing on the ground at `at`
 func add_dummy(at: Vector3, hp := 30.0) -> Target:
