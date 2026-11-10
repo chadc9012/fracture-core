@@ -189,6 +189,7 @@ func _attach_head(body_head: int) -> void:
 	var gear := _gear(hb, hair_col)
 	if gear:
 		holder.add_child(gear)
+	_wear()
 	# headgear over built hair: tuck the hair under it (a beanie's shell sits 24 mm out, a cap's 16, a bandana's 14)
 	if hair_mesh and look.headgear in ["beanie", "beanie-red", "cap", "bandana"]:
 		var lift: float = { "beanie": 0.024, "beanie-red": 0.024, "cap": 0.016, "bandana": 0.014 }[look.headgear]
@@ -368,6 +369,166 @@ static func hair_material(col: Color, curly := false, knit := false) -> ShaderMa
 	m.set_shader_parameter("curly", 1.0 if curly else 0.0)
 	m.set_shader_parameter("knit", 1.0 if knit else 0.0)
 	return m
+
+## what the operator wears on the body (asset catalog part 2 §4: jewelry, watches, backpacks): `look.wear` is a list of
+## ids from WEAR, each a small mesh on a body bone — built upright in model space at the bone's rest and parented to a
+## BoneAttachment3D, so it rides the bone through every clip. Robots wear none.
+const WEAR := [
+	{ "id": "chain", "label": "Chain", "blurb": "A gold chain with a ▽ pendant." },
+	{ "id": "earrings", "label": "Earrings", "blurb": "Small hoops, both ears." },
+	{ "id": "watch", "label": "Watch", "blurb": "A steel watch, left wrist." },
+	{ "id": "backpack", "label": "Backpack", "blurb": "A slim tactical pack between the shoulders." },
+	{ "id": "rings", "label": "Rings", "blurb": "Two rings on the right hand." },
+]
+var _wear_nodes: Array[Node] = []
+
+static func wear_ids() -> Array[String]:
+	var out: Array[String] = []
+	for w in WEAR:
+		out.append(String(w.id))
+	return out
+
+func _wear() -> void:
+	for n in _wear_nodes:
+		if is_instance_valid(n):
+			n.queue_free()
+	_wear_nodes.clear()
+	if look.body == "robot" or not skeleton:
+		return
+	var wear: Array = look.get("wear", [])
+	var gold := _mat(Color(0.95, 0.75, 0.3), 0.25, 1.0)
+	var steel := _mat(Color(0.75, 0.77, 0.8), 0.3, 0.9)
+	var cloth := _mat(Color(0.12, 0.12, 0.14), 0.85, 0.0)
+	for id in wear:
+		match String(id):
+			"chain":
+				var h := _on_bone("Neck", Vector3(0, -0.09, 0.07))
+				if h:
+					var band := TorusMesh.new()
+					band.inner_radius = 0.085
+					band.outer_radius = 0.093
+					band.rings = 10
+					band.ring_segments = 6
+					var bm := MeshInstance3D.new()
+					bm.mesh = band
+					bm.rotation.x = 0.35
+					bm.material_override = gold
+					h.add_child(bm)
+					var pend := MeshInstance3D.new()
+					var pm := PrismMesh.new()
+					pm.size = Vector3(0.036, 0.04, 0.008)
+					pend.mesh = pm
+					pend.rotation.x = PI
+					pend.position = Vector3(0, -0.075, 0.1)
+					pend.material_override = gold
+					h.add_child(pend)
+			"earrings":
+				for sx in [-1.0, 1.0]:
+					var h2 := _on_bone("Head", Vector3(sx * 0.08, -0.025, -0.01))
+					if h2:
+						var ring := TorusMesh.new()
+						ring.inner_radius = 0.012
+						ring.outer_radius = 0.0155
+						ring.rings = 8
+						ring.ring_segments = 6
+						var rm := MeshInstance3D.new()
+						rm.mesh = ring
+						rm.rotation.z = PI * 0.5
+						rm.material_override = gold
+						h2.add_child(rm)
+			"watch":
+				var h3 := _on_bone("LeftHand", Vector3(-0.035, 0.0, 0.0))
+				if h3:
+					var strap := TorusMesh.new()
+					strap.inner_radius = 0.03
+					strap.outer_radius = 0.038
+					strap.rings = 10
+					strap.ring_segments = 6
+					var sm := MeshInstance3D.new()
+					sm.mesh = strap
+					sm.rotation.z = PI * 0.5     # the band round the forearm (bone along X in the T-pose)
+					sm.material_override = cloth
+					h3.add_child(sm)
+					var face := MeshInstance3D.new()
+					var fm := CylinderMesh.new()
+					fm.top_radius = 0.018
+					fm.bottom_radius = 0.018
+					fm.height = 0.008
+					fm.radial_segments = 12
+					face.mesh = fm
+					face.position = Vector3(0, 0.0, -0.036)
+					face.rotation.x = PI * 0.5
+					face.material_override = steel
+					h3.add_child(face)
+					var glass := MeshInstance3D.new()
+					var gm := CylinderMesh.new()
+					gm.top_radius = 0.014
+					gm.bottom_radius = 0.014
+					gm.height = 0.002
+					gm.radial_segments = 12
+					glass.mesh = gm
+					glass.position = Vector3(0, 0.0, -0.041)
+					glass.rotation.x = PI * 0.5
+					var lm := _mat(Color(0.3, 0.9, 1.0), 0.1, 0.0)
+					lm.emission_enabled = true
+					lm.emission = Color(0.3, 0.9, 1.0)
+					lm.emission_energy_multiplier = 1.2
+					glass.material_override = lm
+					h3.add_child(glass)
+			"backpack":
+				var h4 := _on_bone("Spine2", Vector3(0, -0.04, -0.17))
+				if h4:
+					var pack := MeshInstance3D.new()
+					var pk := BoxMesh.new()
+					pk.size = Vector3(0.3, 0.4, 0.16)
+					pack.mesh = pk
+					pack.material_override = cloth
+					h4.add_child(pack)
+					var lid := MeshInstance3D.new()
+					var lm2 := BoxMesh.new()
+					lm2.size = Vector3(0.26, 0.12, 0.17)
+					lid.mesh = lm2
+					lid.position = Vector3(0, 0.15, -0.005)
+					lid.material_override = _mat(Color(0.18, 0.18, 0.2), 0.8, 0.0)
+					h4.add_child(lid)
+					for sx in [-0.09, 0.09]:
+						var strap2 := MeshInstance3D.new()
+						var st := BoxMesh.new()
+						st.size = Vector3(0.05, 0.3, 0.03)
+						strap2.mesh = st
+						strap2.position = Vector3(sx, 0.08, 0.13)
+						strap2.rotation.x = -0.5
+						strap2.material_override = cloth
+						h4.add_child(strap2)
+			"rings":
+				for off in [Vector3(-0.09, -0.005, 0.0), Vector3(-0.09, -0.005, 0.02)]:
+					var h5 := _on_bone("RightHand", off)
+					if h5:
+						var ring2 := TorusMesh.new()
+						ring2.inner_radius = 0.0085
+						ring2.outer_radius = 0.011
+						ring2.rings = 8
+						ring2.ring_segments = 6
+						var r2 := MeshInstance3D.new()
+						r2.mesh = ring2
+						r2.rotation.z = PI * 0.5
+						r2.material_override = gold
+						h5.add_child(r2)
+
+## a holder upright in model space at the bone's rest plus `off`, riding the bone
+func _on_bone(suffix: String, off: Vector3) -> Node3D:
+	var idx := _bone(skeleton, suffix)
+	if idx < 0:
+		return null
+	var att := BoneAttachment3D.new()
+	att.bone_idx = idx
+	skeleton.add_child(att)
+	_wear_nodes.append(att)
+	var rest := skeleton.get_bone_global_rest(idx)
+	var holder := Node3D.new()
+	holder.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, rest.origin + off)
+	att.add_child(holder)
+	return holder
 
 static func _mat(col: Color, rough := 0.5, metal := 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()

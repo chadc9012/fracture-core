@@ -450,3 +450,17 @@ func _fill() -> void:
 				_choice(g8, h.label, look.headgear == gid, func() -> void:
 					look.headgear = gid
 					_changed(true), h.blurb)
+			if look.body != "robot":
+				_section("WEAR")
+				var g9 := _grid(2)
+				for w: Dictionary in Rig.WEAR:
+					var wid: String = w.id
+					var on: bool = wid in look.get("wear", [])
+					_choice(g9, ("✓ " if on else "") + String(w.label), on, func() -> void:
+						var wear: Array = look.get("wear", []).duplicate()
+						if wid in wear:
+							wear.erase(wid)
+						else:
+							wear.append(wid)
+						look.wear = wear
+						_changed(true), w.blurb)

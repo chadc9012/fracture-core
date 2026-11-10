@@ -35,7 +35,7 @@ Rows are the lock; `git fetch` before you claim.
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
-  6. City infrastructure and interiors (part 2 §1–2), ~~civilian life props (§3)~~ (done Nov 9), combat details (§5: casings, impacts, flinch, gore done; holsters / magazines / attachments / armour damage / shields / debris / destructible cover open), character appearance (§4).
+  6. City infrastructure and interiors (part 2 §1–2), ~~civilian life props (§3)~~ (done Nov 9), combat details (§5: casings, impacts, flinch, gore done; holsters / magazines / attachments / armour damage / shields / debris / destructible cover open), character appearance (§4: wear slot done Nov 10; shoes / formal clothing wait on clothing meshes).
   7. ~~Vegetation / rock gaps, natural effects, VFX~~ — done in region 3D and scripts/vfx/fx.gd (see Done).
   8. ~~Fantasy & dimensional set (§9)~~ — builders landed Nov 9 (scripts/vfx/fracture_set.gd) and placed at the Rift Gate and the Neon core; still to place in the Shattered Expanse regions when they get their dressing pass.
 
@@ -46,6 +46,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Asset gap 6, character appearance (§4): the WEAR slot — chain, earrings, watch, backpack, rings on body bones; creator section, store validation, rig attachments; character suite 252 checks | Godot: wear |
 | Asset gap 6, civilian life (§3): vending machines, ATMs, food stalls, café seating, parcels on every Nexus / Neon sidewalk with footprints (scripts/city/civic_props.gd) | Godot: civilian life |
 | Owner phone test (Nov 9 20:26): DONE — touch buttons answer any finger (ENTER/FIRE/BRAKE ignored a second finger, so no car could be entered while moving); screen orientation setting + ⟳ in the street (AUTO/LANDSCAPE/PORTRAIT, the design size turns with the screen); the gun points at the crosshair from the hand; touch aim pull while firing, strafe facing in a fight; no LODs on the Meshy buildings/furniture (they shattered on medium/low) and the Meshy blocks off the streets; phone racing: auto-throttle, steering assist, engine sound; modes hub stacks on an upright phone; map labels sized and decluttered; sound effects rebuilt (tools/make_sfx.py) | session_01PQQWemhLWEFEw4j69oN1tq, Nov 9 |
 | Asset gap 6, combat details (§5): shell casings, bullet impact marks, enemy hit reactions (flinch) — with the gore pass, four of the ten | Godot: combat details |

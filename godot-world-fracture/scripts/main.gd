@@ -916,7 +916,7 @@ func _shoot(path: String, opts: Array) -> void:
 				for kv in c[4].split(","):
 					var pair := kv.split("=")
 					if pair.size() == 2:
-						lk[pair[0]] = Array(pair[1].split("+")) if pair[0] == "marks" else pair[1]
+						lk[pair[0]] = Array(pair[1].split("+")) if pair[0] in ["marks", "wear"] else pair[1]
 				lk = CharacterStore.clean(lk)
 			creator = CharacterCreator.new()
 			creator.look = lk
