@@ -9,6 +9,7 @@ extends "res://scripts/city/street_slice.gd"
 
 signal finished
 
+const TouchPad := preload("res://scripts/player/touch_controls.gd")
 const Story := preload("res://scripts/mission/m01_story.gd")
 const Player := preload("res://scripts/mission/player.gd")
 const Echo := preload("res://scripts/mission/echo.gd")
@@ -1824,7 +1825,10 @@ func _build_hud() -> void:
 	_btns.append(back)
 	var use := Data.button("USE", true)
 	_place(use, Control.PRESET_CENTER, -70, 100, 140, 52)
-	use.pressed.connect(_use)
+	if touch:
+		TouchPad.bind(use, _use)
+	else:
+		use.pressed.connect(_use)
 	hud.add_child(use)
 	_btns.append(use)
 	use.name = "USE"
@@ -1840,12 +1844,12 @@ func _build_hud() -> void:
 			match p[0]:
 				"FIRE":
 					_fire_btn = b
-					b.button_down.connect(func() -> void: op.fire_held = true)
-					b.button_up.connect(func() -> void: op.fire_held = false)
-				"BLAST": b.pressed.connect(func() -> void: op.blast())
-				"DASH": b.pressed.connect(func() -> void: op.dash())
-				"MELEE": b.pressed.connect(func() -> void: op.melee())
-				"RELOAD": b.pressed.connect(func() -> void: op.reload())
+					TouchPad.bind(b, func() -> void: op.fire_held = true, func() -> void: op.fire_held = false)
+				# every pad button answers any finger, so it works with a thumb on the move stick
+				"BLAST": TouchPad.bind(b, func() -> void: op.blast())
+				"DASH": TouchPad.bind(b, func() -> void: op.dash())
+				"MELEE": TouchPad.bind(b, func() -> void: op.melee())
+				"RELOAD": TouchPad.bind(b, func() -> void: op.reload())
 	_location_text()
 
 func _update_hud() -> void:

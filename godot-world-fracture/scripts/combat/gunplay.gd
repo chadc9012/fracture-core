@@ -37,7 +37,7 @@ var kills := 0
 ## no weapon in hand: before Mission 01's Fracture arms the operator the street is walked unarmed (owner, Nov 9)
 var holstered := false
 ## aim help: shots go to a live foe within this many degrees of the crosshair (on by default on a touch screen)
-var assist_deg := 4.5 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")) else 0.0
+var assist_deg := 7.0 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")) else 0.0
 var shots_fired := 0
 var hits_landed := 0
 
@@ -100,6 +100,53 @@ func _mount() -> void:
 		_held.add_child(m)
 		_models[f] = m
 	_show_current()
+
+## aim help on a touch screen while the trigger is held: the camera eases toward the nearest live foe within 14° of the
+## crosshair, faster the closer it already is (a thumb cannot track a strafing trooper the way a mouse can)
+func _pull_aim(dt: float, cam: Camera3D) -> void:
+	if not cam or not is_instance_valid(cam) or not player:
+		return
+	var from := cam.global_position
+	var dir := -cam.global_transform.basis.z
+	var best: Target = null
+	var best_a := deg_to_rad(14.0)
+	for t in targets:
+		if not t.alive():
+			continue
+		if t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team:
+			continue
+		var c: Vector3 = t.box.get_center() + Vector3(0, t.box.size.y * 0.15, 0)
+		var to_c := c - from
+		if to_c.length() > 80.0 or to_c.length() < 1.0:
+			continue
+		var a := dir.angle_to(to_c)
+		if a < best_a:
+			best_a = a
+			best = t
+	if best == null:
+		return
+	var c2: Vector3 = best.box.get_center() + Vector3(0, best.box.size.y * 0.15, 0)
+	var d2 := (c2 - from).normalized()
+	var want_yaw := atan2(-d2.x, -d2.z)
+	var want_pitch := asin(clampf(d2.y, -1.0, 1.0))
+	var k := minf(1.0, dt * lerpf(9.0, 3.0, best_a / deg_to_rad(14.0)))
+	player.cam_yaw = lerp_angle(player.cam_yaw, want_yaw, k)
+	player.cam_pitch = clampf(lerpf(player.cam_pitch, want_pitch, k * 0.6), -0.9, 0.45)
+
+## the gun rides the right hand but points where the crosshair does. Hung off the hand bone at a fixed angle it followed
+## the unarmed walk and run clips' arm swing, so it pointed at the sky, behind the back or hung upside down (owner's phone
+## test, Nov 9: "my gun was upside down"); now the barrel aims at the crosshair's point from wherever the hand is
+func _point_gun(cam: Camera3D) -> void:
+	if not _held or not _hand or holstered or not cam or not is_instance_valid(cam):
+		return
+	var at := _hand.global_position
+	var dir := aim_point(cam) - at
+	if dir.length() < 0.5:
+		dir = -cam.global_transform.basis.z
+	dir = dir.normalized()
+	if absf(dir.y) > 0.98:
+		return
+	_held.global_transform = Transform3D(Basis.looking_at(-dir, Vector3.UP), at)
 
 func _show_current() -> void:
 	for f in _models:
@@ -184,6 +231,9 @@ func aim_point(cam: Camera3D) -> Vector3:
 
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
+	if trigger and assist_deg > 0.0 and not holstered:
+		_pull_aim(dt, cam)
+	_point_gun(cam)
 	if holstered:
 		trigger = false
 		reload = false

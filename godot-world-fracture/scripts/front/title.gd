@@ -35,11 +35,22 @@ func _ready() -> void:
 		fade.color = Color(0.02, 0.02, 0.05, 0.55)
 		add_child(fade)
 	var box := VBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	box.position = Vector2(-230, -740)
 	box.custom_minimum_size = Vector2(460, 0)
 	box.add_theme_constant_override("separation", 12)
 	add_child(box)
+	# the menu sits on the lower part of the art, upright; on a phone turned sideways it would run off the top, so it is
+	# placed (and shrunk if it must be) to fit whatever height there is
+	var fit := func() -> void:
+		var h := box.get_combined_minimum_size().y
+		var room := size.y - 40.0
+		var k := minf(1.0, room / maxf(h, 1.0))
+		box.scale = Vector2(k, k)
+		box.size = Vector2(460, h)
+		var top := size.y - 740.0 if size.y > size.x else (size.y - h * k) * 0.5
+		box.position = Vector2(size.x * 0.5 - 230.0 * k, maxf(20.0, minf(top, size.y - h * k - 20.0)))
+	resized.connect(fit)
+	box.resized.connect(fit)
+	fit.call_deferred()
 	var mark := Label.new()
 	mark.text = "▽"
 	mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

@@ -3,7 +3,7 @@ extends RefCounted
 ## "auto" to the device (phone → medium); scripts/phone.gd and the views read it. Keep every option here, not in a view.
 
 const PATH := "user://settings.json"
-const DEFAULTS := { "graphics": "auto", "sensitivity": 1.0, "invert_look": false, "master": 0.8, "music": 0.7, "sfx": 0.9, "voices": 1.0, "simple_hud": true, "radio": "", "perf_hud": true, "gore": "reduced" }
+const DEFAULTS := { "graphics": "auto", "sensitivity": 1.0, "invert_look": false, "master": 0.8, "music": 0.7, "sfx": 0.9, "voices": 1.0, "simple_hud": true, "radio": "", "perf_hud": true, "gore": "reduced", "orientation": "auto" }
 const TIERS := ["low", "medium", "high"]
 
 static var _cache: Dictionary = {}
@@ -46,3 +46,24 @@ static func sensitivity() -> float:
 
 static func invert() -> bool:
 	return bool(get_value("invert_look"))
+
+## screen orientation: "auto" turns with the phone (and so obeys its rotation lock), "landscape" and "portrait" hold that
+## way whatever the lock says (owner's phone test, Nov 9: "it wouldn't let me rotate the screen" — the lock was on)
+const ORIENTATIONS := ["auto", "landscape", "portrait"]
+
+static func apply_orientation() -> void:
+	var o := String(get_value("orientation"))
+	var m: DisplayServer.ScreenOrientation = DisplayServer.SCREEN_SENSOR
+	if o == "landscape":
+		m = DisplayServer.SCREEN_SENSOR_LANDSCAPE
+	elif o == "portrait":
+		m = DisplayServer.SCREEN_SENSOR_PORTRAIT
+	DisplayServer.screen_set_orientation(m)
+
+## the next orientation in AUTO → LANDSCAPE → PORTRAIT, saved and applied; returns it
+static func cycle_orientation() -> String:
+	var o := String(get_value("orientation"))
+	var n: String = ORIENTATIONS[(ORIENTATIONS.find(o) + 1) % ORIENTATIONS.size()]
+	set_value("orientation", n)
+	apply_orientation()
+	return n

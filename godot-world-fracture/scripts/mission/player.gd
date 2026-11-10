@@ -268,6 +268,7 @@ func _physics_process(delta: float) -> void:
 		_play("combat")
 	else:
 		_play("idle")
+	_point_rifle()
 	# weapon
 	_fire_cd -= delta
 	blast_cd = maxf(0.0, blast_cd - delta)
@@ -289,6 +290,22 @@ func _physics_process(delta: float) -> void:
 	_since_hurt += delta
 	if _since_hurt > 4.0 and hp < 100.0:
 		hp = minf(100.0, hp + 12.0 * delta)
+
+## the authored rifle points down the camera's line from the hand (the walk and run clips swing an empty hand, which
+## left the gun pointing at the sky or hanging upside down; owner's phone test, Nov 9)
+func _point_rifle() -> void:
+	if not rifle or not cam or not rifle.has_meta("authored"):
+		return
+	var held: Node3D = rifle.get_meta("authored")
+	if not held.visible:
+		return
+	var at := held.global_position
+	var r := aim_ray()
+	var target: Vector3 = r[0] + r[1] * 30.0
+	var dir := (target - at).normalized()
+	if absf(dir.y) > 0.98:
+		return
+	held.global_transform = Transform3D(Basis.looking_at(-dir, Vector3.UP), at)
 
 func _play(nm: String) -> void:
 	if _anim == nm or not rig.anim or not rig.anim.has_animation(nm):

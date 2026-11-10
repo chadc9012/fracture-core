@@ -33,6 +33,7 @@ const DOORS := [
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
 var _radio_button: Button
+var _topbar: HFlowContainer
 var _drive_m := 0.0
 var _near_door := ""
 
@@ -194,13 +195,12 @@ func _ready() -> void:
 	sound_on()
 	var back := Button.new()
 	back.text = "← BACK"
-	back.position = Vector2(16, 16)
 	back.pressed.connect(func(): closed.emit())
-	add_child(back)
+	_bar().add_child(back)
 	_radio_button = Button.new()
 	_radio_button.text = "RADIO"
 	_radio_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_radio_button.position = Vector2(-240, 100)
+	_radio_button.position = Vector2(-240, 190)
 	_radio_button.custom_minimum_size = Vector2(224, 40)
 	_radio_button.add_theme_font_size_override("font_size", 13)
 	_radio_button.visible = false
@@ -208,39 +208,35 @@ func _ready() -> void:
 	add_child(_radio_button)
 	var tod := Button.new()
 	tod.text = "DAY" if night else "NIGHT"
-	tod.position = Vector2(110, 16)
 	tod.pressed.connect(func(): toggle_night.emit())
-	add_child(tod)
+	_bar().add_child(tod)
 	var sty := Button.new()
 	sty.text = STYLE_NAMES[STYLES[(STYLES.find(style) + 1) % STYLES.size()]]
-	sty.position = Vector2(190, 16)
 	sty.pressed.connect(func(): toggle_style.emit())
-	add_child(sty)
+	_bar().add_child(sty)
 	var shop := Catalog.shop(CITY_GARAGE[style])
 	var enter := Button.new()
 	enter.text = "ENTER " + String(shop.name).to_upper()
 	enter.add_theme_color_override("font_color", Color(String(shop.accent)))
-	enter.position = Vector2(330, 16)
 	enter.pressed.connect(open_garage)
-	add_child(enter)
+	_bar().add_child(enter)
 	var mall := Button.new()
 	mall.text = "ENTER GALLERIA MALL"
-	mall.position = Vector2(560, 16)
 	mall.pressed.connect(open_mall)
-	add_child(mall)
+	_bar().add_child(mall)
 	var casino := Button.new()
 	casino.text = "ENTER NEON CITY GRAND CASINO"
 	casino.visible = style == "neon"
 	casino.add_theme_color_override("font_color", Color(0.95, 0.72, 0.32))
-	casino.position = Vector2(760, 16)
 	casino.pressed.connect(open_casino)
-	add_child(casino)
+	_bar().add_child(casino)
 	var sports := Button.new()
 	sports.text = "SPORTS DISTRICT"
 	sports.add_theme_color_override("font_color", Color(0.1, 0.85, 1.0))
-	sports.position = Vector2(975, 16)
 	sports.pressed.connect(open_sports)
-	add_child(sports)
+	_bar().add_child(sports)
+	_bar().move_child(back, 0)
+	move_child(_bar(), -1)   # over the touch controls, which fill the screen
 	if style != "nexus":
 		tod.visible = style != "neon"   # Neon City is always night
 
@@ -249,6 +245,22 @@ func look_from(from: Vector3, at: Vector3) -> void:
 	cam.look_at(at)
 
 # --------------------------------------------------------------------------------------------- on foot
+func _bar() -> HFlowContainer:
+	if _topbar:
+		return _topbar
+	# the top bar wraps: on a phone held upright the door buttons used to run off the right edge (the mall, the casino
+	# and the sports district could not be reached); turned sideways they sit in one row
+	_topbar = HFlowContainer.new()
+	_topbar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_topbar.offset_left = 12
+	_topbar.offset_top = 12
+	_topbar.offset_right = -12
+	_topbar.add_theme_constant_override("h_separation", 8)
+	_topbar.add_theme_constant_override("v_separation", 6)
+	_topbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_topbar)
+	return _topbar
+
 func _spawn_player() -> void:
 	controls = TouchControls.new()
 	add_child(controls)
@@ -335,14 +347,17 @@ func _after_enemies() -> void:
 			controls.toast("Picked up %s · %d" % [it.name, int(it.power)]))
 	var inv := Button.new()
 	inv.text = "INVENTORY"
-	inv.position = Vector2(16, 60)
 	inv.pressed.connect(open_inventory)
-	add_child(inv)
+	_bar().add_child(inv)
 	var op := Button.new()
 	op.text = "OPERATOR"
-	op.position = Vector2(140, 60)
 	op.pressed.connect(open_profile)
-	add_child(op)
+	_bar().add_child(op)
+	# turn the screen without the phone's rotation lock in the way: AUTO → LANDSCAPE → PORTRAIT
+	var rot := Button.new()
+	rot.text = "⟳ " + String(Settings.get_value("orientation")).to_upper()
+	rot.pressed.connect(func(): rot.text = "⟳ " + Settings.cycle_orientation().to_upper())
+	_bar().add_child(rot)
 
 var profile_overlay: Control
 ## the operator panel (progress/profile_view.gd) over the street; the wallet reloads on close since goals may have paid
@@ -889,7 +904,12 @@ func _wet_night() -> void:
 
 # --------------------------------------------------------------------------------------------- loading models
 ## a Meshy prop scaled so its height is `height` metres, base on the ground, centred on x/z
+## Meshy props whose meshes are torn (open faces, glass panes in shards): left out until they are remade; every caller
+## builds without them (owner's phone test, Nov 9)
+const SHATTERED := ["planter.glb", "bus-shelter.glb", "apartment.glb", "brick.glb", "office.glb", "deco.glb", "villa.glb"]
 func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
+	if file.get_file() in SHATTERED:
+		return null
 	var path := MODELS + file
 	if not ResourceLoader.exists(path):
 		push_warning("street slice: missing " + path)
@@ -940,13 +960,14 @@ static func _aabb(n: Node) -> AABB:
 # --------------------------------------------------------------------------------------------- buildings
 func _buildings() -> void:
 	var half := ROAD_W * 0.5 + WALK_W
-	# which blocks line the street, and how tall each kind stands (m). The Meshy office, brick, deco and villa blocks are out
-	# (bug sweep, Nov 9): their meshes are torn and their facades crinkle like foil; the fleet's own towers stand in.
-	var kinds: Array = [["apartment.glb", 22.0], ["../buildings/nexus-civic-a.glb", 22.0], ["../buildings/nexus-civic-c.glb", 34.0], ["apartment.glb", 25.0], ["../buildings/nexus-terrace-b.glb", 16.0], ["../buildings/nexus-civic-a.glb", 24.0], ["../buildings/nexus-terrace-a.glb", 20.0], ["../buildings/nexus-civic-b.glb", 26.0]]
+	# which blocks line the street, and how tall each kind stands (m). The Meshy blocks (office, brick, deco, villa,
+	# apartment, riverdale) are out (bug sweep and the owner's phone test, Nov 9): their meshes are torn, their facades
+	# crinkle like foil and simplified for the phone they shatter; the fleet's own towers stand in.
+	var kinds: Array = [["../buildings/nexus-civic-b.glb", 22.0], ["../buildings/nexus-civic-a.glb", 22.0], ["../buildings/nexus-civic-c.glb", 34.0], ["../buildings/nexus-terrace-a.glb", 18.0], ["../buildings/nexus-terrace-b.glb", 16.0], ["../buildings/nexus-civic-a.glb", 24.0], ["../buildings/nexus-spire.glb", 40.0], ["../buildings/nexus-civic-b.glb", 26.0]]
 	if style == "coast":
-		kinds = [["../buildings/riverdale-corner.glb", 15.0], ["../buildings/nexus-terrace-b.glb", 14.0], ["../buildings/riverdale-corner.glb", 17.0], ["../buildings/nexus-terrace-b.glb", 12.0]]
+		kinds = [["../buildings/nexus-terrace-a.glb", 15.0], ["../buildings/nexus-terrace-b.glb", 14.0], ["../buildings/neon-v-F.glb", 18.0], ["../buildings/nexus-terrace-b.glb", 12.0]]
 	elif style == "neon":
-		kinds = [["../buildings/neon-v-D.glb", 22.0], ["../buildings/neon-v-A.glb", 24.0], ["apartment.glb", 20.0], ["../buildings/neon-block-a.glb", 24.0], ["../buildings/neon-v-C.glb", 30.0], ["../buildings/neon-tower-a.glb", 34.0], ["../buildings/neon-block-b.glb", 22.0], ["../buildings/neon-tower-b.glb", 36.0]]
+		kinds = [["../buildings/neon-v-D.glb", 22.0], ["../buildings/neon-v-A.glb", 24.0], ["../buildings/neon-v-E.glb", 26.0], ["../buildings/neon-block-a.glb", 24.0], ["../buildings/neon-v-C.glb", 30.0], ["../buildings/neon-tower-a.glb", 34.0], ["../buildings/neon-block-b.glb", 22.0], ["../buildings/neon-tower-b.glb", 36.0]]
 	var k := 0
 	for side: float in [-1.0, 1.0]:
 		var z := -LENGTH * 0.5 + 6.0

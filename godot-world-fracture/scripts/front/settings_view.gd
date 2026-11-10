@@ -46,6 +46,23 @@ func _ready() -> void:
 	note.add_theme_font_size_override("font_size", 13)
 	note.modulate = Color(0.65, 0.7, 0.78)
 	box.add_child(note)
+	# screen orientation
+	box.add_child(_label("SCREEN"))
+	var orow := HBoxContainer.new()
+	orow.add_theme_constant_override("separation", 8)
+	for o in Store.ORIENTATIONS:
+		var ob := Button.new()
+		ob.text = String(o).to_upper()
+		ob.toggle_mode = true
+		ob.button_pressed = String(s.get("orientation", "auto")) == o
+		ob.custom_minimum_size = Vector2(150, 44)
+		ob.pressed.connect(func():
+			Store.set_value("orientation", o)
+			Store.apply_orientation()
+			for other in orow.get_children():
+				(other as Button).button_pressed = (other as Button).text.to_lower() == o)
+		orow.add_child(ob)
+	box.add_child(orow)
 	# look
 	box.add_child(_label("LOOK SENSITIVITY"))
 	box.add_child(_slider("sensitivity", 0.3, 3.0, 0.1, s))

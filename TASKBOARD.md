@@ -26,7 +26,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Owner phone test (Nov 9 20:26): rotation locked, can't enter cars, gun upside down, aiming, torn neon towers + apartment shards, racing, map labels, audio | session_01PQQWemhLWEFEw4j69oN1tq | 2026-11-09 |
 | Owner ask (Nov 9 12:38): the Nexus Region after the owner's "Nexus Region v1.0" board (natural coastline; full region) — a new region map `nexus-region` (src/game/nexus-region.ts, a NewLand: Aether Ridge, Verdant Expanse, Ironcrest Outlands, Southreach, Nexus City's districts, Harbor, Beach, Azure Keys, Lighthouse Point, Eastpoint, Obsidian Cliffs, NOVA Research Complex, the Fracture Spire), opened first on the Nexus continent; region 3D only — not the Nexus street slice / districts (session_01PQQ… and the districts work own those) | session_01HeBvGF1Wp7cNYHiTnBkJXG | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
@@ -47,6 +46,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Owner phone test (Nov 9 20:26): DONE — touch buttons answer any finger (ENTER/FIRE/BRAKE ignored a second finger, so no car could be entered while moving); screen orientation setting + ⟳ in the street (AUTO/LANDSCAPE/PORTRAIT, the design size turns with the screen); the gun points at the crosshair from the hand; touch aim pull while firing, strafe facing in a fight; no LODs on the Meshy buildings/furniture (they shattered on medium/low) and the Meshy blocks off the streets; phone racing: auto-throttle, steering assist, engine sound; modes hub stacks on an upright phone; map labels sized and decluttered; sound effects rebuilt (tools/make_sfx.py) | session_01PQQWemhLWEFEw4j69oN1tq, Nov 9 |
 | Asset gap 6, combat details (§5): shell casings, bullet impact marks, enemy hit reactions (flinch) — with the gore pass, four of the ten | Godot: combat details |
 | Owner ask (Nov 9 19:07, "fix those issues"): DONE — Meshy city blocks made matte (scripts/matte-glb.py); torn office/brick/deco/villa/riverdale swapped out of the nexus and neon streets for the fleet towers; casino jackpot boards moved to the aisle ends facing the walkway (one plane, no overlap); raid view frees its 3D world child by child on exit, so the headless "material is null" at raid 01 is gone (playthrough 115 steps, 0 problems) | session_01PQQWemhLWEFEw4j69oN1tq, Nov 9 |
 | Act 1 voiced (lead, Nov 9): the descent's cutscenes take the campaign draft's voiced lines through `Cutscene.line(id)` / `Lines` — the forest arrival (M06), Fixer Sable in Neon City (M11), Vyrak's Covenant of Ash before, during (M09_007 at the stagger) and after the fight (M09 / M10); a written beat whose speaker + text is in the index picks up its voice; tests/mission/cutscene_test.gd | Godot: Act 1 voiced |

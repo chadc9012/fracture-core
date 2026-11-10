@@ -41,7 +41,9 @@ func _ready() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.material = _backdrop()
 	add_child(bg)
+	_was_upright = _upright()
 	show_hub()
+	get_viewport().size_changed.connect(_turned)
 
 # --------------------------------------------------------------------------------------------- the look
 ## the board's backdrop: deep navy, a faint grid, a fracture glow low on the horizon
@@ -220,7 +222,10 @@ func _header(title: String, strap: String, back: Callable) -> Control:
 	v.add_theme_constant_override("separation", -4)
 	bar.add_child(v)
 	v.add_child(text(title, 32))
-	v.add_child(text(strap, 13, Color(0.6, 0.85, 1.0), false))
+	var st := text(strap, 13, Color(0.6, 0.85, 1.0), false)
+	st.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS   # an upright phone has no room for the whole strap
+	st.clip_text = true
+	v.add_child(st)
 	h.add_child(bar)
 	return h
 
@@ -228,14 +233,42 @@ func _header(title: String, strap: String, back: Callable) -> Control:
 func _strip(label: String, items: Array, accent := EDGE) -> Control:
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", panel(accent, Color(0.02, 0.05, 0.11, 0.9), 1))
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 22)
+	# the ticks wrap onto a second line on an upright phone instead of pushing the page off the screen's edge
+	var h := HFlowContainer.new()
+	h.add_theme_constant_override("h_separation", 22)
+	h.add_theme_constant_override("v_separation", 2)
 	p.add_child(h)
 	var l := text("  " + label, 16, accent)
 	h.add_child(l)
 	for it in items:
 		h.add_child(text(String(it), 13, Color(0.82, 0.9, 1.0), false))
 	return p
+
+## an upright phone stacks the tiles one above the other (each keeps its wide picture); sideways they stand in a row.
+## Upright, three tall slivers each showed a tenth of its picture blown up until it was all pixels (owner's phone test)
+func _upright() -> bool:
+	var vs := get_viewport_rect().size
+	return vs.y > vs.x
+
+func _row() -> BoxContainer:
+	var row := BoxContainer.new()
+	row.vertical = _upright()
+	row.add_theme_constant_override("separation", 12 if row.vertical else 16)
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	return row
+
+var _was_upright := true
+## the phone turned: lay the page out again for the new shape (not while a mode is running over it)
+func _turned() -> void:
+	if _upright() == _was_upright:
+		return
+	_was_upright = _upright()
+	if view or not page:
+		return
+	if _mode == "":
+		show_hub()
+	else:
+		open_mode(_mode)
 
 func _page() -> VBoxContainer:
 	if page:
@@ -258,9 +291,7 @@ func show_hub() -> void:
 	_mode = ""
 	var v := _page()
 	v.add_child(_header("GAME MODES", "PVP   /   RAIDS   /   RACES   ·   VS BOTS NOW, ONLINE PLAY LATER", func(): closed.emit()))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var row := _row()
 	v.add_child(row)
 	for md in MODES:
 		var id: String = md.id
@@ -285,11 +316,16 @@ func _pvp() -> void:
 	var v := _page()
 	v.add_child(_header("PVP · KILLBOX", "COMPETITIVE ARENAS   /   TEAM BATTLES   /   CLASH VS BOT SQUADS", show_hub))
 	var grid := GridContainer.new()
-	grid.columns = 4
+	grid.columns = 2 if _upright() else 4
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(grid)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# twelve arenas in two columns run past an upright phone's bottom edge: the grid scrolls
+	var sc := ScrollContainer.new()
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.add_child(grid)
+	v.add_child(sc)
 	for id in Arena.arena_ids():
 		var a := Arena.new(String(id))
 		var aid := String(id)
@@ -311,9 +347,7 @@ func _launch_arena(id: String) -> void:
 func _raids() -> void:
 	var v := _page()
 	v.add_child(_header("RAIDS", "SIX-PLAYER FIRETEAMS   /   CHECKPOINTS   /   YOU + FIVE BOTS", show_hub))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var row := _row()
 	v.add_child(row)
 	var save := HollowStar.load_save()
 	var hero := _tile("raid-hollow-star", "RAID 01 · THE HOLLOW STAR", "Nexus City · Underground Fracture · 3.8 km", "Beneath Nexus City an ancient machine has woken. Descend, shut it down, and break the intelligence that runs it.", Color(0.7, 0.45, 1.0), func(): _launch_raid("broken-gate"), true, 26)
@@ -364,9 +398,7 @@ func _launch_raid(at: String) -> void:
 func _races() -> void:
 	var v := _page()
 	v.add_child(_header("RACES", "VENUES   /   STREET CIRCUITS   /   YOUR GARAGE CAR VS THREE RIVALS", show_hub))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var row := _row()
 	v.add_child(row)
 	for id in Track.ids():
 		var tr := Track.new(String(id))

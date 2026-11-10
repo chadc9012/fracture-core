@@ -79,7 +79,11 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	var target := want.normalized() * top * mag if mag > 0.02 else Vector3.ZERO
 	var rate := ACCEL if mag > 0.02 else DECEL
 	var flat := Vector3(velocity.x, 0, velocity.z).move_toward(target, rate * dt)
-	if mag > 0.02:
+	if combat_hold > 0.0 and not sprint:
+		# in a fight the body faces where the camera looks and strafes, the way a shooter plays; it no longer turns to
+		# face the camera when the stick pulls back
+		heading = lerp_angle(heading, cam_yaw + PI, minf(1.0, TURN * dt))
+	elif mag > 0.02:
 		var want_heading := atan2(want.x, want.z)
 		heading = lerp_angle(heading, want_heading, minf(1.0, TURN * dt))
 	# vertical

@@ -57,15 +57,13 @@ func _ready() -> void:
 		var jump := _button("JUMP")
 		jump.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		jump.position = Vector2(-120, -140)
-		jump.button_down.connect(func(): _jump = true; _brake_held = true)
-		jump.button_up.connect(func(): _brake_held = false)
+		bind(jump, func(): _jump = true; _brake_held = true, func(): _brake_held = false)
 		add_child(jump)
 		_jump_button = jump
 		var run := _button("SPRINT")
 		run.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		run.position = Vector2(-120, -230)
-		run.toggle_mode = true
-		run.toggled.connect(func(on: bool): _sprint_held = on)
+		bind(run, func(): _sprint_held = not _sprint_held; _lit(run, _sprint_held))
 		add_child(run)
 		_sprint_button = run
 		var ent := _button("ENTER")
@@ -73,33 +71,29 @@ func _ready() -> void:
 		ent.set_anchors_preset(Control.PRESET_CENTER)
 		ent.position = Vector2(-75, 120)
 		ent.visible = false
-		ent.pressed.connect(func(): _enter = true)
+		bind(ent, func(): _enter = true)
 		add_child(ent)
 		_enter_button = ent
 		var shoot := _button("FIRE")
 		shoot.custom_minimum_size = Vector2(120, 120)
 		shoot.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		shoot.position = Vector2(-250, -160)
-		shoot.button_down.connect(func(): fire = true)
-		shoot.button_up.connect(func(): fire = false)
-		# hold FIRE and slide the thumb to aim while shooting (the button keeps the touch, so the drag is read here)
-		shoot.gui_input.connect(func(e: InputEvent) -> void:
-			if e is InputEventScreenDrag:
-				look_delta += (e as InputEventScreenDrag).relative)
+		# hold FIRE and slide the thumb to aim while shooting (the button keeps the touch, so the drag is read there)
+		bind(shoot, func(): fire = true, func(): fire = false, func(rel: Vector2): look_delta += rel)
 		add_child(shoot)
 		_fire_button = shoot
 		var rl := _button("RELOAD")
 		rl.custom_minimum_size = Vector2(104, 56)
 		rl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		rl.position = Vector2(-120, -300)
-		rl.pressed.connect(func(): _reload = true)
+		bind(rl, func(): _reload = true)
 		add_child(rl)
 		_reload_button = rl
 		var nx := _button("SWAP")
 		nx.custom_minimum_size = Vector2(104, 56)
 		nx.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		nx.position = Vector2(-120, -365)
-		nx.pressed.connect(func(): _next = true)
+		bind(nx, func(): _next = true)
 		add_child(nx)
 		_swap_button = nx
 	_hud()
@@ -204,7 +198,7 @@ func _show_toast(text: String) -> void:
 		_toast = Label.new()
 		# across the top, centred and wrapped: a fixed 150 px offset put long lines off-centre and off a phone's edge
 		_toast.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-		_toast.offset_top = 110
+		_toast.offset_top = 190   # under the street's top bar, which wraps to three rows on an upright phone
 		_toast.offset_left = 24
 		_toast.offset_right = -24
 		_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -263,7 +257,7 @@ func set_mode(m: String) -> void:
 	if _sprint_button:
 		_sprint_button.visible = not drive and (fly or not simple())
 		_sprint_button.text = "DOWN" if fly else "SPRINT"
-		_sprint_button.button_pressed = false
+		_lit(_sprint_button, false)
 	if _fire_button:
 		_fire_button.visible = not drive and not fly and weapons_out
 	for b in [_reload_button, _swap_button]:
@@ -309,6 +303,41 @@ func _ring(r: float, col: Color) -> Control:
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.draw.connect(func(): c.draw_circle(Vector2(r, r), r, col); c.draw_arc(Vector2(r, r), r - 1.0, 0.0, TAU, 48, Color(1, 1, 1, 0.5), 2.0))
 	return c
+
+## a phone button that answers any finger. A Button only hears the first finger on the glass (Godot turns touch 0 into
+## a mouse click and no other), so with a thumb on the move stick ENTER, FIRE, RELOAD and SWAP ignored the other hand
+## (owner's phone test, Nov 9: "I couldn't enter cars"). Each touch on the button is read here, whatever its index, and
+## the mouse click Godot makes from touch 0 is swallowed so nothing fires twice.
+static func bind(b: Button, down: Callable, up := Callable(), drag := Callable()) -> void:
+	var held := [-1]
+	b.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventScreenTouch:
+			var t := e as InputEventScreenTouch
+			if t.pressed and held[0] < 0:
+				held[0] = t.index
+				b.modulate = Color(0.6, 0.95, 1.0, 1.0)
+				down.call()
+			elif not t.pressed and t.index == held[0]:
+				held[0] = -1
+				b.modulate = Color(0.6, 0.95, 1.0, 1.0) if b.has_meta("lit") else Color(1, 1, 1, 0.85)
+				if up.is_valid():
+					up.call()
+			b.accept_event()
+		elif e is InputEventScreenDrag:
+			if drag.is_valid() and (e as InputEventScreenDrag).index == held[0]:
+				drag.call((e as InputEventScreenDrag).relative)
+			b.accept_event()
+		elif e is InputEventMouseButton or e is InputEventMouseMotion:
+			b.accept_event())
+
+## a toggle button's lit look (SPRINT on)
+func _lit(b: Button, on: bool) -> void:
+	if on:
+		b.set_meta("lit", true)
+		b.modulate = Color(0.6, 0.95, 1.0, 1.0)
+	else:
+		b.remove_meta("lit")
+		b.modulate = Color(1, 1, 1, 0.85)
 
 func _button(text: String) -> Button:
 	var b := Button.new()

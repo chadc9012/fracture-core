@@ -1765,6 +1765,9 @@ func _declutter() -> void:
 		return
 	var placed: Array[Rect2] = []
 	var vs := _vp.get_visible_rect().size
+	# names are sized against the view's height: on an upright phone that made them as wide as the screen, so they
+	# shrink with a narrow view
+	var shrink := clampf(vs.x / maxf(vs.y, 1.0) * 1.4, 0.55, 1.0)
 	var order := _labels.duplicate()
 	order.sort_custom(func(a, b): return a.rank < b.rank or (a.rank == b.rank and a.node.global_position.distance_to(_cam.global_position) < b.node.global_position.distance_to(_cam.global_position)))
 	for e in order:
@@ -1776,9 +1779,14 @@ func _declutter() -> void:
 		if _cam.is_position_behind(wp) or wp.distance_to(_cam.global_position) > l.visibility_range_end:
 			l.visible = false
 			continue
+		l.pixel_size = float(l.get_meta("px", l.pixel_size)) * shrink
 		var sp := _cam.unproject_position(wp)
-		var w := l.text.length() * 11.0 + 14.0
-		var r := Rect2(sp - Vector2(w / 2.0, 12), Vector2(w, 24))
+		# the name's real size on screen: a fixed-size Label3D is pixel_size × font_size tall at one metre, so a fraction
+		# of the view's height. The old guess (11 px a letter) was a third of the real width on a phone, so names that
+		# looked apart to the guess sat on top of each other (owner's phone test, Nov 9)
+		var gh := l.pixel_size * float(l.font_size) / (2.0 * tan(deg_to_rad(_cam.fov) * 0.5)) * vs.y
+		var w := float(l.text.length()) * gh * 0.56 + gh * 0.8
+		var r := Rect2(sp - Vector2(w / 2.0, gh * 0.65), Vector2(w, gh * 1.3))
 		var ok := Rect2(Vector2.ZERO, vs).intersects(r)
 		for q in placed:
 			if q.intersects(r):
@@ -1803,11 +1811,12 @@ func _build_labels() -> void:
 		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		l.fixed_size = true
 		l.pixel_size = 0.0016
+		l.set_meta("px", 0.0016)
 		l.font_size = 30
 		l.outline_size = 10
 		l.modulate = Color(Data.styles.poi.get(p.cat, {"color": "#ffffff"}).color).lightened(0.45)
 		l.outline_modulate = Color(0.02, 0.05, 0.09, 0.9)
-		l.no_depth_test = false
+		l.no_depth_test = true    # over the towers: a name half behind a building could not be read (the declutter keeps them apart)
 		l.position = Vector3(at.x, maxf(y, _water) + 9.0, at.y)
 		l.visibility_range_end = 1200.0 if int(p.rank) == 0 else (420.0 if int(p.rank) == 1 else 180.0)
 		l.set_meta("cat", String(p.get("cat", "")))
@@ -1825,6 +1834,7 @@ func _fit_labels() -> void:
 		var cat := String(l.get_meta("cat", ""))
 		if foot:
 			l.pixel_size = 0.0007
+			l.set_meta("px", 0.0007)
 			l.font_size = 22
 			l.outline_size = 6
 			l.visibility_range_end = 220.0 if rank == 0 else (110.0 if rank == 1 else 60.0)
@@ -1832,6 +1842,7 @@ func _fit_labels() -> void:
 			l.visible = not bool(l.get_meta("hidden"))
 		else:
 			l.pixel_size = 0.0016
+			l.set_meta("px", 0.0016)
 			l.font_size = 30
 			l.outline_size = 10
 			l.visibility_range_end = 1200.0 if rank == 0 else (420.0 if rank == 1 else 180.0)

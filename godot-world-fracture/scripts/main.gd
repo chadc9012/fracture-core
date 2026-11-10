@@ -49,6 +49,11 @@ var garage: Control
 var driving: Control
 
 func _ready() -> void:
+	preload("res://scripts/front/settings_store.gd").apply_orientation()   # the player's saved screen orientation
+	# the UI is laid out for a 540 px wide portrait phone; turned sideways the same rule would shrink every button to half
+	# its size, so the design size turns with the screen (540 × 1170 upright, 1170 × 540 on its side)
+	get_tree().root.size_changed.connect(_fit_design_size)
+	_fit_design_size()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)   # the overlays (title, settings, operator) fill the window
 	var bg := ColorRect.new()
 	bg.color = Data.BG
@@ -1064,3 +1069,12 @@ func _mesh_tris(mesh: Mesh) -> int:
 		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
 		t += (idx.size() if idx.size() > 0 else (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
 	return t
+
+func _fit_design_size() -> void:
+	var r := get_tree().root
+	var sz := Vector2(DisplayServer.window_get_size())
+	if sz.x <= 0 or sz.y <= 0:
+		return
+	var want := Vector2i(1170, 540) if sz.x > sz.y else Vector2i(540, 1170)
+	if r.content_scale_size != want:
+		r.content_scale_size = want
