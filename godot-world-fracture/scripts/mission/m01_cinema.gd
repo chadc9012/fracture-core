@@ -235,6 +235,51 @@ static func stairwell(m: Node) -> Dictionary:
 		mother.visible = false
 	return { "slab": slab, "body": body, "bits": bits, "mother": mother, "child": child }
 
+## the operator asleep in the bedroom's bed for the opening (owner, Nov 10: "have the operator wake up in bed"): the
+## player's own build in regular clothes (the civ body), on their back under a duvet, head on the pillow; the opening
+## cuts from them asleep to them up and standing by the bed. Hidden until the opening asks for it.
+static func sleeper(m: Node) -> Node3D:
+	var c: Vector3 = m.APT
+	var holder := Node3D.new()
+	holder.name = "Sleeper"
+	m.int_root.add_child(holder)
+	var Store := load("res://scripts/character/character_store.gd")
+	var look: Dictionary = Store.load_look() if Store.exists() else Store.default_look()
+	look = look.duplicate(true)
+	if String(look.get("body", "male")) != "robot":
+		look.frame = "civ"
+		look.headgear = "none"
+	var rig: Node3D = load("res://scripts/character/character_rig.gd").new()
+	holder.add_child(rig)
+	rig.build(look)
+	if rig.anim and rig.anim.has_animation("idle"):
+		rig.anim.play("idle")
+		rig.anim.speed_scale = 0.35    # slow breathing
+	# on the back, head to the headboard (−z), face to the ceiling
+	rig.rotation = Vector3(-PI * 0.5, 0, 0)
+	rig.position = c + Vector3(-6.4, 0.68, -1.7)
+	# a duvet over them to the chest, and a pillow
+	var duvet := MeshInstance3D.new()
+	var dm := CapsuleMesh.new()     # a soft, rounded quilt (a capsule laid along the bed, flattened)
+	dm.radius = 0.5
+	dm.height = 1.75
+	duvet.mesh = dm
+	duvet.rotation = Vector3(PI * 0.5, 0, 0)
+	duvet.scale = Vector3(2.0, 1.0, 0.32)
+	duvet.material_override = Materials.surface("velour_velvet", Color(0.35, 0.22, 0.5), 0.6)
+	duvet.position = c + Vector3(-6.4, 0.8, -2.2)
+	holder.add_child(duvet)
+	var pillow := MeshInstance3D.new()
+	var pm := BoxMesh.new()
+	pm.size = Vector3(0.7, 0.12, 0.45)
+	pillow.mesh = pm
+	pillow.material_override = Materials.surface("velour_velvet", Color(0.92, 0.92, 0.94), 0.6)
+	pillow.position = c + Vector3(-6.4, 0.66, -3.42)
+	holder.add_child(pillow)
+	holder.visible = false
+	holder.set_meta("head", c + Vector3(-6.4, 0.84, -3.35))
+	return holder
+
 # ---------------------------------------------------------------- the shots
 
 static func _head(m: Node) -> Vector3:
@@ -243,6 +288,7 @@ static func _head(m: Node) -> Vector3:
 ## 1 + 2: the city at sunrise, then the apartment
 static func opening(m: Node) -> Array:
 	var c: Vector3 = m.APT
+	var sleep_head: Vector3 = c + Vector3(-6.4, 0.84, -3.35)
 	return [
 		{ "dur": 9.0, "fade_in": 2.0, "music": "dawn", "music_db": -4.0,
 			"pos": [Vector3(3.0, 26.0, 78.0), Vector3(1.0, 15.0, 40.0)], "look": [Vector3(-2.0, 10.0, -80.0), Vector3(-4.0, 5.0, -50.0)], "fov": [44.0, 50.0],
@@ -251,13 +297,20 @@ static func opening(m: Node) -> Array:
 			"lines": ["M01X_RADIO_01"], "line_at": 2.2 },
 		{ "dur": 6.0, "pos": [Vector3(-6.0, 9.0, 34.0), Vector3(-9.5, 6.0, 8.0)], "look": [Vector3(-14.2, 8.0, -18.0), Vector3(-14.2, 14.0, -22.0)], "fov": 46.0,
 			"fade_out": 0.8 },
+		# the apartment: the alarm going, across the living room into the bedroom, the operator still asleep
 		{ "dur": 7.5, "fade_in": 0.8,
-			"on": [[0.0, func() -> void: m._set_world(false); m._cine_cam.current = true]],
+			"on": [[0.0, func() -> void: m._set_world(false); m._cine_cam.current = true; m._sleeping(true)]],
 			"sfx": [[0.2, "phone_alarm", -6.0]],
-			"pos": [c + Vector3(6.4, 2.3, 4.4), c + Vector3(1.5, 1.9, 1.4)], "look": [c + Vector3(-1.0, 1.2, -2.0), func() -> Vector3: return _head(m)], "fov": [52.0, 44.0],
+			"pos": [c + Vector3(6.4, 2.3, 4.4), c + Vector3(-3.2, 2.0, 0.2)], "look": [c + Vector3(-1.0, 1.2, -2.0), sleep_head], "fov": [52.0, 44.0],
 			"title": ["APARTMENT 12-04", "NEXUS CITY RESIDENCES"], "title_at": 2.2, "title_for": 4.0,
 			"lines": ["M01X_RADIO_02"], "line_at": 1.6 },
-		{ "dur": 4.5, "pos": [func() -> Vector3: return _head(m) + Vector3(0.9, 0.05, 1.6), func() -> Vector3: return _head(m) + Vector3(0.6, 0.1, 1.1)],
+		# over the pillow: the alarm keeps on; then black
+		{ "dur": 4.0, "pos": [sleep_head + Vector3(1.5, 0.9, 1.1), sleep_head + Vector3(1.0, 0.62, 0.7)], "look": [sleep_head + Vector3(0, -0.05, 0.3), sleep_head], "fov": 38.0,
+			"sfx": [[0.4, "phone_alarm", -4.0]], "fade_out": 0.7 },
+		# up: standing by the bed, a look out at the morning
+		{ "dur": 4.5, "fade_in": 0.7,
+			"on": [[0.0, func() -> void: m._sleeping(false)]],
+			"pos": [func() -> Vector3: return _head(m) + Vector3(0.9, 0.05, 1.6), func() -> Vector3: return _head(m) + Vector3(0.6, 0.1, 1.1)],
 			"look": [func() -> Vector3: return _head(m), func() -> Vector3: return _head(m) + Vector3(-0.4, 0.2, -6.0)], "fov": 40.0 },
 	]
 
