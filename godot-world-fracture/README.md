@@ -354,8 +354,17 @@ Primitives with a visibility range, so the static batch merges them into the til
 up, tumbling, landing and lying for a moment; the fusion frame throws none; capped at 14 live so a burst on the phone
 stays a few draws), bullet impacts leave a scorched disc on surfaces for five seconds, and enemies **flinch** when hit — a
 jolt back along the shot and a lean that eases out (more for a headshot). With the gore setting and the blood colours
-that makes four of the ten on the board; holsters, magazines, attachments, armour damage, energy shields, debris and
-destructible cover remain.
+that makes four of the ten on the board.
+
+**Destructible cover** (Nov 10, §5): in the Killbox the crates, barriers, vents, HVAC units, consoles and signs are
+`Gunplay.Target`s with a hull by kind (`Arena.BREAKABLE`: crate 40, vent 60, barrier 70, sign 80, console 90, HVAC 120);
+the structural cover (tanks, containers, pillars, monoliths, dropships, planters) stays solid. Bolts chip a prop (dust
+of its own colour, no headshot, no kill, no scavenged ammo) and the last one breaks it: the mesh goes, a dozen chips
+tumble out and land at its base (`Gunplay.debris`), the arena marks the row broken (`arena.break_cover(id)`) and
+`arena.boxes()` leaves it out, so the operator's obstacle list — the one array the bots read for sight lines and for
+their movers — loses the box in place (`_sync_obstacles`), the fracture event's rebuild keeps the gap, and the prop
+never stands again. `tests/killbox/cover_play.tscn` plays it (12 checks); `killbox:prime:cover` shoots it. Holsters,
+magazines, attachments, armour damage, energy shields remain.
 
 **The Fracture set** (`scripts/vfx/fracture_set.gd`, Nov 9; asset catalog part 2 §9): builders for the fantasy and
 dimensional dressing — emissive crystal clusters (one MultiMesh), floating ruins that drift and turn, energy conduits
@@ -390,6 +399,18 @@ default reduced) drives `gunplay.spark`: off is a grey puff, reduced one spark i
 droplets that fall and a splash that lingers; colours follow the owner's board — troopers red, machines (drones) cyan
 coolant, Fracture creatures violet, wildlife green (a target's `blood` meta). Kills return half a magazine to every
 carried gun (`gunplay.scavenge`).
+
+**Operator grenades** (`scripts/combat/grenades.gd`, owner ask Nov 10, port of the web's grenades.ts — same nine
+grenades and numbers, damage ×10 for the Godot hull scale): each frame carries three of its own and equips one (saved per
+frame in `user://grenades.json`). GOLIATH: Breacher Frag (heavy blast, knockback), Thermite (burning pool), Concussion
+(wide stun). NYX: Shroud (smoke — bots see nothing in or out past 15% of their range), Tripmine (sticks, arms, goes off
+when a bot comes within 3 m; two at a time), Tracer (marks: +33% from bolts and grenades for 6 s). CIPHER: Singularity
+(pulls bots in, then bursts), Arc Chain (stuns and arcs to the three nearest), Rift Well (heals the operator's hull
+9/s, bots in it fire at half rate). gunplay.gd owns and steps it, so every combat view has grenades with no wiring:
+**J** throws and **K** cycles on the desk, **GRENADE** and **⟳** on the phone (hidden in the simple HUD); the read-out
+sits above the weapon's name. Damage goes through `gunplay.grenade_hit` (the bolt's hit / killed signals); stuns and
+marks are `Target.stun` / `Target.mark`, which enemies.gd and gunplay read; the operator's own team is never touched.
+Test: tests/combat/grenades_test.gd.
 
 **Act 1: the story past the forest** (`scripts/mission/descent.gd`, `cutscene.gd`, schedule step 11, Nov 9): the Fracture
 Descent now runs fd-02 to fd-07, the web chain's words and rewards (quests.ts). After the forest, **fd-05 Crossing the
@@ -540,8 +561,13 @@ city's street) or the region on foot (`arrival_view.gd`, with a FLIGHTS desk hom
 piers, seaplane terminal, resorts), Frostveil International (FRV: snow, falling snow, glaciers and peaks, pines, rescue
 orange) and Solara Desert International (SOL: sandstone walls, a solar-panel roof, solar fields, dunes and mesas). Flights
 to them land in their terminal; the forecourt EXIT walks you out into the region (`outside` signal → arrival_view.gd),
-and that view's FLIGHTS desk walks you back in. Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
+and that view's FLIGHTS desk walks you back in. Nov 10, three more, on the land the asset catalog gives their biomes: Thalassia Coast Seaplane
+Terminal (THA: coast by the Verdant Forest, seaplanes, a submarine dock under a glass dome down to underwater Thalassia),
+Obsidian Reach Airport (OBS, in the volcanic Ember Peaks: basalt, lava channels, smoking volcanoes, container stacks and
+the heavy-lift airship) and Shattered Expanse Expedition Airfield (SHX, in the Crystal Badlands: giant rift crystals,
+glowing cracks, floating ruins, a lightning storm). Aetherion and Eldergrove stay NOT YET OPEN (no land for them yet). The airliners are an authored model (`models/fleet/airliner.glb`, ~10k
+triangles, built by `blender -b -P scripts/build-airliner.py`; its `Livery` material is repainted per airline), and each
+airport's terminal has its own roof (`LOOKS` `roof_shape`: wave, tent, vault, terraces, gull, sawtooth, shards). Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
 (state in the profile under `air`, so it rides the cloud save); add an airport as an `AIRPORTS` row and a destination
-as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove, Obsidian
-Reach). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
+as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
 whole trip through main.gd). Shots: `--shot airport[:NXC|NEC[:x,y,z:tx,ty,tz]]`.

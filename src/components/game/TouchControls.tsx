@@ -3,7 +3,7 @@ import { isTouchDevice, touch } from "@/game/client-input";
 import { Button } from "@/components/ui/button";
 import type { Bindings } from "@/game/bindings";
 import { stickCodes, touchCodes } from "@/game/touch-controls";
-import { Crosshair, MoveUp, RotateCw, ArrowRightLeft, Navigation, Car, Hand, ChevronsDown, Zap } from "lucide-react";
+import { Crosshair, MoveUp, RotateCw, ArrowRightLeft, Navigation, Car, Hand, ChevronsDown, Zap, Bomb } from "lucide-react";
 
 const key = (code: string, down: boolean) => window.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { code, bubbles: true }));
 
@@ -65,6 +65,7 @@ export function TouchControls({ disabled = false, bindings, simple = true, civil
       {btn("Aim", null, <Crosshair className="size-4" />, "touch-aim size-11", () => { touch.aim = true; }, () => { touch.aim = false; })}
       {btn("Jump", codes.jump, <MoveUp />, "touch-jump size-11")}
       {btn("Dash", codes.dash, <Zap />, "touch-dash size-11")}
+      {btn("Throw grenade", codes.grenade, <Bomb />, "touch-grenade size-11")}
       {btn("Reload", codes.reload, <RotateCw />, "touch-reload size-11")}
       {btn("Next weapon", codes.next, <ArrowRightLeft />, "touch-next size-11")}
       {btn("Crouch", codes.crouch, <ChevronsDown />, "touch-crouch size-11")}

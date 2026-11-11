@@ -2,7 +2,7 @@ extends Control
 const Settings := preload("res://scripts/front/settings_store.gd")
 ## On-foot input for the phone and the desk, one overlay over the 3D view: a virtual stick where the thumb lands on the left
 ## half of the screen, look-drag anywhere on the right half, JUMP, SPRINT, FIRE, RELOAD and SWAP buttons (phone), WASD / arrows + Space + Shift,
-## left mouse to fire, right-drag look, R and Q on a keyboard; a crosshair and the magazine read-out. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
+## left mouse to fire, right-drag look, R and Q on a keyboard, J / K (GRENADE / ⟳) for the Operator's grenades; a crosshair and the magazine read-out. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
 ## whoever reads it), `jump` (edge, consumed) and `sprint` (held). Owner, Oct 26: the phone screen keeps only walk, look,
 ## jump and sprint until more is asked for; fire comes with the weapons task.
 
@@ -22,9 +22,16 @@ var _reload_button: Button
 var _swap_button: Button
 var _reload := false
 var _next := false
+## Operator grenades (grenades.gd via gunplay): a throw and a cycle press, consumed by gunplay; the HUD line
+var _grenade := false
+var _cycle_grenade := false
+var _grenade_button: Button
+var _cycle_button: Button
+var grenade_label: Label
 var ammo: Label
 var weapon_name: Label
 var hull_fill: ColorRect
+var _shield_fill: ColorRect
 var hull_back: ColorRect
 var hurt_flash: ColorRect
 var status: Label
@@ -44,6 +51,7 @@ var _stick_knob: Control
 var _sprint_held := false
 
 func _ready() -> void:
+	add_to_group("touch_controls")
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	touch_ui = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
@@ -96,6 +104,21 @@ func _ready() -> void:
 		bind(nx, func(): _next = true)
 		add_child(nx)
 		_swap_button = nx
+		var gb := _button("GRENADE")
+		gb.custom_minimum_size = Vector2(120, 64)
+		gb.add_theme_font_size_override("font_size", 16)
+		gb.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		gb.position = Vector2(-250, -240)
+		bind(gb, func(): _grenade = true)
+		add_child(gb)
+		_grenade_button = gb
+		var cy := _button("⟳")
+		cy.custom_minimum_size = Vector2(56, 64)
+		cy.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		cy.position = Vector2(-316, -240)
+		bind(cy, func(): _cycle_grenade = true)
+		add_child(cy)
+		_cycle_button = cy
 	_hud()
 	if not touch_ui and not scripted:
 		toast.call_deferred("Click to aim with the mouse · Esc frees the cursor")
@@ -169,8 +192,20 @@ func _hud() -> void:
 	add_child(status)
 
 ## the hull read-out: `frac` 0..1, `hurt` 0..1 fades the wash, `down_left` seconds until the operator stands (0 = up)
-func show_hull(frac: float, hurt: float, down_left: float) -> void:
+func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> void:
 	hull_fill.size.x = 216.0 * clampf(frac, 0.0, 1.0)
+	# the energy shield: a thin cyan bar over the hull's (asset catalog §5)
+	if shield >= 0.0:
+		if not _shield_fill:
+			_shield_fill = ColorRect.new()
+			_shield_fill.color = Color(0.35, 0.8, 1.0)
+			_shield_fill.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+			_shield_fill.position = Vector2(22, -118)
+			_shield_fill.size = Vector2(216, 4)
+			_shield_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(_shield_fill)
+		_shield_fill.size.x = 216.0 * clampf(shield, 0.0, 1.0)
+		_shield_fill.visible = hull_fill.visible
 	hull_fill.color = Color(0.35, 0.95, 0.75) if frac > 0.35 else Color(0.95, 0.4, 0.3)
 	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
 	status.text = ("DOWN · %d" % ceili(down_left)) if down_left > 0.0 else ""
@@ -260,7 +295,7 @@ func set_mode(m: String) -> void:
 		_lit(_sprint_button, false)
 	if _fire_button:
 		_fire_button.visible = not drive and not fly and weapons_out
-	for b in [_reload_button, _swap_button]:
+	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button]:
 		if b:
 			b.visible = not drive and not fly and weapons_out and not simple()
 	if crosshair:
@@ -290,6 +325,39 @@ func take_reload() -> bool:
 	var r := _reload
 	_reload = false
 	return r
+
+func take_grenade() -> bool:
+	var g := _grenade
+	_grenade = false
+	return g
+
+func take_cycle_grenade() -> bool:
+	var c := _cycle_grenade
+	_cycle_grenade = false
+	return c
+
+## the grenade read-out under the weapon's name: "BREACHER FRAG ●● ◔" in its colour ({} hides it); on the phone the
+## GRENADE button wears the name and the charges
+func show_grenade(h: Dictionary) -> void:
+	if not grenade_label:
+		grenade_label = Label.new()
+		grenade_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		grenade_label.position = Vector2(20, -108)
+		grenade_label.add_theme_font_size_override("font_size", 14)
+		grenade_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		grenade_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(grenade_label)
+	if h.is_empty() or mode != "foot":
+		grenade_label.text = ""
+		return
+	var pips := ""
+	for i in int(h.max):
+		pips += "●" if i < int(h.charges) else "○"
+	var next := "" if int(h.charges) >= int(h.max) else "  %d%%" % int(float(h.recharge) * 100.0)
+	grenade_label.text = "%s  %s%s%s" % [str(h.name).to_upper(), pips, next, "" if touch_ui else "   J throw · K switch"]
+	grenade_label.modulate = h.color
+	if _grenade_button:
+		_grenade_button.text = "%s %d" % [str(h.name).split(" ")[0].to_upper(), int(h.charges)]
 
 func take_next() -> bool:
 	var n := _next
@@ -387,10 +455,18 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_Q) and not _q_was:
 		_next = true
 	_q_was = Input.is_key_pressed(KEY_Q)
+	if Input.is_key_pressed(KEY_J) and not _j_was:
+		_grenade = true
+	_j_was = Input.is_key_pressed(KEY_J)
+	if Input.is_key_pressed(KEY_K) and not _k_was:
+		_cycle_grenade = true
+	_k_was = Input.is_key_pressed(KEY_K)
 	if Input.is_key_pressed(KEY_E) and not _e_was:
 		_enter = true
 	_e_was = Input.is_key_pressed(KEY_E)
 var _e_was := false
+var _j_was := false
+var _k_was := false
 var _r_was := false
 var _q_was := false
 var _space_was := false

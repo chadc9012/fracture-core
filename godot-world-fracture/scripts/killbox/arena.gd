@@ -33,6 +33,12 @@ static func mode(id: String) -> Dictionary:
 	return {}
 
 var def: Dictionary = {}
+## cover the operator has shot to pieces (destructible cover, asset catalog §5): id → true; `boxes()` leaves it out so the
+## operator, the bots' line of sight and the bots' movers all walk through the gap at once
+var broken: Dictionary = {}
+## the kinds a bolt can break and the hull of each; the structural kinds (tank, container, pillar, monolith, dropship,
+## planter) are solid
+const BREAKABLE := { "crate": 40.0, "barrier": 70.0, "vent": 60.0, "hvac": 120.0, "console": 90.0, "sign": 80.0 }
 
 func _init(id: String) -> void:
 	for a in data().get("arenas", []):
@@ -63,13 +69,29 @@ func surface_at(x: float, z: float) -> float:
 
 ## the solids: cover props, parapets, ledges, the walkways' rails — and the shifters that stand in the current phase
 ## (`shifted` false: the "up" pieces stand; true: the fracture event has swapped them for the "down" pieces)
+## one cover row's box, standing on whatever surface is under it
+func cover_box(c: Dictionary) -> AABB:
+	var top := surface_at(float(c.x), float(c.z))
+	if top == -INF:
+		top = 0.0
+	return AABB(Vector3(float(c.x) - float(c.w) / 2.0, top, float(c.z) - float(c.d) / 2.0), Vector3(float(c.w), float(c.h), float(c.d)))
+
+static func breakable(kind: String) -> bool:
+	return BREAKABLE.has(kind)
+
+## marks a cover row broken; true when it was standing
+func break_cover(id: String) -> bool:
+	if id == "" or broken.has(id):
+		return false
+	broken[id] = true
+	return true
+
 func boxes(shifted := false) -> Array[AABB]:
 	var out: Array[AABB] = []
 	for c in def.cover:
-		var top := surface_at(float(c.x), float(c.z))
-		if top == -INF:
-			top = 0.0
-		out.append(AABB(Vector3(float(c.x) - float(c.w) / 2.0, top, float(c.z) - float(c.d) / 2.0), Vector3(float(c.w), float(c.h), float(c.d))))
+		if broken.has(String(c.get("id", ""))):
+			continue
+		out.append(cover_box(c))
 	for l in def.ledges:
 		var ax := float(l.ax); var az := float(l.az); var bx := float(l.bx); var bz := float(l.bz)
 		out.append(AABB(Vector3(minf(ax, bx) - 0.15, float(l.base), minf(az, bz) - 0.15), Vector3(absf(bx - ax) + 0.3, float(l.top) - float(l.base), absf(bz - az) + 0.3)))

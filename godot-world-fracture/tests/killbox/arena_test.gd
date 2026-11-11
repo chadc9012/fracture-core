@@ -60,5 +60,19 @@ func _init() -> void:
 	var r6: bool = m2.over and m2.winner == "them"
 	print("the clock decides: ", r6)
 	ok = ok and r6
+	# destructible cover: a breakable row leaves boxes() once broken, a structural one never does, a second break is a no-op
+	var a7 := Arena.new("killbox-prime")
+	var n0 := a7.boxes().size()
+	var crate := ""
+	var solid := ""
+	for c in a7.def.cover:
+		if crate == "" and Arena.breakable(String(c.kind)):
+			crate = String(c.id)
+		if solid == "" and not Arena.breakable(String(c.kind)):
+			solid = String(c.id)
+	var r7: bool = crate != "" and a7.break_cover(crate) and a7.boxes().size() == n0 - 1 and not a7.break_cover(crate) and not a7.break_cover(solid) == false
+	r7 = r7 and a7.boxes().size() == n0 - 2 and not Arena.breakable("tank") and Arena.breakable("crate")
+	print("destructible cover leaves the obstacle list: ", r7, " ", n0, " → ", a7.boxes().size(), " (", crate, ", ", solid, ")")
+	ok = ok and r7
 	print("Arena test: ", ok)
 	quit(0 if ok else 1)

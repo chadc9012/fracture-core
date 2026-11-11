@@ -647,6 +647,9 @@ func _shoot(path: String, opts: Array) -> void:
 				driving._open_city_garage()
 		# slice[day][coast|neon][walk][garage]  the street slice as a look-dev shot (fixed camera), or on foot with "walk"
 		if String(o).begins_with("slice"):
+			# slicewalk:armed  walks the street armed whatever Mission 01's save says (holsters, cover, the troopers)
+			if String(o).contains("armed"):
+				load("res://scripts/city/street_slice.gd").force_armed = true
 			_open_street(String(o).contains("night") or not String(o).contains("day"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"), String(o).contains("walk"))
 			# slice:look=x,y,z,tx,ty,tz  the look-dev camera from a point at a target (street set and wet-night checks)
 			if String(o).contains("look="):
@@ -879,6 +882,16 @@ func _shoot(path: String, opts: Array) -> void:
 				killbox.controls.move = Vector2(0.0, 1.0)
 				killbox.controls.sprint = true
 				killbox.controls.fire = true
+			# :cover  stands 5 m in front of the first crate and fires into it (destructible cover)
+			if String(o).contains("cover"):
+				for id in killbox._cover_targets:
+					var ct: Variant = killbox._cover_targets[id]
+					var c: Vector3 = ct.box.get_center()
+					killbox.operator.position = Vector3(c.x, ct.box.position.y, c.z + 5.0)
+					killbox.operator.heading = PI
+					killbox.controls.scripted = true
+					killbox.controls.fire = true
+					break
 		# modes[:pvp|:raids|:races]  the Game Modes hub, or one mode's lobby
 		if String(o).begins_with("modes"):
 			_open_modes()
