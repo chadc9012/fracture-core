@@ -8,6 +8,9 @@ signal closed
 ## the shops you can buy from (shop_view.gd): the scene that opens the mall sets `gear` / `profile` and hears `changed`
 signal shop_changed
 const ShopView := preload("res://scripts/gear/shop_view.gd")
+const ClothingStore := preload("res://scripts/city/clothing_store.gd")
+## what the operator wears changed in a clothing store (the look is saved; the scene re-dresses its operator)
+signal look_changed
 var gear: Dictionary = {}
 var profile: Dictionary = {}
 var shop_overlay: Control
@@ -77,28 +80,36 @@ func _ready() -> void:
 	world.add_child(cam)
 	cam.current = true
 	show_view(0)
-	var back := Button.new()
-	back.text = "← STREET"
-	back.position = Vector2(16, 16)
-	back.pressed.connect(func(): closed.emit())
-	add_child(back)
-	var next := Button.new()
-	next.text = "NEXT VIEW"
-	next.position = Vector2(120, 16)
-	next.pressed.connect(func(): show_view(_view + 1))
-	add_child(next)
-	var nova := Button.new()
-	nova.text = "NOVA THREADS"
-	nova.add_theme_color_override("font_color", Color(0.95, 0.4, 0.75))
-	nova.position = Vector2(230, 16)
-	nova.pressed.connect(func(): open_shop("nova"))
-	add_child(nova)
-	var haven := Button.new()
-	haven.text = "HAVEN HOME"
-	haven.add_theme_color_override("font_color", Color(0.95, 0.75, 0.4))
-	haven.position = Vector2(370, 16)
-	haven.pressed.connect(func(): open_shop("haven"))
-	add_child(haven)
+	# the mall's buttons wrap on a phone held upright
+	var bar := HFlowContainer.new()
+	bar.position = Vector2(16, 16)
+	bar.size = Vector2(get_viewport_rect().size.x - 32, 0)
+	resized.connect(func(): bar.size = Vector2(size.x - 32, 0))
+	bar.add_theme_constant_override("h_separation", 8)
+	bar.add_theme_constant_override("v_separation", 8)
+	add_child(bar)
+	for spec: Array in [["← STREET", Color.WHITE, func(): closed.emit()], ["NEXT VIEW", Color.WHITE, func(): show_view(_view + 1)],
+			["NOVA THREADS", Color(0.95, 0.4, 0.75), func(): open_clothes("nova")], ["LUMEN LUXE", Color(1.0, 0.85, 0.4), func(): open_clothes("lumen")],
+			["COMBAT FITS", Color(0.6, 0.85, 1.0), func(): open_shop("nova")], ["HAVEN HOME", Color(0.95, 0.75, 0.4), func(): open_shop("haven")]]:
+		var b := Button.new()
+		b.text = String(spec[0])
+		b.add_theme_color_override("font_color", spec[1])
+		b.custom_minimum_size = Vector2(0, 40)
+		b.pressed.connect(spec[2])
+		bar.add_child(b)
+
+## a clothing store's dressing room (clothing_store.gd): Nova Threads, Lumen Luxe
+func open_clothes(which: String) -> void:
+	if shop_overlay:
+		return
+	shop_overlay = ClothingStore.new()
+	shop_overlay.store = which
+	shop_overlay.profile = profile
+	shop_overlay.back_label = "← MALL"
+	shop_overlay.closed.connect(close_shop)
+	shop_overlay.changed.connect(func(): shop_changed.emit())
+	shop_overlay.look_changed.connect(func(): look_changed.emit())
+	add_child(shop_overlay)
 
 func open_shop(which: String) -> void:
 	if shop_overlay:

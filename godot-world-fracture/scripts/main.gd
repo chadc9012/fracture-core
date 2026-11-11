@@ -793,6 +793,21 @@ func _shoot(path: String, opts: Array) -> void:
 			elif aq.size() > 3 and _from_street:
 				var af := aq[2].split(","); var at := aq[3].split(",")
 				_from_street.look_from(Vector3(float(af[0]), float(af[1]), float(af[2])), Vector3(float(at[0]), float(at[1]), float(at[2])))
+		# clothes[:store[:kind[:item]]]  a clothing store's dressing room (nova, lumen, block), e.g. clothes:lumen:wear:chain
+		if String(o).begins_with("clothes"):
+			_open_street(false, "nexus", false)
+			var cq := String(o).split(":")
+			if cq.size() > 1 and cq[1] != "block":
+				street.open_mall()
+				street.mall_overlay.open_clothes(cq[1])
+			else:
+				street.open_clothes("block")
+			var cs: Control = street.mall_overlay.shop_overlay if street.mall_overlay else street.shop_overlay
+			if cq.size() > 2:
+				cs._kind = cq[2]
+				cs._sel = cq[3] if cq.size() > 3 else ""
+				cs._refresh()
+				cs._dress()
 		# mall[:view]  the Galleria mall interior
 		if String(o).begins_with("mall"):
 			_open_street(false, "nexus", false)

@@ -218,9 +218,7 @@ func dress(civ: bool) -> void:
 		return
 	civilian = civ
 	if civ:
-		look = look.duplicate(true)
-		look.civ = true
-		look.headgear = "none"
+		look = preload("res://scripts/character/wardrobe.gd").civ(look)
 	rig.build(look)
 	_lock_root_motion()
 	_fit_gear()

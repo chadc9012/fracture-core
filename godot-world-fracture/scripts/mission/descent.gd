@@ -15,6 +15,7 @@ signal closed
 const Region3D := preload("res://scripts/region_3d.gd")
 const WildlifeView := preload("res://scripts/wildlife/wildlife_view.gd")
 const Cutscene := preload("res://scripts/mission/cutscene.gd")
+const Scenes := preload("res://scripts/cinema/scenes.gd")
 const BossView := preload("res://scripts/combat/boss_view.gd")
 const FractureSet := preload("res://scripts/vfx/fracture_set.gd")
 const Boss := preload("res://scripts/combat/boss.gd")
@@ -562,16 +563,11 @@ func _opening(id: String) -> void:
 	var look := operator.position
 	match id:
 		"fd-02":
-			# the draft's Verdant Forest arrival (M06), over Mara's recording from the crash site
-			cutscene.play([
-				Cutscene.line("M06_001", look, { "orbit": { "radius": 9.0, "height": 3.0, "deg0": 10.0, "deg1": 60.0 } }),
-				Cutscene.line("M06_003", look, { "orbit": { "radius": 7.0, "height": 2.5, "deg0": 60.0, "deg1": 100.0 } }),
-			], region.camera())
+			# Mission 06's arrival, the owner's scene 06A (scripts/cinema/scenes.gd): NOVA at the tree line, Scout Mira
+			cutscene.play(Scenes.descent_beats(["06A"], look, 10.0), region.camera())
 		"fd-03":
-			cutscene.play([
-				Cutscene.line("M06_006", look, { "orbit": { "radius": 8.0, "height": 3.0, "deg0": 120.0, "deg1": 170.0 } }),
-				Cutscene.line("M06_007", look, { "orbit": { "radius": 7.0, "height": 2.5, "deg0": 170.0, "deg1": 210.0 } }),
-			], region.camera())
+			# 06B on the root path and 06C at the ancient roots: Mira, and the signal beneath them
+			cutscene.play(Scenes.descent_beats(["06B", "06C"], look, 120.0), region.camera())
 		"fd-05":
 			cutscene.play([
 				Cutscene.beat("NOVA", String(quest.line), 5.0, look, { "orbit": { "radius": 9.0, "height": 3.0, "deg0": 20.0, "deg1": 70.0 } }),

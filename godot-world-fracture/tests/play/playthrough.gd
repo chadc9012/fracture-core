@@ -217,6 +217,32 @@ func _play_street() -> void:
 				await frames(4)
 				if sl.get(overlay[1]) != null:
 					problem("the %s did not close on the %s street" % [overlay[0], style])
+			# the avenue's clothing store: try on, buy, and the operator walks out re-dressed with the guns back on
+			if sl.has_method("open_clothes"):
+				step("street %s clothing store" % style)
+				sl.open_clothes("block")
+				await frames(6)
+				var cs = sl.shop_overlay
+				if cs == null:
+					problem("the clothing store did not open on the %s street" % style)
+				else:
+					cs.profile.nex = int(cs.profile.get("nex", 0)) + 5000
+					for k in ["outfit", "hat", "eyes", "wear"]:
+						cs._kind = k
+						cs._sel = String(load("res://scripts/character/wardrobe.gd").stock("block", k)[-1].id)
+						cs._refresh()
+						cs._dress()
+						await frames(2)
+						cs._act_pressed()
+						await frames(2)
+					if sl.operator.rig == null or not is_instance_valid(sl.operator.rig):
+						problem("the operator lost their rig re-dressing on the %s street" % style)
+					elif sl.gunplay and sl.gunplay._hand and not is_instance_valid(sl.gunplay._hand):
+						problem("the guns were not hung back on the re-dressed operator (%s)" % style)
+					sl.close_shop()
+					await frames(4)
+					if sl.shop_overlay != null:
+						problem("the clothing store did not close on the %s street" % style)
 			main._close_street()
 			await frames(4)
 

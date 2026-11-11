@@ -30,6 +30,8 @@ const DOORS := [
 	# Nexus City International / Neon City International (main.gd opens the street's own city's airport)
 	{ "id": "airport", "label": "AIRPORT EXPRESS", "x": 1.0, "z": -40.0, "color": Color(0.55, 0.8, 1.0), "kind": "stop", "style": "any" },
 	{ "id": "sports", "label": "SPORTS DISTRICT", "x": -1.0, "z": 20.0, "color": Color(0.1, 0.85, 1.0), "kind": "door" },
+	# a clothing store on the avenue (owner, Nov 11: "make clothing stores so user can buy stuff"; clothing_store.gd)
+	{ "id": "block", "label": "BLOCK SUPPLY · CLOTHING", "x": 1.0, "z": 62.0, "color": Color(0.35, 1.0, 0.75), "kind": "door", "style": "any" },
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
 var _radio_button: Button
@@ -56,6 +58,7 @@ const CITY_GARAGE := { "nexus": "nexus-customs", "neon": "neon-performance", "co
 const Catalog = preload("res://scripts/garage/catalog.gd")
 const GarageView = preload("res://scripts/garage/garage_view.gd")
 const Mall = preload("res://scripts/city/mall_interior.gd")
+const ClothingStore = preload("res://scripts/city/clothing_store.gd")
 const Casino = preload("res://scripts/city/casino_interior.gd")
 const Sports = preload("res://scripts/city/sports_district.gd")
 const OperatorPlayer = preload("res://scripts/player/operator_player.gd")
@@ -228,6 +231,11 @@ func _ready() -> void:
 	mall.text = "ENTER GALLERIA MALL"
 	mall.pressed.connect(open_mall)
 	_bar().add_child(mall)
+	var clothes := Button.new()
+	clothes.text = "CLOTHING STORE"
+	clothes.add_theme_color_override("font_color", Color(0.35, 1.0, 0.75))
+	clothes.pressed.connect(func(): open_clothes("block"))
+	_bar().add_child(clothes)
 	var casino := Button.new()
 	casino.text = "ENTER NEON CITY GRAND CASINO"
 	casino.visible = style == "neon"
@@ -1658,6 +1666,8 @@ func _enter_door(id: String) -> void:
 			open_sports()
 		"apex", "rusty":
 			open_shop(id)
+		"block":
+			open_clothes("block")
 		"cylinder":
 			open_garage("ironworks")     # Cylinder & Co: heavy, off-road and armour work
 		_:
@@ -1747,6 +1757,7 @@ func open_mall() -> void:
 		wallet = Gear.profile_load()
 		mall_overlay.gear = gear
 		mall_overlay.profile = wallet
+		mall_overlay.look_changed.connect(redress)
 		mall_overlay.shop_changed.connect(func():
 			Gear.save(gear)
 			for g in Progression.event(wallet, "shop", 1):
@@ -1798,6 +1809,37 @@ func open_shop(id: String) -> void:
 	if controls:
 		controls.visible = false
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+
+## a clothing store's dressing room (clothing_store.gd): Block Supply on the avenue
+func open_clothes(id: String) -> void:
+	if shop_overlay or casino_overlay or mall_overlay or garage_overlay or sports_overlay:
+		return
+	wallet = Gear.profile_load()
+	shop_overlay = ClothingStore.new()
+	shop_overlay.store = id
+	shop_overlay.profile = wallet
+	shop_overlay.back_label = "← STREET"
+	shop_overlay.changed.connect(_bought_clothes)
+	shop_overlay.look_changed.connect(redress)
+	shop_overlay.closed.connect(close_shop)
+	add_child(shop_overlay)
+	if controls:
+		controls.visible = false
+	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+
+func _bought_clothes() -> void:
+	for g in Progression.event(wallet, "shop", 1):
+		controls.toast("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
+	Gear.profile_save(wallet)
+
+## the operator in what they now have on (a clothing store changed it): a new rig, the guns hung back on it
+func redress() -> void:
+	if not operator:
+		return
+	operator.build()
+	if gunplay:
+		gunplay.remount()
+	_fit_gear()
 
 func close_shop() -> void:
 	if shop_overlay:

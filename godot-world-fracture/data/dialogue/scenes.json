@@ -1,0 +1,817 @@
+{
+ "source": "owner's cinematic dialogue packages: Phase 2 (M01–M03) and Phase 3 (M04–M06), Nov 11 2026. Lines are the campaign draft's, verbatim; camera and sound are directing notes.",
+ "version": "phase3-combined",
+ "scenes": [
+  {
+   "id": "01A",
+   "mission": "01",
+   "title": "Morning routine",
+   "location": "INT. APARTMENT 12-04 — DAWN",
+   "camera": "Slow dolly from city window toward bedside; warm light.",
+   "sound_bed": "City ambience; alarm; muffled broadcast",
+   "line_ids": [
+    "M01_001",
+    "M01_002",
+    "M01_003"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "01B",
+   "mission": "01",
+   "title": "The sky fractures",
+   "location": "INT. APARTMENT — WINDOW",
+   "camera": "Handheld push-in to trembling glass; violet rift reflected.",
+   "sound_bed": "Sub-bass rumble; glass resonance; power flicker",
+   "line_ids": [
+    "M01_004",
+    "M01_005",
+    "M01_006",
+    "M01_007",
+    "M01_008",
+    "M01_009"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "01C",
+   "mission": "01",
+   "title": "NOVA contact",
+   "location": "INT. APARTMENT — HALL",
+   "camera": "Tight over-shoulder; HUD light crosses player face.",
+   "sound_bed": "NOVA voice center; electrical static",
+   "line_ids": [
+    "M01_010",
+    "M01_011"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "01D",
+   "mission": "01",
+   "title": "Civilian rescue",
+   "location": "INT. APARTMENT HALLWAY",
+   "camera": "Tracking shot; debris in foreground; player remains controllable.",
+   "sound_bed": "Falling masonry; civilian shouts; ability surge",
+   "line_ids": [
+    "M01_012",
+    "M01_013",
+    "M01_014",
+    "M01_015"
+   ],
+   "transition": "interactive gameplay"
+  },
+  {
+   "id": "02A",
+   "mission": "02",
+   "title": "Blocked stairwell",
+   "location": "INT. APARTMENT STAIRWELL",
+   "camera": "Low angle on fallen beam; cut to trapped family.",
+   "sound_bed": "Concrete strain; distant sirens",
+   "line_ids": [
+    "M02_001",
+    "M02_002",
+    "M02_003"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "02B",
+   "mission": "02",
+   "title": "Power awakening",
+   "location": "INT. STAIRWELL — COLLAPSE",
+   "camera": "Extreme close-up of hands; particles spiral around beam.",
+   "sound_bed": "Heartbeat pulse; restrained energy crescendo",
+   "line_ids": [
+    "M02_004",
+    "M02_005",
+    "M02_006"
+   ],
+   "transition": "interactive gameplay"
+  },
+  {
+   "id": "02C",
+   "mission": "02",
+   "title": "Rescue",
+   "location": "INT. SERVICE STAIR",
+   "camera": "Wide reveal; player clears passage; survivor runs past.",
+   "sound_bed": "Metal impact; footsteps; breath",
+   "line_ids": [
+    "M02_007",
+    "M02_008",
+    "M02_009"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "02D",
+   "mission": "02",
+   "title": "Unanswered questions",
+   "location": "INT. SERVICE STAIR",
+   "camera": "Two-shot framing player against shifting geometry.",
+   "sound_bed": "Low synth drone; fading alarms",
+   "line_ids": [
+    "M02_010",
+    "M02_011"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "03A",
+   "mission": "03",
+   "title": "First street view",
+   "location": "EXT. NEXUS CITY — MORNING",
+   "camera": "Crane reveal of damaged streets; no loading-screen training.",
+   "sound_bed": "Traffic alarms; radio; distant aircraft",
+   "line_ids": [
+    "M03_001",
+    "M03_002",
+    "M03_003"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "03B",
+   "mission": "03",
+   "title": "Impossible intersection",
+   "location": "EXT. NEXUS CITY — CROSSROADS",
+   "camera": "Camera tracks a road bending into unfamiliar terrain.",
+   "sound_bed": "Reality distortion; wind; intermittent radio",
+   "line_ids": [
+    "M03_004",
+    "M03_005"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "03C",
+   "mission": "03",
+   "title": "Protect survivors",
+   "location": "EXT. TRANSIT APPROACH",
+   "camera": "Gameplay camera takes over; brief close-ups on survivor.",
+   "sound_bed": "Enemy calls; footfalls; ability impact",
+   "line_ids": [
+    "M03_006",
+    "M03_007",
+    "M03_008"
+   ],
+   "transition": "interactive gameplay"
+  },
+  {
+   "id": "03D",
+   "mission": "03",
+   "title": "Moving forward",
+   "location": "EXT. TRANSIT APPROACH",
+   "camera": "Wide street shot; rift pulses; cut back to player control.",
+   "sound_bed": "Music resolves to exploration loop",
+   "line_ids": [
+    "M03_009",
+    "M03_010"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "04A",
+   "mission": "04",
+   "title": "Checkpoint encounter",
+   "location": "EXT. NEXUS CITY — BREACH CHECKPOINT",
+   "camera": "Handheld street-level track from broken barricade to Vale; weapon held low",
+   "sound_bed": "Distant sirens, rotor wash, radio chatter",
+   "line_ids": [
+    "M04_001",
+    "M04_002",
+    "M04_003"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "04B",
+   "mission": "04",
+   "title": "A voice thought lost",
+   "location": "EXT. CHECKPOINT — COVERED MEDICAL TENT",
+   "camera": "Tight over-shoulder to player, then cut to Vale reaction; NOVA remains noncorporeal",
+   "sound_bed": "Low filtered NOVA tone, muted city bed",
+   "line_ids": [
+    "M04_004",
+    "M04_005",
+    "M04_006",
+    "M04_007"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "04C",
+   "mission": "04",
+   "title": "Terms of protection",
+   "location": "EXT. CHECKPOINT — EXIT GATE",
+   "camera": "Wide shot through gate to civilian aid line; hold on player choice",
+   "sound_bed": "Crowd ambience; hopeful restrained strings",
+   "line_ids": [
+    "M04_008",
+    "M04_009"
+   ],
+   "transition": "interactive gameplay"
+  },
+  {
+   "id": "05A",
+   "mission": "05",
+   "title": "Recruitment without coercion",
+   "location": "INT. NEXUS CITY — TEMPORARY COMMAND",
+   "camera": "Slow orbit around map table; preserve player custom appearance",
+   "sound_bed": "Ventilation, generator hum",
+   "line_ids": [
+    "M05_001",
+    "M05_002",
+    "M05_003",
+    "M05_004"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "05B",
+   "mission": "05",
+   "title": "The district first",
+   "location": "EXT. COMMAND OUTPOST — RELIEF LINE",
+   "camera": "Two-shot; focus rack from civilian queue to Vale",
+   "sound_bed": "Civilian footsteps, distant rubble",
+   "line_ids": [
+    "M05_005",
+    "M05_006"
+   ],
+   "transition": "interactive gameplay"
+  },
+  {
+   "id": "05C_COOPERATE",
+   "mission": "05",
+   "title": "Choice: cooperate",
+   "location": "EXT. COMMAND OUTPOST — RELIEF LINE",
+   "camera": "Medium close-ups; neutral, respectful eyelines",
+   "sound_bed": "Quiet city ambience",
+   "line_ids": [
+    "M05_cooperate_001",
+    "M05_cooperate_002"
+   ],
+   "transition": "branch:cooperate"
+  },
+  {
+   "id": "05C_INDEPENDENT",
+   "mission": "05",
+   "title": "Choice: remain independent",
+   "location": "EXT. COMMAND OUTPOST — RELIEF LINE",
+   "camera": "Medium close-ups; Vale steps aside to let player pass",
+   "sound_bed": "Quiet city ambience",
+   "line_ids": [
+    "M05_independent_001",
+    "M05_independent_002"
+   ],
+   "transition": "branch:independent"
+  },
+  {
+   "id": "06A",
+   "mission": "06",
+   "title": "Entering Verdant Forest",
+   "location": "EXT. VERDANT FOREST — TREE LINE",
+   "camera": "Aerial descent to walking-height tracking shot; forest canopy moves naturally",
+   "sound_bed": "Bird calls, wind in canopy, low anomalous pulse",
+   "line_ids": [
+    "M06_001",
+    "M06_002",
+    "M06_003"
+   ],
+   "transition": "cinematic"
+  },
+  {
+   "id": "06B",
+   "mission": "06",
+   "title": "Scout Mira",
+   "location": "EXT. VERDANT FOREST — ROOT PATH",
+   "camera": "Three-shot; Mira remains wary, not hostile",
+   "sound_bed": "Leaves, distant insect calls",
+   "line_ids": [
+    "M06_004",
+    "M06_005"
+   ],
+   "transition": "interactive gameplay"
+  },
+  {
+   "id": "06C",
+   "mission": "06",
+   "title": "Beneath the roots",
+   "location": "EXT. VERDANT FOREST — ANCIENT ROOTS",
+   "camera": "Low-angle macro on luminous roots; return to player eye level",
+   "sound_bed": "Subtle underground resonance; no combat sting",
+   "line_ids": [
+    "M06_006",
+    "M06_007",
+    "M06_008"
+   ],
+   "transition": "interactive gameplay"
+  }
+ ],
+ "cues": [
+  {
+   "id": "M01_001",
+   "scene": "01A",
+   "speaker": "NEWS",
+   "text": "Good morning, Nexus City. Overnight, residents reported unusual lights over the harbor.",
+   "emotion": "natural",
+   "camera": "Slow dolly from city window toward bedside; warm light."
+  },
+  {
+   "id": "M01_002",
+   "scene": "01A",
+   "speaker": "PLAYER",
+   "text": "Another ordinary morning. That would be nice.",
+   "emotion": "natural",
+   "camera": "Slow dolly from city window toward bedside; warm light."
+  },
+  {
+   "id": "M01_003",
+   "scene": "01A",
+   "speaker": "NEWS",
+   "text": "Officials say there is no cause for alarm—",
+   "emotion": "natural",
+   "camera": "Slow dolly from city window toward bedside; warm light."
+  },
+  {
+   "id": "M01_004",
+   "scene": "01B",
+   "speaker": "PLAYER",
+   "text": "The windows are shaking.",
+   "emotion": "natural",
+   "camera": "Handheld push-in to trembling glass; violet rift reflected."
+  },
+  {
+   "id": "M01_005",
+   "scene": "01B",
+   "speaker": "NOVA",
+   "text": "Neural resonance confirmed. Can you hear me?",
+   "emotion": "natural",
+   "camera": "Handheld push-in to trembling glass; violet rift reflected."
+  },
+  {
+   "id": "M01_006",
+   "scene": "01B",
+   "speaker": "PLAYER",
+   "text": "Who is this?",
+   "emotion": "natural",
+   "camera": "Handheld push-in to trembling glass; violet rift reflected."
+  },
+  {
+   "id": "M01_007",
+   "scene": "01B",
+   "speaker": "NOVA",
+   "text": "NOVA. Your building is destabilizing. Leave the apartment now.",
+   "emotion": "natural",
+   "camera": "Handheld push-in to trembling glass; violet rift reflected."
+  },
+  {
+   "id": "M01_008",
+   "scene": "01B",
+   "speaker": "PLAYER",
+   "text": "What happened to the sky?",
+   "emotion": "natural",
+   "camera": "Handheld push-in to trembling glass; violet rift reflected."
+  },
+  {
+   "id": "M01_009",
+   "scene": "01B",
+   "speaker": "NOVA",
+   "text": "A Fracture. Reality is intersecting with something it was never meant to touch.",
+   "emotion": "natural",
+   "camera": "Handheld push-in to trembling glass; violet rift reflected."
+  },
+  {
+   "id": "M01_010",
+   "scene": "01C",
+   "speaker": "PLAYER",
+   "text": "There are people trapped in the hall.",
+   "emotion": "natural",
+   "camera": "Tight over-shoulder; HUD light crosses player face."
+  },
+  {
+   "id": "M01_011",
+   "scene": "01C",
+   "speaker": "NOVA",
+   "text": "Then we help them. Move. I will guide you.",
+   "emotion": "natural",
+   "camera": "Tight over-shoulder; HUD light crosses player face."
+  },
+  {
+   "id": "M01_012",
+   "scene": "01D",
+   "speaker": "CIVILIAN",
+   "text": "Please! The stairwell is blocked!",
+   "emotion": "natural",
+   "camera": "Tracking shot; debris in foreground; player remains controllable."
+  },
+  {
+   "id": "M01_013",
+   "scene": "01D",
+   "speaker": "PLAYER",
+   "text": "Get behind me. I think I can move this.",
+   "emotion": "natural",
+   "camera": "Tracking shot; debris in foreground; player remains controllable."
+  },
+  {
+   "id": "M01_014",
+   "scene": "01D",
+   "speaker": "NOVA",
+   "text": "That energy came from you. We will understand it later.",
+   "emotion": "natural",
+   "camera": "Tracking shot; debris in foreground; player remains controllable."
+  },
+  {
+   "id": "M01_015",
+   "scene": "01D",
+   "speaker": "PLAYER",
+   "text": "Later sounds good. Where is the exit?",
+   "emotion": "natural",
+   "camera": "Tracking shot; debris in foreground; player remains controllable."
+  },
+  {
+   "id": "M02_001",
+   "scene": "02A",
+   "speaker": "CIVILIAN",
+   "text": "My daughter is on the other side of that door!",
+   "emotion": "natural",
+   "camera": "Low angle on fallen beam; cut to trapped family."
+  },
+  {
+   "id": "M02_002",
+   "scene": "02A",
+   "speaker": "PLAYER",
+   "text": "Stay low. I am getting her out.",
+   "emotion": "natural",
+   "camera": "Low angle on fallen beam; cut to trapped family."
+  },
+  {
+   "id": "M02_003",
+   "scene": "02A",
+   "speaker": "NOVA",
+   "text": "Structural failure in twenty seconds. The support beam is shifting.",
+   "emotion": "urgent",
+   "camera": "Low angle on fallen beam; cut to trapped family."
+  },
+  {
+   "id": "M02_004",
+   "scene": "02B",
+   "speaker": "PLAYER",
+   "text": "I can feel something in my hands.",
+   "emotion": "natural",
+   "camera": "Extreme close-up of hands; particles spiral around beam."
+  },
+  {
+   "id": "M02_005",
+   "scene": "02B",
+   "speaker": "NOVA",
+   "text": "Focus on the beam. Do not fight the current; redirect it.",
+   "emotion": "urgent",
+   "camera": "Extreme close-up of hands; particles spiral around beam."
+  },
+  {
+   "id": "M02_006",
+   "scene": "02B",
+   "speaker": "PLAYER",
+   "text": "Everybody back!",
+   "emotion": "natural",
+   "camera": "Extreme close-up of hands; particles spiral around beam."
+  },
+  {
+   "id": "M02_007",
+   "scene": "02C",
+   "speaker": "CHILD",
+   "text": "Mom?",
+   "emotion": "natural",
+   "camera": "Wide reveal; player clears passage; survivor runs past."
+  },
+  {
+   "id": "M02_008",
+   "scene": "02C",
+   "speaker": "CIVILIAN",
+   "text": "Thank you. I thought we were gone.",
+   "emotion": "natural",
+   "camera": "Wide reveal; player clears passage; survivor runs past."
+  },
+  {
+   "id": "M02_009",
+   "scene": "02C",
+   "speaker": "PLAYER",
+   "text": "Take the service stairs. Do not stop.",
+   "emotion": "natural",
+   "camera": "Wide reveal; player clears passage; survivor runs past."
+  },
+  {
+   "id": "M02_010",
+   "scene": "02D",
+   "speaker": "NOVA",
+   "text": "You used a Fracture ability without an Operator interface. That should be impossible.",
+   "emotion": "urgent",
+   "camera": "Two-shot framing player against shifting geometry."
+  },
+  {
+   "id": "M02_011",
+   "scene": "02D",
+   "speaker": "PLAYER",
+   "text": "Then stop telling me what should be possible.",
+   "emotion": "natural",
+   "camera": "Two-shot framing player against shifting geometry."
+  },
+  {
+   "id": "M03_001",
+   "scene": "03A",
+   "speaker": "RADIO",
+   "text": "Emergency services are asking residents to shelter indoors.",
+   "emotion": "natural",
+   "camera": "Crane reveal of damaged streets; no loading-screen training."
+  },
+  {
+   "id": "M03_002",
+   "scene": "03A",
+   "speaker": "PLAYER",
+   "text": "That advice is a little late.",
+   "emotion": "natural",
+   "camera": "Crane reveal of damaged streets; no loading-screen training."
+  },
+  {
+   "id": "M03_003",
+   "scene": "03A",
+   "speaker": "NOVA",
+   "text": "Three safe routes. Two are already changing.",
+   "emotion": "urgent",
+   "camera": "Crane reveal of damaged streets; no loading-screen training."
+  },
+  {
+   "id": "M03_004",
+   "scene": "03B",
+   "speaker": "PLAYER",
+   "text": "Changing how?",
+   "emotion": "natural",
+   "camera": "Camera tracks a road bending into unfamiliar terrain."
+  },
+  {
+   "id": "M03_005",
+   "scene": "03B",
+   "speaker": "NOVA",
+   "text": "The road ahead now connects to a place that did not exist this morning.",
+   "emotion": "urgent",
+   "camera": "Camera tracks a road bending into unfamiliar terrain."
+  },
+  {
+   "id": "M03_006",
+   "scene": "03C",
+   "speaker": "SURVIVOR",
+   "text": "Those things came out of the purple light!",
+   "emotion": "natural",
+   "camera": "Gameplay camera takes over; brief close-ups on survivor."
+  },
+  {
+   "id": "M03_007",
+   "scene": "03C",
+   "speaker": "PLAYER",
+   "text": "Get to the transit station. I will hold them off.",
+   "emotion": "natural",
+   "camera": "Gameplay camera takes over; brief close-ups on survivor."
+  },
+  {
+   "id": "M03_008",
+   "scene": "03C",
+   "speaker": "NOVA",
+   "text": "Remember: cover, movement, then ability. Survive first.",
+   "emotion": "urgent",
+   "camera": "Gameplay camera takes over; brief close-ups on survivor."
+  },
+  {
+   "id": "M03_009",
+   "scene": "03D",
+   "speaker": "PLAYER",
+   "text": "And if the street tears open again?",
+   "emotion": "natural",
+   "camera": "Wide street shot; rift pulses; cut back to player control."
+  },
+  {
+   "id": "M03_010",
+   "scene": "03D",
+   "speaker": "NOVA",
+   "text": "Then we improvise.",
+   "emotion": "urgent",
+   "camera": "Wide street shot; rift pulses; cut back to player control."
+  },
+  {
+   "id": "M04_001",
+   "scene": "04A",
+   "speaker": "CAPTAIN VALE",
+   "text": "Weapon down. State your affiliation.",
+   "emotion": "controlled, protective",
+   "camera": "Handheld street-level track from broken barricade to Vale; weapon held low"
+  },
+  {
+   "id": "M04_002",
+   "scene": "04A",
+   "speaker": "PLAYER",
+   "text": "I woke up in an apartment. Is that an affiliation?",
+   "emotion": "wary, resolute",
+   "camera": "Handheld street-level track from broken barricade to Vale; weapon held low"
+  },
+  {
+   "id": "M04_003",
+   "scene": "04A",
+   "speaker": "CAPTAIN VALE",
+   "text": "Not if you can explain how you survived the breach.",
+   "emotion": "controlled, protective",
+   "camera": "Handheld street-level track from broken barricade to Vale; weapon held low"
+  },
+  {
+   "id": "M04_004",
+   "scene": "04B",
+   "speaker": "NOVA",
+   "text": "Recommend honesty, selectively.",
+   "emotion": "precise, urgent only when needed",
+   "camera": "Tight over-shoulder to player, then cut to Vale reaction; NOVA remains noncorporeal"
+  },
+  {
+   "id": "M04_005",
+   "scene": "04B",
+   "speaker": "PLAYER",
+   "text": "I can hear a voice. It says its name is NOVA.",
+   "emotion": "wary, resolute",
+   "camera": "Tight over-shoulder to player, then cut to Vale reaction; NOVA remains noncorporeal"
+  },
+  {
+   "id": "M04_006",
+   "scene": "04B",
+   "speaker": "CAPTAIN VALE",
+   "text": "That is not possible. NOVA was decommissioned.",
+   "emotion": "controlled, protective",
+   "camera": "Tight over-shoulder to player, then cut to Vale reaction; NOVA remains noncorporeal"
+  },
+  {
+   "id": "M04_007",
+   "scene": "04B",
+   "speaker": "NOVA",
+   "text": "That is an inaccurate description of events.",
+   "emotion": "precise, urgent only when needed",
+   "camera": "Tight over-shoulder to player, then cut to Vale reaction; NOVA remains noncorporeal"
+  },
+  {
+   "id": "M04_008",
+   "scene": "04C",
+   "speaker": "CAPTAIN VALE",
+   "text": "Come with us. We can keep civilians safe.",
+   "emotion": "controlled, protective",
+   "camera": "Wide shot through gate to civilian aid line; hold on player choice"
+  },
+  {
+   "id": "M04_009",
+   "scene": "04C",
+   "speaker": "PLAYER",
+   "text": "I will come. But I decide who I help.",
+   "emotion": "wary, resolute",
+   "camera": "Wide shot through gate to civilian aid line; hold on player choice"
+  },
+  {
+   "id": "M05_001",
+   "scene": "05A",
+   "speaker": "CAPTAIN VALE",
+   "text": "We need people who can withstand the Fractures.",
+   "emotion": "controlled, protective",
+   "camera": "Slow orbit around map table; preserve player custom appearance"
+  },
+  {
+   "id": "M05_002",
+   "scene": "05A",
+   "speaker": "PLAYER",
+   "text": "You need soldiers. I am not one.",
+   "emotion": "wary, resolute",
+   "camera": "Slow orbit around map table; preserve player custom appearance"
+  },
+  {
+   "id": "M05_003",
+   "scene": "05A",
+   "speaker": "CAPTAIN VALE",
+   "text": "Then be something better. Make your own choice.",
+   "emotion": "controlled, protective",
+   "camera": "Slow orbit around map table; preserve player custom appearance"
+  },
+  {
+   "id": "M05_004",
+   "scene": "05A",
+   "speaker": "NOVA",
+   "text": "There are benefits to cooperating. There are also risks.",
+   "emotion": "precise, urgent only when needed",
+   "camera": "Slow orbit around map table; preserve player custom appearance"
+  },
+  {
+   "id": "M05_005",
+   "scene": "05B",
+   "speaker": "PLAYER",
+   "text": "I am not signing away my life because the sky cracked.",
+   "emotion": "wary, resolute",
+   "camera": "Two-shot; focus rack from civilian queue to Vale"
+  },
+  {
+   "id": "M05_006",
+   "scene": "05B",
+   "speaker": "CAPTAIN VALE",
+   "text": "Fair. Prove you can protect this district, and we talk again.",
+   "emotion": "controlled, protective",
+   "camera": "Two-shot; focus rack from civilian queue to Vale"
+  },
+  {
+   "id": "M05_cooperate_001",
+   "scene": "05C_COOPERATE",
+   "speaker": "PLAYER",
+   "text": "I will work with your team, but civilians come first.",
+   "emotion": "wary, resolute",
+   "camera": "Medium close-ups; neutral, respectful eyelines"
+  },
+  {
+   "id": "M05_cooperate_002",
+   "scene": "05C_COOPERATE",
+   "speaker": "CAPTAIN VALE",
+   "text": "Agreed. You answer to your conscience before you answer to me.",
+   "emotion": "controlled, protective",
+   "camera": "Medium close-ups; neutral, respectful eyelines"
+  },
+  {
+   "id": "M05_independent_001",
+   "scene": "05C_INDEPENDENT",
+   "speaker": "PLAYER",
+   "text": "I will help, but I am not joining your command.",
+   "emotion": "wary, resolute",
+   "camera": "Medium close-ups; Vale steps aside to let player pass"
+  },
+  {
+   "id": "M05_independent_002",
+   "scene": "05C_INDEPENDENT",
+   "speaker": "CAPTAIN VALE",
+   "text": "Then prove that independence is not indifference.",
+   "emotion": "controlled, protective",
+   "camera": "Medium close-ups; Vale steps aside to let player pass"
+  },
+  {
+   "id": "M06_001",
+   "scene": "06A",
+   "speaker": "NOVA",
+   "text": "Verdant Forest. The vegetation has absorbed Fracture energy.",
+   "emotion": "precise, urgent only when needed",
+   "camera": "Aerial descent to walking-height tracking shot; forest canopy moves naturally"
+  },
+  {
+   "id": "M06_002",
+   "scene": "06A",
+   "speaker": "PLAYER",
+   "text": "It looks peaceful.",
+   "emotion": "wary, resolute",
+   "camera": "Aerial descent to walking-height tracking shot; forest canopy moves naturally"
+  },
+  {
+   "id": "M06_003",
+   "scene": "06A",
+   "speaker": "SCOUT MIRA",
+   "text": "That is how it catches you off guard.",
+   "emotion": "cautious, grounded",
+   "camera": "Aerial descent to walking-height tracking shot; forest canopy moves naturally"
+  },
+  {
+   "id": "M06_004",
+   "scene": "06B",
+   "speaker": "PLAYER",
+   "text": "You have been out here alone?",
+   "emotion": "wary, resolute",
+   "camera": "Three-shot; Mira remains wary, not hostile"
+  },
+  {
+   "id": "M06_005",
+   "scene": "06B",
+   "speaker": "SCOUT MIRA",
+   "text": "Long enough to learn that the forest remembers footsteps.",
+   "emotion": "cautious, grounded",
+   "camera": "Three-shot; Mira remains wary, not hostile"
+  },
+  {
+   "id": "M06_006",
+   "scene": "06C",
+   "speaker": "NOVA",
+   "text": "Anomalous signal beneath the roots.",
+   "emotion": "precise, urgent only when needed",
+   "camera": "Low-angle macro on luminous roots; return to player eye level"
+  },
+  {
+   "id": "M06_007",
+   "scene": "06C",
+   "speaker": "SCOUT MIRA",
+   "text": "Do not call every secret a target. Some deserve to stay hidden.",
+   "emotion": "cautious, grounded",
+   "camera": "Low-angle macro on luminous roots; return to player eye level"
+  },
+  {
+   "id": "M06_008",
+   "scene": "06C",
+   "speaker": "PLAYER",
+   "text": "We will look. We will not destroy what we do not understand.",
+   "emotion": "wary, resolute",
+   "camera": "Low-angle macro on luminous roots; return to player eye level"
+  }
+ ]
+}

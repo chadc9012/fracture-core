@@ -202,6 +202,10 @@ bpy.ops.object.select_all(action="DESELECT")
 bpy.context.view_layer.objects.active = new
 new.select_set(True)
 transfer_weights()
+# the body's own surface, before the hands join (the garment pieces in part 4 are measured against it)
+from mathutils.bvhtree import BVHTree
+_bw = new.matrix_world
+BVH = BVHTree.FromPolygons([_bw @ v.co for v in new.data.vertices], [tuple(p_.vertices) for p_ in new.data.polygons])
 # join the hands in (their own weights come with them, matched by group name)
 hands.select_set(True)
 bpy.ops.object.join()
@@ -308,6 +312,8 @@ LANDMARKS = {
     "knee": rel((knee["Left"][up] + knee["Right"][up]) / 2), "ankle": rel((ankle["Left"][up] + ankle["Right"][up]) / 2),
     "floor": rel(floor), "neck": rel(neck_z), "shoulder": rel(bone_z("mixamorig:LeftArm")),
     "elbow": rel(bone_z("mixamorig:LeftForeArm")), "wrist": rel(bone_z("mixamorig:LeftHand")),
+    # how far out the shoulder joints sit: an upper-arm vertex nearer the middle than this is the side of the chest
+    "armpit": round(abs(float(np.array((m @ arm.data.bones["mixamorig:LeftArm"].head_local)[:]) @ LAT) - mid_x) / H, 4),
 }
 attr = new.data.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
 for i, c in enumerate(cols):
@@ -330,6 +336,274 @@ for p in new.data.polygons:
     p.use_smooth = True
     p.material_index = 0
 
+# ------------------------------------------------------------------------------------------------ 4. 3D garment pieces
+# (owner, Nov 11: "Yes" to modelled clothes.) Real geometry over the painted clothes, each its own mesh named Piece_<kind>,
+# skinned like the body so it moves with it; the game shows the pieces an outfit has and colours them from its palette
+# (scripts/character/outfits.gd PIECES): rib collars, fold-down shirt collars, waistbands, sleeve cuffs, jogger ankle cuffs,
+# a tee's sleeve hems, the hems of shorts, hoodie drawstrings with aglets, a kangaroo pocket and cargo pockets with flaps.
+# Every piece sits where the outfit shader draws the same seam, from the same landmarks.
+import math
+
+LM = {k: float(v) for k, v in LANDMARKS.items()}
+FV, LV, UV_ = (Vector(F.tolist()), Vector(LAT.tolist()), Vector(UPV.tolist()))
+hips_p = np.array((m @ hips.head_local)[:])
+hips_f = float(hips_p @ F)
+
+
+def zat(hh):
+    return hip_line + hh * H
+
+
+def world(lat, f, z):
+    return LV * (mid_x + lat) + FV * f + UV_ * z
+
+
+def bone_at_z(head_bone, tail_bone, z):
+    a_ = np.array((m @ arm.data.bones[head_bone].head_local)[:])
+    b_ = np.array((m @ arm.data.bones[tail_bone].head_local)[:])
+    s_ = float(np.clip((z - a_[2]) / (b_[2] - a_[2]) if abs(b_[2] - a_[2]) > 1e-6 else 0.5, 0.0, 1.0))
+    ax = b_ - a_
+    return Vector((a_ + ax * s_).tolist()), Vector((ax / np.linalg.norm(ax)).tolist())
+
+
+def frame(ax):
+    u = FV - ax * FV.dot(ax)
+    if u.length < 1e-3:
+        u = UV_ - ax * UV_.dot(ax)
+    u.normalize()
+    return u, ax.cross(u).normalized()
+
+
+def cast_r(c, d, maxd, rmax):
+    hit = BVH.ray_cast(c, d, maxd)
+    return min(hit[3], rmax) if hit[0] is not None else None
+
+
+def ring_r(c, ax, n, maxd, rmax):
+    u, v = frame(ax)
+    dirs = [(u * math.cos(2 * math.pi * k / n) + v * math.sin(2 * math.pi * k / n)).normalized() for k in range(n)]
+    rs = [cast_r(c, d, maxd, rmax) for d in dirs]
+    ok = [r for r in rs if r is not None]
+    fill = float(np.median(ok)) if ok else rmax * 0.5
+    rs = [r if r is not None else fill for r in rs]
+    # a light smoothing round the ring, so one stray hit cannot dent the band
+    rs = [0.25 * rs[k - 1] + 0.5 * rs[k] + 0.25 * rs[(k + 1) % n] for k in range(n)]
+    return rs, dirs
+
+
+def mesh_obj(name, verts, faces):
+    me = bpy.data.meshes.new(name)
+    me.from_pydata([tuple(v) for v in verts], [], faces)
+    me.update()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(ob)
+    bm_ = bmesh.new()
+    bm_.from_mesh(me)
+    bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces)
+    bm_.to_mesh(me)
+    bm_.free()
+    for p_ in me.polygons:
+        p_.use_smooth = True
+    return ob
+
+
+def band(c, ax, hw, t, n=32, maxd=None, rmax=None, taper=0.0, flare=0.0):
+    """a closed band round the body: rounded section, `hw` half-width along the axis, `t` proud of the surface"""
+    maxd = maxd or 0.2 * H
+    rmax = rmax or 0.12 * H
+    rs, dirs = ring_r(c, ax, n, maxd, rmax)
+    # section round the band (axial offset, radial offset): tucked under the surface, rounded on the outside
+    prof = [(-hw, -0.4 * t), (-hw, 0.55 * t), (-0.7 * hw, t), (0.7 * hw, t + flare), (hw, 0.55 * t + flare), (hw, -0.4 * t)]
+    verts, faces = [], []
+    for s_, dr in prof:
+        k_ = 1.0 - taper * (s_ + hw) / (2 * hw)
+        for k in range(n):
+            verts.append(c + ax * s_ + dirs[k] * (rs[k] * k_ + dr))
+    P_ = len(prof)
+    for pi_ in range(P_):
+        for k in range(n):
+            a0, a1 = pi_ * n + k, pi_ * n + (k + 1) % n
+            b0, b1 = ((pi_ + 1) % P_) * n + k, ((pi_ + 1) % P_) * n + (k + 1) % n
+            faces.append((a0, a1, b1, b0))
+    return verts, faces
+
+
+def solid_strip(rows, thick):
+    """a grid of surface points (rows x cols) given thickness inward along each row's normal: a closed slab"""
+    R, C = len(rows), len(rows[0])
+    verts, faces = [], []
+    for layer in (0.0, 1.0):
+        for r_ in range(R):
+            for c_ in range(C):
+                p_, nrm_ = rows[r_][c_]
+                verts.append(p_ - nrm_ * thick * layer)
+    idx = lambda l, r_, c_: l * R * C + r_ * C + c_
+    for r_ in range(R - 1):
+        for c_ in range(C - 1):
+            faces.append((idx(0, r_, c_), idx(0, r_, c_ + 1), idx(0, r_ + 1, c_ + 1), idx(0, r_ + 1, c_)))
+            faces.append((idx(1, r_, c_), idx(1, r_ + 1, c_), idx(1, r_ + 1, c_ + 1), idx(1, r_, c_ + 1)))
+    edge = [(0, c_) for c_ in range(C - 1)] + [(r_, C - 1) for r_ in range(R - 1)] + \
+           [(R - 1, c_) for c_ in range(C - 1, 0, -1)] + [(r_, 0) for r_ in range(R - 1, 0, -1)]
+    for i_ in range(len(edge)):
+        (r0, c0), (r1, c1) = edge[i_], edge[(i_ + 1) % len(edge)]
+        faces.append((idx(0, r0, c0), idx(1, r0, c0), idx(1, r1, c1), idx(0, r1, c1)))
+    return verts, faces
+
+
+def patch(origin_of, toward, us, vs, off):
+    """surface points of the body under a grid: origin_of(u, v) cast along `toward`, lifted `off` off the surface"""
+    rows = []
+    for v_ in vs:
+        row = []
+        for u_ in us:
+            o = origin_of(u_, v_)
+            hit = BVH.ray_cast(o, toward, 2.0 * H)
+            if hit[0] is None:
+                return None
+            nn = hit[1].normalized()
+            if nn.dot(toward) > 0:
+                nn = -nn
+            row.append((hit[0] + nn * off, nn))
+        rows.append(row)
+    return rows
+
+
+def sweep(pts, rad, sides=6):
+    verts, faces = [], []
+    for i_, p_ in enumerate(pts):
+        d = (pts[min(i_ + 1, len(pts) - 1)] - pts[max(i_ - 1, 0)]).normalized()
+        u = d.cross(FV)
+        if u.length < 1e-4:
+            u = d.cross(LV)
+        u.normalize()
+        w = d.cross(u).normalized()
+        r_ = rad[i_] if isinstance(rad, list) else rad
+        for k in range(sides):
+            a_ = 2 * math.pi * k / sides
+            verts.append(p_ + (u * math.cos(a_) + w * math.sin(a_)) * r_)
+    for i_ in range(len(pts) - 1):
+        for k in range(sides):
+            faces.append((i_ * sides + k, i_ * sides + (k + 1) % sides, (i_ + 1) * sides + (k + 1) % sides, (i_ + 1) * sides + k))
+    faces.append(tuple(range(sides))[::-1])
+    faces.append(tuple((len(pts) - 1) * sides + k for k in range(sides)))
+    return verts, faces
+
+
+PIECES = {}
+
+
+def add(kind, vf):
+    if vf is None:
+        return
+    PIECES.setdefault(kind, []).append(vf)
+
+
+SIDES = ("Left", "Right")
+side_sign = {s_: (1.0 if float(np.array((m @ arm.data.bones["mixamorig:%sUpLeg" % s_].head_local)[:]) @ LAT) - mid_x > 0 else -1.0) for s_ in SIDES}
+# sleeve cuffs (rib), over where the shader draws the wrist band
+for s_ in SIDES:
+    c, ax = bone_at_z("mixamorig:%sForeArm" % s_, "mixamorig:%sHand" % s_, zat(LM["wrist"] + 0.02))
+    add("cuffs", band(c, ax, 0.015 * H, 0.0055 * H, rmax=0.05 * H))
+# a tee's sleeve hems and the hems of shorts: a little turn-up just above the seam
+for s_ in SIDES:
+    c, ax = bone_at_z("mixamorig:%sArm" % s_, "mixamorig:%sForeArm" % s_, zat((LM["shoulder"] + LM["elbow"]) * 0.5 + 0.011))
+    add("sleeve_hems", band(c, ax, 0.011 * H, 0.006 * H, rmax=0.07 * H, flare=0.002 * H))
+    c, ax = bone_at_z("mixamorig:%sUpLeg" % s_, "mixamorig:%sLeg" % s_, zat(LM["knee"] + 0.045 + 0.011))
+    add("shorts_hems", band(c, ax, 0.011 * H, 0.006 * H, rmax=0.09 * H, flare=0.002 * H))
+    c, ax = bone_at_z("mixamorig:%sLeg" % s_, "mixamorig:%sFoot" % s_, zat(LM["ankle"] + 0.024))
+    add("ankle_cuffs", band(c, ax, 0.018 * H, 0.005 * H, rmax=0.05 * H))
+# the top's waistband on the hip line
+hc = world(0.0, hips_f, zat(0.0125))
+add("hem", band(hc, UV_, 0.0125 * H, 0.0055 * H, n=48, maxd=0.3 * H, rmax=0.25 * H))
+# collars: round the base of the neck, over the hood's roll at the back
+nk_a = np.array((m @ nk.head_local)[:])
+nk_b = np.array((m @ nk.tail_local)[:])
+nax = Vector(((nk_b - nk_a) / np.linalg.norm(nk_b - nk_a)).tolist())
+ncen = Vector(nk_a.tolist()) + nax * (0.004 * H)
+add("rib_collar", band(ncen + nax * (0.018 * H), nax, 0.02 * H, 0.006 * H, n=40, rmax=0.07 * H, taper=0.1))
+# a fold-down shirt collar, open at the throat: a strip standing up the neck and turned down over itself
+rs, dirs = ring_r(ncen + nax * (0.012 * H), nax, 40, 0.2 * H, 0.07 * H)
+u0, _v0 = frame(nax)
+rows = []
+prof = [(-0.002, 0.0), (0.026, 0.002), (0.03, 0.008), (0.012, 0.03)]
+for s_, dr in prof:
+    row = []
+    for k in range(40):
+        ang = math.atan2(dirs[k].dot(_v0), dirs[k].dot(u0))
+        if abs(ang) < 0.38:
+            continue
+        p_ = ncen + nax * (s_ * H) + dirs[k] * (rs[k] + dr * H + 0.003 * H)
+        row.append((p_, dirs[k]))
+    # in angle order from one side of the opening round the back to the other
+    row.sort(key=lambda pn: math.atan2(pn[1].dot(_v0), pn[1].dot(u0)) % (2 * math.pi))
+    rows.append(row)
+add("shirt_collar", solid_strip(rows, 0.003 * H))
+# drawstrings: from the neckline down the chest, resting on it, with metal-tipped ends
+neck_rel = LM["neck"]
+for sx in (-1.0, 1.0):
+    pts, f_cord = [], -1e9
+    steps = 12
+    for j in range(steps + 1):
+        z = zat(neck_rel - 0.035 - 0.095 * j / steps)
+        o = world(sx * 0.03 * H, hips_f + 0.5 * H, z)
+        hit = BVH.ray_cast(o, -FV, 2.0 * H)
+        if hit[0] is None:
+            break
+        f_cord = max(f_cord, float(Vector(hit[0]).dot(FV)) + 0.005 * H)
+        swing = sx * 0.004 * H * j / steps
+        pts.append(world(sx * 0.03 * H + swing, f_cord, z))
+    if len(pts) > 3:
+        add("strings", sweep(pts, 0.0024 * H))
+        tip_d = (pts[-1] - pts[-2]).normalized()
+        add("strings", sweep([pts[-1], pts[-1] + tip_d * 0.012 * H], 0.0036 * H))
+# the kangaroo pocket on the belly
+rows = patch(lambda u_, v_: world(u_ * H, hips_f + 0.5 * H, zat(v_)), -FV,
+             list(np.linspace(-0.085, 0.085, 15)), list(np.linspace(0.035, min(0.13, 0.6 * LM["neck"] - 0.045), 9)), 0.0035 * H)
+if rows:
+    add("pocket", solid_strip(rows, 0.004 * H))
+# cargo pockets on the outside of each thigh, a flap over each
+for s_ in SIDES:
+    zc = zat(LM["knee"] + 0.1)
+    c, ax = bone_at_z("mixamorig:%sUpLeg" % s_, "mixamorig:%sLeg" % s_, zc)
+    out_d = (LV * side_sign[s_] * 0.9 + FV * 0.42).normalized()
+    acr = UV_.cross(out_d).normalized()
+    org = lambda u_, v_, c=c, out_d=out_d, acr=acr: c + out_d * (0.3 * H) + acr * (u_ * H) + UV_ * (v_ * H)
+    rows = patch(org, -out_d, list(np.linspace(-0.032, 0.032, 9)), list(np.linspace(-0.05, 0.035, 9)), 0.003 * H)
+    if rows:
+        add("cargo", solid_strip(rows, 0.004 * H))
+    rows = patch(org, -out_d, list(np.linspace(-0.036, 0.036, 9)), list(np.linspace(0.028, 0.05, 4)), 0.0075 * H)
+    if rows:
+        add("cargo", solid_strip(rows, 0.004 * H))
+
+piece_objs = []
+for kind, parts in PIECES.items():
+    verts, faces = [], []
+    for vs_, fs_ in parts:
+        o_ = len(verts)
+        verts += vs_
+        faces += [tuple(i_ + o_ for i_ in f_) for f_ in fs_]
+    ob = mesh_obj("Piece_" + kind, verts, faces)
+    ob.data.materials.append(mat)
+    # skinned like the body under it
+    bpy.ops.object.select_all(action="DESELECT")
+    bpy.context.view_layer.objects.active = ob
+    ob.select_set(True)
+    for g in new.vertex_groups:
+        ob.vertex_groups.new(name=g.name)
+    dt = ob.modifiers.new("dt", "DATA_TRANSFER")
+    dt.object = new
+    dt.use_vert_data = True
+    dt.data_types_verts = {"VGROUP_WEIGHTS"}
+    dt.vert_mapping = "POLYINTERP_NEAREST"
+    dt.layers_vgroup_select_src = "ALL"
+    dt.layers_vgroup_select_dst = "NAME"
+    bpy.ops.object.modifier_apply(modifier="dt")
+    ob.parent = arm
+    am = ob.modifiers.new("Armature", "ARMATURE")
+    am.object = arm
+    piece_objs.append(ob)
+    print("piece", kind, len(verts), "verts")
+
 # ------------------------------------------------------------------------------------------------ bind and export
 new.parent = arm
 mod = new.modifiers.new("Armature", "ARMATURE")
@@ -341,6 +615,8 @@ for o in objs:
 bpy.ops.object.select_all(action="DESELECT")
 arm.select_set(True)
 new.select_set(True)
+for ob in piece_objs:
+    ob.select_set(True)
 bpy.ops.export_scene.gltf(filepath=out_path, export_format="GLB", use_selection=True, export_animations=True, export_skins=True,
                           export_vertex_color="ACTIVE", export_yup=True)
 import json, os

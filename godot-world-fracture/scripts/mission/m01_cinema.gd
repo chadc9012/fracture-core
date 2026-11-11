@@ -247,8 +247,7 @@ static func sleeper(m: Node) -> Node3D:
 	var look: Dictionary = Store.load_look() if Store.exists() else Store.default_look()
 	look = look.duplicate(true)
 	if String(look.get("body", "male")) != "robot":
-		look.civ = true
-		look.headgear = "none"
+		look = load("res://scripts/character/wardrobe.gd").civ(look)
 	var rig: Node3D = load("res://scripts/character/character_rig.gd").new()
 	holder.add_child(rig)
 	rig.build(look)

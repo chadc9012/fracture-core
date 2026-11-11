@@ -17,6 +17,9 @@ uniform float neck = 0.29;
 uniform float shoulder = 0.25;
 uniform float elbow = 0.13;
 uniform float wrist = 0.02;
+uniform float armpit = 0.1;
+// which parts the outfit wears as modelled pieces instead (1 drawstrings, 2 kangaroo pocket, 4 cargo pockets): not painted too
+uniform int pieces = 0;
 
 varying flat int zone;
 varying float jit;
@@ -50,10 +53,14 @@ int part_of(float lat, float hh, float front, float outn) {
 		if (fwd > 0.09) return TOE;
 		return SHOE;
 	}
-	if (zone == 2) return hh > neck - 0.035 ? HOOD_OPEN : HOOD;
+	if (zone == 2) {
+		if (front > -0.1 && abs(lat) < 0.045 && hh < neck - 0.02 && distance(pal[INNER], pal[TOP]) > 0.002) return INNER;   // an open jacket's shirt, up to the collar
+		return hh > neck - 0.035 ? HOOD_OPEN : HOOD;
+	}
 	if (zone == 3) {
+		if (abs(lat) < armpit * 0.92) return TOP;          // the side of the chest under the arm is the top's, not the sleeve's
 		bool hi = hh > (shoulder + elbow) * 0.5;
-		if (outn > 0.92 && hh < shoulder - 0.02) return hi ? ARM_STRIPE_HI : ARM_STRIPE;
+		if (outn > 0.92 && hh < shoulder - 0.045) return hi ? ARM_STRIPE_HI : ARM_STRIPE;
 		return hi ? SLEEVE_HI : SLEEVE_LO;
 	}
 	if (zone == 4) {
@@ -66,27 +73,29 @@ int part_of(float lat, float hh, float front, float outn) {
 		if (hh - ankle < 0.04) return ANKLE;
 		bool bare = distance(pal[KNEE], skin) < 0.002;
 		if (outn > 0.95 && !(bare && k < 0.045)) return LEG_STRIPE;
-		if (outn > 0.4 && outn < 0.92 && k > 0.05 && k < 0.15) return k < 0.135 ? CARGO : CARGO_FLAP;
+		if ((pieces & 4) == 0 && outn > 0.4 && outn < 0.92 && k > 0.05 && k < 0.15) return k < 0.135 ? CARGO : CARGO_FLAP;
 		if (k < -0.045) return SHIN;
 		if (k < 0.045) return KNEE;
 		if (k < 0.1) return THIGH_LO;
 		return THIGH_HI;
 	}
 	if (hh < 0.025) return HEM;
+	float pc = neck * 0.6;                              // the chest print's height, and the pocket below it, by the torso's length
+	if (front > -0.1 && abs(lat) < 0.045 && distance(pal[INNER], pal[TOP]) > 0.002) {
+		// an open jacket: a straight shirt panel down the front, its print on it
+		if (abs(lat) < 0.008) return ZIP;
+		if (abs(hh - pc) < 0.007 && abs(lat) < 0.04) return PRINT2;
+		return INNER;
+	}
 	if (front > 0.3) {
 		float dn = neck - hh;
 		if (abs(lat) < 0.008) return ZIP;
-		if (distance(pal[INNER], pal[TOP]) > 0.002) {     // an open jacket: a straight shirt panel down the front, its print on it
-			if (abs(lat) >= 0.045) return TOP;
-			if (abs(dn - 0.155) < 0.007 && abs(lat) < 0.04) return PRINT2;
-			return INNER;
-		}
-		if (dn > 0.025 && dn < 0.1 && min(abs(lat - 0.03), abs(lat + 0.03)) < 0.0045) return STRING;
-		if (abs(dn - 0.155) < 0.03 && abs(lat) < 0.06)
-			return (abs(dn - 0.155) < 0.007 && abs(lat) < 0.046) ? PRINT2 : PRINT;
-		if (hh > 0.035 && hh < 0.13 && abs(lat) < 0.085)
-			return (abs(lat) > 0.075 || hh > 0.12) ? POCKET_EDGE : POCKET;
-		if (abs(lat) < 0.05) return INNER;
+		if ((pieces & 1) == 0 && dn > 0.025 && dn < 0.1 && min(abs(lat - 0.03), abs(lat + 0.03)) < 0.0045) return STRING;
+		if (abs(hh - pc) < 0.03 && abs(lat) < 0.06)
+			return (abs(hh - pc) < 0.007 && abs(lat) < 0.046) ? PRINT2 : PRINT;
+		float ptop = min(0.13, pc - 0.045);
+		if ((pieces & 2) == 0 && hh > 0.035 && hh < ptop && abs(lat) < 0.085)
+			return (abs(lat) > 0.075 || hh > ptop - 0.01) ? POCKET_EDGE : POCKET;
 	}
 	return TOP;
 }

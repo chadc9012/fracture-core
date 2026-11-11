@@ -306,6 +306,10 @@ func _ready() -> void:
 	f.store_string(JSON.stringify({ "done": ["fd-02"], "current": "fd-03", "kills": 0, "relay": 3 }))
 	f.close()
 	await _open()
+	# the chapter's opening scene (06B + 06C, five voiced lines) is not what this checks: skip it, as a player can
+	if d.cutscene and d.cutscene.playing:
+		d.cutscene._end()
+		await _frames(3)
 	var guards: int = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN).size()
 	ok(guards >= 3, "reloaded at the source: its guards are there to fight (%d)" % guards)
 	ok(d.waypoint_node != null and d.waypoint.distance_to(d._relays[2]) < 1.0, "the marker shows where the source is")

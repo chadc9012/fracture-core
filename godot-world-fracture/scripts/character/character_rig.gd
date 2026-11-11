@@ -76,8 +76,17 @@ func dress(outfit_id: String) -> void:
 	var lm: Dictionary = Outfits.landmarks("civ-%s-%s" % [look.frame, look.body])
 	for k: String in lm:
 		mat.set_shader_parameter("floor_h" if k == "floor" else k, float(lm[k]))
+	var wears: Array = Outfits.pieces_of(outfit_id)
 	for mi in _body_meshes:
-		if is_instance_valid(mi):
+		if not is_instance_valid(mi):
+			continue
+		var n := String((mi as Node).name)
+		if n.begins_with("Piece_"):
+			var kind := n.substr(6)
+			(mi as MeshInstance3D).visible = kind in wears
+			if kind in wears:
+				(mi as MeshInstance3D).material_override = Outfits.piece_material(mat, kind)
+		else:
 			(mi as MeshInstance3D).material_override = mat
 
 ## a head cut from one frame can carry binds to bones another frame's skeleton lacks (the Warlock frame's coat bones,
