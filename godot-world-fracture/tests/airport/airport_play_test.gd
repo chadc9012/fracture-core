@@ -111,12 +111,16 @@ func _run() -> void:
 	# board to Neon City
 	v._board("NEC")
 	ok(Air.tickets_from(v.profile, "NXC").is_empty() and not v._flight.is_empty(), "boarding uses the pass and starts the take-off")
-	v._flight.t = 8.0
+	v._flight.t = 18.0
 	await _frames(6)
 	var w: Control = m._from_street
 	ok(w != null and w != v and w.code == "NEC" and w.arriving, "landed at Neon City International (arrivals)")
 	if w == null:
 		return
+	ok(not w._landing.is_empty() and not w.controls.visible, "the landing plays first (controls hidden)")
+	w._landing.t = 9.0
+	await _frames(3)
+	ok(w._landing.is_empty() and w.controls.visible, "then you're in the arrivals hall with the controls back")
 	ok(w.zone == "terminal" and w.gunplay.holstered, "arrivals hall: weapons stowed")
 	ok(not Air.can_go_airside(w.profile, "NEC"), "no pass or hangar at NEC: airside closed")
 	w.closed.emit()
@@ -131,7 +135,7 @@ func _run() -> void:
 		return
 	Air.buy_ticket(x.profile, "NEC", "RVD")
 	x._board("RVD")
-	x._flight.t = 8.0
+	x._flight.t = 18.0
 	await _frames(10)
 	var y: Control = m._from_street
 	ok(y != null and y.get("dest") == "RVD" and y.operator != null, "landed in Riverdale, on foot")
@@ -145,7 +149,7 @@ func _run() -> void:
 	var a: Control = m._from_street
 	Air.buy_ticket(a.profile, a.code, "FRV")
 	a._board("FRV")
-	a._flight.t = 8.0
+	a._flight.t = 18.0
 	await _frames(10)
 	var fr: Control = m._from_street
 	ok(fr != null and fr.get("code") == "FRV" and fr.in_region and fr.arriving and fr._snow != null, "landed at Frostveil International (snow falling)")

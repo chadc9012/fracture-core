@@ -755,7 +755,16 @@ func _shoot(path: String, opts: Array) -> void:
 			_street_door("airport")
 			if ac not in ["NXC", "NEC"] and _from_street:
 				_flown(ac, _from_street)   # a region's airport: as if flown in
-			if aq.size() > 3 and _from_street:
+			# airport:<code>:land:<seconds>  flies in and shoots the landing that far in
+			if aq.size() > 3 and aq[2] == "land" and _from_street:
+				_flown(ac, _from_street)
+				_from_street._landing.t = float(aq[3])
+			# airport:<code>:board:<to>:<seconds>  buys and boards a flight and shoots it that far in
+			elif aq.size() > 4 and aq[2] == "board" and _from_street:
+				Airport.buy_ticket(_from_street.profile, ac, aq[3])
+				_from_street._board(aq[3])
+				_from_street._flight.t = float(aq[4])
+			elif aq.size() > 3 and _from_street:
 				var af := aq[2].split(","); var at := aq[3].split(",")
 				_from_street.look_from(Vector3(float(af[0]), float(af[1]), float(af[2])), Vector3(float(at[0]), float(at[1]), float(at[2])))
 		# mall[:view]  the Galleria mall interior

@@ -59,35 +59,39 @@ const RUNWAY_Z := -140.0
 const LOOKS := {
 	"nexus": { "top": Color(0.22, 0.45, 0.82), "hor": Color(0.72, 0.82, 0.92), "fog": Color(0.75, 0.82, 0.9), "fogd": 0.0006,
 		"land": Color(0.36, 0.5, 0.3), "apron": Color(0.62, 0.64, 0.67), "wall": Color(0.88, 0.89, 0.92), "roof": Color(0.92, 0.93, 0.95),
-		"a1": Color(0.25, 0.6, 1.0), "a2": Color(1.0, 0.82, 0.35), "tree": "palm", "skyline": "nexus", "airline": "NEXUSAIR", "extras": [] },
+		"a1": Color(0.25, 0.6, 1.0), "a2": Color(1.0, 0.82, 0.35), "tree": "palm", "skyline": "nexus", "airline": "NEXUSAIR", "feature": "palms", "extras": [] },
 	"neon": { "top": Color(0.03, 0.02, 0.08), "hor": Color(0.28, 0.1, 0.32), "fog": Color(0.25, 0.12, 0.3), "fogd": 0.0011,
 		"land": Color(0.08, 0.06, 0.12), "apron": Color(0.3, 0.28, 0.36), "wall": Color(0.25, 0.22, 0.32), "roof": Color(0.18, 0.16, 0.24),
-		"a1": Color(0.78, 0.35, 1.0), "a2": Color(0.25, 0.85, 1.0), "tree": "palm", "skyline": "neon", "airline": "NEONAIR", "extras": [] },
+		"a1": Color(0.78, 0.35, 1.0), "a2": Color(0.25, 0.85, 1.0), "tree": "palm", "skyline": "neon", "airline": "NEONAIR", "floor": ["marble_01", Color(0.35, 0.3, 0.45)], "feature": "hologram", "extras": [] },
 	# oceanfront runways, a seaplane pier, white resorts (owner: "luxury terminals, seaplanes, resort transportation")
 	"tropical": { "top": Color(0.12, 0.45, 0.9), "hor": Color(0.62, 0.86, 0.95), "fog": Color(0.7, 0.88, 0.95), "fogd": 0.00025,
 		"land": Color(0.78, 0.66, 0.45), "apron": Color(0.8, 0.8, 0.78), "wall": Color(0.97, 0.97, 0.95), "roof": Color(0.98, 0.98, 0.97),
-		"a1": Color(0.1, 0.8, 0.78), "a2": Color(1.0, 0.55, 0.35), "tree": "palm", "skyline": "", "airline": "AZURE AIR", "roof_shape": "tent", "walls": "plaster", "frame": Color(0.95, 0.96, 0.97), "glass": Color(0.5, 0.9, 0.9), "hangar": Color(0.95, 0.95, 0.93), "extras": ["ocean", "seaplanes", "resorts"] },
+		"a1": Color(0.1, 0.8, 0.78), "a2": Color(1.0, 0.55, 0.35), "tree": "palm", "skyline": "", "airline": "AZURE AIR", "roof_shape": "tent", "walls": "plaster", "frame": Color(0.95, 0.96, 0.97), "glass": Color(0.5, 0.9, 0.9), "hangar": Color(0.95, 0.95, 0.93), "floor": ["floor_tiles_06", Color(0.96, 0.92, 0.84)], "ceil": Color(0.92, 0.86, 0.74), "feature": "palms", "extras": ["ocean", "seaplanes", "resorts"] },
 	# glaciers and snow peaks, heated (bare) runways, rescue orange (owner: "blizzards, difficult landings, rescue missions")
 	"arctic": { "top": Color(0.45, 0.55, 0.68), "hor": Color(0.86, 0.89, 0.93), "fog": Color(0.86, 0.89, 0.93), "fogd": 0.0012,
 		"land": Color(0.95, 0.97, 1.0), "apron": Color(0.66, 0.69, 0.73), "wall": Color(0.8, 0.84, 0.9), "roof": Color(0.95, 0.97, 1.0),
-		"a1": Color(0.35, 0.8, 1.0), "a2": Color(1.0, 0.5, 0.15), "tree": "conifer", "skyline": "", "airline": "FROSTLINE", "roof_shape": "vault", "walls": "ice", "frame": Color(0.92, 0.95, 1.0), "glass": Color(0.7, 0.88, 1.0), "hangar": Color(0.85, 0.9, 0.96), "extras": ["mountains", "snow"] },
+		"a1": Color(0.35, 0.8, 1.0), "a2": Color(1.0, 0.5, 0.15), "tree": "conifer", "skyline": "", "airline": "FROSTLINE", "roof_shape": "vault", "walls": "ice", "frame": Color(0.92, 0.95, 1.0), "glass": Color(0.7, 0.88, 1.0), "hangar": Color(0.85, 0.9, 0.96), "floor": ["marble_01", Color(0.85, 0.9, 0.98)], "ceil": Color(0.86, 0.93, 1.0), "feature": "ice", "extras": ["mountains", "snow"] },
 	# sandstone and gold, solar roofs, dunes and mesas (owner: "sandstone architecture, solar roofs, desert airstrips")
 	"desert": { "top": Color(0.2, 0.45, 0.85), "hor": Color(0.92, 0.76, 0.55), "fog": Color(0.92, 0.8, 0.62), "fogd": 0.00035,
 		"land": Color(0.78, 0.56, 0.32), "apron": Color(0.74, 0.68, 0.6), "wall": Color(0.88, 0.7, 0.5), "roof": Color(0.1, 0.14, 0.28),
-		"a1": Color(1.0, 0.72, 0.25), "a2": Color(0.3, 0.75, 1.0), "tree": "palm", "skyline": "", "airline": "SOLARA AIR", "roof_shape": "terraces", "walls": "sandstone", "frame": Color(0.72, 0.55, 0.35), "glass": Color(0.9, 0.75, 0.5), "hangar": Color(0.86, 0.72, 0.52), "extras": ["dunes", "solar"] },
+		"a1": Color(1.0, 0.72, 0.25), "a2": Color(0.3, 0.75, 1.0), "tree": "palm", "skyline": "", "airline": "SOLARA AIR", "roof_shape": "terraces", "walls": "sandstone", "frame": Color(0.72, 0.55, 0.35), "glass": Color(0.9, 0.75, 0.5), "hangar": Color(0.86, 0.72, 0.52), "floor": ["floor_tiles_06", Color(0.9, 0.74, 0.55)], "ceil": Color(0.95, 0.85, 0.68), "feature": "fountain", "extras": ["dunes", "solar"] },
 	# the coast by the Verdant Forest: seaplanes, and the submarine dock down to underwater Thalassia
 	"coastal": { "top": Color(0.18, 0.4, 0.62), "hor": Color(0.6, 0.76, 0.82), "fog": Color(0.62, 0.76, 0.8), "fogd": 0.0006,
 		"land": Color(0.32, 0.46, 0.3), "apron": Color(0.6, 0.63, 0.65), "wall": Color(0.75, 0.86, 0.9), "roof": Color(0.85, 0.92, 0.95),
-		"a1": Color(0.15, 0.75, 0.95), "a2": Color(0.95, 0.9, 0.55), "tree": "broadleaf", "skyline": "", "airline": "THALASSIA AIR", "roof_shape": "gull", "walls": "timber", "frame": Color(0.88, 0.9, 0.9), "glass": Color(0.55, 0.8, 0.9), "hangar": Color(0.7, 0.78, 0.82), "extras": ["ocean", "seaplanes", "subdock"] },
+		"a1": Color(0.15, 0.75, 0.95), "a2": Color(0.95, 0.9, 0.55), "tree": "broadleaf", "skyline": "", "airline": "THALASSIA AIR", "roof_shape": "gull", "walls": "timber", "frame": Color(0.88, 0.9, 0.9), "glass": Color(0.55, 0.8, 0.9), "hangar": Color(0.7, 0.78, 0.82), "floor": ["wood_floor", Color(0.9, 0.85, 0.78)], "ceil": Color(0.88, 0.93, 0.95), "feature": "aquarium", "extras": ["ocean", "seaplanes", "subdock"] },
 	# black basalt, lava, a smoking volcano, heavy cargo (owner: "volcanic landscape, heavy cargo aircraft, mining, military")
 	"volcanic": { "top": Color(0.16, 0.11, 0.11), "hor": Color(0.55, 0.26, 0.16), "fog": Color(0.32, 0.2, 0.16), "fogd": 0.0014,
 		"land": Color(0.13, 0.12, 0.12), "apron": Color(0.42, 0.4, 0.38), "wall": Color(0.32, 0.32, 0.34), "roof": Color(0.3, 0.29, 0.28),
-		"a1": Color(1.0, 0.42, 0.1), "a2": Color(1.0, 0.8, 0.2), "tree": "", "skyline": "", "airline": "OBSIDIAN CARGO", "sun": 1.3, "roof_shape": "sawtooth", "walls": "basalt", "frame": Color(0.45, 0.22, 0.12), "glass": Color(0.9, 0.5, 0.3), "hangar": Color(0.3, 0.29, 0.28), "extras": ["volcano", "lava", "cargo"] },
+		"a1": Color(1.0, 0.42, 0.1), "a2": Color(1.0, 0.8, 0.2), "tree": "", "skyline": "", "airline": "OBSIDIAN CARGO", "sun": 1.3, "roof_shape": "sawtooth", "walls": "basalt", "frame": Color(0.45, 0.22, 0.12), "glass": Color(0.9, 0.5, 0.3), "hangar": Color(0.3, 0.29, 0.28), "floor": ["brushed_concrete", Color(0.3, 0.29, 0.29)], "ceil": Color(0.45, 0.4, 0.38), "feature": "lava", "extras": ["volcano", "lava", "cargo"] },
 	# a reinforced strip in the rifts: crystals, floating ruins, a storm with lightning (owner: "dangerous weather and Fracture activity")
 	"expedition": { "top": Color(0.14, 0.12, 0.22), "hor": Color(0.46, 0.38, 0.56), "fog": Color(0.4, 0.34, 0.5), "fogd": 0.0012,
 		"land": Color(0.3, 0.28, 0.34), "apron": Color(0.44, 0.44, 0.48), "wall": Color(0.36, 0.36, 0.4), "roof": Color(0.32, 0.32, 0.36),
-		"a1": Color(0.72, 0.36, 1.0), "a2": Color(1.0, 0.7, 0.2), "tree": "", "skyline": "", "airline": "EXPEDITION AIR", "sun": 1.0, "roof_shape": "shards", "walls": "steel", "frame": Color(0.2, 0.2, 0.24), "glass": Color(0.6, 0.45, 0.9), "hangar": Color(0.38, 0.38, 0.42), "extras": ["crystals", "ruins", "storm"] },
+		"a1": Color(0.72, 0.36, 1.0), "a2": Color(1.0, 0.7, 0.2), "tree": "", "skyline": "", "airline": "EXPEDITION AIR", "sun": 1.0, "roof_shape": "shards", "walls": "steel", "frame": Color(0.2, 0.2, 0.24), "glass": Color(0.6, 0.45, 0.9), "hangar": Color(0.38, 0.38, 0.42), "floor": ["metal_plate", Color(0.4, 0.4, 0.45)], "ceil": Color(0.5, 0.48, 0.58), "feature": "specimen", "extras": ["crystals", "ruins", "storm"] },
 }
+## the flight: take-off, then the cruise over the clouds, then `flew` (seconds)
+const TAKEOFF_S := 8.0
+const FLIGHT_S := 18.0
+const CRUISE_Y := 1500.0
 const CAFE := [["Flat white", 8], ["Cold brew", 9], ["Chicken wrap", 14], ["Fruit cup", 7]]
 
 var night := false
@@ -119,6 +123,7 @@ var _near := ""
 var _panel: Control
 var _overlay: Control            # a shop or Skyways over the airport
 var _flight: Dictionary = {}     # the take-off: { plane, t, to }
+var _landing: Dictionary = {}    # flying in: { plane, t, nodes }
 var _taxi: Node3D                # an airliner forever taking off down the runway, for life
 var _taxi_t := 0.0
 var _crowds: Array = []
@@ -199,7 +204,10 @@ func _ready() -> void:
 	_apply_shutters()
 	_head()
 	_set_zone(_zone_at(operator.position), true)
-	controls.toast(("Welcome to %s." % String(a.city)) if arriving else String(a.name))
+	if arriving:
+		_land_begin()
+	else:
+		controls.toast(String(a.name))
 	Sound.loops_stop()
 	Sound.loop("bed", "nexus-hum" if not night else "neon-hum", -18.0, 1.0)
 
@@ -217,6 +225,9 @@ func _process(dt: float) -> void:
 		_flash.light_energy = 4.0 if (_flash_t < 0.12 or (_flash_t > 0.3 and _flash_t < 0.4)) else 0.0
 	if not _flight.is_empty():
 		_step_flight(dt)
+		return
+	if not _landing.is_empty():
+		_step_landing(dt)
 		return
 	if _overlay or _panel:
 		return
@@ -576,10 +587,90 @@ func _board(to: String) -> void:
 	var l := Label.new()
 	l.name = "FlightLine"
 	l.text = "✈ %s → %s" % [code, String(Air.DESTINATIONS[to].name).to_upper()]
-	l.add_theme_font_size_override("font_size", 26)
-	l.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	l.position = Vector2(-160, 40)
+	l.add_theme_font_size_override("font_size", 24)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	l.add_theme_constant_override("outline_size", 8)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	l.offset_top = 36
 	add_child(l)
+	var skip := Button.new()
+	skip.name = "SkipFlight"
+	skip.text = "SKIP ▸"
+	skip.custom_minimum_size = Vector2(110, 44)
+	skip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	skip.offset_left = -130
+	skip.offset_top = -64
+	skip.pressed.connect(func(): if not _flight.is_empty(): _flight.t = FLIGHT_S)
+	add_child(skip)
+
+## flying in: the airliner comes down the glide path from the west, flares, touches down and rolls out while the camera
+## watches from beside the runway; then you're in the arrivals hall. SKIP ends it.
+const LAND_S := 9.0
+
+func _land_begin() -> void:
+	controls.visible = false
+	_hud.visible = false
+	var plane := _airliner(accent, String(look.airline), Air.fare(code) >= 260)
+	plane.rotation.y = -PI * 0.5      # nose to +x
+	world.add_child(plane)
+	var l := Label.new()
+	l.text = "✈ LANDING · %s" % String(Air.AIRPORTS[code].name).to_upper()
+	l.add_theme_font_size_override("font_size", 24)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	l.add_theme_constant_override("outline_size", 8)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	l.offset_top = 36
+	add_child(l)
+	var skip := Button.new()
+	skip.text = "SKIP ▸"
+	skip.custom_minimum_size = Vector2(110, 44)
+	skip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	skip.offset_left = -130
+	skip.offset_top = -64
+	skip.pressed.connect(func(): if not _landing.is_empty(): _landing.t = LAND_S)
+	add_child(skip)
+	_landing = { "plane": plane, "t": 0.0, "nodes": [plane, l, skip] }
+	if _taxi:
+		_taxi.visible = false   # one airliner on the runway at a time
+	_place_landing(0.0)
+
+## where the airliner is t seconds into the landing: 3° glide to touchdown at x -330 (t 5.5), then braking to a stop
+func _place_landing(t: float) -> void:
+	var plane: Node3D = _landing.plane
+	var x: float
+	var y: float
+	var pitch := 0.0
+	if t < 5.5:
+		x = -330.0 - (5.5 - t) * 75.0
+		y = maxf(0.0, (5.5 - t) * 75.0 * 0.0524)          # tan 3°
+		pitch = 0.05 + (0.04 if t > 4.6 else 0.0)        # nose up a touch, more in the flare
+	else:
+		var r := t - 5.5
+		x = -330.0 + 75.0 * r - 0.5 * 17.0 * r * r        # braking from ~75 m/s
+		y = 0.0
+		pitch = maxf(0.0, 0.09 - r * 0.08)
+	plane.position = Vector3(x, y, RUNWAY_Z)
+	plane.rotation = Vector3(0, -PI * 0.5, pitch)
+	# the camera keeps pace just ahead and to the side, then lets it roll past
+	var lead := Vector3(48.0 - minf(t, LAND_S) * 6.0, maxf(3.0, y * 0.6 + 3.0), 46.0)
+	cam.position = Vector3(minf(x, -330.0), 0, RUNWAY_Z) + lead
+	cam.look_at(plane.position + Vector3(0, 3, 0))
+
+func _step_landing(dt: float) -> void:
+	_landing.t = float(_landing.t) + dt
+	var t: float = _landing.t
+	if t < LAND_S:
+		_place_landing(t)
+		return
+	for n in _landing.nodes:
+		(n as Node).queue_free()
+	_landing = {}
+	controls.visible = true
+	_hud.visible = true
+	operator.attach_camera(cam)
+	controls.toast("Welcome to %s." % String(Air.AIRPORTS[code].city))
 
 func _step_flight(dt: float) -> void:
 	_flight.t = float(_flight.t) + dt
@@ -590,12 +681,65 @@ func _step_flight(dt: float) -> void:
 	var y := 0.0 if t < 5.0 else pow(t - 5.0, 2.0) * 3.2
 	plane.position = Vector3(x, y, RUNWAY_Z)
 	plane.rotation.z = 0.0 if t < 5.0 else -minf(0.18, (t - 5.0) * 0.12)
-	cam.position = Vector3(-40, 6, RUNWAY_Z + 55)
-	cam.look_at(plane.position + Vector3(0, 3, 0))
-	if t > 8.0:
+	if t < TAKEOFF_S:
+		cam.position = Vector3(-40, 6, RUNWAY_Z + 55)
+		cam.look_at(plane.position + Vector3(0, 3, 0))
+		return
+	# the cruise: above the clouds, the camera riding alongside, the time to landing counting down
+	if not _flight.has("cruise"):
+		_flight.cruise = _cruise_build()
+	var c := t - TAKEOFF_S
+	plane.position = Vector3(c * 120.0, CRUISE_Y + sin(c * 0.6) * 1.5, 0)
+	plane.rotation = Vector3(0, -PI * 0.5, sin(c * 0.4) * 0.05)
+	var orbit := 0.35 + c * 0.05
+	cam.position = plane.position + Vector3(-cos(orbit) * 70.0, 14.0 + c * 0.6, sin(orbit) * 55.0)
+	cam.look_at(plane.position + Vector3(8, 2, 0))
+	var line := get_node_or_null("FlightLine") as Label
+	if line:
+		line.text = "✈ %s → %s · cruising · landing in %ds" % [code, String(Air.DESTINATIONS[_flight.to].name).to_upper(), int(ceil(FLIGHT_S - t))]
+	if t > FLIGHT_S:
 		var to := String(_flight.to)
 		_flight = {}
 		flew.emit(to)
+
+## the cloud deck for the cruise: flattened puffs below and around the plane's path, tinted by the airport's sky
+func _cruise_build() -> Node3D:
+	var root := Node3D.new()
+	root.set_meta("dynamic", true)
+	world.add_child(root)
+	var sm := SphereMesh.new()
+	sm.radius = 1.0
+	sm.height = 2.0
+	sm.radial_segments = 12
+	sm.rings = 6
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.86, 0.87, 0.9) if not night else Color(0.32, 0.26, 0.46)
+	m.roughness = 1.0
+	m.emission_enabled = true
+	m.emission = (look.hor as Color).lerp(Color.WHITE, 0.3) if not night else Color(0.25, 0.15, 0.4)
+	m.emission_energy_multiplier = 0.22 if not night else 0.35
+	sm.material = m
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = sm
+	mm.instance_count = int(220 * Phone.crowd()) + 80
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 41
+	for i in mm.instance_count:
+		var b := Basis.from_scale(Vector3(rng.randf_range(40, 140), rng.randf_range(10, 26), rng.randf_range(30, 90))).rotated(Vector3.UP, rng.randf() * TAU)
+		var high := rng.randf() < 0.12
+		var y := CRUISE_Y + (rng.randf_range(60, 140) if high else -rng.randf_range(35, 90))
+		mm.set_instance_transform(i, Transform3D(b, Vector3(rng.randf_range(-600, 2200), y, rng.randf_range(-900, 900))))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(mmi)
+	# no fog up here: the deck should read to the horizon
+	for n in world.get_children():
+		if n is WorldEnvironment:
+			(n as WorldEnvironment).environment.fog_density *= 0.15
+	cam.far = 6000.0
+	return root
 
 # --------------------------------------------------------------------------------------------- the board
 func _minute() -> int:
@@ -782,7 +926,8 @@ func _ground() -> void:
 	_box(Vector3(440, 0.2, 210), Vector3(15, -0.1, -79), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.18), 6.0))
 	_box(Vector3(130, 0.2, 60), Vector3(0, -0.1, 50), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.18), 6.0))
 	# the terminal's floor
-	_box(Vector3(96, 0.12, 56), Vector3(0, 0.0, -2), Materials.pbr("marble_tiles", Color(0.92, 0.92, 0.94) if not night else Color(0.55, 0.5, 0.65), 3.0, 0.5))
+	var fl: Array = look.get("floor", ["marble_tiles", Color(0.92, 0.92, 0.94) if not night else Color(0.55, 0.5, 0.65)])
+	_box(Vector3(96, 0.12, 56), Vector3(0, 0.0, -2), Materials.pbr(String(fl[0]), fl[1], 3.0, 0.5))
 	# the forecourt plaza and the road
 	_box(Vector3(120, 0.12, 18), Vector3(0, 0.0, 35), Materials.pbr("floor_tiles_06", Color(0.8, 0.8, 0.82) if not night else Color(0.6, 0.52, 0.75), 2.5))
 	_box(Vector3(260, 0.1, 14), Vector3(0, 0.02, 51), Materials.pbr("asphalt_02", Color(0.5, 0.5, 0.52) if not night else Color(0.22, 0.2, 0.26), 6.0, 0.6))
@@ -962,9 +1107,10 @@ func _roof(frame: Material) -> void:
 	cs.generate_normals()
 	var ceil := MeshInstance3D.new()
 	ceil.mesh = cs.commit()
-	var cm2 := _mat(Color(0.94, 0.95, 0.97) if not night else Color(0.3, 0.2, 0.42), 0.7, 0.1)
+	var ceil_col: Color = look.get("ceil", Color(0.94, 0.95, 0.97) if not night else Color(0.3, 0.2, 0.42))
+	var cm2 := _mat(ceil_col, 0.7, 0.1)
 	cm2.emission_enabled = true
-	cm2.emission = Color(0.95, 0.95, 0.97) if not night else Color(0.4, 0.22, 0.6)
+	cm2.emission = ceil_col.lightened(0.05) if not night else Color(0.4, 0.22, 0.6)
 	cm2.emission_energy_multiplier = 0.55 if not night else 0.4
 	cm2.cull_mode = BaseMaterial3D.CULL_DISABLED
 	ceil.material_override = cm2
@@ -1059,6 +1205,7 @@ func _checkin() -> void:
 			l.position.x = 11.4
 		_board_labels.append(l)
 	_box(Vector3(24.4, 0.15, 0.4), Vector3(0, 12.9, SECURITY_Z), _glow(accent, 3.0))
+	_feature(Vector3(-6, 0, 15.5))
 	# seating in the hall
 	for k in 4:
 		_bench(Vector3(-10.0 + (k % 2) * 20.0 - 6.0, 0, 12.0 + float(k / 2) * 7.0), 0.0)
@@ -1335,7 +1482,7 @@ func _step_taxi(dt: float) -> void:
 	var t := _taxi_t
 	var x := -420.0 + 3.2 * t * t
 	var y := 0.0 if t < 12.0 else pow(t - 12.0, 2.0) * 1.4
-	_taxi.visible = t < 30.0
+	_taxi.visible = t < 30.0 and _landing.is_empty()
 	_taxi.position = Vector3(x, y, RUNWAY_Z + 8.0)
 	_taxi.rotation.z = 0.0 if t < 12.0 else -minf(0.16, (t - 12.0) * 0.05)
 
@@ -1704,3 +1851,66 @@ func _extras() -> void:
 		_flash.light_energy = 0.0
 		_flash.shadow_enabled = false
 		world.add_child(_flash)
+
+## the check-in hall's centrepiece, one per airport (LOOKS "feature")
+func _feature(at: Vector3) -> void:
+	var kind := String(look.get("feature", "palms"))
+	var basin := _mat(Color(0.75, 0.76, 0.8) if not night else Color(0.2, 0.2, 0.26), 0.3, 0.5)
+	obstacles.append(AABB(at - Vector3(2.6, 0, 2.6), Vector3(5.2, 2.0, 5.2)))
+	match kind:
+		"palms":
+			_cyl(2.5, 0.8, at + Vector3(0, 0.4, 0), basin, null, -1, 24)
+			_cyl(2.3, 0.1, at + Vector3(0, 0.82, 0), _mat(Color(0.25, 0.2, 0.15), 0.9), null, -1, 24)
+			var p := _model("res://models/foliage/palm-a.glb")
+			if p:
+				p.position = at + Vector3(0, 0.8, 0)
+				p.scale = Vector3.ONE * 0.8
+				static_root.add_child(p)
+		"hologram":
+			_cyl(2.5, 0.5, at + Vector3(0, 0.25, 0), basin, null, -1, 24)
+			_cyl(2.2, 0.06, at + Vector3(0, 0.52, 0), _glow(accent, 3.0), null, -1, 24)
+			var h := Fx.hologram("globe", accent2, 3.5)
+			h.position = at + Vector3(0, 0.6, 0)
+			world.add_child(h)
+		"ice":
+			_cyl(2.5, 0.4, at + Vector3(0, 0.2, 0), _mat(Color(0.9, 0.95, 1.0), 0.2, 0.2), null, -1, 24)
+			var ice := Node3D.new()
+			ice.position = at + Vector3(0, 0.4, 0)
+			ice.scale = Vector3.ONE * 0.9
+			world.add_child(ice)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 5
+			FractureSet.crystals(ice, Vector3.ZERO, 1.6, 9, Color(0.6, 0.9, 1.0), rng)
+		"fountain":
+			_cyl(2.6, 0.7, at + Vector3(0, 0.35, 0), Materials.pbr("brick_4", look.wall, 1.0), null, -1, 24)
+			_cyl(2.3, 0.08, at + Vector3(0, 0.72, 0), _glow(Color(0.3, 0.75, 1.0), 0.8), null, -1, 24)
+			_cyl(0.35, 2.2, at + Vector3(0, 1.4, 0), Materials.pbr("brick_4", look.wall, 1.0))
+			_cyl(1.2, 0.2, at + Vector3(0, 2.5, 0), _mat(Color(0.95, 0.75, 0.4), 0.3, 0.7), null, 0.9, 20)
+		"aquarium":
+			_cyl(2.5, 0.4, at + Vector3(0, 0.2, 0), basin, null, -1, 24)
+			_cyl(2.3, 6.0, at + Vector3(0, 3.4, 0), _glass(Color(0.2, 0.7, 0.95)), null, -1, 24)
+			_cyl(2.1, 5.8, at + Vector3(0, 3.4, 0), _glow(Color(0.0, 0.5, 0.6), 0.35), null, -1, 24)
+			for k in 8:   # fish, as bright darts
+				var f := _box(Vector3(0.5, 0.2, 0.12), at + Vector3(cos(k * 0.8) * 1.3, 1.2 + k * 0.6, sin(k * 0.8) * 1.3), _glow(Color(1.0, 0.6, 0.2) if k % 2 == 0 else Color(0.9, 0.9, 0.3), 1.6))
+				f.rotation.y = k * 0.8
+			_cyl(2.5, 0.4, at + Vector3(0, 6.6, 0), basin, null, -1, 24)
+		"lava":
+			_cyl(2.6, 0.6, at + Vector3(0, 0.3, 0), _mat(Color(0.08, 0.07, 0.07), 0.9), null, -1, 20)
+			_cyl(2.1, 0.08, at + Vector3(0, 0.62, 0), _glow(Color(1.0, 0.38, 0.05), 4.0), null, -1, 20)
+			_cyl(2.4, 2.4, at + Vector3(0, 1.9, 0), _glass(Color(0.9, 0.5, 0.3)), null, -1, 24)
+			var o := OmniLight3D.new()
+			o.position = at + Vector3(0, 1.5, 0)
+			o.light_color = Color(1.0, 0.45, 0.15)
+			o.light_energy = 1.5
+			o.omni_range = 9.0
+			world.add_child(o)
+		"specimen":
+			_cyl(2.4, 1.0, at + Vector3(0, 0.5, 0), _mat(Color(0.18, 0.18, 0.22), 0.4, 0.7), null, -1, 8)
+			_cyl(2.0, 3.0, at + Vector3(0, 2.5, 0), _glass(Color(0.7, 0.5, 1.0)), null, -1, 24)
+			var c := Node3D.new()
+			c.position = at + Vector3(0, 1.0, 0)
+			world.add_child(c)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 9
+			FractureSet.crystals(c, Vector3.ZERO, 1.0, 6, accent, rng)
+			_text("RIFT SPECIMEN\nDO NOT TOUCH", at + Vector3(0, 4.6, 0), 40, accent2, 0.0, null, true)
