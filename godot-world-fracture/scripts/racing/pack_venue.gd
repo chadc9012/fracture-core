@@ -28,6 +28,12 @@ const ENVS := {
 		"fog": Color(0.85, 0.88, 0.93), "fog_d": 0.0012, "ground": Color(0.78, 0.81, 0.86), "shoulder": Color(0.75, 0.78, 0.82), "night": false },
 	"coast": { "top": Color(0.15, 0.45, 0.85), "horizon": Color(0.75, 0.88, 0.95), "sun": Color(1.0, 0.95, 0.85), "sun_e": 2.3, "pitch": -50.0,
 		"fog": Color(0.75, 0.88, 0.95), "fog_d": 0.0004, "ground": Color(0.86, 0.78, 0.58), "shoulder": Color(0.8, 0.74, 0.58), "night": false },
+	"forest": { "top": Color(0.3, 0.5, 0.75), "horizon": Color(0.75, 0.85, 0.75), "sun": Color(1.0, 0.95, 0.8), "sun_e": 1.6, "pitch": -40.0,
+		"fog": Color(0.6, 0.72, 0.6), "fog_d": 0.0011, "ground": Color(0.16, 0.3, 0.12), "shoulder": Color(0.35, 0.3, 0.22), "night": false },
+	"volcano": { "top": Color(0.12, 0.05, 0.05), "horizon": Color(0.85, 0.3, 0.1), "sun": Color(1.0, 0.55, 0.3), "sun_e": 1.2, "pitch": -18.0,
+		"fog": Color(0.35, 0.15, 0.1), "fog_d": 0.0012, "ground": Color(0.09, 0.08, 0.08), "shoulder": Color(0.2, 0.17, 0.16), "night": false },
+	"fracture": { "top": Color(0.08, 0.02, 0.16), "horizon": Color(0.55, 0.2, 0.75), "sun": Color(0.75, 0.55, 1.0), "sun_e": 0.8, "pitch": -35.0,
+		"fog": Color(0.35, 0.15, 0.5), "fog_d": 0.0010, "ground": Color(0.12, 0.09, 0.16), "shoulder": Color(0.22, 0.16, 0.28), "night": true },
 	"water": { "top": Color(0.3, 0.3, 0.6), "horizon": Color(1.0, 0.55, 0.4), "sun": Color(1.0, 0.65, 0.45), "sun_e": 1.8, "pitch": -12.0,
 		"fog": Color(0.9, 0.6, 0.5), "fog_d": 0.0005, "ground": Color(0.05, 0.25, 0.38), "shoulder": Color(0.05, 0.25, 0.38), "night": false },
 }
@@ -160,6 +166,8 @@ func _road() -> void:
 	var asphalt := _mat(Color(0.1, 0.1, 0.11) if env_id != "desert" else Color(0.62, 0.5, 0.33), 0.9)
 	if env_id == "snow":
 		asphalt = _mat(Color(0.2, 0.21, 0.23), 0.6)
+	if env_id == "fracture":
+		asphalt = _mat(Color(0.07, 0.06, 0.09), 0.5)
 	var shoulder := _mat(e().shoulder, 0.95)
 	var paint := _mat(Color(0.92, 0.92, 0.88), 0.6)
 	var kerb_r := _mat(Color(0.8, 0.12, 0.1), 0.6)
@@ -299,6 +307,22 @@ func _scenery() -> void:
 		"coast":
 			_scatter(_palm_mesh(), 35.0, track.width * 0.5 + 6.0, 40.0, Vector3(0.9, 0.9, 0.9), Vector3(1.2, 1.5, 1.2))
 			_scatter(_block_mesh(Color(0.95, 0.85, 0.75)), 140.0, 50.0, 85.0, Vector3(12, 8, 12), Vector3(26, 24, 26))
+		"forest":
+			# Eldergrove: old broadleaf trees and pines close on both sides, mossy boulders, the odd giant
+			_scatter(_tree_mesh(Color(0.16, 0.38, 0.15)), 9.0, track.width * 0.5 + 4.0, 90.0, Vector3(1.0, 1.2, 1.0), Vector3(1.8, 2.6, 1.8))
+			_scatter(_pine_mesh(), 14.0, track.width * 0.5 + 6.0, 120.0, Vector3(0.9, 1.0, 0.9), Vector3(1.6, 2.4, 1.6))
+			_scatter(_rock_mesh(Color(0.3, 0.38, 0.25)), 40.0, track.width * 0.5 + 3.0, 60.0, Vector3(2, 1.5, 2), Vector3(7, 5, 7))
+			_scatter(_tree_mesh(Color(0.12, 0.32, 0.12)), 260.0, 50.0, 200.0, Vector3(4, 5, 4), Vector3(6, 8, 6))
+		"volcano":
+			# Obsidian Reach: black basalt, lava running in channels beside the road, cones smoking on the skyline
+			_scatter(_rock_mesh(Color(0.08, 0.07, 0.07)), 30.0, track.width * 0.5 + 4.0, 100.0, Vector3(3, 2, 3), Vector3(12, 8, 12))
+			_scatter(_lava_mesh(), 70.0, track.width * 0.5 + 10.0, 60.0, Vector3(6, 1, 30), Vector3(12, 1, 70))
+			_scatter(_cone_mesh(), 900.0, 300.0, 900.0, Vector3(250, 160, 250), Vector3(450, 320, 450))
+		"fracture":
+			# the Shattered Expanse: crystal shards out of the ground, rock islands floating over the road, glowing rifts
+			_scatter(_crystal_mesh(), 22.0, track.width * 0.5 + 3.0, 80.0, Vector3(1, 1, 1), Vector3(2.5, 4.0, 2.5))
+			_scatter(_floater_mesh(), 120.0, 20.0, 260.0, Vector3(20, 12, 20), Vector3(60, 30, 60))
+			_scatter(_rock_mesh(Color(0.18, 0.14, 0.22)), 45.0, track.width * 0.5 + 5.0, 120.0, Vector3(3, 2, 3), Vector3(10, 8, 10))
 		"water":
 			_scatter(_dune_mesh(Color(0.35, 0.55, 0.3)), 400.0, 120.0, 600.0, Vector3(80, 18, 60), Vector3(220, 50, 160))
 			_scatter(_palm_mesh(), 220.0, 60.0, 140.0, Vector3(1, 1, 1), Vector3(1.4, 1.6, 1.4))
@@ -463,6 +487,62 @@ func _rock_mesh(c: Color) -> Mesh:
 	sm.radial_segments = 6
 	sm.rings = 3
 	return _merged([[sm, Transform3D(Basis(), Vector3(0, 0.25, 0)), _mat(c, 0.95)]])
+
+## a lava channel: a glowing ribbon in a black crust
+func _lava_mesh() -> Mesh:
+	return _merged([[_box_m(Vector3(1.0, 0.3, 1.0)), Transform3D(Basis(), Vector3(0, 0.0, 0)), _mat(Color(0.06, 0.05, 0.05), 0.95)],
+		[_box_m(Vector3(0.6, 0.32, 0.92)), Transform3D(Basis(), Vector3(0, 0.02, 0)), _glow(Color(1.0, 0.35, 0.05), 4.0)]])
+
+## a volcanic cone with a glowing crater
+func _cone_mesh() -> Mesh:
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.08
+	cone.bottom_radius = 0.5
+	cone.height = 1.0
+	cone.radial_segments = 14
+	var crater := CylinderMesh.new()
+	crater.top_radius = 0.07
+	crater.bottom_radius = 0.07
+	crater.height = 0.02
+	crater.radial_segments = 10
+	return _merged([[cone, Transform3D(Basis(), Vector3(0, 0.5, 0)), _mat(Color(0.1, 0.08, 0.08), 0.95)],
+		[crater, Transform3D(Basis(), Vector3(0, 1.0, 0)), _glow(Color(1.0, 0.4, 0.08), 6.0)]])
+
+## a cluster of Fracture crystals: tall glowing prisms leaning out of a dark base
+func _crystal_mesh() -> Mesh:
+	var parts: Array = []
+	var glow := _glow(Color(0.7, 0.3, 1.0), 3.0)
+	for i in 4:
+		var c := CylinderMesh.new()
+		c.top_radius = 0.0
+		c.bottom_radius = 0.35 - i * 0.05
+		c.height = 2.4 - i * 0.4
+		c.radial_segments = 6
+		var b := Basis(Vector3.UP, i * 1.7) * Basis(Vector3.RIGHT, 0.25 + i * 0.12)
+		parts.append([c, Transform3D(b, Vector3(0.2 * cos(i * 1.7), c.height * 0.45, 0.2 * sin(i * 1.7))), glow])
+	parts.append([_box_m(Vector3(1.0, 0.3, 1.0)), Transform3D(Basis(), Vector3(0, 0.15, 0)), _mat(Color(0.1, 0.08, 0.12), 0.9)])
+	return _merged(parts)
+
+## a rock island hanging in the air (an upside-down cone of rock under a grassy top, crystals on its underside)
+func _floater_mesh() -> Mesh:
+	var rock := CylinderMesh.new()
+	rock.top_radius = 0.5
+	rock.bottom_radius = 0.05
+	rock.height = 0.8
+	rock.radial_segments = 9
+	var top := CylinderMesh.new()
+	top.top_radius = 0.5
+	top.bottom_radius = 0.5
+	top.height = 0.06
+	top.radial_segments = 9
+	var tip := CylinderMesh.new()
+	tip.top_radius = 0.06
+	tip.bottom_radius = 0.0
+	tip.height = 0.3
+	tip.radial_segments = 6
+	return _merged([[rock, Transform3D(Basis(), Vector3(0, 2.6, 0)), _mat(Color(0.2, 0.16, 0.24), 0.95)],
+		[top, Transform3D(Basis(), Vector3(0, 3.03, 0)), _mat(Color(0.25, 0.4, 0.3), 0.9)],
+		[tip, Transform3D(Basis(), Vector3(0, 2.1, 0)), _glow(Color(0.7, 0.3, 1.0), 4.0)]])
 
 func _cactus_mesh() -> Mesh:
 	var trunk := CylinderMesh.new()

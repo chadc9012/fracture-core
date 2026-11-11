@@ -25,7 +25,7 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
-	ok(TrackPack.ids().size() == 8 and Track.ids().size() == Track.TRACKS.size() + 8, "the eight tracks join the race list")
+	ok(TrackPack.ids().size() == 11 and Track.ids().size() == Track.TRACKS.size() + 11, "the pack's eight and the board's three join the race list")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3
 	for id in TrackPack.ids():
@@ -67,7 +67,7 @@ func _run() -> void:
 		await process_frame
 
 	# a race on the shortest, then on the water
-	for id in ["neon-midnight-run", "azure-hover-challenge"]:
+	for id in ["neon-midnight-run", "azure-hover-challenge", "shattered-expanse-gp"]:
 		var rv := RaceView.new()
 		rv.track_id = id
 		rv.laps = 1
@@ -104,7 +104,7 @@ func _run() -> void:
 	for b in hub.page.find_children("*", "Button", true, false):
 		if (b as Button).text.contains("\n") and ((b as Button).text.contains(" km")):
 			buttons += 1
-	ok(buttons == 8, "the races page lists the eight (%d)" % buttons)
+	ok(buttons == TrackPack.ids().size(), "the races page lists all eleven (%d)" % buttons)
 	hub.lap_mode = 0
 	ok(hub.pack_laps(Track.def_of("nexus-grand-prix")) == 1, "1 LAP")
 	hub.lap_mode = 1

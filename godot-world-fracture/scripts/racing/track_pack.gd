@@ -7,6 +7,9 @@ extends RefCounted
 ## track.gd turns a def into a Track like any venue; pack_venue.gd builds the scenery. Pure, no nodes.
 
 const DATA := "res://data/track_pack_01.json"
+## the racing board's three tracks beyond the pack (no route files came with them: tools/make_board_tracks.py lays them
+## out at the board's lengths)
+const DATA_BOARD := "res://data/track_pack_board.json"
 
 const TRACKS := {
 	"neon-midnight-run": { "src": "Neon_Midnight_Run", "region": "Neon City", "style": "Underground street circuit",
@@ -33,6 +36,15 @@ const TRACKS := {
 	"azure-hover-challenge": { "src": "Azure_Hover_Challenge", "region": "Azure Isles", "style": "Water and hovercraft",
 		"env": "water", "laps": 3, "lap_range": [3, 5], "width": 30.0, "prize": [11000, 5500, 2700, 800],
 		"rivals": ["Reef", "Marlin", "Juno"], "hover": true },
+	"eldergrove-circuit": { "src": "Eldergrove_Circuit", "region": "Eldergrove", "style": "Forest / technical",
+		"env": "forest", "laps": 3, "lap_range": [3, 6], "width": 14.0, "prize": [14000, 7000, 3500, 1100],
+		"rivals": ["Ryu", "Juno", "Rook"] },
+	"obsidian-volcano-run": { "src": "Obsidian_Volcano_Run", "region": "Obsidian Reach", "style": "Volcanic / endurance",
+		"env": "volcano", "laps": 2, "lap_range": [2, 4], "width": 16.0, "prize": [22000, 11000, 5500, 1700],
+		"rivals": ["Dune", "Sable", "Nightjar"], "offroad": true },
+	"shattered-expanse-gp": { "src": "Shattered_Expanse_GP", "region": "Shattered Expanse", "style": "Fracture / high risk",
+		"env": "fracture", "laps": 3, "lap_range": [3, 7], "width": 16.0, "prize": [24000, 12000, 6000, 1800],
+		"rivals": ["Ghost", "Nightjar", "Vex"] },
 }
 
 static var _cache := {}
@@ -46,12 +58,13 @@ static func has(id: String) -> bool:
 ## the owner's data for one track: {name, target_km, environment, road_width_m, centerline_xyz, checkpoints}
 static func source(id: String) -> Dictionary:
 	if _cache.is_empty():
-		var f := FileAccess.open(DATA, FileAccess.READ)
-		if f:
-			var d: Variant = JSON.parse_string(f.get_as_text())
-			if d is Dictionary:
-				for t in d.get("tracks", []):
-					_cache[String(t.id)] = t
+		for path in [DATA, DATA_BOARD]:
+			var f := FileAccess.open(path, FileAccess.READ)
+			if f:
+				var d: Variant = JSON.parse_string(f.get_as_text())
+				if d is Dictionary:
+					for t in d.get("tracks", []):
+						_cache[String(t.id)] = t
 	return _cache.get(String(TRACKS.get(id, {}).get("src", "")), {})
 
 ## a track.gd def: the owner's centre line as the control points (closed), the start at their checkpoint 0
