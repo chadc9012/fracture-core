@@ -90,40 +90,14 @@ const LIST := [
 	{ "id": "olive-utility", "name": "Olive Utility", "base": "techwear", "c": {
 		"top": "3d4630", "rib": "323a27", "zip": "c9a54a", "print": "3d4630", "print2": "c9a54a", "string": "c9a54a", "stripe_arm": "3d4630",
 		"legs": "4a4f33", "legs2": "3b402a", "stripe": "LEGS", "cargo_flap": "3b402a", "shoe": "5a3b22", "accent": "3d2716", "sole": "1e1813", "midsole": "1e1813", "toe": "4e321c" } },
-	# work uniforms for the people in the city's buildings (owner's NPC lineup board, Nov 11: police, doctors, chefs,
-	# firefighters, construction, paramedics, bartenders, security, office staff; city interiors, interiors.gd).
-	# Colourways of the cuts above; `uniform` keeps them out of the shops' racks.
-	{ "id": "uniform-police", "name": "Police Uniform", "base": "workwear", "uniform": true, "c": {
-		"top": "1c2840", "rib": "16213a", "hood": "16213a", "hood_open": "16213a", "zip": "c9a54a", "inner": "1c2840", "print": "c9a54a", "print2": "1c2840",
-		"pocket": "TOP", "legs": "1a2234", "legs2": "151c2c", "legs_fabric": PLAIN, "shoe": "0e0f12", "accent": "0e0f12", "sole": "0e0f12", "midsole": "0e0f12", "toe": "0e0f12" } },
-	{ "id": "uniform-security", "name": "Security", "base": "bomber", "uniform": true, "c": {
-		"top": "131417", "rib": "0e0f12", "print": "e8e8e2", "print2": "131417", "legs": "1b1c20", "legs2": "16171a", "shoe": "0e0f12", "accent": "0e0f12", "sole": "0e0f12", "midsole": "0e0f12", "toe": "0e0f12" } },
-	{ "id": "uniform-doctor", "name": "Doctor's Coat", "base": "denim", "uniform": true, "c": {
-		"top": "f1f2f0", "rib": "e2e4e2", "hood": "e2e4e2", "zip": "c8cbcc", "inner": "6f8fae", "print": "6f8fae", "print2": "f1f2f0",
-		"legs": "4b5d74", "legs2": "425268", "legs_fabric": PLAIN, "shoe": "26282c", "accent": "26282c", "sole": "f2f2ee", "midsole": "26282c", "toe": "26282c" } },
+	# two work uniforms the lineup board's npc-* outfits don't cover, for the city's buildings (interiors.gd staff;
+	# the rest of the staff wear the npc-* outfits). Colourways of the cuts above; `uniform` keeps them off the racks.
 	{ "id": "uniform-scrubs", "name": "Scrubs", "base": "tracksuit", "uniform": true, "c": {
 		"top": "2d8c8a", "rib": "267876", "legs": "2d8c8a", "legs2": "267876", "stripe": "2d8c8a", "stripe_arm": "2d8c8a", "zip": "2d8c8a",
 		"shoe": "f2f2ee", "accent": "f2f2ee", "sole": "f2f2ee", "midsole": "f2f2ee", "toe": "e6e6e3" } },
-	{ "id": "uniform-paramedic", "name": "Paramedic", "base": "tracksuit", "uniform": true, "c": {
-		"top": "b3221e", "rib": "931c19", "legs": "1d2433", "legs2": "171d2a", "stripe": "e8e84a", "stripe_arm": "e8e84a", "zip": "1d2433",
-		"shoe": "0e0f12", "accent": "0e0f12", "sole": "0e0f12", "midsole": "0e0f12", "toe": "0e0f12" } },
-	{ "id": "uniform-chef", "name": "Chef's Whites", "base": "denim", "uniform": true, "c": {
-		"top": "f4f4f0", "rib": "e6e6e1", "hood": "e6e6e1", "zip": "1a1a1c", "inner": "f4f4f0", "print": "1a1a1c", "print2": "f4f4f0",
-		"legs": "2a2a2c", "legs2": "222224", "legs_fabric": PLAIN, "shoe": "0e0f12", "accent": "0e0f12", "sole": "0e0f12", "midsole": "0e0f12", "toe": "0e0f12" } },
-	{ "id": "uniform-firefighter", "name": "Turnout Gear", "base": "workwear", "uniform": true, "c": {
-		"top": "b89a5a", "rib": "e8e84a", "hood": "e8e84a", "hood_open": "e8e84a", "zip": "e8e84a", "inner": "b89a5a", "print": "e8e84a", "print2": "b89a5a",
-		"pocket": "TOP", "legs": "b89a5a", "legs2": "a68a4e", "legs_fabric": PLAIN, "shoe": "0e0f12", "accent": "0e0f12", "sole": "0e0f12", "midsole": "0e0f12", "toe": "0e0f12" } },
-	{ "id": "uniform-hivis", "name": "Hi-Vis Workwear", "base": "workwear", "uniform": true, "c": {
-		"top": "ff7a12", "rib": "e8e84a", "hood": "e8e84a", "hood_open": "e8e84a", "zip": "e8e84a", "inner": "3a3c42", "print": "e8e84a", "print2": "ff7a12",
-		"pocket": "TOP", "legs": "2b3a52", "legs2": "243146", "shoe": "5a3b22", "accent": "3d2716", "sole": "1e1813", "midsole": "1e1813", "toe": "4e321c" } },
-	{ "id": "uniform-delivery", "name": "Courier", "base": "bomber", "uniform": true, "c": {
-		"top": "1f5fbf", "rib": "174a96", "print": "f2f2ee", "print2": "1f5fbf", "legs": "23314a", "legs2": "1d293e", "shoe": "15171a", "accent": "f2f2ee", "sole": "f2f2ee", "midsole": "15171a", "toe": "15171a" } },
 	{ "id": "uniform-bartender", "name": "Bar Black", "base": "denim", "uniform": true, "c": {
 		"top": "131417", "rib": "0e0f12", "hood": "0e0f12", "zip": "c9a54a", "inner": "e8e8e2", "print": "c9a54a", "print2": "131417",
 		"legs": "15161a", "legs2": "111215", "legs_fabric": PLAIN, "shoe": "0e0f12", "accent": "0e0f12", "sole": "0e0f12", "midsole": "0e0f12", "toe": "0e0f12" } },
-	{ "id": "uniform-office", "name": "Office Blazer", "base": "denim", "uniform": true, "c": {
-		"top": "34405a", "rib": "2c374d", "hood": "2c374d", "zip": "2c374d", "inner": "e8e8e2", "print": "e8e8e2", "print2": "34405a",
-		"legs": "2a2f3a", "legs2": "232731", "legs_fabric": PLAIN, "shoe": "1a1310", "accent": "1a1310", "sole": "1a1310", "midsole": "1a1310", "toe": "1a1310" } },
 	# the city's people (owner's NPC lineup board, Nov 11: docs/reference/npc-lineup-full-body.png) — worn by NPCs,
 	# not sold ("npc"); "hat" / "wear" are what they put on with it
 	# civilians

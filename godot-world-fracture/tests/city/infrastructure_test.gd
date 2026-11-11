@@ -115,6 +115,14 @@ func _run() -> void:
 						for nd in st.world.find_children("*", "Node3D", true, false):
 							if nd.has_meta("size") and absf(nd.global_position.z - bb.get_center().z) < 8.0 and absf(nd.global_position.x - bb.get_center().x) < 8.0:
 								print("      node ", nd.name, " ", nd.get_meta("file", ""), " ", nd.global_position, " parent ", nd.get_parent().name)
+	# the expressway over the far block: its traffic runs
+	st.operator.position = Vector3(12.5, 0.18, Infra.lot_center("overpass").z)
+	await frames(6)
+	var live: Array = st.deck_cars.filter(func(d): return is_instance_valid(d.node))
+	var x0: float = live[0].node.position.x if not live.is_empty() else 0.0
+	st._infra_t += 2.0
+	await frames(2)
+	ok(live.size() >= 8 and absf(live[0].node.position.x - x0) > 20.0, "the expressway's traffic runs over the avenue (%d cars)" % live.size())
 	var parking_door := false
 	var metro_door := false
 	for d in st._door_spots:

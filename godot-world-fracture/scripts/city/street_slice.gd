@@ -52,6 +52,7 @@ const Infra := preload("res://scripts/city/infrastructure.gd")
 ## the crossings' signal heads on loaded blocks and the construction crane tops (infrastructure.gd runs them)
 var signals: Array = []
 var cranes: Array = []
+var deck_cars: Array = []
 var _infra_t := 0.0
 const Interiors := preload("res://scripts/city/interiors.gd")
 var _radio_button: Button
@@ -277,7 +278,10 @@ func _ready() -> void:
 	if style != "nexus":
 		tod.visible = style != "neon"   # Neon City is always night
 
+## a fixed camera for look-dev shots (held every frame over the follow camera)
+var _look_pts: Array = []
 func look_from(from: Vector3, at: Vector3) -> void:
+	_look_pts = [from, at]
 	cam.position = from
 	cam.look_at(at)
 
@@ -702,6 +706,9 @@ func _process(dt: float) -> void:
 			operator.step(minf(dt, 0.05), Vector2.ZERO, Vector2.ZERO, false, false)
 			return
 	operator.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	if not _look_pts.is_empty():
+		cam.position = _look_pts[0]
+		cam.look_at(_look_pts[1])
 	if style == "nexus":
 		# entering a district court (or the plaza) names it once
 		var area := Nexus.area_at(operator.position)

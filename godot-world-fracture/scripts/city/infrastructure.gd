@@ -4,6 +4,9 @@ extends RefCounted
 ##   crossings — a signalised crossing on every block: zebra stripes, stop lines, signal heads on mast arms over each
 ##     lane and walk / don't-walk heads at the corners, on a shared cycle (green, amber, red; offset block to block).
 ##     The traffic stops at the line on amber and red (traffic.gd `red_lines`)
+##   the expressway — an elevated highway crossing over the avenue on the far block (an underpass plaza on each side
+##     where the street wall opens under it, piers on the walks), slip ramps curving down off it, its traffic running
+##     across, and at both ends tunnel portals into the hills it dives under
 ##   lots — four sites cut into the street wall two blocks out from the hub (the buildings skip them, the facade line
 ##     opens): the VoltCharge fuel and charge station, the Central Bus Terminal with its buses in the bays, the Helix
 ##     Tower construction site behind its hoarding with a tower crane slewing over it, and the city parking garage (its
@@ -23,7 +26,14 @@ const LOTS := [
 	["bus", 2, 1.0, -124.0, -66.0],
 	["construction", -2, 1.0, 66.0, 124.0],
 	["parkade", -2, -1.0, -124.0, -66.0],
+	# the expressway crosses over the avenue on the far block: the street wall opens under it on both sides
+	["overpass", 3, -1.0, -111.0, -79.0],
+	["overpass", 3, 1.0, -111.0, -79.0],
 ]
+## the expressway: its deck height, how far out it runs each way before the tunnels, its traffic
+const DECK_Y := 11.0
+const DECK_W := 20.0
+const DECK_X := 150.0
 const TILE := 260.0
 
 ## the lot standing on this side of block k at z along it ("" for none)
@@ -203,6 +213,12 @@ static func step(slice, t: float) -> void:
 	slice.signals = keep
 	if slice.traffic:
 		slice.traffic.red_lines = red
+	var cars: Array = []
+	for dc in slice.deck_cars:
+		if is_instance_valid(dc.node):
+			cars.append(dc)
+			(dc.node as Node3D).position.x = fposmod(float(dc.x0) + float(dc.dir) * float(dc.speed) * t + DECK_X, DECK_X * 2.0) - DECK_X
+	slice.deck_cars = cars
 	for cr in slice.cranes:
 		if is_instance_valid(cr):
 			(cr as Node3D).rotation.y = 0.9 + 0.7 * sin(t * 0.06 + (cr as Node3D).position.z * 0.01)
@@ -380,3 +396,104 @@ func _parkade(side: float, z0: float, z1: float) -> void:
 	box(Vector3(0.4, 3.0, 3.0), lp(side, 0.6, 6.0, lz + 8.0), m(Color(0.1, 0.25, 0.7), 0.5, 0.0, 1.2))
 	label("P", lp(side, 0.35, 6.0, lz + 8.0), -PI * 0.5 * side, Color(1, 1, 1), 300)
 	label("CITY PARKING · UNDERGROUND", lp(side, 0.4, 3.6, lz), -PI * 0.5 * side, glowc, 80)
+
+# --------------------------------------------------------------------------------------------- the expressway
+## built from the west side's lot (the deck spans both); each side gets its underpass plaza
+func _overpass(side: float, z0: float, z1: float) -> void:
+	var lz := (z0 + z1) * 0.5
+	_lot_frame(side, z0, z1, Color(0.32, 0.32, 0.34), 4.0)
+	var concrete := m(Color(0.55, 0.55, 0.53), 0.95)
+	var cyan := Color(0.25, 0.85, 1.0)
+	# the underpass: lamps on the piers, a lit mural on the back wall
+	for px: float in [6.0, 22.0]:
+		for pz: float in [-6.0, 6.0]:
+			box(Vector3(1.6, DECK_Y - 0.6, 1.6), lp(side, px, (DECK_Y - 0.6) * 0.5 + 0.18, lz + pz), concrete)
+			solid(Vector3(1.6, DECK_Y, 1.6), lp(side, px, 0.18, lz + pz))
+			box(Vector3(1.62, 0.12, 1.62), lp(side, px, 3.2, lz + pz), m(cyan, 0.4, 0.0, 2.0))
+	box(Vector3(0.1, 3.0, 24.0), lp(side, LOT_D - 0.4, 2.2, lz), m(Color(0.6, 0.2, 0.8), 0.6, 0.0, 1.2))
+	label("EXPRESSWAY 9 UNDERPASS", lp(side, LOT_D - 0.5, 4.6, lz), -PI * 0.5 * side, cyan, 90)
+	if side > 0.0:
+		return
+	# the deck, avenue to tunnel both ways, on piers; parapets, lane lines and lamps along it
+	var deck := m(Color(0.6, 0.6, 0.58), 0.9)
+	var asphalt := m(Color(0.12, 0.12, 0.13), 0.9)
+	var white := m(Color(0.9, 0.9, 0.86), 0.7)
+	box(Vector3(DECK_X * 2.0, 1.2, DECK_W), Vector3(0, DECK_Y - 0.6, lz), deck)
+	box(Vector3(DECK_X * 2.0, 0.05, DECK_W - 1.0), Vector3(0, DECK_Y + 0.03, lz), asphalt)
+	for sz: float in [-1.0, 1.0]:
+		box(Vector3(DECK_X * 2.0, 1.1, 0.4), Vector3(0, DECK_Y + 0.55, lz + sz * (DECK_W * 0.5 - 0.2)), concrete)
+		box(Vector3(DECK_X * 2.0, 0.08, 0.05), Vector3(0, DECK_Y + 1.12, lz + sz * (DECK_W * 0.5 - 0.2)), m(cyan, 0.4, 0.0, 2.5))
+	var x := -DECK_X + 2.0
+	while x < DECK_X - 2.0:
+		box(Vector3(3.0, 0.02, 0.18), Vector3(x, DECK_Y + 0.06, lz), white)
+		x += 6.0
+	for px in range(-130, 131, 30):
+		if absf(px) < 45.0:
+			continue
+		box(Vector3(2.4, DECK_Y - 1.2, 6.0), Vector3(px, (DECK_Y - 1.2) * 0.5, lz), concrete)
+	# the street piers on the walks, either side of the avenue
+	for sx: float in [-1.0, 1.0]:
+		for pz: float in [-7.0, 7.0]:
+			box(Vector3(1.2, DECK_Y - 1.2, 1.2), Vector3(sx * 13.6, (DECK_Y - 1.2) * 0.5 + 0.18, lz + pz), concrete)
+			solid(Vector3(1.2, DECK_Y, 1.2), Vector3(sx * 13.6, 0.18, lz + pz))
+	# the sign hung under it over the avenue, and the gantry on the deck
+	for face: float in [1.0, -1.0]:
+		box(Vector3(9.0, 1.4, 0.2), Vector3(0, DECK_Y - 1.9, lz + face * (DECK_W * 0.5 - 0.5)), m(Color(0.05, 0.35, 0.2), 0.5))
+		label("EXPRESSWAY 9", Vector3(0, DECK_Y - 1.9, lz + face * (DECK_W * 0.5 - 0.35)), 0.0 if face > 0.0 else PI, Color(0.95, 0.95, 0.9), 110)
+	for gx: float in [-60.0, 60.0]:
+		box(Vector3(0.4, 7.0, 0.4), Vector3(gx, DECK_Y + 3.5, lz - DECK_W * 0.5 + 0.6), m(Color(0.4, 0.42, 0.45), 0.4, 0.8))
+		box(Vector3(0.4, 7.0, 0.4), Vector3(gx, DECK_Y + 3.5, lz + DECK_W * 0.5 - 0.6), m(Color(0.4, 0.42, 0.45), 0.4, 0.8))
+		box(Vector3(0.6, 2.4, DECK_W - 1.0), Vector3(gx, DECK_Y + 6.2, lz), m(Color(0.05, 0.35, 0.2), 0.5))
+		label("AIRPORT  ←    →  HARBOR" if gx < 0.0 else "HARBOR  ←    →  AIRPORT", Vector3(gx + (0.32 if gx > 0.0 else -0.32), DECK_Y + 6.2, lz), PI * 0.5 if gx > 0.0 else -PI * 0.5, Color(0.95, 0.95, 0.9), 90)
+	# lamps on the parapets
+	for lx in range(-140, 141, 35):
+		for sz: float in [-1.0, 1.0]:
+			var at := Vector3(lx, DECK_Y, lz + sz * (DECK_W * 0.5 - 0.3))
+			box(Vector3(0.2, 6.0, 0.2), at + Vector3(0, 3.0, 0), m(Color(0.3, 0.32, 0.35), 0.4, 0.8))
+			box(Vector3(0.5, 0.15, 1.6), at + Vector3(0, 6.0, -sz * 0.8), m(Color(1.0, 0.85, 0.55), 0.4, 0.0, 4.0))
+	# slip ramps curving down off the deck behind the street walls (the interchange)
+	for sx: float in [-1.0, 1.0]:
+		for sz: float in [-1.0, 1.0]:
+			var n := 12
+			for i in n:
+				var a := float(i) / n
+				var px := sx * (70.0 + a * 60.0)
+				var pz := lz + sz * (DECK_W * 0.5 + 6.0 + a * a * 30.0)
+				var y := DECK_Y * (1.0 - a)
+				var seg := box(Vector3(6.0, 0.8, 9.0), Vector3(px, y - 0.4, pz), deck)
+				seg.rotation.y = sz * sx * a * 0.9
+				if y > 1.5:
+					box(Vector3(1.2, y - 0.8, 1.2), Vector3(px, (y - 0.8) * 0.5, pz), concrete)
+	# the tunnels: a portal at each end, cut into a hillside
+	for sx: float in [-1.0, 1.0]:
+		var px := sx * DECK_X
+		box(Vector3(8.0, 24.0, 34.0), Vector3(px + sx * 4.0, 12.0, lz), concrete)
+		box(Vector3(0.2, 7.0, 16.0), Vector3(px - sx * 0.05, DECK_Y + 3.5, lz), m(Color(0.0, 0.0, 0.0), 1.0))
+		box(Vector3(0.3, 0.3, 16.0), Vector3(px - sx * 0.2, DECK_Y + 7.2, lz), m(Color(1.0, 0.75, 0.3), 0.4, 0.0, 3.0))
+		label("TUNNEL", Vector3(px - sx * 0.3, DECK_Y + 9.0, lz), -PI * 0.5 * sx, Color(0.95, 0.95, 0.9), 120)
+		var hill := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 1.0
+		sm.height = 2.0
+		sm.is_hemisphere = true
+		sm.radial_segments = 16
+		sm.rings = 6
+		hill.mesh = sm
+		hill.material_override = m(Color(0.22, 0.27, 0.2), 1.0)
+		hill.scale = Vector3(60.0, 34.0, 70.0)
+		hill.position = Vector3(px + sx * 50.0, 0.0, lz)
+		root.add_child(hill)
+	# the traffic on the deck: cars running each way, into one tunnel and out of the other
+	var colours := [Color(0.75, 0.1, 0.1), Color(0.85, 0.85, 0.88), Color(0.1, 0.15, 0.3), Color(0.12, 0.12, 0.14), Color(0.9, 0.7, 0.1), Color(0.2, 0.45, 0.8)]
+	for i in 10:
+		var dir := 1.0 if i % 2 == 0 else -1.0
+		var car := Node3D.new()
+		car.set_meta("dynamic", true)
+		car.position = Vector3(0, DECK_Y + 0.05, lz + dir * 2.6 + (dir * 3.4 if i % 4 < 2 else 0.0))
+		car.rotation.y = PI * 0.5 * dir
+		root.add_child(car)
+		box(Vector3(1.9, 0.8, 4.4), Vector3(0, 0.6, 0), m(colours[i % colours.size()], 0.3, 0.6), car)
+		box(Vector3(1.7, 0.6, 2.2), Vector3(0, 1.25, -0.2), m(Color(0.08, 0.1, 0.12), 0.15, 0.5), car)
+		box(Vector3(1.6, 0.15, 0.05), Vector3(0, 0.75, 2.22), m(Color(1.0, 0.95, 0.8), 0.4, 0.0, 4.0), car)
+		box(Vector3(1.6, 0.15, 0.05), Vector3(0, 0.75, -2.22), m(Color(1.0, 0.1, 0.05), 0.4, 0.0, 3.0), car)
+		s.deck_cars.append({ "node": car, "dir": dir, "speed": 22.0 + (i % 3) * 3.0, "x0": -DECK_X + i * 31.0 })
