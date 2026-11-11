@@ -26,6 +26,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Asset gap 6 §5, combat details still open: energy shields (operator + elite troopers), destructible cover with combat debris, magazines dropped on reload, holstered weapons worn on the body, weapon attachments, armour damage on the operator | session_01BYbdaSv5NptxoJHKBKWqiM | 2026-11-10 |
 | Owner ask (Nov 9 12:38): the Nexus Region after the owner's "Nexus Region v1.0" board (natural coastline; full region) — a new region map `nexus-region` (src/game/nexus-region.ts, a NewLand: Aether Ridge, Verdant Expanse, Ironcrest Outlands, Southreach, Nexus City's districts, Harbor, Beach, Azure Keys, Lighthouse Point, Eastpoint, Obsidian Cliffs, NOVA Research Complex, the Fracture Spire), opened first on the Nexus continent; region 3D only — not the Nexus street slice / districts (session_01PQQ… and the districts work own those) | session_01HeBvGF1Wp7cNYHiTnBkJXG | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
