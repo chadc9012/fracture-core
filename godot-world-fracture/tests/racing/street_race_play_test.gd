@@ -41,7 +41,7 @@ func _ready() -> void:
 	for e in v.race.entries:
 		if e.finished_at < 0.0:
 			all_done = false
-	ok(v.race.finished and all_done, "all four cars finish three laps (%.0f s)" % time)
+	ok(v.race.finished and all_done, "all four cars finish the laps (%.0f s)" % time)
 	ok(stuck < 300, "the rivals don't stick on the barriers (%d slow frames)" % stuck)
 	ok(v.race.player().best_lap > 30.0, "a lap time for the player (%.1f s)" % v.race.player().best_lap)
 	ok(v._prize_paid and v.race.prize() > 0, "the prize is paid (%d Nex)" % v.race.prize())

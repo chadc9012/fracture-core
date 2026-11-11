@@ -6,21 +6,34 @@ extends RefCounted
 
 const TRACKS := {
 	"nexus-speedway": {
-		"name": "Nexus Speedway", "width": 14.0, "laps": 3, "prize": [900, 500, 250, 100],
-		# a stadium oval with a chicane on the back straight (metres; the main straight runs along -z at x = 0)
-		"points": [[0, 0, 60], [0, 0, -60], [-12, 0, -95], [-45, 0, -112], [-85, 0, -100], [-100, 0, -60], [-96, 0, -10], [-80, 0, 20], [-96, 0, 50], [-90, 0, 90], [-60, 0, 112], [-25, 0, 100], [-8, 0, 75]],
+		# a grand-prix circuit (owner, Nov 11: "make the racing longer"; was a 569 m oval): a 420 m main straight along -z at
+		# x = 0, a hairpin onto the long back straight, the sweeping west side, the infield esses, the north loop and the
+		# fast final bends back onto the straight. ~2.1 km a lap, five laps. Metres.
+		"name": "Nexus Speedway", "width": 14.0, "laps": 5, "prize": [1600, 850, 420, 160],
+		"points": [[0, 0, 180], [0, 0, -240], [-14, 0, -286], [-60, 0, -305], [-150, 0, -305], [-240, 0, -298], [-300, 0, -270], [-330, 0, -215], [-340, 0, -150], [-345, 0, -60], [-330, 0, -15], [-290, 0, 10], [-250, 0, -10], [-210, 0, -40], [-170, 0, -30], [-150, 0, 5], [-150, 0, 90], [-168, 0, 150], [-215, 0, 185], [-290, 0, 205], [-330, 0, 250], [-320, 0, 300], [-270, 0, 330], [-150, 0, 335], [-60, 0, 320], [-18, 0, 280], [0, 0, 230]],
 		"start": 0.0,
-		"pit": { "x": 20.0, "z0": -40.0, "z1": 50.0 },
-		"stands": [{ "x": 30.0, "z0": -55.0, "z1": 55.0, "yaw": 0.0 }, { "x": -118.0, "z0": -80.0, "z1": 0.0, "yaw": 0.0 }],
+		"pit": { "x": 20.0, "z0": -60.0, "z1": 60.0 },
+		"stands": [{ "x": 30.0, "z0": -120.0, "z1": 120.0, "yaw": 0.0 }, { "x": -380.0, "z0": -200.0, "z1": -80.0, "yaw": 0.0 }],
 	},
 	# a night street circuit through Neon City's blocks: the avenue is the main straight, right-angle corners round the
 	# blocks, a jog through the market grid; concrete barriers instead of kerbs and grass (race_view builds it as a city)
 	"neon-circuit": {
-		"name": "Neon Night Circuit", "kind": "street", "width": 13.0, "laps": 3, "prize": [1200, 650, 300, 120],
-		"points": [[0, 0, 126], [0, 0, -90], [-7, 0, -119], [-29, 0, -130], [-104, 0, -130], [-130, 0, -119], [-140, 0, -94], [-140, 0, -32], [-130, 0, -11], [-104, 0, 0], [-83, 0, 11], [-72, 0, 36], [-72, 0, 119], [-61, 0, 148], [-36, 0, 162], [-11, 0, 155]],
+		# ~1.9 km a lap through a dozen blocks (Nov 11, was 779 m): the 500 m avenue, the south blocks, the market jog west,
+		# the long west boulevard, the north blocks and back onto the avenue. Four laps.
+		"name": "Neon Night Circuit", "kind": "street", "width": 13.0, "laps": 4, "prize": [2000, 1100, 500, 200],
+		"points": [[0, 0, 250], [0, 0, -250], [-10, 0, -282], [-40, 0, -292], [-180, 0, -292], [-210, 0, -282], [-220, 0, -252], [-220, 0, -150], [-232, 0, -122], [-260, 0, -112], [-330, 0, -112], [-358, 0, -100], [-370, 0, -72], [-370, 0, 90], [-358, 0, 118], [-330, 0, 130], [-230, 0, 130], [-202, 0, 140], [-190, 0, 168], [-190, 0, 290], [-178, 0, 318], [-150, 0, 330], [-40, 0, 330], [-10, 0, 320], [0, 0, 290]],
 		"start": 0.0,
 	},
 }
+
+## the ground the track covers (x and z extents of the centreline), grown by `margin` metres
+func bounds(margin := 0.0) -> Rect2:
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in pts:
+		lo = Vector2(minf(lo.x, p.x), minf(lo.y, p.z))
+		hi = Vector2(maxf(hi.x, p.x), maxf(hi.y, p.z))
+	return Rect2(lo, hi - lo).grow(margin)
 
 ## the tracks a lobby lists, in order
 static func ids() -> Array:
