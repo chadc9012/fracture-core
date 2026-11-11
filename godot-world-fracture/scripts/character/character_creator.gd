@@ -242,11 +242,10 @@ func _stage_input(e: InputEvent) -> void:
 		turn += (e as InputEventScreenDrag).relative.x * 0.01
 
 func _rebuild() -> void:
-	# the person in regular clothes: no armour, no gear
+	# the person in their own clothes (urban streetwear): no armour, no helmet
 	var shown := look.duplicate(true)
 	shown.civ = true
 	shown.headgear = "none"
-	shown.wear = []
 	rig.build(shown)
 
 func _changed(rebuild_panel := false) -> void:

@@ -354,7 +354,11 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 				if v != Vector3.ZERO:
 					v.y -= 9.8 * dt
 					nd.global_position += v * dt
+<<<<<<< HEAD
 					if tr.has("spin"):
+=======
+					if tr.has("floor"):
+>>>>>>> origin/main
 						nd.rotation += Vector3(tr.spin) * dt
 						if nd.global_position.y <= float(tr.floor) + 0.02 and v.y < 0.0:
 							nd.global_position.y = float(tr.floor) + 0.02
@@ -406,8 +410,14 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 		if not t.alive():
 			continue
 		var p2: Variant = t.box.intersects_ray(from, dir)
+<<<<<<< HEAD
 		# cover is an obstacle and a target with the same box: the tie goes to the target
 		if p2 != null and from.distance_to(p2) < dist + (0.02 if t.has_meta("cover") else 0.0):
+=======
+		# a tie goes to the target: destructible cover sits in the obstacle list too (the bots' sight lines), with the
+		# very same box
+		if p2 != null and from.distance_to(p2) <= dist + 0.001:
+>>>>>>> origin/main
 			dist = from.distance_to(p2)
 			hit_t = t
 	var end := from + dir * dist
@@ -421,7 +431,13 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 	if hit_t == null and gun().frame == "HEAVY":
 		_debris(end, 6, Color(0.42, 0.4, 0.38), 0.12)     # a cannon round throws up chunks of whatever it hit
 	if hit_t:
+<<<<<<< HEAD
 		var head := end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82 and not cover
+=======
+		# a prop (destructible cover) has no head, counts no kill and scavenges nothing; it stays down
+		var prop := hit_t.has_meta("prop")
+		var head := not prop and end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
+>>>>>>> origin/main
 		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult
 		var res: Dictionary = hit_t.take(dmg, gun().frame == "FUSION")
 		if float(res.shield) > 0.0:
@@ -435,12 +451,16 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 		Sound.sfx_at("headshot" if head else "hit", end, from, -3.0)
 		if hit_t.hp <= 0.0:
 			hit_t.hp = 0.0
-			hit_t.down = 5.0
-			kills += 1
+			hit_t.down = INF if prop else 5.0
 			if hit_t.node:
 				hit_t.node.visible = false
-			Sound.sfx_at("down", end, from, -4.0)
-			scavenge()
+			if prop:
+				debris(hit_t.box.get_center(), hit_t.box.size, Color(hit_t.get_meta("blood", Color(0.7, 0.65, 0.55))))
+				Sound.sfx_at("stagger", end, from, -6.0)
+			else:
+				kills += 1
+				Sound.sfx_at("down", end, from, -4.0)
+				scavenge()
 			killed.emit(hit_t)
 
 func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
@@ -535,6 +555,28 @@ func _dot(at: Vector3, col: Color, r: float, life: float, vel := Vector3.ZERO, f
 	add_child(mi)
 	mi.global_position = at
 	_tracers.append({ "node": mi, "t": life, "vel": vel, "life": life })
+
+## a prop coming apart (destructible cover, asset catalog §5): a dozen chips of its own colour thrown out of its centre,
+## tumbling, landing at its base and fading over a few seconds; a dust puff above
+func debris(at: Vector3, size: Vector3, col: Color, n := 12) -> void:
+	var floor_y := at.y - size.y * 0.5
+	for i in n:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		var k := 0.08 + randf() * 0.16
+		bm.size = Vector3(k * (0.6 + randf()), k * 0.5, k * (0.6 + randf()))
+		mi.mesh = bm
+		var m := StandardMaterial3D.new()
+		m.albedo_color = col.darkened(randf() * 0.35)
+		m.roughness = 0.9
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mi.material_override = m
+		add_child(mi)
+		mi.global_position = at + Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * size * 0.6
+		var vel := Vector3(randf() - 0.5, 0.4 + randf() * 0.5, randf() - 0.5).normalized() * (2.5 + randf() * 3.0)
+		_tracers.append({ "node": mi, "t": 3.0 + randf() * 2.0, "vel": vel, "life": 3.0, "spin": Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * 16.0, "floor": floor_y })
+	for i in 4:
+		_dot(at + Vector3(randf() - 0.5, randf() * 0.5, randf() - 0.5) * size * 0.5, Color(col.r, col.g, col.b, 0.5), 0.25 + randf() * 0.25, 0.7, Vector3(0, 0.6, 0))
 
 ## a practice dummy: a post with a plate, standing on the ground at `at`
 func add_dummy(at: Vector3, hp := 30.0) -> Target:

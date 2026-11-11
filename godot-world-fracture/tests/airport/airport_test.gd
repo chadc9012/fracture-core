@@ -22,7 +22,7 @@ func _init() -> void:
 	var line := Air.buy_ticket(p, "NXC", "THA")
 	check("buy a ticket", int(p.nex) == 500 - Air.fare("THA") and Air.tickets_from(p, "NXC").size() == 1, line)
 	check("a pass opens security at its airport only", Air.can_go_airside(p, "NXC") and not Air.can_go_airside(p, "NEC"))
-	check("can't book home or a closed route", Air.buy_ticket(p, "NXC", "NXC").begins_with("No flights") and Air.buy_ticket(p, "NXC", "OBS").begins_with("No flights"))
+	check("can't book home or a closed route", Air.buy_ticket(p, "NXC", "NXC").begins_with("No flights") and Air.buy_ticket(p, "NXC", "ELD").begins_with("No flights"))
 	var poor := { "nex": 10 }
 	check("not enough Nex", Air.buy_ticket(poor, "NEC", "NXC").begins_with("Needs") and int(poor.nex) == 10 and Air.air(poor).tickets.is_empty())
 	check("boarding uses the ticket", Air.board(p, "NXC", "THA") and Air.tickets_from(p, "NXC").is_empty() and not Air.board(p, "NXC", "THA"))

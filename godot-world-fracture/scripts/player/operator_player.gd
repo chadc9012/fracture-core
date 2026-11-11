@@ -51,12 +51,21 @@ var _clip := ""
 ## seconds the combat stance holds after a shot (gunplay.gd sets it); standing still plays the combat clip meanwhile
 var combat_hold := 0.0
 
+## out in the city the operator is in their own clothes, urban streetwear (owner, Nov 10: "regular civilian clothing urban
+## style"); the armour is for the fights (raids, PvP, Killbox, bosses, Mission 01 after the Fracture)
+var civilian := true
+
 func build(look: Dictionary = {}) -> void:
 	if rig:
 		rig.queue_free()
 	rig = Rig.new()
 	add_child(rig)
-	rig.build(look if not look.is_empty() else CharacterStore.load_look())
+	var l: Dictionary = look if not look.is_empty() else CharacterStore.load_look()
+	if civilian:
+		l = l.duplicate(true)
+		l.civ = true
+		l.headgear = "none"
+	rig.build(l)
 	rig.rotation.y = heading
 
 func attach_camera(c: Camera3D) -> void:

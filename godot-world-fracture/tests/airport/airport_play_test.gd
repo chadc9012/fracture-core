@@ -3,8 +3,8 @@ extends Node
 ## street opens Nexus City International; weapons are stowed landside and in the terminal; security holds you without a
 ## pass and lets you through with one; weapons come out on the apron, stay stowed in someone else's hangar and come out in
 ## your own once leased; a bought jet sits in your hangar; boarding a flight to Neon City lands you in Neon City
-## International's arrivals hall, and leaving it puts you on Neon City's street; a flight to Thalassia lands you walking
-## in Thalassia. The profile is restored afterwards.
+## International's arrivals hall, and leaving it puts you on Neon City's street; a flight to Riverdale (no airport) lands you walking
+## in Riverdale. The profile is restored afterwards.
 ##   godot --headless --path godot-world-fracture res://tests/airport/airport_play.tscn
 const Main := preload("res://scripts/main.gd")
 const Air := preload("res://scripts/airport/airport.gd")
@@ -122,19 +122,19 @@ func _run() -> void:
 	w.closed.emit()
 	await _frames(8)
 	ok(m._from_street == null and m.street != null and m.street.style == "neon" and m.street.visible, "leaving NEC puts you on Neon City's street")
-	# Neon City's door opens its own airport; a flight to Thalassia lands you there on foot
+	# Neon City's door opens its own airport; a flight to Riverdale lands you there on foot
 	m.street._enter_door("airport")
 	await _frames(6)
 	var x: Control = m._from_street
 	ok(x != null and x.code == "NEC", "Neon City street → Neon City International")
 	if x == null:
 		return
-	Air.buy_ticket(x.profile, "NEC", "THA")
-	x._board("THA")
+	Air.buy_ticket(x.profile, "NEC", "RVD")
+	x._board("RVD")
 	x._flight.t = 8.0
 	await _frames(10)
 	var y: Control = m._from_street
-	ok(y != null and y.get("dest") == "THA" and y.operator != null, "landed in Thalassia, on foot")
+	ok(y != null and y.get("dest") == "RVD" and y.operator != null, "landed in Riverdale, on foot")
 	if y:
 		y.closed.emit()
 		await _frames(6)
