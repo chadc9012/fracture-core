@@ -15,6 +15,7 @@ const DOORS := {
 	"school": "NEXUS ACADEMY",
 	"office": "HELIX SYSTEMS · FLOOR 31",
 	"parking": "UNDERGROUND PARKING",
+	"metro": "METRO · CENTRAL LINE",
 }
 ## the club's name by city
 const CLUB := { "nexus": "PULSE", "neon": "SYNTHESIS", "coast": "TIDE" }
@@ -41,6 +42,7 @@ static func build(v) -> void:
 		"school": _school(v)
 		"office": _office(v)
 		"parking": _parking(v)
+		"metro": _metro(v)
 		_: _hospital(v)
 
 ## leaving: anything the room started (the club's music) stops
@@ -101,6 +103,17 @@ static func use(v, id: String) -> void:
 			v.controls.toast("On the screen: Q4 — RIFT SENSOR NETWORK · 98.6% UPTIME.")
 		"paystation":
 			v.controls.toast("Ticket validated. First hour free.")
+		"ride":
+			if String(v.data.get("train", "")) != "docked":
+				v.controls.toast("The next train is %d s away." % int(ceil(float(v.data.get("next_in", 0.0)))))
+			elif v.pay(3, "a metro fare"):
+				# the Central Line: up at the far end of the avenue from wherever you are (here: the hub)
+				var south := int(v.data.get("rides", 0)) % 2 == 0
+				v.data.rides = int(v.data.get("rides", 0)) + 1
+				v.exit_at = Vector3(12.6, 0.18, 860.0 if south else -860.0)
+				v.leave()
+		"ticket":
+			v.controls.toast("Central Line: NORTH END ⇄ HUB ⇄ SOUTH END · 3 Nex a ride")
 		_:
 			pass
 
@@ -679,3 +692,93 @@ static func _parking(v) -> void:
 	v.light(Vector3(0, 3.0, -10), Color(0.9, 0.95, 1.0), 0.9, 14.0)
 	v.light(Vector3(0, 3.0, -30), Color(0.9, 0.95, 1.0), 0.9, 14.0)
 	v.people([[Vector3(-3.0, 0, -18.0), 0.3], [Vector3(8.0, 0, -26.0), -1.4]], 41)
+
+# --------------------------------------------------------------------------------------------- the metro
+## the Central Line platform under the hub: tiled walls, columns, benches and ticket machines, the route map, the yellow
+## line at the edge, and a three-car train that runs in out of the tunnel, stands with its doors open, and runs on.
+## ENTER at the edge while it stands rides it to the far end of the avenue (3 Nex)
+static func _metro(v) -> void:
+	var r := Rect2(-9, -60, 18, 60)
+	v.environment(Color(0.85, 0.9, 0.95), 0.3, Color(0.01, 0.01, 0.02))
+	var tile = v.mat(Color(0.7, 0.74, 0.76), 0.3)
+	v.shell(r, 5.0, v.mat(Color(0.5, 0.5, 0.52), 0.6), tile, v.mat(Color(0.3, 0.31, 0.33), 0.9))
+	_ceiling_lights(v, Rect2(-8, -59, 10, 58), 5.0, 4.0, v.glow(Color(0.95, 0.98, 1.0), 1.0))
+	var blue := Color(0.15, 0.55, 1.0)
+	# the track bed on the right, the platform edge with its yellow line; an unseen rail keeps you off the drop
+	v.box(Vector3(6.4, 0.1, 59.4), Vector3(5.6, -0.04, -30.0), v.mat(Color(0.08, 0.08, 0.09), 0.9), false)
+	for rx: float in [4.6, 6.6]:
+		v.box(Vector3(0.12, 0.12, 59.4), Vector3(rx, 0.03, -30.0), v.mat(Color(0.6, 0.6, 0.62), 0.3, 0.9), false)
+	v.box(Vector3(0.5, 0.03, 59.4), Vector3(2.15, 0.015, -30.0), v.mat(Color(1.0, 0.85, 0.1), 0.6), false)
+	v.obstacles.append(AABB(Vector3(2.5, 0, -60), Vector3(0.2, 2.0, 60)))
+	# tunnel mouths in the end walls over the track
+	for zz: float in [-59.8, -0.2]:
+		v.box(Vector3(5.8, 4.2, 0.1), Vector3(5.8, 2.1, zz), v.mat(Color(0.0, 0.0, 0.0), 1.0), false)
+	# the platform: columns, benches, ticket machines, the route map and the line's name
+	for z in range(-52, -4, 12):
+		v.box(Vector3(0.6, 5.0, 0.6), Vector3(-2.0, 2.5, z), tile)
+		v.box(Vector3(0.62, 0.3, 0.62), Vector3(-2.0, 2.6, z), v.glow(blue, 2.0), false)
+		v.box(Vector3(0.5, 0.45, 1.8), Vector3(-7.8, 0.23, z - 6.0), v.mat(Color(0.3, 0.32, 0.35), 0.4, 0.7))
+	for k in 2:
+		v.box(Vector3(0.7, 1.7, 0.6), Vector3(-8.4, 0.85, -6.0 - k * 1.2), v.mat(Color(0.15, 0.3, 0.6), 0.4, 0.4))
+		v.box(Vector3(0.05, 0.4, 0.4), Vector3(-8.05, 1.3, -6.0 - k * 1.2), v.glow(Color(0.5, 0.85, 1.0), 1.6), false)
+	v.spot("ticket", "TICKET MACHINES", Vector3(-7.0, 0, -6.6), 1.8)
+	v.box(Vector3(0.06, 1.6, 6.0), Vector3(-8.8, 2.6, -24.0), v.mat(Color(0.96, 0.96, 0.96), 0.4), false)
+	v.box(Vector3(0.07, 0.08, 5.4), Vector3(-8.75, 2.6, -24.0), v.glow(blue, 2.0), false)
+	v.sign("NORTH END · HUB · SOUTH END", Vector3(-8.7, 3.0, -24.0), PI * 0.5, blue, 40, false)
+	v.sign("CENTRAL LINE", Vector3(-8.7, 4.0, -40.0), PI * 0.5, blue, 110)
+	var board = v.sign("", Vector3(0.5, 4.2, -30.0), -PI * 0.5, Color(1.0, 0.75, 0.2), 56)
+	v.spot("ride", "RIDE THE TRAIN (3 Nex)", Vector3(1.6, 0, -30.0), 3.0)
+	# the train: three cars on one node, run along the track
+	var train := Node3D.new()
+	v.world.add_child(train)
+	var silver = v.mat(Color(0.78, 0.8, 0.83), 0.3, 0.8)
+	var win = v.glow(Color(0.85, 0.92, 1.0), 0.9)
+	for c in 3:
+		var cz := -c * 18.5
+		for part in [[Vector3(3.0, 3.4, 18.0), Vector3(0, 1.9, cz), silver], [Vector3(3.02, 0.9, 16.0), Vector3(0, 2.4, cz), win],
+				[Vector3(3.04, 0.25, 18.02), Vector3(0, 1.1, cz), v.glow(blue, 2.0)]]:
+			var mi := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = part[0]
+			mi.mesh = bm
+			mi.material_override = part[2]
+			mi.position = part[1]
+			train.add_child(mi)
+	train.position = Vector3(5.6, 0, 200.0)
+	var dock_z := -10.0      # the lead car's middle when it stands at the platform
+	v.data.train = "away"
+	v.data.next_in = 6.0
+	var st := { "phase": "away", "t": 6.0, "z": 200.0 }
+	v.animate.append(func(dt: float) -> void:
+		st.t -= dt
+		match String(st.phase):
+			"away":
+				train.position.z = 200.0
+				if st.t <= 0.0:
+					st.phase = "in"
+					st.z = 60.0
+			"in":
+				# in from the south tunnel (+z), braking to the stop
+				var left: float = float(st.z) - dock_z
+				st.z = float(st.z) - maxf(1.5, minf(18.0, left * 1.2)) * dt
+				if float(st.z) <= dock_z + 0.05:
+					st.z = dock_z
+					st.phase = "docked"
+					st.t = 9.0
+			"docked":
+				if st.t <= 0.0:
+					st.phase = "out"
+					st.t = 0.0
+			"out":
+				st.t += dt
+				st.z = dock_z - 0.5 * minf(st.t, 6.0) * minf(st.t, 6.0) * 2.0 - maxf(0.0, st.t - 6.0) * 24.0
+				if float(st.z) < -160.0:
+					st.phase = "away"
+					st.t = 14.0
+		train.position.z = float(st.z) if String(st.phase) != "away" else 200.0
+		v.data.train = String(st.phase)
+		v.data.next_in = float(st.t) if String(st.phase) == "away" else 0.0
+		board.text = "NEXT TRAIN  %s" % ("NOW BOARDING" if String(st.phase) == "docked" else ("ARRIVING" if String(st.phase) == "in" else ("DEPARTED" if String(st.phase) == "out" else "%d s" % int(ceil(float(st.t)))))))
+	v.light(Vector3(-3, 4.2, -12), Color(0.95, 0.98, 1.0), 0.8, 16.0)
+	v.light(Vector3(-3, 4.2, -42), Color(0.95, 0.98, 1.0), 0.8, 16.0)
+	v.people([[Vector3(-4.0, 0, -14.0), 0.8], [Vector3(-1.0, 0, -28.0), -PI * 0.5], [Vector3(-5.5, 0, -36.0), 1.6], [Vector3(-0.5, 0, -46.0), -1.2]], 43)

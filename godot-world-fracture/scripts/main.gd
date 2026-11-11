@@ -281,6 +281,8 @@ func _show_from_street(view: Control) -> void:
 	_from_street = view
 	view.closed.connect(func():
 		var come_back: String = String(_from_street.get("return_style")) if _from_street.get("return_style") != null else ""
+		# the metro rides you down the avenue: the view says where you come up (interior_view.gd `exit_at`)
+		var come_up: Variant = _from_street.get("exit_at")
 		_from_street.queue_free()
 		_from_street = null
 		Sound.loops_stop()
@@ -294,6 +296,8 @@ func _show_from_street(view: Control) -> void:
 			street.set_process(true)
 			street._vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 			street.sound_on()
+			if come_up is Vector3 and come_up != Vector3.INF:
+				street.come_up_at(come_up)
 		_sync_later())
 	if view.has_signal("flew"):
 		view.flew.connect(_flown.bind(view))
@@ -766,6 +770,9 @@ func _shoot(path: String, opts: Array) -> void:
 			if cam_q.size() > 2 and cam_q[1].contains(",") and cam_q[2].contains(","):
 				var cf := cam_q[1].split(","); var ct := cam_q[2].split(",")
 				street.look_from(Vector3(float(cf[0]), float(cf[1]), float(cf[2])), Vector3(float(ct[0]), float(ct[1]), float(ct[2])))
+				# a look off the hub block: the operator goes there too, so the district streams that block in
+				if absf(float(ct[2])) > 130.0:
+					street.operator.position = Vector3(12.0 * signf(float(ct[0])) if float(ct[0]) != 0.0 else 12.0, 0.18, float(ct[2]))
 		# casino[:view]  the Neon City Grand Casino (Neon City's alone): 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
 		if String(o).begins_with("casino"):
 			_open_street(true, "neon", false)

@@ -29,6 +29,8 @@ var spots: Array = []                  # [{id, label, pos, r}]
 var room := Rect2(-15, -30, 30, 30)    # x, z extent the operator keeps inside
 var spawn := Vector3(0, 0, -2)
 var title := ""
+## where you come back up on the street when it isn't the door you came in by (the metro's ride), else INF
+var exit_at := Vector3.INF
 ## per-frame animation the builders hang on (a dance floor, a ceiling fan): Callable(dt)
 var animate: Array[Callable] = []
 ## what the builder keeps for its own use (counters cycled, labels to refresh)

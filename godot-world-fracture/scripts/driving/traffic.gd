@@ -92,6 +92,9 @@ func set_span(lo: float, hi: float, v_lo: float, v_hi: float) -> void:
 	vis_lo = v_lo
 	vis_hi = v_hi
 
+## the crossings whose light is amber or red for the avenue (infrastructure.gd): a car stops at the line, 7 m short
+var red_lines: Array = []
+
 ## other cars the lanes stop for (a street race's rivals and the police: street_life.gd)
 var watch_boxes: Array = []
 
@@ -134,6 +137,10 @@ func clear_ahead(c: Car) -> float:
 	var pz := (watch_point.z - n.position.z) * c.dir
 	if pz > 0.0 and absf(watch_point.x - c.lane_x) < 2.0:
 		best = minf(best, pz - StreetCar.HALF_LENGTH - 0.6)
+	for rz in red_lines:
+		var d := (float(rz) - n.position.z) * c.dir - 7.0
+		if d > 0.5 and d < LOOK:
+			best = minf(best, d)
 	for wb: AABB in watch_boxes:
 		var bz := (wb.get_center().z - n.position.z) * c.dir
 		if bz > 0.0 and wb.position.x - 1.0 < c.lane_x and wb.end.x + 1.0 > c.lane_x:

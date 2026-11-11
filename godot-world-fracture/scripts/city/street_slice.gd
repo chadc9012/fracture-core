@@ -42,9 +42,17 @@ const DOORS := [
 	{ "id": "hotel", "label": "THE AURELIAN HOTEL", "x": -1.0, "z": -165.0, "color": Color(1.0, 0.8, 0.4), "kind": "door", "style": "any" },
 	{ "id": "office", "label": "HELIX SYSTEMS", "x": 1.0, "z": -165.0, "color": Color(0.3, 0.85, 1.0), "kind": "door", "style": "any" },
 	{ "id": "nightclub", "label": "NIGHTCLUB", "x": 1.0, "z": -345.0, "color": Color(1.0, 0.2, 0.65), "kind": "door", "style": "any" },
-	{ "id": "parking", "label": "UNDERGROUND PARKING", "x": -1.0, "z": -345.0, "color": Color(1.0, 0.85, 0.2), "kind": "door", "style": "any" },
+	# the city parking garage's door, at its lot (infrastructure.gd LOTS "parkade", block -2)
+	{ "id": "parking", "label": "UNDERGROUND PARKING", "x": -1.0, "z": -615.0, "color": Color(1.0, 0.85, 0.2), "kind": "door", "style": "any" },
+	# the metro: a glass entrance pavilion on the walk, down to the Central Line platform (interiors.gd "metro")
+	{ "id": "metro", "label": "METRO · CENTRAL LINE", "x": 1.0, "z": -118.0, "color": Color(0.3, 0.75, 1.0), "kind": "metro", "style": "any" },
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
+const Infra := preload("res://scripts/city/infrastructure.gd")
+## the crossings' signal heads on loaded blocks and the construction crane tops (infrastructure.gd runs them)
+var signals: Array = []
+var cranes: Array = []
+var _infra_t := 0.0
 const Interiors := preload("res://scripts/city/interiors.gd")
 var _radio_button: Button
 var _topbar: HFlowContainer
@@ -196,6 +204,7 @@ func _ready() -> void:
 	if style != "coast":
 		_doors()
 	_civic_life()
+	Infra.build(self, 0, world)    # the hub block's crossing (infrastructure.gd)
 	if night:
 		_neon()
 		if style == "neon":
@@ -294,7 +303,9 @@ func _spawn_player() -> void:
 	var x0 := half + WALK_W
 	district = District.new(-3, 3)
 	var span: Vector2 = district.span()
-	operator.bounds = Rect2(-(x0 - 0.3), span.x + 1.0, (x0 - 0.3) + (x0 + 15.4), span.y - span.x - 2.0)
+	# out to the garage's forecourt and the lots' backs (infrastructure.gd); the facade line keeps you off the rest
+	var reach := x0 + Infra.LOT_D + 0.5
+	operator.bounds = Rect2(-reach, span.x + 1.0, reach * 2.0, span.y - span.x - 2.0)
 	if style == "nexus":
 		# the district courts (nexus_districts.gd) open off the avenue: their walls and the facade line keep the operator in
 		operator.bounds = Rect2(-(Nexus.COURT_OUT + 2.0), span.x + 1.0, (Nexus.COURT_OUT + 2.0) * 2.0, span.y - span.x - 2.0)
@@ -568,6 +579,7 @@ func _build_tile(k: int) -> Node3D:
 	_dressing()
 	_street_set()
 	_civic_life()
+	Infra.build(self, k, root)
 	if night:
 		_neon()
 	if style == "nexus":
@@ -602,13 +614,21 @@ func _tile_boxes(k: int, root: Node3D) -> Array[AABB]:
 	var z0 := District.tile_z(k) - LENGTH * 0.5
 	for sd: float in [-1.0, 1.0]:
 		var xf := x0 if sd > 0.0 else -x0 - 0.5
+		# the facade line, open at a Nexus side street's mouth and at a lot's frontage (infrastructure.gd)
+		var zc := District.tile_z(k)
+		var open: Array = []
 		if style == "nexus" and Nexus.has_court(k, sd):
-			# the side street's mouth stays open
-			var zc := District.tile_z(k)
-			out.append(AABB(Vector3(xf, 0, z0), Vector3(0.5, 12.0, (zc - Nexus.MOUTH_HALF) - z0)))
-			out.append(AABB(Vector3(xf, 0, zc + Nexus.MOUTH_HALF), Vector3(0.5, 12.0, z0 + LENGTH - zc - Nexus.MOUTH_HALF)))
-		else:
-			out.append(AABB(Vector3(xf, 0, z0), Vector3(0.5, 12.0, LENGTH)))
+			open.append(Vector2(zc - Nexus.MOUTH_HALF, zc + Nexus.MOUTH_HALF))
+		for g: Vector2 in Infra.gaps(k, sd):
+			open.append(Vector2(zc + g.x, zc + g.y))
+		open.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+		var at := z0
+		for o: Vector2 in open:
+			if o.x > at:
+				out.append(AABB(Vector3(xf, 0, at), Vector3(0.5, 12.0, o.x - at)))
+			at = maxf(at, o.y)
+		if at < z0 + LENGTH:
+			out.append(AABB(Vector3(xf, 0, at), Vector3(0.5, 12.0, z0 + LENGTH - at)))
 	return out
 
 ## boxes into the shared obstacle list through index-stable slots (traffic and the driven car hold indexes)
@@ -652,6 +672,8 @@ func _process(dt: float) -> void:
 		if gunplay and gunplay.shots_fired != _shots_seen:
 			_shots_seen = gunplay.shots_fired
 			civilians.scatter(operator.position)
+	_infra_t += minf(dt, 0.05)
+	Infra.step(self, _infra_t)
 	if traffic:
 		traffic.watch_point = operator.position
 		traffic.watch_box = driving_car.box() if driving_car else AABB()
@@ -1048,6 +1070,9 @@ func _buildings() -> void:
 			if _court_here(side) and z + 18.0 > -Nexus.COURT_HALF and z < Nexus.COURT_HALF:
 				z = Nexus.COURT_HALF + 0.5     # a district court's own blocks front the avenue here
 				continue
+			if _tile_root != null and _lot_cut(side, z) > -INF:
+				z = _lot_cut(side, z) + 0.5     # past the lot (infrastructure.gd)
+				continue
 			var pick: Array = kinds[(k * 7 + int(side + 1.0)) % kinds.size()]
 			# the casino podium on the far side of the Neon City hub, at the head of the block (Neon City's alone)
 			if _tile_k == 0 and _tile_root == null and style == "neon" and side < 0 and k == 2:
@@ -1073,9 +1098,19 @@ func _buildings() -> void:
 func _court_here(side: float) -> bool:
 	return style == "nexus" and _tile_root != null and Nexus.has_court(_tile_k, side)
 
-## the side street's mouth: nothing stands on the walk or the facade line there
+## the side street's mouth (and a lot's frontage, infrastructure.gd): nothing stands on the walk or the facade line there
 func _in_mouth(side: float, z: float) -> bool:
+	if _tile_root != null and Infra.lot_at(_tile_k, side, z, 2.5) != "":
+		return true
 	return _court_here(side) and absf(z) < Nexus.MOUTH_HALF + 2.5
+
+## a building that would stand over a lot (gas station, bus terminal, building site, parking garage) isn't built:
+## the lot's far end to carry on from, or -INF where there's no lot
+func _lot_cut(side: float, z: float) -> float:
+	for g: Vector2 in Infra.gaps(_tile_k, side):
+		if z + 18.0 > g.x and z < g.y:
+			return g.y
+	return -INF
 
 ## glass towers rising behind the street wall: the skyline in the concept frames
 func _skyline() -> void:
@@ -1430,10 +1465,20 @@ func _street_set() -> void:
 func _civic_life() -> void:
 	if style == "coast":
 		return
+	# clear of the doors on this block and of a lot's frontage (infrastructure.gd), in the block's own z
 	var avoid: Array = []
-	if _tile_root == null:
-		for d in _door_spots:
-			avoid.append(d.pos)
+	var zc := 0.0 if _tile_root == null else District.tile_z(_tile_k)
+	for d in _door_spots:
+		var p: Vector3 = d.pos
+		if absf(p.z - zc) < LENGTH * 0.5 + 8.0:
+			avoid.append(Vector3(p.x, 0, p.z - zc))
+	if _tile_root != null:
+		for sd: float in [-1.0, 1.0]:
+			for g: Vector2 in Infra.gaps(_tile_k, sd):
+				var zz := g.x
+				while zz <= g.y:
+					avoid.append(Vector3(sd, 0, zz))
+					zz += 6.0
 	CivicProps.dress(_root(), LENGTH, style, _rng, avoid)
 
 func _dressing() -> void:
@@ -1653,6 +1698,25 @@ func _doors() -> void:
 				_box(Vector3(0.12, 3.2, 0.12), Vector3(1.4, 1.6, 0), flat(Color(0.3, 0.32, 0.35), 0.4, 0.7), holder)
 				_box(Vector3(3.2, 0.1, 1.6), Vector3(0, 3.2, 0), flat(Color(0.2, 0.22, 0.25), 0.4, 0.5), holder)
 				_box(Vector3(2.6, 0.5, 0.06), Vector3(0, 2.75, 0.6), _neon_mat(col, 2.5), holder)
+			"metro":
+				# a glass pavilion over the stairs down, the M on a lit totem beside it
+				var gl := flat(Color(0.55, 0.75, 0.9), 0.1, 0.4)
+				gl.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				gl.albedo_color.a = 0.35
+				_box(Vector3(3.6, 0.15, 5.0), Vector3(0, 3.0, -0.6), flat(Color(0.2, 0.22, 0.25), 0.4, 0.6), holder)
+				for sx: float in [-1.75, 1.75]:
+					_box(Vector3(0.08, 3.0, 5.0), Vector3(sx, 1.5, -0.6), gl, holder)
+				_box(Vector3(3.6, 3.0, 0.08), Vector3(0, 1.5, -3.1), gl, holder)
+				_box(Vector3(3.0, 0.05, 4.4), Vector3(0, 0.05, -0.8), flat(Color(0.05, 0.05, 0.06), 0.9), holder)
+				_box(Vector3(0.5, 3.6, 0.5), Vector3(2.4, 1.8, 0.8), flat(Color(0.12, 0.13, 0.15), 0.4, 0.6), holder)
+				_box(Vector3(0.6, 0.6, 0.6), Vector3(2.4, 3.9, 0.8), _neon_mat(col, 3.0), holder)
+				var mlab := Label3D.new()
+				mlab.text = "M"
+				mlab.font_size = 96
+				mlab.pixel_size = 0.008
+				mlab.position = Vector3(2.4, 3.9, 1.12)
+				mlab.shaded = false
+				holder.add_child(mlab)
 			"portal":
 				# the Rift Gate: a ring standing on the walk with a live vortex in it (scripts/vfx/fx.gd)
 				holder.add_child(preload("res://scripts/vfx/fx.gd").portal(1.7, col))
@@ -1666,6 +1730,18 @@ func _doors() -> void:
 			name_l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 			name_l.shaded = false
 			holder.add_child(name_l)
+
+## back up from the metro at the far end of the avenue: on the walk there, facing back up it
+func come_up_at(p: Vector3) -> void:
+	if driving_car:
+		return
+	operator.position = p
+	operator.velocity = Vector3.ZERO
+	operator.heading = 0.0 if p.z > 0.0 else PI
+	operator.cam_yaw = operator.heading + PI
+	if district:
+		_apply_district(district.update(p.z, true))
+	controls.toast("METRO · %s" % ("SOUTH END" if p.z > 0.0 else "NORTH END"))
 
 func _enter_door(id: String) -> void:
 	controls.prompt("")
