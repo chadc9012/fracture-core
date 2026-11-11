@@ -52,6 +52,7 @@ const NO_WINTER := ["azure-isles", "shattered-reefs", "solara", "wastelands", "e
 const EVERGREEN := ["nexus-region", "nexus", "azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire"]
 var _season_btn: Button
 var _ground_mat: ShaderMaterial
+var _height_tex: ImageTexture  # the ground heights as a float texture (terrain slopes, water depth)
 var _base_pal := PackedVector3Array()
 var _tree_mats: Array[ShaderMaterial] = []
 var _weather: Node3D
@@ -617,7 +618,7 @@ func _style_for(id: String) -> Dictionary:
 		"veridan", "riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
 		"wastelands":
-			s.merge({"top": "#5f97c8", "hor": "#e6d0a6", "fog": "#d4c09c", "fog_d": 0.0012, "sun": 1.5, "sun_col": "#fff0d0", "sun_el": 52.0, "amb": 0.6}, true)
+			s.merge({"top": "#5f97c8", "hor": "#e6d0a6", "fog": "#d4c09c", "fog_d": 0.0012, "sun": 1.5, "sun_col": "#fff0d0", "sun_el": 52.0, "amb": 0.6, "exp": 0.72}, true)
 		"solara":
 			# its pale dune sand blew out to white under the Wastelands' noon sun: a lower, warmer sun and less exposure
 			# keep the dunes' shading and the sand's colour
@@ -638,12 +639,20 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#1f6fd0", "hor": "#bfe6f4", "fog": "#a8d8ea", "fog_d": 0.0006, "sun": 1.45, "sun_col": "#fff8e6", "sun_el": 60.0, "amb": 0.7, "sat": 1.1, "exp": 0.85}, true)
 		"frostveil":
 			# a low polar sun across the ice, blue shadows, a little ground haze
-			s.merge({"top": "#5d7fa8", "hor": "#e6eef6", "fog": "#d6e2ee", "fog_d": 0.0020, "sun": 1.05, "sun_col": "#ffe8d2", "sun_el": 12.0, "amb": 0.75, "exp": 0.75}, true)
+			s.merge({"top": "#5d7fa8", "hor": "#e6eef6", "fog": "#d6e2ee", "fog_d": 0.0020, "sun": 1.05, "sun_col": "#ffe8d2", "sun_el": 12.0, "amb": 0.75, "exp": 0.66}, true)
 		"shattered-reefs":
 			s.merge({"top": "#2b78c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 55.0, "amb": 0.65, "sat": 0.95}, true)
 		"thalassia":
 			# the city inside the dome carries its own lights: a dimmer, bluer deep so they read (it was blown out to white)
 			s.merge({"fog": "#06465e", "fog_d": 0.009, "sun": 0.45, "sun_col": "#a8e6ff", "sun_el": 70.0, "amb": 0.35, "planet": false, "under": true, "night": 0.6, "exp": 0.8}, true)
+	# cloud cover and tint in the sky shader (graphics pass, Nov 11); 0.4 white unless listed
+	var clouds := {"neon-city": [0.55, "#b277ff"], "solara": [0.12, "#ffffff"], "wastelands": [0.2, "#fff4e0"],
+		"frostveil": [0.5, "#f2f6ff"], "frostspire": [0.6, "#f2f6ff"], "storm": [0.75, "#d8c4ff"], "azure-isles": [0.3, "#ffffff"],
+		"swamps": [0.8, "#dfe6d6"], "ember": [0.6, "#ff9a70"], "crystal-badlands": [0.45, "#ffd6e8"], "nexus": [0.35, "#ffd8c8"],
+		"nexus-region": [0.35, "#ffe0cc"], "old-harrow": [0.45, "#ffd0b0"], "shattered-reefs": [0.3, "#ffffff"]}
+	if clouds.has(id):
+		s["cloud"] = clouds[id][0]
+		s["cloud_tint"] = clouds[id][1]
 	return s
 
 func _build_env() -> void:
@@ -655,17 +664,24 @@ func _build_env() -> void:
 	else:
 		_env.background_mode = Environment.BG_SKY
 		var sky := Sky.new()
-		var sm := ProceduralSkyMaterial.new()
-		sm.sky_top_color = Color(_style.top)
-		sm.sky_horizon_color = Color(_style.hor)
-		sm.ground_horizon_color = Color(_style.hor).darkened(0.2)
-		sm.ground_bottom_color = Color(_style.fog).darkened(0.5)
-		sm.sun_angle_max = 8.0
+		# the sky shader (shaders/sky3d.gdshader): sun halo, lit clouds, stars at night
+		var sm := ShaderMaterial.new()
+		sm.shader = load("res://shaders/sky3d.gdshader")
+		sm.set_shader_parameter("top_col", Color(_style.top))
+		sm.set_shader_parameter("hor_col", Color(_style.hor))
+		sm.set_shader_parameter("ground_col", Color(_style.fog).darkened(0.5))
+		sm.set_shader_parameter("sun_col", Color(_style.sun_col))
+		sm.set_shader_parameter("night", clampf(float(_style.night), 0.0, 1.0))
+		sm.set_shader_parameter("cloud_cover", float(_style.get("cloud", 0.4)))
+		sm.set_shader_parameter("cloud_tint", Color(_style.get("cloud_tint", "#ffffff")))
+		sm.set_shader_parameter("seed", float(hash(map_id) % 997))
 		sky.sky_material = sm
+		sky.radiance_size = Sky.RADIANCE_SIZE_64 if Phone.tier() == "low" else Sky.RADIANCE_SIZE_128
 		_env.sky = sky
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if not _style.under else Environment.AMBIENT_SOURCE_COLOR
 	_env.ambient_light_color = Color(_style.fog)
-	_env.ambient_light_energy = _style.amb + _style.night * 0.5
+	# a little less fill in daylight so slopes and shadows keep their shape (graphics pass, Nov 11)
+	_env.ambient_light_energy = _style.amb * lerpf(0.82, 1.0, clampf(_style.night, 0.0, 1.0)) + _style.night * 0.5
 	if _style.night > 0.5:
 		_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 		_env.ambient_light_color = Color(_style.hor).lightened(0.25)
@@ -681,7 +697,7 @@ func _build_env() -> void:
 	_env.glow_bloom = 0.05 + _style.night * 0.1
 	_env.adjustment_enabled = true
 	_env.adjustment_saturation = _style.sat
-	_env.adjustment_contrast = 1.08
+	_env.adjustment_contrast = 1.12
 	we.environment = _env
 	_world.add_child(we)
 	var sun := DirectionalLight3D.new()
@@ -780,6 +796,13 @@ func _build_ground() -> void:
 	mat.set_shader_parameter("bounds", Vector4(b.x0, b.z0, b.span, 0))
 	mat.set_shader_parameter("data_tex", Data.texture("maps/%s.data.pngb" % map_id))
 	mat.set_shader_parameter("wet", _style.wet)
+	# the heights as a float texture: the shader takes per-pixel slopes, rock and hollows from it
+	var himg := Image.create_from_data(n, n, false, Image.FORMAT_RF, _heights.to_byte_array())
+	_height_tex = ImageTexture.create_from_image(himg)
+	mat.set_shader_parameter("height_tex", _height_tex)
+	mat.set_shader_parameter("hn", float(n))
+	mat.set_shader_parameter("water_y", _water)
+	mat.set_shader_parameter("detail", 0.0 if Phone.tier() == "low" else 1.0)
 	for pair in [["i_forest", "forest"], ["i_dense", "denseForest"], ["i_marsh", "marsh"], ["i_meadow", "meadow"], ["i_grass", "grass"], ["i_scrub", "scrub"],
 			["i_desert", "desert"], ["i_dunes", "dunes"], ["i_sandstone", "sandstone"], ["i_wash", "wash"], ["i_lava", "lava"], ["i_magma", "magma"],
 			["i_urban", "urban"], ["i_paved", "paved"], ["i_town", "town"], ["i_snow", "snow"], ["i_ice", "ice"], ["i_crystal", "crystal"], ["i_rift", "rift"]]:
@@ -816,6 +839,14 @@ func _build_water() -> void:
 	mi.position = Vector3(0, _water, 0)
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/water3d.gdshader")
+	# depth from the ground heights: turquoise shallows, the deep colour offshore, surf at the shore
+	if _height_tex:
+		mat.set_shader_parameter("height_tex", _height_tex)
+		mat.set_shader_parameter("has_h", 1.0)
+		mat.set_shader_parameter("span", _span)
+		mat.set_shader_parameter("hn", float(_hn))
+		mat.set_shader_parameter("water_y", _water)
+	mat.set_shader_parameter("detail", 0.0 if Phone.tier() == "low" else 1.0)
 	if map_id == "shattered-reefs":
 		mat.set_shader_parameter("shallow_col", Color(0.1, 0.52, 0.56))
 		mat.set_shader_parameter("clarity", 0.55)
