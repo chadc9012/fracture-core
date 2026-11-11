@@ -2,7 +2,7 @@ extends RefCounted
 ## Contact shading for the phone renderer (GTA pass, owner Nov 11: "at least GTA 5 visual quality", phone first, the Nexus
 ## street first). The mobile renderer has no screen-space ambient occlusion, so cars, props, people and the foot of every
 ## facade floated on the paving. These are the cheap stand-ins GTA-era games used: a soft darkening quad under each thing
-## (multiplied onto whatever is beneath, so it works on asphalt, paving and the wet overlay alike) and a strip of shade
+## (alpha-blended black over whatever is beneath, so it works on asphalt, paving and the wet overlay alike) and a strip of shade
 ## along the base of the building line. One shared material per strength, so the static batcher merges a tile's quads.
 
 const Y := 0.035
@@ -17,7 +17,7 @@ static func _mat(strength: float, kind: int) -> ShaderMaterial:
 	# kind 0: a rounded-rectangle blob (cars, props, people); kind 1: a strip darkest along UV.y = 0 (the wall)
 	sh.code = """
 shader_type spatial;
-render_mode unshaded, blend_mul, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform float strength = 0.6;
 uniform int kind = 0;
 void fragment() {
@@ -25,12 +25,15 @@ void fragment() {
 	if (kind == 0) {
 		vec2 q = abs(UV - 0.5) * 2.0;
 		// a box core with a soft rim: 0 inside the footprint, 1 at the quad's edge
-		d = smoothstep(0.0, 1.0, length(max(q - 0.5, 0.0)) / 0.5);
+		d = smoothstep(0.0, 1.0, length(max(q - 0.25, 0.0)) / 0.75);
 	} else {
 		d = smoothstep(0.0, 1.0, UV.y);
 		d = sqrt(d);
 	}
-	ALBEDO = vec3(mix(1.0 - strength, 1.0, clamp(d, 0.0, 1.0)));
+	// black at the strength in the core, clear at the rim (alpha blend: multiply blending went black over the street's
+	// ground in the phone renderer)
+	ALBEDO = vec3(0.0);
+	ALPHA = strength * (1.0 - clamp(d, 0.0, 1.0));
 }
 """
 	var m := ShaderMaterial.new()
@@ -45,7 +48,7 @@ void fragment() {
 static func blob(parent: Node3D, size: Vector2, strength := 0.55, offset := Vector3.ZERO) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(size.x * 1.35 + 0.6, size.y * 1.25 + 0.6)
+	pm.size = Vector2(size.x * 1.15 + 0.5, size.y * 1.1 + 0.5)
 	mi.mesh = pm
 	mi.material_override = _mat(strength, 0)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -96,4 +99,4 @@ static func car(node: Node3D) -> void:
 	if first or out.size.x < 0.1:
 		return
 	var ctr := out.get_center()
-	blob(node, Vector2(out.size.x * 0.9, out.size.z * 0.92), 0.72, Vector3(ctr.x, 0.0, ctr.z))
+	blob(node, Vector2(out.size.x * 0.9, out.size.z * 0.92), 0.55, Vector3(ctr.x, 0.0, ctr.z))

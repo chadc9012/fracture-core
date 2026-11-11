@@ -54,6 +54,8 @@ var combat_hold := 0.0
 ## out in the city the operator is in their own clothes, urban streetwear (owner, Nov 10: "regular civilian clothing urban
 ## style"); the armour is for the fights (raids, PvP, Killbox, bosses, Mission 01 after the Fracture)
 var civilian := true
+## a street walker (civilians.gd): keeps the hat its role gives it (the operator in city clothes goes bareheaded)
+var npc := false
 
 func build(look: Dictionary = {}) -> void:
 	if rig:
@@ -64,7 +66,8 @@ func build(look: Dictionary = {}) -> void:
 	if civilian:
 		l = l.duplicate(true)
 		l.civ = true
-		l.headgear = "none"
+		if not npc:
+			l.headgear = "none"
 	rig.build(l)
 	rig.rotation.y = heading
 

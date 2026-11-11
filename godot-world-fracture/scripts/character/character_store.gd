@@ -33,6 +33,8 @@ static func _in(key: String, v: Variant, fallback: String) -> String:
 	return v if v is String and not Catalog.find(key, v).is_empty() else fallback
 
 ## a valid look from anything; `preset` applies the named face first when the look names one
+const NPC_HEADGEAR := ["hardhat", "chef-hat", "headphones"]
+
 static func clean(raw: Variant, preset := false) -> Dictionary:
 	var r: Dictionary = raw if raw is Dictionary else {}
 	var frame: String = r.get("frame", "goliath")
@@ -79,7 +81,9 @@ static func clean(raw: Variant, preset := false) -> Dictionary:
 		look.marks = marks
 	look.hairColor = _in("hairColors", look.get("hairColor"), "natural")
 	look.accessory = _in("accessories", look.get("accessory"), "none")
-	look.headgear = _in("headgear", look.get("headgear"), "none")
+	# the street's working people also wear Godot-only hats (character_rig.gd: hard hat, chef's toque, headphones); the
+	# creator's list comes from the web catalogue and does not offer them
+	look.headgear = look.get("headgear") if look.get("headgear") in NPC_HEADGEAR else _in("headgear", look.get("headgear"), "none")
 	# what the body wears (character_rig.gd WEAR): known ids only, none on a robot
 	var wear_in: Variant = look.get("wear", [])
 	var wear: Array = []

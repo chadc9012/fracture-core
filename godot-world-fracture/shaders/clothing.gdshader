@@ -15,7 +15,9 @@ instance uniform vec3 acc_col : source_color = vec3(0.86, 0.13, 0.12);
 instance uniform vec3 skin_col : source_color = vec3(0.55, 0.38, 0.28);
 // 0 hoodie (as painted, recoloured), 1 t-shirt, 2 jacket + trousers, 3 summer (vest top, shorts), 4 dress, 5 long coat,
 // 6 sweater / track top, 7 varsity jacket (sleeves in the trim colour), 8 tee + shorts, 9 gown (to the ankle),
-// 10 utility vest over a long-sleeve shirt (sleeves in the trim colour), 11 slip dress (bare shoulders and arms)
+// 10 utility vest over a long-sleeve shirt (sleeves in the trim colour), 11 slip dress (bare shoulders and arms),
+// 12 tank top, 13 crop top (bare midriff and forearms), 14 open jacket / overshirt over a tee (front placket in the trim
+// colour), 15 apron over a long-sleeve top (the apron in the accent), 16 vest over a short-sleeve shirt (police, hi-vis)
 instance uniform int style = 0;
 // 0 joggers, 1 denim, 2 suiting, 3 chinos
 instance uniform int legs_kind = 0;
@@ -24,7 +26,8 @@ instance uniform int shoe_kind = 0;
 // 1 = keep the painted outfit exactly (the operator)
 instance uniform int as_painted = 0;
 // the Lumen Luxe collection's cloth (data/lumen_luxe.json): 0 plain, 1 repeated dot monogram, 2 windowpane check,
-// 3 leather; satin trims (lapels); luminous piping (the trims and accents glow)
+// 3 leather, 4 plaid / flannel (accent and trim checks), 5 hi-vis (two reflective bands round the chest and waist);
+// satin trims (lapels); luminous piping (the trims and accents glow)
 instance uniform int pattern = 0;
 instance uniform int satin = 0;
 instance uniform float glow = 0.0;
@@ -52,6 +55,25 @@ int slot_of(int z, int st) {
 	if (z <= 2) return 1;
 	if (z == 18) return 8;
 	if (z == 16) return 6;
+	if (st == 12) {  // tank top
+		if (z >= 5 && z <= 7) return 1;
+		if (z == 9 || z == 10) return 2;
+	}
+	if (st == 13) {  // crop top: bare forearms; the midriff is cut in fragment()
+		if (z == 6 || z == 7) return 1;
+		if (z == 9 || z == 10) return 2;
+	}
+	if (st == 14) {  // open overshirt / jacket over a tee: the tee shows down the front (fragment())
+		if (z == 9 || z == 10) return 2;
+	}
+	if (st == 15) {  // apron (fragment() paints the front panel)
+		if (z == 3 || z == 9 || z == 10) return 2;
+	}
+	if (st == 16) {  // vest over a short-sleeve shirt
+		if (z == 3 || z == 4 || z == 5) return 3;
+		if (z == 6 || z == 7) return 1;
+		if (z == 9) return 2;
+	}
 	if (z == 17) return st == 2 || st == 4 || st == 9 || st == 11 ? 6 : 7;
 	bool top = z >= 3 && z <= 10;
 	if (st == 1) {   // t-shirt: bare forearms, the hood reads as a collar
@@ -115,6 +137,13 @@ int slot_of(int z, int st) {
 void fragment() {
 	int z = int(zone + 0.5);   // round: interpolating equal values is not exact on every GPU
 	int slot = as_painted == 1 ? 0 : slot_of(z, style);
+	// cuts that need the rest pose (Blender: z up, -y the front of the body)
+	if (as_painted == 0) {
+		bool front = rest.y < -0.02;
+		if (style == 13 && z == 8 && rest.z > 0.96 && rest.z < 1.1) slot = 1;            // bare midriff
+		if (style == 14 && z == 8 && front && abs(rest.x) < 0.055) slot = 3;              // the tee down the open front
+		if (style == 15 && front && (z == 8 || z == 11) && rest.z > 0.5 && rest.z < 1.32 && abs(rest.x) < 0.16) slot = 7;   // apron
+	}
 	vec3 c = COLOR.rgb;
 	float rough = 0.9;
 	float bump_amp = 0.0;
@@ -205,6 +234,20 @@ void fragment() {
 			vec2 g = abs(fract(vec2(rest.x * 9.0 + rest.y * 9.0, rest.z * 9.0)) - 0.5);
 			float line = 1.0 - smoothstep(0.02, 0.045, 0.5 - max(g.x, g.y));
 			c = mix(c, acc_col, line * 0.7 * mid);
+		} else if (pattern == 4) { // plaid: crossing bands of the accent and the trim
+			float bx = step(0.62, fract(rest.x * 12.0 + rest.y * 12.0));
+			float bz = step(0.62, fract(rest.z * 12.0));
+			float fx = step(0.9, fract(rest.x * 36.0 + rest.y * 36.0));
+			float fz = step(0.9, fract(rest.z * 36.0));
+			vec3 pl = mix(c, acc_col, max(bx, bz) * 0.7);
+			pl = mix(pl, trim_col, bx * bz * 0.6);
+			pl = mix(pl, trim_col, max(fx, fz) * 0.35);
+			c = mix(c, pl, mid * 0.9 + 0.1);
+		} else if (pattern == 5) { // hi-vis: reflective silver bands
+			float band = max(1.0 - smoothstep(0.02, 0.03, abs(rest.z - 1.26)), 1.0 - smoothstep(0.02, 0.03, abs(rest.z - 1.06)));
+			c = mix(c, vec3(0.82, 0.84, 0.86), band);
+			rough = mix(rough, 0.3, band);
+			emit = band * 0.15;
 		} else if (pattern == 3) { // leather: creased, a dull sheen
 			rough = 0.38 + 0.18 * noise3(rest * 60.0);
 			h = noise3(rest * vec3(50.0, 50.0, 20.0)) * mid;

@@ -70,6 +70,7 @@ func _init() -> void:
 			while o.female_only and look.body != "female":
 				look = civ.random_look()
 			var w = civ._spawn(1.0, 0.0, 1.0)
+			w.mover.npc = true
 			w.mover.build(look)
 			civ._dress(w.mover, o.sku)
 			w.mover.position = Vector3((col - 2.5) * 0.95, 0.0, -row * 1.6)
@@ -77,6 +78,25 @@ func _init() -> void:
 			w.mover.set_physics_process(false)
 			w.mover.set_process(false)
 			col += 1
+	# "roles": every street role from the NPC lineup board, args[3] = a group (civilian / police / worker / gang)
+	var roles := args.size() > 2 and args[2] == "roles"
+	if roles:
+		var grp := args[3] if args.size() > 3 else "civilian"
+		var list: Array = Civilians.roles().filter(func(r: Dictionary) -> bool: return r.group == grp or (grp == "police" and r.group == "police"))
+		if grp == "service":
+			list = Civilians.roles().filter(func(r: Dictionary) -> bool: return r.group == "police" or r.group == "worker")
+		var col := 0
+		for r in list:
+			var w = civ._spawn(1.0, 0.0, 1.0)
+			w.mover.npc = true
+			w.mover.build(civ.role_look(r))
+			civ._dress(w.mover, "", r)
+			w.mover.position = Vector3((col - (list.size() - 1) * 0.5) * 0.85, 0.0, 0.0)
+			w.mover.rotation.y = 0.0
+			w.mover.set_physics_process(false)
+			w.mover.set_process(false)
+			col += 1
+		lumen = true
 	var n := 0 if lumen else (3 if close else 7)
 	for i in n:
 		var w = civ._spawn(1.0, 0.0, 1.0)

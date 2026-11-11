@@ -1,0 +1,564 @@
+{
+ "source": "Owner's NPC & Operator lineup board (Nov 11 2026, 'Realistic GTA V-style'), docs/reference/characters/npc-lineup.png: civilians, police / security, business owners & workers, criminals & gangs. Weights are shares of the street crowd.",
+ "roles": [
+  {
+   "group": "civilian",
+   "id": "tank-chain",
+   "label": "Tank top and chain",
+   "weight": 8,
+   "sex": "male",
+   "look": {
+    "cut": 12,
+    "top": "#ecebe6",
+    "trim": "#d9d6cf",
+    "legs_col": "#2c3a55",
+    "legs": 1,
+    "shoe": "#f0efe9",
+    "shoes": 0,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "chain"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "crop-denim",
+   "label": "Crop top and jeans",
+   "weight": 7,
+   "sex": "female",
+   "look": {
+    "cut": 13,
+    "top": "#9a9ca1",
+    "trim": "#7d7f84",
+    "legs_col": "#5a6f90",
+    "legs": 1,
+    "shoe": "#f0efe9",
+    "shoes": 0,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "earrings",
+     "chain"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "field-jacket",
+   "label": "Field jacket",
+   "weight": 7,
+   "sex": "male",
+   "look": {
+    "cut": 14,
+    "top": "#5a5a44",
+    "trim": "#1d1e22",
+    "legs_col": "#2a2b30",
+    "legs": 3,
+    "shoe": "#3a2a1d",
+    "shoes": 1,
+    "acc": "#3c3c34",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "cap",
+    "headgear_col": "#3a3d44"
+   },
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "office",
+   "label": "Office blazer",
+   "weight": 8,
+   "sex": "female",
+   "look": {
+    "cut": 2,
+    "top": "#17181c",
+    "trim": "#eceae4",
+    "legs_col": "#17181c",
+    "legs": 2,
+    "shoe": "#121212",
+    "shoes": 1,
+    "acc": "#2b5fa8",
+    "pattern": 0
+   },
+   "gear": {
+    "accessory": "glasses"
+   },
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "flannel",
+   "label": "Open flannel",
+   "weight": 8,
+   "sex": "male",
+   "look": {
+    "cut": 14,
+    "top": "#6b4a2e",
+    "trim": "#151517",
+    "legs_col": "#3c4f72",
+    "legs": 1,
+    "shoe": "#3a2a1d",
+    "shoes": 1,
+    "acc": "#2a1d15",
+    "pattern": 4
+   },
+   "gear": {
+    "wear": [
+     "watch",
+     "chain"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "sundress",
+   "label": "Sundress",
+   "weight": 7,
+   "sex": "female",
+   "look": {
+    "cut": 11,
+    "top": "#e2b43c",
+    "trim": "#e2b43c",
+    "legs_col": "#e2b43c",
+    "legs": 0,
+    "shoe": "#c9a46a",
+    "shoes": 1,
+    "acc": "#f3e3a8",
+    "pattern": 0
+   },
+   "gear": {
+    "accessory": "shades",
+    "wear": [
+     "earrings"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "hoodie-phones",
+   "label": "Hoodie and headphones",
+   "weight": 8,
+   "sex": "male",
+   "look": {
+    "cut": 0,
+    "top": "#55585e",
+    "trim": "#ecebe6",
+    "legs_col": "#2a2a2e",
+    "legs": 0,
+    "shoe": "#f0efe9",
+    "shoes": 0,
+    "acc": "#ecebe6",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "headphones"
+   },
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "tee-jeans",
+   "label": "T-shirt and jeans",
+   "weight": 10,
+   "sex": "",
+   "look": {
+    "cut": 1,
+    "top": "#ecebe6",
+    "trim": "#ecebe6",
+    "legs_col": "#3c4f72",
+    "legs": 1,
+    "shoe": "#f0efe9",
+    "shoes": 0,
+    "acc": "#1d1e22",
+    "pattern": 0
+   },
+   "gear": {},
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "black-tank",
+   "label": "Black tank and jeans",
+   "weight": 6,
+   "sex": "female",
+   "look": {
+    "cut": 12,
+    "top": "#141416",
+    "trim": "#141416",
+    "legs_col": "#5a6f90",
+    "legs": 1,
+    "shoe": "#f0efe9",
+    "shoes": 0,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "chain"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "summer-dress",
+   "label": "Summer dress",
+   "weight": 5,
+   "sex": "female",
+   "look": {
+    "cut": 4,
+    "top": "#c86a3a",
+    "trim": "#c86a3a",
+    "legs_col": "#c86a3a",
+    "legs": 0,
+    "shoe": "#c9a46a",
+    "shoes": 1,
+    "acc": "#f3e3a8",
+    "pattern": 0
+   },
+   "gear": {},
+   "faces": ""
+  },
+  {
+   "group": "civilian",
+   "id": "polo-shorts",
+   "label": "Tee and shorts",
+   "weight": 6,
+   "sex": "male",
+   "look": {
+    "cut": 8,
+    "top": "#9a9ca1",
+    "trim": "#9a9ca1",
+    "legs_col": "#b9a47e",
+    "legs": 3,
+    "shoe": "#f0efe9",
+    "shoes": 0,
+    "acc": "#1d1e22",
+    "pattern": 0
+   },
+   "gear": {},
+   "faces": ""
+  },
+  {
+   "group": "police",
+   "id": "police",
+   "label": "Police officer",
+   "weight": 3,
+   "sex": "male",
+   "look": {
+    "cut": 16,
+    "top": "#141821",
+    "trim": "#1d2a44",
+    "legs_col": "#1d2a44",
+    "legs": 2,
+    "shoe": "#121212",
+    "shoes": 1,
+    "acc": "#eceae4",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "cap",
+    "headgear_col": "#141821",
+    "accessory": "shades"
+   },
+   "faces": ""
+  },
+  {
+   "group": "police",
+   "id": "police-f",
+   "label": "Police officer",
+   "weight": 2,
+   "sex": "female",
+   "look": {
+    "cut": 16,
+    "top": "#141821",
+    "trim": "#1d2a44",
+    "legs_col": "#1d2a44",
+    "legs": 2,
+    "shoe": "#121212",
+    "shoes": 1,
+    "acc": "#eceae4",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "cap",
+    "headgear_col": "#141821"
+   },
+   "faces": ""
+  },
+  {
+   "group": "police",
+   "id": "security",
+   "label": "Security",
+   "weight": 2,
+   "sex": "male",
+   "look": {
+    "cut": 2,
+    "top": "#111114",
+    "trim": "#1b1b1f",
+    "legs_col": "#111114",
+    "legs": 2,
+    "shoe": "#121212",
+    "shoes": 1,
+    "acc": "#e0b33a",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "cap",
+    "headgear_col": "#111114",
+    "accessory": "shades"
+   },
+   "faces": ""
+  },
+  {
+   "group": "worker",
+   "id": "chef",
+   "label": "Chef",
+   "weight": 2,
+   "sex": "male",
+   "look": {
+    "cut": 15,
+    "top": "#f4f3ef",
+    "trim": "#f4f3ef",
+    "legs_col": "#1b1b1f",
+    "legs": 3,
+    "shoe": "#121212",
+    "shoes": 1,
+    "acc": "#202024",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "chef-hat"
+   },
+   "faces": ""
+  },
+  {
+   "group": "worker",
+   "id": "shopkeeper",
+   "label": "Shopkeeper",
+   "weight": 2,
+   "sex": "female",
+   "look": {
+    "cut": 15,
+    "top": "#c49a3a",
+    "trim": "#c49a3a",
+    "legs_col": "#202024",
+    "legs": 3,
+    "shoe": "#2a1d15",
+    "shoes": 1,
+    "acc": "#6b2230",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "earrings"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "worker",
+   "id": "mechanic",
+   "label": "Mechanic",
+   "weight": 2,
+   "sex": "male",
+   "look": {
+    "cut": 6,
+    "top": "#1f2b3d",
+    "trim": "#1f2b3d",
+    "legs_col": "#1f2b3d",
+    "legs": 3,
+    "shoe": "#121212",
+    "shoes": 1,
+    "acc": "#c8302a",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "cap",
+    "headgear_col": "#1f2b3d"
+   },
+   "faces": ""
+  },
+  {
+   "group": "worker",
+   "id": "construction",
+   "label": "Construction worker",
+   "weight": 2,
+   "sex": "male",
+   "look": {
+    "cut": 16,
+    "top": "#f06a1a",
+    "trim": "#7d7f84",
+    "legs_col": "#3c4f72",
+    "legs": 1,
+    "shoe": "#3a2a1d",
+    "shoes": 1,
+    "acc": "#cfd2d6",
+    "pattern": 5
+   },
+   "gear": {
+    "headgear": "hardhat"
+   },
+   "faces": ""
+  },
+  {
+   "group": "worker",
+   "id": "courier",
+   "label": "Courier",
+   "weight": 2,
+   "sex": "male",
+   "look": {
+    "cut": 1,
+    "top": "#2f6fc4",
+    "trim": "#2f6fc4",
+    "legs_col": "#1f2b3d",
+    "legs": 3,
+    "shoe": "#f0efe9",
+    "shoes": 0,
+    "acc": "#ecebe6",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "cap",
+    "headgear_col": "#2f6fc4"
+   },
+   "faces": ""
+  },
+  {
+   "group": "gang",
+   "id": "gang-tank",
+   "label": "Tank and chains",
+   "weight": 2,
+   "sex": "male",
+   "look": {
+    "cut": 12,
+    "top": "#ecebe6",
+    "trim": "#ecebe6",
+    "legs_col": "#141416",
+    "legs": 1,
+    "shoe": "#f0efe9",
+    "shoes": 0,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "chain",
+     "rings"
+    ]
+   },
+   "faces": "tattooed"
+  },
+  {
+   "group": "gang",
+   "id": "gang-crop",
+   "label": "Crop top, chains",
+   "weight": 2,
+   "sex": "female",
+   "look": {
+    "cut": 13,
+    "top": "#141416",
+    "trim": "#141416",
+    "legs_col": "#141416",
+    "legs": 1,
+    "shoe": "#141416",
+    "shoes": 0,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "chain",
+     "earrings"
+    ]
+   },
+   "faces": "tattooed"
+  },
+  {
+   "group": "gang",
+   "id": "jersey",
+   "label": "Jersey and bandana",
+   "weight": 2,
+   "sex": "male",
+   "look": {
+    "cut": 12,
+    "top": "#c8202a",
+    "trim": "#ecebe6",
+    "legs_col": "#141416",
+    "legs": 0,
+    "shoe": "#141416",
+    "shoes": 0,
+    "acc": "#ecebe6",
+    "pattern": 0
+   },
+   "gear": {
+    "headgear": "bandana"
+   },
+   "faces": "tattooed"
+  },
+  {
+   "group": "gang",
+   "id": "leather-cap",
+   "label": "Leather jacket and cap",
+   "weight": 2,
+   "sex": "male",
+   "look": {
+    "cut": 2,
+    "top": "#151517",
+    "trim": "#151517",
+    "legs_col": "#141416",
+    "legs": 1,
+    "shoe": "#141416",
+    "shoes": 0,
+    "acc": "#c9a23a",
+    "pattern": 3
+   },
+   "gear": {
+    "headgear": "cap",
+    "headgear_col": "#151517",
+    "accessory": "shades",
+    "wear": [
+     "chain",
+     "watch"
+    ]
+   },
+   "faces": "tattooed"
+  },
+  {
+   "group": "gang",
+   "id": "leather-f",
+   "label": "Leather jacket",
+   "weight": 2,
+   "sex": "female",
+   "look": {
+    "cut": 14,
+    "top": "#151517",
+    "trim": "#2a2a2e",
+    "legs_col": "#141416",
+    "legs": 1,
+    "shoe": "#141416",
+    "shoes": 0,
+    "acc": "#7d4fb4",
+    "pattern": 3
+   },
+   "gear": {
+    "wear": [
+     "chain"
+    ]
+   },
+   "faces": "tattooed"
+  }
+ ]
+}

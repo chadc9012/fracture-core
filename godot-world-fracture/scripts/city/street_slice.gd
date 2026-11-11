@@ -373,7 +373,7 @@ func _after_enemies() -> void:
 	# span is (INF, -INF) and every walker spawned at z = NaN (the renderer then rejected their transforms every frame)
 	var first_plan: Dictionary = district.update(operator.position.z, true)
 	var act0: Vector2 = district.extent(District.State.ACTIVE)
-	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(4, int(round(10 * Phone.crowd()))), 9)
+	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(8, int(round(22 * Phone.crowd()))), 9)
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
 	_apply_district(first_plan)

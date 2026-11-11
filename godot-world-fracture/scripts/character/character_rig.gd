@@ -191,8 +191,8 @@ func _attach_head(body_head: int) -> void:
 		holder.add_child(gear)
 	_wear()
 	# headgear over built hair: tuck the hair under it (a beanie's shell sits 24 mm out, a cap's 16, a bandana's 14)
-	if hair_mesh and look.headgear in ["beanie", "beanie-red", "cap", "bandana"]:
-		var lift: float = { "beanie": 0.024, "beanie-red": 0.024, "cap": 0.016, "bandana": 0.014 }[look.headgear]
+	if hair_mesh and look.headgear in ["beanie", "beanie-red", "cap", "bandana", "hardhat", "chef-hat"]:
+		var lift: float = { "beanie": 0.024, "beanie-red": 0.024, "cap": 0.016, "bandana": 0.014, "hardhat": 0.03, "chef-hat": 0.018 }[look.headgear]
 		var mean_r := (hb.radii.x + hb.radii.y + (hb.az_front + hb.az_back) * 0.5) / 3.0
 		var hm2 := hair_mesh.material_override as ShaderMaterial
 		hm2.set_shader_parameter("tuck", 1.0)
@@ -622,7 +622,45 @@ func _gear(hb: HairBuilder, hair_col: Color) -> Node3D:
 			brim.height = 0.004
 			var front := hb.on_skull(0.42 * PI, 0.0, 0.016)
 			hb.add_primitive(brim, Transform3D(Basis(Vector3.RIGHT, 0.18).scaled(Vector3(1.25, 1, 1)), front + Vector3(0, -0.004, 0.035)))
-			put.call(hb.take(), _mat(Color("#2c3328"), 0.85))
+			put.call(hb.take(), _mat(Color(look.get("headgear_col", "#2c3328")), 0.85))
+		# the street's working people (owner's NPC lineup board, Nov 11): a hard hat, a chef's toque, headphones
+		"hardhat":
+			hb.begin()
+			hb.shell(0.03, func(th: float) -> float: return minf(0.44 * PI, HairBuilder.hairline(th) - 0.08), 1.0, 18, 40)
+			var hbrim := CylinderMesh.new()
+			hbrim.top_radius = 0.118
+			hbrim.bottom_radius = 0.124
+			hbrim.height = 0.008
+			hbrim.radial_segments = 28
+			var hy := hb.on_skull(0.44 * PI, 0.0, 0.03).y
+			hb.add_primitive(hbrim, Transform3D(Basis().scaled(Vector3(0.95, 1, 1.12)), Vector3(0, hy - 0.004, 0.012)))
+			put.call(hb.take(), _mat(Color(look.get("headgear_col", "#f2c230")), 0.35))
+		"chef-hat":
+			hb.begin()
+			hb.shell(0.018, func(th: float) -> float: return minf(0.4 * PI, HairBuilder.hairline(th) - 0.05), 1.0, 18, 40)
+			var toque := CylinderMesh.new()
+			toque.top_radius = 0.1
+			toque.bottom_radius = 0.085
+			toque.height = 0.11
+			toque.radial_segments = 20
+			hb.add_primitive(toque, Transform3D(Basis(), hb.on_skull(0.0, 0.0, 0.018) + Vector3(0, 0.045, 0)))
+			put.call(hb.take(), _mat(Color("#f4f3ef"), 0.9))
+		"headphones":
+			hb.begin()
+			var arc: Array[Vector3] = []
+			for j in 21:
+				var t := j / 20.0
+				arc.append(hb.on_skull(absf(t - 0.5) * PI * 1.05, PI * 0.5 if t < 0.5 else -PI * 0.5, 0.016))
+			hb.strand(arc, 0.006, 6)
+			for sgn: float in [1.0, -1.0]:
+				var cup := CylinderMesh.new()
+				cup.top_radius = 0.036
+				cup.bottom_radius = 0.036
+				cup.height = 0.03
+				cup.radial_segments = 18
+				var at := hb.on_skull(0.56 * PI, sgn * PI * 0.5, 0.012)
+				hb.add_primitive(cup, Transform3D(Basis(Vector3.BACK, PI * 0.5), at))
+			put.call(hb.take(), _mat(Color(look.get("headgear_col", "#1c1d21")), 0.4, 0.2))
 		"bandana":
 			hb.begin()
 			hb.shell(0.014, func(th: float) -> float: return HairBuilder.hairline(th) - 0.02, 1.0, 18, 40)

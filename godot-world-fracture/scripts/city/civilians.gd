@@ -45,9 +45,14 @@ func setup(operator: Node3D, boxes: Array[AABB], b: Rect2, ground: Callable, lo:
 		var z := lerpf(lo + 10.0, hi - 10.0, (i + 0.5) / budget)
 		_spawn(side, z, 1.0 if i % 3 == 0 else -1.0)
 
+## faces the street does not use for ordinary passers-by (battle damage, war paint, augmentation); gangs may have ink
+const ROUGH_FACES := ["m-scarred", "m-battleworn", "f-battleworn", "f-scarred", "f-warrior-paint", "f-cyber"]
+const INKED_FACES := ["m-shaved-tattooed", "f-tattooed", "f-fierce", "f-rebel", "m-rebel", "m-braided", "m-dreadlocked"]
+
 ## a random civilian look: a male or female frame, one of the catalog faces for that body
-func random_look() -> Dictionary:
-	var body := "female" if _rng.randf() < 0.5 else "male"
+func random_look(body := "", faces_kind := "") -> Dictionary:
+	if body == "":
+		body = "female" if _rng.randf() < 0.5 else "male"
 	var frames: Array = Catalog.frames().filter(func(f: Dictionary) -> bool: return String(f.id) != "robot")
 	var frame: String = String(frames[_rng.randi() % frames.size()].id) if not frames.is_empty() else "goliath"
 	# most passers-by are slim or average builds; the heavy frame is the odd one out
@@ -56,10 +61,56 @@ func random_look() -> Dictionary:
 	if ids.has("nyx") and ids.has("cipher"):
 		frame = "nyx" if r < 0.42 else ("cipher" if r < 0.86 else frame)
 	var look := CharacterStore.clean({ "frame": frame, "body": body })
-	var faces: Array = Catalog.faces(body)
+	var faces: Array = Catalog.faces(body).filter(func(f: Dictionary) -> bool: return not ROUGH_FACES.has(String(f.id)))
+	if faces_kind == "tattooed":
+		var inked: Array = faces.filter(func(f: Dictionary) -> bool: return INKED_FACES.has(String(f.id)))
+		if not inked.is_empty() and _rng.randf() < 0.7:
+			faces = inked
 	if not faces.is_empty():
 		look = CharacterStore.apply_face(look, String(faces[_rng.randi() % faces.size()].id))
 	return look
+
+## the street's roles (data/npc_roles.json, the owner's NPC lineup board): civilians, police and security, workers, gangs
+static var _roles: Array = []
+static func roles() -> Array:
+	if _roles.is_empty() and FileAccess.file_exists("res://data/npc_roles.json"):
+		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/npc_roles.json"))
+		if d is Dictionary:
+			_roles = d.get("roles", [])
+	return _roles
+
+func pick_role() -> Dictionary:
+	var all := roles()
+	var total := 0.0
+	for r in all:
+		total += float(r.weight)
+	var x := _rng.randf() * total
+	for r in all:
+		x -= float(r.weight)
+		if x <= 0.0:
+			return r
+	return all.back() if not all.is_empty() else {}
+
+## a role as a built look: body and face for the role, its hats and jewellery
+func role_look(role: Dictionary) -> Dictionary:
+	var sex := String(role.get("sex", ""))
+	var look := random_look(sex, String(role.get("faces", "")))
+	var gear: Dictionary = role.get("gear", {})
+	for k in gear:
+		look[k] = gear[k]
+	return look
+
+## a role's clothes as the clothing shader's parameters, colours varied a touch so a crowd of one role isn't uniform
+func role_outfit(role: Dictionary) -> Dictionary:
+	var l: Dictionary = role.look
+	var jitter := func(hex: String) -> Color:
+		var c := Color(hex)
+		if role.group == "civilian" or role.group == "gang":
+			c = Color.from_hsv(fposmod(c.h + _rng.randf_range(-0.03, 0.03), 1.0), clampf(c.s * _rng.randf_range(0.85, 1.15), 0, 1), clampf(c.v * _rng.randf_range(0.88, 1.1), 0, 1))
+		return c
+	return { "style": int(l.cut), "legs_kind": int(l.legs), "shoe_kind": int(l.shoes), "pattern": int(l.get("pattern", 0)),
+		"top_col": jitter.call(l.top), "trim_col": jitter.call(l.trim), "leg_col": jitter.call(l.legs_col),
+		"shoe_col": Color(l.shoe), "acc_col": Color(l.acc), "role": role.id }
 
 func _spawn(side: float, z: float, dir: float) -> Walker:
 	var w := Walker.new()
@@ -74,8 +125,10 @@ func _spawn(side: float, z: float, dir: float) -> Walker:
 	w.mover.position = Vector3(side * walk_x + _rng.randf_range(-1.5, 1.5), 0.18, z)
 	Grounding.blob(w.mover, Vector2(0.55, 0.45), 0.45)
 	w.mover.cam_yaw = 0.0
-	w.mover.build(random_look())
-	_dress(w.mover)
+	w.mover.npc = true
+	var role := pick_role()
+	w.mover.build(role_look(role) if not role.is_empty() else random_look())
+	_dress(w.mover, "", role)
 	walkers.append(w)
 	return w
 
@@ -100,7 +153,8 @@ func _pick(a: Array) -> Color:
 
 ## the Lumen Luxe collection (data/lumen_luxe.json, the owner's 28-outfit catalog, Nov 11): named outfits with their cut,
 ## cloth and colours; a share of the crowd wears them
-const LUMEN_SHARE := 0.6
+# (the crowd wears the NPC lineup roles now, owner Nov 11 "use this instead"; the collection stays for the shop)
+const LUMEN_SHARE := 0.0
 static var _lumen: Array = []
 
 static func lumen() -> Array:
@@ -150,14 +204,16 @@ func _street_look(female: bool) -> Dictionary:
 		"shoe_col": _pick(LEATHER) if shoe_kind == 1 else _pick(SNEAKERS),
 		"acc_col": _pick(ACCENTS) if style != 2 else Color("#7a1f2b").lerp(_pick(TOPS), 0.4) }
 
-func _dress(m: Node3D, sku := "") -> void:
+func _dress(m: Node3D, sku := "", role := {}) -> void:
 	var rig: Node3D = m.rig
 	if not rig or not rig.body_root:
 		return
 	var female := String(rig.look.get("body", "male")) == "female"
 	var look := {}
 	var pool: Array = lumen().filter(func(o: Dictionary) -> bool: return female or not o.get("female_only", false))
-	if sku != "":
+	if not role.is_empty():
+		look = role_outfit(role)
+	elif sku != "":
 		for o in lumen():
 			if o.sku == sku:
 				look = lumen_look(o)
@@ -168,7 +224,7 @@ func _dress(m: Node3D, sku := "") -> void:
 	# the hands and bare arms and legs match the face: the head texture's own skin when it has one
 	look["skin_col"] = rig._tex_skin if rig._tex_skin != null else rig._scalp_tone()
 	apply_outfit(rig, look)
-	m.set_meta("outfit", look.get("sku", ""))
+	m.set_meta("outfit", look.get("sku", look.get("role", "")))
 
 ## dress a rig's civilian body in a look (shader parameters by name; anything missing keeps the shader default)
 static func apply_outfit(rig: Node3D, look: Dictionary) -> void:
@@ -176,7 +232,8 @@ static func apply_outfit(rig: Node3D, look: Dictionary) -> void:
 		_cloth = load("res://shaders/clothing.gdshader")
 	for n in rig.body_root.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
-		if mi == rig.head_mesh or mi == rig.hair_mesh or not mi.mesh or mi.mesh.get_surface_count() != 1:
+		# only the skinned body: hats, glasses and jewellery hang off bones as plain meshes and keep their own materials
+		if mi == rig.head_mesh or mi == rig.hair_mesh or not mi.mesh or mi.mesh.get_surface_count() != 1 or mi.skin == null:
 			continue
 		var mat := ShaderMaterial.new()
 		mat.shader = _cloth
@@ -248,10 +305,22 @@ func scatter(at: Vector3, radius := 12.0) -> void:
 			w.scare = 4.0
 			w.dir = 1.0 if w.mover.position.z > at.z else -1.0
 
+## walkers keep within this many metres of the operator along the street: one who falls further behind or ahead steps
+## back in out of sight range, 30-60 m away, so the full-detail people stay where the player is (the stand-in crowd,
+## crowd.gd, fills the distance)
+const LEASH := 75.0
+
 func step(dt: float) -> void:
 	for w in walkers:
 		var m: Node3D = w.mover
 		w.scare = maxf(0.0, w.scare - dt)
+		# (only while the operator is on this stretch of street: off it, the walkers keep to their own span)
+		if player and player.position.z > span_lo and player.position.z < span_hi and absf(m.position.z - player.position.z) > LEASH:
+			var ahead := 1.0 if _rng.randf() < 0.5 else -1.0
+			var z := clampf(player.position.z + ahead * _rng.randf_range(30.0, 60.0), span_lo + 8.0, span_hi - 8.0)
+			w.side = -1.0 if _rng.randf() < 0.5 else 1.0
+			m.position = Vector3(w.side * walk_x + _rng.randf_range(-1.5, 1.5), m.position.y, z)
+			w.dir = -ahead if _rng.randf() < 0.6 else ahead
 		if w.pause > 0.0:
 			w.pause -= dt
 			m.step(dt, Vector2.ZERO, Vector2.ZERO, false, false)
