@@ -262,6 +262,12 @@ func _street_door(id: String) -> void:
 		"airport":
 			# the city's own airport: Neon City International from Neon City's street, Nexus City International otherwise
 			view = _airport_view("NEC" if street.style == "neon" else "NXC", false)
+		_:
+			# the buildings you walk into (interiors.gd)
+			if preload("res://scripts/city/interiors.gd").DOORS.has(id):
+				view = preload("res://scripts/city/interior_view.gd").new()
+				view.kind = id
+				view.style = street.style
 	if view == null:
 		return
 	street.visible = false
@@ -775,6 +781,21 @@ func _shoot(path: String, opts: Array) -> void:
 			if sv.size() > 1:
 				street.sports_overlay.show_view(int(sv[1]))
 		# airport[:NXC|NEC[:x,y,z:tx,ty,tz]]  Nexus / Neon City International from its street's door; a camera to look from
+		# interior:<kind>[:<city>][:<x>,<y>,<z>:<x>,<y>,<z>]  walks into a building off that city's street (interiors.gd);
+		# the two points fix the camera (from, to) for look-dev
+		if String(o).begins_with("interior:"):
+			var iq := String(o).split(":")
+			var ist := iq[2] if iq.size() > 2 and not iq[2].contains(",") else "nexus"
+			_open_street(ist == "neon", ist, true)
+			await get_tree().process_frame
+			_street_door(iq[1])
+			var pts: Array = []
+			for part in iq:
+				if part.count(",") == 2:
+					var n := part.split_floats(",")
+					pts.append(Vector3(n[0], n[1], n[2]))
+			if pts.size() == 2 and _from_street and _from_street.has_method("look_from"):
+				_from_street.look_from(pts[0], pts[1])
 		if String(o).begins_with("airport"):
 			var aq := String(o).split(":")
 			var ac := aq[1] if aq.size() > 1 else "NXC"

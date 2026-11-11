@@ -32,8 +32,20 @@ const DOORS := [
 	{ "id": "sports", "label": "SPORTS DISTRICT", "x": -1.0, "z": 20.0, "color": Color(0.1, 0.85, 1.0), "kind": "door" },
 	# a clothing store on the avenue (owner, Nov 11: "make clothing stores so user can buy stuff"; clothing_store.gd)
 	{ "id": "block", "label": "BLOCK SUPPLY · CLOTHING", "x": 1.0, "z": 62.0, "color": Color(0.35, 1.0, 0.75), "kind": "door", "style": "any" },
+	# buildings you walk into (owner's pick, Nov 11: "City interiors"; interiors.gd), on the blocks either side of the hub,
+	# clear of the Nexus side courts (|z - k·260| < 62)
+	{ "id": "hospital", "label": "MERIDIAN GENERAL HOSPITAL", "x": -1.0, "z": 165.0, "color": Color(0.3, 1.0, 0.6), "kind": "door", "style": "any" },
+	{ "id": "police", "label": "POLICE · PRECINCT 7", "x": 1.0, "z": 165.0, "color": Color(0.35, 0.55, 1.0), "kind": "door", "style": "any" },
+	{ "id": "restaurant", "label": "EMBER & OAK GRILL", "x": -1.0, "z": 185.0, "color": Color(1.0, 0.6, 0.25), "kind": "door", "style": "any" },
+	{ "id": "fire", "label": "FIRE STATION 12", "x": 1.0, "z": 345.0, "color": Color(1.0, 0.3, 0.2), "kind": "door", "style": "any" },
+	{ "id": "school", "label": "NEXUS ACADEMY", "x": -1.0, "z": 345.0, "color": Color(0.4, 0.6, 1.0), "kind": "door", "style": "any" },
+	{ "id": "hotel", "label": "THE AURELIAN HOTEL", "x": -1.0, "z": -165.0, "color": Color(1.0, 0.8, 0.4), "kind": "door", "style": "any" },
+	{ "id": "office", "label": "HELIX SYSTEMS", "x": 1.0, "z": -165.0, "color": Color(0.3, 0.85, 1.0), "kind": "door", "style": "any" },
+	{ "id": "nightclub", "label": "NIGHTCLUB", "x": 1.0, "z": -345.0, "color": Color(1.0, 0.2, 0.65), "kind": "door", "style": "any" },
+	{ "id": "parking", "label": "UNDERGROUND PARKING", "x": -1.0, "z": -345.0, "color": Color(1.0, 0.85, 0.2), "kind": "door", "style": "any" },
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
+const Interiors := preload("res://scripts/city/interiors.gd")
 var _radio_button: Button
 var _topbar: HFlowContainer
 var _drive_m := 0.0
@@ -1615,6 +1627,9 @@ func _doors() -> void:
 			continue
 		var side := float(d.x)
 		var pos := Vector3(side * (half + WALK_W - 2.2), 0.18, float(d.z))
+		if String(d.id) == "nightclub" or String(d.id) == "police":
+			d = d.duplicate()
+			d.label = Interiors.title_of(String(d.id), style)
 		if String(d.id) == "casino" and _casino_at != Vector3.INF:
 			pos.z = _casino_at.z     # at the casino podium's door
 		var col: Color = d.color
