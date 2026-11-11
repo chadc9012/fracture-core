@@ -1,0 +1,26 @@
+{
+  "NOVA": {
+    "tone": "androgynous, warm synthetic clarity",
+    "pace": "measured, 145\u2013160 wpm",
+    "delivery": "subtle digital texture; never robotic parody",
+    "direction": "Underplay exposition; urgency only when player is in immediate danger."
+  },
+  "PLAYER": {
+    "tone": "customizable voice, grounded civilian",
+    "pace": "conversational, 145\u2013175 wpm",
+    "delivery": "initial uncertainty develops into determination",
+    "direction": "Record neutral variants so character appearance is not assumed."
+  },
+  "CAPTAIN VALE": {
+    "tone": "mature command presence, steady",
+    "pace": "130\u2013150 wpm",
+    "delivery": "authority without cruelty",
+    "direction": "The choice to cooperate must feel genuinely voluntary."
+  },
+  "SCOUT MIRA": {
+    "tone": "observant, weathered, low-key",
+    "pace": "135\u2013155 wpm",
+    "delivery": "quiet alertness",
+    "direction": "The forest is a living ecosystem, not a disposable enemy."
+  }
+}

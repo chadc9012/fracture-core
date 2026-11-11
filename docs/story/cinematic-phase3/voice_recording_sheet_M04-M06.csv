@@ -1,0 +1,28 @@
+line_id,mission,scene_id,speaker,dialogue,emotion,estimated_duration_s,recording_filename,recording_status
+M04_001,04,04A,CAPTAIN VALE,Weapon down. State your affiliation.,"controlled, protective",2.55,M04_001.wav,NOT_RECORDED
+M04_002,04,04A,PLAYER,I woke up in an apartment. Is that an affiliation?,"wary, resolute",4.55,M04_002.wav,NOT_RECORDED
+M04_003,04,04A,CAPTAIN VALE,Not if you can explain how you survived the breach.,"controlled, protective",4.55,M04_003.wav,NOT_RECORDED
+M04_004,04,04B,NOVA,"Recommend honesty, selectively.","precise, urgent only when needed",1.8,M04_004.wav,NOT_RECORDED
+M04_005,04,04B,PLAYER,I can hear a voice. It says its name is NOVA.,"wary, resolute",4.95,M04_005.wav,NOT_RECORDED
+M04_006,04,04B,CAPTAIN VALE,That is not possible. NOVA was decommissioned.,"controlled, protective",3.35,M04_006.wav,NOT_RECORDED
+M04_007,04,04B,NOVA,That is an inaccurate description of events.,"precise, urgent only when needed",3.35,M04_007.wav,NOT_RECORDED
+M04_008,04,04C,CAPTAIN VALE,Come with us. We can keep civilians safe.,"controlled, protective",3.75,M04_008.wav,NOT_RECORDED
+M04_009,04,04C,PLAYER,I will come. But I decide who I help.,"wary, resolute",4.15,M04_009.wav,NOT_RECORDED
+M05_001,05,05A,CAPTAIN VALE,We need people who can withstand the Fractures.,"controlled, protective",3.75,M05_001.wav,NOT_RECORDED
+M05_002,05,05A,PLAYER,You need soldiers. I am not one.,"wary, resolute",3.35,M05_002.wav,NOT_RECORDED
+M05_003,05,05A,CAPTAIN VALE,Then be something better. Make your own choice.,"controlled, protective",3.75,M05_003.wav,NOT_RECORDED
+M05_004,05,05A,NOVA,There are benefits to cooperating. There are also risks.,"precise, urgent only when needed",4.15,M05_004.wav,NOT_RECORDED
+M05_005,05,05B,PLAYER,I am not signing away my life because the sky cracked.,"wary, resolute",4.95,M05_005.wav,NOT_RECORDED
+M05_006,05,05B,CAPTAIN VALE,"Fair. Prove you can protect this district, and we talk again.","controlled, protective",4.95,M05_006.wav,NOT_RECORDED
+M05_cooperate_001,05,05C_COOPERATE,PLAYER,"I will work with your team, but civilians come first.","wary, resolute",4.55,M05_cooperate_001.wav,NOT_RECORDED
+M05_cooperate_002,05,05C_COOPERATE,CAPTAIN VALE,Agreed. You answer to your conscience before you answer to me.,"controlled, protective",4.95,M05_cooperate_002.wav,NOT_RECORDED
+M05_independent_001,05,05C_INDEPENDENT,PLAYER,"I will help, but I am not joining your command.","wary, resolute",4.55,M05_independent_001.wav,NOT_RECORDED
+M05_independent_002,05,05C_INDEPENDENT,CAPTAIN VALE,Then prove that independence is not indifference.,"controlled, protective",3.35,M05_independent_002.wav,NOT_RECORDED
+M06_001,06,06A,NOVA,Verdant Forest. The vegetation has absorbed Fracture energy.,"precise, urgent only when needed",3.75,M06_001.wav,NOT_RECORDED
+M06_002,06,06A,PLAYER,It looks peaceful.,"wary, resolute",1.8,M06_002.wav,NOT_RECORDED
+M06_003,06,06A,SCOUT MIRA,That is how it catches you off guard.,"cautious, grounded",3.75,M06_003.wav,NOT_RECORDED
+M06_004,06,06B,PLAYER,You have been out here alone?,"wary, resolute",2.95,M06_004.wav,NOT_RECORDED
+M06_005,06,06B,SCOUT MIRA,Long enough to learn that the forest remembers footsteps.,"cautious, grounded",4.15,M06_005.wav,NOT_RECORDED
+M06_006,06,06C,NOVA,Anomalous signal beneath the roots.,"precise, urgent only when needed",2.55,M06_006.wav,NOT_RECORDED
+M06_007,06,06C,SCOUT MIRA,Do not call every secret a target. Some deserve to stay hidden.,"cautious, grounded",5.35,M06_007.wav,NOT_RECORDED
+M06_008,06,06C,PLAYER,We will look. We will not destroy what we do not understand.,"wary, resolute",5.35,M06_008.wav,NOT_RECORDED

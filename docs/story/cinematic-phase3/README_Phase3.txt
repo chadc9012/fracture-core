@@ -1,0 +1,1 @@
+World Fracture cinematic dialogue Phase 3 — Missions 04–06. Adds 10 directed scenes, 27 existing lines (9+10+8), timed subtitle cues, screenplay, voice profiles and recording queue. Preserves Phase 2 package and all 257 campaign lines. The Mission 05 choice branches are mutually exclusive. This is production data and scripts, NOT generated voice audio or an APK.

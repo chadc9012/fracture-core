@@ -19,6 +19,8 @@ const Materials := preload("res://scripts/city/materials.gd")
 const Cutscene := preload("res://scripts/cinema/cutscene.gd")
 const Cinema := preload("res://scripts/mission/m01_cinema.gd")
 const Lines := preload("res://scripts/cinema/lines.gd")
+const Scenes := preload("res://scripts/cinema/scenes.gd")
+const Choice := preload("res://scripts/cinema/choice.gd")
 const SAVE := "user://mission01.json"
 const PROFILE := "user://profile.json"
 
@@ -1366,7 +1368,35 @@ func _on_phase() -> void:
 	_update_hud()
 	if story.phase == "DONE" and not _complete_shown:
 		await _play_cine(Cinema.new_world(self))
+		await _play_checkpoint()
 		_mission_complete()
+
+## Missions 04 and 05 (the owner's Phase 3 scenes, scripts/cinema/scenes.gd): Captain Vale's Vanguard checkpoint at the
+## Breach once the street is clear — the checkpoint, NOVA in the medical tent, the terms of protection, then the temporary
+## command and the relief line, where the player chooses to work with Vale's team or stay independent. The choice is kept in
+## the profile (`m05_choice`, synced with the cloud save) and the scenes play once; a replay of Mission 01 skips them.
+func _play_checkpoint() -> void:
+	if skip_cinema or String(profile.get("m05_choice", "")) != "":
+		return
+	var p: Vector3 = op.global_position
+	var at := p + Vector3(0.8, 0, -3.4)
+	var face := atan2(p.x - at.x, p.z - at.z)
+	if not _npcs.has("vale"):
+		_npc("vale", "m-stern", "male", "goliath", at, face)
+	await _play_cine(Scenes.cinema_shots(Scenes.chain("04"), p, at, "MISSION 04  ·  CHECKPOINT"))
+	await _play_cine(Scenes.cinema_shots(Scenes.chain("05"), p, at, "MISSION 05  ·  COMMAND"))
+	var ask := Choice.new()
+	add_child(ask)
+	_release_mouse()
+	ask.ask("Captain Vale is waiting for an answer.", [
+		["cooperate", "Work with Vale's team", "Civilians first — but you take the Vanguard's support."],
+		["independent", "Stay independent", "You help the district on your own terms."],
+	])
+	var key: String = await ask.chosen
+	ask.queue_free()
+	profile["m05_choice"] = key
+	_save_profile()
+	await _play_cine(Scenes.cinema_shots(Scenes.chain("05", key, true), p, at))
 
 var _dropped_before := false
 func _mission_complete() -> void:

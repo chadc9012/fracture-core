@@ -51,3 +51,34 @@ are generated. Every other line is generated with Piper (local neural TTS), one 
 - **M01_014–015**: their place is taken by M02_010–011 at the end of the stairwell scene.
 - **Missions 03–25, branches and companion lines**: those missions don't exist as gameplay yet. Every line is voiced
   and indexed by id, ready for the story work (TASKBOARD step 11) to call with `Lines.pair(id)` or a cutscene's `lines`.
+
+## Phase 3 package (Nov 11): directed scenes, Missions 04–06
+
+The owner's `WorldFracture_Cinematic_Dialogue_Phase3_M04-M06.zip` groups the draft's lines into 22 directed scenes (M01–M06)
+with locations, camera notes, sound beds and timed cues. Every one of its 63 cues is a draft line already voiced here, word for
+word (tests/cinema/scenes_test.gd checks this). The package's screenplay, voice profiles and recording sheets are kept in
+`docs/story/cinematic-phase3/`.
+
+| What | Where |
+| --- | --- |
+| The scene list (scenes + cues, from `cinematic_scenes_all_M01-M06.json`) | `godot-world-fracture/data/dialogue/scenes.json` |
+| Scenes → shots for the two existing cutscene players; branch chains | `godot-world-fracture/scripts/cinema/scenes.gd` |
+| The story choice overlay | `godot-world-fracture/scripts/cinema/choice.gd` |
+
+The package's own `DialogueCinematicPlayer` is **not** added: the game already has two cutscene players (Mission 01's cinema
+player and the descent's beats), and the scenes play through those, with the recorded voices and their real lengths
+(the package's cue timings are estimates for subtitles-only playback). Its camera notes are read for framing (wide / tight /
+over-the-shoulder / tracking, handheld shake); they are directions, not authored camera paths.
+
+What plays now:
+
+- **Missions 04 and 05** — after Mission 01's "new world" reveal, the first time it is cleared: Captain Vale (a Vanguard
+  captain, standing at the Breach) — 04A checkpoint, 04B NOVA, 04C terms of protection; 05A temporary command, 05B the relief
+  line; then the choice **Work with Vale's team** / **Stay independent**, and only that branch's scene (05C_COOPERATE or
+  05C_INDEPENDENT). The choice is kept in the profile as `m05_choice`; with a choice made, replays skip the scenes.
+- **Mission 06** — the descent's Verdant Forest openings: 06A at the tree line when fd-02 starts (was M06_001 and M06_003
+  only), 06B + 06C on the root path and at the ancient roots when fd-03 starts (was M06_006 and M06_007 only).
+
+Not done: M01–M03 scenes stay as Mission 01 already plays them (the cinematic script's own versions); the M05 choice is
+recorded but nothing reads it yet (reputation / later dialogue is story work, step 11); Scout Mira has no body in the
+forest (a voice in the trees), and the checkpoint and command scenes share one place, the Breach.
