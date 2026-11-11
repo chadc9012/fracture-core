@@ -20,8 +20,14 @@ import bmesh
 import bpy
 import numpy as np
 
-argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-OUT = argv[0] if argv else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "godot-world-fracture", "models", "fleet", "airliner.glb")
+argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]   # the bpy-module `blender` wrapper passes args straight through
+# --wide: the long-haul wide-body (models/fleet/airliner-wide.glb): the same airframe ×1.55 (~62 m long, ~55 m span, a
+# 6.3 m cabin, like the big twins), bigger engines for its size and six-wheel main bogies
+WIDE = "--wide" in argv
+argv = [a for a in argv if a != "--wide"]
+K = 1.55 if WIDE else 1.0
+E = 1.12 if WIDE else 1.0
+OUT = argv[0] if argv else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "godot-world-fracture", "models", "fleet", "airliner-wide.glb") if WIDE else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "godot-world-fracture", "models", "fleet", "airliner.glb")
 
 L = 40.0          # fuselage length (Blender Y: 0 at the tail, L at the nose)
 R = 2.05          # cabin radius
@@ -277,18 +283,19 @@ def build():
         ex = side * 5.6
         ey = wy + 2.6 - math.tan(math.radians(27.0)) * 4.4
         ez = ZC - 2.4
+        ez = ZC - 2.4 - (E - 1.0) * 1.2
         lathe("Engine" + ("R" if side > 0 else "L"), [
-            (-0.05, 1.0, 1), (0.0, 1.18, 1), (0.25, 1.24, 0), (1.6, 1.22, 2), (2.4, 1.18, 0), (3.6, 0.92, 0), (4.3, 0.62, 1), (4.5, 0.42, 3)],
+            (-0.05, 1.0 * E, 1), (0.0, 1.18 * E, 1), (0.25, 1.24 * E, 0), (1.6, 1.22 * E, 2), (2.4, 1.18 * E, 0), (3.6, 0.92 * E, 0), (4.3, 0.62 * E, 1), (4.5, 0.42 * E, 3)],
             (ex, ey, ez), [body, metal, livery, dark])
         # the fan face inside the intake, and the exhaust cone
-        cylinder("Fan" + ("R" if side > 0 else "L"), 1.0, 0.1, (ex, ey - 0.35, ez), dark, rot=(math.pi / 2, 0, 0), verts=24)
+        cylinder("Fan" + ("R" if side > 0 else "L"), 1.0 * E, 0.1, (ex, ey - 0.35, ez), dark, rot=(math.pi / 2, 0, 0), verts=24)
         lathe("Cone" + ("R" if side > 0 else "L"), [(4.4, 0.4, 0), (5.0, 0.05, 0)], (ex, ey, ez), [metal], seg=14)
         box("Pylon" + ("R" if side > 0 else "L"), (0.32, 3.6, 1.2), (ex, ey - 1.6, ez + 1.25), grey)
         # main gear: two legs, four wheels each side
         gx = side * 3.1
         gy = wy - 3.9
         cylinder("GearLeg" + ("R" if side > 0 else "L"), 0.16, 2.4, (gx, gy, 1.65), metal)
-        for dy in (-0.55, 0.55):
+        for dy in ((-0.62, 0.0, 0.62) if WIDE else (-0.55, 0.55)):
             for dx in (-0.32, 0.32):
                 cylinder("Tyre", 0.58, 0.36, (gx + dx, gy + dy, 0.58), dark, rot=(0, math.pi / 2, 0), verts=18)
     # the fin, swept 38°, in the airline colour
@@ -307,9 +314,11 @@ def build():
     bpy.ops.object.join()
     ob = bpy.context.active_object
     ob.name = "Airliner"
-    # centre the length on the origin (the game positions it by its middle)
+    # centre the length on the origin (the game positions it by its middle); the wide-body is the same airframe scaled
+    # about the ground under the tail, so its wheels stay on z = 0
     for v in ob.data.vertices:
-        v.co.y -= L * 0.5
+        v.co *= K
+        v.co.y -= L * K * 0.5
     os.makedirs(os.path.dirname(os.path.abspath(OUT)), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=os.path.abspath(OUT), export_format="GLB", use_selection=False, export_apply=True)
     tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
