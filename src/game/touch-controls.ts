@@ -3,7 +3,7 @@ import { normalizeBindings, type Bindings } from "./bindings";
 /** Touch actions share the keyboard path, including saved remaps. */
 export function touchCodes(bindings?: Bindings) {
   const b = normalizeBindings(bindings).keyboard;
-  return { jump: "KeyC", dash: "ShiftRight", use: "KeyY", vehicle: "KeyV", primary: "KeyQ", tactical: "KeyE", ultimate: "KeyR", reload: b.reload, next: b.nextWeapon, crouch: b.crouch, prone: b.prone, map: b.map };
+  return { jump: "KeyC", dash: "ShiftRight", use: "KeyY", vehicle: "KeyV", primary: "KeyQ", tactical: "KeyE", ultimate: "KeyR", reload: b.reload, next: b.nextWeapon, crouch: b.crouch, prone: b.prone, map: b.map, grenade: b.grenade };
 }
 export function stickCodes(dx: number, dy: number): string[] {
   const out: string[] = [];

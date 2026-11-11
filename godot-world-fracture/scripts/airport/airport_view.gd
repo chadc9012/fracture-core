@@ -784,7 +784,7 @@ func _ground() -> void:
 	# the terminal's floor
 	_box(Vector3(96, 0.12, 56), Vector3(0, 0.0, -2), Materials.pbr("marble_tiles", Color(0.92, 0.92, 0.94) if not night else Color(0.55, 0.5, 0.65), 3.0, 0.5))
 	# the forecourt plaza and the road
-	_box(Vector3(120, 0.12, 18), Vector3(0, 0.0, 35), Materials.pbr("floor_tiles_06", Color(0.8, 0.8, 0.82) if not night else Color(0.6, 0.52, 0.75), 2.5))
+	_box(Vector3(120, 0.12, 18), Vector3(0, 0.0, 35), Materials.pbr("marble_01", Color(0.8, 0.8, 0.82) if not night else Color(0.6, 0.52, 0.75), 2.5))
 	_box(Vector3(260, 0.1, 14), Vector3(0, 0.02, 51), Materials.pbr("asphalt_02", Color(0.5, 0.5, 0.52) if not night else Color(0.22, 0.2, 0.26), 6.0, 0.6))
 	for x in range(-120, 121, 12):
 		_box(Vector3(5, 0.04, 0.25), Vector3(x, 0.09, 51), _mat(Color(0.95, 0.95, 0.9)))

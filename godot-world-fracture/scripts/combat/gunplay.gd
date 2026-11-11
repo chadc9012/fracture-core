@@ -10,6 +10,9 @@ const Sound := preload("res://scripts/audio/sound.gd")
 ## the shot cue per frame (audio/sfx, scripts/build-sfx.py)
 const SHOT_CUES := { "AUTO": "rifle", "SNIPER": "sniper", "FUSION": "fusion", "SMG": "smg", "SHOTGUN": "shotgun", "SIDEARM": "sidearm", "LMG": "lmg", "HEAVY": "heavy" }
 const Weapons := preload("res://scripts/combat/weapons.gd")
+const Grenades := preload("res://scripts/combat/grenades.gd")
+## Tracer's mark: a marked Target takes this much more from every bolt and grenade
+const MARK_MULT := 1.33
 const MODELS := "res://models/weapons/"
 
 ## something a bolt can hit: a world box, hull points, and the node that shows it (optional)
@@ -24,6 +27,9 @@ class Target:
 	var shield := 0.0
 	var shield_max := 0.0
 	var since := 99.0        # seconds since the last hit
+	## Operator grenades (grenades.gd): seconds stunned (a bot holds still and holds fire) and marked (takes +33% damage)
+	var stun := 0.0
+	var mark := 0.0
 	func _init(b: AABB, h: float, n: Node3D = null) -> void:
 		box = b; hp = h; max_hp = h; node = n
 	func alive() -> bool:
@@ -53,6 +59,14 @@ signal killed(target: Target)
 signal cover_broken(target: Target)
 
 var player: Node3D            # operator_player.gd
+## the Operator's grenades (grenades.gd), stepped here so every combat view has them; `roster` is enemies.gd (set by its
+## setup) for the operator's hull, which the Rift Well heals
+var grenades: Node3D
+var roster: Node = null
+## off while unarmed (holstered) or in a view that wants no grenades
+var grenades_on := true
+## the on-foot input (touch_controls.gd); unset, the scene's one is found by its group
+var controls: Node = null
 var obstacles: Array[AABB] = []
 var targets: Array[Target] = []
 var guns: Array = []
@@ -96,6 +110,9 @@ func setup(p: Node3D, boxes: Array[AABB]) -> void:
 		guns.append(Weapons.Gun.new(f))
 	_rng.seed = 7
 	_mount()
+	grenades = Grenades.new()
+	add_child(grenades)
+	grenades.setup(self)
 
 ## the gun models ride the body's RightHand bone; only the current frame's is visible
 func _mount() -> void:
@@ -318,6 +335,8 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		Sound.sfx("reload", -4.0)
 	for t in targets:
 		t.since += dt
+		t.stun = maxf(0.0, t.stun - dt)
+		t.mark = maxf(0.0, t.mark - dt)
 		if t.shield_max > 0.0 and t.alive() and t.since > SHIELD_DELAY and t.shield < t.shield_max:
 			t.shield = minf(t.shield_max, t.shield + SHIELD_RATE * dt)
 	var was_reloading := gun().reloading > 0.0
@@ -329,6 +348,7 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 	if not was_reloading and gun().reloading > 0.0:
 		_drop_mag()
 	_place_holsters()
+	_step_grenades(dt, cam)
 	for i in n:
 		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
 		for k in Weapons.pellets(gun().frame):
@@ -425,7 +445,7 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 	if hit_t:
 		# cover has no head, counts no kill and scavenges nothing; it stays down once broken
 		var head := not cover and end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
-		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult
+		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult * (MARK_MULT if hit_t.mark > 0.0 else 1.0)
 		var res: Dictionary = hit_t.take(dmg, gun().frame == "FUSION")
 		if float(res.shield) > 0.0:
 			_shield_flash(hit_t, bool(res.broke))
@@ -455,6 +475,41 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 			Sound.sfx_at("down", end, from, -4.0)
 			scavenge()
 			killed.emit(hit_t)
+
+## the grenades: J / K on the desk, GRENADE / ⟳ on the phone (touch_controls.gd, found by its group), and the HUD line
+func _step_grenades(dt: float, cam: Camera3D) -> void:
+	if not grenades:
+		return
+	var c: Node = controls
+	if c == null and is_inside_tree():
+		c = get_tree().get_first_node_in_group("touch_controls")
+	var throw := false
+	var cyc := false
+	if c:
+		throw = c.take_grenade() and grenades_on and not holstered
+		cyc = c.take_cycle_grenade()
+	grenades.step(dt, cam, throw, cyc)
+	if c:
+		c.show_grenade(grenades.hud() if grenades_on and not holstered else {})
+
+## grenade damage on a Target (grenades.gd): the same hit / killed path as a bolt, so tallies, kills and drops follow
+func grenade_hit(t: Target, dmg: float, at: Vector3) -> void:
+	if not t.alive():
+		return
+	dmg *= MARK_MULT if t.mark > 0.0 else 1.0
+	var res: Dictionary = t.take(dmg, false)
+	if float(res.shield) > 0.0:
+		_shield_flash(t, bool(res.broke))
+	hit.emit(t, dmg, false)
+	if t.hp <= 0.0:
+		t.hp = 0.0
+		t.down = 5.0
+		if t.node:
+			t.node.visible = false
+		kills += 1
+		Sound.sfx_at("down", at, player.position if player else at, -4.0)
+		scavenge()
+		killed.emit(t)
 
 func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
 	var mi := MeshInstance3D.new()

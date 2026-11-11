@@ -13,6 +13,7 @@ uniform int i_desert; uniform int i_dunes; uniform int i_sandstone; uniform int 
 uniform int i_urban; uniform int i_paved; uniform int i_town; uniform int i_snow; uniform int i_ice; uniform int i_crystal; uniform int i_rift;
 
 varying vec2 wpos;
+varying vec3 wnorm;
 
 float hash2(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
 float vnoise(vec2 p) {
@@ -23,6 +24,7 @@ float vnoise(vec2 p) {
 
 void vertex() {
 	wpos = bounds.xy + UV * bounds.z;
+	wnorm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 void fragment() {
@@ -32,7 +34,8 @@ void fragment() {
 	int cover = int(round(texture(data_tex, UV + j * texel * 1.6).r * 255.0));
 	vec3 c = pal[clamp(cover, 0, 31)];
 	vec2 w = wpos;
-	float grain = hash2(floor(w * 3.0)) - 0.5;
+	// smooth grain in two scales (a hashed 33 cm square grain read as pixels from the chase camera)
+	float grain = (vnoise(w * 2.7) * 0.6 + vnoise(w * 9.0) * 0.4) - 0.5;
 	float rough = 0.92;
 	vec3 emit = vec3(0.0);
 	if (cover == i_forest || cover == i_dense || cover == i_marsh) {
@@ -41,6 +44,10 @@ void fragment() {
 		if (crown < 0.3) c *= 0.72;
 	} else if (cover == i_meadow || cover == i_grass || cover == i_scrub) {
 		c += (vec3(22.0, 24.0, 10.0) * (vnoise(w * 0.06) - 0.5) + vec3(14.0, 14.0, 8.0) * grain) / 255.0;
+		// clumps of darker, lusher grass and drier patches between them
+		float clump = vnoise(w * 0.45);
+		c *= mix(0.86, 1.06, smoothstep(0.3, 0.7, clump));
+		c = mix(c, c * vec3(1.15, 1.05, 0.75), smoothstep(0.62, 0.85, vnoise(w * 0.11)) * 0.5);
 	} else if (cover == i_desert || cover == i_dunes || cover == i_sandstone || cover == i_wash) {
 		float rip = sin(w.x * 0.5 + w.y * 0.3 + vnoise(w * 0.03) * 8.0);
 		c += (vec3(8.0, 6.0, 4.0) * rip + vec3(12.0, 10.0, 8.0) * grain) / 255.0;
@@ -68,10 +75,21 @@ void fragment() {
 	} else if (cover == i_snow || cover == i_ice) {
 		rough = 0.55;
 		c += vec3(6.0) / 255.0 * grain;
+		// snow lies on the gentle slopes; the steep faces show dark rock in streaks down the fall line
+		float slope = 1.0 - clamp(wnorm.y, 0.0, 1.0);
+		float streak = vnoise(vec2(w.x * 0.12, w.y * 0.03)) * 0.5 + vnoise(w * 0.4) * 0.25;
+		float rock = smoothstep(0.24, 0.44, slope + (streak - 0.35) * 0.4);
+		vec3 rock_c = mix(vec3(0.2, 0.21, 0.24), vec3(0.34, 0.33, 0.35), vnoise(w * 0.9));
+		c = mix(c, rock_c, rock);
+		rough = mix(rough, 0.9, rock);
 	} else {
 		c += vec3(16.0, 15.0, 14.0) / 255.0 * grain;
 	}
 	ALBEDO = clamp(c, 0.0, 1.0);
 	ROUGHNESS = rough;
+	// a fine bump everywhere so a low sun picks out the ground's texture
+	float gx = vnoise(w * 6.0) - vnoise(w * 6.0 + vec2(0.15, 0.0));
+	float gz = vnoise(w * 6.0) - vnoise(w * 6.0 + vec2(0.0, 0.15));
+	NORMAL_MAP = normalize(vec3(gx * 2.0, gz * 2.0, 1.0)) * 0.5 + 0.5;
 	EMISSION = emit;
 }

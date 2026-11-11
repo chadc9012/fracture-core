@@ -111,6 +111,7 @@ const InventoryView = preload("res://scripts/gear/inventory_view.gd")
 const ProfileView := preload("res://scripts/progress/profile_view.gd")
 const CivicProps := preload("res://scripts/city/civic_props.gd")
 const Interiors := preload("res://scripts/city/interiors.gd")
+const CinematicSky := preload("res://scripts/vfx/cinematic_sky.gd")
 const InteriorSets := preload("res://scripts/city/interior_sets.gd")
 const OutfitLook = preload("res://scripts/gear/outfit_look.gd")
 var wallet: Dictionary = {}   # the profile (xp, nex, level) while the street is open; mission_01.gd has its own `profile`
@@ -776,6 +777,13 @@ func _environment() -> void:
 		env.fog_sun_scatter = 0.05
 		env.volumetric_fog_density = 0.012
 		env.volumetric_fog_albedo = Color(0.7, 0.7, 0.9)
+	# the owner's target frames: the cracked planet over the skyline and clouds catching the light (scripts/vfx)
+	var look := CinematicSky.golden_day()
+	if night:
+		look = CinematicSky.neon_night() if style == "neon" else CinematicSky.nexus_night()
+	look["planet_tex"] = Data.texture("veyra.jpgb", true)
+	sky.sky_material = CinematicSky.make(look).sky_material
+	env.fog_sky_affect = 0.25
 
 # --------------------------------------------------------------------------------------------- materials
 static func _noise_tex(freq: float, octaves: int, size := 1024, normal := false, seamless := true) -> NoiseTexture2D:

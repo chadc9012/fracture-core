@@ -5,7 +5,7 @@ const Phone := preload("res://scripts/phone.gd")
 ## The racing venue (the Dec 4 plan, phase 5): Nexus Speedway as a scene — the track laid along track.gd's centreline (asphalt
 ## segments, red-and-white kerbs, grass, a wall at the edge), grandstands full of seats on the straights, the pit lane and
 ## pit wall, a start-light gantry — with the player's car (the garage's build) on the grid against three rivals driven on the
-## centreline, a countdown, three laps, live positions and lap times, the best lap saved to drive_records and the prize Nex
+## centreline, a countdown, the laps (track.gd `laps`), live positions and lap times, the best lap saved to drive_records and the prize Nex
 ## paid into the profile. The chase camera, the stick / WASD and BRAKE come from touch_controls.gd in drive mode.
 
 signal closed
@@ -20,6 +20,9 @@ const Records := preload("res://scripts/driving/drive_records.gd")
 const Catalog := preload("res://scripts/garage/catalog.gd")
 const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
 const Materials := preload("res://scripts/city/materials.gd")
+const CinematicSky := preload("res://scripts/vfx/cinematic_sky.gd")
+const Facade := preload("res://scripts/vfx/facade.gd")
+const Turf := preload("res://scripts/vfx/turf.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 const FLEET := "res://models/fleet/"
 const PROFILE := "user://profile.json"
@@ -145,37 +148,51 @@ func _box(size: Vector3, pos: Vector3, mat: Material, yaw := 0.0, parent: Node3D
 	return mi
 
 func _environment() -> void:
+	# a clear late afternoon after the owner's day frame: warm low sun, clouds, the cracked planet over the far stand
 	var sun := DirectionalLight3D.new()
-	sun.light_color = Color(1.0, 0.86, 0.7)
-	sun.light_energy = 2.4
+	sun.light_color = Color(1.0, 0.84, 0.64)
+	sun.light_energy = 2.3
 	sun.shadow_enabled = true
-	sun.rotation_degrees = Vector3(-48, 35, 0)
+	sun.rotation_degrees = Vector3(-26, 35, 0)
+	Phone.fit_sun(sun)
 	world.add_child(sun)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
-	var sky := Sky.new()
-	var psm := ProceduralSkyMaterial.new()
-	psm.sky_top_color = Color(0.22, 0.42, 0.72)
-	psm.sky_horizon_color = Color(0.82, 0.72, 0.6)
-	psm.ground_bottom_color = Color(0.2, 0.2, 0.18)
-	psm.ground_horizon_color = Color(0.6, 0.55, 0.45)
-	sky.sky_material = psm
-	env.sky = sky
+	var look := CinematicSky.golden_day()
+	look.merge({"top": Color(0.18, 0.38, 0.72), "horizon": Color(0.92, 0.8, 0.64), "clouds": 0.45, "planet_dir": Vector3(0.6, 0.32, -0.73)}, true)
+	look["planet_tex"] = Data.texture("veyra.jpgb", true)
+	env.sky = CinematicSky.make(look)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.9
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.ambient_light_energy = 0.7
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.05
+	env.glow_enabled = true
+	env.glow_intensity = 0.5
+	env.glow_hdr_threshold = 1.15
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.8, 0.75, 0.65)
-	env.fog_density = 0.0004
+	env.fog_light_color = Color(0.85, 0.78, 0.68)
+	env.fog_density = 0.0008
+	env.fog_aerial_perspective = 0.35
+	env.fog_sky_affect = 0.0     # the haze sits on the land, the sky keeps its clouds and the planet
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.06
+	env.adjustment_saturation = 1.08
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
+	# the city beyond the circuit's walls: a lit skyline on the horizon (one merged mesh)
+	var tb := track.bounds(0.0)
+	var reach := maxf(tb.size.x, tb.size.y) * 0.5
+	Facade.skyline(world, Vector3(tb.get_center().x, 0, tb.get_center().y), reach + 260.0, reach + 460.0, 40, Facade.material({"lit": 0.12, "frame": Color(0.08, 0.085, 0.1), "glass": Color(0.05, 0.07, 0.11), "sky": Color(0.85, 0.75, 0.65)}), 77, TAU, 0.0, 30.0, 95.0)
 
 ## asphalt segments along the centreline with kerbs at both edges; grass under everything; a wall past the run-off
 func _build_track() -> void:
-	var grass := _mat(Color(0.26, 0.42, 0.18), 1.0)
-	_box(Vector3(400, 0.1, 400), Vector3(-45, -0.06, 0), grass)
-	var asphalt := _mat(Color(0.11, 0.11, 0.12), 0.9)
+	# mown turf with the groundskeeper's stripes under the whole circuit, and real asphalt (world-mapped, so segments join)
+	var grass := Turf.material({"stripes": 6.0, "stripe_dir": 0.4})
+	var g := track.bounds(140.0)     # the ground follows the circuit (it was a fixed 400 m square for the old oval)
+	_box(Vector3(g.size.x, 0.1, g.size.y), Vector3(g.get_center().x, -0.06, g.get_center().y), grass)
+	var asphalt: BaseMaterial3D = Materials.pbr("asphalt_02", Color(0.42, 0.42, 0.44), 6.0, 0.9) if Materials.has("asphalt_02") else _mat(Color(0.11, 0.11, 0.12), 0.9)
 	var red := _mat(Color(0.8, 0.12, 0.1), 0.6)
 	var white := _mat(Color(0.9, 0.9, 0.88), 0.6)
 	var line := _mat(Color(0.95, 0.95, 0.9), 0.5)
@@ -196,11 +213,20 @@ func _build_track() -> void:
 			var w := _mat(Color(0.1, 0.1, 0.11), 0.9)
 			for s: float in [-1.0, 1.0]:
 				var wp := c + side * s * (track.width * 0.5 + 9.0)
-				_box(Vector3(1.2, 1.1, step * 3.0 + 1.0), wp + Vector3(0, 0.55, 0), w, yaw)
 				var fw := Vector3(f.x, 0, f.z) * (step * 1.5 + 0.5)
 				var sw := Vector3(side.x, 0, side.z) * 0.6
 				var lo := Vector3(minf(minf(wp.x - fw.x - sw.x, wp.x + fw.x - sw.x), minf(wp.x - fw.x + sw.x, wp.x + fw.x + sw.x)), 0, minf(minf(wp.z - fw.z - sw.z, wp.z + fw.z - sw.z), minf(wp.z - fw.z + sw.z, wp.z + fw.z + sw.z)))
 				var hi := Vector3(maxf(maxf(wp.x - fw.x - sw.x, wp.x + fw.x - sw.x), maxf(wp.x - fw.x + sw.x, wp.x + fw.x + sw.x)), 1.1, maxf(maxf(wp.z - fw.z - sw.z, wp.z + fw.z - sw.z), maxf(wp.z - fw.z + sw.z, wp.z + fw.z + sw.z)))
+				# inside a tight corner the run-off line folds back over the road, and a diagonal wall's box is far wider
+				# than the wall: leave out any piece whose box would reach the track (it stopped the field at the hairpin)
+				var clear := true
+				for q in [lo, hi, Vector3(lo.x, 0, hi.z), Vector3(hi.x, 0, lo.z), (lo + hi) * 0.5, Vector3(lo.x, 0, (lo.z + hi.z) * 0.5), Vector3(hi.x, 0, (lo.z + hi.z) * 0.5), Vector3((lo.x + hi.x) * 0.5, 0, lo.z), Vector3((lo.x + hi.x) * 0.5, 0, hi.z)]:
+					if float(track.nearest(Vector3(q.x, 0, q.z))[1]) < track.width * 0.5 + 2.0:
+						clear = false
+						break
+				if not clear:
+					continue
+				_box(Vector3(1.2, 1.1, step * 3.0 + 1.0), wp + Vector3(0, 0.55, 0), w, yaw)
 				obstacles.append(AABB(lo, hi - lo))
 		d += step
 		k += 1
@@ -325,7 +351,8 @@ func _glow(c: Color, energy := 3.0) -> StandardMaterial3D:
 func _build_streets() -> void:
 	const NEON := [Color(1.0, 0.18, 0.62), Color(0.15, 0.85, 1.0), Color(0.62, 0.3, 1.0), Color(1.0, 0.62, 0.15), Color(0.25, 1.0, 0.55)]
 	var pave := Materials.pbr("brushed_concrete", Color(0.32, 0.31, 0.34), 3.0, 0.7)
-	_box(Vector3(460, 0.1, 460), Vector3(-70, -0.06, 10), pave)
+	var g := track.bounds(120.0)
+	_box(Vector3(g.size.x, 0.1, g.size.y), Vector3(g.get_center().x, -0.06, g.get_center().y), pave)
 	var asphalt := Materials.pbr("asphalt_02", Color(0.42, 0.42, 0.46), 4.0, 0.35)
 	var paint := _mat(Color(0.9, 0.9, 0.85), 0.5)
 	var barrier := Materials.pbr("concrete_floor", Color(0.7, 0.7, 0.68), 1.0, 0.8)
@@ -367,8 +394,9 @@ func _build_streets() -> void:
 	var win := _glow(Color(1.0, 0.85, 0.6), 1.6)
 	var win_cool := _glow(Color(0.6, 0.85, 1.0), 1.6)
 	var signs := 0
-	for gx in range(-190, 60, 16):
-		for gz in range(-180, 200, 16):
+	var gb := track.bounds(60.0)
+	for gx in range(int(gb.position.x), int(gb.end.x), 16):
+		for gz in range(int(gb.position.y), int(gb.end.y), 16):
 			var p := Vector3(gx, 0, gz)
 			var half := 6.5
 			var clear := track.width * 0.5 + 5.0
@@ -392,7 +420,7 @@ func _build_streets() -> void:
 				for col in 3:
 					if _rng.randf() < 0.55:
 						_box(Vector3(2.2, 1.3, 2.2) * (Vector3.ONE - Vector3(absf(face.x), 0, absf(face.z))) + Vector3(absf(face.x), 0, absf(face.z)) * 0.08, p + face * 6.52 + across * (-4.0 + col * 4.0) + Vector3(0, 2.4 + fl * 3.4, 0), win if (fl + col) % 4 else win_cool)
-			if signs < 22 and _rng.randf() < 0.6:
+			if signs < 48 and _rng.randf() < 0.6:
 				signs += 1
 				var nc: Color = NEON[_rng.randi() % NEON.size()]
 				var sp := p + face * 6.75 + Vector3(0, _rng.randf_range(5.0, minf(h - 3.0, 14.0)), 0)
@@ -441,7 +469,7 @@ func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 		if not pp.is_empty():
 			perf = pp
 	var sc := StreetCar.new(node, vehicle, perf)
-	sc.bounds = Rect2(-250, -250, 500, 500)
+	sc.bounds = track.bounds(80.0)
 	sc.obstacles = obstacles
 	sc.skip = obstacles.size()
 	obstacles.append(sc.box())

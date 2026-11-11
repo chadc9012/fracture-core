@@ -20,6 +20,8 @@ const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const Enemies := preload("res://scripts/combat/enemies.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
+const CinematicSky := preload("res://scripts/vfx/cinematic_sky.gd")
+const Facade := preload("res://scripts/vfx/facade.gd")
 const PROFILE := "user://profile.json"
 const BOT_TYPES := ["scout", "elite", "marksman", "scout", "executor"]
 ## the palette per arena `look` (killbox-arenas.ts): neon trim colours, the facade and roof tones, the sign text
@@ -302,27 +304,57 @@ func _box(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	return mi
 
 func _environment() -> void:
+	var lk := String(arena.def.look)
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = look.sky
+	var day := lk == "solara-outpost"
+	if lk == "thalassia-dome":
+		# under the sea: the dome's own colour, no sky
+		env.background_mode = Environment.BG_COLOR
+		env.background_color = look.sky
+	else:
+		# the owner's night frames: stars, a violet horizon glow, the cracked planet over the skyline (day at Solara)
+		env.background_mode = Environment.BG_SKY
+		var o := CinematicSky.golden_day() if day else CinematicSky.nexus_night()
+		if not day:
+			var hor: Color = (look.fog as Color).lerp(Color(0.3, 0.15, 0.4), 0.3)
+			o.merge({"top": (look.sky as Color).lerp(Color(0.02, 0.03, 0.09), 0.5), "horizon": hor, "cloud_tint": hor.lightened(0.15)}, true)
+			if lk == "frostveil-ring":
+				o.merge({"horizon": Color(0.25, 0.45, 0.6), "cloud_tint": Color(0.4, 0.6, 0.7)}, true)
+		else:
+			o.merge({"top": Color(0.2, 0.45, 0.8), "horizon": Color(0.95, 0.85, 0.68), "clouds": 0.3}, true)
+		env.sky = CinematicSky.make(o)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.25, 0.2, 0.4)
-	env.ambient_light_energy = 1.3
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.ambient_light_color = Color(0.25, 0.2, 0.4) if not day else Color(0.75, 0.72, 0.68)
+	env.ambient_light_energy = 1.3 if not day else 0.9
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.1
 	env.fog_enabled = true
 	env.fog_light_color = look.fog
-	env.fog_density = 0.0015 if String(arena.def.look) == "neon-rooftops" else 0.0005
+	env.fog_density = 0.0015 if lk == "neon-rooftops" else 0.0005
+	env.fog_sky_affect = 0.0
 	env.glow_enabled = true
-	env.glow_intensity = 0.6
+	env.glow_intensity = 0.75
+	env.glow_bloom = 0.08
+	env.glow_hdr_threshold = 1.0
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.08
+	env.adjustment_saturation = 1.12
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
 	var moon := DirectionalLight3D.new()
-	moon.light_color = Color(0.5, 0.55, 0.9)
-	moon.light_energy = 0.7
+	moon.light_color = Color(0.5, 0.55, 0.9) if not day else Color(1.0, 0.9, 0.75)
+	moon.light_energy = 0.7 if not day else 2.0
 	moon.rotation_degrees = Vector3(-55, 20, 0)
 	moon.shadow_enabled = true
+	Phone.fit_sun(moon)
 	world.add_child(moon)
+	# a lit city all round the arena (one merged mesh), so the maps sit in a skyline rather than an empty colour
+	if lk != "thalassia-dome" and lk != "void-rift" and lk != "skydock":
+		var trim: Array = look.trim
+		var fm := Facade.material({"lit": 0.5 if not day else 0.05, "glow": 2.6, "frame": Color(0.05, 0.05, 0.07) if not day else Color(0.7, 0.62, 0.5),
+			"glass": Color(0.04, 0.05, 0.09), "sky": (look.fog as Color).lightened(0.2), "cool": trim[0]})
+		Facade.skyline(world, Vector3.ZERO, 140.0, 320.0, 44, fm, 13, TAU, 0.0, 30.0, 140.0)
 
 ## the street far below between the two blocks, lit by the signs: a reason not to fall
 func _street() -> void:

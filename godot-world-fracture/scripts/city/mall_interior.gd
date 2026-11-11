@@ -245,7 +245,7 @@ func _environment() -> void:
 
 # --------------------------------------------------------------------------------------------- building
 func _shell() -> void:
-	var stone: Material = Materials.pbr("floor_tiles_06", Color(1.05, 1.02, 0.98), 2.4, 0.35)     # polished stone tiles that mirror the shopfronts
+	var stone: Material = Materials.pbr("marble_01", Color(1.0, 1.0, 1.02), 3.2, 0.35)     # polished stone tiles that mirror the shopfronts
 	var white: Material = Materials.pbr("painted_plaster_wall", Color(0.95, 0.93, 0.9), 3.0)
 	var steel := flat(Color(0.75, 0.77, 0.8), 0.25, 0.9)
 	var D := W + 2.0 * 10.0     # shopfront to shopfront plus shop depth both sides

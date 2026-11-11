@@ -397,7 +397,9 @@ export function playAbility(kind: string) {
   if ((kind === "RIFT" || kind === "PORTAL" || kind === "TELEPORT") && playSample("portal", {}, 0.72)) return;
   const c = ctx; if (!c) return; const o = out(c, {}, c.abil);
   // one voice per ability effect kind (combat-engine.ts effects[0].kind): eight of them used to share one generic sweep
-  if (kind === "DASH") { burst(c, o, { dur: 0.22, freq: 900, q: 2, gain: 0.45 }); tone(c, o, { f0: 60, f1: 30, dur: 0.3, gain: 0.45 }); }
+  if (kind === "GRENADE") { // pin out and a throw: a metallic click, then a whoosh
+    noiseLayer(c, o, { dur: 0.03, freq: 3200, q: 4, gain: 0.35, drive: 2 }); noiseLayer(c, o, { dur: 0.25, freq: 900, q: 0.8, gain: 0.25, attack: 0.05, at: 0.08, sweepTo: 400 });
+  } else if (kind === "DASH") { burst(c, o, { dur: 0.22, freq: 900, q: 2, gain: 0.45 }); tone(c, o, { f0: 60, f1: 30, dur: 0.3, gain: 0.45 }); }
   else if (kind === "DOME" || kind === "SHIELD") { tone(c, o, { f0: 200, f1: 400, dur: 0.6, type: "triangle", gain: 0.25 }); tone(c, o, { f0: 300, f1: 600, dur: 0.6, type: "sine", gain: 0.2 }); tone(c, o, { f0: 60, f1: 30, dur: 0.4, gain: 0.5 }); }
   else if (kind === "MARK") { // target lock: two bright pings and a soft confirm
     tone(c, o, { f0: 1760, f1: 1760, dur: 0.07, type: "sine", gain: 0.35 }); tone(c, o, { f0: 2350, f1: 2350, dur: 0.09, type: "sine", gain: 0.3, at: 0.09 });
