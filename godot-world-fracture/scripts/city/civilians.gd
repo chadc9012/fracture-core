@@ -98,13 +98,27 @@ static var _cloth: Shader
 func _pick(a: Array) -> Color:
 	return Color(String(a[_rng.randi() % a.size()]))
 
-func _dress(m: Node3D) -> void:
-	var rig: Node3D = m.rig
-	if not rig or not rig.body_root:
-		return
-	if not _cloth:
-		_cloth = load("res://shaders/clothing.gdshader")
-	var female := String(rig.look.get("body", "male")) == "female"
+## the Lumen Luxe collection (data/lumen_luxe.json, the owner's 28-outfit catalog, Nov 11): named outfits with their cut,
+## cloth and colours; a share of the crowd wears them
+const LUMEN_SHARE := 0.6
+static var _lumen: Array = []
+
+static func lumen() -> Array:
+	if _lumen.is_empty() and FileAccess.file_exists("res://data/lumen_luxe.json"):
+		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/lumen_luxe.json"))
+		if d is Dictionary:
+			_lumen = d.get("outfits", [])
+	return _lumen
+
+## a collection outfit as the clothing shader's parameters
+static func lumen_look(o: Dictionary) -> Dictionary:
+	var l: Dictionary = o.look
+	return { "style": int(l.cut), "legs_kind": int(l.legs), "shoe_kind": int(l.shoes), "pattern": int(l.pattern),
+		"satin": 1 if l.satin else 0, "glow": float(l.glow), "top_col": Color(l.top), "trim_col": Color(l.trim),
+		"leg_col": Color(l.legs_col), "shoe_col": Color(l.shoe), "acc_col": Color(l.acc), "sku": o.sku }
+
+## a generic passer-by's outfit: a cut and real-world colours
+func _street_look(female: bool) -> Dictionary:
 	var r := _rng.randf()
 	var style := 0
 	# a city crowd: mostly t-shirts, jeans and jackets, some hoodies, summer clothes, dresses and coats
@@ -131,26 +145,96 @@ func _dress(m: Node3D) -> void:
 	elif style == 4:
 		top = _pick(DRESSES)
 	var shoe_kind := 1 if style == 2 or (style == 5 and _rng.randf() < 0.6) or (style == 4 and _rng.randf() < 0.5) else 0
+	return { "style": style, "legs_kind": legs_kind, "shoe_kind": shoe_kind, "top_col": top,
+		"trim_col": _pick(TRIMS) if style != 2 else Color("#e9e7e2"), "leg_col": legs,
+		"shoe_col": _pick(LEATHER) if shoe_kind == 1 else _pick(SNEAKERS),
+		"acc_col": _pick(ACCENTS) if style != 2 else Color("#7a1f2b").lerp(_pick(TOPS), 0.4) }
+
+func _dress(m: Node3D, sku := "") -> void:
+	var rig: Node3D = m.rig
+	if not rig or not rig.body_root:
+		return
+	var female := String(rig.look.get("body", "male")) == "female"
+	var look := {}
+	var pool: Array = lumen().filter(func(o: Dictionary) -> bool: return female or not o.get("female_only", false))
+	if sku != "":
+		for o in lumen():
+			if o.sku == sku:
+				look = lumen_look(o)
+	elif not pool.is_empty() and _rng.randf() < LUMEN_SHARE:
+		look = lumen_look(pool[_rng.randi() % pool.size()])
+	if look.is_empty():
+		look = _street_look(female)
 	# the hands and bare arms and legs match the face: the head texture's own skin when it has one
-	var skin: Color = rig._tex_skin if rig._tex_skin != null else rig._scalp_tone()
+	look["skin_col"] = rig._tex_skin if rig._tex_skin != null else rig._scalp_tone()
+	apply_outfit(rig, look)
+	m.set_meta("outfit", look.get("sku", ""))
+
+## dress a rig's civilian body in a look (shader parameters by name; anything missing keeps the shader default)
+static func apply_outfit(rig: Node3D, look: Dictionary) -> void:
+	if not _cloth:
+		_cloth = load("res://shaders/clothing.gdshader")
 	for n in rig.body_root.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
-		if mi == rig.head_mesh or mi == rig.hair_mesh or not mi.mesh:
-			continue
-		if mi.mesh.get_surface_count() != 1:
+		if mi == rig.head_mesh or mi == rig.hair_mesh or not mi.mesh or mi.mesh.get_surface_count() != 1:
 			continue
 		var mat := ShaderMaterial.new()
 		mat.shader = _cloth
 		mi.material_override = mat
-		mi.set_instance_shader_parameter("style", style)
-		mi.set_instance_shader_parameter("legs_kind", legs_kind)
-		mi.set_instance_shader_parameter("shoe_kind", shoe_kind)
-		mi.set_instance_shader_parameter("top_col", top)
-		mi.set_instance_shader_parameter("trim_col", _pick(TRIMS) if style != 2 else Color("#e9e7e2"))
-		mi.set_instance_shader_parameter("leg_col", legs)
-		mi.set_instance_shader_parameter("shoe_col", _pick(LEATHER) if shoe_kind == 1 else _pick(SNEAKERS))
-		mi.set_instance_shader_parameter("acc_col", _pick(ACCENTS) if style != 2 else Color("#7a1f2b").lerp(_pick(TOPS), 0.4))
-		mi.set_instance_shader_parameter("skin_col", skin)
+		for k in ["style", "legs_kind", "shoe_kind", "pattern", "satin", "glow", "top_col", "trim_col", "leg_col", "shoe_col", "acc_col", "skin_col"]:
+			if look.has(k):
+				mi.set_instance_shader_parameter(k, look[k])
+	_skirt(rig, look)
+
+## dresses and gowns get a real skirt: a flared open cone on the hips bone (the body's legs are separate, so a dress
+## painted on them alone read as trousers). Knee length for a dress or slip, to the ankle for a gown.
+static func _skirt(rig: Node3D, look: Dictionary) -> void:
+	var sk: Skeleton3D = rig.skeleton
+	if not sk:
+		return
+	for c in sk.get_children():
+		if c.name == "skirt":
+			c.free()
+	var st := int(look.get("style", 0))
+	if st != 4 and st != 9 and st != 11:
+		return
+	var hb := -1
+	for i in sk.get_bone_count():
+		if sk.get_bone_name(i).ends_with("Hips"):
+			hb = i
+			break
+	if hb < 0:
+		return
+	var att := BoneAttachment3D.new()
+	att.name = "skirt"
+	att.bone_name = sk.get_bone_name(hb)
+	sk.add_child(att)
+	# work in metres in the walker's own frame: where the hips sit above its feet
+	var to_rig := rig.global_transform.affine_inverse() * sk.global_transform if rig.is_inside_tree() else Transform3D.IDENTITY
+	var hip_y := (to_rig * sk.get_bone_global_rest(hb).origin).y
+	var gown := st == 9
+	var top_y := hip_y + 0.1
+	var hem_y := 0.1 if gown else hip_y * 0.5
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.125
+	cm.bottom_radius = 0.34 if gown else (0.25 if st == 4 else 0.22)
+	cm.height = top_y - hem_y
+	cm.cap_top = false
+	cm.cap_bottom = false
+	cm.radial_segments = 20
+	cm.rings = 4
+	var mi := MeshInstance3D.new()
+	mi.mesh = cm
+	var m := StandardMaterial3D.new()
+	m.albedo_color = look.get("top_col", Color(0.3, 0.3, 0.35))
+	m.roughness = 0.35 if st != 4 else 0.85
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	att.add_child(mi)
+	# hang it level from the waist whatever the hips bone's own axes are
+	var bone_rig := to_rig * sk.get_bone_global_rest(hb)
+	var want := Transform3D(Basis(), Vector3(bone_rig.origin.x, (top_y + hem_y) * 0.5, bone_rig.origin.z + 0.01))
+	mi.transform = bone_rig.affine_inverse() * want
 
 ## the district moved: walkers keep to lo..hi and are drawn only inside it
 func set_span(lo: float, hi: float) -> void:

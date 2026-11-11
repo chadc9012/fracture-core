@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Heritage Cream",
+    "file": "Heritage_Cream.glb",
+    "type": "full_outfit_preview_character",
+    "height_m": 1.91,
+    "rigged": false,
+    "meshes": 72,
+    "bytes": 161580
+  },
+  {
+    "name": "Graphite Tech",
+    "file": "Graphite_Tech.glb",
+    "type": "full_outfit_preview_character",
+    "height_m": 1.91,
+    "rigged": false,
+    "meshes": 55,
+    "bytes": 143420
+  },
+  {
+    "name": "Motorsport White",
+    "file": "Motorsport_White.glb",
+    "type": "full_outfit_preview_character",
+    "height_m": 1.91,
+    "rigged": false,
+    "meshes": 68,
+    "bytes": 153752
+  },
+  {
+    "name": "Coastal Orange",
+    "file": "Coastal_Orange.glb",
+    "type": "full_outfit_preview_character",
+    "height_m": 1.91,
+    "rigged": false,
+    "meshes": 56,
+    "bytes": 150068
+  },
+  {
+    "name": "Gold Chain",
+    "file": "Gold_Chain.glb",
+    "type": "accessory",
+    "rigged": false,
+    "meshes": 35,
+    "bytes": 32260
+  },
+  {
+    "name": "Steel Watch",
+    "file": "Steel_Watch.glb",
+    "type": "accessory",
+    "rigged": false,
+    "meshes": 3,
+    "bytes": 35792
+  },
+  {
+    "name": "Fashion Sunglasses",
+    "file": "Fashion_Sunglasses.glb",
+    "type": "accessory",
+    "rigged": false,
+    "meshes": 7,
+    "bytes": 40084
+  }
+]

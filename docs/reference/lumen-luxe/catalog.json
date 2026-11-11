@@ -1,0 +1,510 @@
+{
+  "collection": "Lumen Luxe Expanded Collection",
+  "version": 1,
+  "products": [
+    {
+      "sku": "CAS01",
+      "name": "Sunday Essentials",
+      "category": "Casual",
+      "fictional_brand": "Vela Basics",
+      "description": "cream heavyweight hoodie and relaxed washed denim",
+      "model": "CAS01_Sunday_Essentials.glb",
+      "price_nex": 275,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#D9C5A8",
+        "secondary": "#667E89",
+        "accent": "#CBB08A"
+      }
+    },
+    {
+      "sku": "CAS02",
+      "name": "Coffee Run",
+      "category": "Casual",
+      "fictional_brand": "Vela Basics",
+      "description": "sage knit and sand chinos",
+      "model": "CAS02_Coffee_Run.glb",
+      "price_nex": 275,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#7A8865",
+        "secondary": "#D4C29E",
+        "accent": "#EEE3C7"
+      }
+    },
+    {
+      "sku": "CAS03",
+      "name": "Campus Classic",
+      "category": "Casual",
+      "fictional_brand": "Arc & Vale",
+      "description": "navy varsity jacket with contrasting sleeves",
+      "model": "CAS03_Campus_Classic.glb",
+      "price_nex": 275,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#243954",
+        "secondary": "#A5B1C5",
+        "accent": "#C8A452"
+      }
+    },
+    {
+      "sku": "CAS04",
+      "name": "Riviera Linen",
+      "category": "Casual",
+      "fictional_brand": "Sorelle Atelier",
+      "description": "open linen shirt and tailored shorts",
+      "model": "CAS04_Riviera_Linen.glb",
+      "price_nex": 275,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#EEE1BF",
+        "secondary": "#C7B38A",
+        "accent": "#EEE6C4"
+      }
+    },
+    {
+      "sku": "CAS05",
+      "name": "Weekend Layer",
+      "category": "Casual",
+      "fictional_brand": "Arc & Vale",
+      "description": "brown casual jacket and dark denim",
+      "model": "CAS05_Weekend_Layer.glb",
+      "price_nex": 275,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#7F644F",
+        "secondary": "#2F3845",
+        "accent": "#E7D7C1"
+      }
+    },
+    {
+      "sku": "CAS06",
+      "name": "Coastal Sport",
+      "category": "Casual",
+      "fictional_brand": "Vela Basics",
+      "description": "mint oversized tee with teal shorts",
+      "model": "CAS06_Coastal_Sport.glb",
+      "price_nex": 275,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#E1F0EF",
+        "secondary": "#436B74",
+        "accent": "#F7B35A"
+      }
+    },
+    {
+      "sku": "STR01",
+      "name": "Midnight Borough",
+      "category": "Streetwear",
+      "fictional_brand": "Noir District",
+      "description": "black oversized street hoodie and cargos",
+      "model": "STR01_Midnight_Borough.glb",
+      "price_nex": 650,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#20212B",
+        "secondary": "#434950",
+        "accent": "#9D62C7"
+      }
+    },
+    {
+      "sku": "STR02",
+      "name": "Neon Afterhours",
+      "category": "Streetwear",
+      "fictional_brand": "Noir District",
+      "description": "technical bomber with turquoise luminous piping",
+      "model": "STR02_Neon_Afterhours.glb",
+      "price_nex": 650,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#202B36",
+        "secondary": "#1C252B",
+        "accent": "#39DFDA"
+      }
+    },
+    {
+      "sku": "STR03",
+      "name": "Skate Legend",
+      "category": "Streetwear",
+      "fictional_brand": "Ghostline",
+      "description": "oversized graphic t-shirt and wide-leg denim",
+      "model": "STR03_Skate_Legend.glb",
+      "price_nex": 650,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#E9E2D4",
+        "secondary": "#64799A",
+        "accent": "#E94C58"
+      }
+    },
+    {
+      "sku": "STR04",
+      "name": "Chrome Signal",
+      "category": "Streetwear",
+      "fictional_brand": "Ghostline",
+      "description": "silver sports tracksuit with coral trim",
+      "model": "STR04_Chrome_Signal.glb",
+      "price_nex": 650,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#A5AEB7",
+        "secondary": "#343A42",
+        "accent": "#FF673B"
+      }
+    },
+    {
+      "sku": "STR05",
+      "name": "Rooftop Rebel",
+      "category": "Streetwear",
+      "fictional_brand": "Noir District",
+      "description": "utility vest and oversized cargo pants",
+      "model": "STR05_Rooftop_Rebel.glb",
+      "price_nex": 650,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#6E6C61",
+        "secondary": "#3C3B40",
+        "accent": "#D1BD8D"
+      }
+    },
+    {
+      "sku": "STR06",
+      "name": "Harbor Graffiti",
+      "category": "Streetwear",
+      "fictional_brand": "Ghostline",
+      "description": "purple statement hoodie and graphic trim",
+      "model": "STR06_Harbor_Graffiti.glb",
+      "price_nex": 650,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#7D4FB4",
+        "secondary": "#1A1D29",
+        "accent": "#F3C748"
+      }
+    },
+    {
+      "sku": "URB01",
+      "name": "Metro Executive",
+      "category": "Urban",
+      "fictional_brand": "Aureline",
+      "description": "tailored long charcoal coat over urban essentials",
+      "model": "URB01_Metro_Executive.glb",
+      "price_nex": 880,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#373E43",
+        "secondary": "#1B2432",
+        "accent": "#B9A489"
+      }
+    },
+    {
+      "sku": "URB02",
+      "name": "Night Shift",
+      "category": "Urban",
+      "fictional_brand": "Noir District",
+      "description": "leather biker jacket with fitted dark trousers",
+      "model": "URB02_Night_Shift.glb",
+      "price_nex": 880,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#25252B",
+        "secondary": "#343332",
+        "accent": "#DA4B44"
+      }
+    },
+    {
+      "sku": "URB03",
+      "name": "Skyline Runner",
+      "category": "Urban",
+      "fictional_brand": "Vela Basics",
+      "description": "steel-blue athleisure set",
+      "model": "URB03_Skyline_Runner.glb",
+      "price_nex": 880,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#556D8B",
+        "secondary": "#1E273B",
+        "accent": "#D0DCE4"
+      }
+    },
+    {
+      "sku": "URB04",
+      "name": "Gallery Opening",
+      "category": "Urban",
+      "fictional_brand": "Sorelle Atelier",
+      "description": "oversized cream blazer and relaxed trousers",
+      "model": "URB04_Gallery_Opening.glb",
+      "price_nex": 880,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#D7C6AA",
+        "secondary": "#24242D",
+        "accent": "#D6B56B"
+      }
+    },
+    {
+      "sku": "LUX01",
+      "name": "Aureline Monogram",
+      "category": "Designer",
+      "fictional_brand": "Aureline",
+      "description": "camel overcoat with original repeated A-dot pattern",
+      "model": "LUX01_Aureline_Monogram.glb",
+      "price_nex": 2200,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#B7A08A",
+        "secondary": "#433A37",
+        "accent": "#6D4F3C"
+      }
+    },
+    {
+      "sku": "LUX02",
+      "name": "Vesper Runway",
+      "category": "Designer",
+      "fictional_brand": "Vesper House",
+      "description": "ivory fitted designer tailoring",
+      "model": "LUX02_Vesper_Runway.glb",
+      "price_nex": 2200,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#F0E9E0",
+        "secondary": "#EDE6DA",
+        "accent": "#B7A26B"
+      }
+    },
+    {
+      "sku": "LUX03",
+      "name": "Obsidian Signature",
+      "category": "Designer",
+      "fictional_brand": "Obsidian Label",
+      "description": "black luxury suit with gold accent seams",
+      "model": "LUX03_Obsidian_Signature.glb",
+      "price_nex": 2200,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#1A1B25",
+        "secondary": "#171820",
+        "accent": "#B59552"
+      }
+    },
+    {
+      "sku": "LUX04",
+      "name": "Crown Check",
+      "category": "Designer",
+      "fictional_brand": "Crown & Loom",
+      "description": "heritage check overcoat with original windowpane pattern",
+      "model": "LUX04_Crown_Check.glb",
+      "price_nex": 2200,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#B6A081",
+        "secondary": "#343631",
+        "accent": "#402B28"
+      }
+    },
+    {
+      "sku": "LUX05",
+      "name": "Maison Rouge",
+      "category": "Designer",
+      "fictional_brand": "Maison Vero",
+      "description": "burgundy luxury suit with satin contrast lapels",
+      "model": "LUX05_Maison_Rouge.glb",
+      "price_nex": 2200,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#782D37",
+        "secondary": "#211C27",
+        "accent": "#E0C7AC"
+      }
+    },
+    {
+      "sku": "LUX06",
+      "name": "Night Pearl",
+      "category": "Designer",
+      "fictional_brand": "Vesper House",
+      "description": "white and graphite fashion-forward evening look",
+      "model": "LUX06_Night_Pearl.glb",
+      "price_nex": 2200,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#EEE9E0",
+        "secondary": "#1F252D",
+        "accent": "#B3C1CB"
+      }
+    },
+    {
+      "sku": "DRS01",
+      "name": "Velvet Skyline",
+      "category": "Dresses",
+      "fictional_brand": "Sorelle Atelier",
+      "description": "deep plum maxi evening dress",
+      "model": "DRS01_Velvet_Skyline.glb",
+      "price_nex": 1250,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#5B2449",
+        "secondary": "#5B2449",
+        "accent": "#D4AB7A"
+      }
+    },
+    {
+      "sku": "DRS02",
+      "name": "Azure Slip",
+      "category": "Dresses",
+      "fictional_brand": "Maison Vero",
+      "description": "turquoise satin-style slip dress",
+      "model": "DRS02_Azure_Slip.glb",
+      "price_nex": 1250,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#3B9DB5",
+        "secondary": "#3B9DB5",
+        "accent": "#C8D9DF"
+      }
+    },
+    {
+      "sku": "DRS03",
+      "name": "Rose Gallery",
+      "category": "Dresses",
+      "fictional_brand": "Sorelle Atelier",
+      "description": "blush A-line knee-length dress",
+      "model": "DRS03_Rose_Gallery.glb",
+      "price_nex": 1250,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#D19C9A",
+        "secondary": "#D19C9A",
+        "accent": "#A78382"
+      }
+    },
+    {
+      "sku": "DRS04",
+      "name": "Obsidian Gala",
+      "category": "Dresses",
+      "fictional_brand": "Obsidian Label",
+      "description": "long black gala gown with golden detailing",
+      "model": "DRS04_Obsidian_Gala.glb",
+      "price_nex": 1250,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#1D1A24",
+        "secondary": "#1D1A24",
+        "accent": "#CEAD6B"
+      }
+    },
+    {
+      "sku": "DRS05",
+      "name": "Metropolitan Mini",
+      "category": "Dresses",
+      "fictional_brand": "Ghostline",
+      "description": "indigo structured mini dress",
+      "model": "DRS05_Metropolitan_Mini.glb",
+      "price_nex": 1250,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#4B4A66",
+        "secondary": "#4B4A66",
+        "accent": "#A0A9CF"
+      }
+    },
+    {
+      "sku": "DRS06",
+      "name": "Champagne Evening",
+      "category": "Dresses",
+      "fictional_brand": "Aureline",
+      "description": "champagne formal flowing gown",
+      "model": "DRS06_Champagne_Evening.glb",
+      "price_nex": 1250,
+      "rigged": false,
+      "materials": "vertex colors",
+      "components": "named separate meshes",
+      "preview_only": true,
+      "colors": {
+        "primary": "#D4BE91",
+        "secondary": "#D4BE91",
+        "accent": "#EFE0BC"
+      }
+    }
+  ]
+}

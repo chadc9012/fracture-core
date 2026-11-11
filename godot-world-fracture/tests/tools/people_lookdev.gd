@@ -13,6 +13,7 @@ func _init() -> void:
 		out = args[0]
 	var seed := int(args[1]) if args.size() > 1 else 9
 	var close := args.size() > 2 and args[2] == "close"
+	var civ_n := 0
 	var root := Node3D.new()
 	get_root().add_child(root)
 	var env := WorldEnvironment.new()
@@ -48,7 +49,35 @@ func _init() -> void:
 	root.add_child(civ)
 	var boxes: Array[AABB] = []
 	civ.setup(null, boxes, Rect2(-30, -30, 60, 60), func(_p: Vector3) -> float: return 0.0, -20, 20, 0, seed)
-	var n := 3 if close else 7
+	# "lumen": the whole Lumen Luxe collection, a row per category (args[3] = first..last index, default all 28)
+	var lumen := args.size() > 2 and args[2] == "lumen"
+	if lumen:
+		var all: Array = Civilians.lumen()
+		var lo := 0
+		var hi := all.size()
+		if args.size() > 3:
+			var r := args[3].split("..")
+			lo = int(r[0]); hi = int(r[1])
+		var row := 0
+		var col := 0
+		var cat := ""
+		for i in range(lo, hi):
+			var o: Dictionary = all[i]
+			if cat != "" and o.category != cat:
+				row += 1; col = 0
+			cat = o.category
+			var look: Dictionary = civ.random_look()
+			while o.female_only and look.body != "female":
+				look = civ.random_look()
+			var w = civ._spawn(1.0, 0.0, 1.0)
+			w.mover.build(look)
+			civ._dress(w.mover, o.sku)
+			w.mover.position = Vector3((col - 2.5) * 0.95, 0.0, -row * 1.6)
+			w.mover.rotation.y = 0.0
+			w.mover.set_physics_process(false)
+			w.mover.set_process(false)
+			col += 1
+	var n := 0 if lumen else (3 if close else 7)
 	for i in n:
 		var w = civ._spawn(1.0, 0.0, 1.0)
 		w.mover.position = Vector3((i - (n - 1) * 0.5) * (1.1 if close else 0.95), 0.0, 0.0)
@@ -61,7 +90,12 @@ func _init() -> void:
 	root.add_child(cam)
 	cam.fov = 35.0 if close else 40.0
 	var at := Vector3(0, 1.45, 4.2) if close else Vector3(0, 1.2, 8.5)
-	cam.look_at_from_position(at, Vector3(0, 1.25 if close else 0.95, 0), Vector3.UP)
+	var aim := Vector3(0, 1.25 if close else 0.95, 0)
+	if lumen:
+		at = Vector3(0, 1.5, 4.6)
+		aim = Vector3(0, 1.0, 0)
+		cam.fov = 50.0
+	cam.look_at_from_position(at, aim, Vector3.UP)
 	cam.make_current()
 
 func _process(_dt: float) -> bool:
