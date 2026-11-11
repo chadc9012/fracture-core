@@ -110,6 +110,8 @@ var _near_car: Node3D
 const InventoryView = preload("res://scripts/gear/inventory_view.gd")
 const ProfileView := preload("res://scripts/progress/profile_view.gd")
 const CivicProps := preload("res://scripts/city/civic_props.gd")
+const Interiors := preload("res://scripts/city/interiors.gd")
+const InteriorSets := preload("res://scripts/city/interior_sets.gd")
 const OutfitLook = preload("res://scripts/gear/outfit_look.gd")
 var wallet: Dictionary = {}   # the profile (xp, nex, level) while the street is open; mission_01.gd has its own `profile`
 var gear: Dictionary = {}
@@ -1554,7 +1556,8 @@ func _doors() -> void:
 	if style == "nexus":
 		# the court shops (nexus_districts.gd builds their fronts with the tile)
 		_door_spots.append_array(Nexus.door_spots())
-	for d in DOORS:
+	# the walk-in buildings (interiors.gd): hospital, precinct, fire station, hotel, club, restaurant, school, office, car park
+	for d in DOORS + Interiors.door_rows():
 		var only := String(d.get("style", "nexus"))
 		if only != "any" and only != style:
 			continue
@@ -1583,10 +1586,12 @@ func _doors() -> void:
 				_box(Vector3(0.12, 3.2, 0.12), Vector3(1.4, 1.6, 0), flat(Color(0.3, 0.32, 0.35), 0.4, 0.7), holder)
 				_box(Vector3(3.2, 0.1, 1.6), Vector3(0, 3.2, 0), flat(Color(0.2, 0.22, 0.25), 0.4, 0.5), holder)
 				_box(Vector3(2.6, 0.5, 0.06), Vector3(0, 2.75, 0.6), _neon_mat(col, 2.5), holder)
+			"front":
+				InteriorSets.front(holder, String(d.id), col)
 			"portal":
 				# the Rift Gate: a ring standing on the walk with a live vortex in it (scripts/vfx/fx.gd)
 				holder.add_child(preload("res://scripts/vfx/fx.gd").portal(1.7, col))
-		if kind != "none":
+		if kind != "none" and kind != "front":
 			var name_l := Label3D.new()
 			name_l.text = String(d.label)
 			name_l.font_size = 64

@@ -80,6 +80,8 @@ func _run() -> void:
 	await leak_check("driving", base)
 	await _play_street()
 	await leak_check("street", base)
+	await _play_buildings()
+	await leak_check("walk-in buildings", base)
 	await _play_creator()
 	await leak_check("operator creator", base)
 	await _play_regions()
@@ -221,6 +223,36 @@ func _play_street() -> void:
 			await frames(4)
 
 # ---------------------------------------------------------------- the operator creator
+
+# ---------------------------------------------------------------- the walk-in buildings off the Nexus avenue
+
+func _play_buildings() -> void:
+	var Interiors = load("res://scripts/city/interiors.gd")
+	main._open_street(true, "nexus", true)
+	await frames(10)
+	if main.street == null:
+		problem("the Nexus street did not open for the buildings")
+		return
+	for id in Interiors.ROOMS:
+		step("building %s" % id)
+		main._street_door(id)
+		await frames(6)
+		var v = main._from_street
+		if v == null:
+			problem("the %s did not open from its street door" % id)
+			continue
+		v.controls.scripted = true     # held stick (touch_controls.gd otherwise reads the real input every frame)
+		v.controls.move = Vector2(0, 1)
+		await create_timer(1.0).timeout
+		v.controls.move = Vector2.ZERO
+		if v.operator.position.z > -4.0:
+			problem("walking into the %s went nowhere" % id)
+		v.closed.emit()
+		await frames(4)
+		if main._from_street != null or not main.street.visible:
+			problem("leaving the %s did not bring the street back" % id)
+	main._close_street()
+	await frames(4)
 
 func _play_creator() -> void:
 	step("creator open")

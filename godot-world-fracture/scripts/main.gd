@@ -33,6 +33,8 @@ var settings_view: Control
 var _from_street: Control
 var _mission_from_onboarding := false
 const ModesHub := preload("res://scripts/modes/modes_hub.gd")
+const Interiors := preload("res://scripts/city/interiors.gd")
+const InteriorView := preload("res://scripts/city/interior_view.gd")
 var modes: Control
 var descent: Control
 var killbox: Control
@@ -262,6 +264,12 @@ func _street_door(id: String) -> void:
 		"airport":
 			# the city's own airport: Neon City International from Neon City's street, Nexus City International otherwise
 			view = _airport_view("NEC" if street.style == "neon" else "NXC", false)
+		_:
+			if Interiors.has(id):
+				# a walk-in building off the avenue (interiors.gd)
+				var iv := InteriorView.new()
+				iv.room_id = id
+				view = iv
 	if view == null:
 		return
 	street.visible = false
@@ -723,6 +731,15 @@ func _shoot(path: String, opts: Array) -> void:
 			if cam_q.size() > 2:
 				var cf := cam_q[1].split(","); var ct := cam_q[2].split(",")
 				street.look_from(Vector3(float(cf[0]), float(cf[1]), float(cf[2])), Vector3(float(ct[0]), float(ct[1]), float(ct[2])))
+		# interior:<id>[:x,y,z:tx,ty,tz]  a walk-in building off the Nexus avenue (interiors.gd ROOMS), entered from the street
+		if String(o).begins_with("interior:"):
+			var iq := String(o).split(":")
+			_open_street(false, "nexus", true)
+			await get_tree().process_frame
+			_street_door(iq[1])
+			if iq.size() > 3 and _from_street:
+				var i_f := iq[2].split(","); var i_t := iq[3].split(",")
+				_from_street.look_from(Vector3(float(i_f[0]), float(i_f[1]), float(i_f[2])), Vector3(float(i_t[0]), float(i_t[1]), float(i_t[2])))
 		# casino[:view]  the Neon City Grand Casino (Neon City's alone): 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert
 		if String(o).begins_with("casino"):
 			_open_street(true, "neon", false)
