@@ -15,7 +15,7 @@ const Merge := preload("res://scripts/cloud/cloud_merge.gd")
 const URL := "https://gonsxecjmpemkguhheal.supabase.co"
 const KEY := "sb_publishable_3JNGD-S_XEMNHahvllbxXg_bWPWegFs"
 const SESSION := "user://session.json"
-const FILES := { "profile": "user://profile.json", "character": "user://character.json", "inventory": "user://inventory.json", "mission01": "user://mission01.json", "quests": "user://quests.json" }
+const FILES := { "profile": "user://profile.json", "character": "user://character.json", "inventory": "user://inventory.json", "mission01": "user://mission01.json", "quests": "user://quests.json", "npcs": "user://npcs.json" }
 
 signal status_changed(text: String)
 const LOCAL_PORT := 4321

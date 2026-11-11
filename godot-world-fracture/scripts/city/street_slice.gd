@@ -58,6 +58,7 @@ var _radio_button: Button
 var _topbar: HFlowContainer
 var _drive_m := 0.0
 var _near_door := ""
+var _near_npc := ""
 
 
 const ROAD_W := 16.0          # kerb to kerb
@@ -96,6 +97,7 @@ var life: Node
 ## z = k * TILE, so the builders below work in tile-local coordinates (`_tile_root` set while a tile is being built).
 const District = preload("res://scripts/city/district.gd")
 const Civilians = preload("res://scripts/city/civilians.gd")
+const NpcStreet = preload("res://scripts/npc/npc_street.gd")
 const Crowd = preload("res://scripts/city/crowd.gd")
 var crowd: MultiMeshInstance3D
 const StaticBatch = preload("res://scripts/static_batch.gd")
@@ -110,6 +112,8 @@ var armed := true
 var _area := ""
 var _casino_at := Vector3.INF
 var civilians: Node3D
+## Nexus City's named people (scripts/npc/: tier 2 NPCs with jobs, schedules and memory); Nexus style only
+var npcs: Node3D
 var _shots_seen := 0
 var district: RefCounted
 var tiles := {}                 # k -> { "root": Node3D or null, "slots": Array[int] }
@@ -407,6 +411,10 @@ func _after_enemies() -> void:
 	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(4, int(round(10 * Phone.crowd()))), 9)
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
+	if style == "nexus":
+		npcs = NpcStreet.new()
+		world.add_child(npcs)
+		npcs.setup(operator, controls, self, operator.obstacles, operator.bounds, operator.ground_at, 11.5, Vector2(-128.0, 128.0))
 	_apply_district(first_plan)
 	# street racing life (street_life.gd): the city's race meets on the avenue, challenges, the police
 	life = StreetLife.new()
@@ -672,6 +680,8 @@ func _process(dt: float) -> void:
 		if gunplay and gunplay.shots_fired != _shots_seen:
 			_shots_seen = gunplay.shots_fired
 			civilians.scatter(operator.position)
+			if npcs:
+				npcs.gunfire(operator.position)
 	_infra_t += minf(dt, 0.05)
 	Infra.step(self, _infra_t)
 	if traffic:
@@ -685,6 +695,12 @@ func _process(dt: float) -> void:
 		return
 	if life:
 		life.step(minf(dt, 0.05))
+	if npcs:
+		npcs.step(minf(dt, 0.05))
+		if npcs.busy:
+			# in a conversation: the operator stands still and nothing else takes input
+			operator.step(minf(dt, 0.05), Vector2.ZERO, Vector2.ZERO, false, false)
+			return
 	operator.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if style == "nexus":
 		# entering a district court (or the plaza) names it once
@@ -717,15 +733,23 @@ func _process(dt: float) -> void:
 			door_id = String(d.id)
 			door_label = String(d.label)
 			break
-	if door_id != _near_door or near != _near_car:
+	# a named person within reach comes after a door, before a car
+	var npc_id: String = npcs.near(operator.position) if npcs and door_id == "" else ""
+	if door_id != _near_door or near != _near_car or npc_id != _near_npc:
 		_near_door = door_id
 		_near_car = near
-		controls.prompt(("ENTER " + door_label) if door_id != "" else (("ENTER " + _car_name(near)) if near else ""))
+		_near_npc = npc_id
+		controls.prompt(("ENTER " + door_label) if door_id != "" else (npcs.label_for(npc_id) if npc_id != "" else (("ENTER " + _car_name(near)) if near else "")))
 	# one ENTER press, read once: a door within reach takes it, else a car (reading it twice ate every press on the way
 	# to the car check, so no car could be entered once the hub doors arrived)
 	var pressed_enter: bool = controls.take_enter()
 	if pressed_enter and door_id != "":
 		_enter_door(door_id)
+		return
+	if pressed_enter and npc_id != "":
+		controls.prompt("")
+		_near_npc = ""
+		npcs.talk(npc_id)
 		return
 	if pressed_enter and near:
 		enter_car(near)

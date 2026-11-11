@@ -588,3 +588,18 @@ Shot a flight with `--shot <png> airport:<from>:board:<to>:<seconds>`. Each look
 (state in the profile under `air`, so it rides the cloud save); add an airport as an `AIRPORTS` row and a destination
 as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
 whole trip through main.gd). Shots: `--shot airport[:NXC|NEC[:x,y,z:tx,ty,tz]]`.
+
+## Nexus City's people (Nov 11, owner: "realistic NPCs", three tiers)
+
+Tier 1 is the background: crowd.gd figures and civilians.gd walkers. Tier 2 is sixteen named people on the Nexus
+avenue (`scripts/npc/`): `people.gd` (who they are — name, age, body, build, outfit, job, personality — and their daily
+schedule of places and activities on the device clock), `memory.gd` (what they remember about you, saved in
+user://npcs.json and synced as the cloud file `npcs`: affinity -100..100 in bands wary / acquaintance / friend / close,
+an event log, today's errand, notoriety that fades over real time, the police warning), `talk.gd` (greetings by
+personality × affinity × time of day, introductions, work talk, rumours, callbacks to what they remember, the police's
+lines) and `npc_street.gd` (puts whoever is out on the avenue — at work, sitting, busking, waiting at a stop, a courier's
+route, the police beat — with name tags, TALK, errands carried between people for Nex, gunfire scaring them, an
+officer walking over when notoriety is high: a warning, then a 150 Nex fine). They're built through the same
+OperatorPlayer looks as everyone, so the realistic bodies, faces and outfits show on them. Tier 3 (unique story people)
+is next. Tests: `--script res://tests/npc/npc_test.gd`, `res://tests/npc/npc_play.tscn`. Shots:
+`--shot <png> slicedaywalk:npc=<id>:hour=<h>[:talk]`.

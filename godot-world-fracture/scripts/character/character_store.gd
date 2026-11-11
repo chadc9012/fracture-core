@@ -8,10 +8,7 @@ const Catalog := preload("res://scripts/character/catalog.gd")
 const FaceMorphs := preload("res://scripts/character/face_morphs.gd")
 const PATH := "user://character.json"
 const WILD_HEADS := ["m-nomad"]
-## the generated heads' own hair is loose shards that show the face through them, or hide it (owner, Nov 11: "fix ...
-## models"): every head wears the built style closest to what it was modelled with instead ("As modelled" is retired)
-const HEAD_HAIR := { "f-nyx": "ponytail-high", "f-shade": "fringe", "m-goliath": "crop", "m-veteran": "crop",
-	"m-cipher": "twist-fade", "m-sage": "crop", "m-ronin": "twist-fade" }
+
 
 static func default_look() -> Dictionary:
 	return clean({"frame": "goliath", "body": "male", "face": "m-veteran"}, true)
@@ -77,10 +74,8 @@ static func clean(raw: Variant, preset := false) -> Dictionary:
 		look.skin = _in("skin", look.get("skin"), "natural")
 		var hair: String = look.get("hair", "authored")
 		var ok_ids: Array = Catalog.hair_for(body).map(func(h: Dictionary) -> String: return h.id)
-		if hair not in ok_ids or hair == "authored":
-			hair = String(HEAD_HAIR.get(String(look.get("head", "")), "crop" if body == "male" else "fringe"))
-			if hair not in ok_ids:
-				hair = "crop" if body == "male" else "fringe"
+		if hair not in ok_ids:
+			hair = "authored"
 		# the Nomad head's own hair is too wild to cut away: it keeps it
 		look.hair = "authored" if look.head in WILD_HEADS else hair
 		look.beard = _in("beards", look.get("beard"), "clean")
