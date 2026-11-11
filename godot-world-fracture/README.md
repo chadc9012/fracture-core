@@ -600,6 +600,10 @@ personality × affinity × time of day, introductions, work talk, rumours, callb
 lines) and `npc_street.gd` (puts whoever is out on the avenue — at work, sitting, busking, waiting at a stop, a courier's
 route, the police beat — with name tags, TALK, errands carried between people for Nex, gunfire scaring them, an
 officer walking over when notoriety is high: a warning, then a 150 Nex fine). They're built through the same
-OperatorPlayer looks as everyone, so the realistic bodies, faces and outfits show on them. Tier 3 (unique story people)
-is next. Tests: `--script res://tests/npc/npc_test.gd`, `res://tests/npc/npc_play.tscn`. Shots:
+OperatorPlayer looks as everyone, so the realistic bodies, faces and outfits show on them. Neon City has its own fifteen
+(`NEON`, `NEON_PLACES`: a street racer, the casino door and pit boss, a promoter, the night market's tech stall and noodle
+stall, two officers, a hacker, a mechanic, a courier, an arcade attendant, a street preacher — mostly out at night). Tier 3
+are the dialogue draft's own people speaking its lines (`tier: 3`, talk.gd `CANON`, ★ on the tag): Captain Vale on the
+Nexus plaza once Mission 05's choice is made (`needs: m05_choice`; she greets you by that choice) and Fixer Sable in a
+Neon City alley at night (her jobs pay ×3 and add notoriety). Tests: `--script res://tests/npc/npc_test.gd`, `res://tests/npc/npc_play.tscn`. Shots:
 `--shot <png> slicedaywalk:npc=<id>:hour=<h>[:talk]`.

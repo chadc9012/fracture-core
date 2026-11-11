@@ -15,6 +15,7 @@ const Player := preload("res://scripts/player/operator_player.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 const Catalog := preload("res://scripts/character/catalog.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
+const Phone := preload("res://scripts/phone.gd")
 
 const TALK_R := 2.4
 const TAG_R := 12.0
@@ -39,6 +40,8 @@ var controls: Control
 var ui: Control                # where the conversation panel goes (the street's Control)
 var busy := false
 var hour_override := -1.0      # tests and shots set an hour; -1 is the device clock
+var city := "nexus"            # whose people: "nexus" or "neon" (people.gd ROSTERS)
+var profile: Dictionary        # the story gates tier 3 people (Captain Vale after Mission 01's chapters 04-05)
 var _boxes: Array[AABB]
 var _bounds: Rect2
 var _ground: Callable
@@ -49,7 +52,8 @@ var _scare_cool := 0.0
 var _panel: Control
 var _cop_coming := ""
 
-func setup(op: Node3D, ctl: Control, panel_parent: Control, boxes: Array[AABB], b: Rect2, ground: Callable, walk_x: float, span: Vector2) -> void:
+func setup(op: Node3D, ctl: Control, panel_parent: Control, boxes: Array[AABB], b: Rect2, ground: Callable, walk_x: float, span: Vector2, which := "nexus") -> void:
+	city = which
 	operator = op
 	controls = ctl
 	ui = panel_parent
@@ -59,6 +63,7 @@ func setup(op: Node3D, ctl: Control, panel_parent: Control, boxes: Array[AABB], 
 	_walk_x = walk_x
 	_span = span
 	state = Memory.load_state()
+	profile = Gear.profile_load()
 	_schedule()
 
 func hour() -> float:
@@ -77,7 +82,7 @@ func now() -> int:
 ## who should be out: newcomers appear at the avenue's end nearest their place and walk in; those whose shift ended walk off
 func _schedule() -> void:
 	var want := {}
-	for o in People.out_at(hour()):
+	for o in People.out_at(hour(), city, profile):
 		want[String(o.person.id)] = o
 	for id in npcs.keys():
 		var n: Npc = npcs[id]
@@ -112,6 +117,10 @@ func _spawn(o: Dictionary) -> void:
 	var start := n.goal + Vector3(0, 0, 3.0)
 	n.mover.position = start
 	n.mover.build(look_for(p))
+	if Phone.tier() != "high":
+		# a dozen people at the night market: their shadows were ~10 draws each on the phone tier, for a soft blob nobody reads
+		for g in n.mover.find_children("*", "GeometryInstance3D", true, false):
+			(g as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	n.tag = Label3D.new()
 	n.tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	n.tag.font_size = 32
@@ -148,6 +157,8 @@ func _retag(n: Npc) -> void:
 	n.tag.text = (String(n.p.name) + mark + "\n" + String(n.p.job)) if met else ("?" + mark)
 	var a := Memory.affinity(state, id)
 	n.tag.modulate = Color(1.0, 0.55, 0.5) if a < 0 else (Color(0.6, 1.0, 0.75) if a >= 30 else Color(0.95, 0.95, 1.0))
+	if People.tier(n.p) == 3 and met:
+		n.tag.text = "★ " + n.tag.text   # the story's own people
 
 func present_ids() -> Array:
 	var out: Array = []
@@ -280,7 +291,7 @@ func _police(dt: float) -> void:
 	cop.activity = "work"
 	if cop.mover.position.distance_to(operator.position) < 2.2:
 		var verdict := Memory.police_verdict(state, _cop_coming, now())
-		var profile := Gear.profile_load()
+		profile = Gear.profile_load()
 		var paid := 0
 		if verdict == "fine":
 			paid = Memory.pay_fine(profile)
@@ -301,7 +312,7 @@ func talk(id: String) -> void:
 	var me := String(CharacterStore.load_look().get("name", "")).strip_edges()
 	if me == "":
 		me = "Operator"
-	var lines: Array[String] = [Talk.greeting(n.p, state, hour(), me)]
+	var lines: Array[String] = [Talk.greeting(n.p, state, hour(), me, profile)]
 	if kind == "met":
 		lines.append(Talk.intro(n.p, n.place))
 	else:
@@ -385,16 +396,19 @@ func _ask_errand(id: String) -> void:
 	Memory.take_errand(state, offer)
 	Memory.save_state(state)
 	var to: Dictionary = People.by_id(String(offer.to))
-	_say("Could you take %s to %s? Should be over by %s. I'll make it worth your while — %d Nex." % [String(offer.item), String(to.name), String(People.PLACES.get(String((npcs[String(offer.to)] as Npc).place) if npcs.has(String(offer.to)) else "plaza", {}).get("label", "the avenue")), int(offer.reward)])
+	_say("Could you take %s to %s? Should be over by %s. I'll make it worth your while — %d Nex." % [String(offer.item), String(to.name), String(People.places(city).get(String((npcs[String(offer.to)] as Npc).place) if npcs.has(String(offer.to)) else "", {}).get("label", "the avenue")), int(offer.reward)])
 	for n in npcs.values():
 		_retag(n)
 	_refresh_buttons(id)
 
 func _deliver(id: String) -> void:
-	var profile := Gear.profile_load()
+	profile = Gear.profile_load()
 	var e := Memory.deliver(state, id, profile)
 	if e.is_empty():
 		return
+	var heat := float(People.by_id(String(e.from)).get("heat", 0.0))
+	if heat > 0.0:
+		Memory.add_notoriety(state, heat, now())   # a fixer's job: somebody noticed
 	Gear.profile_save(profile)
 	Memory.save_state(state)
 	_say("Oh, brilliant — %s! Tell %s thanks. (+%d Nex)" % [String(e.item), String(People.by_id(String(e.from)).name).get_slice(" ", 0), int(e.reward)])
