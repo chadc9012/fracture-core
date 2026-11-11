@@ -114,6 +114,16 @@ func setup(p: Node3D, boxes: Array[AABB]) -> void:
 	add_child(grenades)
 	grenades.setup(self)
 
+## the operator's rig was rebuilt (new clothes): the guns go back on the new skeleton
+func remount() -> void:
+	if _rack:
+		_rack.queue_free()
+		_rack = null
+	_models.clear()
+	_spine_bone = -1
+	_thigh_bone = -1
+	_mount()
+
 ## the gun models ride the body's RightHand bone; only the current frame's is visible
 func _mount() -> void:
 	if _hand:

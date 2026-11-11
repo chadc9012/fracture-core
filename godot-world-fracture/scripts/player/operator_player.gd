@@ -62,9 +62,7 @@ func build(look: Dictionary = {}) -> void:
 	add_child(rig)
 	var l: Dictionary = look if not look.is_empty() else CharacterStore.load_look()
 	if civilian:
-		l = l.duplicate(true)
-		l.civ = true
-		l.headgear = "none"
+		l = preload("res://scripts/character/wardrobe.gd").civ(l)
 	rig.build(l)
 	rig.rotation.y = heading
 

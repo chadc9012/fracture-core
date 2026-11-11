@@ -62,6 +62,7 @@ static func clean(raw: Variant, preset := false) -> Dictionary:
 	var Outfits := load("res://scripts/character/outfits.gd")
 	if String(look.get("outfit", "")) not in Outfits.ids():
 		look.outfit = Outfits.default_for(body)
+	load("res://scripts/character/wardrobe.gd").clean(look)   # what was bought in the clothing stores
 	if body == "robot":
 		look.skin = _in("plating", look.get("skin"), "steel")
 		look.eyes = _in("optics", look.get("eyes"), "cyan")

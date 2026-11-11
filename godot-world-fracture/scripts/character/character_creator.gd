@@ -1,5 +1,6 @@
 extends Control
 const Outfits := preload("res://scripts/character/outfits.gd")
+const Wardrobe := preload("res://scripts/character/wardrobe.gd")
 const Phone := preload("res://scripts/phone.gd")
 ## Onboarding: the operator creator. A lit turntable of the character (drag to turn it) beside tabs for the body, a named face
 ## (20 male, 20 female), the ten sculpt sliders, skin tone (plating and optics for robots), hairstyle and colour, facial hair
@@ -244,9 +245,7 @@ func _stage_input(e: InputEvent) -> void:
 
 func _rebuild() -> void:
 	# the person in their own clothes (urban streetwear): no armour, no helmet
-	var shown := look.duplicate(true)
-	shown.civ = true
-	shown.headgear = "none"
+	var shown: Dictionary = Wardrobe.civ(look)
 	rig.build(shown)
 
 func _changed(rebuild_panel := false) -> void:
@@ -342,11 +341,25 @@ func _fill() -> void:
 			# the clothes they wear in the city (not armour): scripts/character/outfits.gd
 			_section("OUTFIT")
 			var go := _grid(2)
-			for o: Dictionary in Outfits.LIST:
-				var oid: String = o.id
-				_choice(go, String(o.name), String(look.get("outfit", "")) == oid, func() -> void:
-					look.outfit = oid
-					_changed(true))
+			for it: Dictionary in Wardrobe.ITEMS:
+				if it.kind != "outfit":
+					continue
+				var oid: String = it.id
+				if Wardrobe.owns(look, oid):
+					_choice(go, Wardrobe.item_name(it), String(look.get("outfit", "")) == oid, func() -> void:
+						look.outfit = oid
+						_changed(true))
+				else:
+					# sold in the city's clothing stores (scripts/city/clothing_store.gd)
+					var b := _choice(go, "🔒 %s" % Wardrobe.item_name(it), false, func() -> void: pass,
+						"%d Nex at %s" % [int(it.price), String(Wardrobe.STORES[String(it.stores[0])].name)])
+					b.disabled = true
+			var hint := Label.new()
+			hint.text = "More outfits, headwear, eyewear and jewellery at Nova Threads and Lumen Luxe in the Galleria, and Block Supply on the avenue."
+			hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			hint.add_theme_font_size_override("font_size", 12)
+			hint.modulate = Color(0.7, 0.85, 0.95)
+			go.get_parent().add_child(hint)
 		"FACE":
 			if robot:
 				_section("HEAD")
