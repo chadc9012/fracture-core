@@ -400,7 +400,7 @@ func _races() -> void:
 	v.add_child(_header("RACES", "VENUES   /   STREET CIRCUITS   /   YOUR GARAGE CAR VS THREE RIVALS", show_hub))
 	var row := _row()
 	v.add_child(row)
-	for id in Track.ids():
+	for id in Track.TRACKS.keys():
 		var tr := Track.new(String(id))
 		var tid := String(id)
 		var street := tr.street()
@@ -408,11 +408,57 @@ func _races() -> void:
 		var body := "Neon City's blocks at night: barriers, right-angle corners, the market jog. Win: %d Nex." % int(tr.def.prize[0]) if street else "Stands, pit lane and start lights; an oval with a back-straight chicane. Win: %d Nex." % int(tr.def.prize[0])
 		row.add_child(_tile("race-" + tid, String(tr.def.name).to_upper(), sub, body, Color(0.3, 0.9, 1.0), func(): _launch_race(tid), true, 28))
 	row.add_child(_tile("race-open-world", "OPEN WORLD", "Race other players across the cities", "Point-to-point races through Nexus and Neon City traffic. Comes with online play.", Color(0.4, 0.5, 0.6), func(): pass, false, 28))
+	v.add_child(_track_pack())
 	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "Motorcycle · soon", "Off-road / mud · soon", "Air races · soon"], Color(0.3, 0.9, 1.0)))
 
-func _launch_race(id: String) -> void:
+## Track Pack 01 (the owner's eight long tracks, track_pack.gd): a button each, and how many laps — one, the board's
+## shortest race, or its longest
+const LAP_MODES := ["1 LAP", "BOARD", "ENDURANCE"]
+var lap_mode := 1
+
+func _track_pack() -> Control:
+	const TrackPack := preload("res://scripts/racing/track_pack.gd")
+	var box := VBoxContainer.new()
+	var head := HBoxContainer.new()
+	head.add_child(text("  TRACK PACK 01 · the owner's long tracks", 16, Color(1.0, 0.75, 0.3)))
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(sp)
+	var laps_b := Button.new()
+	laps_b.text = "LAPS: " + String(LAP_MODES[lap_mode])
+	laps_b.pressed.connect(func():
+		lap_mode = (lap_mode + 1) % LAP_MODES.size()
+		open_mode("races"))
+	head.add_child(laps_b)
+	box.add_child(head)
+	var grid := GridContainer.new()
+	grid.columns = 2 if _upright() else 4
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	for id in TrackPack.ids():
+		var d: Dictionary = Track.def_of(String(id))
+		if d.is_empty():
+			continue
+		var n := pack_laps(d)
+		var b := Button.new()
+		b.text = "%s\n%s · %d lap%s · %d km" % [String(d.name).to_upper(), String(d.region), n, "" if n == 1 else "s", int(round(float(d.target_km) * n))]
+		b.custom_minimum_size = Vector2(0, 58)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.add_theme_font_size_override("font_size", 13)
+		var tid := String(id)
+		b.pressed.connect(func(): _launch_race(tid, pack_laps(Track.def_of(tid))))
+		grid.add_child(b)
+	box.add_child(grid)
+	return box
+
+func pack_laps(d: Dictionary) -> int:
+	var r: Array = d.get("lap_range", [int(d.get("laps", 1)), int(d.get("laps", 1))])
+	return [1, int(r[0]), int(r[1])][lap_mode]
+
+func _launch_race(id: String, laps := 0) -> void:
 	var rv := RaceView.new()
 	rv.track_id = id
+	rv.laps = laps
 	_host(rv)
 
 # --------------------------------------------------------------------------------------------- hosting a mode

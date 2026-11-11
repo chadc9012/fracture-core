@@ -129,7 +129,7 @@ func _ready() -> void:
 	race_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	race_button.position = Vector2(140, -70)
 	race_button.custom_minimum_size = Vector2(110, 52)
-	race_button.pressed.connect(_open_race)
+	race_button.pressed.connect(func(): _open_race())
 	add_child(race_button)
 	var kb := Data.button("KILLBOX", true)
 	kb.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -406,10 +406,12 @@ func _close_descent() -> void:
 	planet_view.set_process(true)
 	_sync_later()
 
-func _open_race() -> void:
+func _open_race(track_id := "") -> void:
 	if race_view:
 		return
 	race_view = RaceView.new()
+	if track_id != "":
+		race_view.track_id = track_id
 	race_view.closed.connect(_close_race)
 	add_child(race_view)
 	planet_view.set_process(false)
@@ -974,9 +976,11 @@ func _shoot(path: String, opts: Array) -> void:
 				modes.view.countdown = 0.05
 				modes.view.controls.scripted = true
 				modes.view.autopilot = true
-		# race[:go]  Nexus Speedway from the grid; :go skips the lights and holds the throttle
-		if String(o).begins_with("race"):
-			_open_race()
+		# race[:<track id>][:go]  Nexus Speedway (or any track, e.g. race:glass-flats-rally:go) from the grid; :go skips
+		# the lights and drives itself
+		if String(o).begins_with("race") and not String(o).begins_with("race="):
+			var rq := String(o).split(":")
+			_open_race(rq[1] if rq.size() > 1 and rq[1] != "go" else "")
 			if String(o).contains("go"):
 				race_view.countdown = 0.05
 				race_view.controls.scripted = true

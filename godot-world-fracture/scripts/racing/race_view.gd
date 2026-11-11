@@ -21,6 +21,7 @@ const Catalog := preload("res://scripts/garage/catalog.gd")
 const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
 const Materials := preload("res://scripts/city/materials.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
+const PackVenue := preload("res://scripts/racing/pack_venue.gd")
 const FLEET := "res://models/fleet/"
 const PROFILE := "user://profile.json"
 const RIVAL_FILES := ["muscle-car-lod.glb", "street-racer-lod.glb", "tuner.glb"]
@@ -29,6 +30,10 @@ const RIVAL_NAMES := ["K. Voss", "Mara Lin", "D. Okafor"]
 const STREET_NAMES := ["Ghost", "Vex", "Nightjar"]
 
 var track_id := "nexus-speedway"
+## the lobby's lap pick (0: the track's own); Track Pack tracks offer the board's range
+var laps := 0
+var venue: Node3D
+var _cp: Array = []
 var vehicle_id := "tuner"
 var track: Track
 var race: Race
@@ -73,7 +78,9 @@ func _ready() -> void:
 	if last != "" and not Catalog.vehicle(last).is_empty():
 		vehicle_id = last
 	track = Track.new(track_id)
-	if track.street():
+	if track.pack():
+		pass
+	elif track.street():
 		_night()
 		_build_streets()
 	else:
@@ -84,10 +91,16 @@ func _ready() -> void:
 	_gantry()
 	# the venue's static pieces (stands, kerbs, barriers, pit garages: ~2,500 boxes) folded for the phone; before the cars
 	StaticBatch.batch(world)
+	# a Track Pack lap (12–86 km) is built in culled pieces after the batch, which would fold them into one
+	if track.pack():
+		venue = PackVenue.new()
+		world.add_child(venue)
+		venue.build(track)
+		_cp = track.checkpoint_alongs()
 	cam = Camera3D.new()
 	cam.fov = 62.0
 	cam.near = 0.1
-	cam.far = 1500.0
+	cam.far = 2600.0 if track.pack() else 1500.0
 	world.add_child(cam)
 	cam.current = true
 	_grid()
@@ -454,8 +467,14 @@ func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 		var pp: Dictionary = DriveProfile.performance(state, vehicle)
 		if not pp.is_empty():
 			perf = pp
+	if bool(track.def.get("hover", false)):
+		perf = perf.duplicate()
+		perf.hover = true      # the water lap: every car rides on its fans
 	var sc := StreetCar.new(node, vehicle, perf)
 	sc.bounds = track.bounds(80.0)
+	if track.pack():
+		var tr := track
+		sc.ground_at = func(x: float, z: float) -> float: return tr.height_at(Vector3(x, 0, z))
 	sc.obstacles = obstacles
 	sc.skip = obstacles.size()
 	obstacles.append(sc.box())
@@ -463,13 +482,14 @@ func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 	return sc
 
 func _grid() -> void:
-	race = Race.new(track, int(track.def.laps))
+	race = Race.new(track, laps if laps > 0 else int(track.def.laps))
 	var v := Catalog.vehicle(vehicle_id)
 	var file := String(v.get("model", FLEET + "tuner.glb")).get_file() if not v.is_empty() else "tuner.glb"
 	# rivals take the front rows, you start last
 	for i in 3:
 		var sc := _spawn_car(RIVAL_FILES[i], track.grid(i), "")
-		var e := race.add(STREET_NAMES[i] if track.street() else RIVAL_NAMES[i])
+		var names: Array = track.def.get("rivals", STREET_NAMES if track.street() else RIVAL_NAMES)
+		var e := race.add(String(names[i]))
 		rivals.append({ "sc": sc, "entry": e, "skill": 0.86 + i * 0.05 })
 	player = _spawn_car(file, track.grid(3), vehicle_id)
 	race.add("You", true)
@@ -483,6 +503,8 @@ func _exit_tree() -> void:
 
 func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
+	if venue and player:
+		venue.follow(player.node.position)
 	# the race had no sound at all: the engine idles on the grid and climbs with the speed, the lights beep
 	if not _engine_on:
 		_engine_on = true
@@ -561,6 +583,15 @@ func _process(dt: float) -> void:
 	var me: Dictionary = race.player()
 	var place := race.position_of(me)
 	hud.text = "P%d / 4   LAP %d / %d   %s\n%d km/h%s" % [place, mini(me.laps + 1, race.laps_to_go), race.laps_to_go, _fmt(race.time - me.lap_start), int(absf(player.speed) * 3.6), ("   best " + _fmt(me.best_lap)) if me.best_lap > 0.0 else ""]
+	if track.pack():
+		# the owner's checkpoints passed this lap, and the distance left in the race
+		var d_now: float = float(me.frac) * track.length if me.armed or float(me.frac) < 0.5 else 0.0
+		var cp := 0
+		for a in _cp:
+			if float(a) <= d_now + 1.0:
+				cp += 1
+		var left: float = maxf(0.0, (race.laps_to_go - int(me.laps)) * track.length - d_now)
+		hud.text += "   CP %d / %d   %.1f km to go" % [cp, _cp.size(), left / 1000.0]
 	var lines: Array = []
 	var i := 1
 	for e in race.order():
@@ -586,8 +617,8 @@ func _step_car(sc: RefCounted, dt: float, throttle: float, steer: float, brake: 
 		obstacles[int(sc.get_meta("box_index"))] = sc.box()
 		return
 	if track.off_track(sc.node.position):
-		# grass: no grip past a crawl
-		var crawl: float = float(sc.profile.max_speed) * 0.35
+		# grass: no grip past a crawl (the rally and the mountain are rougher roads: off them is slower, not a stop)
+		var crawl: float = float(sc.profile.max_speed) * (0.6 if bool(track.def.get("offroad", false)) else 0.35)
 		if absf(sc.speed) > crawl:
 			sc.speed = move_toward(sc.speed, signf(sc.speed) * crawl, (4.0 + absf(sc.speed) * 0.9) * dt)
 	obstacles[int(sc.get_meta("box_index"))] = sc.box()
