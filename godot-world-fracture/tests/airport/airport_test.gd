@@ -50,5 +50,16 @@ func _init() -> void:
 	check("city airports open from streets", Air.AIRPORTS.NXC.street and Air.AIRPORTS.NEC.street and not Air.AIRPORTS.FRV.street)
 	check("every airport is a destination with its own region", Air.AIRPORTS.keys().all(func(c): return Air.DESTINATIONS.has(c) and Air.DESTINATIONS[c].region == Air.AIRPORTS[c].region))
 	check("a hangar can be leased at a region airport", Air.buy_hangar({ "nex": 9000 }, "SOL", "H3").begins_with("Hangar H3"))
+	# First Class, the VIP lounge, paint
+	var fc := { "nex": 2000 }
+	check("economy passes don't open the VIP lounge", Air.buy_ticket(fc, "NXC", "RVD").begins_with("Ticket") and not Air.vip(fc, "NXC"))
+	check("first class costs 2.5×", Air.buy_ticket(fc, "NXC", "SOL", "first").begins_with("First Class") and int(fc.nex) == 2000 - Air.fare("RVD") - Air.fare_for("SOL", "first") and Air.fare_for("SOL", "first") == 550)
+	check("a first-class pass opens the VIP lounge here only", Air.vip(fc, "NXC") and not Air.vip(fc, "NEC"))
+	check("a hangar opens the VIP lounge too", Air.vip(rich, "NXC"))
+	var pr := Air.paint(rich, "NXC", "vanguard-jet", "crimson")
+	check("respray an aircraft you own", pr.ends_with("Nex") and Air.paint_of(rich, "vanguard-jet") == "crimson", pr)
+	check("can't paint what you don't own here", Air.paint(rich, "NXC", "leviathan", "gold").begins_with("That aircraft") and Air.paint(rich, "NEC", "vanguard-jet", "gold").begins_with("That aircraft"))
+	var nex_before := int(rich.nex)
+	check("factory colours back for free", Air.paint(rich, "NXC", "vanguard-jet", "factory").find("Nex") == -1 and Air.paint_of(rich, "vanguard-jet") == "factory" and int(rich.nex) == nex_before)
 	print("ALL PASS" if ok else "SOME FAILED")
 	quit(0 if ok else 1)

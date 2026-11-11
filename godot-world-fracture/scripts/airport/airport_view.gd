@@ -124,6 +124,10 @@ var _panel: Control
 var _overlay: Control            # a shop or Skyways over the airport
 var _flight: Dictionary = {}     # the take-off: { plane, t, to }
 var _landing: Dictionary = {}    # flying in: { plane, t, nodes }
+var _cls := "economy"
+var _fade: ColorRect             # the ticket desk's class toggle
+var _bags: Array[Node3D] = []     # suitcases riding the baggage carousel
+var _bag_t := 0.0
 var _taxi: Node3D                # an airliner forever taking off down the runway, for life
 var _taxi_t := 0.0
 var _crowds: Array = []
@@ -169,12 +173,18 @@ func _ready() -> void:
 	_shops()
 	_security()
 	_gates()
+	_vip_lounge()
+	_baggage_claim()
+	_travellers()
 	_airstrip()
 	_hangars()
+	_cargo_terminal()
 	_skyline()
 	_extras()
 	_people()
-	StaticBatch.batch(static_root)
+	# big cells: the airport is one open plain seen whole from the apron, so per-material batches across ~200 m cut the
+	# draw calls far more than finer culling would save (Nov 11: ~700 → see README on the phone tier)
+	StaticBatch.batch(static_root, 220.0)
 	cam = Camera3D.new()
 	cam.fov = 64.0
 	cam.near = 0.05
@@ -209,7 +219,7 @@ func _ready() -> void:
 	else:
 		controls.toast(String(a.name))
 	Sound.loops_stop()
-	Sound.loop("bed", "nexus-hum" if not night else "neon-hum", -18.0, 1.0)
+	Sound.ambience(Sound.bed_for(String(Air.AIRPORTS[code].region)), -14.0)
 
 # --------------------------------------------------------------------------------------------- the frame
 func _process(dt: float) -> void:
@@ -226,6 +236,7 @@ func _process(dt: float) -> void:
 	if not _flight.is_empty():
 		_step_flight(dt)
 		return
+	_step_bags(dt)
 	if not _landing.is_empty():
 		_step_landing(dt)
 		return
@@ -284,7 +295,13 @@ func _pass_line() -> String:
 	return "   ✈ %s gate %s" % [String(Air.DESTINATIONS[x.to].name), Air.gate(code, String(x.to))]
 
 ## which part of the airport a point is in (airport.gd zone names)
+## the VIP lounge: a glass pavilion off the airside's west wall
+const VIP := Rect2(-72, -28, 22, 20)
+const CAROUSEL := Vector3(17, 0, 14)
+
 func _zone_at(p: Vector3) -> String:
+	if VIP.has_point(Vector2(p.x, p.z)):
+		return "vip"
 	for i in HANGAR_X.size():
 		if absf(p.x - float(HANGAR_X[i])) < 15.0 and p.z > -14.0 and p.z < 16.0:
 			return "hangar:" + String(Air.BAYS[i])
@@ -299,7 +316,7 @@ func _zone_at(p: Vector3) -> String:
 func _zone_name(z: String) -> String:
 	if z.begins_with("hangar:"):
 		return "HANGAR " + z.substr(7) + (" (YOURS)" if Air.hangar_bay(profile, code) == z.substr(7) else "")
-	return { "landside": "FORECOURT", "terminal": "CHECK-IN HALL", "shops": "SHOPS", "lounge": "GATE LOUNGE", "apron": "APRON · AIRSIDE", "runway": "RUNWAY" }.get(z, z.to_upper())
+	return { "landside": "FORECOURT", "terminal": "CHECK-IN HALL", "shops": "SHOPS", "lounge": "GATE LOUNGE", "vip": "VIP LOUNGE", "apron": "APRON · AIRSIDE", "runway": "RUNWAY" }.get(z, z.to_upper())
 
 func _set_zone(z: String, first: bool) -> void:
 	var was := _armed_here()
@@ -347,6 +364,15 @@ func _apply_shutters() -> void:
 		var cx: float = HANGAR_X[Air.BAYS.find(mine)]
 		for i in list.size():
 			var m := _craft_model(String(list[i]), 13.0 if String(list[i]) != "leviathan" else 22.0)
+			var paint := Air.paint_of(profile, String(list[i]))
+			if paint != "factory":
+				var over := StandardMaterial3D.new()
+				over.albedo_color = Color(Air.PAINTS[paint], 0.62)
+				over.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				over.metallic = 0.5
+				over.roughness = 0.35
+				for c in m.find_children("*", "MeshInstance3D", true, false):
+					(c as MeshInstance3D).material_overlay = over
 			m.position = Vector3(cx + (i - (list.size() - 1) * 0.5) * 9.0, 0, 1.0)
 			m.rotation.y = PI
 			world.add_child(m)
@@ -375,6 +401,18 @@ func _use(id: String) -> void:
 		_hangar_panel(id.substr(7))
 	elif id.begins_with("craft:"):
 		_aircraft_panel()
+	elif id == "vip-in":
+		if Air.vip(profile, code):
+			operator.position = Vector3(VIP.position.x + 17.0, 0, VIP.position.y + 10.0)
+			operator.velocity = Vector3.ZERO
+			controls.toast("VIP Lounge · complimentary bar")
+		else:
+			controls.toast("VIP Lounge: First Class pass or hangar lease only")
+	elif id == "vip-out":
+		operator.position = Vector3(-44.0, 0, -12.0)
+		operator.velocity = Vector3.ZERO
+	elif id == "vip-bar":
+		controls.toast(["Sparkling water, on the house.", "A Nexus Spritz, on the house.", "Espresso, on the house.", "Cold-pressed juice, on the house."][randi() % 4])
 	elif id == "exit":
 		if in_region:
 			outside.emit(code)
@@ -458,21 +496,30 @@ func _redo(f: Callable, msg: String) -> void:
 
 func _tickets_panel() -> void:
 	var box := _panel_open("TICKETS · %s" % code, accent2)
-	_line(box, "Economy, one way. Your boarding pass gets you through security; board at the gate shown. Refunds pay back 90%.")
+	_line(box, "One way. Your boarding pass gets you through security; board at the gate shown. First Class (×%.1f) also opens the VIP lounge airside. Refunds pay back 90%%." % Air.FIRST_CLASS)
+	var cls_row := HBoxContainer.new()
+	cls_row.add_theme_constant_override("separation", 8)
+	box.add_child(cls_row)
+	for c in ["economy", "first"]:
+		var b := Button.new()
+		b.text = ("● " if _cls == c else "○ ") + ("ECONOMY" if c == "economy" else "FIRST CLASS")
+		b.custom_minimum_size = Vector2(150, 42)
+		b.pressed.connect(func(): _cls = c; _panel_close(); _tickets_panel())
+		cls_row.add_child(b)
 	var minute := _minute()
 	var by_dest := {}
 	for f in Air.departures(code, minute):
 		by_dest[f.to] = f
 	for to in Air.routes(code):
 		var f: Dictionary = by_dest[to]
-		_row_button(box, "%s  %s  ·  %s  ·  gate %s  ·  %d Nex" % [to, String(Air.DESTINATIONS[to].name).to_upper(), String(f.time), String(f.gate), Air.fare(to)],
-			Color(0.85, 0.92, 1.0), func(): _redo(_tickets_panel, Air.buy_ticket(profile, code, to)); _apply_lanes())
+		_row_button(box, "%s  %s  ·  %s  ·  gate %s  ·  %d Nex" % [to, String(Air.DESTINATIONS[to].name).to_upper(), String(f.time), String(f.gate), Air.fare_for(to, _cls)],
+			Color(1.0, 0.85, 0.5) if _cls == "first" else Color(0.85, 0.92, 1.0), func(): _redo(_tickets_panel, Air.buy_ticket(profile, code, to, _cls)); _apply_lanes())
 	var mine := Air.tickets_from(profile, code)
 	if not mine.is_empty():
 		_line(box, "YOUR BOARDING PASSES", 17, accent2)
 		for t in mine:
 			var tid := String(t.id)
-			_row_button(box, "✈ %s → %s · gate %s   REFUND" % [code, String(Air.DESTINATIONS[t.to].name), Air.gate(code, String(t.to))],
+			_row_button(box, "✈ %s → %s · %s · gate %s   REFUND" % [code, String(Air.DESTINATIONS[t.to].name), "FIRST" if String(t.get("class", "economy")) == "first" else "economy", Air.gate(code, String(t.to))],
 				Color(1.0, 0.7, 0.6), func(): _redo(_tickets_panel, Air.refund(profile, tid)); _apply_lanes())
 	var later := Air.DESTINATIONS.keys().filter(func(c): return String(Air.DESTINATIONS[c].region) == "")
 	_line(box, "Not open yet: " + ", ".join(later.map(func(c): return String(Air.DESTINATIONS[c].name))), 13, Color(0.55, 0.6, 0.68))
@@ -526,11 +573,21 @@ func _aircraft_panel() -> void:
 		var d: Dictionary = Air.AIRCRAFT[craft]
 		if craft in have:
 			_row_button(box, "FLY · %s" % String(d.name).to_upper(), Color(0.5, 1.0, 0.7), func(): _fly_craft(craft))
+			_row_button(box, "   PAINT · %s (now %s)" % [String(d.name), Air.paint_of(profile, craft).capitalize()], Color(0.9, 0.8, 1.0), func(): _panel_close(); _paint_panel(craft))
 		else:
 			_row_button(box, "BUY · %s · %d Nex" % [String(d.name), int(d.price)], Color(0.85, 0.92, 1.0), func():
 				_redo(_aircraft_panel, Air.buy_aircraft(profile, code, craft))
 				_apply_shutters())
 	_line(box, "Flying takes your aircraft out over %s; landing brings you back here." % String(Air.AIRPORTS[code].city), 13)
+
+func _paint_panel(craft: String) -> void:
+	var box := _panel_open("PAINT SHOP · %s" % String(Air.AIRCRAFT[craft].name).to_upper(), accent2)
+	_line(box, "A respray is %d Nex; factory colours are free. It shows on the aircraft in your hangar." % Air.PAINT_PRICE)
+	for name in Air.PAINTS:
+		var col: Color = Air.PAINTS[name]
+		var b := _row_button(box, ("● " if Air.paint_of(profile, craft) == name else "○ ") + String(name).capitalize(), col.lightened(0.3) if col.a > 0.0 else Color(0.85, 0.9, 1.0), func():
+			_redo(func(): _paint_panel(craft), Air.paint(profile, code, craft, name))
+			_apply_shutters())
 
 func _open_shop(id: String) -> void:
 	var v := ShopView.new()
@@ -565,7 +622,7 @@ func _overlay_open(v: Control) -> void:
 		controls.visible = true
 		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		Sound.loops_stop()
-		Sound.loop("bed", "nexus-hum" if not night else "neon-hum", -18.0, 1.0))
+		Sound.ambience(Sound.bed_for(String(Air.AIRPORTS[code].region)), -14.0))
 	add_child(v)
 
 # --------------------------------------------------------------------------------------------- the flight
@@ -584,6 +641,7 @@ func _board(to: String) -> void:
 	world.add_child(plane)
 	_flight = { "plane": plane, "t": 0.0, "to": to }
 	Sound.sfx("door", -4.0)
+	Sound.loop("jet", "jet", -8.0, 0.7)
 	var l := Label.new()
 	l.name = "FlightLine"
 	l.text = "✈ %s → %s" % [code, String(Air.DESTINATIONS[to].name).to_upper()]
@@ -631,7 +689,9 @@ func _land_begin() -> void:
 	skip.offset_top = -64
 	skip.pressed.connect(func(): if not _landing.is_empty(): _landing.t = LAND_S)
 	add_child(skip)
-	_landing = { "plane": plane, "t": 0.0, "nodes": [plane, l, skip] }
+	_landing = { "plane": plane, "t": 0.0, "nodes": [plane, l, skip], "rough": look == LOOKS.expedition }
+	Sound.loop("jet", "jet", -10.0, 0.9)
+	_fade_to(1.0)
 	if _taxi:
 		_taxi.visible = false   # one airliner on the runway at a time
 	_place_landing(0.0)
@@ -657,6 +717,19 @@ func _place_landing(t: float) -> void:
 	var lead := Vector3(48.0 - minf(t, LAND_S) * 6.0, maxf(3.0, y * 0.6 + 3.0), 46.0)
 	cam.position = Vector3(minf(x, -330.0), 0, RUNWAY_Z) + lead
 	cam.look_at(plane.position + Vector3(0, 3, 0))
+	# out of the cloud: the white (or the night) clears over the first second and a half
+	_fade_to(clampf(1.0 - t / 1.5, 0.0, 1.0))
+	if t > 5.5:
+		Sound.loop_set("jet", maxf(0.5, 0.9 - (t - 5.5) * 0.1), -10.0 - (t - 5.5) * 2.0)
+	# the Shattered Expanse's reinforced strip: the touchdown bucks and throws up rift dust
+	if bool(_landing.get("rough", false)) and t > 5.5:
+		var bump := maxf(0.0, 1.0 - (t - 5.5) / 2.5)
+		plane.position.y += absf(sin(t * 23.0)) * 0.35 * bump
+		plane.rotation.x = sin(t * 17.0) * 0.03 * bump
+		cam.position += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * 0.35 * bump
+		if not _landing.has("dust"):
+			_landing.dust = _dust(Vector3(-330, 0.5, RUNWAY_Z))
+			(_landing.nodes as Array).append(_landing.dust)
 
 func _step_landing(dt: float) -> void:
 	_landing.t = float(_landing.t) + dt
@@ -667,6 +740,8 @@ func _step_landing(dt: float) -> void:
 	for n in _landing.nodes:
 		(n as Node).queue_free()
 	_landing = {}
+	Sound.loop_stop("jet")
+	_fade_to(0.0)
 	controls.visible = true
 	_hud.visible = true
 	operator.attach_camera(cam)
@@ -681,6 +756,8 @@ func _step_flight(dt: float) -> void:
 	var y := 0.0 if t < 5.0 else pow(t - 5.0, 2.0) * 3.2
 	plane.position = Vector3(x, y, RUNWAY_Z)
 	plane.rotation.z = 0.0 if t < 5.0 else -minf(0.18, (t - 5.0) * 0.12)
+	Sound.loop_set("jet", 0.7 + minf(t, TAKEOFF_S) * 0.06, -8.0 if t < TAKEOFF_S else -14.0)
+	_fade_to(clampf((t - (FLIGHT_S - 1.2)) / 1.2, 0.0, 1.0))   # down through the cloud deck
 	if t < TAKEOFF_S:
 		cam.position = Vector3(-40, 6, RUNWAY_Z + 55)
 		cam.look_at(plane.position + Vector3(0, 3, 0))
@@ -700,6 +777,7 @@ func _step_flight(dt: float) -> void:
 	if t > FLIGHT_S:
 		var to := String(_flight.to)
 		_flight = {}
+		Sound.loop_stop("jet")
 		flew.emit(to)
 
 ## the cloud deck for the cruise: flattened puffs below and around the plane's path, tinted by the airport's sky
@@ -774,19 +852,32 @@ func _head() -> void:
 	_refresh_board()
 
 # --------------------------------------------------------------------------------------------- building helpers
+## materials are shared by value: StaticBatch merges per material, so a fresh material per box (every suitcase, every
+## container) was a draw call each — the Nov 11 pass took Nexus from ~700 to ~450 draws on the phone tier this way.
+## Callers that change a material after taking it duplicate() it first.
+var _mats := {}
+
 func _mat(c: Color, rough := 0.6, metal := 0.0) -> StandardMaterial3D:
+	var key := "m%s|%.2f|%.2f" % [c.to_html(), rough, metal]
+	if _mats.has(key):
+		return _mats[key]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
 	m.roughness = rough
 	m.metallic = metal
+	_mats[key] = m
 	return m
 
 func _glow(c: Color, energy := 2.5) -> StandardMaterial3D:
+	var key := "g%s|%.2f" % [c.to_html(), energy]
+	if _mats.has(key):
+		return _mats[key]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
 	m.emission_enabled = true
 	m.emission = c
 	m.emission_energy_multiplier = energy
+	_mats[key] = m
 	return m
 
 func _glass(tint: Color) -> StandardMaterial3D:
@@ -835,6 +926,7 @@ func _text(t: String, pos: Vector3, size: int, col: Color, yaw := 0.0, parent: N
 	l.position = pos
 	l.rotation.y = yaw
 	l.shaded = false
+	l.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if billboard:
 		l.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	(parent if parent else world).add_child(l)
@@ -1003,7 +1095,7 @@ func _wall_mat() -> Material:
 		"sandstone":
 			return Materials.pbr("brick_4", look.wall, 3.0)
 		"ice":
-			var m := _mat(Color(0.72, 0.88, 1.0), 0.08, 0.15)
+			var m: StandardMaterial3D = _mat(Color(0.72, 0.88, 1.0), 0.08, 0.15).duplicate()
 			m.emission_enabled = true
 			m.emission = Color(0.35, 0.6, 0.85)
 			m.emission_energy_multiplier = 0.35
@@ -1082,7 +1174,7 @@ func _roof(frame: Material) -> void:
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
-	var m := _mat(look.roof, 0.25 if look == LOOKS.desert else 0.4, 0.85 if look == LOOKS.desert else 0.55)   # Solara's roof is solar panels
+	var m: StandardMaterial3D = _mat(look.roof, 0.25 if look == LOOKS.desert else 0.4, 0.85 if look == LOOKS.desert else 0.55).duplicate()   # Solara's roof is solar panels
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mi.material_override = m
 	world.add_child(mi)
@@ -1108,7 +1200,7 @@ func _roof(frame: Material) -> void:
 	var ceil := MeshInstance3D.new()
 	ceil.mesh = cs.commit()
 	var ceil_col: Color = look.get("ceil", Color(0.94, 0.95, 0.97) if not night else Color(0.3, 0.2, 0.42))
-	var cm2 := _mat(ceil_col, 0.7, 0.1)
+	var cm2: StandardMaterial3D = _mat(ceil_col, 0.7, 0.1).duplicate()
 	cm2.emission_enabled = true
 	cm2.emission = ceil_col.lightened(0.05) if not night else Color(0.4, 0.22, 0.6)
 	cm2.emission_energy_multiplier = 0.55 if not night else 0.4
@@ -1156,7 +1248,7 @@ func _forecourt() -> void:
 	_text("Departures  ↑\nArrivals  ↑\nCheck-in · Tickets  ↑\nShops · Duty Free  ↑\nGates · Hangars  ↑\n(weapons not permitted)", Vector3(0, 4.6, 0.16), 34, Color(0.95, 0.97, 1.0), 0.0, sg)
 	_text("NO WEAPONS BEYOND THIS POINT", Vector3(0, 3.0, 26.4), 60, Color(1.0, 0.45, 0.35))
 	# a car at the kerb and a shuttle back to the street
-	var car := _model("res://models/fleet/luxury-sedan.glb")
+	var car: Node3D = _model("res://models/fleet/luxury-sedan.glb") if Phone.tier() == "high" else null   # 34 surfaces: HIGH only
 	if car:
 		StreetCar.face_forward(car)
 		car.position = Vector3(-8, 0.1, 48)
@@ -1355,7 +1447,7 @@ func _airliner(tail: Color, name: String, wide := false) -> Node3D:
 	var p := Node3D.new()
 	var body := _mat(Color(0.95, 0.96, 0.98), 0.3, 0.2)
 	var dark := _mat(Color(0.1, 0.12, 0.16), 0.2, 0.4)
-	var tailm := _glow(tail, 0.9 if night else 0.25)
+	var tailm: StandardMaterial3D = _glow(tail, 0.9 if night else 0.25).duplicate()
 	tailm.albedo_color = tail
 	var fus := MeshInstance3D.new()
 	var cap := CapsuleMesh.new()
@@ -1433,7 +1525,7 @@ func _airstrip() -> void:
 	# the apron's own paint: hangar lead-ins and a helipad
 	for x in HANGAR_X:
 		_box(Vector3(0.4, 0.03, 70), Vector3(x, 0.09, -50), yellow)
-	var hp := Vector3(200, 0, -40)
+	var hp := Vector3(-170, 0, 6)     # west of the terminal (the cargo terminal has the east apron)
 	_cyl(11, 0.06, hp + Vector3(0, 0.07, 0), _mat(Color(0.25, 0.27, 0.3), 0.7), null, -1, 32)
 	_cyl(10, 0.04, hp + Vector3(0, 0.1, 0), _glow(Color(1.0, 0.85, 0.2), 0.6), null, 9.6, 32)
 	_text("H", hp + Vector3(0, 0.14, 0), 1200, Color(0.96, 0.96, 0.94)).rotation.x = -PI * 0.5
@@ -1516,9 +1608,8 @@ func _hangars() -> void:
 		sh.set_meta("dynamic", true)
 		sh.position = Vector3(cx, 4.5, -14.3)
 		world.add_child(sh)
-		_box(Vector3(27.5, 9.0, 0.3), Vector3.ZERO, _mat(Color(0.55, 0.57, 0.6) if not night else Color(0.22, 0.22, 0.28), 0.5, 0.7), sh)
-		for k in 12:
-			_box(Vector3(27.5, 0.08, 0.35), Vector3(0, -4.2 + k * 0.75, 0), _mat(Color(0.35, 0.36, 0.4), 0.5, 0.7), sh)
+		_box(Vector3(27.5, 9.0, 0.3), Vector3.ZERO, Materials.surface("metal_plate", Color(0.55, 0.57, 0.6) if not night else Color(0.22, 0.22, 0.28), 4.0, 0.5, 0.7), sh)   # one slab (the plate texture is the ribbing): 12 slat boxes were 12 draws a door
+
 		_shutters[bay] = { "node": sh, "idx": obstacles.size() }
 		obstacles.append(AABB())
 		_spot("hangar:" + bay, "HANGAR %s" % bay, Vector3(cx + 9.0, 0, -17.0), 3.4)
@@ -1557,12 +1648,12 @@ func _skyline() -> void:
 		["neon-tower-a", "neon-tower-b", "neon-tower-c", "neon-v-A", "neon-v-B", "neon-v-C"]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7 if night else 3
-	for k in 14:
+	for k in (14 if Phone.tier() == "high" else 8):
 		var f: String = files[k % files.size()]
 		var m := _model("res://models/buildings/%s.glb" % f)
 		if not m:
 			continue
-		var x := -560.0 + k * 80.0 + rng.randf_range(-20, 20)
+		var x := -560.0 + k * (80.0 if Phone.tier() == "high" else 140.0) + rng.randf_range(-20, 20)
 		m.position = Vector3(x, 0, -480.0 - rng.randf_range(0, 200))
 		m.rotation.y = rng.randf_range(0, TAU)
 		var s := rng.randf_range(2.2, 3.4)
@@ -1806,14 +1897,14 @@ func _extras() -> void:
 		# container stacks and the heavy-lift airship on the cargo apron
 		var cols := [Color(0.75, 0.3, 0.12), Color(0.2, 0.35, 0.55), Color(0.85, 0.65, 0.15), Color(0.3, 0.32, 0.34)]
 		for k in 24:
-			var at := Vector3(190.0 + (k % 4) * 7.0, 1.4 + float(k / 12) * 2.8, -60.0 + float((k / 4) % 3) * 3.2)
+			var at := Vector3(184.0 + (k % 4) * 7.0, 1.4 + float(k / 12) * 2.8, -4.0 + float((k / 4) % 3) * 3.2)
 			_box(Vector3(6.1, 2.6, 2.5), at, _mat(cols[k % cols.size()], 0.6, 0.4))
-		obstacles.append(AABB(Vector3(186, 0, -62), Vector3(30, 6, 10)))
+		obstacles.append(AABB(Vector3(180, 0, -6), Vector3(30, 6, 10)))
 		var ship := _craft_model("leviathan", 46.0)
 		ship.position = Vector3(30, 22, -125)
 		ship.rotation.y = PI * 0.5
 		static_root.add_child(ship)
-		_text("HEAVY CARGO · MINING · NO PASSENGERS", Vector3(205, 9, -56), 90, accent2, PI, null, true)
+		_text("HEAVY CARGO · MINING · NO PASSENGERS", Vector3(198, 9, -8), 90, accent2, PI, null, true)
 	if "crystals" in ex:
 		var col: Color = accent
 		# giant crystal spires out in the rifts (the set's clusters scaled up ×7), and smaller ones by the fences
@@ -1914,3 +2005,208 @@ func _feature(at: Vector3) -> void:
 			rng.seed = 9
 			FractureSet.crystals(c, Vector3.ZERO, 1.0, 6, accent, rng)
 			_text("RIFT SPECIMEN\nDO NOT TOUCH", at + Vector3(0, 4.6, 0), 40, accent2, 0.0, null, true)
+
+# --------------------------------------------------------------------------------------------- the VIP lounge
+func _vip_lounge() -> void:
+	var r := VIP
+	var c := Vector3(r.position.x + r.size.x * 0.5, 0, r.position.y + r.size.y * 0.5)
+	var glass := _glass(accent2.lerp(Color.WHITE, 0.4))
+	var frame := _mat(Color(0.15, 0.13, 0.12), 0.3, 0.8)
+	_box(Vector3(r.size.x, 0.14, r.size.y), c + Vector3(0, 0.02, 0), Materials.pbr("wood_floor", Color(0.7, 0.55, 0.42), 2.0, 0.6))
+	for z in [r.position.y, r.end.y]:
+		_box(Vector3(r.size.x, 5.0, 0.3), Vector3(c.x, 2.5, z), glass, null, true)
+	for x in [r.position.x, r.end.x]:
+		_box(Vector3(0.3, 5.0, r.size.y), Vector3(x, 2.5, c.z), glass, null, true)
+	_box(Vector3(r.size.x + 0.6, 0.5, r.size.y + 0.6), c + Vector3(0, 5.2, 0), frame)
+	_box(Vector3(r.size.x + 0.7, 0.12, 0.2), Vector3(c.x, 4.9, r.end.y + 0.2), _glow(accent2, 2.5))
+	_text("VIP LOUNGE", Vector3(c.x, 6.2, r.end.y + 0.3), 110, accent2, 0.0, null, true)
+	# the door from the gate lounge: the terminal's west wall at z -12 (in) and its way back (out)
+	_spot("vip-in", "VIP LOUNGE", Vector3(-45.6, 0, -12.0), 2.6)
+	_box(Vector3(0.5, 3.4, 3.0), Vector3(-47.6, 1.7, -12.0), _glow(accent2, 0.6))
+	_spot("vip-out", "BACK TO THE GATES", Vector3(r.end.x - 2.0, 0, c.z + 7.0), 2.4)
+	# sofas, low tables, the bar, a living wall
+	var sofa := _mat(Color(0.3, 0.2, 0.16) if not night else Color(0.25, 0.12, 0.3), 0.7)
+	for k in 3:
+		var at := Vector3(r.position.x + 4.0 + k * 6.0, 0, r.position.y + 5.0)
+		_box(Vector3(3.6, 0.45, 1.2), at + Vector3(0, 0.3, 0), sofa)
+		_box(Vector3(3.6, 0.7, 0.3), at + Vector3(0, 0.75, -0.5), sofa)
+		_box(Vector3(1.6, 0.4, 0.9), at + Vector3(0, 0.2, 1.6), _mat(Color(0.12, 0.1, 0.09), 0.3, 0.4))
+		obstacles.append(AABB(at - Vector3(1.8, 0, 0.7), Vector3(3.6, 1.0, 3.2)))
+	var bar := Vector3(c.x, 0, r.end.y - 3.0)
+	_box(Vector3(9.0, 1.1, 1.0), bar + Vector3(0, 0.55, 0), _mat(Color(0.14, 0.12, 0.1), 0.3, 0.5), null, true)
+	_box(Vector3(9.1, 0.08, 1.1), bar + Vector3(0, 1.12, 0), _glow(accent2, 1.2))
+	_box(Vector3(9.0, 2.2, 0.3), Vector3(c.x, 1.9, r.end.y - 0.6), _mat(Color(0.2, 0.45, 0.22), 0.9))   # the living wall
+	_spot("vip-bar", "VIP BAR · COMPLIMENTARY", bar + Vector3(0, 0, -1.6), 2.4)
+	var lamp := OmniLight3D.new()
+	lamp.position = c + Vector3(0, 4.2, 0)
+	lamp.light_color = Color(1.0, 0.85, 0.65)
+	lamp.light_energy = 1.4
+	lamp.omni_range = 16.0
+	world.add_child(lamp)
+
+# --------------------------------------------------------------------------------------------- baggage claim
+func _baggage_claim() -> void:
+	var c := CAROUSEL
+	var steel := _mat(Color(0.7, 0.72, 0.75), 0.25, 0.9)
+	var belt := _mat(Color(0.08, 0.08, 0.09), 0.8)
+	# a stadium-shaped carousel: two straights and two round ends
+	_box(Vector3(8.0, 0.7, 3.6), c + Vector3(0, 0.35, 0), steel)
+	_box(Vector3(8.0, 0.06, 2.8), c + Vector3(0, 0.72, 0), belt)
+	for side in [-1.0, 1.0]:
+		_cyl(1.8, 0.7, c + Vector3(side * 4.0, 0.35, 0), steel, null, -1, 20)
+		_cyl(1.4, 0.06, c + Vector3(side * 4.0, 0.72, 0), belt, null, -1, 20)
+	_box(Vector3(7.0, 0.3, 1.0), c + Vector3(0, 0.85, 0), steel)
+	obstacles.append(AABB(c - Vector3(6.0, 0, 2.0), Vector3(12.0, 1.0, 4.0)))
+	_box(Vector3(6.0, 1.3, 0.2), c + Vector3(0, 4.6, -2.5), _mat(Color(0.03, 0.03, 0.06), 0.3, 0.4))
+	_text("BAGGAGE CLAIM · ARRIVALS", c + Vector3(0, 4.6, -2.38), 56, accent2)
+	_text("BAGGAGE CLAIM · ARRIVALS", c + Vector3(0, 4.6, -2.62), 56, accent2, PI)
+	var cols := [Color(0.12, 0.12, 0.14), Color(0.55, 0.12, 0.12), Color(0.15, 0.3, 0.55), Color(0.75, 0.6, 0.2), Color(0.3, 0.32, 0.35), Color(0.2, 0.45, 0.3)]
+	for k in 12:
+		var bag := Node3D.new()
+		bag.set_meta("dynamic", true)
+		world.add_child(bag)
+		_box(Vector3(0.7, 0.45, 0.32), Vector3(0, 0.98, 0), _mat(cols[k % cols.size()], 0.6, 0.1), bag)
+		_box(Vector3(0.2, 0.06, 0.05), Vector3(0, 1.24, 0), _mat(Color(0.1, 0.1, 0.1), 0.5), bag)
+		_bags.append(bag)
+	_step_bags(0.0)
+
+## the suitcases go round the stadium at walking pace
+func _step_bags(dt: float) -> void:
+	if _bags.is_empty():
+		return
+	_bag_t += dt * 0.5
+	var straight := 8.0
+	var rr := 1.6
+	var perim := straight * 2.0 + TAU * rr
+	for k in _bags.size():
+		var s := fposmod(_bag_t + k * perim / _bags.size(), perim)
+		var p := Vector3.ZERO
+		var yaw := 0.0
+		if s < straight:
+			p = Vector3(-straight * 0.5 + s, 0, rr)
+		elif s < straight + PI * rr:
+			var a := (s - straight) / rr
+			p = Vector3(straight * 0.5 + sin(a) * rr, 0, cos(a) * rr)
+			yaw = a
+		elif s < straight * 2.0 + PI * rr:
+			p = Vector3(straight * 0.5 - (s - straight - PI * rr), 0, -rr)
+			yaw = PI
+		else:
+			var a := (s - straight * 2.0 - PI * rr) / rr
+			p = Vector3(-straight * 0.5 - sin(a) * rr, 0, -cos(a) * rr)
+			yaw = PI + a
+		_bags[k].position = CAROUSEL + p
+		_bags[k].rotation.y = yaw
+
+# --------------------------------------------------------------------------------------------- travellers
+## people standing about with luggage: the bag-drop queue, a crowd waiting round the carousel and at every gate
+func _travellers() -> void:
+	var spots: Array = []
+	var bags: Array = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(code) + 3
+	for k in 7:   # the bag-drop queue, facing the desk (-x)
+		var at := Vector3(-27.6, 0, -0.5 + k * 1.15)
+		spots.append([at, -PI * 0.5])
+		bags.append(at + Vector3(0.1, 0, 0.5))
+	for k in 9:   # round the carousel, facing it
+		var a := k * TAU / 9.0 + 0.3
+		var at := CAROUSEL + Vector3(cos(a) * 7.6, 0, sin(a) * 3.6)
+		if at.z < 11.0:
+			continue
+		spots.append([at, atan2(CAROUSEL.x - at.x, CAROUSEL.z - at.z)])
+	for g in Air.GATES.size():   # each gate: a few waiting by the windows
+		var gx := -40.0 + g * 16.0
+		for k in 3:
+			var at := Vector3(gx + rng.randf_range(-5.0, 5.0), 0, -22.0 - rng.randf_range(0.0, 3.0))
+			if absf(at.x - gx) < 2.2:
+				at.x += 3.0
+			spots.append([at, PI + rng.randf_range(-0.6, 0.6)])
+			if k != 1:
+				bags.append(at + Vector3(0.45, 0, 0.1))
+	var crowd: MultiMeshInstance3D = Crowd.new()
+	world.add_child(crowd)
+	crowd.place(spots, 61)
+	_crowds.append(crowd)
+	# their wheeled cases, handles up
+	var cols := [Color(0.12, 0.12, 0.14), Color(0.5, 0.1, 0.12), Color(0.14, 0.28, 0.52), Color(0.7, 0.58, 0.22), Color(0.35, 0.36, 0.4)]
+	for k in bags.size():
+		var at: Vector3 = bags[k]
+		_box(Vector3(0.42, 0.62, 0.26), at + Vector3(0, 0.35, 0), _mat(cols[k % cols.size()], 0.55, 0.1))
+		_box(Vector3(0.04, 0.5, 0.04), at + Vector3(0, 0.9, -0.08), _mat(Color(0.6, 0.6, 0.62), 0.3, 0.9))
+
+# --------------------------------------------------------------------------------------------- the cargo terminal
+## east of the hangars: a long shed with dock doors onto the apron, freight containers on dollies, a tug, trucks behind
+func _cargo_terminal() -> void:
+	var c := Vector3(222, 0, -40)
+	var shed := Materials.surface("metal_plate", look.get("hangar", Color(0.78, 0.8, 0.84)), 3.0, 0.7, 0.75)
+	_box(Vector3(44, 11, 24), c + Vector3(0, 5.5, 0), shed, null, true)
+	_box(Vector3(44.6, 0.6, 24.6), c + Vector3(0, 11.2, 0), _mat(Color(0.25, 0.26, 0.28), 0.5, 0.6))
+	for k in 4:   # dock doors facing the apron (-z)
+		var dx := -15.0 + k * 10.0
+		_box(Vector3(6.0, 6.0, 0.2), c + Vector3(dx, 3.0, -12.1), _mat(Color(0.32, 0.34, 0.38), 0.5, 0.7))
+		_box(Vector3(6.2, 0.2, 0.3), c + Vector3(dx, 6.2, -12.15), _glow(accent2, 2.0))
+		_box(Vector3(6.0, 1.2, 2.0), c + Vector3(dx, 0.6, -13.2), _mat(Color(0.2, 0.2, 0.22), 0.8), null, true)
+	_box(Vector3(30, 2.2, 0.4), c + Vector3(0, 9.0, -12.3), _mat(Color(0.05, 0.06, 0.1), 0.3, 0.6))
+	_text("CARGO TERMINAL", c + Vector3(0, 9.0, -12.55), 150, accent2, PI)
+	# freight: containers on dollies in trains, a tug at the head of each
+	var cols := [Color(0.75, 0.75, 0.78), Color(0.6, 0.62, 0.66), Color(0.85, 0.55, 0.15)]
+	for train in 2:
+		var z := c.z - 20.0 - train * 6.0
+		_box(Vector3(2.4, 1.4, 1.8), Vector3(c.x - 20.0, 0.9, z), _mat(Color(0.9, 0.75, 0.15), 0.5, 0.2))   # the tug
+		for k in 5:
+			var at := Vector3(c.x - 16.0 + k * 3.4, 0, z)
+			_box(Vector3(2.8, 0.25, 2.2), at + Vector3(0, 0.45, 0), _mat(Color(0.2, 0.2, 0.22), 0.6, 0.5))
+			_box(Vector3(2.6, 1.6, 2.0), at + Vector3(0, 1.4, 0), _mat(cols[(k + train) % cols.size()], 0.4, 0.6))
+		obstacles.append(AABB(Vector3(c.x - 21.5, 0, z - 1.2), Vector3(21.0, 2.3, 2.4)))
+	# trucks backed up to the far side
+	for k in 3:
+		var t := Vector3(c.x - 14.0 + k * 14.0, 0, c.z + 18.0)
+		_box(Vector3(2.5, 3.0, 10.0), t + Vector3(0, 2.1, 1.0), _mat(Color(0.92, 0.92, 0.94), 0.5, 0.2))
+		_box(Vector3(2.5, 2.6, 2.8), t + Vector3(0, 1.9, -5.5), _mat(Color(0.2, 0.35, 0.6) if k != 1 else Color(0.7, 0.15, 0.12), 0.4, 0.4))
+		_box(Vector3(2.6, 0.9, 13.0), t + Vector3(0, 0.45, -1.0), _mat(Color(0.08, 0.08, 0.08), 0.8))
+
+# --------------------------------------------------------------------------------------------- transitions
+## a full-screen veil in the airport's cloud colour: 0 clear .. 1 solid (the cruise's descent, the landing's first second)
+func _fade_to(a: float) -> void:
+	if not _fade:
+		if a <= 0.0:
+			return
+		_fade = ColorRect.new()
+		_fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_fade.color = Color(0.9, 0.92, 0.95) if not night else Color(0.12, 0.08, 0.2)
+		add_child(_fade)
+	_fade.color.a = a
+	_fade.visible = a > 0.0
+	move_child(_fade, get_child_count() - 1)
+
+## a puff of rift dust at the touchdown point
+func _dust(at: Vector3) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.position = at
+	p.amount = 60
+	p.lifetime = 2.5
+	p.one_shot = false
+	p.explosiveness = 0.2
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(30, 0.5, 5)
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 50.0
+	p.gravity = Vector3(0, -0.5, 0)
+	p.initial_velocity_min = 2.0
+	p.initial_velocity_max = 6.0
+	p.scale_amount_min = 1.5
+	p.scale_amount_max = 4.0
+	var q := QuadMesh.new()
+	q.size = Vector2(1.6, 1.6)
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = Fx._dot()
+	m.albedo_color = Color(accent.r * 0.6 + 0.3, accent.g * 0.5 + 0.3, accent.b * 0.6 + 0.3, 0.45)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	q.material = m
+	p.mesh = q
+	world.add_child(p)
+	return p

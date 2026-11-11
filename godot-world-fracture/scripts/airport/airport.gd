@@ -109,18 +109,31 @@ static func clock(minute: int) -> String:
 	return "%02d:%02d" % [m / 60, m % 60]
 
 # --------------------------------------------------------------------------------------------- tickets
-## buys one economy ticket from -> to with the profile's Nex; returns the line for the counter ("" never)
-static func buy_ticket(profile: Dictionary, from: String, to: String) -> String:
+## First Class costs this many times the economy fare and opens the VIP lounge airside
+const FIRST_CLASS := 2.5
+## paint jobs for owned aircraft (hangar → YOUR AIRCRAFT → PAINT), and what a respray costs
+const PAINTS := {
+	"factory": Color(0, 0, 0, 0), "gunmetal": Color(0.28, 0.3, 0.33), "arctic white": Color(0.92, 0.94, 0.96),
+	"midnight": Color(0.08, 0.1, 0.2), "crimson": Color(0.62, 0.08, 0.1), "gold": Color(0.85, 0.66, 0.25),
+	"neon violet": Color(0.55, 0.2, 0.9), "rift teal": Color(0.1, 0.7, 0.72), "desert camo": Color(0.66, 0.55, 0.38),
+}
+const PAINT_PRICE := 750
+
+static func fare_for(to: String, cls: String) -> int:
+	return int(round(fare(to) * (FIRST_CLASS if cls == "first" else 1.0)))
+
+## buys one ticket from -> to (`cls` "economy" or "first") with the profile's Nex; returns the line for the counter
+static func buy_ticket(profile: Dictionary, from: String, to: String, cls := "economy") -> String:
 	if not bookable(from, to):
 		return "No flights to %s yet" % String(DESTINATIONS.get(to, {}).get("name", to))
-	var price := fare(to)
+	var price := fare_for(to, cls)
 	if int(profile.get("nex", 0)) < price:
 		return "Needs %d Nex (you have %d)" % [price, int(profile.get("nex", 0))]
 	var a := air(profile)
 	profile.nex = int(profile.nex) - price
 	var id := "%s-%s-%d" % [from, to, a.tickets.size() + int(Time.get_unix_time_from_system()) % 100000]
-	a.tickets.append({ "id": id, "from": from, "to": to, "fare": price })
-	return "Ticket %s → %s · gate %s · -%d Nex" % [from, to, gate(from, to), price]
+	a.tickets.append({ "id": id, "from": from, "to": to, "fare": price, "class": cls })
+	return "%sTicket %s → %s · gate %s · -%d Nex" % ["First Class · " if cls == "first" else "", from, to, gate(from, to), price]
 
 static func tickets_from(profile: Dictionary, from: String) -> Array:
 	return air(profile).tickets.filter(func(t): return String(t.from) == from)
@@ -145,6 +158,10 @@ static func refund(profile: Dictionary, ticket_id: String) -> String:
 			profile.nex = int(profile.get("nex", 0)) + back
 			return "Refunded %d Nex" % back
 	return "No such ticket"
+
+## the VIP lounge: a First Class pass from this airport, or a hangar here (private aviation)
+static func vip(profile: Dictionary, at: String) -> bool:
+	return owns_hangar(profile, at) or tickets_from(profile, at).any(func(t): return String(t.get("class", "economy")) == "first")
 
 ## security lets you airside with a boarding pass from this airport, or with a hangar here
 static func can_go_airside(profile: Dictionary, at: String) -> bool:
@@ -198,3 +215,25 @@ static func weapons_allowed(profile: Dictionary, at: String, zone: String) -> bo
 	if zone.begins_with("hangar:"):
 		return hangar_bay(profile, at) == zone.substr(7)
 	return false
+
+## a respray for an aircraft you own here; "factory" puts its own colours back (free)
+static func paint(profile: Dictionary, at: String, craft: String, name: String) -> String:
+	if craft not in aircraft_at(profile, at):
+		return "That aircraft isn't in your hangar here"
+	if not PAINTS.has(name):
+		return "No such paint"
+	var a := air(profile)
+	var paints: Dictionary = a.get("paint", {})
+	var price := 0 if name == "factory" else PAINT_PRICE
+	if int(profile.get("nex", 0)) < price:
+		return "Needs %d Nex (you have %d)" % [price, int(profile.get("nex", 0))]
+	profile.nex = int(profile.nex) - price
+	if name == "factory":
+		paints.erase(craft)
+	else:
+		paints[craft] = name
+	a["paint"] = paints
+	return "%s: %s%s" % [String(AIRCRAFT[craft].name), name.capitalize(), "" if price == 0 else " · -%d Nex" % price]
+
+static func paint_of(profile: Dictionary, craft: String) -> String:
+	return String(air(profile).get("paint", {}).get(craft, "factory"))

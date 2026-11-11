@@ -577,7 +577,13 @@ fascia and corner pylons (`walls`: plaster, ice, sandstone, timber, basalt, stee
 check-in hall centrepiece `feature`: palm, hologram, ice sculpture, fountain, aquarium, lava pool, rift specimen). A flight
 is a take-off and then a cruise over a cloud deck with a landing countdown (`TAKEOFF_S`, `FLIGHT_S`; SKIP ends it), and flying in to an airport
 plays the landing on its runway (`LAND_S`: glide path, flare, touchdown, roll-out) before the arrivals hall; shot with
-`airport:<code>:land:<seconds>`.
+`airport:<code>:land:<seconds>`. Nov 11, the rest: First Class tickets (×2.5, `airport.gd FIRST_CLASS`) and the VIP lounge
+(a glass pavilion off the gate lounge's west wall, `vip()`: a First Class pass from that airport or a hangar there;
+complimentary bar), aircraft paint (`PAINTS`, `paint()`, 750 Nex a respray, shown on your aircraft in the hangar), a
+baggage claim carousel with suitcases going round, travellers standing with luggage (the bag-drop queue, round the
+carousel, at every gate; `crowd.gd place()`), a cargo terminal with dock doors, freight trains and trucks (the helipad
+moved west), a fade down through the cloud deck into the landing (and into a region), a bucking touchdown with rift dust
+on the Shattered Expanse's strip, the jet sound on take-off, cruise and landing, and the airport's own ambience bed.
 Shot a flight with `--shot <png> airport:<from>:board:<to>:<seconds>`. Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
 (state in the profile under `air`, so it rides the cloud save); add an airport as an `AIRPORTS` row and a destination
 as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the

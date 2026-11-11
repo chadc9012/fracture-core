@@ -75,6 +75,14 @@ func _ready() -> void:
 	fl.pressed.connect(_flights)
 	row.add_child(fl)
 	controls.toast("Welcome to %s." % String(d.name))
+	# out of the cloud deck the flight came down through (airport_view.gd fades to the same veil)
+	var veil := ColorRect.new()
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	veil.color = Color(0.9, 0.92, 0.95)
+	add_child(veil)
+	create_tween().tween_property(veil, "color:a", 0.0, 1.6)
+	get_tree().create_timer(1.7).timeout.connect(veil.queue_free)
 
 func _process(dt: float) -> void:
 	if _panel or not operator:

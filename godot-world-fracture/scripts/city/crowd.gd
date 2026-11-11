@@ -144,6 +144,27 @@ func setup(count: int, span_lo: float, span_hi: float, walk_x: float, walk_w: fl
 	custom_aabb = AABB(Vector3(-walk_x - walk_w, -1, span_lo - 10.0), Vector3((walk_x + walk_w) * 2.0, 4.0, span_hi - span_lo + 20.0))
 	set_span(span_lo, span_hi)
 
+## bystanders only, at given spots: [[Vector3 feet, float yaw], …] (a queue at a desk, travellers waiting at a gate). They
+## sway and look about like the street's standers; the span is opened wide so nobody fades. Used by airport_view.gd.
+func place(spots: Array, seed := 7) -> void:
+	setup(0, -2000.0, 2000.0, 0.0, 1.0, seed)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var mm := multimesh
+	mm.instance_count = spots.size()
+	var lo := Vector3(INF, 0, INF)
+	var hi := Vector3(-INF, 0, -INF)
+	for i in spots.size():
+		var at: Vector3 = spots[i][0]
+		var h := rng.randf_range(0.92, 1.08)
+		var basis := Basis(Vector3.UP, float(spots[i][1])) * Basis.from_scale(Vector3(h * rng.randf_range(0.92, 1.1), h, h))
+		mm.set_instance_transform(i, Transform3D(basis, at + Vector3(0, 0.18, 0)))
+		var trimv := 0.0 if rng.randf() < 0.6 else (0.3 if rng.randf() < 0.6 else 0.7)
+		mm.set_instance_custom_data(i, Color(rng.randf(), 0.0, 1.0, float(rng.randi() % PALETTE.size()) + trimv))
+		lo = Vector3(minf(lo.x, at.x), 0, minf(lo.z, at.z))
+		hi = Vector3(maxf(hi.x, at.x), 0, maxf(hi.z, at.z))
+	custom_aabb = AABB(lo - Vector3(2, 1, 2), hi - lo + Vector3(4, 4, 4))
+
 func set_span(lo: float, hi: float) -> void:
 	if _mat:
 		_mat.set_shader_parameter("span", Vector2(lo, hi))

@@ -72,6 +72,11 @@ func _run() -> void:
 	ok(line.begins_with("Ticket") and int(Gear.profile_load().nex) == 40000 - Air.fare("NEC"), "ticket bought and saved: " + line)
 	await _go(v, Vector3(0, 0, -5.0))
 	ok(v.operator.position.z < -4.4 and v.zone == "lounge" and v.gunplay.holstered, "through security with a pass; gate lounge: weapons stowed")
+	# the VIP lounge: not on an economy pass
+	v._use("vip-in")
+	await _frames(2)
+	ok(v.zone != "vip", "an economy pass doesn't open the VIP lounge")
+	ok(v._bags.size() >= 10 and v._crowds.size() >= 4, "the baggage carousel turns and travellers wait with their bags")
 	# the airstrip
 	await _go(v, Vector3(70, 0, -40))
 	ok(v.zone == "apron" and not v.gunplay.holstered and v.controls.weapons_out, "apron: weapons out")
@@ -88,6 +93,19 @@ func _run() -> void:
 	await _go(v, Vector3(86, 0, 3))
 	ok(v.zone == "hangar:H1" and not v.gunplay.holstered, "your own hangar: weapons out")
 	ok(v._hangar_craft.size() == 1, "the jet stands in your hangar")
+	ok(Air.paint(v.profile, "NXC", "vanguard-jet", "crimson").ends_with("Nex"), "respray the jet crimson")
+	v._apply_shutters()
+	var painted := false
+	for k in v._hangar_craft:
+		for mi in (v._hangar_craft[k] as Node).find_children("*", "MeshInstance3D", true, false):
+			painted = painted or (mi as MeshInstance3D).material_overlay != null
+	ok(painted, "the paint shows on the jet in the hangar")
+	v._use("vip-in")
+	await _frames(3)
+	ok(v.zone == "vip" and v.gunplay.holstered, "a hangar lease opens the VIP lounge; weapons stowed in it")
+	v._use("vip-out")
+	await _frames(3)
+	ok(v.zone == "lounge", "and back out to the gates")
 	var shut_open: bool = v.obstacles[int(v._shutters["H1"].idx)].position.y < -100.0
 	var shut_closed: bool = v.obstacles[int(v._shutters["H2"].idx)].position.y >= 0.0
 	ok(shut_open and shut_closed, "your door is open, the others are shut")
