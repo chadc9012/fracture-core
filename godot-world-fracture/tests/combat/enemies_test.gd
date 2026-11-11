@@ -47,5 +47,16 @@ func _init() -> void:
 	var back := scout.state != Enemies.State.DOWN and scout.target.alive() and scout.mover.visible
 	print("and stands again: ", back, " ", scout.mover.position.round())
 	ok = ok and back
+	# a stuck bot (killbox-bots.ts): an elite on a beat straight through the wall pushes on it, goes nowhere for STUCK_S
+	# and steps off a few metres in a fresh direction instead of standing there forever
+	var walker := en.spawn("elite", Vector3(10, 0, -55), [Vector3(10, 0, -65), Vector3(10, 0, -55)])
+	var pushed := 0.0
+	for i in 60 * 10:
+		en.step(1.0 / 60.0)
+		if walker.step_t > 0.0:
+			pushed += 1.0 / 60.0
+	var stepped := en.stepped_off >= 1 and pushed > 0.5
+	print("a bot caught on the wall steps off: ", stepped, " step-offs ", en.stepped_off, " at ", walker.mover.position.round())
+	ok = ok and stepped
 	print("Enemies test: ", ok)
 	quit(0 if ok else 1)

@@ -39,6 +39,7 @@ var zones: Array = []
 var board := {}
 ## rounds
 var round := 1
+const OVERTIME_S := 60.0
 var round_clock := 0.0
 var us_rounds := 0
 var them_rounds := 0
@@ -182,6 +183,16 @@ func _end_round(won: bool, why: String) -> void:
 	round_reset = true
 	_check()
 
+## the round again, nobody's point (an overtime draw)
+func _replay_round(why: String) -> void:
+	reason = why
+	round_over = ROUND_PAUSE
+	round += 1
+	round_clock = 0.0
+	plant = 0.0
+	zone_hold = 0.0
+	round_reset = true
+
 func _step_rounds(dt: float, presence: Dictionary, alive_us: int, alive_them: int) -> void:
 	if round_over > 0.0:
 		round_over = maxf(0.0, round_over - dt)
@@ -218,7 +229,14 @@ func _step_rounds(dt: float, presence: Dictionary, alive_us: int, alive_them: in
 			elif round_clock >= rt:
 				_end_round(true, "Held the line")
 		return
-	# Ascendancy: at the buzzer the middle zone decides it
+	# Ascendancy: at the buzzer the middle zone decides it; if nobody has taken it OVERTIME_S after the buzzer, the side with
+	# more fighters standing wins — a tie replays the round (pvp.ts)
+	if round_clock >= rt + OVERTIME_S:
+		if alive_us == alive_them:
+			_replay_round("Overtime draw — round replayed")
+		else:
+			_end_round(alive_us > alive_them, "Overtime: more of you standing" if alive_us > alive_them else "Overtime: more of them standing")
+		return
 	if round_clock >= rt:
 		if on_us and not on_them:
 			zone_hold += dt

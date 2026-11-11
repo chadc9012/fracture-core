@@ -78,6 +78,24 @@ func _init() -> void:
 	r4 = r4 and asc.them_rounds == 1 and asc.reason == "Your team went down" and asc.target() == 5
 	print("Ascendancy: buzzer opens the zone, a wipe loses the round: ", r4)
 	ok = ok and r4
+	# Ascendancy overtime (pvp.ts OVERTIME_S): nobody takes the zone for 60 s past the buzzer — more fighters standing wins,
+	# a tie replays the round with no point to anyone
+	var ot := Match.new(Arena.mode("ascendancy"))
+	for i in int((ot.round_time() + Match.OVERTIME_S) / 0.05) + 2:
+		ot.tick(0.05, {}, 2, 2)
+	var r4b: bool = ot.us_rounds == 0 and ot.them_rounds == 0 and ot.round == 2 and ot.reason.begins_with("Overtime draw") and ot.round_clock == 0.0
+	for i in 70:
+		ot.tick(0.05, {}, 2, 2)
+	for i in int((ot.round_time() + Match.OVERTIME_S) / 0.05) + 2:
+		ot.tick(0.05, {}, 3, 1)
+	r4b = r4b and ot.us_rounds == 1 and ot.reason == "Overtime: more of you standing" and ot.round == 3
+	for i in 70:
+		ot.tick(0.05, {}, 3, 1)
+	for i in int((ot.round_time() + Match.OVERTIME_S) / 0.05) + 2:
+		ot.tick(0.05, {}, 1, 2)
+	r4b = r4b and ot.them_rounds == 1 and ot.reason == "Overtime: more of them standing"
+	print("Ascendancy overtime: a draw replays, more standing wins: ", r4b, " ", ot.us_rounds, "-", ot.them_rounds, " round ", ot.round)
+	ok = ok and r4b
 	# Clash is unchanged: the clock decides a lead
 	var clash := Match.new(Arena.mode("clash"))
 	clash.score(1)

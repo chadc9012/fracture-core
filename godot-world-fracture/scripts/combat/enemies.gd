@@ -30,6 +30,9 @@ const TYPES := {
 }
 const SIGHT := 40.0
 const RESPAWN := 8.0
+const STUCK_S := 1.2          # seconds wanting to move but going nowhere before a step-off
+const STUCK_SPEED := 0.4      # m/s: slower than this while pushing is "going nowhere"
+const STEP_OFF_M := 4.0       # the step-off distance
 const ALERT_BEAT := 0.5
 
 enum State { PATROL, ALERT, ENGAGE, DOWN }
@@ -60,6 +63,10 @@ class Enemy:
 	## a one-off (a mission's guard): once down it stays down instead of standing again at its spawn
 	var stays_down := false
 	var fell := false          # has been down at least once
+	## caught on a rail, a prop or a ledge corner (wanting to move, going nowhere): seconds so far, and the step-off
+	var stuck := 0.0
+	var step_off := Vector2.ZERO
+	var step_t := 0.0
 
 var player: Node3D
 var gunplay: Node3D
@@ -354,7 +361,32 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 		var yaw := atan2(to_player.x, to_player.z)
 		m.rotation.y = lerp_angle(m.rotation.y, yaw, minf(1.0, 4.0 * dt))
 	else:
+		# stuck (killbox-bots.ts): wanting to move, going nowhere for STUCK_S — step off a few metres in a fresh direction
+		# that keeps the ground level, then let the state pick the way again
+		if e.step_t > 0.0:
+			e.step_t -= dt
+			move = e.step_off
+			sprint = false
+		var before: Vector3 = m.position
 		m.step(dt, move, Vector2.ZERO, false, sprint)
+		var went: Vector3 = m.position - before
+		went.y = 0.0
+		if move.length() > 0.2 and e.target.stun <= 0.0 and dt > 0.0 and went.length() / dt < STUCK_SPEED:
+			e.stuck += dt
+		else:
+			e.stuck = 0.0
+		if e.stuck > STUCK_S:
+			e.stuck = 0.0
+			var here: float = m.ground_at.call(m.position.x, m.position.z)
+			for k in 8:
+				var ang := _rng.randf() * TAU
+				var dir := Vector2(cos(ang), sin(ang))
+				var at: Vector3 = m.position + Vector3(dir.x, 0, -dir.y) * STEP_OFF_M
+				if absf(float(m.ground_at.call(at.x, at.z)) - here) < 0.6:
+					e.step_off = dir
+					e.step_t = STEP_OFF_M / 4.0
+					stepped_off += 1
+					break
 		if e.state == State.ENGAGE or e.state == State.ALERT:
 			# in a fight the body faces the operator whichever way it steps
 			m.heading = lerp_angle(m.heading, atan2(to_player.x, to_player.z), minf(1.0, 8.0 * dt))
@@ -541,6 +573,8 @@ func _on_target_hit(t: Gunplay.Target, _damage: float, head: bool) -> void:
 ## the daily-goal counters (progression.gd): kills land at once, headshots every fourth so the profile file is not
 ## written on every bolt; a finished goal is toasted through `goal_done` (the view decides how to show it)
 signal goal_done(line: String)
+## the bots' stuck step-offs so far (the tests)
+var stepped_off := 0
 var _pending_head := 0
 
 func _tally(kind: String, n: int) -> void:

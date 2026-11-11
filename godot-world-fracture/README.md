@@ -242,7 +242,11 @@ kills, first to 150, rings recolour to the holder and bots walk to zones their t
 each for themselves, a board of kills (the rival who last hit you takes yours), first to 20; Lockdown — 4v4, attack and
 defend alternate, no respawns in a round, attackers win by a wipe or 10 s unopposed on the objective, defenders by a wipe,
 the clock or an unopposed plant, first to 4 rounds; Ascendancy — 3v3, a wipe takes the round, at the 90 s buzzer the
-middle zone opens and whoever holds it takes it, first to 5. Shots: `killbox[:<arena>][:dominion|:freefall|:lockdown|:ascendancy][:fight]`. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
+middle zone opens and whoever holds it takes it, first to 5 — and if nobody has taken it 60 s past the buzzer
+(`OVERTIME_S`, pvp.ts), the side with more fighters standing takes the round, a tie replaying it for no point (Nov 11,
+parity with the web clean-up). The bots step off when stuck (`enemies.gd` `STUCK_S`: wanting to move but going
+nowhere for 1.2 s — a rail, a prop, a ledge corner — they walk 4 m in a fresh level direction and pick the way again;
+`stepped_off` counts them for the tests). Shots: `killbox[:<arena>][:dominion|:freefall|:lockdown|:ascendancy][:fight]`. Shot: `killbox[:fracture|:prime|:skydock][:fight]`.
 
 **The planetary board's regions and seasons** (owner, Nov 8 21:43: "work on the rest of the regions and maps", with the
 Planetary World Overview board): three more lands in `src/game/board-lands.ts`, built exactly like new-lands.ts (own ground,
