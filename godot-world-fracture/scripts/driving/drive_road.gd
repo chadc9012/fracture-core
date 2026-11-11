@@ -3,6 +3,7 @@ extends Node3D
 ## asphalt with kerbs, white edge lines, dashed lane lines and a zebra crossing on each side of the intersection.
 ## Sizes match the city dressing: the sidewalks sit at x = +-46 (7 m wide), so the carriageway is 85 m kerb to kerb.
 const MeshMerge = preload("res://scripts/mesh_merge.gd")
+const Materials := preload("res://scripts/city/materials.gd")
 const HALF_WIDTH := 42.5
 const HALF_LENGTH := 122.0
 const AVENUE_HALF := 8.0
@@ -29,10 +30,11 @@ func _box(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	return mi
 
 func _ready() -> void:
-	var asphalt := _mat(Color("#24282c"), 0.82)
+	# real asphalt (Poly Haven asphalt_02, world-mapped) instead of one flat grey
+	var asphalt: BaseMaterial3D = Materials.pbr("asphalt_02", Color(0.55, 0.55, 0.57), 6.0, 0.9) if Materials.has("asphalt_02") else _mat(Color("#24282c"), 0.82)
 	var paint := _mat(Color("#d8dcdc"), 0.6)
 	var yellow := _mat(Color("#e0b030"), 0.6)
-	var kerb := _mat(Color("#9a9c9c"), 0.85)
+	var kerb: BaseMaterial3D = Materials.pbr("brushed_concrete", Color(0.8, 0.8, 0.78), 2.0) if Materials.has("brushed_concrete") else _mat(Color("#9a9c9c"), 0.85)
 	# carriageways (slightly above the ground plane so they never z-fight it)
 	_box(Vector3(HALF_WIDTH * 2.0, 0.04, HALF_LENGTH * 2.0), Vector3(0, 0.02, 0), asphalt)
 	_box(Vector3(240.0, 0.04, AVENUE_HALF * 2.0), Vector3(0, 0.021, 0), asphalt)
