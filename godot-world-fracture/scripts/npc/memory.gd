@@ -101,7 +101,8 @@ static func errand_offer(s: Dictionary, from: String, today: String, present: Ar
 	var others: Array = present.filter(func(id): return id != from)
 	if others.is_empty():
 		return {}
-	return { "from": from, "to": String(others[h % others.size()]), "item": String(ITEMS[(h / 3) % ITEMS.size()]), "reward": 40 + (h % 5) * 10 }
+	var pay := int(People.by_id(from).get("pay", 1))
+	return { "from": from, "to": String(others[h % others.size()]), "item": String(ITEMS[(h / 3) % ITEMS.size()]), "reward": (40 + (h % 5) * 10) * pay }
 
 static func take_errand(s: Dictionary, e: Dictionary) -> void:
 	s.errand = e.duplicate()

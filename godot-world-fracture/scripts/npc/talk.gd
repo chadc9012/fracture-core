@@ -21,7 +21,7 @@ const INTRO := "I'm %s. %s — %s, here at %s most days."
 
 const WORK := {
 	"barista": ["Oat milk's run out again. Third time this week.", "The rift crews tip better than the bankers.", "Morning rush starts at seven. Don't be in the queue."],
-	"mechanic": ["Fracture static fries ignition coils. Brought you anything that sparks?", "Half the cars in this city run on prayers and tape.", "Bring that ride in sometime. I'll tune it like it owes me money."],
+	"mechanic": ["I can repair the bodywork. The weird purple scratches are your problem.", "Fracture static fries ignition coils. Brought you anything that sparks?", "Half the cars in this city run on prayers and tape.", "Bring that ride in sometime. I'll tune it like it owes me money."],
 	"police officer": ["Keep your weapon holstered on the avenue and we'll get along.", "Quiet shift so far. Let's keep it that way.", "Rift Gate's had odd readings all week. Stay clear after dark."],
 	"courier": ["Twelve drops before lunch and the Skyways lift is down.", "Fastest legs in Nexus, ask anyone.", "I know every shortcut between here and the Galleria."],
 	"food-stall owner": ["Skewers are two Nex. Recipe's older than the Fracture.", "Thirty years at this corner. Seen everything twice.", "The secret's the glaze. No, I'm not telling."],
@@ -34,6 +34,16 @@ const WORK := {
 	"“import consultant”": ["You didn't see me. I didn't see you.", "Business is business. Even after the sky cracked.", "Respect the corner and the corner respects you."],
 	"Sports District attendant": ["Arena's booked solid this weekend.", "Wristbands on, no glass past the turnstiles!", "The skate park's lights stay on till midnight."],
 	"street musician": ["This one's an original. Probably.", "Coins in the case keep me in strings.", "The acoustics under the monorail are unreal."],
+	"street racer": ["You can tune the engine. You cannot tune out fear.", "Meet's at midnight on the avenue. Bring something fast.", "Cops close the road for the legal races. The other kind, they chase."],
+	"casino door": ["Dress code's whatever I say it is.", "No weapons past this rope. Not even the pretty ones.", "Third time tonight someone's tried to card-count. Third time they've left."],
+	"nightlife promoter": ["Guest list? You're on it if you're with me.", "The club's lights sync to the rift's hum. Nobody believes me.", "Neon never sleeps, darling. It naps on Tuesdays."],
+	"tech-repair stall": ["Cracked screen, fried implant, cursed drone — same price.", "I don't ask where the parts come from. You shouldn't either.", "Fracture static eats circuits. I eat because of it."],
+	"noodle-stall owner": ["Broth's been simmering since the Fracture. Never stopped.", "Eat first. Whatever's chasing you can wait ten minutes.", "Racers, cops, hackers — everyone sits on the same stool here."],
+	"casino pit boss": ["The house always wins. Lately the house has been nervous.", "Somebody won big on the rift-roulette last night. The table's been warm since.", "We don't cheat. We don't need to."],
+	"arcade attendant": ["High score on Rift Runner hasn't moved in a week. Want a go?", "Token machine eats every third coin. It's tradition.", "Kids come in for the games and stay for the air con."],
+	"street preacher": ["The sky's a screen, friend. And screens can be switched off.", "Count the stars tonight. Then count them again. Different number.", "We're all running on somebody's machine. Be kind to the other processes."],
+	"fixer": ["Every shortcut in this city has an owner.", "In Neon City every camera sees you, and every camera can lie.", "Weapons, vehicles, secrets. Everything has a price."],
+	"Operator response captain": ["We need people who can withstand the Fractures.", "Keep the district standing and we'll keep talking.", "Every breach we hold is a street people still live on."],
 	"construction foreman": ["Crash-site cleanup's a twelve-week job. We're on week thirty.", "Hard hats past the tape, no exceptions.", "Every time we pour concrete, the ground hums."],
 }
 
@@ -47,6 +57,32 @@ const RUMOURS := [
 	"A courier swore the skyline flickered at three in the morning. Like a bad screen.",
 	"The night cops don't patrol past the Rift Gate. Make of that what you will.",
 ]
+
+## Neon City talks about different things
+const NEON_RUMOURS := [
+	"A racer swears the avenue gets longer at three in the morning.",
+	"Sable's paying triple for runners this week. Nobody asks what's in the bags.",
+	"The casino's back room has a door that wasn't there yesterday.",
+	"Somebody hacked every billboard to show the same face for a second. Nobody knows whose.",
+	"The metro's last train runs empty. The driver says it's full.",
+	"Dex fixed an implant that wasn't from any company on Earth. Or so he says.",
+]
+
+## the story's own people speak their own lines (the dialogue draft); keyed by id, then by band, choice or topic
+const CANON := {
+	"vale": {
+		"cooperate": "You answer to your conscience before you answer to me. Report.",
+		"independent": "Still independent. Then prove that independence is not indifference.",
+		"wary": "People are calling you a hero. Others are calling you a threat.",
+		"close": "They know what your choices did to their streets. Good choices, mostly. Keep it that way.",
+	},
+	"sable": {
+		"wary": "Every shortcut in this city has an owner. You're standing on mine.",
+		"acquaintance": "In Neon City every camera sees you, and every camera can lie.",
+		"friend": "Weapons, vehicles, secrets. Everything has a price. For you, slightly less.",
+		"close": "Careful. Thinking like you do is expensive. I like expensive.",
+	},
+}
 
 const MEMORY := {
 	"scared": "Were you the one shooting out here? Don't do that.",
@@ -71,8 +107,16 @@ static func time_word(hour: float) -> String:
 	return "evening"
 
 ## the greeting: by personality and how well they know you (`player` is how they address you)
-static func greeting(p: Dictionary, s: Dictionary, hour: float, player: String) -> String:
+static func greeting(p: Dictionary, s: Dictionary, hour: float, player: String, profile := {}) -> String:
 	var b := Memory.band(Memory.affinity(s, String(p.id)))
+	# the story's own people: their lines, and Captain Vale remembers the choice you made with her (Mission 05)
+	var canon: Dictionary = CANON.get(String(p.id), {})
+	if not canon.is_empty():
+		var choice := String(profile.get("m05_choice", ""))
+		if String(p.id) == "vale" and b != "wary" and b != "close" and canon.has(choice):
+			return String(canon[choice])
+		if canon.has(b):
+			return String(canon[b])
 	var line := String(GREET.get(String(p.personality), GREET.warm)[b])
 	if line.count("%s") == 2:
 		return line % [time_word(hour), player]
@@ -81,8 +125,8 @@ static func greeting(p: Dictionary, s: Dictionary, hour: float, player: String) 
 	return line
 
 static func intro(p: Dictionary, place: String) -> String:
-	var first := String(p.name).get_slice(" ", 0) if not String(p.name).begins_with("Officer") else String(p.name)
-	return INTRO % [first, String(p.job).capitalize() if not String(p.job).begins_with("“") else String(p.job), "%d years old" % int(p.age), String(People.PLACES.get(place, {}).get("label", "the avenue"))]
+	var first := String(p.name) if String(p.name).begins_with("Officer") or People.tier(p) == 3 else String(p.name).get_slice(" ", 0)
+	return INTRO % [first, String(p.job).capitalize() if not String(p.job).begins_with("“") else String(p.job), "%d years old" % int(p.age), String(People.places(People.city_of(String(p.id))).get(place, {}).get("label", "the avenue"))]
 
 ## something about their work, a different one each day
 static func work_line(p: Dictionary, today: String) -> String:
@@ -90,7 +134,8 @@ static func work_line(p: Dictionary, today: String) -> String:
 	return String(lines[absi(hash(String(p.id) + today)) % lines.size()])
 
 static func rumour(p: Dictionary, today: String) -> String:
-	return String(RUMOURS[absi(hash(today + String(p.id) + "r")) % RUMOURS.size()])
+	var list: Array = NEON_RUMOURS if People.city_of(String(p.id)) == "neon" else RUMOURS
+	return String(list[absi(hash(today + String(p.id) + "r")) % list.size()])
 
 ## a callback to the last thing they remember about you, if any
 static func remember(p: Dictionary, s: Dictionary) -> String:

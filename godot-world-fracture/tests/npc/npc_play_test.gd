@@ -124,3 +124,44 @@ func _run() -> void:
 	await _frames(2)
 	ok(n.npcs.has("ravi") and n.npcs.has("tony") and n.npcs.has("luis"), "23:00 — Ghost, Big Tony and Officer Moreno come out")
 	ok(n.npcs["rosa"].leaving and n.npcs["dana"].leaving, "…and the day shift heads home")
+	n._close()
+	# Captain Vale joins the avenue once Mission 05's choice is made
+	ok(not n.npcs.has("vale"), "no Captain Vale before the story brings her")
+	var prof := Gear.profile_load()
+	prof["m05_choice"] = "cooperate"
+	Gear.profile_save(prof)
+	n.profile = prof
+	n.hour_override = 15.0
+	n._schedule()
+	await _frames(2)
+	ok(n.npcs.has("vale"), "after Mission 05, Captain Vale is on the plaza")
+	n.talk("vale")
+	await _frames(2)
+	ok(String((n._panel.find_child("Say", true, false) as Label).text).contains("Captain Vale"), "she introduces herself as Captain Vale")
+	n._close()
+	n.talk("vale")
+	await _frames(1)
+	n._close()
+	Memory.person(n.state, "vale").talked = ""
+	n.talk("vale")
+	await _frames(2)
+	ok(String((n._panel.find_child("Say", true, false) as Label).text).contains("conscience"), "and remembers you chose to cooperate")
+	n._close()
+	# Neon City has its own people
+	m._close_street()
+	m._open_street(true, "neon", true)
+	await _frames(8)
+	var neon: Node3D = m.street.npcs
+	ok(neon != null and neon.city == "neon", "Neon City's street has its people")
+	neon.hour_override = 23.0
+	for id in neon.npcs.keys():
+		neon.npcs[id].mover.queue_free()
+	neon.npcs.clear()
+	neon._schedule()
+	await _frames(2)
+	ok(neon.npcs.has("kai") and neon.npcs.has("lin") and neon.npcs.has("sable") and neon.npcs.has("rhea"), "23:00 — Redline, Lin's noodles, Fixer Sable and Officer Banks")
+	ok(not neon.npcs.has("rosa"), "…and no Nexus people")
+	neon.talk("sable")
+	await _frames(2)
+	ok(String((neon._panel.find_child("Say", true, false) as Label).text).contains("Fixer Sable"), "Fixer Sable introduces herself")
+	neon._close()

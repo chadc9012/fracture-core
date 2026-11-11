@@ -65,15 +65,94 @@ const PEOPLE := [
 		"outfit": "varsity", "schedule": [[14, 23, "sports", "work"]] },
 	{ "id": "jonah", "name": "Jonah Price", "age": 19, "body": "male", "build": "slim", "job": "street musician", "personality": "shy",
 		"outfit": "tee-shorts", "schedule": [[16, 23, "plaza", "play"]] },
+	# tier 3: the story's own people (docs/story/WorldFracture_Dialogue_Bible_Draft1.md). Captain Vale leads the Operator
+	# response team; she's on the avenue only once you've met her in Mission 01's chapters 04-05 (profile m05_choice)
+	{ "id": "vale", "name": "Captain Vale", "age": 44, "body": "female", "build": "athletic", "job": "Operator response captain", "personality": "proud",
+		"outfit": "olive-utility", "tier": 3, "needs": "m05_choice", "beat": [-40.0, 40.0], "schedule": [[9, 13, "precinct", "patrol"], [13, 19, "plaza", "work"]] },
 	{ "id": "gloria", "name": "Gloria Haynes", "age": 52, "body": "female", "build": "heavy", "job": "construction foreman", "personality": "gruff",
 		"outfit": "olive-utility", "schedule": [[7, 16, "descent", "work"]] },
 ]
 
+# --------------------------------------------------------------------------------------------- Neon City (Nov 11)
+## Neon City's avenue (the same street, Neon style): its doors are the casino (z -82), the metro (-118), the garage (8),
+## the Airport Express (-40) and Block Supply (62); people stand a little off them
+const NEON_PLACES := {
+	"casino": { "side": -1.0, "z": -76.0, "label": "the Grand Casino doors" },
+	"garage": { "side": 1.0, "z": 13.0, "label": "the garage" },
+	"noodles": { "side": 1.0, "z": 30.0, "label": "the noodle stall" },
+	"market": { "side": -1.0, "z": 36.0, "label": "the night market" },
+	"metro": { "side": 1.0, "z": -112.0, "label": "the metro steps" },
+	"block": { "side": 1.0, "z": 67.0, "label": "Block Supply" },
+	"airport": { "side": 1.0, "z": -35.0, "label": "the Airport Express stop" },
+	"arcade": { "side": -1.0, "z": 12.0, "label": "the arcade" },
+	"corner": { "side": -1.0, "z": 96.0, "label": "the corner by the hologram" },
+	"alley": { "side": -1.0, "z": -58.0, "label": "the alley mouth" },
+}
+
+## Neon City wakes up at night: racers, the casino, the night market, hackers; the law works both shifts
+const NEON := [
+	{ "id": "kai", "name": "Kai “Redline” Tanaka", "age": 27, "body": "male", "build": "athletic", "job": "street racer", "personality": "proud",
+		"outfit": "midnight-varsity", "schedule": [[20, 4, "garage", "work"]] },
+	{ "id": "vex", "name": "Vex Morales", "age": 30, "body": "female", "build": "heavy", "job": "casino door", "personality": "gruff",
+		"outfit": "black-denim", "schedule": [[18, 6, "casino", "work"]] },
+	{ "id": "hana", "name": "Hana Sato", "age": 24, "body": "female", "build": "slim", "job": "nightlife promoter", "personality": "chatty",
+		"outfit": "pastel-set", "schedule": [[21, 3, "casino", "work"]] },
+	{ "id": "dex", "name": "Dex Okoro", "age": 33, "body": "male", "build": "athletic", "job": "tech-repair stall", "personality": "cynical",
+		"outfit": "techwear", "schedule": [[16, 2, "market", "work"]] },
+	{ "id": "lin", "name": "Lin Yue", "age": 45, "body": "female", "build": "athletic", "job": "noodle-stall owner", "personality": "warm",
+		"outfit": "heather-hoodie", "schedule": [[17, 3, "noodles", "work"]] },
+	{ "id": "rhea", "name": "Officer Rhea Banks", "age": 36, "body": "female", "build": "athletic", "job": "police officer", "personality": "proud",
+		"outfit": "black-denim", "police": true, "beat": [-100.0, 100.0], "schedule": [[18, 6, "metro", "patrol"]] },
+	{ "id": "marco", "name": "Officer Marco Diaz", "age": 41, "body": "male", "build": "heavy", "job": "police officer", "personality": "cynical",
+		"outfit": "black-denim", "police": true, "beat": [-90.0, 90.0], "schedule": [[6, 18, "metro", "patrol"]] },
+	{ "id": "juno", "name": "Juno Park", "age": 19, "body": "female", "build": "slim", "job": "freelance hacker", "personality": "nervous",
+		"outfit": "street-hoodie", "schedule": [[22, 4, "metro", "work"]] },
+	{ "id": "silas", "name": "Silas Crane", "age": 52, "body": "male", "build": "slim", "job": "casino pit boss", "personality": "proud",
+		"outfit": "bomber", "schedule": [[19, 5, "casino", "work"]] },
+	{ "id": "tasha", "name": "Tasha Greene", "age": 28, "body": "female", "build": "athletic", "job": "mechanic", "personality": "cheerful",
+		"outfit": "workwear", "schedule": [[10, 22, "garage", "work"]] },
+	{ "id": "benny", "name": "Benny “Bolt” Reyes", "age": 23, "body": "male", "build": "slim", "job": "courier", "personality": "chatty",
+		"outfit": "tracksuit", "route": ["garage", "noodles", "block", "metro", "airport"], "schedule": [[12, 24, "garage", "route"]] },
+	{ "id": "ivy", "name": "Ivy Chen", "age": 31, "body": "female", "build": "slim", "job": "arcade attendant", "personality": "cheerful",
+		"outfit": "varsity", "schedule": [[6, 17, "arcade", "work"], [17, 19, "noodles", "sit"]] },
+	{ "id": "moss", "name": "Old Moss", "age": 70, "body": "male", "build": "slim", "job": "street preacher", "personality": "cynical",
+		"outfit": "sand-hoodie", "schedule": [[14, 22, "corner", "work"]] },
+	# tier 3: Fixer Sable (the dialogue draft's Neon City fixer, open-world ambient): jobs pay three times as much and
+	# draw the law's attention
+	{ "id": "sable", "name": "Fixer Sable", "age": 38, "body": "female", "build": "slim", "job": "fixer", "personality": "cynical",
+		"outfit": "techwear", "tier": 3, "pay": 3, "heat": 3.0, "schedule": [[20, 4, "alley", "work"]] },
+]
+
+const ROSTERS := { "nexus": PEOPLE, "neon": NEON }
+const CITY_PLACES := { "nexus": PLACES, "neon": NEON_PLACES }
+
+static func roster(city: String) -> Array:
+	return ROSTERS.get(city, PEOPLE)
+
+static func places(city: String) -> Dictionary:
+	return CITY_PLACES.get(city, PLACES)
+
 static func by_id(id: String) -> Dictionary:
-	for p in PEOPLE:
-		if String(p.id) == id:
-			return p
+	for city in ROSTERS:
+		for p in ROSTERS[city]:
+			if String(p.id) == id:
+				return p
 	return {}
+
+static func city_of(id: String) -> String:
+	for city in ROSTERS:
+		for p in ROSTERS[city]:
+			if String(p.id) == id:
+				return city
+	return "nexus"
+
+## a tier 3 person may wait on the story: `needs` names a profile key that must be set (Captain Vale: m05_choice)
+static func available(p: Dictionary, profile: Dictionary) -> bool:
+	var need := String(p.get("needs", ""))
+	return need == "" or String(profile.get(need, "")) != ""
+
+static func tier(p: Dictionary) -> int:
+	return int(p.get("tier", 2))
 
 ## is `hour` (0-23.99) inside [from, to)? Handles blocks across midnight (22 → 4).
 static func in_block(hour: float, from: float, to: float) -> bool:
@@ -89,9 +168,11 @@ static func where(p: Dictionary, hour: float) -> Dictionary:
 	return {}
 
 ## everyone out on the street at `hour`, as [{person, place, activity}]
-static func out_at(hour: float) -> Array:
+static func out_at(hour: float, city := "nexus", profile := {}) -> Array:
 	var out: Array = []
-	for p in PEOPLE:
+	for p in roster(city):
+		if not available(p, profile):
+			continue
 		var w := where(p, hour)
 		if not w.is_empty():
 			out.append({ "person": p, "place": w.place, "activity": w.activity })
@@ -99,7 +180,8 @@ static func out_at(hour: float) -> Array:
 
 ## the point on the avenue for a place (x from the sidewalk line, a per-person shuffle so two at one place don't stack)
 static func spot(place: String, id: String, walk_x := 11.5) -> Vector3:
-	var pl: Dictionary = PLACES.get(place, PLACES.plaza)
+	var all := places(city_of(id))
+	var pl: Dictionary = all.get(place, all.values()[0])
 	var h := hash(id)
 	var dz := float(h % 7) - 3.0
 	var dx := float((h / 7) % 3) * 0.6

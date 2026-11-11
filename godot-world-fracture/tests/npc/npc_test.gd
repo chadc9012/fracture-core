@@ -14,12 +14,34 @@ func check(name: String, cond: bool, extra: Variant = "") -> void:
 func _init() -> void:
 	# the roster
 	var ids := {}
-	for p in People.PEOPLE:
-		ids[p.id] = true
-		check("%s has a known personality, places and a schedule" % p.id, People.PERSONALITIES.has(p.personality) and not p.schedule.is_empty() and p.schedule.all(func(b): return People.PLACES.has(b[2])))
-	check("ids are unique", ids.size() == People.PEOPLE.size())
 	var Outfits := load("res://scripts/character/outfits.gd")
-	check("everyone wears a real outfit", People.PEOPLE.all(func(p): return String(p.get("outfit", "")) in Outfits.ids()))
+	var total := 0
+	for city in People.ROSTERS:
+		for p in People.roster(city):
+			ids[p.id] = true
+			total += 1
+			check("%s (%s) has a known personality, places in its city and a schedule" % [p.id, city], People.PERSONALITIES.has(p.personality) and not p.schedule.is_empty() and p.schedule.all(func(b): return People.places(city).has(b[2])))
+			check("%s wears a real outfit and has work talk" % p.id, String(p.get("outfit", "")) in Outfits.ids() and Talk.WORK.has(p.job))
+	check("ids are unique across cities", ids.size() == total)
+	# Neon City
+	for h in [0, 3, 6, 9, 12, 15, 18, 21]:
+		check("someone is out in Neon City at %02d:00" % h, People.out_at(float(h), "neon").size() >= 2)
+	check("Neon City has police every hour", range(24).all(func(h): return People.out_at(float(h), "neon").any(func(o): return People.is_police(o.person))))
+	check("Neon City is busier at night than at noon", People.out_at(23.0, "neon").size() > People.out_at(12.0, "neon").size())
+	check("Neon rumours are Neon's", Talk.NEON_RUMOURS.has(Talk.rumour(People.by_id("lin"), "2026-11-11")))
+	# tier 3
+	check("Captain Vale waits for the story", not People.out_at(10.0, "nexus", {}).any(func(o): return o.person.id == "vale") and People.out_at(10.0, "nexus", { "m05_choice": "cooperate" }).any(func(o): return o.person.id == "vale"))
+	var sv := Memory.blank()
+	Memory.talk(sv, "vale", "2026-11-11")
+	check("Vale remembers your Mission 05 choice", Talk.greeting(People.by_id("vale"), sv, 10.0, "Nyx", { "m05_choice": "independent" }).contains("independence"))
+	check("Sable speaks her own lines", Talk.greeting(People.by_id("sable"), sv, 23.0, "Nyx").begins_with("In Neon City") or Talk.greeting(People.by_id("sable"), sv, 23.0, "Nyx").begins_with("Every shortcut"))
+	Memory.talk(sv, "sable", "2026-11-11")
+	var job := {}
+	for k in 20:
+		job = Memory.errand_offer(sv, "sable", "2026-12-%02d" % (k + 1), ["sable", "lin", "dex"])
+		if not job.is_empty():
+			break
+	check("Sable's jobs pay three times as much", not job.is_empty() and int(job.reward) >= 120 and int(job.reward) % 3 == 0, job)
 	# schedules
 	check("blocks across midnight", People.in_block(23.0, 22, 4) and People.in_block(2.5, 22, 4) and not People.in_block(5.0, 22, 4))
 	check("Rosa works the café in the morning", People.where(People.by_id("rosa"), 9.5).get("place") == "cafe")

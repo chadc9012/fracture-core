@@ -113,7 +113,7 @@ var armed := true
 var _area := ""
 var _casino_at := Vector3.INF
 var civilians: Node3D
-## Nexus City's named people (scripts/npc/: tier 2 NPCs with jobs, schedules and memory); Nexus style only
+## the city's named people (scripts/npc/: tier 2 / 3 NPCs with jobs, schedules and memory); Nexus and Neon City
 var npcs: Node3D
 var _shots_seen := 0
 var district: RefCounted
@@ -415,10 +415,10 @@ func _after_enemies() -> void:
 	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(6, int(round(16 * Phone.crowd()))), 9)
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
-	if style == "nexus":
+	if style == "nexus" or style == "neon":
 		npcs = NpcStreet.new()
 		world.add_child(npcs)
-		npcs.setup(operator, controls, self, operator.obstacles, operator.bounds, operator.ground_at, 11.5, Vector2(-128.0, 128.0))
+		npcs.setup(operator, controls, self, operator.obstacles, operator.bounds, operator.ground_at, 11.5, Vector2(-128.0, 128.0), style)
 	_apply_district(first_plan)
 	# street racing life (street_life.gd): the city's race meets on the avenue, challenges, the police
 	life = StreetLife.new()
