@@ -43,7 +43,7 @@ import { softSprite } from "./softSprite";
 import { REGIONS, SKY, SKY_STOPS, ZONE_COLOR, clockLabel, hourOf, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE, NEON_FLAT } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
-import { touch, getEquippedBoots, activeBuffs, dashHud, dragoniteHud } from "@/game/client-input";
+import { touch, getEquippedBoots, activeBuffs, dashHud, grenadeHud, dragoniteHud } from "@/game/client-input";
 import { buffEffect } from "@/game/stash";
 import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
@@ -96,6 +96,9 @@ import { createPersonality, furyBonus, maybeIdle, react as vyrakReact, stepMood 
 import { createDragoniteRuntime, castDragonite, stepDragonite, statsFor as dragoniteStatsFor } from "@/game/dragonite-cast";
 import { DRAGONITE_IDS, DRAGONITE } from "@/game/dragonite";
 import { DASHES, createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
+import { GRENADES, SMOKE_SIGHT, equippedGrenade, nextGrenade } from "@/game/grenades";
+import { newGrenadeRuntime, playerShrouded, setGrenadeKind, stepPlayerGrenades, throwPlayerGrenade } from "@/game/player-grenades";
+import { PlayerGrenadeFx } from "./PlayerGrenadeFx";
 import { airJump, cameraDrop, cancelSlide, createMoveState, glideVy, GLIDE_THRUST, land, movementFov, resolveStance, startSlide, stepSlide, stepStance, AIR_PROFILE, STANCE_SPEED, SLIDE_SECONDS, type Stance } from "@/game/movement";
 import { loadoutEffects } from "@/game/armor-attributes";
 import { armorLook } from "@/game/armor-look";
@@ -1251,6 +1254,8 @@ function SceneImpl({
   const grindRt = useRef({ state: createGrind(), jumpPrev: false });
   const grindRails = useMemo(() => worldRails(NEON_CITY_CENTER, walkHeight), []);
   const opDash = useRef({ state: createDashState(playerClass, abilityBranches), held: false, wasActive: false });
+  /** Operator grenades (grenades.ts, player-grenades.ts): the equipped one of the Operator's three, its pouch and what is live */
+  const grenades = useRef({ rt: newGrenadeRuntime(equippedGrenade(abilityBranches, playerClass).id), equipped: equippedGrenade(abilityBranches, playerClass).id, held: { grenade: false, cycle: false } });
   /** Dragonite abilities of the bonded Operator (dragonite-cast.ts) */
   /** target lock + shoulder side (target-lock.ts) */
   const lockRt = useRef({ state: newLockState(), keys: {} as Record<string, boolean> });
@@ -1546,6 +1551,21 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         } else alert(sim, cast.text);
       }
       abilityHeld.current[key] = down;
+    }
+    {
+      // Operator grenades: [J] throws the equipped grenade along the aim, [K] switches between the Operator's three for this session
+      const gk = normalizeBindings(settings.bindings).keyboard, g = grenades.current, want = equippedGrenade(abilityBranches, playerClass).id;
+      if (g.equipped !== want) { g.equipped = want; setGrenadeKind(g.rt, want); }
+      const down = held.has(gk.grenade), cyc = held.has(gk.cycleGrenade);
+      const blocked = pw < 2 || s.inVehicle || !!pvp.current?.st.out || !!s.insideInterior;
+      if (down && !g.held.grenade && !blocked) {
+        const def = GRENADES[g.rt.pouch.kind], hand = { x: s.x + Math.sin(s.yaw) * 0.5, y: s.y + OPERATOR_CAMERA.eye - 0.25, z: s.z + Math.cos(s.yaw) * 0.5 };
+        if (throwPlayerGrenade(g.rt, hand, s.yaw, s.pitch)) { s.specialTime = Math.max(s.specialTime, 0.5); sfx.playAbility("GRENADE"); alert(sim, def.name.toUpperCase()); }
+        else alert(sim, `${def.name} recharging`);
+      }
+      if (cyc && !g.held.cycle && !civ) { setGrenadeKind(g.rt, nextGrenade(playerClass, g.rt.pouch.kind)); alert(sim, `Grenade: ${GRENADES[g.rt.pouch.kind].name}`); }
+      g.held.grenade = down; g.held.cycle = cyc;
+      { const p = g.rt.pouch, d = GRENADES[p.kind]; grenadeHud.current = civ ? null : { name: d.name, color: d.color, charges: p.charges, max: d.charges, fill: p.charges >= d.charges ? 1 : Math.min(1, p.recharge / d.cooldown) }; }
     }
     {
       // Dragonite (dragonite-cast.ts): the bonded Operator's four abilities on rebindable keys
@@ -1945,6 +1965,8 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
     // self-targeted subclass verbs (RAGE/OVERSHIELD, see subclass-verbs.ts) live on LiveBuild, which
     // has no reference to WorldSim — bridge them in every frame rather than one-shot at cast time.
     syncSimFromLive(sim, live.current);
+    // Shroud: standing in your own smoke, you are nearly invisible to the enemy (as the veil)
+    if (playerShrouded(grenades.current.rt, s.x, s.z)) sim.stealthMult = Math.min(sim.stealthMult, SMOKE_SIGHT);
     s.recoil = decay(s.recoil, 9, dt);
     s.punch = decay(s.punch, 14, dt);
     s.bloom = decay(s.bloom, 6, dt);
@@ -2618,7 +2640,10 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           // a player sitting out a round (pvp.ts `out`) is off the field: the bots neither shoot at nor count them
           const ar = p.arena, me = { x: s.x - ar.site.x, z: s.z - ar.site.z, alive: sim.hp > 0 && !st.out };
           const rivals = sim.machines.filter((m) => m.rival && m.living?.startsWith("crucible:")).map((m) => ({ tag: m.living!, cls: m.rival!, x: m.x - ar.site.x, z: m.z - ar.site.z, alive: m.alive }));
-          const o = stepBots(p.bots, { arena: ar, st, dt, player: me, rivals });
+          // the player's grenades: stunned rivals and rivals in Shroud smoke hold fire; a player in smoke can't be picked out
+          const grt = grenades.current.rt, nowS = performance.now() / 1000, disabled = new Set<string>();
+          for (const m of sim.machines) if (m.alive && m.rival && m.living && ((grt.stunned.get(m) ?? 0) > nowS || playerShrouded(grt, m.x, m.z))) disabled.add(m.living);
+          const o = stepBots(p.bots, { arena: ar, st, dt, player: me, rivals, disabled, playerHidden: playerShrouded(grt, s.x, s.z) });
           for (const m of sim.machines) {
             if (!m.alive || !m.rival || !m.living) continue;
             const mv = o.rivalMoves.get(m.living);
@@ -3132,6 +3157,15 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       stance: s.inVehicle ? "STAND" : move.current.state.stance,
     });
     if (breachLive) sim.hp = Math.max(sim.hp, BREACH_HP_FLOOR);
+    {
+      // Operator grenades in the world (player-grenades.ts): flight, blasts and zones against the real machines; a sound for each that goes off
+      const g = grenades.current, first = g.rt.nextFx;
+      stepPlayerGrenades(sim, g.rt, dt, { player: { x: s.x, z: s.z }, ground: walkHeight, now: performance.now() / 1000 });
+      for (const e of g.rt.fx) if (e.id >= first) {
+        const eff = GRENADES[e.kind].effect;
+        sfx.playExplosion(eff === "BLAST" || eff === "MINE" || eff === "PULL", sfx.where(s.x, s.z, s.yaw, e.x, e.z), eff === "BURN" ? "THERMAL" : eff === "CHAIN" || eff === "MARK" || eff === "PULL" ? "ARC" : eff === "SMOKE" || eff === "HEAL" ? "TOXIC" : "KINETIC");
+      }
+    }
     if (s.inVehicle && sim.hp < hpBeforeCombat) { condition.current = impactVehicle(condition.current, hpBeforeCombat - sim.hp + 2); onVehicleCondition?.(vehicleId, condition.current); }
     // Living World: city events, patrols, civilian panic and contract progress (living-runtime.ts); outcomes go to GameCanvas
     {
@@ -3955,6 +3989,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       <EnemyMuzzleFlashes />
       <GadgetFx sim={sim} />
       <GrenadeFx sim={sim} />
+      <PlayerGrenadeFx rt={grenades.current.rt} />
       <BulletImpacts sim={sim} />
       <WorldMarkers depleted={depleted} />
       <Interior structure={structure} />

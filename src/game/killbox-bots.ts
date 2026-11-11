@@ -45,6 +45,9 @@ export type BotWorld = {
   arena: KillboxArena; st: PvpState; dt: number;
   /** the player in arena space */ player: { x: number; z: number; alive: boolean };
   rivals: readonly RivalView[];
+  /** the player's grenades (player-grenades.ts): rival bots that can't fight this step (stunned, or standing in Shroud smoke), by tag,
+   * and whether the player is hidden in smoke (no bot can pick them out) */
+  disabled?: ReadonlySet<string>; playerHidden?: boolean;
 };
 export type BotOutcome = {
   /** where each rival machine stands and faces now (arena space), by tag */ rivalMoves: Map<string, { x: number; z: number; yaw: number; speed: number }>;
@@ -206,14 +209,15 @@ export function stepBots(s: BotsState, w: BotWorld): BotOutcome {
   const ffa = m.kind === "ffa";
   const foesOf = (b: Bot): Foe[] => b.team === "us"
     ? [...s.rivals.values()].filter((r) => r.alive).map((bot) => ({ kind: "bot", bot }))
-    : [...(w.player.alive ? [{ kind: "player" } as Foe] : []), ...s.allies.filter((q) => q.alive).map((bot) => ({ kind: "bot", bot }) as Foe),
+    : [...(w.player.alive && !w.playerHidden ? [{ kind: "player" } as Foe] : []), ...s.allies.filter((q) => q.alive).map((bot) => ({ kind: "bot", bot }) as Foe),
        ...(ffa ? [...s.rivals.values()].filter((r) => r.alive && r !== b).map((bot) => ({ kind: "bot", bot }) as Foe) : [])];
 
   const act = (b: Bot) => {
     if (!b.alive || between) { b.speed = 0; return; }
     // the nearest foe in sight
     let foe: Foe | null = null, fd = Infinity;
-    for (const f of foesOf(b)) {
+    // stunned or blinded by one of the player's grenades: no target this step (it still moves)
+    if (!w.disabled?.has(b.id)) for (const f of foesOf(b)) {
       const p = posOf(f), d = Math.hypot(p.x - b.x, p.z - b.z);
       if (d < BOT.sight && d < fd && clearShot(a, b.x, b.z, p.x, p.z, t)) { foe = f; fd = d; }
     }
