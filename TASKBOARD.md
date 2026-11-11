@@ -26,6 +26,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
+| Godot Killbox parity with the web clean-up: Ascendancy overtime (killbox_match.gd) and the bots' stuck step-off (enemies.gd) | session_015nUG7fd8rEqjsn12yh1Fh7 | 2026-11-11 |
 | Owner ask (Nov 9 12:38): the Nexus Region after the owner's "Nexus Region v1.0" board (natural coastline; full region) — a new region map `nexus-region` (src/game/nexus-region.ts, a NewLand: Aether Ridge, Verdant Expanse, Ironcrest Outlands, Southreach, Nexus City's districts, Harbor, Beach, Azure Keys, Lighthouse Point, Eastpoint, Obsidian Cliffs, NOVA Research Complex, the Fracture Spire), opened first on the Nexus continent; region 3D only — not the Nexus street slice / districts (session_01PQQ… and the districts work own those) | session_01HeBvGF1Wp7cNYHiTnBkJXG | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
