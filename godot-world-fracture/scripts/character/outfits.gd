@@ -14,7 +14,7 @@ const PARTS := ["skin", "arm_stripe_hi", "sole", "midsole", "heel", "flash", "to
 ## the modelled garment pieces on every civ body (Piece_<kind> meshes, scripts/build-operator-civilian.py part 4) and the
 ## part of the palette each takes its colour and fabric from; an outfit's "pieces" says which it wears
 const PIECE_PART := { "cuffs": "wrist", "sleeve_hems": "sleeve_hi", "shorts_hems": "thigh_lo", "ankle_cuffs": "ankle", "hem": "hem",
-	"rib_collar": "hood_open", "shirt_collar": "hood", "strings": "string", "pocket": "pocket", "cargo": "cargo" }
+	"rib_collar": "hood_open", "shirt_collar": "hood", "strings": "string", "pocket": "pocket", "cargo": "cargo", "hood": "hood" }
 ## pieces the shader then leaves unpainted (outfit.gdshader `pieces`)
 const PIECE_BIT := { "strings": 1, "pocket": 2, "cargo": 4 }
 
@@ -26,10 +26,10 @@ const SHEEN := 3
 ## each outfit: a name, the cut it suits (both, or one), and the colours of its pieces. Pieces not given take the
 ## garment's main colour; "SKIN" bares the part.
 const LIST := [
-	{ "id": "street-hoodie", "pieces": ["hem", "cuffs", "strings", "pocket", "ankle_cuffs", "cargo"], "name": "Street Hoodie", "for": "male", "c": {
+	{ "id": "street-hoodie", "pieces": ["hood", "hem", "cuffs", "strings", "pocket", "ankle_cuffs", "cargo"], "name": "Street Hoodie", "for": "male", "c": {
 		"top": "131315", "rib": "0d0d0f", "print": "d92420", "print2": "f2f2ee", "string": "ebebe6",
 		"legs": "3d3d42", "legs2": "2c2c30", "stripe": "eeeeea", "shoe": "f0f0ec", "accent": "d92420", "sole": "f5f5f2", "midsole": "121214", "toe": "cfcfcf" } },
-	{ "id": "sand-hoodie", "pieces": ["hem", "cuffs", "strings", "pocket", "cargo", "ankle_cuffs"], "name": "Sand Hoodie & Cargos", "for": "female", "c": {
+	{ "id": "sand-hoodie", "pieces": ["hood", "hem", "cuffs", "strings", "pocket", "cargo", "ankle_cuffs"], "name": "Sand Hoodie & Cargos", "for": "female", "c": {
 		"top": "cdbda4", "rib": "b3a38b", "print": "151517", "print2": "cdbda4", "string": "1e1e1e",
 		"legs": "4a4f33", "legs2": "3b402a", "stripe": "LEGS", "shoe": "f2f2ef", "accent": "151517", "sole": "f7f7f4", "midsole": "d9a86b", "toe": "d9d9d7" } },
 	{ "id": "bomber", "pieces": ["rib_collar", "hem", "cuffs"], "name": "Bomber Jacket", "c": {
@@ -59,7 +59,7 @@ const LIST := [
 		"top": "111214", "fabric": SHEEN, "rib": "0b0b0d", "zip": "5e6266", "print": "111214", "print2": "8a9096", "string": "5e6266",
 		"stripe_arm": "8a9096", "legs": "18191c", "legs2": "0f1012", "stripe": "8a9096", "legs_fabric": SHEEN, "cargo_flap": "5e6266",
 		"shoe": "1c1d20", "accent": "8a9096", "sole": "0e0e10", "midsole": "8a9096", "toe": "26272b" } },
-	{ "id": "pastel-set", "pieces": ["hem", "cuffs", "strings", "pocket", "ankle_cuffs"], "name": "Pastel Set", "c": {
+	{ "id": "pastel-set", "pieces": ["hood", "hem", "cuffs", "strings", "pocket", "ankle_cuffs"], "name": "Pastel Set", "c": {
 		"top": "e8b4c4", "rib": "d79fb1", "print": "ffffff", "print2": "e8b4c4", "string": "ffffff",
 		"legs": "e8b4c4", "legs2": "d79fb1", "stripe": "ffffff", "cargo": "LEGS", "cargo_flap": "LEGS",
 		"shoe": "fafaf8", "accent": "e8b4c4", "sole": "fafaf8", "midsole": "fafaf8", "toe": "ededeb" } },

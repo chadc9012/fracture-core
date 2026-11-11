@@ -55,80 +55,14 @@ src, arm = body_of(objs)
 arm.data.pose_position = "REST"
 bpy.context.view_layer.update()
 
-# ------------------------------------------------------------------------------------------------ 1. one smooth surface
-# a closed body grown from metaballs along each bone, each sized from how far the authored body's surface sits from that
-# bone there (a little inside it: the armour is thicker than cloth). Remeshing the armour itself left holes: its plates
-# are open shells, with no inside to fill.
-names_src = {g.index: g.name for g in src.vertex_groups}
-W = src.matrix_world
-P = np.array([(W @ v.co)[:] for v in src.data.vertices])
-dom_src = [names_src[max(v.groups, key=lambda g: g.weight).group] if v.groups else "" for v in src.data.vertices]
-height = float(P[:, 2].max() - P[:, 2].min())
+# ------------------------------------------------------------------------------------------------ 1. the body's shape
+# built from anatomy for the frame's build and the cut (scripts/civ_body_sdf.py: ellipsoids and round cones along the
+# rig's rest-pose bones, smooth-unioned and meshed), not from the armour: the armour's bulk made a pot belly, balloon
+# knees and look-alike male / female cuts (owner, Nov 11: "Fix body types and models")
+import json, os, subprocess, tempfile
+
+height = float(np.ptp(np.array([(src.matrix_world @ v.co)[:] for v in src.data.vertices])[:, 2]))
 AW = arm.matrix_world
-SKIP = ("Hand", "HeadTop", "headfront", "Bone_", "Head")
-
-
-def seg_dist(p, a, b):
-    ab = b - a
-    t = np.clip(((p - a) @ ab) / max(ab @ ab, 1e-9), 0, 1)
-    return np.linalg.norm(p - (a + np.outer(t, ab)), axis=1), t
-
-
-mb_data = bpy.data.metaballs.new("body")
-mb_data.resolution = height * 0.0075
-mb_data.threshold = 0.6
-mb = bpy.data.objects.new("body", mb_data)
-bpy.context.collection.objects.link(mb)
-K = 1.0 / 0.63                 # a lone ball's surface sits at about 0.63 of its radius at this threshold
-INSET = {"male": 0.84, "female": 0.86}[sex]
-for bone in arm.data.bones:
-    n = bone.name
-    if any(k in n for k in SKIP) or not bone.use_deform:
-        continue
-    idx = np.array([i for i, d in enumerate(dom_src) if d == n])
-    a = np.array((AW @ bone.head_local)[:])
-    b = np.array((AW @ bone.tail_local)[:])
-    L = np.linalg.norm(b - a)
-    if len(idx) < 12 or L < 1e-4:
-        continue
-    d, t = seg_dist(P[idx], a, b)
-    steps = max(2, int(L / (height * 0.03)) + 1)
-    for s in np.linspace(0.0, 1.0, steps):
-        near = np.abs(t - s) < (0.6 / steps + 0.05)
-        if near.sum() < 5:
-            continue
-        # the boots and greaves stand well off the shin: the lower leg and foot take a tighter fit (no bell-bottoms)
-        lower = ("Leg" in n and "UpLeg" not in n) or "Foot" in n or "Toe" in n
-        r = float(np.percentile(d[near], 45 if lower else 55)) * INSET * (0.9 if lower else 1.0)
-        if "Leg" in n and "UpLeg" not in n:
-            r = min(r, height * (0.05 - 0.012 * s))      # calf to ankle
-        if "Foot" in n or "Toe" in n:
-            r = min(r, height * 0.036)
-        # streetwear cut: a roomy hoodie and baggy sleeves, relaxed thighs, joggers gathered at the ankle, chunky trainers
-        if "Spine" in n or ("Hips" in n and s > 0.4):
-            r *= 1.08
-        elif "Arm" in n and "ForeArm" not in n:
-            r *= 1.12
-        elif "ForeArm" in n:
-            r *= 1.1 if s < 0.8 else 0.92
-        elif "UpLeg" in n:
-            r *= 1.06
-        elif "Leg" in n and s > 0.85:
-            r = min(r, height * 0.031)
-        if "Foot" in n or "Toe" in n:
-            r = max(r, height * 0.04)
-        r = max(r, height * 0.018)
-        e = mb_data.elements.new()
-        e.co = Vector(a + (b - a) * s)
-        e.radius = r * K
-        e.stiffness = 2.0
-# the neck, up into the head's collar
-nk = arm.data.bones["mixamorig:Neck"]
-for s in (0.0, 0.5, 1.0):
-    e = mb_data.elements.new()
-    e.co = (AW @ nk.head_local).lerp(AW @ nk.tail_local, s)
-    e.radius = height * 0.04 * K
-# which way the body faces (heel to toe) and its side axis
 UPV = np.array([0.0, 0.0, 1.0])
 ft = arm.data.bones["mixamorig:LeftFoot"]
 tt = arm.data.bones["mixamorig:LeftToeBase"]
@@ -136,80 +70,82 @@ F = np.array((AW @ tt.head_local - AW @ ft.head_local)[:])
 F[2] = 0.0
 F /= np.linalg.norm(F)
 LAT = np.cross(UPV, F)
+nk = arm.data.bones["mixamorig:Neck"]
 neck0 = np.array((AW @ nk.head_local)[:])
-# the hood, down, lying on the upper back
-HOOD = []
-for off, rad in (((0.0, -0.085, -0.02), 0.06), ((0.07, -0.065, -0.03), 0.048), ((-0.07, -0.065, -0.03), 0.048), ((0.0, -0.095, -0.065), 0.052)):
-    e = mb_data.elements.new()
-    e.co = Vector(neck0 + LAT * off[0] * height + F * off[1] * height + UPV * off[2] * height)
-    e.radius = rad * height * K
-    HOOD.append((np.array(e.co[:]), rad * height))
-# chunky soles under each foot
-for side in ("Left", "Right"):
-    fb = arm.data.bones["mixamorig:%sFoot" % side]
-    tb = arm.data.bones["mixamorig:%sToeBase" % side]
-    for q in (np.array((AW @ fb.head_local)[:]), np.array((AW @ tb.head_local)[:])):
-        e = mb_data.elements.new()
-        e.co = Vector(q - UPV * height * 0.012)
-        e.radius = height * 0.036 * K
-bpy.context.view_layer.update()
-bpy.ops.object.select_all(action="DESELECT")
-bpy.context.view_layer.objects.active = mb
-mb.select_set(True)
-bpy.ops.object.convert(target="MESH")
-new = bpy.context.view_layer.objects.active
-new.name = "civilian"
-# into the authored body's own space, so it binds like it
-new.data.transform(src.matrix_world.inverted() @ new.matrix_world)
-new.matrix_world = src.matrix_world.copy()
-bm = bmesh.new()
-bm.from_mesh(new.data)
-for it in range(4):
-    bmesh.ops.smooth_vert(bm, verts=bm.verts, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
-bm.to_mesh(new.data)
-bm.free()
-dec = new.modifiers.new("dec", "DECIMATE")
-dec.ratio = min(1.0, 26000.0 / max(1, len(new.data.polygons)))   # enough vertices to paint seams and logos on
-bpy.ops.object.modifier_apply(modifier="dec")
-
-# the hands are the authored ones (gloves): fingers do not grow from metaballs
-hands = src.copy()
-hands.data = src.data.copy()
-bpy.context.collection.objects.link(hands)
-for m in list(hands.modifiers):
-    hands.modifiers.remove(m)
-bm = bmesh.new()
-bm.from_mesh(hands.data)
-bm.verts.ensure_lookup_table()
-bmesh.ops.delete(bm, geom=[v for v in bm.verts if "Hand" not in dom_src[v.index]], context="VERTS")
-bm.to_mesh(hands.data)
-bm.free()
+HOOD = []        # the hood is a piece of its own now (Piece_hood), not part of the body
+P_src = np.array([(src.matrix_world @ v.co)[:] for v in src.data.vertices])
+floor0 = float(P_src[:, 2].min())
+frame_id = os.path.basename(out_path).replace("civ-", "").split("-")[0]
+BUILD = {"nyx": "slim", "cipher": "athletic", "goliath": "heavy"}.get(frame_id, "athletic")
+bones = {b.name.replace("mixamorig:", ""): [list((AW @ b.head_local)[:]), list((AW @ b.tail_local)[:])] for b in arm.data.bones}
+# the SDF's proportions are in standing heights: floor to the top of the head
+stature = float((AW @ arm.data.bones["mixamorig:HeadTop_End"].head_local)[2]) - floor0
+tmp = tempfile.mkdtemp()
+with open(os.path.join(tmp, "bones.json"), "w") as fh:
+    json.dump({"bones": bones, "F": F.tolist(), "LAT": LAT.tolist(), "UP": UPV.tolist(), "H": stature, "floor": floor0,
+               "sex": sex, "build": BUILD}, fh)
+sdf_tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "civ_body_sdf.py")
+subprocess.run(["python3", sdf_tool, os.path.join(tmp, "bones.json"), os.path.join(tmp, "body.npz")], check=True)
+D = np.load(os.path.join(tmp, "body.npz"))
 
 
-def transfer_weights():
-    dt = new.modifiers.new("dt", "DATA_TRANSFER")
-    dt.object = src
-    dt.use_vert_data = True
-    dt.data_types_verts = {"VGROUP_WEIGHTS"}
-    dt.vert_mapping = "POLYINTERP_NEAREST"
-    dt.layers_vgroup_select_src = "ALL"
-    dt.layers_vgroup_select_dst = "NAME"
-    bpy.ops.object.datalayout_transfer(modifier="dt")
-    bpy.ops.object.modifier_apply(modifier="dt")
+def from_arrays(name, v, f):
+    me = bpy.data.meshes.new(name)
+    me.from_pydata([tuple(x) for x in v.tolist()], [], [tuple(x) for x in f.tolist()])
+    me.update()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.collection.objects.link(ob)
+    bm_ = bmesh.new()
+    bm_.from_mesh(me)
+    bmesh.ops.remove_doubles(bm_, verts=bm_.verts, dist=height * 1e-5)
+    bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces)
+    bm_.to_mesh(me)
+    bm_.free()
+    return ob
 
 
+def decimate(ob, faces):
+    bpy.ops.object.select_all(action="DESELECT")
+    bpy.context.view_layer.objects.active = ob
+    ob.select_set(True)
+    dm = ob.modifiers.new("dec", "DECIMATE")
+    dm.ratio = min(1.0, faces / max(1, len(ob.data.polygons)))
+    bpy.ops.object.modifier_apply(modifier="dec")
+    for p_ in ob.data.polygons:
+        p_.use_smooth = True
+
+
+new = from_arrays("civilian", D["body_v"], D["body_f"])
+decimate(new, 24000)                               # enough vertices to cut seams and logos on
+hands = from_arrays("hands", D["hands_v"], D["hands_f"])
+decimate(hands, 5000)
+HOOD_VF = (D["hood_v"], D["hood_f"])
+# the body's own surface, before the hands join (the garment pieces in part 4 are measured against it)
+from mathutils.bvhtree import BVHTree
+BVH = BVHTree.FromPolygons([v.co.copy() for v in new.data.vertices], [tuple(p_.vertices) for p_ in new.data.polygons])
 bpy.ops.object.select_all(action="DESELECT")
 bpy.context.view_layer.objects.active = new
 new.select_set(True)
-transfer_weights()
-# the body's own surface, before the hands join (the garment pieces in part 4 are measured against it)
-from mathutils.bvhtree import BVHTree
-_bw = new.matrix_world
-BVH = BVHTree.FromPolygons([_bw @ v.co for v in new.data.vertices], [tuple(p_.vertices) for p_ in new.data.polygons])
-# join the hands in (their own weights come with them, matched by group name)
 hands.select_set(True)
 bpy.ops.object.join()
 new = bpy.context.view_layer.objects.active
+
+# 2. skinned by bone heat to the rig's deforming body bones (not the armour's coat bones or the end markers)
+for b in arm.data.bones:
+    if any(k in b.name for k in ("Bone_", "HeadTop", "headfront", "_End")):
+        b.use_deform = False
+bpy.ops.object.select_all(action="DESELECT")
+new.select_set(True)
+arm.select_set(True)
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+for md in list(new.modifiers):
+    new.modifiers.remove(md)
+new.parent = None
+new.matrix_world = new.matrix_world.copy()
+bpy.context.view_layer.objects.active = new
+new.data.validate(clean_customdata=False)
+print("unweighted verts:", sum(1 for v in new.data.vertices if not v.groups), "of", len(new.data.vertices))
 names = {g.index: g.name for g in new.vertex_groups}
 
 
@@ -557,8 +493,17 @@ for sx in (-1.0, 1.0):
         tip_d = (pts[-1] - pts[-2]).normalized()
         add("strings", sweep([pts[-1], pts[-1] + tip_d * 0.012 * H], 0.0036 * H))
 # the kangaroo pocket on the belly
+# as wide as the belly allows (the slim and female cuts are narrower than the shader's 0.085)
+p_top = min(0.13, 0.6 * LM["neck"] - 0.045)
+zm = zat((0.035 + p_top) * 0.5)
+half_w = []
+for sx in (-1.0, 1.0):
+    hit = BVH.ray_cast(world(sx * 0.6 * H, hips_f, zm), -LV * sx, 1.2 * H)
+    if hit[0] is not None:
+        half_w.append(abs(float(Vector(hit[0]).dot(LV)) - mid_x))
+pw = min([0.085] + [0.7 * w / H for w in half_w])
 rows = patch(lambda u_, v_: world(u_ * H, hips_f + 0.5 * H, zat(v_)), -FV,
-             list(np.linspace(-0.085, 0.085, 15)), list(np.linspace(0.035, min(0.13, 0.6 * LM["neck"] - 0.045), 9)), 0.0035 * H)
+             list(np.linspace(-pw, pw, 15)), list(np.linspace(0.035, p_top, 9)), 0.0035 * H)
 if rows:
     add("pocket", solid_strip(rows, 0.004 * H))
 # cargo pockets on the outside of each thigh, a flap over each
@@ -575,6 +520,9 @@ for s_ in SIDES:
     if rows:
         add("cargo", solid_strip(rows, 0.004 * H))
 
+# the hood, down (scripts/civ_body_sdf.py meshes it): only hoodies wear it
+add("hood", ([Vector(x) for x in HOOD_VF[0].tolist()], [tuple(int(i) for i in f_) for f_ in HOOD_VF[1].tolist()]))
+
 piece_objs = []
 for kind, parts in PIECES.items():
     verts, faces = [], []
@@ -583,6 +531,8 @@ for kind, parts in PIECES.items():
         verts += vs_
         faces += [tuple(i_ + o_ for i_ in f_) for f_ in fs_]
     ob = mesh_obj("Piece_" + kind, verts, faces)
+    if len(ob.data.polygons) > 3000:
+        decimate(ob, 2400)
     ob.data.materials.append(mat)
     # skinned like the body under it
     bpy.ops.object.select_all(action="DESELECT")

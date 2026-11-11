@@ -439,6 +439,8 @@ func _fill() -> void:
 			var g4 := _grid(2)
 			for h: Dictionary in Catalog.hair_for(look.body):
 				var hid: String = h.id
+				if hid == "authored":
+					continue
 				_choice(g4, h.label, look.hair == hid, func() -> void:
 					look.hair = hid
 					look = Store.clean(look)
