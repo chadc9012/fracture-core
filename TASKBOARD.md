@@ -26,7 +26,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Owner ask (Nov 11, "Yes more"): ten streetwear outfits on one civ mesh — scripts/character/outfits.gd + outfit.gdshader cut hem, cuffs, zip, stripes, pockets, prints, tee sleeves and shorts from continuous body coordinates and landmarks (data/outfit_landmarks.json, written by scripts/build-operator-civilian.py); OUTFIT tab in the creator; look.outfit saved | see git log "Outfits" (Nov 11) |
+| Owner ask (Nov 11 07:01, "Yes and make clothing stores so user can buy stuff"): 3D clothing pieces on the civ bodies (collars, cuffs, waistbands, hems, drawstrings, pockets — skinned with the body) and clothing stores (Nova Threads / Lumen Luxe in the Galleria, a street boutique) with a dressing room to try on, buy and wear outfits, hats, eyewear, jewellery and bags with Nex. Owner ask overrides the "clothing meshes out until Dec 4" note | https://claude.ai/code/session_01PQQWemhLWEFEw4j69oN1tq | Nov 11 |
 | Owner ask (Nov 9 12:38): the Nexus Region after the owner's "Nexus Region v1.0" board (natural coastline; full region) — a new region map `nexus-region` (src/game/nexus-region.ts, a NewLand: Aether Ridge, Verdant Expanse, Ironcrest Outlands, Southreach, Nexus City's districts, Harbor, Beach, Azure Keys, Lighthouse Point, Eastpoint, Obsidian Cliffs, NOVA Research Complex, the Fracture Spire), opened first on the Nexus continent; region 3D only — not the Nexus street slice / districts (session_01PQQ… and the districts work own those) | session_01HeBvGF1Wp7cNYHiTnBkJXG | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
@@ -48,6 +48,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Owner ask (Nov 11, "Yes more"): ten streetwear outfits on one civ mesh — scripts/character/outfits.gd + outfit.gdshader cut hem, cuffs, zip, stripes, pockets, prints, tee sleeves and shorts from continuous body coordinates and landmarks (data/outfit_landmarks.json, written by scripts/build-operator-civilian.py); OUTFIT tab in the creator; look.outfit saved | see git log "Outfits" (Nov 11) |
 | Owner ask (Nov 10): Operator grenades in Godot — scripts/combat/grenades.gd (port of grenades.ts: GOLIATH Breacher / Thermite / Concussion, NYX Shroud / Tripmine / Tracer, CIPHER Singularity / Arc Chain / Rift Well), stepped by gunplay so every combat view has them; J / K, GRENADE / ⟳ on the phone; tests/combat/grenades_test.gd | ee6f416 |
 | Owner ask (Nov 11): longer racing — Nexus Speedway is a ~2.1 km grand-prix lap × 5 (was a 569 m oval × 3), the Neon Night Circuit ~1.9 km × 4 through a dozen blocks (was 779 m × 3); venues sized from `Track.bounds()`, tyre walls that would reach the road on a tight corner are left out; prizes raised | see git log "Longer races" (Nov 11) |
 | Asset gap 6 §5 combat details: energy shields (operator 40 + HUD bar, elite troopers 30; `Target.take`, FUSION ×1.5), destructible cover on the street with debris (`gunplay.add_cover`), dropped magazines, back / thigh holsters, red-dot / laser / suppressor attachments, armour scorch + sparks; new cues shield / shield_break / debris; tests/combat/combat_details_test.gd | see git log "Combat details" (Nov 10) |
