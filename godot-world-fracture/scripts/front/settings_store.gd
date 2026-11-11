@@ -53,6 +53,15 @@ const ORIENTATIONS := ["auto", "landscape", "portrait"]
 
 static func apply_orientation() -> void:
 	var o := String(get_value("orientation"))
+	# AUTO turns with the phone even with the rotation lock on: Godot's own "sensor" asks Android for FULL_USER, which
+	# obeys the lock, so on Android the activity is asked for FULL_SENSOR (10) directly (owner, Nov 10: "the screen is
+	# still locked and won't rotate")
+	if o == "auto" and Engine.has_singleton("AndroidRuntime"):
+		var rt = Engine.get_singleton("AndroidRuntime")
+		var act = rt.getActivity() if rt else null
+		if act:
+			act.setRequestedOrientation(10)
+			return
 	var m: DisplayServer.ScreenOrientation = DisplayServer.SCREEN_SENSOR
 	if o == "landscape":
 		m = DisplayServer.SCREEN_SENSOR_LANDSCAPE

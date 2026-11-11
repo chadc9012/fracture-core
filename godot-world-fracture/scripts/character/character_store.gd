@@ -3,6 +3,7 @@ extends RefCounted
 ## accessory and headgear, and the operator's name. Everything read back is checked against the catalogue, so an old or broken
 ## save still loads as a valid look.
 
+const Rig := preload("res://scripts/character/character_rig.gd")
 const Catalog := preload("res://scripts/character/catalog.gd")
 const FaceMorphs := preload("res://scripts/character/face_morphs.gd")
 const PATH := "user://character.json"
@@ -79,6 +80,14 @@ static func clean(raw: Variant, preset := false) -> Dictionary:
 	look.hairColor = _in("hairColors", look.get("hairColor"), "natural")
 	look.accessory = _in("accessories", look.get("accessory"), "none")
 	look.headgear = _in("headgear", look.get("headgear"), "none")
+	# what the body wears (character_rig.gd WEAR): known ids only, none on a robot
+	var wear_in: Variant = look.get("wear", [])
+	var wear: Array = []
+	if wear_in is Array and body != "robot":
+		for w in wear_in:
+			if String(w) in Rig.wear_ids() and not String(w) in wear:
+				wear.append(String(w))
+	look.wear = wear
 	if not (look.get("face", "") is String) or Catalog.face(body, look.get("face", "")).is_empty():
 		look.face = ""
 	return look

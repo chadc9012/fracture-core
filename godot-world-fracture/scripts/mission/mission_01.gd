@@ -145,6 +145,7 @@ func _ready() -> void:
 	_lobby()
 	_interior_skyline()
 	_cine_props = { "cracks": Cinema.window_cracks(self), "tear": Cinema.sky_tear(self), "nova": Cinema.nova_ui(self, APT + Vector3(5.0, 0, -2.4)) }
+	_cine_props.sleeper = Cinema.sleeper(self)
 	_stairwell = Cinema.stairwell(self)
 	world = street_root
 	we = WorldEnvironment.new()
@@ -168,6 +169,7 @@ func _ready() -> void:
 	_siren.volume_db = -18.0
 	add_child(_siren)
 	_load()
+	op.dress(story.powers() == 0)   # at home in regular clothes until the Fracture
 	if story.phase == "DONE":
 		_go_street(RES_DOOR + Vector3(3, 0, 0), -PI / 2, false)
 		_set_fracture(true)
@@ -915,10 +917,19 @@ func _play_opening() -> void:
 	if _cs.playing or story.phase != "MORNING" or not story.done.is_empty():
 		return
 	await _play_cine(Cinema.opening(self))
+	_sleeping(false)
 	if room != "apt" or story.phase != "MORNING":
 		return   # stopped by a jump to another moment
 	_set_world(false)
 	_say([["", "Apartment 12-04. Just another day in Nexus City."]])
+
+## the opening's sleeper in the bed while the operator is "asleep" (the playable body hides), and back
+func _sleeping(on: bool) -> void:
+	var sl: Node3D = _cine_props.get("sleeper")
+	if sl:
+		sl.visible = on
+	if op:
+		op.visible = not on
 
 ## after the Fracture (played, skipped or loaded from a save): the cracks, the split sky, the dead TV, the buckled door,
 ## the alarm, the siren; NOVA's interface closes and the building's warnings and Mara's call come through
@@ -2010,6 +2021,8 @@ func shot(moment: String) -> void:
 		match moment.substr(0, 2):
 			"op":
 				shots = Cinema.opening(self)
+				if from == 3:
+					_sleeping(true)
 			"fr":
 				_go_room("apt", APT + Vector3(5.9, 0, -0.5), -PI / 2, false)
 				for st: String in ["dress", "breakfast", "phone", "mail"]:

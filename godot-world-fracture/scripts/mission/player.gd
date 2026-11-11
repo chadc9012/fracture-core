@@ -133,7 +133,8 @@ func _fit_gear() -> void:
 		damage = DAMAGE * float(f.damage) * float(w.mult) / (1.0 if int(f.burst) <= 1 else 1.4)
 		ammo = mag_size
 		reserve = int(f.reserve)
-	OutfitLook.apply(rig, Gear.outfit(str(gear.get("outfit", ""))))
+	if not civilian:
+		OutfitLook.apply(rig, Gear.outfit(str(gear.get("outfit", ""))))
 
 func _make_rifle() -> void:
 	var sk: Skeleton3D = rig.skeleton
@@ -204,8 +205,33 @@ func _make_rifle() -> void:
 	muzzle.add_child(_flash)
 	rifle.visible = false
 
+## Mission 01 opens at home: the operator wakes in regular clothes (a sweater, jeans and trainers; the civ bodies,
+## scripts/build-operator-civilian.py) and is only in the armour the player built once the Fracture wakes their powers
+## (owner, Nov 10: "have on regular clothes instead of armor"). A robot stays a robot.
+var civilian := false
+
+func dress(civ: bool) -> void:
+	if civ == civilian:
+		return
+	var look: Dictionary = Store.load_look() if Store.exists() else Store.default_look()
+	if civ and String(look.get("body", "male")) == "robot":
+		return
+	civilian = civ
+	if civ:
+		look = look.duplicate(true)
+		look.civ = true
+		look.headgear = "none"
+	rig.build(look)
+	_lock_root_motion()
+	_fit_gear()
+	_make_rifle()
+	set_powers(powers)
+
 func set_powers(p: int) -> void:
 	powers = p
+	if p >= 1 and civilian:
+		dress(false)
+		return
 	if rifle:
 		var held: Variant = rifle.get_meta("authored") if rifle.has_meta("authored") else null
 		if held != null:

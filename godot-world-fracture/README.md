@@ -337,6 +337,19 @@ HIGH (feeds `phone.gd` — render scale, MSAA, shadows), look sensitivity and in
 headlessly by `tests/front/loop_play.tscn` (title → settings → CONTINUE → every door and back); shots: `--shot out.png
 title`, `settings`, `slicewalk:doors`.
 
+**Wear** (asset catalog part 2 §4, Nov 10): the creator's GEAR tab gained a WEAR section — a gold chain with the ▽ pendant,
+hoop earrings, a steel watch with a lit face on the left wrist, a slim tactical backpack, two rings on the right hand —
+any mix (`look.wear`, a list; robots wear none). `character_rig.gd` builds each piece upright at its bone's rest and
+hangs it on a BoneAttachment3D, so it rides the bone through every clip. Hairstyles (48), beards, markings, glasses /
+shades / eyepiece / earpiece and headgear were already there; casual shoes and formal clothing wait on the clothing
+meshes (after Dec 4 per the roadmap). `--shot out.png char:male:m-veteran:GEAR:wear=chain+watch` renders it.
+
+**Civilian life on the sidewalks** (`scripts/city/civic_props.gd`, asset catalog part 2 §3, Nov 9): vending machines
+with lit fronts, ATMs, street food stalls (counter, awning, hot lamp, three stools), café seating under umbrellas and
+stacks of delivery parcels with a hand truck, placed against the building faces of every Nexus and Neon tile (a prop
+every ~22 m a side, mixed, clear of the hub's doors), each carrying a `size` footprint so the operator walks round them.
+Primitives with a visibility range, so the static batch merges them into the tile's cells.
+
 **Combat details** (asset catalog part 2 §5, Nov 9): shell casings eject from every shot (brass slivers thrown right and
 up, tumbling, landing and lying for a moment; the fusion frame throws none; capped at 14 live so a burst on the phone
 stays a few draws), bullet impacts leave a scorched disc on surfaces for five seconds, and enemies **flinch** when hit — a
@@ -428,8 +441,8 @@ Master, Music, SFX, Voices — the settings sliders), the `Audio` autoload (`aud
 (`sound.gd`; scripts call `Sound.sfx("rifle")`, and in the headless `--script` tests, where autoload names do not
 resolve, every call is a silent no-op). What plays: **cues** from `audio/sfx/` — every gun frame, reload, dry click, hit /
 headshot / down, hurt, footsteps / jump / land, doors and the Rift portal, UI, captures and buzzers, boss roars and
-staggers, explosions, engine / hover / rotor / jet / wind / water loops (`scripts/build-sfx.py` designs the set as 24 kHz
-WAVs, since the web's authored SFX live only on the Lovable CDN; an authored WAV of the same name replaces one);
+staggers, explosions, engine / hover / rotor / jet / wind / water loops (`godot-world-fracture/tools/make_sfx.py` builds the set as layered
+24 kHz WAVs, since the web's authored SFX live only on the Lovable CDN; an authored WAV of the same name replaces one);
 **ambience** from `audio/ambience/` — the web's regional beds (forest-wilds, nexus-hum, swamp-marsh, underwater-city,
 frost-spire, solara-dunes, wasteland-wind, ember-peaks) crossfaded by region or street style (`Sound.bed_for`); the
 **radio** (`radio.gd` over `data/radio.json`, exported from `src/game/radio-stations.ts` by

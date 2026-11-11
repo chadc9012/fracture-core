@@ -72,6 +72,25 @@ func _init() -> void:
 			r2.build(Store.clean({"frame": "goliath", "body": b, "head": h.id, "hair": "afro" if b != "robot" else "", "accessory": "glasses", "headgear": "cap", "morphs": {"jaw": 0.5}}), false)
 			ok(r2.head_mesh != null, "head %s on %s" % [h.id, b])
 			r2.free()
+	# what the body wears (character_rig.gd WEAR): the store keeps known ids once each, none on a robot; the rig hangs
+	# each piece on its bone (an attachment per piece, two for earrings and rings) and clears them on a rebuild
+	var w := Store.clean({"frame": "goliath", "body": "male", "wear": ["watch", "chain", "watch", "bogus", "backpack"]})
+	ok(w.wear == ["watch", "chain", "backpack"], "wear keeps known ids once each: " + str(w.wear))
+	ok(Store.clean({"frame": "goliath", "body": "robot", "wear": ["watch"]}).wear == [], "a robot wears nothing")
+	var rw := Rig.new()
+	root.add_child(rw)
+	rw.build(Store.clean({"frame": "goliath", "body": "female", "wear": ["chain", "earrings", "watch", "backpack", "rings"]}), false)
+	ok(rw._wear_nodes.size() == 7, "five pieces hang on seven bone attachments: %d" % rw._wear_nodes.size())
+	# outside a running tree the attachments have no global transform: read the design through the bone's rest
+	var at_w: BoneAttachment3D = rw._wear_nodes[3]
+	var wrist := (rw.skeleton.get_bone_global_rest(at_w.bone_idx) * (at_w.get_child(0) as Node3D).transform).origin
+	var at_n: BoneAttachment3D = rw._wear_nodes[0]
+	var neck := (rw.skeleton.get_bone_global_rest(at_n.bone_idx) * (at_n.get_child(0) as Node3D).transform).origin
+	ok(wrist.x > 0.3 and absf(wrist.y - 0.98) < 0.1, "the watch sits at the left wrist " + str(wrist))
+	ok(absf(neck.y - 1.3) < 0.08, "the chain hangs at the collar " + str(neck))
+	rw.build(Store.clean({"frame": "goliath", "body": "female", "wear": []}), false)
+	ok(rw._wear_nodes.is_empty(), "a rebuild without wear clears it")
+	rw.free()
 	root.free()
 	print("character: %d checks, %d failed" % [checks, failed])
 	quit(1 if failed else 0)
