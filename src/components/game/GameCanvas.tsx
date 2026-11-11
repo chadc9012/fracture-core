@@ -58,6 +58,7 @@ import { SkateShop } from "./SkateShop";
 import { KillPlaylistPlayer } from "./KillPlaylist";
 import { ConsumableHud } from "./ConsumableHud";
 import { DashHud } from "./DashHud";
+import { GrenadeHud } from "./GrenadeHud";
 import { DragoniteHud } from "./DragoniteHud";
 import { NexChip } from "./NexChip";
 import { activeBuffs } from "@/game/client-input";
@@ -1850,6 +1851,7 @@ export function GameCanvas() {
        {skateOpen && <SkateShop progression={progression} onProgression={setProgression} onClose={() => setSkateOpen(false)} />}
        <TouchControls civilian={powers === 0} awake={breach?.state === "ANCHOR"} bindings={settings.bindings} simple={settings.simplePhoneHud ?? true} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight)} />
        {powers >= 2 && !cineId && <DashHud bindings={settings.bindings} />}
+      {powers >= 2 && !cineId && <GrenadeHud bindings={settings.bindings} />}
        {powers >= 3 && !cineId && <DragoniteHud bindings={settings.bindings} />}
       <NexChip ledger={progression.nexLedger} />
       {powers >= 3 && !cineId && <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight || hud.hp <= 0)} onUse={useConsumable} />}
