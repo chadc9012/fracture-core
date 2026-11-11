@@ -749,8 +749,12 @@ func _shoot(path: String, opts: Array) -> void:
 			_street_door("airport")
 			if ac not in ["NXC", "NEC"] and _from_street:
 				_flown(ac, _from_street)   # a region's airport: as if flown in
+			# airport:<code>:land:<seconds>  flies in and shoots the landing that far in
+			if aq.size() > 3 and aq[2] == "land" and _from_street:
+				_flown(ac, _from_street)
+				_from_street._landing.t = float(aq[3])
 			# airport:<code>:board:<to>:<seconds>  buys and boards a flight and shoots it that far in
-			if aq.size() > 4 and aq[2] == "board" and _from_street:
+			elif aq.size() > 4 and aq[2] == "board" and _from_street:
 				Airport.buy_ticket(_from_street.profile, ac, aq[3])
 				_from_street._board(aq[3])
 				_from_street._flight.t = float(aq[4])

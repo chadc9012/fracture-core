@@ -123,6 +123,7 @@ var _near := ""
 var _panel: Control
 var _overlay: Control            # a shop or Skyways over the airport
 var _flight: Dictionary = {}     # the take-off: { plane, t, to }
+var _landing: Dictionary = {}    # flying in: { plane, t, nodes }
 var _taxi: Node3D                # an airliner forever taking off down the runway, for life
 var _taxi_t := 0.0
 var _crowds: Array = []
@@ -203,7 +204,10 @@ func _ready() -> void:
 	_apply_shutters()
 	_head()
 	_set_zone(_zone_at(operator.position), true)
-	controls.toast(("Welcome to %s." % String(a.city)) if arriving else String(a.name))
+	if arriving:
+		_land_begin()
+	else:
+		controls.toast(String(a.name))
 	Sound.loops_stop()
 	Sound.loop("bed", "nexus-hum" if not night else "neon-hum", -18.0, 1.0)
 
@@ -221,6 +225,9 @@ func _process(dt: float) -> void:
 		_flash.light_energy = 4.0 if (_flash_t < 0.12 or (_flash_t > 0.3 and _flash_t < 0.4)) else 0.0
 	if not _flight.is_empty():
 		_step_flight(dt)
+		return
+	if not _landing.is_empty():
+		_step_landing(dt)
 		return
 	if _overlay or _panel:
 		return
@@ -596,6 +603,74 @@ func _board(to: String) -> void:
 	skip.offset_top = -64
 	skip.pressed.connect(func(): if not _flight.is_empty(): _flight.t = FLIGHT_S)
 	add_child(skip)
+
+## flying in: the airliner comes down the glide path from the west, flares, touches down and rolls out while the camera
+## watches from beside the runway; then you're in the arrivals hall. SKIP ends it.
+const LAND_S := 9.0
+
+func _land_begin() -> void:
+	controls.visible = false
+	_hud.visible = false
+	var plane := _airliner(accent, String(look.airline), Air.fare(code) >= 260)
+	plane.rotation.y = -PI * 0.5      # nose to +x
+	world.add_child(plane)
+	var l := Label.new()
+	l.text = "✈ LANDING · %s" % String(Air.AIRPORTS[code].name).to_upper()
+	l.add_theme_font_size_override("font_size", 24)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	l.add_theme_constant_override("outline_size", 8)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	l.offset_top = 36
+	add_child(l)
+	var skip := Button.new()
+	skip.text = "SKIP ▸"
+	skip.custom_minimum_size = Vector2(110, 44)
+	skip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	skip.offset_left = -130
+	skip.offset_top = -64
+	skip.pressed.connect(func(): if not _landing.is_empty(): _landing.t = LAND_S)
+	add_child(skip)
+	_landing = { "plane": plane, "t": 0.0, "nodes": [plane, l, skip] }
+	if _taxi:
+		_taxi.visible = false   # one airliner on the runway at a time
+	_place_landing(0.0)
+
+## where the airliner is t seconds into the landing: 3° glide to touchdown at x -330 (t 5.5), then braking to a stop
+func _place_landing(t: float) -> void:
+	var plane: Node3D = _landing.plane
+	var x: float
+	var y: float
+	var pitch := 0.0
+	if t < 5.5:
+		x = -330.0 - (5.5 - t) * 75.0
+		y = maxf(0.0, (5.5 - t) * 75.0 * 0.0524)          # tan 3°
+		pitch = 0.05 + (0.04 if t > 4.6 else 0.0)        # nose up a touch, more in the flare
+	else:
+		var r := t - 5.5
+		x = -330.0 + 75.0 * r - 0.5 * 17.0 * r * r        # braking from ~75 m/s
+		y = 0.0
+		pitch = maxf(0.0, 0.09 - r * 0.08)
+	plane.position = Vector3(x, y, RUNWAY_Z)
+	plane.rotation = Vector3(0, -PI * 0.5, pitch)
+	# the camera keeps pace just ahead and to the side, then lets it roll past
+	var lead := Vector3(48.0 - minf(t, LAND_S) * 6.0, maxf(3.0, y * 0.6 + 3.0), 46.0)
+	cam.position = Vector3(minf(x, -330.0), 0, RUNWAY_Z) + lead
+	cam.look_at(plane.position + Vector3(0, 3, 0))
+
+func _step_landing(dt: float) -> void:
+	_landing.t = float(_landing.t) + dt
+	var t: float = _landing.t
+	if t < LAND_S:
+		_place_landing(t)
+		return
+	for n in _landing.nodes:
+		(n as Node).queue_free()
+	_landing = {}
+	controls.visible = true
+	_hud.visible = true
+	operator.attach_camera(cam)
+	controls.toast("Welcome to %s." % String(Air.AIRPORTS[code].city))
 
 func _step_flight(dt: float) -> void:
 	_flight.t = float(_flight.t) + dt
@@ -1407,7 +1482,7 @@ func _step_taxi(dt: float) -> void:
 	var t := _taxi_t
 	var x := -420.0 + 3.2 * t * t
 	var y := 0.0 if t < 12.0 else pow(t - 12.0, 2.0) * 1.4
-	_taxi.visible = t < 30.0
+	_taxi.visible = t < 30.0 and _landing.is_empty()
 	_taxi.position = Vector3(x, y, RUNWAY_Z + 8.0)
 	_taxi.rotation.z = 0.0 if t < 12.0 else -minf(0.16, (t - 12.0) * 0.05)
 

@@ -117,6 +117,10 @@ func _run() -> void:
 	ok(w != null and w != v and w.code == "NEC" and w.arriving, "landed at Neon City International (arrivals)")
 	if w == null:
 		return
+	ok(not w._landing.is_empty() and not w.controls.visible, "the landing plays first (controls hidden)")
+	w._landing.t = 9.0
+	await _frames(3)
+	ok(w._landing.is_empty() and w.controls.visible, "then you're in the arrivals hall with the controls back")
 	ok(w.zone == "terminal" and w.gunplay.holstered, "arrivals hall: weapons stowed")
 	ok(not Air.can_go_airside(w.profile, "NEC"), "no pass or hangar at NEC: airside closed")
 	w.closed.emit()

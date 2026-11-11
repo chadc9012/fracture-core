@@ -575,7 +575,9 @@ stands on the remote stand, rolls down the runway and flies fares of 260 Nex and
 airport's terminal has its own roof (`LOOKS` `roof_shape`: wave, tent, vault, terraces, gull, sawtooth, shards) and its own wall material for the plinth,
 fascia and corner pylons (`walls`: plaster, ice, sandstone, timber, basalt, steel), frames, glass tint and hangars, and its own interior (`floor`, `ceil`, and a
 check-in hall centrepiece `feature`: palm, hologram, ice sculpture, fountain, aquarium, lava pool, rift specimen). A flight
-is a take-off and then a cruise over a cloud deck with a landing countdown (`TAKEOFF_S`, `FLIGHT_S`; SKIP ends it).
+is a take-off and then a cruise over a cloud deck with a landing countdown (`TAKEOFF_S`, `FLIGHT_S`; SKIP ends it), and flying in to an airport
+plays the landing on its runway (`LAND_S`: glide path, flare, touchdown, roll-out) before the arrivals hall; shot with
+`airport:<code>:land:<seconds>`.
 Shot a flight with `--shot <png> airport:<from>:board:<to>:<seconds>`. Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
 (state in the profile under `air`, so it rides the cloud save); add an airport as an `AIRPORTS` row and a destination
 as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
