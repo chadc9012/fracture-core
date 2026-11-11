@@ -21,10 +21,10 @@ const VEHICLES := [
 ## the shops and what each specialises in (owner's planned garage types). `slots`: what it fits; `mult`: its price level;
 ## `rep`: reputation needed to deal with it at all; `accent`: its neon.
 const SHOPS := [
-	{ "id": "nexus-customs", "name": "Nexus Customs", "city": "Nexus City", "blurb": "Everyday repairs, body kits, paint and wheels.", "slots": ["front", "rear", "skirts", "fenders", "spoiler", "hood", "exhaust", "wheels", "paint", "finish", "tint"], "mult": 1.0, "rep": 0, "accent": "#3fd0ff", "repairs": true },
-	{ "id": "neon-performance", "name": "Neon Performance", "city": "Neon City", "blurb": "Racing upgrades, exotic body kits and lighting.", "slots": ["front", "rear", "skirts", "fenders", "spoiler", "exhaust", "wheels", "engine", "turbo", "gearbox", "brakes", "suspension", "tyres", "underglow", "paint", "finish"], "mult": 1.15, "rep": 1, "accent": "#ff3fb4", "repairs": true },
+	{ "id": "nexus-customs", "name": "Nexus Customs", "city": "Nexus City", "blurb": "Everyday repairs, body kits, paint and wheels.", "slots": ["front", "rear", "skirts", "fenders", "spoiler", "aero", "hood", "exhaust", "wheels", "tyres", "brakes", "decals", "interior", "paint", "finish", "tint"], "mult": 1.0, "rep": 0, "accent": "#3fd0ff", "repairs": true },
+	{ "id": "neon-performance", "name": "Neon Performance", "city": "Neon City", "blurb": "Racing upgrades, exotic body kits and lighting.", "slots": ["front", "rear", "skirts", "fenders", "spoiler", "aero", "exhaust", "wheels", "engine", "turbo", "gearbox", "brakes", "suspension", "tyres", "nitrous", "electronics", "underglow", "decals", "interior", "paint", "finish"], "mult": 1.15, "rep": 1, "accent": "#ff3fb4", "repairs": true },
 	{ "id": "ironworks", "name": "Ironworks Garage", "city": "The Wastelands", "blurb": "Off-road gear, armour and reinforced parts.", "slots": ["bullbar", "roof", "armor", "glass", "suspension", "tyres", "wheels", "paint", "finish"], "mult": 0.95, "rep": 1, "accent": "#ff9a2e", "repairs": true },
-	{ "id": "sunset-kustoms", "name": "Sunset Kustoms", "city": "Coastline", "blurb": "Candy paint, chrome wheels and low stance.", "slots": ["front", "rear", "skirts", "spoiler", "wheels", "suspension", "underglow", "tint", "paint", "finish"], "mult": 1.05, "rep": 0, "accent": "#ffb347", "repairs": true },
+	{ "id": "sunset-kustoms", "name": "Sunset Kustoms", "city": "Coastline", "blurb": "Candy paint, chrome wheels and low stance.", "slots": ["front", "rear", "skirts", "spoiler", "wheels", "suspension", "underglow", "tint", "decals", "interior", "paint", "finish"], "mult": 1.05, "rep": 0, "accent": "#ffb347", "repairs": true },
 	{ "id": "fracture-dynamics", "name": "Fracture Dynamics", "city": "Aegis Spire", "blurb": "Advanced futuristic modifications.", "slots": ["fracture", "shield", "engine", "underglow", "finish"], "mult": 1.35, "rep": 2, "accent": "#9f6bff", "repairs": false },
 ]
 
@@ -37,11 +37,17 @@ const SLOTS := {
 	"engine": ["PERFORMANCE", "Engine"], "turbo": ["PERFORMANCE", "Turbo"], "gearbox": ["PERFORMANCE", "Transmission"],
 	"brakes": ["PERFORMANCE", "Brakes"], "suspension": ["PERFORMANCE", "Suspension"],
 	"armor": ["ARMOUR", "Body armour"], "glass": ["ARMOUR", "Bulletproof glass"],
+	"aero": ["BODY KIT", "Aero package"], "nitrous": ["PERFORMANCE", "Nitrous"], "electronics": ["PERFORMANCE", "Electronics"],
+	"decals": ["DECALS", "Decals and livery"], "interior": ["INTERIOR", "Interior"],
 	"underglow": ["LIGHTS", "Underglow"], "tint": ["LIGHTS", "Window tint"],
 	"fracture": ["FRACTURE MODS", "Fracture core"], "shield": ["FRACTURE MODS", "Shield emitter"],
 	"paint": ["PAINT", "Colour"], "finish": ["PAINT", "Finish"],
 }
-const GROUPS := ["PAINT", "BODY KIT", "WHEELS", "PERFORMANCE", "ARMOUR", "LIGHTS", "FRACTURE MODS"]
+const GROUPS := ["PAINT", "DECALS", "BODY KIT", "WHEELS", "PERFORMANCE", "INTERIOR", "ARMOUR", "LIGHTS", "FRACTURE MODS"]
+## the free TUNING tab (ride height, camber, rim size, the decal's text and colour) is open in any shop that sells wheels
+const TUNE_DEFAULT := { "ride": 0, "camber": 0, "rim": 19, "text": "WF", "decal_color": "#e8eaec" }
+const TUNE_LIMITS := { "ride": [-60, 60], "camber": [-10, 10], "rim": [15, 24] }
+const DECAL_COLORS := ["#e8eaec", "#0c0d0f", "#c8102e", "#18b8d8", "#e8b416", "#5b2be0", "#1f9b5a", "#f05a14"]
 
 const ALL := ["street", "super", "muscle", "offroad", "armored", "bike"]
 const CARS := ["street", "super", "muscle", "offroad", "armored"]
@@ -88,6 +94,30 @@ const PARTS := [
 	{ "id": "glow-magenta", "slot": "underglow", "name": "Magenta underglow", "price": 700, "fits": ALL, "stats": {}, "look": { "kind": "underglow", "color": "#ff2fb0" } },
 	{ "id": "glow-violet", "slot": "underglow", "name": "Fracture violet underglow", "price": 900, "fits": ALL, "stats": {}, "look": { "kind": "underglow", "color": "#9c5bff" } },
 	{ "id": "tint-dark", "slot": "tint", "name": "Limo tint", "price": 500, "fits": CARS, "stats": {}, "look": { "kind": "glass", "color": "#0b0d10" } },
+	# from the owner's garage file (Nov 11): the drive-changing ones carry `tune` — nos (nitrous: bigger = longer, harder
+	# boost), slide (the car lets its tail out: drift parts), grip (sticks harder through corners: slicks), launch (a
+	# harder start from rest), telemetry (a live readout on the dash) — read by drive_profile.gd and street_car.gd
+	{ "id": "aero-canards", "slot": "aero", "name": "Canards and splitter", "price": 2600, "fits": ["street", "super", "muscle"], "stats": { "handling": 3 }, "look": { "kind": "aero", "full": false } },
+	{ "id": "aero-full", "slot": "aero", "name": "Full aero package", "price": 8400, "fits": ["street", "super", "muscle"], "stats": { "handling": 7, "speed": -1 }, "look": { "kind": "aero", "full": true, "carbon": true }, "rep": 1 },
+	{ "id": "nos-street", "slot": "nitrous", "name": "Street nitrous", "price": 4200, "fits": ["street", "super", "muscle", "offroad", "armored", "bike"], "stats": { "accel": 2 }, "look": {}, "tune": { "nos": 1.0 } },
+	{ "id": "nos-race", "slot": "nitrous", "name": "Race nitrous", "price": 8800, "fits": ["street", "super", "muscle", "bike"], "stats": { "accel": 3 }, "look": {}, "tune": { "nos": 1.6 }, "rep": 1 },
+	{ "id": "elec-telemetry", "slot": "electronics", "name": "Telemetry system", "price": 2300, "fits": ALL, "stats": { "handling": 1 }, "look": {}, "tune": { "telemetry": 1.0 } },
+	{ "id": "elec-launch", "slot": "electronics", "name": "Launch control", "price": 4200, "fits": ALL, "stats": { "accel": 2 }, "look": {}, "tune": { "launch": 1.0 } },
+	{ "id": "elec-track", "slot": "electronics", "name": "Track ECU suite", "price": 7400, "fits": ["street", "super", "muscle", "bike"], "stats": { "speed": 2, "handling": 3 }, "look": {}, "tune": { "launch": 1.0, "telemetry": 1.0 }, "rep": 1 },
+	{ "id": "tyres-slick", "slot": "tyres", "name": "Slick tyres", "price": 5800, "fits": ["street", "super", "muscle"], "stats": { "handling": 8 }, "look": {}, "tune": { "grip": 0.5 }, "rep": 1 },
+	{ "id": "tyres-drift", "slot": "tyres", "name": "Drift tyres", "price": 1700, "fits": ["street", "super", "muscle"], "stats": { "handling": 2 }, "look": {}, "tune": { "slide": 0.6 } },
+	{ "id": "susp-race", "slot": "suspension", "name": "Race suspension", "price": 6200, "fits": ["street", "super", "muscle"], "stats": { "handling": 9 }, "look": { "kind": "ride", "drop": -0.07 }, "tune": { "grip": 0.2 }, "rep": 1 },
+	{ "id": "susp-drift", "slot": "suspension", "name": "Drift suspension", "price": 4100, "fits": ["street", "super", "muscle"], "stats": { "handling": 5 }, "look": { "kind": "ride", "drop": -0.04 }, "tune": { "slide": 0.4 } },
+	{ "id": "brakes-pads", "slot": "brakes", "name": "Performance pads", "price": 1400, "fits": ALL, "stats": { "handling": 2 }, "look": {} },
+	{ "id": "brakes-bbk", "slot": "brakes", "name": "Big brake kit", "price": 5200, "fits": CARS, "stats": { "handling": 7 }, "look": { "kind": "calipers", "color": "#ffd21a" } },
+	{ "id": "supercharger", "slot": "turbo", "name": "Supercharger", "price": 7200, "fits": CARS, "stats": { "accel": 6, "speed": 3 }, "look": {}, "rep": 1 },
+	{ "id": "rims-deepdish", "slot": "wheels", "name": "Deep-dish wide lip", "price": 3200, "fits": ALL, "stats": {}, "look": { "kind": "rims", "color": "#cfd3d6", "metal": 1.0, "rough": 0.12 } },
+	{ "id": "decal-stripes", "slot": "decals", "name": "Racing stripes", "price": 900, "fits": CARS, "stats": {}, "look": { "kind": "decal", "style": "stripes" } },
+	{ "id": "decal-street", "slot": "decals", "name": "Street graphics", "price": 1800, "fits": ["street", "super", "muscle", "offroad", "armored", "bike"], "stats": {}, "look": { "kind": "decal", "style": "graphics" } },
+	{ "id": "decal-livery", "slot": "decals", "name": "Full race livery", "price": 3800, "fits": ["street", "super", "muscle", "offroad", "armored", "bike"], "stats": {}, "look": { "kind": "decal", "style": "livery" }, "rep": 1 },
+	{ "id": "int-sport", "slot": "interior", "name": "Sport seats", "price": 2200, "fits": CARS, "stats": { "handling": 1 }, "look": {} },
+	{ "id": "int-leather", "slot": "interior", "name": "Luxury leather", "price": 4800, "fits": CARS, "stats": {}, "look": {} },
+	{ "id": "int-cage", "slot": "interior", "name": "Race cockpit and roll cage", "price": 7000, "fits": ["street", "super", "muscle", "offroad"], "stats": { "armor": 3, "handling": 2 }, "look": { "kind": "cage" }, "rep": 1 },
 	# fracture mods (Fracture Dynamics)
 	{ "id": "fracture-phase", "slot": "fracture", "name": "Phase-boost core", "price": 22000, "fits": ALL, "stats": { "speed": 8, "accel": 10 }, "look": { "kind": "core", "color": "#9f6bff" }, "rep": 2 },
 	{ "id": "shield-emitter", "slot": "shield", "name": "Hard-light shield emitter", "price": 26000, "fits": ALL, "stats": { "armor": 20 }, "look": { "kind": "shield", "color": "#5fe4ff" }, "rep": 3 },
@@ -175,4 +205,25 @@ static func stats_with(vehicle_id: String, parts: Dictionary) -> Dictionary:
 		var it := item(parts[slot])
 		for k in it.get("stats", {}):
 			out[k] = clampi(int(out.get(k, 0)) + int(it.stats[k]), 0, 100)
+	return out
+
+## what a car's parts do to the drive beyond the stat bars: the sum of every installed part's `tune`
+static func tune_with(parts: Dictionary) -> Dictionary:
+	var out := {}
+	for slot in parts:
+		var t: Dictionary = item(parts[slot]).get("tune", {})
+		for k in t:
+			out[k] = float(out.get(k, 0.0)) + float(t[k])
+	return out
+
+## a car's free tuning (garage_state cars[id].tune), filled and clamped
+static func tune_clean(t: Dictionary) -> Dictionary:
+	var out: Dictionary = TUNE_DEFAULT.duplicate()
+	for k in TUNE_LIMITS:
+		if t.has(k):
+			out[k] = clampi(int(t[k]), int(TUNE_LIMITS[k][0]), int(TUNE_LIMITS[k][1]))
+	if t.has("text"):
+		out.text = String(t.text).strip_edges().substr(0, 12)
+	if t.has("decal_color") and String(t.decal_color) in DECAL_COLORS:
+		out.decal_color = String(t.decal_color)
 	return out

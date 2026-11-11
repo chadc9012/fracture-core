@@ -45,6 +45,9 @@ var _total: Label
 var _status: Label
 var _buy: Button
 var _repair: Button
+var _undo: Button
+## the order as it was before each change (UNDO steps back through them)
+var _history: Array = []
 
 func _ready() -> void:
 	state = State.load_or_fresh()
@@ -97,13 +100,35 @@ func _enter_shop(id: String) -> void:
 	_title.text = sh.name.to_upper()
 	_title.add_theme_color_override("font_color", Color(sh.accent))
 	_build_room()
-	var groups := []
-	for g in Catalog.GROUPS:
-		if Catalog.shop_slots(id, g).size() > 0:
-			groups.append(g)
+	var groups := _groups()
 	if not (group in groups):
 		group = groups[0]
 	_load_car()
+	_refresh()
+
+## the shop's tabs: its part groups, and TUNING wherever it sells wheels
+func _groups() -> Array:
+	var out := []
+	for g in Catalog.GROUPS:
+		if Catalog.shop_slots(shop_id, g).size() > 0:
+			out.append(g)
+	if "wheels" in Catalog.shop(shop_id).get("slots", []):
+		out.append("TUNING")
+	return out
+
+## remember the order before a change, so UNDO can put it back
+func _remember() -> void:
+	_history.append({ "lines": order.lines.duplicate(), "repair": order.repair })
+	if _history.size() > 30:
+		_history.pop_front()
+
+func _undo_step() -> void:
+	if _history.is_empty():
+		return
+	var h: Dictionary = _history.pop_back()
+	order.lines = h.lines
+	order.repair = h.repair
+	_apply_preview()
 	_refresh()
 
 func _vehicle() -> Dictionary:
@@ -112,6 +137,7 @@ func _vehicle() -> Dictionary:
 func _switch_car(d: int) -> void:
 	vehicle_i = posmod(vehicle_i + d, Catalog.VEHICLES.size())
 	order = Order.new(shop_id, _vehicle().id)
+	_history.clear()
 	_load_car()
 	_refresh()
 
@@ -136,7 +162,7 @@ func _load_car() -> void:
 
 func _apply_preview() -> void:
 	if _car:
-		Kit.apply(_car, order.preview_parts(state), _vehicle().paint)
+		Kit.apply(_car, order.preview_parts(state), _vehicle().paint, state.tune(_vehicle().id))
 
 # ------------------------------------------------------------------------------------------------ the interior
 func _build_room() -> void:
@@ -481,8 +507,12 @@ func _panel() -> Control:
 	_repair = Data.button("REPAIR")
 	_repair.pressed.connect(_toggle_repair)
 	btns.add_child(_repair)
+	_undo = Data.button("UNDO")
+	_undo.pressed.connect(_undo_step)
+	btns.add_child(_undo)
 	var clear := Data.button("CLEAR")
 	clear.pressed.connect(func():
+		_remember()
 		order = Order.new(shop_id, _vehicle().id)
 		_apply_preview()
 		_refresh())
@@ -505,7 +535,7 @@ func _layout() -> void:
 	_panel_node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_panel_node.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_panel_node.size_flags_stretch_ratio = 0.8 if wide else 1.0
-	_list.columns = 3 if (size.x * (0.44 if wide else 1.0)) > 470 else 2
+	_list.columns = 1 if group == "TUNING" else (3 if (size.x * (0.44 if wide else 1.0)) > 470 else 2)
 
 func _refresh() -> void:
 	var v := _vehicle()
@@ -517,9 +547,7 @@ func _refresh() -> void:
 	_shop_pick.select(Catalog.SHOPS.find(Catalog.shop(shop_id)))
 	# tabs
 	_clear(_tabs)
-	for g in Catalog.GROUPS:
-		if Catalog.shop_slots(shop_id, g).is_empty():
-			continue
+	for g in _groups():
 		var b := Data.button(g, g == group)
 		b.pressed.connect(func():
 			group = g
@@ -527,6 +555,9 @@ func _refresh() -> void:
 		_tabs.add_child(b)
 	# items in this group, by slot
 	_clear(_list)
+	_layout()
+	if group == "TUNING":
+		_tuning()
 	if group == "BODY KIT":
 		_list.add_child(Data.label("KIT PRESETS", 12, Data.MUTED))
 		_pad_row()
@@ -535,6 +566,7 @@ func _refresh() -> void:
 			pb.custom_minimum_size = Vector2(0, 58)
 			pb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			pb.pressed.connect(func():
+				_remember()
 				var n: int = order.add_preset(state, p.id)
 				_status.text = "%s: %d parts added to the order" % [p.name.capitalize(), n] if n > 0 else "Nothing in that kit fits this car here"
 				_status.add_theme_color_override("font_color", Data.MUTED)
@@ -568,6 +600,7 @@ func _refresh() -> void:
 		x.custom_minimum_size = Vector2(30, 26)
 		x.add_theme_font_size_override("font_size", 11)
 		x.pressed.connect(func():
+			_remember()
 			order.remove_slot(slot)
 			_apply_preview()
 			_refresh())
@@ -579,6 +612,7 @@ func _refresh() -> void:
 		_order_box.add_child(Data.label("Pick parts to preview them on the car.", 13, Data.MUTED))
 	_total.text = "TOTAL  ₵ %s" % Order._money(order.total(state))
 	_buy.disabled = order.is_empty()
+	_undo.disabled = _history.is_empty()
 	var can_fix: bool = Catalog.shop(shop_id).get("repairs", false) and int(car.get("damage", 0)) > 0
 	_repair.disabled = not can_fix
 	_repair.text = ("REPAIR ✓" if order.repair else "REPAIR ₵ %s" % Order._money(order.repair_price(state))) if can_fix else "REPAIR"
@@ -613,6 +647,7 @@ func _item_button(it: Dictionary) -> Button:
 		sw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(sw)
 	b.pressed.connect(func():
+		_remember()
 		if picked:
 			order.remove_slot(it.slot)
 		elif not fitted:
@@ -653,6 +688,7 @@ func _checkout() -> void:
 		_status.add_theme_color_override("font_color", Color("#ff8a7a"))
 		return
 	state.save()
+	_history.clear()
 	_status.text = "Done. The work's fitted and paid for."
 	_status.add_theme_color_override("font_color", Color("#7dff8a"))
 	_apply_preview()
@@ -675,3 +711,73 @@ func show_car(id: String) -> void:
 	order = Order.new(shop_id, _vehicle().id)
 	_load_car()
 	_refresh()
+
+# ------------------------------------------------------------------------------------------------ tuning (free)
+## ride height, camber and rim size on sliders, the decal's text and colour: free, fitted as you set them (the owner's
+## garage file); what they show is drawn by garage_kit.gd, the decals themselves are parts in the DECALS tab
+func _tuning() -> void:
+	var id: String = _vehicle().id
+	var t: Dictionary = state.tune(id)
+	_list.add_child(Data.label("TUNING · free, fitted as you set it", 12, Data.MUTED))
+	for row in [["ride", "Ride height", " mm"], ["camber", "Wheel camber", "°"], ["rim", "Rim diameter", " in"]]:
+		var key: String = row[0]
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 10)
+		var name_l := Data.label(row[1], 13)
+		name_l.custom_minimum_size = Vector2(120, 0)
+		line.add_child(name_l)
+		var sl := HSlider.new()
+		sl.min_value = float(Catalog.TUNE_LIMITS[key][0])
+		sl.max_value = float(Catalog.TUNE_LIMITS[key][1])
+		sl.step = 1.0
+		sl.value = float(t[key])
+		sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sl.custom_minimum_size = Vector2(0, 32)
+		var val := Data.label("%d%s" % [int(t[key]), row[2]], 13, Data.GOLD)
+		val.custom_minimum_size = Vector2(64, 0)
+		sl.value_changed.connect(func(v: float):
+			val.text = "%d%s" % [int(v), row[2]]
+			set_tune(key, int(v)))
+		line.add_child(sl)
+		line.add_child(val)
+		_list.add_child(line)
+	var tl := HBoxContainer.new()
+	tl.add_theme_constant_override("separation", 10)
+	var tn := Data.label("Decal text", 13)
+	tn.custom_minimum_size = Vector2(120, 0)
+	tl.add_child(tn)
+	var edit := LineEdit.new()
+	edit.max_length = 12
+	edit.text = String(t.text)
+	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	edit.text_submitted.connect(func(v: String): set_tune("text", v))
+	edit.focus_exited.connect(func(): set_tune("text", edit.text))
+	tl.add_child(edit)
+	_list.add_child(tl)
+	var cl := HBoxContainer.new()
+	cl.add_theme_constant_override("separation", 6)
+	var cn := Data.label("Decal colour", 13)
+	cn.custom_minimum_size = Vector2(120, 0)
+	cl.add_child(cn)
+	for c in Catalog.DECAL_COLORS:
+		var sw := Button.new()
+		sw.custom_minimum_size = Vector2(34, 34)
+		var st := StyleBoxFlat.new()
+		st.bg_color = Color(c)
+		st.border_color = Color.WHITE if String(t.decal_color) == c else Color(0.2, 0.25, 0.3)
+		st.set_border_width_all(3 if String(t.decal_color) == c else 1)
+		st.set_corner_radius_all(17)
+		for k in ["normal", "hover", "pressed", "focus"]:
+			sw.add_theme_stylebox_override(k, st)
+		sw.pressed.connect(func():
+			set_tune("decal_color", c)
+			_refresh())
+		cl.add_child(sw)
+	_list.add_child(cl)
+	_list.add_child(Data.label("Decals show once a decal set is fitted (DECALS tab).", 12, Data.MUTED))
+
+## set one tuning value on the car in the bay, save it, and redraw the car
+func set_tune(key: String, value) -> void:
+	state.set_tune(_vehicle().id, key, value)
+	state.save()
+	_apply_preview()

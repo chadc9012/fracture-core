@@ -1854,6 +1854,7 @@ func enter_car(c: Node3D) -> void:
 	if Handling.kind_of(id) != "OFFROAD" or perf.is_empty():
 		perf = hull_perf(id) if Handling.BY_ID.has(id) else perf
 	var car := StreetCar.new(c, id, perf)
+	controls.set_nitro(float(perf.get("nos", 0.0)) > 0.0)
 	car.bounds = operator.bounds
 	car.ground_at = operator.ground_at
 	var own := int(c.get_meta("box_index", -1))
@@ -1932,7 +1933,13 @@ func _drive(dt: float) -> void:
 	if not controls.touch_ui and not controls.scripted:
 		throttle = (1.0 if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) else 0.0)
 		steer = (1.0 if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) else 0.0) - (1.0 if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) else 0.0)
-	car.step(dt, throttle, steer, controls.brake())
+	var nos_was: bool = car.boosting
+	car.step(dt, throttle, steer, controls.brake(), controls.nitro())
+	if car.boosting and not nos_was:
+		Sound.sfx("nitro", -4.0)
+	if car.nos_tank <= 0.02:
+		controls.nitro_off()
+	car.nitro_fx()
 	var c: Node3D = car.node
 	# the operator rides inside: enemies aim at the car, the chase camera follows it from behind
 	operator.position = c.position
@@ -1943,6 +1950,10 @@ func _drive(dt: float) -> void:
 	operator._place_camera(dt)
 	controls.weapon_name.text = _car_name(c)
 	controls.ammo.text = "%d km/h" % int(absf(car.speed) * 3.6)
+	if float(car.profile.get("nos", 0.0)) > 0.0:
+		controls.ammo.text += "   NOS %d%%" % int(car.nos_tank * 100.0)
+	if float(car.profile.get("telemetry", 0.0)) > 0.0:
+		controls.ammo.text += "   top %d · slip %d°" % [int(car.top_speed * 3.6), int(rad_to_deg(car.slip_angle()))]
 	_drive_m += absf(car.speed) * dt
 	if _drive_m >= 100.0:
 		var pr := Gear.profile_load()
@@ -1954,3 +1965,4 @@ func _drive(dt: float) -> void:
 	var k := clampf(absf(car.speed) / top, 0.0, 1.0)
 	Sound.loop_set("engine", (0.5 if Handling.kind_of(String(c.get_meta("vehicle", ""))) == "TANK" else 0.8) + k * 1.1, -12.0 + k * 6.0)
 	_radio_button.text = Sound.radio_line()
+

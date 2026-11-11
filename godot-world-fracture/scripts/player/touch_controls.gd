@@ -290,8 +290,8 @@ func set_mode(m: String) -> void:
 	if _jump_button:
 		_jump_button.text = "BRAKE" if drive else ("UP" if fly else "JUMP")
 	if _sprint_button:
-		_sprint_button.visible = not drive and (fly or not simple())
-		_sprint_button.text = "DOWN" if fly else "SPRINT"
+		_sprint_button.visible = (not drive and (fly or not simple())) or (drive and has_nitro)
+		_sprint_button.text = "DOWN" if fly else ("NOS" if drive else "SPRINT")
 		_lit(_sprint_button, false)
 	if _fire_button:
 		_fire_button.visible = not drive and not fly and weapons_out
@@ -306,6 +306,25 @@ func set_mode(m: String) -> void:
 
 var crosshair: Control
 var weapons_out := true
+## the driven car has nitrous: in drive mode the SPRINT button becomes NOS (tap to fire it, tap again to stop; Shift on a
+## keyboard, held)
+var has_nitro := false
+
+func set_nitro(on: bool) -> void:
+	has_nitro = on
+	set_mode(mode)
+
+func nitro() -> bool:
+	if mode != "drive" or not has_nitro:
+		return false
+	return _sprint_held or (not touch_ui and Input.is_key_pressed(KEY_SHIFT))
+
+## the tank ran dry: the NOS button lets go
+func nitro_off() -> void:
+	if mode == "drive" and _sprint_held:
+		_sprint_held = false
+		if _sprint_button:
+			_lit(_sprint_button, false)
 
 ## unarmed (before Mission 01 arms the operator): no FIRE / RELOAD / SWAP and no crosshair on foot
 func set_armed(on: bool) -> void:

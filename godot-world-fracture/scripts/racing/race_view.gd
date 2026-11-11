@@ -94,6 +94,8 @@ func _ready() -> void:
 	controls = TouchControls.new()
 	add_child(controls)
 	controls.set_mode("drive")
+	if player:
+		controls.set_nitro(float(player.profile.get("nos", 0.0)) > 0.0)
 	# a race has no gun and no hull: no crosshair, no hull bar, no weapon read-out
 	if controls.crosshair:
 		controls.crosshair.visible = false
@@ -534,7 +536,10 @@ func _process(dt: float) -> void:
 		throttle = clampf((float(player.profile.max_speed) * (1.0 - (0.68 if track.street() else 0.55) * pc) - player.speed) / 4.0, -1.0, 1.0)
 	if race.finished or race.player().finished_at >= 0.0:
 		throttle = 0.0
-	_step_car(player, dt, throttle, steer, controls.brake())
+	_step_car(player, dt, throttle, steer, controls.brake(), controls.nitro())
+	if player.nos_tank <= 0.02:
+		controls.nitro_off()
+	player.nitro_fx()
 	# the rivals: aim at a point ahead on the centreline, ease off for the corners, skill sets the pace
 	for r in rivals:
 		var sc: RefCounted = r.sc
@@ -568,8 +573,8 @@ func _process(dt: float) -> void:
 
 ## grass slows a car, and the tyre walls stop it (the obstacle list); on a street circuit the barriers are the track's edge:
 ## a car that reaches one is held on the road and scrubs speed along it
-func _step_car(sc: RefCounted, dt: float, throttle: float, steer: float, brake: float) -> void:
-	sc.step(dt, throttle, steer, brake)
+func _step_car(sc: RefCounted, dt: float, throttle: float, steer: float, brake: float, boost := false) -> void:
+	sc.step(dt, throttle, steer, brake, boost)
 	if track.street():
 		var n: Array = track.nearest(sc.node.position)
 		var lim := track.width * 0.5 + 0.2

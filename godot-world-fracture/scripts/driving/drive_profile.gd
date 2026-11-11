@@ -14,5 +14,5 @@ static func performance(state, id: String) -> Dictionary:
 		"acceleration": (4.0 + float(s.accel) * 0.14) * (1.0 - 0.35 * damage),
 		"steering": 0.65 + float(s.handling) * 0.011,
 		"braking": 10.0 + float(s.handling) * 0.12,
-		"armor": float(s.armor)
-	}
+		"armor": float(s.armor),
+	}.merged(Catalog.tune_with(state.installed(id)))

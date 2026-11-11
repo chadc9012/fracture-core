@@ -16,7 +16,7 @@ static func spawn(parent: Node3D, id: String, state) -> Node3D:
 	if car == null:
 		return placeholder(parent)
 	parent.add_child(car)
-	Kit.apply(car, state.installed(id), String(v.paint))
+	Kit.apply(car, state.installed(id), String(v.paint), state.tune(id))
 	return car
 static func placeholder(parent: Node3D) -> Node3D:
 	var node := Node3D.new()

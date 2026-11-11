@@ -46,7 +46,7 @@ static func frame(car: Node3D) -> Dictionary:
 		"wheel_y": (front / maxi(nf, 1)).y if nf > 0 else box.position.y + 0.35 }
 
 ## re-apply paint, finish and parts to a car (parts: slot -> item id, paint/finish included); `base_paint` when unpainted
-static func apply(car: Node3D, parts: Dictionary, base_paint: String) -> void:
+static func apply(car: Node3D, parts: Dictionary, base_paint: String, tune := {}) -> void:
 	var old := car.get_node_or_null(KIT)
 	if old:
 		car.remove_child(old)
@@ -107,6 +107,18 @@ static func apply(car: Node3D, parts: Dictionary, base_paint: String) -> void:
 			"calipers": _recolor(car, ["Caliper"], Color(look.color), 0.2, 0.4)
 			"glass": _glass(car, Color(look.color))
 			"ride": _ride(car, float(look.drop))
+			"aero": _aero(kit, f, look, carbon if look.get("carbon", false) else paint_mat)
+			"decal": _decal(kit, f, String(look.style), Catalog.tune_clean(tune))
+			"cage": _cage(kit, f, steel)
+	# the free tuning: ride height on top of any suspension drop, rim size and camber on the wheels
+	var t := Catalog.tune_clean(tune)
+	if int(t.ride) != 0:
+		var body := car.find_child("Body", true, false)
+		if body is Node3D:
+			if not body.has_meta("ride0"):
+				body.set_meta("ride0", body.position.y)
+			body.position.y += float(t.ride) / 1000.0
+	_wheels(car, float(t.rim), float(t.camber))
 
 # ---------------------------------------------------------------- pieces
 static func _box(parent: Node3D, f: Dictionary, size: Vector3, at: Vector3, mat: Material) -> MeshInstance3D:
@@ -361,3 +373,164 @@ static func _reset_materials(car: Node3D) -> void:
 	var body := car.find_child("Body", true, false)
 	if body is Node3D and body.has_meta("ride0"):
 		body.position.y = float(body.get_meta("ride0"))
+
+# ---------------------------------------------------------------- the owner's garage file (Nov 11)
+## canards on the front corners; the full package adds a deep splitter and a rear wing on tall struts
+static func _aero(kit: Node3D, f: Dictionary, look: Dictionary, mat: Material) -> void:
+	for s in [-1.0, 1.0]:
+		for k in 2:
+			var fin := _box(kit, f, Vector3(0.18, 0.012, 0.12), Vector3(s * (f.hw * 0.92), f.floor + 0.32 + k * 0.08, f.hl - 0.12), mat)
+			fin.rotate_object_local(Vector3.FORWARD, s * 0.25)
+	if look.get("full", false):
+		_box(kit, f, Vector3(f.hw * 2.0, 0.03, 0.42), Vector3(0, f.floor + 0.08, f.hl + 0.12), mat)
+		var deck: float = f.floor + f.hh * 2.0 * 0.62
+		_box(kit, f, Vector3(f.hw * 1.9, 0.04, 0.34), Vector3(0, deck + 0.42, -f.hl + 0.2), mat)
+		for s in [-1.0, 1.0]:
+			_box(kit, f, Vector3(0.025, 0.42, 0.1), Vector3(s * f.hw * 0.45, deck + 0.21, -f.hl + 0.22), mat)
+
+## decals in the tuned colour, laid on the body's own surface (the car's vertices are sampled along its length, so a
+## stripe follows the hood, roof and deck instead of floating flat over them): twin stripes over the top; street graphics
+## (slashes down the flanks and the custom text on the doors); a full livery (stripes, a flank band, text and number)
+static func _decal(kit: Node3D, f: Dictionary, style: String, t: Dictionary) -> void:
+	var col := Color(String(t.decal_color))
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.35
+	var pts := _surface_points(kit.get_parent(), f)
+	# the pieces are built under a holder and merged into one mesh at the end (one draw, not a hundred)
+	var holder := Node3D.new()
+	kit.add_child(holder)
+	var into := kit
+	kit = holder
+	var seg: float = f.hl * 2.0 / 16.0
+	if style == "stripes" or style == "livery":
+		for x in [-f.hw * 0.2, f.hw * 0.2]:
+			var prev := Vector3.INF
+			for k in 17:
+				var z: float = -f.hl * 0.92 + k * (f.hl * 1.84 / 16.0)
+				var y: float = _top_at(pts, x, z, seg * 0.6, f.hw * 0.1)
+				if is_nan(y):
+					prev = Vector3.INF
+					continue
+				var here := Vector3(x, y + 0.012, z)
+				if prev != Vector3.INF:
+					var mid := (prev + here) * 0.5
+					var len: float = prev.distance_to(here)
+					var piece := _box(kit, f, Vector3(f.hw * 0.16, 0.008, len + 0.01), mid, m)
+					piece.rotate_object_local(Vector3.RIGHT, -atan2(here.y - prev.y, here.z - prev.z))
+				prev = here
+	if style == "stripes":
+		_merge(holder, into, m)
+		return
+	for s in [-1.0, 1.0]:
+		# above the wheel arches, where the flank runs straight
+		var band_y: float = f.wheel_y + 0.44
+		var xs: Array = []
+		for k in 15:
+			var z: float = -f.hl * 0.85 + k * (f.hl * 1.7 / 14.0)
+			xs.append(_side_at(pts, s, band_y, z, seg * 0.6))
+		var flank: Array = xs.filter(func(v): return not is_nan(v))
+		flank.sort()
+		var mid: float = flank[flank.size() / 2] if not flank.is_empty() else s * f.hw
+		for k in 15:
+			var z: float = -f.hl * 0.85 + k * (f.hl * 1.7 / 14.0)
+			var x: float = xs[k]
+			if is_nan(x) or absf(x - mid) > 0.06:
+				continue
+			if style == "livery":
+				_box(kit, f, Vector3(0.006, 0.1, f.hl * 1.7 / 14.0 + 0.01), Vector3(x + s * 0.008, band_y, z), m)
+			elif k % 4 == 1 and k < 13:
+				var sl := _box(kit, f, Vector3(0.006, 0.05, f.hl * 0.3), Vector3(x + s * 0.008, band_y + 0.05 + (k / 4) * 0.08, z), m)
+				sl.rotate_object_local(Vector3.RIGHT, 0.35)
+		var dx: float = _side_at(pts, s, f.floor + 0.66, 0.0, seg)
+		var l := Label3D.new()
+		l.text = String(t.text) + ("  07" if style == "livery" else "")
+		l.font_size = 64
+		l.pixel_size = 0.006
+		l.outline_size = 6
+		l.modulate = col
+		l.double_sided = false
+		# on the door, facing out of the flank
+		var off: float = (dx if not is_nan(dx) else s * f.hw) + s * 0.02
+		var at: Vector3 = f.c + f.right * off + Vector3.UP * (f.floor + 0.66 - f.c.y)
+		l.transform = Transform3D(Basis(f.fwd * -s, Vector3.UP, f.right * s), at)
+		into.add_child(l)
+	_merge(holder, into, m)
+
+## every box under `holder` into one mesh on `into` (the holder goes)
+static func _merge(holder: Node3D, into: Node3D, mat: Material) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	for ch in holder.get_children():
+		var mi := ch as MeshInstance3D
+		if mi and mi.mesh:
+			st.append_from(mi.mesh, 0, mi.transform)
+			any = true
+	holder.get_parent().remove_child(holder)
+	holder.free()
+	if not any:
+		return
+	var out := MeshInstance3D.new()
+	out.mesh = st.commit()
+	out.material_override = mat
+	out.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	into.add_child(out)
+
+## the car's vertices in its frame (x right, y up, z forward, from the frame's centre), at most ~6k of them
+static func _surface_points(car: Node3D, f: Dictionary) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var total := 0
+	for mi in _meshes(car):
+		for i in mi.mesh.get_surface_count():
+			total += (mi.mesh.surface_get_arrays(i)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+	var step := maxi(1, total / 4000)     # ~4k points: the decal samples stay a few ms on a phone
+	for mi in _meshes(car):
+		var xf := _rel(car, mi)
+		for i in mi.mesh.get_surface_count():
+			var arr: Array = mi.mesh.surface_get_arrays(i)
+			var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			for k in range(0, verts.size(), step):
+				var p: Vector3 = xf * verts[k] - f.c
+				out.append(Vector3(p.dot(f.right), p.y + f.c.y, p.dot(f.fwd)))
+	return out
+
+## the body's top at (x, z): the highest vertex near it (NAN where there is none)
+static func _top_at(pts: PackedVector3Array, x: float, z: float, dz: float, dx: float) -> float:
+	var best := NAN
+	for p in pts:
+		if absf(p.z - z) < dz and absf(p.x - x) < dx and (is_nan(best) or p.y > best):
+			best = p.y
+	return best
+
+## the body's flank at height y and z on side s: the outermost vertex near it (NAN where there is none)
+static func _side_at(pts: PackedVector3Array, s: float, y: float, z: float, dz: float) -> float:
+	var best := NAN
+	for p in pts:
+		if absf(p.z - z) < dz and absf(p.y - y) < 0.12 and p.x * s > 0.0 and (is_nan(best) or p.x * s > best * s):
+			best = p.x
+	return best
+
+## a roll cage inside the cabin: hoops behind the seats and over the doors, seen through the glass
+static func _cage(kit: Node3D, f: Dictionary, mat: Material) -> void:
+	var lo: float = f.floor + 0.35
+	var hi: float = f.top - 0.08
+	for z in [-f.hl * 0.25, f.hl * 0.15]:
+		_tube(kit, f, Vector3(-f.hw * 0.7, lo, z), Vector3(-f.hw * 0.62, hi, z), 0.022, mat)
+		_tube(kit, f, Vector3(f.hw * 0.7, lo, z), Vector3(f.hw * 0.62, hi, z), 0.022, mat)
+		_tube(kit, f, Vector3(-f.hw * 0.62, hi, z), Vector3(f.hw * 0.62, hi, z), 0.022, mat)
+	_tube(kit, f, Vector3(-f.hw * 0.62, hi, -f.hl * 0.25), Vector3(f.hw * 0.62, hi, f.hl * 0.15), 0.02, mat)
+
+## rim size and camber: each wheel scaled (19 in is the model's own) and tilted top-in by the camber
+static func _wheels(car: Node3D, rim: float, camber: float) -> void:
+	var k := 1.0 + (rim - 19.0) * 0.03
+	for n in _all(car):
+		if not (n is Node3D) or not String(n.name).begins_with("Wheel"):
+			continue
+		var w := n as Node3D
+		if not w.has_meta("xf0"):
+			w.set_meta("xf0", w.transform)
+		var base: Transform3D = w.get_meta("xf0")
+		var side := -1.0 if base.origin.x < 0.0 else 1.0
+		# the wheels roll about x and the car runs along its model z, so camber is a tilt about z
+		w.transform = Transform3D(Basis(Vector3(0, 0, 1), deg_to_rad(camber) * side) * base.basis.scaled(Vector3(k, k, k)), base.origin)

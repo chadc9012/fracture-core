@@ -49,7 +49,18 @@ func from_dict(d: Dictionary) -> void:
 		for slot in c.get("parts", {}):
 			if not Catalog.item(c.parts[slot]).is_empty():
 				parts[slot] = c.parts[slot]
-		cars[id] = { "paint": String(c.get("paint", "")), "finish": String(c.get("finish", "finish-gloss")), "parts": parts, "damage": clampi(int(c.get("damage", 0)), 0, 100) }
+		cars[id] = { "paint": String(c.get("paint", "")), "finish": String(c.get("finish", "finish-gloss")), "parts": parts, "damage": clampi(int(c.get("damage", 0)), 0, 100), "tune": Catalog.tune_clean(c.get("tune", {})) }
+
+## a car's free tuning (ride height mm, camber degrees, rim inches, decal text and colour), filled with the defaults
+func tune(id: String) -> Dictionary:
+	return Catalog.tune_clean(car(id).get("tune", {}))
+
+func set_tune(id: String, key: String, value) -> void:
+	if not cars.has(id):
+		return
+	var t := tune(id)
+	t[key] = value
+	cars[id].tune = Catalog.tune_clean(t)
 
 func save(path := SAVE_PATH) -> bool:
 	var tmp := path + ".tmp"

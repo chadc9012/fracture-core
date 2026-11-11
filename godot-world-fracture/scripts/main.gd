@@ -625,6 +625,12 @@ func _shoot(path: String, opts: Array) -> void:
 			if g.size() > 3:
 				garage.state.rep = { "nexus-customs": 3, "neon-performance": 3, "ironworks": 3, "fracture-dynamics": 3 }
 				garage.pick(Array(g[3].split(",")))
+			# garage:<shop>:<car>:<parts>:<tab>  opens a tab (e.g. TUNING)
+			if g.size() > 4 and g[4] != "":
+				garage.group = g[4].to_upper()
+				garage.set_tune("rim", 22)
+				garage.set_tune("camber", -6)
+				garage._refresh()
 		# drive[:vehicle index[:throttle]]  e.g. drive:0:1 drives the first car flat out
 		if String(o).begins_with("drive"):
 			var d := String(o).split(":")
