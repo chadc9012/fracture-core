@@ -58,6 +58,10 @@ static func clean(raw: Variant, preset := false) -> Dictionary:
 	if Catalog.heads(body).filter(func(h: Dictionary) -> bool: return h.id == head).is_empty():
 		look.head = Catalog.default_head(frame, body)
 	look.morphs = FaceMorphs.clean(look.get("morphs", {}))
+	# the clothes they wear in the city (scripts/character/outfits.gd)
+	var Outfits := load("res://scripts/character/outfits.gd")
+	if String(look.get("outfit", "")) not in Outfits.ids():
+		look.outfit = Outfits.default_for(body)
 	if body == "robot":
 		look.skin = _in("plating", look.get("skin"), "steel")
 		look.eyes = _in("optics", look.get("eyes"), "cyan")

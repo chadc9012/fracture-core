@@ -1,0 +1,56 @@
+{
+ "civ-cipher-female": {
+  "ankle": -0.5841,
+  "elbow": 0.1012,
+  "floor": -0.7077,
+  "knee": -0.3432,
+  "neck": 0.2632,
+  "shoulder": 0.2323,
+  "wrist": -0.007
+ },
+ "civ-cipher-male": {
+  "ankle": -0.5841,
+  "elbow": 0.1012,
+  "floor": -0.7077,
+  "knee": -0.3432,
+  "neck": 0.2632,
+  "shoulder": 0.2323,
+  "wrist": -0.007
+ },
+ "civ-goliath-female": {
+  "ankle": -0.5392,
+  "elbow": 0.129,
+  "floor": -0.6637,
+  "knee": -0.3139,
+  "neck": 0.2933,
+  "shoulder": 0.2524,
+  "wrist": 0.0182
+ },
+ "civ-goliath-male": {
+  "ankle": -0.5389,
+  "elbow": 0.1289,
+  "floor": -0.6633,
+  "knee": -0.3137,
+  "neck": 0.2931,
+  "shoulder": 0.2522,
+  "wrist": 0.0181
+ },
+ "civ-nyx-female": {
+  "ankle": -0.4689,
+  "elbow": 0.2396,
+  "floor": -0.5891,
+  "knee": -0.207,
+  "neck": 0.3977,
+  "shoulder": 0.3659,
+  "wrist": 0.1304
+ },
+ "civ-nyx-male": {
+  "ankle": -0.4683,
+  "elbow": 0.2392,
+  "floor": -0.5883,
+  "knee": -0.2067,
+  "neck": 0.3971,
+  "shoulder": 0.3654,
+  "wrist": 0.1302
+ }
+}

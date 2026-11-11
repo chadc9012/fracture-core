@@ -1,4 +1,5 @@
 extends Control
+const Outfits := preload("res://scripts/character/outfits.gd")
 const Phone := preload("res://scripts/phone.gd")
 ## Onboarding: the operator creator. A lit turntable of the character (drag to turn it) beside tabs for the body, a named face
 ## (20 male, 20 female), the ten sculpt sliders, skin tone (plating and optics for robots), hairstyle and colour, facial hair
@@ -14,7 +15,7 @@ const FaceMorphs := preload("res://scripts/character/face_morphs.gd")
 # the creator makes the person: body, face, skin, hair, facial hair and markings, shown in regular clothes. Armour and gear
 # are not chosen here (owner, Nov 10: "operators creator shouldn't have a armor option"); the build picked here is the
 # one the armour is fitted to in the game
-const TABS := ["BODY", "FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS"]
+const TABS := ["BODY", "FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS", "OUTFIT"]
 const FACE_TABS := ["FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS"]
 
 var look: Dictionary = {}
@@ -337,6 +338,15 @@ func _fill() -> void:
 					look.frame = fid
 					look.head = look.head if not robot else Catalog.default_head(fid, "robot")
 					_changed(true), String(bl[1]))
+		"OUTFIT":
+			# the clothes they wear in the city (not armour): scripts/character/outfits.gd
+			_section("OUTFIT")
+			var go := _grid(2)
+			for o: Dictionary in Outfits.LIST:
+				var oid: String = o.id
+				_choice(go, String(o.name), String(look.get("outfit", "")) == oid, func() -> void:
+					look.outfit = oid
+					_changed(true))
 		"FACE":
 			if robot:
 				_section("HEAD")

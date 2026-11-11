@@ -6,6 +6,7 @@ extends Node3D
 const Catalog := preload("res://scripts/character/catalog.gd")
 const FaceMorphs := preload("res://scripts/character/face_morphs.gd")
 const SkinShader := preload("res://scripts/character/skin_shader.gd")
+const Outfits := preload("res://scripts/character/outfits.gd")
 const HairBuilder := preload("res://scripts/character/hair_builder.gd")
 const StandIdle := preload("res://scripts/character/stand_idle.gd")
 
@@ -14,6 +15,7 @@ var body_root: Node3D
 var skeleton: Skeleton3D
 var head_mesh: MeshInstance3D
 var hair_mesh: MeshInstance3D
+var _body_meshes: Array = []
 var anim: AnimationPlayer
 ## where the head sits on this body (body skeleton space), for framing a camera
 var head_point := Vector3(0, 1.6, 0)
@@ -50,6 +52,7 @@ func build(new_look: Dictionary, animate := true) -> void:
 	add_child(body_root)
 	skeleton = _find(body_root, "Skeleton3D")
 	anim = _find(body_root, "AnimationPlayer")
+	_body_meshes = body_root.find_children("*", "MeshInstance3D", true, false)   # the body itself, before the head and hair join
 	if anim and skeleton and anim.has_animation("idle"):
 		StandIdle.install(anim, skeleton)
 	if anim and animate and anim.has_animation("idle"):
@@ -62,6 +65,20 @@ func build(new_look: Dictionary, animate := true) -> void:
 	if hb >= 0:
 		head_point = skeleton.get_bone_global_rest(hb).origin
 	_attach_head(hb)
+	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
+		dress(String(look.get("outfit", "")))
+
+## puts the civ body in an outfit (scripts/character/outfits.gd); the bare hands take the skin tone
+func dress(outfit_id: String) -> void:
+	if outfit_id == "":
+		outfit_id = Outfits.default_for(String(look.get("body", "male")))
+	var mat: ShaderMaterial = Outfits.material(outfit_id, _scalp_tone().srgb_to_linear())
+	var lm: Dictionary = Outfits.landmarks("civ-%s-%s" % [look.frame, look.body])
+	for k: String in lm:
+		mat.set_shader_parameter("floor_h" if k == "floor" else k, float(lm[k]))
+	for mi in _body_meshes:
+		if is_instance_valid(mi):
+			(mi as MeshInstance3D).material_override = mat
 
 ## a head cut from one frame can carry binds to bones another frame's skeleton lacks (the Warlock frame's coat bones,
 ## Bone_0xx): those verts would stay frozen at rest while the body moves, and the engine logs an error per bind. Each

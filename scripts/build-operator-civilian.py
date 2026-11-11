@@ -14,7 +14,7 @@ clips:
 
 The result is headless like every game body (the face chosen in character creation is skinned on at load).
 
-usage: blender -b -P scripts/build-operator-civilian.py -- BASE.glb OUT.glb male|female
+usage: blender -b -P scripts/build-operator-civilian.py -- BASE.glb OUT.glb male|female [LANDMARKS.json]
 (the bundled blender wrapper passes the arguments without "--"; both forms work)
 """
 import sys
@@ -247,69 +247,71 @@ H = height
 O = OUTFIT
 
 
-def colour_of(i, n):
-    p, nv = co[i], nrm[i]
+# The clothes are drawn by the game's outfit shader (scripts/character/outfit.gdshader), from the outfit the player picks
+# (owner, Nov 11: more clothes). Every vertex carries one smooth set of rest-pose coordinates, so the seams the shader
+# cuts (hem, cuffs, zip line, stripes, pockets, prints, a tee's sleeve, the hem of shorts) are clean lines wherever they
+# fall, across triangles of different body zones:
+#   UV   (across the body, height above the hip line)          in body heights
+#   UV2  (normal toward the front, normal toward the outside)
+#   colour red: the body zone * 20 / 255 (0 skin, 1 foot, 2 hood, 3 upper arm, 4 forearm, 5 leg, 6 torso);
+#          green: a little per-vertex weave jitter; blue: distance ahead of the ankle (feet: the toe cap)
+# and the body's landmarks (knee, ankle, floor, neck, shoulder, elbow, wrist, in the same units) go to
+# data/outfit_landmarks.json under the body's name, for the shader's uniforms.
+wrist_p = {s_: np.array((m @ arm.data.bones["mixamorig:%sHand" % s_].head_local)[:]) for s_ in ("Left", "Right")}
+
+
+def zone_of(i, n):
+    p = co[i]
     z = p[up]
-    lat = float(p @ LAT) - mid_x                 # across the body
-    front = float(nv @ F)
-    side = "Left" if "Left" in n else "Right"
     if is_hand(n):
-        return SKIN
+        return 0
     hood = float((p - neck0) @ F) < -0.01 * H and any(np.linalg.norm(p - hc) < hr * 1.3 for hc, hr in HOOD)
     if ("Neck" in n or "Head" in n) and not hood:
-        return SKIN
+        return 0
     if "Foot" in n or "Toe" in n:
-        out = float(nv @ LAT) * (1 if lat > 0 else -1)
-        if z < floor + 0.016 * H:
-            return O["sole"]
-        if z < floor + 0.023 * H:
-            return O["mid"]
-        if float(nv @ F) < -0.55 and z < floor + 0.06 * H:
-            return O["accent"]                 # heel tab
-        if out > 0.45 and floor + 0.03 * H < z < floor + 0.05 * H:
-            return O["accent"]                 # side flash
-        if float((p - ankle[side]) @ F) > 0.09 * H:
-            return O["toe"]
-        return O["shoes"]
+        return 1
     if hood:
-        return O["top2"] if float((p - neck0) @ F) > -0.04 * H and z > neck_z - 0.04 * H else O["top"]   # the opening
+        return 2
     if ("Arm" in n or "Shoulder" in n) and "ForeArm" not in n:
-        return O["top"]
+        return 3
     if "ForeArm" in n:
-        return O["top2"] if wrist_near[i] else O["top"]
-    if z < hip_line:
-        # joggers: ankle cuffs, a side stripe, cargo pockets on the thighs
-        out = float(nv @ LAT) * (1 if lat > 0 else -1)
-        if "Leg" in n and "UpLeg" not in n and z < ankle[side][up] + 0.04 * H:
-            return O["legs2"]
-        if O["stripes"] and out > 0.93 and "Leg" in n:
-            return O["stripe"]
-        if "UpLeg" in n and 0.4 < out < 0.92 and knee[side][up] + 0.05 * H < z < knee[side][up] + 0.15 * H:
-            return O["legs2"] if z < knee[side][up] + 0.135 * H else O["legs"]
-        return O["legs"]
-    # the hoodie: ribbed hem, kangaroo pocket, drawstrings, a chest logo
-    if z < hip_line + 0.025 * H:
-        return O["top2"]
-    if front > 0.3:
-        if hip_line + 0.035 * H < z < hip_line + 0.13 * H and abs(lat) < 0.085 * H:
-            return O["top2"] if abs(lat) > 0.074 * H or z > hip_line + 0.12 * H else O["top"]
-        if neck_z - 0.1 * H < z < neck_z - 0.025 * H and min(abs(lat - 0.03 * H), abs(lat + 0.03 * H)) < 0.0045 * H:
-            return O["string"]
-        # a box-logo print on the chest, a stripe of the second colour through it
-        logo_z = neck_z - 0.155 * H
-        if abs(z - logo_z) < 0.03 * H and abs(lat) < 0.06 * H:
-            return O["logo2"] if abs(z - logo_z) < 0.006 * H and abs(lat) < 0.045 * H else O["logo"]
-    return O["top"]
+        return 4
+    return 5 if z < hip_line else 6
 
 
 cols = np.zeros((len(co), 4))
+uvs = np.zeros((len(co), 4))
 for i, n in enumerate(dom):
-    c = np.array(colour_of(i, n))
-    cols[i, :3] = np.clip(c * (0.95 + rng.random() * 0.07), 0, 1)
-    cols[i, 3] = 1.0
-attr = new.data.color_attributes.new("Col", "BYTE_COLOR", "POINT")
+    p, nv = co[i], nrm[i]
+    lat = float(p @ LAT) - mid_x
+    side = "Left" if ("Left" in n or (lat > 0) == (float(np.array((m @ arm.data.bones["mixamorig:LeftUpLeg"].head_local)[:]) @ LAT) - mid_x > 0)) else "Right"
+    out = float(nv @ LAT) * (1 if lat > 0 else -1)
+    fwd = float((p - ankle[side]) @ F) / H
+    cols[i] = (zone_of(i, n) * 20 / 255.0, rng.random(), float(np.clip(fwd * 2.0 + 0.5, 0, 1)), 1.0)
+    uvs[i] = (lat / H, (p[up] - hip_line) / H, float(nv @ F), out)
+while len(new.data.uv_layers):          # the joined hands bring their own texture map; the clothes need only these two
+    new.data.uv_layers.remove(new.data.uv_layers[0])
+uv0 = new.data.uv_layers.new(name="UVMap")
+uv1 = new.data.uv_layers.new(name="UV2")
+for loop in new.data.loops:
+    u = uvs[loop.vertex_index]
+    uv0.data[loop.index].uv = (u[0], u[1])
+    uv1.data[loop.index].uv = (u[2], u[3])
+
+
+def rel(v):
+    return round((float(v) - hip_line) / H, 4)
+
+
+bone_z = lambda nm: (m @ arm.data.bones[nm].head_local)[up]
+LANDMARKS = {
+    "knee": rel((knee["Left"][up] + knee["Right"][up]) / 2), "ankle": rel((ankle["Left"][up] + ankle["Right"][up]) / 2),
+    "floor": rel(floor), "neck": rel(neck_z), "shoulder": rel(bone_z("mixamorig:LeftArm")),
+    "elbow": rel(bone_z("mixamorig:LeftForeArm")), "wrist": rel(bone_z("mixamorig:LeftHand")),
+}
+attr = new.data.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
 for i, c in enumerate(cols):
-    attr.data[i].color_srgb = c
+    attr.data[i].color = c
 new.data.color_attributes.active_color = attr
 new.data.color_attributes.render_color_index = 0
 
@@ -341,4 +343,10 @@ arm.select_set(True)
 new.select_set(True)
 bpy.ops.export_scene.gltf(filepath=out_path, export_format="GLB", use_selection=True, export_animations=True, export_skins=True,
                           export_vertex_color="ACTIVE", export_yup=True)
-print("wrote", out_path, len(new.data.vertices), "verts")
+import json, os
+lm_path = argv[3] if len(argv) > 3 else ""
+if lm_path:
+    allm = json.load(open(lm_path)) if os.path.exists(lm_path) else {}
+    allm[os.path.splitext(os.path.basename(out_path))[0]] = LANDMARKS
+    json.dump(allm, open(lm_path, "w"), indent=1, sort_keys=True)
+print("wrote", out_path, len(new.data.vertices), "verts", LANDMARKS)
