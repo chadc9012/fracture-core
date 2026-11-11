@@ -74,6 +74,35 @@ def seg_dist(p, a, b):
     return np.linalg.norm(p - (a + np.outer(t, ab)), axis=1), t
 
 
+BUILD = 0.92 if "nyx" in base_path else (1.12 if "goliath" in base_path else 1.0)
+EASE = 1.12
+
+
+def body_cap(n, s):
+    """the radius (fraction of height) of a clothed adult's limb or trunk at this bone and position along it"""
+    f = sex == "female"
+    lerp = lambda a, b: a + (b - a) * s
+    if "UpLeg" in n:
+        return lerp(0.05, 0.033) * (1.04 if f else 1.0)
+    if "Leg" in n:
+        return lerp(0.031, 0.02)
+    if "ForeArm" in n:
+        return lerp(0.024, 0.017) * (0.9 if f else 1.0)
+    if "Arm" in n:
+        return lerp(0.031, 0.026) * (0.88 if f else 1.0)
+    if "Shoulder" in n:
+        return 0.03 * (0.9 if f else 1.0)
+    if "Hips" in n:
+        return 0.084 * (1.06 if f else 1.0)
+    if "Spine2" in n:
+        return 0.088 * (0.9 if f else 1.0)
+    if "Spine1" in n:
+        return 0.084 * (0.88 if f else 1.0)
+    if "Spine" in n:
+        return 0.08 * (0.9 if f else 1.0)
+    return None
+
+
 mb_data = bpy.data.metaballs.new("body")
 mb_data.resolution = height * 0.0075
 mb_data.threshold = 0.6
@@ -117,6 +146,12 @@ for bone in arm.data.bones:
             r = min(r, height * 0.031)
         if "Foot" in n or "Toe" in n:
             r = max(r, height * 0.04)
+        # a person's build, not the armour's (GTA pass, Nov 11): the armour made the body balloon at the thighs, chest
+        # and upper arms. Each part is capped at a real body's girth for its height (plus a little ease for the cloth),
+        # scaled for the frame (NYX slim, CIPHER average, GOLIATH heavy) and the female cut.
+        c = body_cap(n, s)
+        if c:
+            r = min(r, c * height * BUILD * EASE)
         r = max(r, height * 0.018)
         e = mb_data.elements.new()
         e.co = Vector(a + (b - a) * s)
@@ -247,6 +282,13 @@ H = height
 O = OUTFIT
 
 
+# body zones, written to UV2.y so the game can dress the same body many ways (GTA pass,
+# Nov 11: the street's people recolour and re-cut their clothes per walker — t-shirts with bare forearms, shorts, dresses,
+# suits — from one body; shaders/clothing.gdshader). The rest pose rides in UV / UV2 for stable fabric detail.
+Z_SKIN, Z_NECK, Z_HOOD, Z_SHOULDER, Z_UPPER_ARM, Z_FOREARM, Z_CUFF, Z_TORSO, Z_TOP_TRIM, Z_TOP_ACC = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+Z_THIGH, Z_SHIN, Z_ANKLE, Z_LEG_TRIM, Z_LEG_ACC, Z_SHOE, Z_SHOE_ACC, Z_SOLE = 11, 12, 13, 14, 15, 16, 17, 18
+
+
 def colour_of(i, n):
     p, nv = co[i], nrm[i]
     z = p[up]
@@ -254,62 +296,77 @@ def colour_of(i, n):
     front = float(nv @ F)
     side = "Left" if "Left" in n else "Right"
     if is_hand(n):
-        return SKIN
+        return SKIN, Z_SKIN
     hood = float((p - neck0) @ F) < -0.01 * H and any(np.linalg.norm(p - hc) < hr * 1.3 for hc, hr in HOOD)
     if ("Neck" in n or "Head" in n) and not hood:
-        return SKIN
+        return SKIN, Z_NECK
     if "Foot" in n or "Toe" in n:
         out = float(nv @ LAT) * (1 if lat > 0 else -1)
         if z < floor + 0.016 * H:
-            return O["sole"]
+            return O["sole"], Z_SOLE
         if z < floor + 0.023 * H:
-            return O["mid"]
+            return O["mid"], Z_SOLE
         if float(nv @ F) < -0.55 and z < floor + 0.06 * H:
-            return O["accent"]                 # heel tab
+            return O["accent"], Z_SHOE_ACC   # heel tab
         if out > 0.45 and floor + 0.03 * H < z < floor + 0.05 * H:
-            return O["accent"]                 # side flash
+            return O["accent"], Z_SHOE_ACC   # side flash
         if float((p - ankle[side]) @ F) > 0.09 * H:
-            return O["toe"]
-        return O["shoes"]
+            return O["toe"], Z_SHOE
+        return O["shoes"], Z_SHOE
     if hood:
-        return O["top2"] if float((p - neck0) @ F) > -0.04 * H and z > neck_z - 0.04 * H else O["top"]   # the opening
+        return (O["top2"], Z_TOP_TRIM) if float((p - neck0) @ F) > -0.04 * H and z > neck_z - 0.04 * H else (O["top"], Z_HOOD)   # the opening
     if ("Arm" in n or "Shoulder" in n) and "ForeArm" not in n:
-        return O["top"]
+        return O["top"], (Z_SHOULDER if "Shoulder" in n else Z_UPPER_ARM)
     if "ForeArm" in n:
-        return O["top2"] if wrist_near[i] else O["top"]
+        return (O["top2"], Z_CUFF) if wrist_near[i] else (O["top"], Z_FOREARM)
     if z < hip_line:
         # joggers: ankle cuffs, a side stripe, cargo pockets on the thighs
         out = float(nv @ LAT) * (1 if lat > 0 else -1)
         if "Leg" in n and "UpLeg" not in n and z < ankle[side][up] + 0.04 * H:
-            return O["legs2"]
+            return O["legs2"], Z_ANKLE
         if O["stripes"] and out > 0.93 and "Leg" in n:
-            return O["stripe"]
+            return O["stripe"], Z_LEG_ACC
         if "UpLeg" in n and 0.4 < out < 0.92 and knee[side][up] + 0.05 * H < z < knee[side][up] + 0.15 * H:
-            return O["legs2"] if z < knee[side][up] + 0.135 * H else O["legs"]
-        return O["legs"]
+            return (O["legs2"], Z_LEG_TRIM) if z < knee[side][up] + 0.135 * H else (O["legs"], Z_THIGH)
+        return O["legs"], (Z_THIGH if z > knee[side][up] else Z_SHIN)
     # the hoodie: ribbed hem, kangaroo pocket, drawstrings, a chest logo
     if z < hip_line + 0.025 * H:
-        return O["top2"]
+        return O["top2"], Z_TOP_TRIM
     if front > 0.3:
         if hip_line + 0.035 * H < z < hip_line + 0.13 * H and abs(lat) < 0.085 * H:
-            return O["top2"] if abs(lat) > 0.074 * H or z > hip_line + 0.12 * H else O["top"]
+            return (O["top2"], Z_TOP_TRIM) if abs(lat) > 0.074 * H or z > hip_line + 0.12 * H else (O["top"], Z_TORSO)
         if neck_z - 0.1 * H < z < neck_z - 0.025 * H and min(abs(lat - 0.03 * H), abs(lat + 0.03 * H)) < 0.0045 * H:
-            return O["string"]
+            return O["string"], Z_TOP_ACC
         # a box-logo print on the chest, a stripe of the second colour through it
         logo_z = neck_z - 0.155 * H
         if abs(z - logo_z) < 0.03 * H and abs(lat) < 0.06 * H:
-            return O["logo2"] if abs(z - logo_z) < 0.006 * H and abs(lat) < 0.045 * H else O["logo"]
-    return O["top"]
+            return (O["logo2"], Z_TOP_ACC) if abs(z - logo_z) < 0.006 * H and abs(lat) < 0.045 * H else (O["logo"], Z_TOP_ACC)
+    return O["top"], Z_TORSO
 
 
 cols = np.zeros((len(co), 4))
+zones = np.zeros(len(co))
 for i, n in enumerate(dom):
-    c = np.array(colour_of(i, n))
-    cols[i, :3] = np.clip(c * (0.95 + rng.random() * 0.07), 0, 1)
+    c, zone = colour_of(i, n)
+    cols[i, :3] = np.clip(np.array(c) * (0.95 + rng.random() * 0.07), 0, 1)
     cols[i, 3] = 1.0
+    zones[i] = zone
 attr = new.data.color_attributes.new("Col", "BYTE_COLOR", "POINT")
 for i, c in enumerate(cols):
+    # sRGB conversion applies to rgb only; alpha is stored linearly
     attr.data[i].color_srgb = c
+# the rest pose (metres, Z up) for fabric detail that stays on the cloth while the body moves, and the zone: UV = rest
+# x, y; UV2 = rest z, zone (the glTF exporter writes colour without alpha, so the zone rides in UV2)
+while len(new.data.uv_layers):
+    new.data.uv_layers.remove(new.data.uv_layers[0])
+uv = new.data.uv_layers.new(name="rest_xy")
+uv2 = new.data.uv_layers.new(name="rest_z")
+for poly in new.data.polygons:
+    for li in poly.loop_indices:
+        vi = new.data.loops[li].vertex_index
+        p_ = co[vi]
+        uv.data[li].uv = (p_[0], p_[1])
+        uv2.data[li].uv = (p_[2], float(zones[vi]))
 new.data.color_attributes.active_color = attr
 new.data.color_attributes.render_color_index = 0
 

@@ -12,7 +12,6 @@ const CharacterStore := preload("res://scripts/character/character_store.gd")
 const Catalog := preload("res://scripts/character/catalog.gd")
 const STROLL := 1.35
 const HURRY := 3.4
-const CASUAL := [Color(0.35, 0.4, 0.5), Color(0.6, 0.25, 0.25), Color(0.25, 0.45, 0.3), Color(0.5, 0.5, 0.55), Color(0.7, 0.6, 0.35), Color(0.2, 0.2, 0.25), Color(0.75, 0.75, 0.78)]
 
 class Walker:
 	var mover: Node3D
@@ -51,6 +50,11 @@ func random_look() -> Dictionary:
 	var body := "female" if _rng.randf() < 0.5 else "male"
 	var frames: Array = Catalog.frames().filter(func(f: Dictionary) -> bool: return String(f.id) != "robot")
 	var frame: String = String(frames[_rng.randi() % frames.size()].id) if not frames.is_empty() else "goliath"
+	# most passers-by are slim or average builds; the heavy frame is the odd one out
+	var r := _rng.randf()
+	var ids: Array = frames.map(func(f: Dictionary) -> String: return String(f.id))
+	if ids.has("nyx") and ids.has("cipher"):
+		frame = "nyx" if r < 0.42 else ("cipher" if r < 0.86 else frame)
 	var look := CharacterStore.clean({ "frame": frame, "body": body })
 	var faces: Array = Catalog.faces(body)
 	if not faces.is_empty():
@@ -71,24 +75,82 @@ func _spawn(side: float, z: float, dir: float) -> Walker:
 	Grounding.blob(w.mover, Vector2(0.55, 0.45), 0.45)
 	w.mover.cam_yaw = 0.0
 	w.mover.build(random_look())
-	_tint(w.mover, CASUAL[_rng.randi() % CASUAL.size()])
+	_dress(w.mover)
 	walkers.append(w)
 	return w
 
-func _tint(m: Node3D, c: Color) -> void:
+## a walker's outfit (GTA pass, Nov 11): the civilian body dressed by shaders/clothing.gdshader — a cut (hoodie,
+## t-shirt, jacket and trousers, summer, dress, long coat), real-world colours for top, trim, legs and shoes, the cloth
+## (denim, suiting, chinos, joggers), and the walker's own skin tone on hands, forearms and legs. One shared material;
+## the colours are instance uniforms.
+const TOPS := ["#1d2433", "#e8e6e1", "#8d8f93", "#141416", "#4b5338", "#5e1f26", "#c49a3a", "#9fb7cf", "#c8b79a", "#2f4f6f", "#a33a2c", "#d9c9b4"]
+const TRIMS := ["#f2f0ea", "#1a1a1c", "#6c6f75", "#c9c2b4"]
+const DENIM := ["#2c3a55", "#3c4f72", "#1c2230", "#5a6f90", "#202024"]
+const CHINOS := ["#b9a47e", "#7a6b52", "#3f4a3a", "#5a5752", "#2b2f3a"]
+const SUITS := ["#22252d", "#3a3d44", "#2a2f3e", "#4a4338", "#151517"]
+const JOGGERS := ["#2a2a2e", "#6e6f73", "#1f2b3d", "#3d4033"]
+const DRESSES := ["#7a1f2b", "#1d2433", "#2f5d50", "#c7a46a", "#d8d2c8", "#5b3a6b", "#141416"]
+const SNEAKERS := ["#f0efe9", "#1b1b1d", "#d8d4cc", "#8a8d92", "#b23a2a"]
+const LEATHER := ["#2a1d15", "#4a2f1d", "#121212", "#6b4a2e"]
+const ACCENTS := ["#c8302a", "#f0efe9", "#1b1b1d", "#e0b33a", "#3d7bd6", "#2f8f5b"]
+static var _cloth: Shader
+
+func _pick(a: Array) -> Color:
+	return Color(String(a[_rng.randi() % a.size()]))
+
+func _dress(m: Node3D) -> void:
 	var rig: Node3D = m.rig
 	if not rig or not rig.body_root:
 		return
+	if not _cloth:
+		_cloth = load("res://shaders/clothing.gdshader")
+	var female := String(rig.look.get("body", "male")) == "female"
+	var r := _rng.randf()
+	var style := 0
+	# a city crowd: mostly t-shirts, jeans and jackets, some hoodies, summer clothes, dresses and coats
+	if female:
+		style = 1 if r < 0.3 else (2 if r < 0.48 else (4 if r < 0.7 else (0 if r < 0.82 else (5 if r < 0.92 else 3))))
+	else:
+		style = 1 if r < 0.34 else (2 if r < 0.56 else (0 if r < 0.76 else (5 if r < 0.86 else 3)))
+	var legs_kind := 1
+	var legs := _pick(DENIM)
+	var lr := _rng.randf()
+	if style == 2:
+		legs_kind = 2
+	elif style == 0:
+		legs_kind = 0 if lr < 0.6 else 1
+	elif lr < 0.3:
+		legs_kind = 3
+	match legs_kind:
+		0: legs = _pick(JOGGERS)
+		2: legs = _pick(SUITS)
+		3: legs = _pick(CHINOS)
+	var top := _pick(TOPS)
+	if style == 2:
+		top = legs if _rng.randf() < 0.7 else _pick(SUITS)
+	elif style == 4:
+		top = _pick(DRESSES)
+	var shoe_kind := 1 if style == 2 or (style == 5 and _rng.randf() < 0.6) or (style == 4 and _rng.randf() < 0.5) else 0
+	# the hands and bare arms and legs match the face: the head texture's own skin when it has one
+	var skin: Color = rig._tex_skin if rig._tex_skin != null else rig._scalp_tone()
 	for n in rig.body_root.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
 		if mi == rig.head_mesh or mi == rig.hair_mesh or not mi.mesh:
 			continue
-		for i in mi.mesh.get_surface_count():
-			var base: Material = mi.mesh.surface_get_material(i)
-			if base is StandardMaterial3D:
-				var mat := (base as StandardMaterial3D).duplicate() as StandardMaterial3D
-				mat.albedo_color = Color(1, 1, 1).lerp(c * 1.5, 0.7)
-				mi.set_surface_override_material(i, mat)
+		if mi.mesh.get_surface_count() != 1:
+			continue
+		var mat := ShaderMaterial.new()
+		mat.shader = _cloth
+		mi.material_override = mat
+		mi.set_instance_shader_parameter("style", style)
+		mi.set_instance_shader_parameter("legs_kind", legs_kind)
+		mi.set_instance_shader_parameter("shoe_kind", shoe_kind)
+		mi.set_instance_shader_parameter("top_col", top)
+		mi.set_instance_shader_parameter("trim_col", _pick(TRIMS) if style != 2 else Color("#e9e7e2"))
+		mi.set_instance_shader_parameter("leg_col", legs)
+		mi.set_instance_shader_parameter("shoe_col", _pick(LEATHER) if shoe_kind == 1 else _pick(SNEAKERS))
+		mi.set_instance_shader_parameter("acc_col", _pick(ACCENTS) if style != 2 else Color("#7a1f2b").lerp(_pick(TOPS), 0.4))
+		mi.set_instance_shader_parameter("skin_col", skin)
 
 ## the district moved: walkers keep to lo..hi and are drawn only inside it
 func set_span(lo: float, hi: float) -> void:
