@@ -832,6 +832,29 @@ func _environment() -> void:
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
+	if style == "nexus" and not night:
+		# Nexus City by day (owner's street frame, Nov 11): late-morning sun high over the towers, a deep blue sky with
+		# white cumulus, bright clean air — not the old golden-hour haze. The pavers carry a polished sheen (`_day_sheen`).
+		sun.light_color = Color(1.0, 0.95, 0.86)
+		sun.light_energy = 2.3
+		sun.rotation_degrees = Vector3(-46.0, 152.0, 0.0)
+		sun.light_volumetric_fog_energy = 0.6
+		sky.sky_material = day_sky()
+		sky.process_mode = Sky.PROCESS_MODE_INCREMENTAL
+		sky.radiance_size = Sky.RADIANCE_SIZE_128
+		env.ambient_light_energy = 1.05
+		env.tonemap_exposure = 1.06
+		env.glow_intensity = 0.45
+		env.glow_hdr_threshold = 1.3
+		env.fog_light_color = Color(0.70, 0.80, 0.95)
+		env.fog_density = 0.0007
+		env.fog_sun_scatter = 0.12
+		env.fog_aerial_perspective = 0.8
+		env.volumetric_fog_density = 0.0015
+		env.volumetric_fog_albedo = Color(0.85, 0.9, 1.0)
+		env.adjustment_contrast = 1.08
+		env.adjustment_saturation = 1.2
+		_day_probe()
 	if night:
 		sun.light_color = Color(0.55, 0.62, 0.9)
 		sun.light_energy = 0.22
@@ -857,6 +880,43 @@ func _environment() -> void:
 		env.fog_sun_scatter = 0.05
 		env.volumetric_fog_density = 0.012
 		env.volumetric_fog_albedo = Color(0.7, 0.7, 0.9)
+
+## the day sky over Nexus City: a deep zenith blue to a pale horizon, white cumulus drifting slowly (two fbm octave
+## sets, lit on the sun side), the sun disc. Cheap: a few noise taps per sky pixel, and the radiance map is small.
+static func day_sky() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type sky;
+uniform vec3 zenith : source_color = vec3(0.13, 0.34, 0.72);
+uniform vec3 horizon : source_color = vec3(0.62, 0.78, 0.95);
+uniform vec3 ground : source_color = vec3(0.30, 0.31, 0.33);
+uniform float cover = 0.48;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+float fbm(vec2 p) { float a = 0.5; float v = 0.0; for (int k = 0; k < 5; k++) { v += a * n(p); p = p * 2.03 + 17.1; a *= 0.5; } return v; }
+void sky() {
+	vec3 d = EYEDIR;
+	if (d.y < 0.0) { COLOR = mix(horizon * 0.8, ground, clamp(-d.y * 4.0, 0.0, 1.0)); }
+	else {
+		float t = pow(1.0 - d.y, 3.0);
+		vec3 c = mix(zenith, horizon, t);
+		vec3 sd = LIGHT0_DIRECTION;
+		float sun = max(dot(d, sd), 0.0);
+		c += LIGHT0_COLOR * (pow(sun, 900.0) * 30.0 + pow(sun, 8.0) * 0.18);
+		// clouds on a plane above: denser toward the horizon, thinned overhead
+		vec2 uv = d.xz / (d.y + 0.12) * 1.6 + vec2(TIME * 0.004, TIME * 0.002);
+		float cl = smoothstep(cover, cover + 0.22, fbm(uv));
+		float shade = fbm(uv + sd.xz * 0.25);
+		vec3 cc = mix(vec3(1.0), vec3(0.72, 0.76, 0.84), clamp((shade - cl * 0.4) * 1.2, 0.0, 1.0));
+		cl *= smoothstep(0.0, 0.08, d.y);
+		COLOR = mix(c, cc * (1.0 + 0.25 * sun), cl * 0.9);
+	}
+}
+"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	return m
 
 # --------------------------------------------------------------------------------------------- materials
 static func _noise_tex(freq: float, octaves: int, size := 1024, normal := false, seamless := true) -> NoiseTexture2D:
@@ -980,6 +1040,8 @@ func _street() -> void:
 	_pavings.append(pave)
 	if night:
 		_wet_paving(pave)
+	elif style == "nexus":
+		_day_sheen(pave)
 	if style == "coast":
 		# pink and sand terrazzo for the Art Deco strip
 		pave.set_shader_parameter("lo_col", Vector3(0.78, 0.62, 0.58))
@@ -1012,6 +1074,27 @@ func _wet_paving(sm: ShaderMaterial) -> void:
 	sm.set_shader_parameter("puddle_noise", _noise_tex(0.004, 4, 512))
 	sm.set_shader_parameter("lo_col", Vector3(0.17, 0.17, 0.2))
 	sm.set_shader_parameter("hi_col", Vector3(0.24, 0.24, 0.28))
+
+## Nexus by day: polished pale pavers, freshly hosed — a light sheen everywhere and shallow glossy patches that
+## catch the towers and the sky (owner's street frame)
+func _day_sheen(sm: ShaderMaterial) -> void:
+	sm.set_shader_parameter("wet", 0.32)
+	sm.set_shader_parameter("puddle_noise", _noise_tex(0.004, 4, 512))
+	sm.set_shader_parameter("lo_col", Vector3(0.55, 0.54, 0.52))
+	sm.set_shader_parameter("hi_col", Vector3(0.66, 0.64, 0.60))
+
+## one reflection probe over the block, baked once: the mobile renderer has no SSR, so the glossy pavers and glass
+## would otherwise mirror only the sky
+func _day_probe() -> void:
+	var rp := ReflectionProbe.new()
+	rp.update_mode = ReflectionProbe.UPDATE_ONCE
+	rp.size = Vector3(80.0, 60.0, LENGTH)
+	rp.position = Vector3(0.0, 8.0, 0.0)
+	rp.origin_offset = Vector3(0.0, -6.0, 0.0)
+	rp.box_projection = true
+	rp.max_distance = 400.0
+	rp.intensity = 0.9
+	world.add_child(rp)
 
 func _wet_night() -> void:
 	var half := ROAD_W * 0.5
@@ -1178,6 +1261,9 @@ void fragment() {
 		m.shader = sh
 		var tint := _rng.randf()
 		m.set_shader_parameter("glass", Color(0.25 + 0.1 * tint, 0.36 + 0.08 * tint, 0.48 + 0.08 * tint))
+		if style == "nexus" and not night:
+			# by day the curtain walls read as bright sky-blue mirrors (owner's street frame)
+			m.set_shader_parameter("glass", Color(0.42 + 0.1 * tint, 0.58 + 0.08 * tint, 0.74 + 0.06 * tint))
 		m.set_shader_parameter("lit", _rng.randf_range(0.16, 0.3) if night else _rng.randf_range(0.02, 0.1))
 		m.set_shader_parameter("glow", 0.9 if night else 0.35)
 		var w := _rng.randf_range(18.0, 34.0)

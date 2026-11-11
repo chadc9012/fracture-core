@@ -266,6 +266,8 @@ func _ground() -> void:
 	s._pavings.append(pave)
 	if s.night:
 		s._wet_paving(pave)
+	elif s.style == "nexus":
+		s._day_sheen(pave)
 	s._box(Vector3(COURT_OUT + 20.0 - FACADE, 0.18, COURT_HALF * 2.0 + 20.0), at((FACADE + COURT_OUT + 20.0) * 0.5, 0.0, 0.09), pave)
 	# a kerb line marking the side street's mouth on the avenue walk
 	s._box(Vector3(0.3, 0.02, MOUTH_HALF * 2.0), at(FACADE + 0.15, 0.0, 0.19), neon(accent, 1.5))
