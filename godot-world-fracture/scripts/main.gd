@@ -875,6 +875,16 @@ func _shoot(path: String, opts: Array) -> void:
 				killbox.controls.move = Vector2(0.0, 1.0)
 				killbox.controls.sprint = true
 				killbox.controls.fire = true
+			# :cover  stands 5 m in front of the first crate and fires into it (destructible cover)
+			if String(o).contains("cover"):
+				for id in killbox._cover_targets:
+					var ct: Variant = killbox._cover_targets[id]
+					var c: Vector3 = ct.box.get_center()
+					killbox.operator.position = Vector3(c.x, ct.box.position.y, c.z + 5.0)
+					killbox.operator.heading = PI
+					killbox.controls.scripted = true
+					killbox.controls.fire = true
+					break
 		# modes[:pvp|:raids|:races]  the Game Modes hub, or one mode's lobby
 		if String(o).begins_with("modes"):
 			_open_modes()

@@ -354,8 +354,17 @@ Primitives with a visibility range, so the static batch merges them into the til
 up, tumbling, landing and lying for a moment; the fusion frame throws none; capped at 14 live so a burst on the phone
 stays a few draws), bullet impacts leave a scorched disc on surfaces for five seconds, and enemies **flinch** when hit — a
 jolt back along the shot and a lean that eases out (more for a headshot). With the gore setting and the blood colours
-that makes four of the ten on the board; holsters, magazines, attachments, armour damage, energy shields, debris and
-destructible cover remain.
+that makes four of the ten on the board.
+
+**Destructible cover** (Nov 10, §5): in the Killbox the crates, barriers, vents, HVAC units, consoles and signs are
+`Gunplay.Target`s with a hull by kind (`Arena.BREAKABLE`: crate 40, vent 60, barrier 70, sign 80, console 90, HVAC 120);
+the structural cover (tanks, containers, pillars, monoliths, dropships, planters) stays solid. Bolts chip a prop (dust
+of its own colour, no headshot, no kill, no scavenged ammo) and the last one breaks it: the mesh goes, a dozen chips
+tumble out and land at its base (`Gunplay.debris`), the arena marks the row broken (`arena.break_cover(id)`) and
+`arena.boxes()` leaves it out, so the operator's obstacle list — the one array the bots read for sight lines and for
+their movers — loses the box in place (`_sync_obstacles`), the fracture event's rebuild keeps the gap, and the prop
+never stands again. `tests/killbox/cover_play.tscn` plays it (12 checks); `killbox:prime:cover` shoots it. Holsters,
+magazines, attachments, armour damage, energy shields remain.
 
 **The Fracture set** (`scripts/vfx/fracture_set.gd`, Nov 9; asset catalog part 2 §9): builders for the fantasy and
 dimensional dressing — emissive crystal clusters (one MultiMesh), floating ruins that drift and turn, energy conduits
