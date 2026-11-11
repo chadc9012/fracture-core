@@ -2591,36 +2591,17 @@ func _lm_mat(col: Color, emit := 0.0, metal := 0.0, rough := 0.5) -> StandardMat
 	return mt
 
 ## lit floors behind dark glass: a window grid (4 m floors, 3 m bays) mapped in world space so every curve and tier lines up
-func _lm_windows(lit: Color, glass: Color, energy: float) -> StandardMaterial3D:
-	# 4 bays x 4 floors per tile, about a third of the rooms dark, the rest at a few brightness steps. Drawn at 32 px a
-	# room with soft window edges, a ceiling glow and a mullion, then mipmapped and filtered smoothly (the first cut was an
-	# 8 px grid sampled nearest, which read as pixelated blocks up close and shimmered far away)
-	const ROOM := 32
-	var img := Image.create(ROOM * 4, ROOM * 4, false, Image.FORMAT_RGB8)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 4242
-	for fy in 4:
-		for bx in 4:
-			var v := 0.0 if rng.randf() < 0.35 else rng.randf_range(0.45, 1.0)
-			for y in ROOM:
-				for x in ROOM:
-					# window opening: x 3..29, y 8..30 of the room (the spandrel band above), edges eased over 2 px
-					var ex := clampf(minf(float(x) - 3.0, 29.0 - float(x)) / 2.0, 0.0, 1.0)
-					var ey := clampf(minf(float(y) - 8.0, 30.0 - float(y)) / 2.0, 0.0, 1.0)
-					var mull := clampf(absf(float(x) - 16.0) / 1.5, 0.0, 1.0)
-					var glow := lerpf(1.0, 0.7, (float(y) - 8.0) / 22.0)  # brighter under the ceiling
-					var k := v * ex * ey * mull * glow
-					img.set_pixel(bx * ROOM + x, fy * ROOM + y, Color(k, k, k))
-	img.generate_mipmaps()
-	var mt := _lm_mat(glass, 0.0, 0.6, 0.12)
-	mt.emission_enabled = true
-	mt.emission = lit
-	mt.emission_energy_multiplier = energy
-	mt.emission_texture = ImageTexture.create_from_image(img)
-	mt.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	mt.uv1_triplanar = true
-	mt.uv1_world_triplanar = true
-	mt.uv1_scale = Vector3(1.0 / 12.0, 1.0 / 16.0, 1.0 / 12.0)
+const LM_GLASS := preload("res://shaders/landmark_glass.gdshader")
+
+func _lm_windows(lit: Color, glass: Color, energy: float) -> ShaderMaterial:
+	# curtain-wall glass drawn in the shader (shaders/landmark_glass.gdshader): bays wrap round the shafts, edges are
+	# anti-aliased, distant floors fade to an even glow. Replaced a triplanar window texture that smeared into brown
+	# checkers on the round shafts (owner, Nov 10: "Fix glass windows")
+	var mt := ShaderMaterial.new()
+	mt.shader = LM_GLASS
+	mt.set_shader_parameter("lit_col", lit)
+	mt.set_shader_parameter("glass_col", glass)
+	mt.set_shader_parameter("energy", energy * 2.2)
 	return mt
 
 func _lm_part(parent: Node3D, mesh: Mesh, mat: Material, at: Vector3, scl := Vector3.ONE, rot := Vector3.ZERO) -> MeshInstance3D:
