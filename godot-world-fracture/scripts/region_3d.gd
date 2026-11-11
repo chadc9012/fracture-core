@@ -1199,7 +1199,8 @@ func _build_trees() -> void:
 			# the region's species mix (oak, cherry, baobab, bamboo, alien flora); the conifers take what is left
 			var pines := Flora.plant(self, trees)
 			if not pines.is_empty():
-				_multimesh(_tree_mesh(cold), pines, _tree_material(cold))
+				# up close the authored conifer (not under snow: the cones carry the snow shader)
+				_multimesh(_tree_mesh(cold), pines, _tree_material(cold), 900.0, true, null if cold else _near_tree("conifer"))
 	if not tears.is_empty():
 		Flora.rift_tears(self, tears)
 	if not shards.is_empty():
@@ -1316,7 +1317,8 @@ func _clearings() -> PackedByteArray:
 ## Instanced props, split into ground tiles so each tile is culled on its own (off screen, out of the shadow cascades, past
 ## its draw distance). One multimesh over a whole region was drawn whole every pass: 9000 trees in every shadow cascade.
 const TILE_M := 110.0
-func _multimesh(mesh: Mesh, xf: Array[Transform3D], mat: Material, draw_m := 900.0, shadow := true) -> void:
+## near: an authored mesh drawn instead of `mesh` within `near_m` of the camera (the far mesh fades in beyond it)
+func _multimesh(mesh: Mesh, xf: Array[Transform3D], mat: Material, draw_m := 900.0, shadow := true, near: Mesh = null, near_m := 75.0) -> void:
 	var tiles := {}
 	for t in xf:
 		var key := Vector2i(floori(t.origin.x / TILE_M), floori(t.origin.z / TILE_M))
@@ -1339,6 +1341,61 @@ func _multimesh(mesh: Mesh, xf: Array[Transform3D], mat: Material, draw_m := 900
 		mmi.visibility_range_end_margin = draw_m * 0.1
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		_world.add_child(mmi)
+		if near:
+			mmi.visibility_range_begin = near_m
+			mmi.visibility_range_begin_margin = 12.0
+			var nm := MultiMesh.new()
+			nm.transform_format = MultiMesh.TRANSFORM_3D
+			nm.mesh = near
+			nm.instance_count = list.size()
+			for i in list.size():
+				nm.set_instance_transform(i, list[i])
+			var nmi := MultiMeshInstance3D.new()
+			nmi.multimesh = nm
+			nmi.cast_shadow = mmi.cast_shadow
+			nmi.visibility_range_end = near_m
+			nmi.visibility_range_end_margin = 12.0
+			nmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			_world.add_child(nmi)
+
+## the authored tree (models/foliage, the web build's conifer / broadleaf) as one mesh with its bark and foliage
+## surfaces, re-centred and scaled to the procedural tree's size: what you see up close; the cones stay for the distance
+static var _near_cache := {}
+func _near_tree(kind: String, leaf_tint := Color.WHITE) -> Mesh:
+	var variant: String = ["4", "9", "16"][absi(hash(map_id)) % 3] if kind == "conifer" else ["3", "8", "21"][absi(hash(map_id)) % 3]
+	var key: String = kind + variant + leaf_tint.to_html()
+	if _near_cache.has(key):
+		return _near_cache[key]
+	var path := "res://models/foliage/%s.glb" % kind
+	if not ResourceLoader.exists(path):
+		return null
+	var scene := (load(path) as PackedScene).instantiate()
+	var out := ArrayMesh.new()
+	var parts := ["needles", "wood"] if kind == "conifer" else ["leaves", "wood"]
+	var centre := Vector3.INF
+	for part in parts:
+		var mi := scene.find_child("%s_%s_%s" % [kind, part, variant], true, false) as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		var m: Mesh = mi.mesh
+		if centre == Vector3.INF:
+			var bb := m.get_aabb()
+			centre = Vector3(bb.get_center().x, bb.position.y, bb.get_center().z)
+		for si in m.get_surface_count():
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			st.append_from(m, si, Transform3D(Basis().scaled(Vector3.ONE * 0.72), -centre * 0.72))
+			var sm: Material = mi.get_active_material(si)
+			if part != "wood" and leaf_tint != Color.WHITE and sm is BaseMaterial3D:
+				sm = (sm as BaseMaterial3D).duplicate()
+				(sm as BaseMaterial3D).albedo_color = leaf_tint
+			st.set_material(sm)
+			st.commit(out)
+	scene.free()
+	if out.get_surface_count() == 0:
+		return null
+	_near_cache[key] = out
+	return out
 
 ## a conifer: a trunk and three stacked crowns (the Road to Vostok forest look: dark, dense, uneven)
 func _tree_mesh(cold: bool) -> Mesh:

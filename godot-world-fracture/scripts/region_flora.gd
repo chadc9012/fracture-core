@@ -61,7 +61,10 @@ static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 			continue
 		match k:
 			"oak":
-				r._multimesh(broadleaf(), list, r._tree_material(false))
+				# up close the authored oak, its leaves tinted for the season (bare in winter: the shader's branches carry it)
+				var tints := [Color(1.1, 1.15, 1.0), Color.WHITE, Color(1.6, 0.75, 0.3), Color.WHITE]
+				var near: Mesh = r._near_tree("broadleaf", tints[r.current_season()]) if r.current_season() != 3 else null
+				r._multimesh(broadleaf(), list, r._tree_material(false), 900.0, true, near)
 			"cherry":
 				r._multimesh(broadleaf(), list, cherry_material(r))
 			"baobab":
