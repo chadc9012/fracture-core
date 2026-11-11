@@ -23,7 +23,7 @@ const Weapons := preload("res://scripts/combat/weapons.gd")
 
 const TYPES := {
 	"scout": { "name": "Data Drone Scout", "frame": "cipher", "plating": "graphite", "optics": "cyan", "hull": 30.0, "range": 14.0, "speed": 0.75, "damage": 6.0, "cool": 1.4, "burst": 3, "spread": 0.05, "melee": false, "fly": 0.0, "weapon": "rifle.glb", "scale": 1.0 },
-	"elite": { "name": "Data Drone Elite", "frame": "goliath", "plating": "cobalt", "optics": "amber", "hull": 60.0, "range": 10.0, "speed": 0.55, "damage": 9.0, "cool": 1.8, "burst": 4, "spread": 0.07, "melee": false, "fly": 0.0, "weapon": "rifle-fusion.glb", "scale": 1.08 },
+	"elite": { "name": "Data Drone Elite", "frame": "goliath", "plating": "cobalt", "optics": "amber", "hull": 60.0, "range": 10.0, "speed": 0.55, "damage": 9.0, "cool": 1.8, "burst": 4, "spread": 0.07, "melee": false, "fly": 0.0, "weapon": "rifle-fusion.glb", "scale": 1.08, "shield": 30.0 },
 	"executor": { "name": "Executor", "frame": "nyx", "plating": "crimson", "optics": "red", "hull": 50.0, "range": 1.8, "speed": 1.0, "damage": 16.0, "cool": 1.1, "burst": 1, "spread": 0.0, "melee": true, "fly": 0.0, "weapon": "", "scale": 1.0 },
 	"marksman": { "name": "Grid Marksman", "frame": "cipher", "plating": "ivory", "optics": "violet", "hull": 30.0, "range": 30.0, "speed": 0.6, "damage": 28.0, "cool": 3.2, "burst": 1, "spread": 0.012, "melee": false, "fly": 0.0, "weapon": "rifle-sniper.glb", "scale": 1.0 },
 	"drone": { "name": "Surveillance Drone", "frame": "", "plating": "", "optics": "cyan", "hull": 15.0, "range": 9.0, "speed": 0.9, "damage": 3.0, "cool": 0.9, "burst": 2, "spread": 0.06, "melee": false, "fly": 4.0, "weapon": "", "scale": 1.0 },
@@ -65,6 +65,15 @@ var player: Node3D
 var gunplay: Node3D
 var enemies: Array[Enemy] = []
 var _rng := RandomNumberGenerator.new()
+## the operator's energy shield (asset catalog §5): takes hits before the hull, recharges SHIELD_RATE a second once
+## SHIELD_DELAY seconds pass unhit; the hull itself only mends once the shield is full again
+const SHIELD_MAX := 40.0
+const SHIELD_DELAY := 3.0
+const SHIELD_RATE := 20.0
+var shield := SHIELD_MAX
+var shield_max := SHIELD_MAX
+func shield_frac() -> float:
+	return shield / shield_max if shield_max > 0.0 else 0.0
 ## the operator's hull, damage this frame for the HUD flash, and the down state
 var hull := 100.0
 const HULL_MAX := 100.0
@@ -139,6 +148,8 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 	else:
 		_drone_body(e)
 	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
+	e.target.shield_max = float(e.def.get("shield", 0.0))
+	e.target.shield = e.target.shield_max
 	# what it bleeds (gunplay.spark): machines coolant, people red
 	e.target.set_meta("blood", Color(0.2, 0.9, 1.0) if type in ["drone", "sentinel", "turret"] else Color(0.85, 0.1, 0.08))
 	e.target.set_meta("enemy", e)
@@ -217,8 +228,12 @@ func step(dt: float) -> void:
 		down -= dt
 		if down <= 0.0:
 			hull = hull_max
+			shield = shield_max
+	elif since_hit > SHIELD_DELAY and shield < shield_max:
+		shield = minf(shield_max, shield + SHIELD_RATE * dt)
 	elif since_hit > 4.0:
 		hull = minf(hull_max, hull + 12.0 * dt)
+	_wear_step(dt)
 	for e in enemies:
 		_step_enemy(e, dt)
 		e.target.box = _box(e)
@@ -234,6 +249,8 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 		if e.timer <= 0.0:
 			e.state = State.PATROL
 			e.target.hp = e.target.max_hp
+			e.target.shield = e.target.shield_max
+			_set_wear(e.mover, 0)
 			e.target.down = 0.0
 			m.position = e.spawn
 			m.visible = true
@@ -372,6 +389,8 @@ func revive_all() -> void:
 		if e.state == State.DOWN or not e.target.alive():
 			e.state = State.ENGAGE
 			e.target.hp = e.target.max_hp
+			e.target.shield = e.target.shield_max
+			_set_wear(e.mover, 0)
 			e.target.down = 0.0
 			e.timer = 0.0
 			e.mover.position = e.spawn
@@ -454,7 +473,10 @@ func _damage_foe(e: Enemy, damage: float) -> void:
 		_hit_operator(damage)
 		return
 	var o := foe as Enemy
-	o.target.hp -= damage
+	var res: Dictionary = o.target.take(damage)
+	if float(res.shield) > 0.0:
+		gunplay._shield_flash(o.target, bool(res.broke))
+	_wear_bot(o)
 	_last_hitter[o] = e.team
 	if o.target.hp <= 0.0:
 		o.target.hp = 0.0
@@ -462,10 +484,25 @@ func _damage_foe(e: Enemy, damage: float) -> void:
 func _hit_operator(damage: float) -> void:
 	if down > 0.0:
 		return
-	hull -= damage
-	hurt = 1.0
 	since_hit = 0.0
 	operator_hit.emit(damage)
+	var chest: Vector3 = player.position + Vector3(0, 1.2, 0)
+	if shield > 0.0:
+		# the shield takes it: the shell lights up round the operator; what gets past lands on the hull
+		var on_shield := minf(shield, damage)
+		shield -= on_shield
+		damage -= on_shield
+		gunplay._dot(chest - Vector3(0, 0.2, 0), Color(0.35, 0.8, 1.0, 0.22), 1.0, 0.14)
+		Sound.sfx("shield_break" if shield <= 0.0 else "shield", -7.0)
+		if shield <= 0.0:
+			for i in 10:
+				gunplay._dot(chest, Color(0.4, 0.9, 1.0), 0.04, 0.4, Vector3(randf() - 0.5, randf() * 0.7, randf() - 0.5) * 6.0)
+		if damage <= 0.0:
+			return
+	hull -= damage
+	hurt = 1.0
+	# the armour takes the round: a spark off the plating
+	gunplay._dot(chest + Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * 0.3, Color(1.0, 0.7, 0.3), 0.05, 0.12)
 	Sound.sfx("hurt", -6.0)
 	if hull <= 0.0:
 		hull = 0.0
@@ -481,6 +518,7 @@ func _on_target_hit(t: Gunplay.Target, _damage: float, head: bool) -> void:
 	if t.has_meta("enemy"):
 		var hit_e: Enemy = t.get_meta("enemy")
 		_last_hitter[hit_e] = OPERATOR_HIT
+		_wear_bot(hit_e)
 		# the hit reaction (asset catalog §5): a flinch — the body jolts back and recovers over a third of a second
 		hit_e.flinch = 0.35 if not head else 0.5
 		hit_e.flinch_dir = (hit_e.mover.position - player.position).normalized()
@@ -503,3 +541,52 @@ func _tally(kind: String, n: int) -> void:
 	for g in Progression.event(p, kind, n):
 		goal_done.emit("DAILY GOAL · %s — +%d Nex" % [String(g.label), int(g.nex)])
 	Gear.profile_save(p)
+
+# --------------------------------------------------------------------------------------------- armour damage (§5)
+## The plating shows the fight: below 60% hull a scorch overlay darkens the armour, below 30% it is burnt through and
+## the operator throws sparks. The operator's wear follows its hull (and clears as it mends); a bot's follows its hull
+## until it stands again. One overlay material per level, shared, on the body's meshes (not the head or the hair).
+var _wear_mats: Array[StandardMaterial3D] = []
+var _op_wear := 0
+var _spark_t := 0.0
+
+func _wear_level(frac: float) -> int:
+	return 2 if frac < 0.3 else (1 if frac < 0.6 else 0)
+
+func _set_wear(mover: Node3D, level: int) -> void:
+	if not mover or not mover.rig or not mover.rig.body_root:
+		return
+	if int(mover.get_meta("wear", 0)) == level:
+		return
+	mover.set_meta("wear", level)
+	if _wear_mats.is_empty():
+		for a in [0.28, 0.5]:
+			var m := StandardMaterial3D.new()
+			m.albedo_color = Color(0.03, 0.025, 0.02, a)
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.roughness = 1.0
+			m.metallic_specular = 0.1
+			_wear_mats.append(m)
+	var rig: Node3D = mover.rig
+	for ch in rig.body_root.find_children("*", "MeshInstance3D", true, false):
+		var mi := ch as MeshInstance3D
+		if mi == rig.head_mesh or mi == rig.hair_mesh:
+			continue
+		mi.material_overlay = null if level == 0 else _wear_mats[level - 1]
+
+func _wear_bot(e: Enemy) -> void:
+	if e.def.frame == "":
+		return
+	_set_wear(e.mover, _wear_level(e.target.hp / maxf(e.target.max_hp, 1.0)))
+
+func _wear_step(dt: float) -> void:
+	var lvl := _wear_level(hull / maxf(hull_max, 1.0)) if down <= 0.0 else 2
+	if lvl != _op_wear:
+		_op_wear = lvl
+		_set_wear(player, lvl)
+	if lvl == 2 and down <= 0.0:
+		_spark_t -= dt
+		if _spark_t <= 0.0:
+			_spark_t = 0.35 + randf() * 0.5
+			var at: Vector3 = player.position + Vector3((randf() - 0.5) * 0.5, 0.9 + randf() * 0.7, (randf() - 0.5) * 0.5)
+			gunplay._dot(at, Color(1.0, 0.75, 0.3), 0.03, 0.35, Vector3(randf() - 0.5, 0.6, randf() - 0.5) * 2.5)

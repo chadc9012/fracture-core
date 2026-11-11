@@ -392,7 +392,7 @@ func _process(dt: float) -> void:
 		boss.step(dt)
 	if wildlife:
 		wildlife.step(dt)
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down)
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:

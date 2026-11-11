@@ -643,6 +643,9 @@ func _shoot(path: String, opts: Array) -> void:
 				driving._open_city_garage()
 		# slice[day][coast|neon][walk][garage]  the street slice as a look-dev shot (fixed camera), or on foot with "walk"
 		if String(o).begins_with("slice"):
+			# slicewalk:armed  walks the street armed whatever Mission 01's save says (holsters, cover, the troopers)
+			if String(o).contains("armed"):
+				load("res://scripts/city/street_slice.gd").force_armed = true
 			_open_street(String(o).contains("night") or not String(o).contains("day"), "coast" if String(o).contains("coast") else ("neon" if String(o).contains("neon") else "nexus"), String(o).contains("walk"))
 			# slice:look=x,y,z,tx,ty,tz  the look-dev camera from a point at a target (street set and wet-night checks)
 			if String(o).contains("look="):

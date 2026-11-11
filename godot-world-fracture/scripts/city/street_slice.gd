@@ -304,11 +304,48 @@ func _spawn_player() -> void:
 
 ## the block's cyber troopers (only once the operator is armed)
 func _troopers(half: float) -> void:
+	_cover(half)
 	enemies.spawn("scout", Vector3(-(half + 3.0), 0.18, -10.0), [Vector3(-(half + 3.0), 0.18, -10.0), Vector3(-(half + 3.0), 0.18, -40.0)])
 	enemies.spawn("elite", Vector3(half + 3.5, 0.18, -48.0), [Vector3(half + 3.5, 0.18, -48.0), Vector3(half + 3.5, 0.18, -30.0)])
 	enemies.spawn("executor", Vector3(-2.0, 0.0, -70.0), [Vector3(-2.0, 0.0, -70.0), Vector3(3.0, 0.0, -56.0)])
 	enemies.spawn("marksman", Vector3(-(half + 4.0), 0.18, -95.0), [Vector3(-(half + 4.0), 0.18, -95.0), Vector3(-(half + 4.0), 0.18, -85.0)])
 	enemies.spawn("drone", Vector3(0.0, 4.0, -25.0), [Vector3(0.0, 4.0, -25.0), Vector3(0.0, 4.0, -60.0)])
+
+## destructible cover where the troopers fight (asset catalog §5): crates and concrete barriers on the walks, solid boxes
+## in the shared obstacle list that bolts chip and break into debris (gunplay.add_cover). Gone for the visit once broken.
+const COVER := [
+	["barrier", -1.0, 2.2, -18.0], ["crate", 1.0, 2.0, -26.0], ["barrier", 1.0, 2.6, -31.0],
+	["crate", -1.0, 1.8, -52.0], ["barrier", -1.0, 2.4, -66.0], ["crate", 1.0, 2.2, -86.0],
+]
+func _cover(half: float) -> void:
+	var concrete := flat(Color(0.5, 0.5, 0.48), 0.85)
+	var wood := flat(Color(0.42, 0.3, 0.18), 0.9)
+	var band := flat(Color(0.95, 0.7, 0.1), 0.6)
+	for c in COVER:
+		var crate: bool = c[0] == "crate"
+		var size := Vector3(1.2, 1.05, 1.2) if crate else Vector3(0.65, 0.95, 2.6)
+		var at := Vector3(float(c[1]) * (half + float(c[2])), 0.18, float(c[3]))
+		var node := Node3D.new()
+		node.position = at
+		world.add_child(node)
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = size
+		mi.mesh = bm
+		mi.material_override = wood if crate else concrete
+		mi.position.y = size.y * 0.5
+		node.add_child(mi)
+		# a crate's slats / a barrier's hazard band
+		var trim := MeshInstance3D.new()
+		var tm := BoxMesh.new()
+		tm.size = Vector3(size.x + 0.02, 0.12, size.z + 0.02) if crate else Vector3(size.x + 0.02, 0.16, size.z * 0.98)
+		trim.mesh = tm
+		trim.material_override = flat(Color(0.3, 0.2, 0.12), 0.9) if crate else band
+		trim.position.y = size.y * (0.5 if crate else 0.72)
+		node.add_child(trim)
+		var box := AABB(at - Vector3(size.x * 0.5, 0, size.z * 0.5), size)
+		operator.obstacles.append(box)
+		gunplay.add_cover(box, node, 90.0 if crate else 220.0, operator.obstacles.size() - 1, Color(0.42, 0.3, 0.18) if crate else Color(0.5, 0.5, 0.48))
 
 ## Mission 01 has reached the Surge (the operator's powers and the rifle): from then on the street is walked armed
 static func story_armed() -> bool:
@@ -570,7 +607,7 @@ func _process(dt: float) -> void:
 		return
 	if enemies:
 		enemies.step(minf(dt, 0.05))
-		controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down)
+		controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
 		if _respawn_timer > 0.0:
 			_respawn_timer -= dt
 			if _respawn_timer <= 0.0:
