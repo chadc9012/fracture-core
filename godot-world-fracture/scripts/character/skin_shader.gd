@@ -74,7 +74,8 @@ static func _marking(m: Dictionary) -> String:
 ## hair_mode: 0 keep the cut head's hair, 1 bald (scalp hair to skin), 2 recolour/cut it for a built style
 static func code(hair_mode: int, beard: String, marks: Array, has_normal: bool) -> String:
 	var sk: Dictionary = Catalog.data().get("skull", {"centre": [0, 0.09, -0.005], "radii": [0.085, 0.11, 0.1]})
-	var s := "shader_type spatial;\n// world-fracture operator skin\n"
+	# both faces: the generated heads carry triangles wound the wrong way, which culling cut out as holes (owner, Nov 11)
+	var s := "shader_type spatial;\nrender_mode cull_disabled;\n// world-fracture operator skin\n"
 	s += "uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;\n"
 	if has_normal:
 		s += "uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;\n"
@@ -114,6 +115,9 @@ void fragment() {
 	// with a built style, the cut head's own fringe over the forehead stays as bangs (in the style's colour) to meet the cap
 	float bangs = %s * smoothstep(0.02, 0.04, p.z) * (1.0 - smoothstep(0.05, 0.065, abs(p.x))) * (1.0 - smoothstep(0.13, 0.145, p.y));
 	float scalp = notSkin * smoothstep(0.0, 0.015, p.y) * (1.0 - max(max(face, bangs), max(ears, neck)));
+	// cut only above the brow and behind the ears: below the brow at the front, the cut head's own hair (a fringe over an
+	// eye, locks at the cheek) has no face modelled under it, and cutting it left holes through the face (owner, Nov 11)
+	scalp *= max(smoothstep(0.1, 0.112, p.y), 1.0 - smoothstep(-0.01, 0.01, p.z));
 	if (scalp > 0.35) { discard; }
 	float kept = notSkin * max(smoothstep(%s, %s, p.y) * max(face, ears), bangs);
 	vec3 hairTone = %s;

@@ -53,6 +53,10 @@ func build(new_look: Dictionary, animate := true) -> void:
 	skeleton = _find(body_root, "Skeleton3D")
 	anim = _find(body_root, "AnimationPlayer")
 	_body_meshes = body_root.find_children("*", "MeshInstance3D", true, false)   # the body itself, before the head and hair join
+	if not bool(look.get("civ", false)):
+		for mi: MeshInstance3D in _body_meshes:
+			for si in mi.mesh.get_surface_count():
+				mi.set_surface_override_material(si, _two_sided(mi.get_active_material(si)))
 	if anim and skeleton and anim.has_animation("idle"):
 		StandIdle.install(anim, skeleton)
 	if anim and animate and anim.has_animation("idle"):
@@ -251,6 +255,16 @@ static func _normals(vs: PackedVector3Array, idx: PackedInt32Array, old: PackedV
 			out[k] = -out[k]
 	return out
 
+## the generated (Meshy) bodies and heads carry triangles wound the wrong way round: with back faces culled they showed as
+## holes and shards ("torn" models, owner Nov 9 and 11). Drawn from both sides they are whole; Godot turns the normal of a
+## back face toward the viewer, so they light right.
+static func _two_sided(m: Material) -> Material:
+	if m is BaseMaterial3D:
+		var d := (m as BaseMaterial3D).duplicate() as BaseMaterial3D
+		d.cull_mode = BaseMaterial3D.CULL_DISABLED
+		return d
+	return m
+
 var _skin_lum := 0.2
 func _head_material(m: Material, robot: bool) -> Material:
 	if robot:
@@ -268,7 +282,7 @@ func _head_material(m: Material, robot: bool) -> Material:
 					sm.emission_enabled = true
 					sm.emission = c2
 					sm.emission_energy_multiplier = 2.4
-		return d
+		return _two_sided(d)
 	var std := m as StandardMaterial3D
 	var head_def := Catalog.head(look.body, look.head)
 	_skin_lum = float(head_def.get("skinLum", 0.2))
@@ -278,8 +292,9 @@ func _head_material(m: Material, robot: bool) -> Material:
 	var kind: String = style.get("kind", "authored")
 	var hair_mode := 0 if kind == "authored" else (1 if kind == "none" else 2)
 	var tone: Variant = Catalog.swatch("skin", look.skin)
-	if not std or (tone == null and hair_mode == 0 and look.marks.is_empty() and look.beard == "clean"):
-		return m
+	var civ := bool(look.get("civ", false))
+	if not std or (not civ and tone == null and hair_mode == 0 and look.marks.is_empty() and look.beard == "clean"):
+		return _two_sided(m)
 	var sh := Shader.new()
 	sh.code = SkinShader.code(hair_mode, look.beard, look.marks, std.normal_enabled and std.normal_texture != null)
 	var mat := ShaderMaterial.new()
