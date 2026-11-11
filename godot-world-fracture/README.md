@@ -553,7 +553,9 @@ and that view's FLIGHTS desk walks you back in. Nov 10, three more, on the land 
 Terminal (THA: coast by the Verdant Forest, seaplanes, a submarine dock under a glass dome down to underwater Thalassia),
 Obsidian Reach Airport (OBS, in the volcanic Ember Peaks: basalt, lava channels, smoking volcanoes, container stacks and
 the heavy-lift airship) and Shattered Expanse Expedition Airfield (SHX, in the Crystal Badlands: giant rift crystals,
-glowing cracks, floating ruins, a lightning storm). Aetherion and Eldergrove stay NOT YET OPEN (no land for them yet). Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
+glowing cracks, floating ruins, a lightning storm). Aetherion and Eldergrove stay NOT YET OPEN (no land for them yet). The airliners are an authored model (`models/fleet/airliner.glb`, ~10k
+triangles, built by `blender -b -P scripts/build-airliner.py`; its `Livery` material is repainted per airline), and each
+airport's terminal has its own roof (`LOOKS` `roof_shape`: wave, tent, vault, terraces, gull, sawtooth, shards). Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
 (state in the profile under `air`, so it rides the cloud save); add an airport as an `AIRPORTS` row and a destination
 as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
 whole trip through main.gd). Shots: `--shot airport[:NXC|NEC[:x,y,z:tx,ty,tz]]`.

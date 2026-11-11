@@ -66,27 +66,27 @@ const LOOKS := {
 	# oceanfront runways, a seaplane pier, white resorts (owner: "luxury terminals, seaplanes, resort transportation")
 	"tropical": { "top": Color(0.12, 0.45, 0.9), "hor": Color(0.62, 0.86, 0.95), "fog": Color(0.7, 0.88, 0.95), "fogd": 0.00025,
 		"land": Color(0.78, 0.66, 0.45), "apron": Color(0.8, 0.8, 0.78), "wall": Color(0.97, 0.97, 0.95), "roof": Color(0.98, 0.98, 0.97),
-		"a1": Color(0.1, 0.8, 0.78), "a2": Color(1.0, 0.55, 0.35), "tree": "palm", "skyline": "", "airline": "AZURE AIR", "extras": ["ocean", "seaplanes", "resorts"] },
+		"a1": Color(0.1, 0.8, 0.78), "a2": Color(1.0, 0.55, 0.35), "tree": "palm", "skyline": "", "airline": "AZURE AIR", "roof_shape": "tent", "extras": ["ocean", "seaplanes", "resorts"] },
 	# glaciers and snow peaks, heated (bare) runways, rescue orange (owner: "blizzards, difficult landings, rescue missions")
 	"arctic": { "top": Color(0.45, 0.55, 0.68), "hor": Color(0.86, 0.89, 0.93), "fog": Color(0.86, 0.89, 0.93), "fogd": 0.0012,
 		"land": Color(0.95, 0.97, 1.0), "apron": Color(0.66, 0.69, 0.73), "wall": Color(0.8, 0.84, 0.9), "roof": Color(0.95, 0.97, 1.0),
-		"a1": Color(0.35, 0.8, 1.0), "a2": Color(1.0, 0.5, 0.15), "tree": "conifer", "skyline": "", "airline": "FROSTLINE", "extras": ["mountains", "snow"] },
+		"a1": Color(0.35, 0.8, 1.0), "a2": Color(1.0, 0.5, 0.15), "tree": "conifer", "skyline": "", "airline": "FROSTLINE", "roof_shape": "vault", "extras": ["mountains", "snow"] },
 	# sandstone and gold, solar roofs, dunes and mesas (owner: "sandstone architecture, solar roofs, desert airstrips")
 	"desert": { "top": Color(0.2, 0.45, 0.85), "hor": Color(0.92, 0.76, 0.55), "fog": Color(0.92, 0.8, 0.62), "fogd": 0.00035,
 		"land": Color(0.78, 0.56, 0.32), "apron": Color(0.74, 0.68, 0.6), "wall": Color(0.88, 0.7, 0.5), "roof": Color(0.1, 0.14, 0.28),
-		"a1": Color(1.0, 0.72, 0.25), "a2": Color(0.3, 0.75, 1.0), "tree": "palm", "skyline": "", "airline": "SOLARA AIR", "extras": ["dunes", "solar"] },
+		"a1": Color(1.0, 0.72, 0.25), "a2": Color(0.3, 0.75, 1.0), "tree": "palm", "skyline": "", "airline": "SOLARA AIR", "roof_shape": "terraces", "extras": ["dunes", "solar"] },
 	# the coast by the Verdant Forest: seaplanes, and the submarine dock down to underwater Thalassia
 	"coastal": { "top": Color(0.18, 0.4, 0.62), "hor": Color(0.6, 0.76, 0.82), "fog": Color(0.62, 0.76, 0.8), "fogd": 0.0006,
 		"land": Color(0.32, 0.46, 0.3), "apron": Color(0.6, 0.63, 0.65), "wall": Color(0.75, 0.86, 0.9), "roof": Color(0.85, 0.92, 0.95),
-		"a1": Color(0.15, 0.75, 0.95), "a2": Color(0.95, 0.9, 0.55), "tree": "broadleaf", "skyline": "", "airline": "THALASSIA AIR", "extras": ["ocean", "seaplanes", "subdock"] },
+		"a1": Color(0.15, 0.75, 0.95), "a2": Color(0.95, 0.9, 0.55), "tree": "broadleaf", "skyline": "", "airline": "THALASSIA AIR", "roof_shape": "gull", "extras": ["ocean", "seaplanes", "subdock"] },
 	# black basalt, lava, a smoking volcano, heavy cargo (owner: "volcanic landscape, heavy cargo aircraft, mining, military")
 	"volcanic": { "top": Color(0.16, 0.11, 0.11), "hor": Color(0.55, 0.26, 0.16), "fog": Color(0.32, 0.2, 0.16), "fogd": 0.0014,
 		"land": Color(0.13, 0.12, 0.12), "apron": Color(0.42, 0.4, 0.38), "wall": Color(0.32, 0.32, 0.34), "roof": Color(0.3, 0.29, 0.28),
-		"a1": Color(1.0, 0.42, 0.1), "a2": Color(1.0, 0.8, 0.2), "tree": "", "skyline": "", "airline": "OBSIDIAN CARGO", "sun": 1.3, "extras": ["volcano", "lava", "cargo"] },
+		"a1": Color(1.0, 0.42, 0.1), "a2": Color(1.0, 0.8, 0.2), "tree": "", "skyline": "", "airline": "OBSIDIAN CARGO", "sun": 1.3, "roof_shape": "sawtooth", "extras": ["volcano", "lava", "cargo"] },
 	# a reinforced strip in the rifts: crystals, floating ruins, a storm with lightning (owner: "dangerous weather and Fracture activity")
 	"expedition": { "top": Color(0.14, 0.12, 0.22), "hor": Color(0.46, 0.38, 0.56), "fog": Color(0.4, 0.34, 0.5), "fogd": 0.0012,
 		"land": Color(0.3, 0.28, 0.34), "apron": Color(0.44, 0.44, 0.48), "wall": Color(0.36, 0.36, 0.4), "roof": Color(0.32, 0.32, 0.36),
-		"a1": Color(0.72, 0.36, 1.0), "a2": Color(1.0, 0.7, 0.2), "tree": "", "skyline": "", "airline": "EXPEDITION AIR", "sun": 1.0, "extras": ["crystals", "ruins", "storm"] },
+		"a1": Color(0.72, 0.36, 1.0), "a2": Color(1.0, 0.7, 0.2), "tree": "", "skyline": "", "airline": "EXPEDITION AIR", "sun": 1.0, "roof_shape": "shards", "extras": ["crystals", "ruins", "storm"] },
 }
 const CAFE := [["Flat white", 8], ["Cold brew", 9], ["Chicken wrap", 14], ["Fruit cup", 7]]
 
@@ -844,13 +844,37 @@ func _terminal() -> void:
 
 ## the roof's height over the hall at z
 func _roof_y(z: float) -> float:
-	var t := inverse_lerp(31.0, -34.0, z)
+	return _roof_t(inverse_lerp(31.0, -34.0, z))
+
+## the roof's silhouette across the hall (t 0 forecourt edge .. 1 airside edge), one per airport (LOOKS "roof"):
+##   wave      Nexus / Neon: a long wave with a ripple (the references' sweeping canopy)
+##   tent      Azure Isles: three white tensile peaks
+##   vault     Frostveil: one high ice vault
+##   terraces  Solara: flat sandstone terraces stepping up to the middle
+##   sawtooth  Obsidian Reach: industrial north-light sheds
+##   shards    the Shattered Expanse: broken, uneven slabs
+##   gull      Thalassia Coast: two wings lifting off a low spine
+func _roof_t(t: float) -> float:
+	match String(look.get("roof_shape", "wave")):
+		"tent":
+			return WALL_H + 0.3 + 9.0 * pow(absf(sin(PI * 3.0 * t)), 1.6)
+		"vault":
+			return WALL_H + 0.3 + 13.0 * sqrt(maxf(0.0, 1.0 - pow(2.0 * t - 1.0, 2.0)))
+		"terraces":
+			return WALL_H + 1.2 + (3.4 if t > 0.3 and t < 0.7 else 0.0) + (1.8 if t > 0.12 and t < 0.88 else 0.0)
+		"sawtooth":
+			return WALL_H + 0.3 + 6.0 * fmod(t * 4.0, 1.0)
+		"shards":
+			var k := floorf(t * 6.0)
+			return WALL_H + 0.3 + (2.5 + 5.0 * absf(sin(k * 2.3 + 0.7))) * (0.6 + 0.4 * fmod(t * 6.0, 1.0))
+		"gull":
+			return WALL_H + 0.3 + 8.0 * pow(absf(2.0 * t - 1.0), 0.8) + 1.0
 	return WALL_H + 0.3 + 7.5 * sin(PI * t) + 1.6 * sin(PI * 3.0 * t)
 
 func _roof(frame: Material) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var n := 24
+	var n := 60
 	var x0 := -52.0
 	var x1 := 52.0
 	for i in n:
@@ -858,8 +882,8 @@ func _roof(frame: Material) -> void:
 		var t1 := float(i + 1) / n
 		var z0 := lerpf(31.0, -34.0, t0)
 		var z1 := lerpf(31.0, -34.0, t1)
-		var y0 := WALL_H + 0.3 + 7.5 * sin(PI * t0) + 1.6 * sin(PI * 3.0 * t0)
-		var y1 := WALL_H + 0.3 + 7.5 * sin(PI * t1) + 1.6 * sin(PI * 3.0 * t1)
+		var y0 := _roof_t(t0)
+		var y1 := _roof_t(t1)
 		var a := Vector3(x0, y0, z0)
 		var b := Vector3(x1, y0, z0)
 		var c := Vector3(x1, y1, z1)
@@ -874,8 +898,8 @@ func _roof(frame: Material) -> void:
 			var t1 := float(i + 1) / n
 			var z0 := lerpf(31.0, -34.0, t0)
 			var z1 := lerpf(31.0, -34.0, t1)
-			var y0 := WALL_H + 0.3 + 7.5 * sin(PI * t0) + 1.6 * sin(PI * 3.0 * t0)
-			var y1 := WALL_H + 0.3 + 7.5 * sin(PI * t1) + 1.6 * sin(PI * 3.0 * t1)
+			var y0 := _roof_t(t0)
+			var y1 := _roof_t(t1)
 			if z0 > 26.0 or z1 < -30.0:
 				continue
 			for v in [Vector3(x, WALL_H, z0), Vector3(x, y0, z0), Vector3(x, y1, z1), Vector3(x, WALL_H, z0), Vector3(x, y1, z1), Vector3(x, WALL_H, z1)]:
@@ -1091,16 +1115,35 @@ func _gates() -> void:
 		_box(Vector3(3.6, 1.4, 0.2), Vector3(x, 4.4, -29.6), _mat(Color(0.03, 0.03, 0.06), 0.3, 0.4))
 		_text("GATE %s" % g, Vector3(x, 4.4, -29.45), 110, accent2)
 		_spot("gate:" + g, "GATE %s · BOARD" % g, Vector3(x, 0, -24.6), 3.0)
-		# the jet bridge out to the parked airliner
+		# an airliner at every other gate (a real gate pitch is ~45 m: wingtips overlap at 16), staggered so they clear,
+		# its jet bridge swung out to the front door; the empty gates' bridges stand parked against the terminal
 		var jb := _mat(Color(0.75, 0.77, 0.8) if not night else Color(0.22, 0.22, 0.28), 0.4, 0.7)
-		_box(Vector3(3.2, 3.2, 18), Vector3(x, 4.6, -39.5), jb)
-		_box(Vector3(0.6, 3.0, 0.6), Vector3(x, 1.5, -46), jb)
-		_box(Vector3(3.3, 0.15, 18.1), Vector3(x, 6.2, -39.5), _glow(accent, 1.5))
-		var plane := _airliner(accent if i % 2 == 0 else accent2, String(look.airline))
-		plane.position = Vector3(x + 6.0, 0, -66)
-		plane.rotation.y = PI     # nose to the terminal
-		static_root.add_child(plane)
-		obstacles.append(AABB(Vector3(x - 2.0, 0, -86), Vector3(16.0, 6.0, 40.0)))
+		var glazing := _glow(accent.lerp(Color(0.6, 0.8, 1.0), 0.4), 0.8)
+		var parked := i % 2 == 0
+		var px := x + 4.0
+		var pz := -66.0 - (6.0 if i % 4 == 2 else 0.0)
+		var door := Vector3(px + 2.25, 0, pz + 14.4) if parked else Vector3(x + 1.0, 0, -40.0)
+		var from := Vector3(x, 0, -30.4)
+		var span := Vector2(door.x - from.x, door.z - from.z)
+		var bridge := Node3D.new()
+		bridge.position = Vector3((from.x + door.x) * 0.5, 4.4, (from.z + door.z) * 0.5)
+		bridge.rotation.y = atan2(-span.x, -span.y)
+		static_root.add_child(bridge)
+		_box(Vector3(2.7, 2.7, span.length()), Vector3.ZERO, jb, bridge)
+		_box(Vector3(2.76, 0.5, span.length() - 0.6), Vector3(0, 0.45, 0), glazing, bridge)
+		_box(Vector3(2.9, 0.12, span.length()), Vector3(0, 1.42, 0), _glow(accent, 1.4), bridge)
+		_box(Vector3(3.4, 3.1, 2.4), Vector3(0, 0, -span.length() * 0.5), jb, bridge)       # the cab at the door
+		# the drive leg with its wheels, under the cab
+		var leg := door + Vector3(0, 0, 0) - Vector3(span.x, 0, span.y).normalized() * 2.0
+		_box(Vector3(0.5, 3.0, 0.5), leg + Vector3(0, 1.5, 0), jb)
+		_box(Vector3(2.4, 0.6, 1.0), leg + Vector3(0, 0.4, 0), _mat(Color(0.12, 0.12, 0.14), 0.7))
+		if parked:
+			var plane := _airliner(accent if i % 4 == 0 else accent2, String(look.airline))
+			plane.position = Vector3(px, 0, pz)
+			plane.rotation.y = PI     # nose to the terminal
+			static_root.add_child(plane)
+			obstacles.append(AABB(Vector3(px - 2.6, 0, pz - 20.0), Vector3(5.2, 7.0, 40.0)))      # fuselage
+			obstacles.append(AABB(Vector3(px - 17.5, 0, pz - 6.0), Vector3(35.0, 4.0, 9.0)))      # wings and engines
 	for k in 6:
 		_bench(Vector3(-36.0 + k * 14.4, 0, -14.0), 0.0)
 		_bench(Vector3(-36.0 + k * 14.4, 0, -19.0), PI)
@@ -1108,6 +1151,29 @@ func _gates() -> void:
 ## an airliner, procedural (no airliner model in the fleet yet): white fuselage, swept wings, two engines, tail in the
 ## airline's colour; nose toward -z, ~40 m long, wheels at y 0
 func _airliner(tail: Color, name: String) -> Node3D:
+	# the authored airliner (scripts/build-airliner.py), repainted in the airline's colour; the shapes below if it's missing
+	var model := _model("res://models/fleet/airliner.glb")
+	if model:
+		var wrap := Node3D.new()
+		wrap.add_child(model)
+		var paint := _mat(tail, 0.35, 0.15)
+		for c in model.find_children("*", "MeshInstance3D", true, false):
+			var mi := c as MeshInstance3D
+			for i in mi.mesh.get_surface_count():
+				var m := mi.mesh.surface_get_material(i)
+				if m and m.resource_name == "Livery":
+					mi.set_surface_override_material(i, paint)
+		for side in [-1.0, 1.0]:
+			var l := Label3D.new()
+			l.text = name
+			l.font_size = 130
+			l.pixel_size = 0.01
+			l.modulate = tail.darkened(0.2)
+			l.position = Vector3(side * 2.08, 4.25, -6.0)
+			l.rotation.y = side * PI * 0.5
+			l.double_sided = false
+			wrap.add_child(l)
+		return wrap
 	var p := Node3D.new()
 	var body := _mat(Color(0.95, 0.96, 0.98), 0.3, 0.2)
 	var dark := _mat(Color(0.1, 0.12, 0.16), 0.2, 0.4)
