@@ -153,7 +153,13 @@ function nexusBuildings(): CartoBuilding[] {
   // building in the game (owner, Nov 9 2026: Nexus at 420 m, the Neon casino next at 380 m)
   let core: CartoBuilding | null = null;
   for (const b of out) if (!b.name && b.hx >= 5 && Math.abs(b.x - NEXUS.x) < 8 && b.z < NEXUS.z - 30 && b.z > NEXUS.z - 70 && (!core || b.hx * b.hz > core.hx * core.hz)) core = b;
-  if (core) { core.m = CORE_SPIRE_M; core.h = 1; core.use = "civic"; core.name = "Nexus Core Spire"; }
+  if (core) {
+    core.m = CORE_SPIRE_M; core.h = 1; core.use = "civic"; core.name = "Nexus Core Spire";
+    // a cathedral of spires needs a real footprint (owner, Nov 10: "fix tower"): 40 m square, clearing the small blocks
+    // that stood round it (the nearest street is 31 m off)
+    core.hx = 20; core.hz = 20;
+    for (let i = out.length - 1; i >= 0; i--) { const b = out[i]!; if (b !== core && Math.hypot(b.x - core.x, b.z - core.z) < 30) out.splice(i, 1); }
+  }
   return out;
 }
 

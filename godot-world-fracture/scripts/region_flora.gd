@@ -590,12 +590,17 @@ static func landmark_fx(r: Node) -> void:
 		elif cat == "research" or pid in FIELD_POIS:
 			# the dome covers the station's buildings: the farthest one within 70 m, plus a margin
 			var reach := 22.0
+			var limit := 80.0
 			for bd in r.m.buildings:
 				var b: Vector2 = r._loc(bd[0], bd[1])
 				var d := b.distance_to(at)
-				if d < 70.0:
-					reach = maxf(reach, d + maxf(float(bd[2]), float(bd[3])) + 6.0)
-			var f := Fx.energy_field(minf(reach, 80.0), Color(0.35, 0.75, 1.0) if cat == "research" else Color(1.0, 0.6, 0.25))
+				var half := maxf(float(bd[2]), float(bd[3]))
+				if r._is_landmark(bd):
+					# never swallow a landmark tower (the Neon City Grand Casino stood half inside the Spire Vault's dome)
+					limit = minf(limit, (d - half) * 0.55)
+				elif d < 70.0:
+					reach = maxf(reach, d + half + 6.0)
+			var f := Fx.energy_field(maxf(12.0, minf(reach, limit)), Color(0.35, 0.75, 1.0) if cat == "research" else Color(1.0, 0.6, 0.25))
 			f.position = Vector3(at.x, gy - 1.0, at.y)
 			r._world.add_child(f)
 		elif id in HOLO_CITIES and cat in HOLO_CATS and holos < 16:

@@ -222,7 +222,7 @@ const DISTRICTS: readonly { id: string; name: string; u: number; v: number; r: n
   { id: "riverside", name: "Riverside", u: -150, v: 90, r: 60, use: "house", lo: 6, hi: 14, n: 18, sub: "Suburbs" },
   { id: "tech", name: "Tech Quarter", u: 170, v: -90, r: 55, use: "office", lo: 40, hi: 120, n: 10, sub: "R&D / Upgrades" },
   { id: "arena", name: "Arena District", u: 160, v: 40, r: 55, use: "entertainment", lo: 14, hi: 45, n: 7, sub: "Tournaments & Events" },
-  { id: "ent", name: "Entertainment District", u: 40, v: 90, r: 55, use: "entertainment", lo: 20, hi: 80, n: 10, sub: "Nightlife · Casino · Arena" },
+  { id: "ent", name: "Entertainment District", u: 40, v: 90, r: 55, use: "entertainment", lo: 20, hi: 80, n: 10, sub: "Nightlife · Clubs · Arena" },
 ];
 
 export function nrFeatures(map: CartoMap): CartoFeatures {
@@ -233,8 +233,8 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
 
   // Nexus City: the districts round The Core, the Core Spire at its heart
   const [sx, sz] = nr(CITY.u + 30, CITY.v - 80);
-  f.buildings.push({ x: sx, z: sz, hx: 14, hz: 14, yaw: 0, use: "civic", h: 1, m: 420, name: "Nexus Core Spire" });
-  f.rings.push({ x: sx, z: sz + 60, r: 26, kind: "ring", name: "Core Plaza" });
+  f.buildings.push({ x: sx, z: sz, hx: 30, hz: 30, yaw: 0, use: "civic", h: 1, m: 420, name: "Nexus Core Spire" });
+  f.rings.push({ x: sx, z: sz + 72, r: 22, kind: "ring", name: "Core Plaza" });
   for (const d of DISTRICTS) {
     const [dx, dz] = nr(d.u, d.v);
     let placed = 0;
@@ -249,7 +249,7 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
       }
       const [x, z] = nr(u, v);
       if (!dry(u, v, 2.5)) continue;
-      if (Math.hypot(x - sx, z - sz) < 40) continue;
+      if (Math.hypot(x - sx, z - sz) < 62) continue;
       if (f.buildings.some((b) => Math.abs(b.x - x) < b.hx + hx + 6 && Math.abs(b.z - z) < b.hz + hz + 6)) continue;
       const t = rnd(), m = d.lo + (d.hi - d.lo) * t * t;
       f.buildings.push({ x, z, hx, hz, yaw: 0, use: d.use, h: Math.min(1, m / 120), m });
@@ -257,9 +257,10 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
     }
     f.areas.push({ name: d.name, x: dx, z: dz - d.r * 0.2, kind: "district", rank: 1 });
   }
-  // the Entertainment District's casino and the Arena District's stadium and arena
+  // the Entertainment District's club hall (no casino in Nexus: owner, Nov 9 — Neon City has the only one) and the Arena
+  // District's stadium and arena
   const [ex, ez] = nr(40, 120);
-  f.buildings.push({ x: ex, z: ez, hx: 16, hz: 12, yaw: 0, use: "entertainment", h: 0.6, m: 64, name: "Nexus Grand Casino" });
+  f.buildings.push({ x: ex, z: ez, hx: 16, hz: 12, yaw: 0, use: "entertainment", h: 0.6, m: 64, name: "Nexus Live Hall" });
   const [ax, az] = nr(230, 60);
   f.rings.push({ x: ax, z: az, r: 20, kind: "arena", name: "Nexus Arena" });
   const [stx, stz] = nr(120, 150);
@@ -360,7 +361,7 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
 
   // the board's places
   P("city", "Nexus City", "landmark", nr(CITY.u, CITY.v), 0, "The capital and central hub: Lv 1–60+.");
-  P("core", "The Core", "spire", [sx, sz + 60], 0, "The Central Business District under the Nexus Core Spire.");
+  P("core", "The Core", "spire", [sx, sz + 72], 0, "The Central Business District under the Nexus Core Spire.");
   P("heights", "Aether Heights", "village", nr(-110, -150), 1, "The luxury district: penthouse towers over the river.");
   P("westgate", "Westgate", "village", nr(-200, -50), 1, "Residential district on the west bank.");
   P("novahq", "NOVA HQ", "civic", nr(-80, -30), 1, "Operator Command.");
@@ -368,8 +369,8 @@ export function nrFeatures(map: CartoMap): CartoFeatures {
   P("tech", "Tech Quarter", "civic", nr(170, -90), 1, "R&D and upgrades.");
   P("arena", "Arena District", "arena", [ax, az], 1, "Tournaments and events at the Nexus Arena.");
   P("stadium", "Nexus Stadium", "arena", [stx, stz], 2, "Sports, tournaments, events.");
-  P("ent", "Entertainment District", "entertainment", nr(40, 90), 1, "Nightlife, the casino and the arena.");
-  P("casino", "Nexus Grand Casino", "casino", [ex, ez], 2, "Casino, nightclub and rooftop venue.");
+  P("ent", "Entertainment District", "entertainment", nr(40, 90), 1, "Nightlife, clubs and the arena.");
+  P("livehall", "Nexus Live Hall", "nightclub", [ex, ez], 2, "Nightclub and rooftop concert venue.");
   P("harbor", "Nexus Harbor", "port", nr(HARBOR.u, HARBOR.v + 10), 0, "Trade and shipping: Lv 5–40.");
   P("marina", "Nexus Marina", "dock", nr(360, 255), 2, "Yachts and charters.");
   P("beach", "Nexus Beach", "park", nr(BEACH.u, BEACH.v), 0, "Recreation and sports: Lv 1–25.");

@@ -606,7 +606,8 @@ func _style_for(id: String) -> Dictionary:
 			# the owner's Nexus City board (Nov 9): the capital at dusk — an indigo sky going orange and pink at the horizon, a
 			# low warm sun on cream and white towers lit gold with blue and violet accents, palms along the shore, the Core
 			# Spire in holographic rings with its beam into the sky. Its own look, not a second Neon (`ordered` = Nexus look)
-			s.merge({"top": "#1c2260", "hor": "#e88a6a", "fog": "#3b3a72", "fog_d": 0.0012, "sun": 0.6, "sun_col": "#ffc3a0", "sun_el": 7.0, "amb": 0.6, "night": 0.5, "neon": 0.3, "ordered": 1.0, "wet": 0.25, "sat": 1.15, "exp": 0.9}, true)
+			# (Nov 10: brought up to the region's golden hour so the capital reads like the board, not a night scene)
+			s.merge({"top": "#2c3a88", "hor": "#f09a72", "fog": "#6c6aa6", "fog_d": 0.0009, "sun": 0.95, "sun_col": "#ffd0a8", "sun_el": 16.0, "amb": 0.62, "night": 0.42, "neon": 0.3, "ordered": 1.0, "wet": 0.2, "sat": 1.15, "exp": 0.92}, true)
 		"ember":
 			s.merge({"top": "#2c140e", "hor": "#c05628", "fog": "#6a2e1e", "fog_d": 0.0022, "sun": 0.85, "sun_col": "#ffb27a", "sun_el": 18.0, "amb": 0.5}, true)
 		"frostspire":
@@ -2668,19 +2669,34 @@ func _build_landmarks() -> void:
 ## crown, lasers sweeping the sky, the dance floor, cabana palms and the helipad.
 func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 	var glass := _lm_mat(Color("#141026"), 0.0, 0.6, 0.12)
-	var lit := _lm_windows(Color("#ffb86a"), Color("#120e22"), 0.32)
+	var lit := _lm_windows(Color("#ffb47a"), Color("#120e22"), 0.45)
 	var gold := _lm_mat(Color("#e8b24a"), 1.4, 0.9, 0.3)
 	var violet := _lm_mat(Color("#b04bff"), 3.2)
 	var cyan := _lm_mat(Color("#3fd8ff"), 2.6)
 	var pink := _lm_mat(Color("#ff3fb4"), 2.8)
 	var deck_y := top - 14.0
 	var unit := _lm_cyl(1.0, 1.0, 1.0, 40)
-	# podium: a wider gold-trimmed drum with the entrance glow
-	_lm_part(root, unit, lit, Vector3(0, 12.0, 0), Vector3(hx * 1.05, 24.0, hz * 1.05))
-	_lm_part(root, unit, gold, Vector3(0, 24.2, 0), Vector3(hx * 1.08, 0.6, hz * 1.08))
-	_lm_part(root, unit, violet, Vector3(0, 4.0, 0), Vector3(hx * 1.06, 0.5, hz * 1.06))
-	# the shaft in three gently narrowing sections, banded in neon every 12 m
-	var secs := [[24.0, deck_y * 0.45, 0.9], [deck_y * 0.45, deck_y * 0.8, 0.84], [deck_y * 0.8, deck_y, 0.78]]
+	# (Nov 10, "fix tower": a lone 47 m column 380 m tall read as a chimney) the resort now spreads at the foot — a broad
+	# two-tier podium and two flanking wing towers — and the head flares out into the cantilevered roof venue
+	var base_top := 60.0
+	_lm_part(root, unit, lit, Vector3(0, 18.0, 0), Vector3(hx * 1.7, 36.0, hz * 1.7))
+	_lm_part(root, unit, gold, Vector3(0, 36.2, 0), Vector3(hx * 1.74, 0.8, hz * 1.74))
+	_lm_part(root, unit, violet, Vector3(0, 5.0, 0), Vector3(hx * 1.72, 0.6, hz * 1.72))
+	_lm_part(root, unit, lit, Vector3(0, 48.0, 0), Vector3(hx * 1.3, 24.0, hz * 1.3))
+	_lm_part(root, unit, gold, Vector3(0, base_top + 0.2, 0), Vector3(hx * 1.34, 0.8, hz * 1.34))
+	for sx: float in [-1.0, 1.0]:
+		var wy := top * 0.42
+		var wing := Vector3(sx * hx * 1.02, 0, -hz * 0.15)
+		_lm_part(root, unit, lit, wing + Vector3(0, wy * 0.5, 0), Vector3(hx * 0.42, wy, hz * 0.5))
+		_lm_part(root, unit, gold, wing + Vector3(0, wy, 0), Vector3(hx * 0.45, 0.8, hz * 0.53))
+		var b := wy * 0.2
+		while b < wy - 4.0:
+			_lm_part(root, unit, violet, wing + Vector3(0, b, 0), Vector3(hx * 0.43, 0.3, hz * 0.51))
+			b += 14.0
+		_lm_part(root, _lm_cyl(0.3, hx * 0.3, 14.0, 12), violet, wing + Vector3(0, wy + 7.0, 0))
+	# the shaft in three gently narrowing sections, banded in neon every 12 m, then a flared crown under the deck
+	var flare := deck_y - 26.0
+	var secs := [[base_top, flare * 0.55, 1.0], [flare * 0.55, flare * 0.82, 0.92], [flare * 0.82, flare, 0.86]]
 	for sc in secs:
 		var y0: float = sc[0]
 		var y1: float = sc[1]
@@ -2693,11 +2709,13 @@ func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 			_lm_part(root, unit, violet if i % 3 != 2 else cyan, Vector3(0, y, 0), Vector3(hx * (f + 0.012), 0.35, hz * (f + 0.012)))
 			y += 12.0
 			i += 1
+	_lm_part(root, _lm_cyl(1.18, 0.86, 1.0, 40), lit, Vector3(0, (flare + deck_y) * 0.5, 0), Vector3(hx, deck_y - flare, hz))
+	_lm_part(root, unit, pink, Vector3(0, flare + 0.4, 0), Vector3(hx * 0.88, 0.5, hz * 0.88))
 	# four gold fins up the long sides and the crown on the face
 	var box := BoxMesh.new()
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-0.35, 0.35]:
-			_lm_part(root, box, gold, Vector3(sx * hx * 0.86, deck_y * 0.5 + 12.0, sz * hz), Vector3(0.6, deck_y - 24.0, 0.6))
+			_lm_part(root, box, gold, Vector3(sx * hx * 0.96, (base_top + flare) * 0.5, sz * hz), Vector3(0.6, flare - base_top, 0.6))
 	var crown_y := deck_y - 40.0
 	var face := hz * 0.8 + 0.4
 	for k in 5:
@@ -2706,8 +2724,8 @@ func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 		_lm_part(root, box, violet, Vector3(x, crown_y + spike * 0.5, face), Vector3(0.7, spike, 0.3), Vector3(0, 0, (float(k) - 2.0) * -0.12))
 	_lm_part(root, box, violet, Vector3(0, crown_y - 0.6, face), Vector3(12.0, 1.0, 0.3))
 	# the roof venue: a cantilevered deck with a lit edge and a glass rail
-	var dx := hx * 0.98
-	var dz := hz * 0.98
+	var dx := hx * 1.18
+	var dz := hz * 1.18
 	_lm_part(root, unit, glass, Vector3(0, deck_y + 0.5, 0), Vector3(dx, 1.0, dz))
 	_lm_part(root, unit, violet, Vector3(0, deck_y + 0.1, 0), Vector3(dx + 0.15, 0.4, dz + 0.15))
 	var rail := _lm_mat(Color(0.7, 0.85, 1.0, 0.25), 0.4)
@@ -2790,37 +2808,93 @@ func _grand_casino(root: Node3D, hx: float, hz: float, top: float) -> void:
 ## three times, ringed in cyan data bands, the core glowing through slots in the top tier, and a needle to the full height
 ## with a beacon.
 func _core_spire(root: Node3D, hx: float, hz: float, top: float) -> void:
+	# after the owner's Nexus City board (Nov 10: "fix tower"): not a lone needle but a cathedral of spires — a stepped
+	# podium, the main spire rising in faceted stages to the needle, a ring of lesser spires and four raking buttresses
+	# round it, cyan light up every edge and the diamond emblem glowing on its face
 	var steel := _lm_mat(Color("#8fa3d8"), 0.25, 0.7, 0.25)
 	var dark := _lm_windows(Color("#9fd4ff"), Color("#141a3a"), 0.3)
 	var cyan := _lm_mat(Color("#4fe3ff"), 3.0)
 	var white := _lm_mat(Color("#eaf6ff"), 4.0)
+	var violet := _lm_mat(Color("#8a63ff"), 2.4)
 	var box := BoxMesh.new()
 	var w := maxf(hx, hz)
-	var shaft_top := top * 0.86
-	var tiers := [[0.0, top * 0.32, 1.0], [top * 0.32, top * 0.6, 0.78], [top * 0.6, shaft_top, 0.56]]
-	for t in tiers:
-		var y0: float = t[0]
-		var y1: float = t[1]
-		var f: float = t[2]
-		_lm_part(root, box, dark, Vector3(0, (y0 + y1) * 0.5, 0), Vector3(hx * 2.0 * f, y1 - y0, hz * 2.0 * f))
-		# steel corner piers
-		for sx: float in [-1.0, 1.0]:
-			for sz: float in [-1.0, 1.0]:
-				_lm_part(root, box, steel, Vector3(sx * hx * f, (y0 + y1) * 0.5, sz * hz * f), Vector3(w * 0.25, y1 - y0, w * 0.25))
-		_lm_part(root, box, steel, Vector3(0, y1, 0), Vector3(hx * 2.1 * f, 0.8, hz * 2.1 * f))
-		var y := y0 + 10.0
-		while y < y1 - 3.0:
-			_lm_part(root, box, cyan, Vector3(0, y, 0), Vector3(hx * 2.02 * f, 0.25, hz * 2.02 * f))
-			y += 10.0
-	# the core glowing through the top tier
-	_lm_part(root, box, white, Vector3(0, (top * 0.6 + shaft_top) * 0.5, 0), Vector3(hx * 0.4, shaft_top - top * 0.6 - 6.0, hz * 2.0 * 0.57))
-	# the needle and its beacon
-	_lm_part(root, _lm_cyl(0.25, w * 0.35, top - shaft_top, 12), steel, Vector3(0, (shaft_top + top) * 0.5, 0))
+	var facet := func(r_top: float, r_bot: float, h: float) -> CylinderMesh:
+		var c := _lm_cyl(r_top, r_bot, h, 4)
+		return c
+	# the podium: two broad steps with light at their lips
+	var pod := top * 0.035
+	_lm_part(root, box, dark, Vector3(0, pod * 0.5, 0), Vector3(w * 2.0, pod, w * 2.0))
+	_lm_part(root, box, cyan, Vector3(0, pod, 0), Vector3(w * 2.04, 0.5, w * 2.04))
+	_lm_part(root, box, dark, Vector3(0, pod * 1.5, 0), Vector3(w * 1.5, pod, w * 1.5))
+	_lm_part(root, box, cyan, Vector3(0, pod * 2.0, 0), Vector3(w * 1.54, 0.5, w * 1.54))
+	# the main spire: four faceted stages, each narrower, a cyan collar at each step, then the needle
+	var base := pod * 2.0
+	var stages := [[0.42, 0.62, 0.30], [0.30, 0.42, 0.25], [0.2, 0.30, 0.2], [0.1, 0.2, 0.13]]
+	var y := base
+	for st in stages:
+		var h: float = top * float(st[2])
+		var rt: float = w * float(st[0])
+		var rb: float = w * float(st[1])
+		_lm_part(root, facet.call(rt, rb, h), dark, Vector3(0, y + h * 0.5, 0), Vector3.ONE, Vector3(0, PI * 0.25, 0))
+		# light up the four arrises of the stage
+		for k in 4:
+			var a := float(k) * PI * 0.5
+			var lean := atan2(rb - rt, h)
+			var mid := (rb + rt) * 0.5 + 0.15
+			var edge := Node3D.new()
+			edge.position = Vector3(cos(a) * mid, y + h * 0.5, sin(a) * mid)
+			edge.rotation = Vector3(0, -a, 0)
+			root.add_child(edge)
+			_lm_part(edge, box, cyan, Vector3.ZERO, Vector3(0.35, h * 1.01, 0.35), Vector3(0, 0, lean))
+		y += h
+		_lm_part(root, _lm_cyl(rt + 0.4, rt + 0.4, 0.8, 4), cyan, Vector3(0, y, 0), Vector3.ONE, Vector3(0, PI * 0.25, 0))
+	var needle_h := top - y
+	_lm_part(root, _lm_cyl(0.2, w * 0.1, needle_h, 8), steel, Vector3(0, y + needle_h * 0.5, 0))
 	for k in 4:
-		var y := shaft_top + (top - shaft_top) * (0.2 + 0.2 * float(k))
-		var r := w * 0.35 * (1.0 - (y - shaft_top) / (top - shaft_top)) + 0.4
-		_lm_part(root, _lm_cyl(r, r, 0.5, 16), cyan, Vector3(0, y, 0))
+		var yy := y + needle_h * (0.2 + 0.2 * float(k))
+		var rr := w * 0.1 * (1.0 - (yy - y) / needle_h) + 0.35
+		_lm_part(root, _lm_cyl(rr, rr, 0.5, 12), cyan, Vector3(0, yy, 0))
 	_lm_part(root, SphereMesh.new(), white, Vector3(0, top, 0), Vector3.ONE * 1.6)
+	# the core light behind slots in the second stage
+	var s2 := base + top * 0.3
+	var core_glow := _lm_mat(Color("#bfe8ff"), 1.6)
+	_lm_part(root, box, core_glow, Vector3(0, s2 + top * 0.12, 0), Vector3(w * 0.06, top * 0.2, w * 0.86))
+	_lm_part(root, box, core_glow, Vector3(0, s2 + top * 0.12, 0), Vector3(w * 0.86, top * 0.2, w * 0.06))
+	# the ring of lesser spires: eight, alternately tall and short, leaning very slightly in
+	for k in 8:
+		var a := float(k) / 8.0 * TAU + PI / 8.0
+		var tall := k % 2 == 0
+		var h := top * (0.4 if tall else 0.24)
+		var r0 := w * (0.17 if tall else 0.13)
+		var at := Vector3(cos(a) * w * 0.68, base, sin(a) * w * 0.68)
+		var sp := Node3D.new()
+		sp.position = at
+		sp.rotation = Vector3(sin(a) * 0.04, 0, -cos(a) * 0.04)
+		root.add_child(sp)
+		_lm_part(sp, facet.call(r0 * 0.15, r0, h), dark, Vector3(0, h * 0.5, 0), Vector3.ONE, Vector3(0, PI * 0.25 + a, 0))
+		_lm_part(sp, _lm_cyl(0.2, 0.5, h * 0.25, 6), cyan if tall else violet, Vector3(0, h + h * 0.12, 0))
+		_lm_part(sp, _lm_cyl(r0 * 0.75, r0 * 0.75, 0.5, 4), cyan, Vector3(0, h * 0.35, 0), Vector3.ONE, Vector3(0, PI * 0.25 + a, 0))
+	# four buttresses raking from the podium corners up to the first stage
+	for k in 4:
+		var a := float(k) * PI * 0.5 + PI * 0.25
+		var reach := w * 0.95
+		var rise := top * 0.22
+		var fin := Node3D.new()
+		fin.position = Vector3(cos(a) * reach * 0.55, base + rise * 0.5, sin(a) * reach * 0.55)
+		fin.rotation = Vector3(0, -a, 0)
+		root.add_child(fin)
+		var tilt := atan2(reach * 0.75, rise)
+		_lm_part(fin, box, steel, Vector3.ZERO, Vector3(w * 0.06, sqrt(rise * rise + reach * reach * 0.56), w * 0.16), Vector3(0, 0, tilt))
+		_lm_part(fin, box, cyan, Vector3(0, 0, 0), Vector3(w * 0.065, sqrt(rise * rise + reach * reach * 0.56) * 0.98, 0.3), Vector3(0, 0, tilt))
+	# the Nexus emblem: a glowing diamond frame on the south face of the first stage
+	var em := TorusMesh.new()
+	em.inner_radius = 0.82
+	em.outer_radius = 1.0
+	em.rings = 4
+	em.ring_segments = 4
+	var face := w * 0.56
+	_lm_part(root, em, white, Vector3(0, base + top * 0.17, face), Vector3(w * 0.22, w * 0.22, w * 0.22), Vector3(PI * 0.5, 0, 0))
+	_lm_part(root, box, cyan, Vector3(0, base + top * 0.17, face + 0.2), Vector3(w * 0.05, w * 0.3, 0.2))
 	# the board's holographic halos round the upper tower (turning slowly) and the beam into the sky
 	var holo := _lm_mat(Color("#5fd4ff"), 3.5)
 	holo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -2838,7 +2912,7 @@ func _core_spire(root: Node3D, hx: float, hz: float, top: float) -> void:
 		halo.set_meta("spin", 0.12 + 0.05 * float(k) * (1.0 if k % 2 == 0 else -1.0))
 		root.add_child(halo)
 		_spin.append(halo)
-		var r := w * (4.2 - 0.9 * float(k))
+		var r := maxf(w * 1.2, top * (0.15 - 0.03 * float(k)))
 		_lm_part(halo, ring, holo, Vector3.ZERO, Vector3(r, 1.0, r))
 	var beam := _lm_mat(Color("#7fe0ff"), 4.0)
 	beam.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -2847,7 +2921,7 @@ func _core_spire(root: Node3D, hx: float, hz: float, top: float) -> void:
 	_lm_part(root, _lm_cyl(1.2, 2.6, 700.0, 12), beam, Vector3(0, top + 350.0, 0))
 	# the hologram crystal over the hub plaza in front (the Central District's core on the board), slowly turning
 	var crystal := Node3D.new()
-	crystal.position = Vector3(0, 22.0, 48.0)
+	crystal.position = Vector3(0, 22.0, maxf(48.0, w + 42.0))
 	crystal.set_meta("spin", 0.5)
 	root.add_child(crystal)
 	_spin.append(crystal)

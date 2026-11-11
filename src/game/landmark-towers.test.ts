@@ -21,3 +21,11 @@ describe("landmark towers (owner, Nov 9 2026)", () => {
     expect(Math.max(...rest.map((r) => height(r.b)))).toBeLessThan(CASINO_TOWER_M);
   });
 });
+
+describe("Neon City has the only casino (owner, Nov 9 2026)", () => {
+  test("nothing on the Nexus Region map is a casino", () => {
+    const m = CARTO_MAPS.find((x) => x.id === "nexus-region")!, f = cartoFeatures(m);
+    expect(f.pois.filter((p) => p.cat === "casino" || /casino/i.test(p.name + " " + (p.blurb ?? "")))).toEqual([]);
+    expect(f.buildings.filter((b) => /casino/i.test(b.name ?? ""))).toEqual([]);
+  });
+});
