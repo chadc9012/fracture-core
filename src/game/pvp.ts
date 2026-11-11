@@ -66,6 +66,8 @@ export type PvpState = {
   round: number; roundClock: number; usRounds: number; themRounds: number; attacking: boolean; plant: number; zoneHold: number; roundRivalsLeft: number; roundOver: number;
   /** rounds with ally bots: you went down this round and your team plays it out (you sit at your spawn until the next round) */
   out: boolean; alliesLeft: number;
+  /** Freefall in a bot match: which rival holds which board slot (slot 0 is you) */
+  ffaSlots?: string[];
   /** royale */
   alive: number; phase: number; radius: number; nextWave: number;
   /** the match result once decided */
@@ -87,7 +89,7 @@ export function newPvp(mode: PvpModeId, seed = 1, zones: readonly ZoneSpot[] = O
   /** Extraction: the core's drop point and the two pads (killbox-arenas.ts extractionSites) */ extract: { home: { x: number; z: number }; us: { x: number; z: number }; them: { x: number; z: number } } = OPEN_EXTRACT): PvpState {
   const m = PVP_MODES[mode];
   const core: Core | undefined = m.kind === "extract" ? { x: extract.home.x, z: extract.home.z, holder: null, carrier: null, pick: 0, idle: 0, home: { ...extract.home }, pads: { us: { ...extract.us }, them: { ...extract.them } } } : undefined;
-  return { ...(core ? { core } : {}), mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? m.players : 0 }, () => 0), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, out: false, alliesLeft: bots?.allies ?? 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed, allies: bots?.allies ?? 0, rivalField: bots?.rivals };
+  return { ...(core ? { core } : {}), mode, clock: 0, us: 0, them: 0, board: Array.from({ length: m.kind === "ffa" ? (bots ? 1 + bots.rivals : m.players) : 0 }, () => 0), ...(m.kind === "ffa" && bots ? { ffaSlots: ["player"] } : {}), zones: m.kind === "zones" ? zones.map((z) => ({ ...z, owner: null, cap: 0 })) : [], round: 1, roundClock: 0, usRounds: 0, themRounds: 0, attacking: true, plant: 0, zoneHold: 0, roundRivalsLeft: m.kind === "rounds" ? m.onField : 0, roundOver: 0, out: false, alliesLeft: bots?.allies ?? 0, alive: m.players, phase: 0, radius: m.kind === "royale" ? ROYALE.startRadius : 0, nextWave: 0, result: null, reason: "", seed, allies: bots?.allies ?? 0, rivalField: bots?.rivals };
 }
 
 /** deterministic 0..1 from the state's seed (advances it) */
@@ -99,6 +101,10 @@ export type PvpEvents = { dt: number; kills: number; died: boolean; /** player d
   allyDeaths?: number; presence?: Record<string, { us: number; them: number }>;
   /** rounds in a bot match: your ally bots still standing, and how many of them stand on the objective */
   alliesAlive?: number; objectiveUs?: number;
+  /** rounds in a bot match: rivals standing on the objective */
+  objectiveThem?: number;
+  /** Freefall in a bot match: eliminations rivals scored this step (by tag), and who downed you if you went down */
+  ffaKills?: ReadonlyMap<string, number>; killedBy?: string | null;
   /** Extraction in a bot match: everyone on the field (the player as id "player"); without it the player alone is on the core's field */
   units?: readonly Unit[] };
 
@@ -121,6 +127,13 @@ export function stepPvp(st: PvpState, e: PvpEvents): boolean {
     }
     case "ffa": {
       st.board[0]! += e.kills;
+      if (st.ffaSlots) {
+        // a bot match: the whole field is on the map, so the board moves only with real eliminations, each to whoever scored it
+        for (const [tag, n] of e.ffaKills ?? []) st.board[ffaSlot(st, tag)]! += n;
+        if (e.died) st.board[e.killedBy ? ffaSlot(st, e.killedBy) : 1 + Math.floor(rnd(st) * (st.board.length - 1))]! += 1;
+        st.us = st.board[0]!; st.them = Math.max(0, ...st.board.slice(1));
+        break;
+      }
       if (e.died) { const k = 1 + Math.floor(rnd(st) * (m.players - 1)); st.board[k]! += 1; }
       // everyone else trades eliminations off-field
       for (let i = 1; i < st.board.length; i++) if (rnd(st) < e.dt * FRONT_RATE * 0.6) st.board[i]! += 1;
@@ -133,6 +146,14 @@ export function stepPvp(st: PvpState, e: PvpEvents): boolean {
   }
   decide(st, m);
   return st.result !== null;
+}
+
+/** a rival's Freefall board slot (assigned the first time it scores or downs you; slot 0 is you) */
+export function ffaSlot(st: PvpState, tag: string): number {
+  const slots = st.ffaSlots ?? (st.ffaSlots = ["player"]);
+  let i = slots.indexOf(tag);
+  if (i < 0) { if (slots.length < st.board.length) { slots.push(tag); i = slots.length - 1; } else i = 1 + (Math.abs([...tag].reduce((h, c) => h * 31 + c.charCodeAt(0), 7)) % (st.board.length - 1)); }
+  return i;
 }
 
 /** the far side of the arena: off-field members of each team trade eliminations */
@@ -165,6 +186,13 @@ function stepZones(st: PvpState, e: PvpEvents) {
   if (now > before) for (const z of st.zones) { if (z.owner === "us") st.us += 1; else if (z.owner === "them") st.them += 1; }
 }
 
+/** Ascendancy overtime in a bot match: how long after the buzzer the zone has to be taken */
+export const OVERTIME_S = 60;
+/** a round played again with no point to either side (a draw in overtime) */
+function replayRound(st: PvpState, m: PvpMode, why: string) {
+  st.reason = why; st.roundOver = 3;
+  st.round++; st.roundClock = 0; st.plant = 0; st.zoneHold = 0; st.roundRivalsLeft = m.onField; st.out = false;
+}
 function endRound(st: PvpState, m: PvpMode, won: boolean, why: string) {
   if (won) st.usRounds++; else st.themRounds++;
   st.reason = why; st.roundOver = 3; // a short pause before the next round
@@ -183,26 +211,35 @@ function stepRounds(st: PvpState, m: PvpMode, e: PvpEvents) {
     if (e.died && !st.out) { if (e.alliesAlive > 0) { st.out = true; st.reason = "You're down — your team fights on"; } else { endRound(st, m, false, "Your team went down"); return; } }
     if (st.out && e.alliesAlive === 0) { endRound(st, m, false, "Your team went down"); return; }
   } else if (e.died) { endRound(st, m, false, "You went down"); return; }
-  // the objective is held by you (while you're up) or any ally bot standing on it
+  // the objective is held by you (while you're up) or any ally bot standing on it; in a bot match the rivals have to stand on it
+  // themselves to plant or take it (and a contested objective holds), as in Dominion
   const onObjective = (!st.out && Math.hypot(e.px, e.pz) < ZONE_RADIUS) || (e.objectiveUs ?? 0) > 0;
+  const bots = e.objectiveThem !== undefined, onThem = (e.objectiveThem ?? 0) > 0;
   if (st.roundClock > 1 && e.rivalsAlive === 0) { endRound(st, m, true, "Rivals wiped"); return; }
   const rt = m.roundTime ?? 90;
   if (m.id === "lockdown") {
     if (st.attacking) {
-      if (onObjective) st.zoneHold += e.dt; else st.zoneHold = Math.max(0, st.zoneHold - e.dt);
+      if (onObjective && !onThem) st.zoneHold += e.dt; else st.zoneHold = Math.max(0, st.zoneHold - e.dt);
       if (st.zoneHold >= ROUND_ZONE_S + 2) { endRound(st, m, true, "Objective secured"); return; }
       if (st.roundClock >= rt) { endRound(st, m, false, "Out of time"); return; }
     } else {
       // the attackers plant while nobody contests the objective
-      if (!onObjective) st.plant += e.dt / 12; else st.plant = Math.max(0, st.plant - e.dt / 6);
+      if (bots ? onThem && !onObjective : !onObjective) st.plant += e.dt / 12; else st.plant = Math.max(0, st.plant - e.dt / 6);
       if (st.plant >= 1) { endRound(st, m, false, "The objective fell"); return; }
       if (st.roundClock >= rt) { endRound(st, m, true, "Held the line"); return; }
     }
     return;
   }
-  // Ascendancy: at the buzzer a capture zone opens in the middle; take it, or lose it to them after a while
+  // Ascendancy: at the buzzer a capture zone opens in the middle; take it, or lose it to them after a while. In a bot match, if
+  // nobody has taken it OVERTIME_S after the buzzer, the side with more fighters standing wins (a tie replays the round)
+  if (bots && st.roundClock >= rt + OVERTIME_S) {
+    const ours = (e.alliesAlive ?? 0) + (st.out ? 0 : 1), theirs = e.rivalsAlive;
+    if (ours === theirs) replayRound(st, m, "Overtime draw — round replayed");
+    else endRound(st, m, ours > theirs, ours > theirs ? "Overtime: more of you standing" : "Overtime: more of them standing");
+    return;
+  }
   if (st.roundClock >= rt) {
-    if (onObjective) st.zoneHold += e.dt; else st.plant += e.dt / 15;
+    if (onObjective && !onThem) st.zoneHold += e.dt; else if (bots ? onThem && !onObjective : !onObjective) st.plant += e.dt / 15;
     if (st.zoneHold >= ROUND_ZONE_S) { endRound(st, m, true, "Zone captured"); return; }
     if (st.plant >= 1) { endRound(st, m, false, "They took the zone"); return; }
   }

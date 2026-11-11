@@ -788,7 +788,7 @@ function SceneImpl({
   const relaySpawned = useRef("");
   const crucible = useRef<CrucibleState | null>(null);
   // Killbox modes (pvp.ts): the match state, the counters it diffs, the round it last staffed, and the rival field
-  const pvp = useRef<{ st: PvpState; kills: number; team: number; deaths: number; round: number; field: CrucibleState; center: { x: number; z: number }; squadWas: boolean; /** the built map it plays on (killbox-arenas.ts), if any, and where you were before you dropped in */ arena?: KillboxArena; from?: { x: number; z: number }; /** where you sit out a round after going down */ outSpot?: { x: number; z: number } | undefined; /** a built arena's bots (killbox-bots.ts): your teammates, and the brains that drive the rivals */ bots?: BotsState } | null>(null);
+  const pvp = useRef<{ st: PvpState; kills: number; team: number; deaths: number; round: number; field: CrucibleState; center: { x: number; z: number }; squadWas: boolean; /** the built map it plays on (killbox-arenas.ts), if any, and where you were before you dropped in */ arena?: KillboxArena; from?: { x: number; z: number }; /** where you sit out a round after going down */ outSpot?: { x: number; z: number } | undefined; /** the rival bot that last hit you (Freefall credits your death to it) */ lastHitBy?: string | null; /** a built arena's bots (killbox-bots.ts): your teammates, and the brains that drive the rivals */ bots?: BotsState } | null>(null);
   /** a Killbox arena match: the open world is hidden while you are up in the arena, and its fracture event dims sight (1 = clear) */
   const arenaShown = useRef(false), arenaVis = useRef(1);
   const [pvpView, setPvpView] = useState<PvpState | null>(null);
@@ -2613,7 +2613,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         p.kills = sim.rivalKills; p.team = sim.teamRivalKills ?? 0; p.deaths = sim.deaths;
         // a built arena: the bots play the match (killbox-bots.ts). They drive the rival machines' movement and fire (the world AI's
         // own shots are held off), shoot each other, and hand back what the machines and the player take
-        let allyDeaths = 0, presence: Record<string, { us: number; them: number }> | undefined, units: ReturnType<typeof fieldUnits> | undefined, rounds: ReturnType<typeof roundPresence> | undefined;
+        let allyDeaths = 0, presence: Record<string, { us: number; them: number }> | undefined, units: ReturnType<typeof fieldUnits> | undefined, rounds: ReturnType<typeof roundPresence> | undefined, ffaKills: Map<string, number> | undefined;
         if (p.bots && p.arena) {
           // a player sitting out a round (pvp.ts `out`) is off the field: the bots neither shoot at nor count them
           const ar = p.arena, me = { x: s.x - ar.site.x, z: s.z - ar.site.z, alive: sim.hp > 0 && !st.out };
@@ -2624,15 +2624,22 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
             const mv = o.rivalMoves.get(m.living);
             if (mv) { m.x = ar.site.x + mv.x; m.z = ar.site.z + mv.z; m.rot = mv.yaw; m.y = walkHeight(m.x, m.z) + 2.2 * m.scale; m.cool = Math.max(m.cool, 99); m.aim = 0; }
             const dmg = o.rivalHits.get(m.living);
-            if (dmg) { m.hp -= dmg; if (m.hp <= 0) defeatMachine(sim, m, "world"); }
+            if (dmg) {
+              m.hp -= dmg;
+              if (m.hp <= 0) {
+                defeatMachine(sim, m, "world");
+                // Freefall: the elimination is the shooter's (another rival), on the board
+                const by = o.hitBy.get(m.living); if (mode.kind === "ffa" && by) (ffaKills ??= new Map()).set(by, (ffaKills.get(by) ?? 0) + 1);
+              }
+            }
           }
-          if (o.playerDamage > 0) hurtPlayer(sim, o.playerDamage, "Rival operator");
+          if (o.playerDamage > 0) { hurtPlayer(sim, o.playerDamage, "Rival operator"); p.lastHitBy = o.playerHitBy; }
           allyDeaths = o.allyDeaths;
           if (mode.kind === "zones") presence = zonePresence(p.bots, st, me, ZONE_RADIUS);
           if (mode.kind === "extract") units = fieldUnits(p.bots, me);
           if (mode.kind === "rounds") rounds = roundPresence(p.bots, ar, ZONE_RADIUS);
         }
-        stepPvp(st, { dt, kills, died, px: s.x - p.center.x, pz: s.z - p.center.z, rivalsAlive: sim.machines.filter((m) => m.alive && m.rival).length, allyDeaths, ...(presence ? { presence } : {}), ...(units ? { units } : {}), ...(rounds ?? {}) });
+        stepPvp(st, { dt, kills, died, px: s.x - p.center.x, pz: s.z - p.center.z, rivalsAlive: sim.machines.filter((m) => m.alive && m.rival).length, allyDeaths, ...(presence ? { presence } : {}), ...(units ? { units } : {}), ...(rounds ?? {}), ...(p.bots && mode.kind === "ffa" ? { ffaKills: ffaKills ?? new Map(), killedBy: died ? p.lastHitBy ?? null : null } : {}) });
         if (st.round !== p.round) { resetField(sim, p.field); p.round = st.round; p.outSpot = undefined; if (p.bots && p.arena) resetAllies(p.bots, p.arena); }
         // down for the rest of the round: held at your side's spawn, weapons down, until the team plays it out
         if (st.out && p.arena) {

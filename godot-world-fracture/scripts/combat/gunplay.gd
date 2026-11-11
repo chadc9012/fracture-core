@@ -19,13 +19,38 @@ class Target:
 	var max_hp: float
 	var node: Node3D
 	var down := 0.0          # seconds until it stands again
+	## an energy shield over the hull (asset catalog §5): it takes damage first, recharges SHIELD_RATE a second once
+	## SHIELD_DELAY seconds pass without a hit; energy frames (FUSION) strip it x1.5
+	var shield := 0.0
+	var shield_max := 0.0
+	var since := 99.0        # seconds since the last hit
 	func _init(b: AABB, h: float, n: Node3D = null) -> void:
 		box = b; hp = h; max_hp = h; node = n
 	func alive() -> bool:
 		return hp > 0.0
+	## lands `d` damage: the shield first, the rest on the hull. Returns {shield, hull, broke}
+	func take(d: float, energy := false) -> Dictionary:
+		since = 0.0
+		var on_shield := 0.0
+		var broke := false
+		if shield > 0.0:
+			var k := 1.5 if energy else 1.0
+			on_shield = minf(shield, d * k)
+			shield -= on_shield
+			d = maxf(0.0, d - on_shield / k)
+			broke = shield <= 0.0
+		hp -= d
+		return { "shield": on_shield, "hull": d, "broke": broke }
+
+const SHIELD_DELAY := 3.0
+const SHIELD_RATE := 18.0
+## a destroyed cover box is parked here (index-stable: the obstacle list is shared and indexed)
+const GONE_BOX := AABB(Vector3(0, -1000, 0), Vector3(0.01, 0.01, 0.01))
 
 signal hit(target: Target, damage: float, head: bool)
 signal killed(target: Target)
+## a piece of destructible cover went (not a kill: no drop, no scavenge)
+signal cover_broken(target: Target)
 
 var player: Node3D            # operator_player.gd
 var obstacles: Array[AABB] = []
@@ -48,6 +73,11 @@ var _tracers: Array = []
 var _flash: OmniLight3D
 var _flash_t := 0.0
 var _rng := RandomNumberGenerator.new()
+var _rack: Node3D             # holds the worn (not held) guns in world space
+var _slung := {}              # frame -> "back" | "thigh"
+var _spine_bone := -1
+var _thigh_bone := -1
+var _mags := 0
 
 ## a kill resupplies: every carried gun gets half a magazine back into its reserve (to the frame's full reserve), so a
 ## long fight — a Fracture boss, a lockdown — is paced by kills rather than ended by an empty bag
@@ -92,6 +122,15 @@ func _mount() -> void:
 	_held.scale = Vector3.ONE / maxf(ws, 1e-4)
 	_held.rotation.y = PI
 	_hand.add_child(_held)
+	_rack = Node3D.new()
+	_rack.top_level = true
+	add_child(_rack)
+	for bone in sk.get_bone_count():
+		var bn := sk.get_bone_name(bone)
+		if bn.ends_with("Spine2") or (_spine_bone < 0 and bn.ends_with("Spine1")):
+			_spine_bone = bone
+		elif bn.ends_with("RightUpLeg"):
+			_thigh_bone = bone
 	for f in Weapons.ORDER:
 		var path: String = MODELS + String(Weapons.FRAMES[f].model)
 		if not ResourceLoader.exists(path):
@@ -99,6 +138,7 @@ func _mount() -> void:
 		var m := (load(path) as PackedScene).instantiate() as Node3D
 		_held.add_child(m)
 		_models[f] = m
+		_attach(m, String(f))
 	_show_current()
 
 ## aim help on a touch screen while the trigger is held: the camera eases toward the nearest live foe within 14° of the
@@ -113,7 +153,7 @@ func _pull_aim(dt: float, cam: Camera3D) -> void:
 	for t in targets:
 		if not t.alive():
 			continue
-		if t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team:
+		if t.has_meta("cover") or t.has_meta("prop") or t.has_meta("cover_box") or (t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team):
 			continue
 		var c: Vector3 = t.box.get_center() + Vector3(0, t.box.size.y * 0.15, 0)
 		var to_c := c - from
@@ -147,10 +187,47 @@ func _point_gun(cam: Camera3D) -> void:
 	if absf(dir.y) > 0.98:
 		return
 	_held.global_transform = Transform3D(Basis.looking_at(-dir, Vector3.UP), at)
+	# the laser on the gun in hand reaches to where it points, while the gun is in the fight
+	var lm: Node3D = _models.get(gun().frame)
+	if lm and lm.has_meta("laser"):
+		var beam: Node3D = lm.get_meta("laser")
+		beam.visible = warm < 2.0
+		if beam.visible:
+			var reach := clampf(beam.global_position.distance_to(aim_point(cam)), 0.3, 60.0)
+			beam.scale = Vector3(1.0, 1.0, reach)
 
+## the gun in hand and the rest worn (asset catalog §5 holsters): the first other long gun slung across the back, a
+## sidearm or SMG in the right thigh holster; guns not carried are hidden. Unarmed, nothing shows.
 func _show_current() -> void:
+	_slung.clear()
+	var carried := {}
+	for g in guns:
+		carried[g.frame] = true
+	var back_taken := false
+	var thigh_taken := false
 	for f in _models:
-		(_models[f] as Node3D).visible = f == gun().frame and not holstered
+		var m: Node3D = _models[f]
+		var place := ""
+		if not holstered and carried.has(f):
+			if f == gun().frame:
+				place = "hand"
+			elif f in ["SIDEARM", "SMG"] and not thigh_taken and _thigh_bone >= 0:
+				place = "thigh"
+				thigh_taken = true
+			elif not (f in ["SIDEARM", "SMG"]) and not back_taken and _spine_bone >= 0:
+				place = "back"
+				back_taken = true
+		var parent: Node3D = _held if place == "hand" or place == "" else _rack
+		if m.get_parent() != parent:
+			m.get_parent().remove_child(m)
+			parent.add_child(m)
+			m.transform = Transform3D.IDENTITY
+		m.visible = place != ""
+		if place == "back" or place == "thigh":
+			_slung[f] = place
+		if m.has_meta("laser"):
+			(m.get_meta("laser") as Node3D).visible = false
+	_place_holsters()
 
 func set_holstered(on: bool) -> void:
 	holstered = on
@@ -214,8 +291,8 @@ func aim_point(cam: Camera3D) -> Vector3:
 		for t in targets:
 			if not t.alive():
 				continue
-			if t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team:
-				continue     # an ally bot
+			if t.has_meta("cover") or t.has_meta("prop") or t.has_meta("cover_box") or (t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team):
+				continue     # an ally bot, or a crate
 			var c: Vector3 = t.box.get_center()
 			var to_c := c - from
 			var dc := to_c.length()
@@ -239,12 +316,19 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		reload = false
 	if reload and gun().reload():
 		Sound.sfx("reload", -4.0)
+	for t in targets:
+		t.since += dt
+		if t.shield_max > 0.0 and t.alive() and t.since > SHIELD_DELAY and t.shield < t.shield_max:
+			t.shield = minf(t.shield_max, t.shield + SHIELD_RATE * dt)
 	var was_reloading := gun().reloading > 0.0
 	var empty_before := gun().mag <= 0
 	var n := gun().step(dt, trigger)
 	if trigger and empty_before and not was_reloading and gun().reloading > 0.0:
 		Sound.sfx("dry", -6.0)
 		Sound.sfx("reload", -4.0)
+	if not was_reloading and gun().reloading > 0.0:
+		_drop_mag()
+	_place_holsters()
 	for i in n:
 		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
 		for k in Weapons.pellets(gun().frame):
@@ -257,6 +341,10 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		if tr.t <= 0.0:
 			if tr.has("casing"):
 				_casings -= 1
+			if tr.has("mag"):
+				_mags -= 1
+			if tr.has("debris"):
+				_debris_n -= 1
 			tr.node.queue_free()
 		else:
 			if tr.has("vel"):
@@ -266,7 +354,7 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 				if v != Vector3.ZERO:
 					v.y -= 9.8 * dt
 					nd.global_position += v * dt
-					if tr.has("casing"):
+					if tr.has("spin"):
 						nd.rotation += Vector3(tr.spin) * dt
 						if nd.global_position.y <= float(tr.floor) + 0.02 and v.y < 0.0:
 							nd.global_position.y = float(tr.floor) + 0.02
@@ -274,7 +362,7 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 							if v == Vector3.ZERO:
 								nd.rotation = Vector3(PI * 0.5, nd.rotation.y, 0)
 					tr.vel = v
-				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / float(tr.life), 0.0, 1.0) if not tr.has("casing") else (0.0 if tr.t > 0.4 else 1.0 - tr.t / 0.4)
+				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / float(tr.life), 0.0, 1.0) if not tr.has("spin") else (0.0 if tr.t > 0.4 else 1.0 - tr.t / 0.4)
 			else:
 				(tr.node as MeshInstance3D).transparency = 1.0 - clampf(tr.t / 0.09, 0.0, 1.0)
 			keep.append(tr)
@@ -283,10 +371,11 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		_flash_t -= dt
 		_flash.visible = _flash_t > 0.0
 	for t in targets:
-		if not t.alive():
+		if not t.alive() and not (t.has_meta("cover_box") or t.has_meta("prop")):
 			t.down -= dt
 			if t.down <= 0.0:
 				t.hp = t.max_hp
+				t.shield = t.shield_max
 				if t.node:
 					t.node.visible = true
 func _fire_one(cam: Camera3D, moving_speed: float) -> void:
@@ -317,25 +406,52 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 		if not t.alive():
 			continue
 		var p2: Variant = t.box.intersects_ray(from, dir)
-		if p2 != null and from.distance_to(p2) < dist:
+		# a tie goes to the target: destructible cover sits in the obstacle list too (the bots' sight lines), with the
+		# very same box
+		if p2 != null and from.distance_to(p2) <= dist + (0.02 if t.has_meta("cover_box") else 0.001):
 			dist = from.distance_to(p2)
 			hit_t = t
 	var end := from + dir * dist
 	tracer(from, end)
-	spark(end, hit_t != null, Color(hit_t.get_meta("blood", Color(0.85, 0.1, 0.08))) if hit_t != null else Color.WHITE)
+	# destructible cover: the street's (`cover_box`, gunplay.add_cover) and Killbox's props (`prop`, arena_view.gd)
+	var cover := hit_t != null and (hit_t.has_meta("cover_box") or hit_t.has_meta("prop"))
+	if cover:
+		spark(end, false)
+		_debris(end, 2, hit_t.get_meta("cover_color", Color(0.5, 0.5, 0.5)), 0.05)
+	elif hit_t == null or hit_t.shield <= 0.0:
+		spark(end, hit_t != null, Color(hit_t.get_meta("blood", Color(0.85, 0.1, 0.08))) if hit_t != null else Color.WHITE)
+	if hit_t == null and gun().frame == "HEAVY":
+		_debris(end, 6, Color(0.42, 0.4, 0.38), 0.12)     # a cannon round throws up chunks of whatever it hit
 	if hit_t:
-		var head := end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
+		# cover has no head, counts no kill and scavenges nothing; it stays down once broken
+		var head := not cover and end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
 		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult
-		hit_t.hp -= dmg
+		var res: Dictionary = hit_t.take(dmg, gun().frame == "FUSION")
+		if float(res.shield) > 0.0:
+			_shield_flash(hit_t, bool(res.broke))
+		if cover:
+			if not hit_t.alive():
+				if hit_t.has_meta("cover_box"):
+					_break_cover(hit_t)
+				else:
+					# a Killbox prop: arena_view.gd takes it out of arena.boxes() on `killed`
+					hit_t.hp = 0.0
+					hit_t.down = INF
+					if hit_t.node:
+						hit_t.node.visible = false
+					debris(hit_t.box.get_center(), hit_t.box.size, Color(hit_t.get_meta("blood", Color(0.7, 0.65, 0.55))))
+					Sound.sfx_at("debris", end, from, -4.0)
+					killed.emit(hit_t)
+			return
 		hits_landed += 1
 		hit.emit(hit_t, dmg, head)
 		Sound.sfx_at("headshot" if head else "hit", end, from, -3.0)
 		if hit_t.hp <= 0.0:
 			hit_t.hp = 0.0
 			hit_t.down = 5.0
-			kills += 1
 			if hit_t.node:
 				hit_t.node.visible = false
+			kills += 1
 			Sound.sfx_at("down", end, from, -4.0)
 			scavenge()
 			killed.emit(hit_t)
@@ -433,6 +549,28 @@ func _dot(at: Vector3, col: Color, r: float, life: float, vel := Vector3.ZERO, f
 	mi.global_position = at
 	_tracers.append({ "node": mi, "t": life, "vel": vel, "life": life })
 
+## a prop coming apart (destructible cover, asset catalog §5): a dozen chips of its own colour thrown out of its centre,
+## tumbling, landing at its base and fading over a few seconds; a dust puff above
+func debris(at: Vector3, size: Vector3, col: Color, n := 12) -> void:
+	var floor_y := at.y - size.y * 0.5
+	for i in n:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		var k := 0.08 + randf() * 0.16
+		bm.size = Vector3(k * (0.6 + randf()), k * 0.5, k * (0.6 + randf()))
+		mi.mesh = bm
+		var m := StandardMaterial3D.new()
+		m.albedo_color = col.darkened(randf() * 0.35)
+		m.roughness = 0.9
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mi.material_override = m
+		add_child(mi)
+		mi.global_position = at + Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * size * 0.6
+		var vel := Vector3(randf() - 0.5, 0.4 + randf() * 0.5, randf() - 0.5).normalized() * (2.5 + randf() * 3.0)
+		_tracers.append({ "node": mi, "t": 3.0 + randf() * 2.0, "vel": vel, "life": 3.0, "spin": Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * 16.0, "floor": floor_y })
+	for i in 4:
+		_dot(at + Vector3(randf() - 0.5, randf() * 0.5, randf() - 0.5) * size * 0.5, Color(col.r, col.g, col.b, 0.5), 0.25 + randf() * 0.25, 0.7, Vector3(0, 0.6, 0))
+
 ## a practice dummy: a post with a plate, standing on the ground at `at`
 func add_dummy(at: Vector3, hp := 30.0) -> Target:
 	var n := Node3D.new()
@@ -462,3 +600,197 @@ func aim_at(t: Target, cam: Camera3D) -> void:
 		player.cam_yaw = atan2(-dir.x, -dir.z)
 		player.cam_pitch = asin(clampf(dir.y, -1.0, 1.0))
 		player._place_camera(1.0)
+
+# --------------------------------------------------------------------------------------------- combat details (§5)
+## worn guns follow the body: the back's gun diagonal across the shoulder blades, barrel up; the thigh's barrel down
+func _place_holsters() -> void:
+	if _slung.is_empty() or not player or not player.rig or not player.rig.skeleton:
+		return
+	var sk: Skeleton3D = player.rig.skeleton
+	var fwd: Vector3 = player.rig.global_transform.basis.z
+	fwd.y = 0.0
+	if fwd.length() < 0.1:
+		return
+	fwd = fwd.normalized()
+	var right := fwd.cross(Vector3.UP)
+	for f in _slung:
+		var m: Node3D = _models[f]
+		if _slung[f] == "back":
+			var at: Vector3 = sk.global_transform * sk.get_bone_global_pose(_spine_bone).origin - fwd * 0.2
+			var dir := (Vector3.UP * 0.8 - right * 0.6).normalized()
+			m.global_transform = Transform3D(Basis.looking_at(-dir, -fwd), at - dir * 0.25)
+		else:
+			var at2: Vector3 = sk.global_transform * sk.get_bone_global_pose(_thigh_bone).origin + right * 0.17 - Vector3.UP * 0.14
+			var dir2 := (-Vector3.UP + fwd * 0.12).normalized()
+			m.global_transform = Transform3D(Basis.looking_at(-dir2, fwd), at2)
+
+## the model's own box (its meshes, in the model's space)
+static func _model_box(m: Node3D) -> AABB:
+	var box := AABB()
+	var first := true
+	for mi in m.find_children("*", "MeshInstance3D", true, false):
+		var inst := mi as MeshInstance3D
+		if not inst.mesh:
+			continue
+		var xf := Transform3D.IDENTITY
+		var n: Node = inst
+		while n and n != m:
+			xf = (n as Node3D).transform * xf
+			n = n.get_parent()
+		var b: AABB = xf * inst.mesh.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	return box
+
+## weapon attachments by frame (asset catalog §5): a red-dot optic on the rifles, SMG and LMG, a laser module under the
+## barrel of the rifle, SMG and sidearm (its beam shows while the gun is in the fight), a suppressor on the sidearm
+const OPTIC := ["AUTO", "LMG", "SMG"]
+const LASER := ["AUTO", "SMG", "SIDEARM"]
+func _attach(m: Node3D, f: String) -> void:
+	var b := _model_box(m)
+	if b.size.z < 0.1:
+		return
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.07, 0.07, 0.08)
+	dark.metallic = 0.6
+	dark.roughness = 0.45
+	if f in OPTIC:
+		var zo := b.get_center().z - b.size.z * 0.12
+		_part(m, Vector3(0.04, 0.045, 0.09), Vector3(0, b.end.y + 0.022, zo), dark)
+		var lens := StandardMaterial3D.new()
+		lens.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		lens.albedo_color = Color(1.0, 0.15, 0.1)
+		_part(m, Vector3(0.012, 0.012, 0.004), Vector3(0, b.end.y + 0.03, zo - 0.046), lens)
+	if f in LASER:
+		var z_front := b.end.z - b.size.z * 0.22
+		var y_low := b.position.y + b.size.y * 0.32
+		_part(m, Vector3(0.028, 0.028, 0.07), Vector3(0, y_low, z_front), dark)
+		var beam := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.006, 0.006, 1.0)
+		beam.mesh = bm
+		var lmat := StandardMaterial3D.new()
+		lmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		lmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		lmat.albedo_color = Color(1.0, 0.1, 0.1, 0.45)
+		beam.material_override = lmat
+		beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# a pivot at the module's front: scaling its z stretches the beam forward along the barrel
+		var pivot := Node3D.new()
+		pivot.position = Vector3(0, y_low, z_front + 0.035)
+		m.add_child(pivot)
+		beam.position = Vector3(0, 0, 0.5)
+		pivot.add_child(beam)
+		pivot.visible = false
+		m.set_meta("laser", pivot)
+	if f == "SIDEARM":
+		var sup := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.019
+		cm.bottom_radius = 0.019
+		cm.height = 0.13
+		cm.radial_segments = 10
+		sup.mesh = cm
+		sup.material_override = dark
+		sup.rotation.x = PI * 0.5
+		sup.position = Vector3(0, b.end.y - b.size.y * 0.22, b.end.z + 0.06)
+		m.add_child(sup)
+
+func _part(m: Node3D, size: Vector3, at: Vector3, mat: Material) -> void:
+	var mi := MeshInstance3D.new()
+	var bx := BoxMesh.new()
+	bx.size = size
+	mi.mesh = bx
+	mi.material_override = mat
+	mi.position = at
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.add_child(mi)
+
+## the spent magazine out of the gun as a reload starts (asset catalog §5): it drops, bounces once and lies a few
+## seconds; the fusion rifle's is a glowing cell, the shotgun has none. At most MAGS_MAX on the ground.
+const MAGS_MAX := 4
+func _drop_mag() -> void:
+	if holstered or not _hand or _mags >= MAGS_MAX:
+		return
+	var f := gun().frame
+	if f == "SHOTGUN":
+		return
+	var mi := MeshInstance3D.new()
+	var bx := BoxMesh.new()
+	bx.size = Vector3(0.035, 0.11 if f in ["LMG", "HEAVY"] else 0.16, 0.14 if f == "LMG" else 0.08)
+	mi.mesh = bx
+	var mat := StandardMaterial3D.new()
+	if f == "FUSION":
+		mat.albedo_color = Color(0.2, 0.8, 1.0)
+		mat.emission_enabled = true
+		mat.emission = Color(0.2, 0.8, 1.0)
+		mat.emission_energy_multiplier = 2.0
+	else:
+		mat.albedo_color = Color(0.1, 0.1, 0.11)
+		mat.metallic = 0.6
+		mat.roughness = 0.5
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	mi.global_position = _hand.global_position - Vector3(0, 0.12, 0)
+	_mags += 1
+	_tracers.append({ "node": mi, "t": 6.0, "vel": Vector3(randf() - 0.5, -0.5, randf() - 0.5) * 0.8, "life": 6.0, "spin": Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * 6.0, "floor": player.position.y, "mag": true })
+
+## chunks thrown off a hit (asset catalog §5 combat debris): small blocks that fly, tumble, land and lie a few seconds
+const DEBRIS_MAX := 40
+var _debris_n := 0
+func _debris(at: Vector3, n: int, col: Color, size := 0.08) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = col
+	mat.roughness = 0.9
+	var floor_y: float = player.position.y
+	if player.ground_at.is_valid():
+		floor_y = float(player.ground_at.call(at.x, at.z))
+	for i in n:
+		if _debris_n >= DEBRIS_MAX:
+			break
+		var mi := MeshInstance3D.new()
+		var bx := BoxMesh.new()
+		var k := size * (0.6 + randf() * 0.8)
+		bx.size = Vector3(k, k * (0.5 + randf()), k * (0.6 + randf() * 0.6))
+		mi.mesh = bx
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		mi.global_position = at
+		var v := Vector3(randf() - 0.5, 0.4 + randf() * 0.8, randf() - 0.5) * (3.0 + size * 20.0)
+		_debris_n += 1
+		_tracers.append({ "node": mi, "t": 4.0, "vel": v, "life": 4.0, "spin": Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5) * 14.0, "floor": floor_y, "debris": true })
+	# a puff of dust where it struck
+	_dot(at, Color(col.r, col.g, col.b, 0.35), size * 4.0, 0.5)
+
+## a bolt on an energy shield: the shell lights up round the body (cyan); a collapsing shield bursts in sparks
+func _shield_flash(t: Target, broke: bool) -> void:
+	var c := t.box.get_center()
+	_dot(c, Color(0.35, 0.8, 1.0, 0.28), maxf(t.box.size.y, t.box.size.x) * 0.55, 0.16)
+	Sound.sfx_at("shield_break" if broke else "shield", c, player.position, -4.0)
+	if broke:
+		for i in 10:
+			_dot(c, Color(0.4, 0.9, 1.0), 0.04, 0.4, Vector3(randf() - 0.5, randf() * 0.7, randf() - 0.5) * 6.0)
+
+## a piece of destructible cover (asset catalog §5): a solid box in the shared obstacle list (at `box_index`) that bolts
+## chip and finally break — what shows it hides, the box is parked out of the world, and it falls into debris
+func add_cover(box: AABB, node: Node3D, hp: float, box_index: int, col := Color(0.45, 0.45, 0.45)) -> Target:
+	var t := Target.new(box, hp, node)
+	t.set_meta("cover_box", box_index)
+	t.set_meta("cover_color", col)
+	targets.append(t)
+	return t
+
+func _break_cover(t: Target) -> void:
+	t.hp = 0.0
+	t.down = INF
+	var idx := int(t.get_meta("cover_box"))
+	if idx >= 0 and idx < obstacles.size():
+		obstacles[idx] = GONE_BOX
+	if t.node:
+		t.node.visible = false
+	var c := t.box.get_center()
+	_debris(c, 12, t.get_meta("cover_color", Color(0.45, 0.45, 0.45)), clampf(t.box.size.length() * 0.06, 0.08, 0.22))
+	Sound.sfx_at("debris", c, player.position, -2.0)
+	cover_broken.emit(t)

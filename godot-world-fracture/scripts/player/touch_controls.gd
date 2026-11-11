@@ -25,6 +25,7 @@ var _next := false
 var ammo: Label
 var weapon_name: Label
 var hull_fill: ColorRect
+var _shield_fill: ColorRect
 var hull_back: ColorRect
 var hurt_flash: ColorRect
 var status: Label
@@ -169,8 +170,20 @@ func _hud() -> void:
 	add_child(status)
 
 ## the hull read-out: `frac` 0..1, `hurt` 0..1 fades the wash, `down_left` seconds until the operator stands (0 = up)
-func show_hull(frac: float, hurt: float, down_left: float) -> void:
+func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> void:
 	hull_fill.size.x = 216.0 * clampf(frac, 0.0, 1.0)
+	# the energy shield: a thin cyan bar over the hull's (asset catalog §5)
+	if shield >= 0.0:
+		if not _shield_fill:
+			_shield_fill = ColorRect.new()
+			_shield_fill.color = Color(0.35, 0.8, 1.0)
+			_shield_fill.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+			_shield_fill.position = Vector2(22, -118)
+			_shield_fill.size = Vector2(216, 4)
+			_shield_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(_shield_fill)
+		_shield_fill.size.x = 216.0 * clampf(shield, 0.0, 1.0)
+		_shield_fill.visible = hull_fill.visible
 	hull_fill.color = Color(0.35, 0.95, 0.75) if frac > 0.35 else Color(0.95, 0.4, 0.3)
 	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
 	status.text = ("DOWN · %d" % ceili(down_left)) if down_left > 0.0 else ""

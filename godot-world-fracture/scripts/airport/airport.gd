@@ -15,17 +15,24 @@ const AIRPORTS := {
 	"AZI": { "name": "Azure Isles International Airport", "city": "Azure Isles", "region": "azure-isles", "style": "tropical", "night": false, "street": false },
 	"FRV": { "name": "Frostveil International Airport", "city": "Frostveil", "region": "frostveil", "style": "arctic", "night": false, "street": false },
 	"SOL": { "name": "Solara Desert International Airport", "city": "Solara", "region": "solara", "style": "desert", "night": false, "street": false },
+	# Nov 10, the rest of the owner's list that has land in the game (docs/asset-catalog.md maps the biomes): the seaplane
+	# terminal on the coast for underwater Thalassia, Obsidian Reach's industrial airport in the volcanic Ember Peaks, and
+	# the Shattered Expanse's expedition airfield in the Crystal Badlands' reality rifts
+	"THA": { "name": "Thalassia Coast Seaplane Terminal", "city": "Thalassia Coast", "region": "thalassia", "style": "coastal", "night": false, "street": false },
+	"OBS": { "name": "Obsidian Reach Airport", "city": "Obsidian Reach", "region": "ember", "style": "volcanic", "night": false, "street": false },
+	"SHX": { "name": "Shattered Expanse Expedition Airfield", "city": "Shattered Expanse", "region": "crystal-badlands", "style": "expedition", "night": false, "street": false },
 }
 ## where flights go: code -> name, the region you land in ("" = on the owner's boards but not open yet, shown and not sold),
 ## the fare in Nex, and the region's own name for arrivals. NXC / NEC land in the other airport's terminal.
 const DESTINATIONS := {
 	"NXC": { "name": "Nexus City", "region": "nexus", "fare": 150 },
 	"NEC": { "name": "Neon City", "region": "neon-city", "fare": 150 },
-	"THA": { "name": "Thalassia", "region": "thalassia", "fare": 260 },
+	"THA": { "name": "Thalassia Coast", "region": "thalassia", "fare": 260 },
 	"SOL": { "name": "Solara Desert", "region": "solara", "fare": 220 },
 	"AZI": { "name": "Azure Isles", "region": "azure-isles", "fare": 300 },
 	"FRV": { "name": "Frostveil Ice Cap", "region": "frostveil", "fare": 340 },
-	"EMB": { "name": "Ember Peaks", "region": "ember", "fare": 280 },
+	"OBS": { "name": "Obsidian Reach", "region": "ember", "fare": 300 },
+	"SHX": { "name": "Shattered Expanse", "region": "crystal-badlands", "fare": 380 },
 	"GLD": { "name": "Goldenreach", "region": "goldenreach", "fare": 200 },
 	"RVD": { "name": "Riverdale", "region": "riverdale", "fare": 160 },
 	"OHR": { "name": "Old Harrow", "region": "old-harrow", "fare": 210 },
@@ -34,7 +41,6 @@ const DESTINATIONS := {
 	# on the Neon City board, not built yet
 	"AET": { "name": "Aetherion", "region": "", "fare": 0 },
 	"ELD": { "name": "Eldergrove", "region": "", "fare": 0 },
-	"OBS": { "name": "Obsidian Reach", "region": "", "fare": 0 },
 }
 const GATES := ["A1", "A2", "A3", "B1", "B2", "B3"]
 const FLIGHT_EVERY := 45          # minutes between departures to one destination

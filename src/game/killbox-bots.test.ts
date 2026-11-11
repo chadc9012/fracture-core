@@ -6,28 +6,35 @@ import type { RivalClass } from "./crucible";
 
 /** A whole match with no Scene: the rivals are a little stand-in for the sim machines (spawn, take hits, die, come back), the player
  * stands still at a spawn and is never shot dead (so the bots decide it). Returns the final state and what happened. */
-function playOut(arena: KillboxArena, mode: PvpModeId, seconds = 900) {
+function playOut(arena: KillboxArena, mode: PvpModeId, seconds = 900, opts: { dieAt?: number } = {}) {
   const st = newPvp(mode, 3, arena.zones, { allies: allyCount(mode), rivals: rivalCount(mode) }, extractionSites(arena));
   const bots = newBots(arena, mode, "TITAN", 11);
   const n = rivalCount(mode), cls: RivalClass[] = ["TITAN", "HUNTER", "WARLOCK"];
   const rivals: (RivalView & { hp: number; down: number })[] = Array.from({ length: n }, (_, i) => { const p = spawnPoint(arena, PVP_MODES[mode].kind === "ffa" ? "any" : "them", [], i); return { tag: `crucible:${i}`, cls: cls[i % 3]!, x: p.x, z: p.z, alive: true, hp: 9, down: 0 }; });
   const player = { ...spawnPoint(arena, "us", [], 0), alive: true };
-  let allyDeaths = 0, rivalDeaths = 0, playerHurt = 0, round = st.round;
+  let allyDeaths = 0, rivalDeaths = 0, playerHurt = 0, round = st.round, hurtWhileOut = 0, roundsSatOut = 0;
+  const ffa = PVP_MODES[mode].kind === "ffa", credited = new Map<string, number>();
   const dt = 0.1;
   for (let k = 0; k < seconds / dt && !st.result; k++) {
+    // the player goes down once at `dieAt` and sits the round out (Scene does this: alive false while pvp.ts says `out`)
+    const dies = opts.dieAt !== undefined && !st.out && st.clock < opts.dieAt && st.clock + dt >= opts.dieAt;
+    player.alive = !st.out && !dies;
     const o = stepBots(bots, { arena, st, dt, player, rivals });
+    if (st.out) hurtWhileOut += o.playerDamage;
     let fell = 0;
+    const ffaKills = new Map<string, number>();
     for (const r of rivals) {
       const mv = o.rivalMoves.get(r.tag); if (mv) { r.x = mv.x; r.z = mv.z; }
-      const hit = o.rivalHits.get(r.tag); if (hit && r.alive) { r.hp -= hit; if (r.hp <= 0) { r.alive = false; r.down = 3.5; rivalDeaths++; fell++; } }
+      const hit = o.rivalHits.get(r.tag); if (hit && r.alive) { r.hp -= hit; if (r.hp <= 0) { r.alive = false; r.down = 3.5; rivalDeaths++; fell++; const by = o.hitBy.get(r.tag); if (ffa && by) { ffaKills.set(by, (ffaKills.get(by) ?? 0) + 1); credited.set(by, (credited.get(by) ?? 0) + 1); } } }
       if (!r.alive && PVP_MODES[mode].kind !== "rounds") { r.down -= dt; if (r.down <= 0) { const p = spawnPoint(arena, "them", [], rivalDeaths); Object.assign(r, { x: p.x, z: p.z, alive: true, hp: 9 }); } }
     }
     playerHurt += o.playerDamage; allyDeaths += o.allyDeaths;
     const killsNow = rivals.filter((r) => !r.alive).length;
-    stepPvp(st, { dt, kills: PVP_MODES[mode].kind === "ffa" ? 0 : fell, died: false, px: player.x, pz: player.z, rivalsAlive: n - killsNow, allyDeaths: o.allyDeaths, ...(PVP_MODES[mode].kind === "zones" ? { presence: zonePresence(bots, st, player, ZONE_RADIUS) } : {}), ...(PVP_MODES[mode].kind === "extract" ? { units: fieldUnits(bots, player) } : {}), ...(PVP_MODES[mode].kind === "rounds" ? roundPresence(bots, arena, ZONE_RADIUS) : {}) });
+    stepPvp(st, { dt, kills: ffa ? 0 : fell, died: dies, ...(ffa ? { ffaKills, killedBy: null } : {}), px: player.x, pz: player.z, rivalsAlive: n - killsNow, allyDeaths: o.allyDeaths, ...(PVP_MODES[mode].kind === "zones" ? { presence: zonePresence(bots, st, player, ZONE_RADIUS) } : {}), ...(PVP_MODES[mode].kind === "extract" ? { units: fieldUnits(bots, player) } : {}), ...(PVP_MODES[mode].kind === "rounds" ? roundPresence(bots, arena, ZONE_RADIUS) : {}) });
+    if (st.out && dies) roundsSatOut++;
     if (st.round !== round) { round = st.round; resetAllies(bots, arena); for (const [i, r] of rivals.entries()) { const p = spawnPoint(arena, "them", [], i); Object.assign(r, { x: p.x, z: p.z, alive: true, hp: 9 }); } }
   }
-  return { st, bots, allyDeaths, rivalDeaths, playerHurt };
+  return { st, bots, allyDeaths, rivalDeaths, playerHurt, hurtWhileOut, roundsSatOut, credited };
 }
 
 describe("Killbox bots", () => {
@@ -86,6 +93,27 @@ describe("Killbox bots", () => {
     let extracted = 0;
     for (const arena of Object.values(ARENAS)) { const r = playOut(arena, "extraction", 480); extracted += r.st.us + r.st.them; }
     expect(extracted).toBeGreaterThan(0);
+  });
+
+  it("in a round mode your going down sits you out while your allies play the round on, and nobody shoots at you", () => {
+    for (const mode of ["lockdown", "ascendancy"] as const) for (const arena of [KAIJU_COMPLEX, KILLBOX_PRIME, ARENAS["void-rift"]]) {
+      const r = playOut(arena, mode, 400, { dieAt: 3 });
+      expect(r.roundsSatOut).toBe(1);
+      expect(r.hurtWhileOut).toBe(0);
+      expect(r.st.round).toBeGreaterThan(1);
+      // the first round was not handed to them the moment you fell: the allies played it on
+      expect(r.st.reason === "You went down").toBe(false);
+    }
+  });
+
+  it("in Freefall on a built arena the board moves only with real eliminations, each to the bot that scored it", () => {
+    for (const arena of Object.values(ARENAS)) {
+      const r = playOut(arena, "freefall", 240);
+      expect(r.st.board).toHaveLength(1 + rivalCount("freefall"));
+      const total = r.st.board.reduce((n, k) => n + k, 0), credited = [...r.credited.values()].reduce((n, k) => n + k, 0);
+      expect(total).toBe(credited);
+      expect(total).toBeGreaterThan(0);
+    }
   });
 
   it("in Dominion the bots take zones by standing in them", () => {

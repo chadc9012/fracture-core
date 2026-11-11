@@ -214,11 +214,15 @@ func _start() -> void:
 	operator.obstacles = arena.boxes()
 	operator.position = arena.spawn("us")
 	operator.heading = PI
+	operator.civilian = false   # the armour is for the fights (streetwear in the city)
 	operator.build()
 	operator.attach_camera(cam)
 	gunplay = Gunplay.new()
 	world.add_child(gunplay)
 	gunplay.setup(operator, operator.obstacles)
+	gunplay.killed.connect(_on_prop_killed)
+	for id in _cover_targets:
+		gunplay.targets.append(_cover_targets[id])
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
@@ -400,6 +404,9 @@ func _cover() -> void:
 		if top == -INF:
 			top = 0.0
 		var m: Material = mats.get(String(c.kind), mats.crate)
+		if Arena.breakable(String(c.kind)):
+			_breakable_cover(c, top, m)
+			continue
 		if c.kind == "tank":
 			var mi := MeshInstance3D.new()
 			var cm := CylinderMesh.new()
@@ -415,6 +422,49 @@ func _cover() -> void:
 			if c.kind == "sign":
 				var face := _box(Vector3(float(c.w) - 0.4, float(c.h) - 0.4, 0.05), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z) + float(c.d) / 2.0 + 0.03), _mat(look.trim[1], 0.4, 0.0, 3.0))
 				signs.append(face)
+
+## destructible cover (asset catalog §5): a crate, barrier, vent, HVAC unit, console or sign is a Gunplay target with the
+## arena's hull for its kind; the operator's bolts chip it and the last one breaks it — the mesh goes, chips fly, the
+## box leaves `arena.boxes()` so the operator, the bots' sight lines and their movers all pass through the gap at once
+var _cover_targets: Dictionary = {}   # cover id → Gunplay.Target
+
+func _breakable_cover(c: Dictionary, top: float, m: Material) -> void:
+	var holder := Node3D.new()
+	world.add_child(holder)
+	var size := Vector3(float(c.w), float(c.h), float(c.d))
+	var pos := Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z))
+	var mi := _box(size, pos, m)
+	mi.reparent(holder)
+	if c.kind == "sign":
+		var face := _box(Vector3(float(c.w) - 0.4, float(c.h) - 0.4, 0.05), pos + Vector3(0, 0, float(c.d) / 2.0 + 0.03), _mat(look.trim[1], 0.4, 0.0, 3.0))
+		face.reparent(holder)
+		signs.append(face)
+	elif c.kind == "crate":
+		# strapping across the lid
+		var strap := _box(Vector3(size.x + 0.02, 0.06, 0.08), pos + Vector3(0, size.y / 2.0, 0), _mat(Color(0.2, 0.2, 0.22), 0.5, 0.6))
+		strap.reparent(holder)
+	elif c.kind == "barrier":
+		var stripe := _box(Vector3(size.x + 0.02, 0.18, size.z + 0.02), pos + Vector3(0, size.y * 0.2, 0), _mat(Color(0.95, 0.95, 0.9), 0.6))
+		stripe.reparent(holder)
+	var t := Gunplay.Target.new(arena.cover_box(c), float(Arena.BREAKABLE[String(c.kind)]), holder)
+	t.set_meta("prop", String(c.kind))
+	t.set_meta("cover", String(c.get("id", "")))
+	t.set_meta("blood", (m as StandardMaterial3D).albedo_color if m is StandardMaterial3D else Color(0.7, 0.65, 0.55))
+	_cover_targets[String(c.get("id", ""))] = t   # registered with gunplay once it exists (_build)
+
+func _on_prop_killed(t: Gunplay.Target) -> void:
+	if not t.has_meta("cover"):
+		return
+	var id := String(t.get_meta("cover"))
+	if arena.break_cover(id):
+		_sync_obstacles()
+		controls.toast("%s destroyed" % String(t.get_meta("prop")).to_upper())
+
+## the obstacle list in place (the bots share the array by reference)
+func _sync_obstacles() -> void:
+	var nb: Array[AABB] = arena.boxes(_shifted)
+	operator.obstacles.clear()
+	operator.obstacles.append_array(nb)
 
 ## the arena's sign over the north roof, the sign lights
 func _signs() -> void:
@@ -499,9 +549,7 @@ func _set_event(on: bool) -> void:
 			(l as OmniLight3D).light_energy = 0.3 if on else 2.5
 	if not _shifter_nodes.is_empty():
 		_shifted = on
-		var nb: Array[AABB] = arena.boxes(on)
-		operator.obstacles.clear()
-		operator.obstacles.append_array(nb)
+		_sync_obstacles()
 	controls.toast((String(f.name).to_upper() + " — " + String(f.brief)) if on else "The %s ends" % String(f.name))
 	Sound.sfx("portal" if on else "stagger", -6.0)
 
@@ -703,7 +751,7 @@ func _process(dt: float) -> void:
 	if _obj_ring:
 		_obj_ring.visible = match_state.objective_open()
 		_obj_label.visible = _obj_ring.visible
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down)
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:
