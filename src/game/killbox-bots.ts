@@ -34,6 +34,7 @@ export type Bot = {
   /** strafe direction, flips now and then */ side: 1 | -1; flipIn: number;
   /** a detour to the foot (then the head) of a stair, ramp or bridge, after a climb was refused or the way was not straight */ via?: { x: number; z: number; then?: { x: number; z: number } } | undefined;
   /** seconds to the next route check */ routeIn?: number;
+  /** seconds spent wanting to move but going nowhere (caught on a rail, a prop or a ledge corner) */ stuck?: number;
 };
 export type BotShot = { from: { x: number; z: number }; to: { x: number; z: number }; team: BotTeam; hit: boolean; at: number };
 export type BotsState = { allies: Bot[]; rivals: Map<string, Bot>; shots: BotShot[]; clock: number; seed: number };
@@ -50,6 +51,8 @@ export type BotOutcome = {
   /** damage ally bots dealt to rival machines, by tag */ rivalHits: Map<string, number>;
   /** damage the rivals dealt the player this step */ playerDamage: number;
   /** allies who went down this step (a point for the other team) */ allyDeaths: number;
+  /** who last hit each rival this step (an ally or another rival, by id) and who last hit the player — Freefall credits kills to them */
+  hitBy: Map<string, string>; playerHitBy: string | null;
 };
 
 const CLASSES: readonly RivalClass[] = ["TITAN", "HUNTER", "WARLOCK"];
@@ -168,7 +171,7 @@ function goalFor(b: Bot, w: BotWorld): { x: number; z: number } {
 export function stepBots(s: BotsState, w: BotWorld): BotOutcome {
   const { arena: a, st, dt } = w, m = PVP_MODES[st.mode], t = st.clock;
   s.clock += dt;
-  const out: BotOutcome = { rivalMoves: new Map(), rivalHits: new Map(), playerDamage: 0, allyDeaths: 0 };
+  const out: BotOutcome = { rivalMoves: new Map(), rivalHits: new Map(), playerDamage: 0, allyDeaths: 0, hitBy: new Map(), playerHitBy: null };
   const inRound = m.kind === "rounds", between = inRound && st.roundOver > 0;
 
   // rivals: one brain per field slot, picked up where the machine stands (a fresh spawn takes the machine's position)
@@ -248,6 +251,16 @@ export function stepBots(s: BotsState, w: BotWorld): BotOutcome {
     const c = confine(a, nx, nz, 0.7, t), here = surfaceAt(a, b.x, b.z), rise = surfaceAt(a, c.x, c.z) - here;
     if (rise < MAX_STEP) { b.speed = Math.hypot(c.x - b.x, c.z - b.z) / Math.max(dt, 1e-4); b.x = c.x; b.z = c.z; }
     else { b.speed = 0; if (!b.via) b.via = stairsFrom(a, b.x, b.z, here); }
+    // caught on a rail, a prop or a ledge corner (wanting to move, going nowhere): step off a few metres in a fresh direction, then
+    // let the route check pick the way again
+    if (l > 0 && speed > 0 && b.speed < 0.4) b.stuck = (b.stuck ?? 0) + dt; else b.stuck = 0;
+    if ((b.stuck ?? 0) > 1.2) {
+      b.stuck = 0; b.routeIn = 0;
+      for (let k = 0; k < 8; k++) {
+        const ang = rng(s) * Math.PI * 2, tx = b.x + Math.cos(ang) * 4, tz = b.z + Math.sin(ang) * 4;
+        if (Math.abs(surfaceAt(a, tx, tz) - here) < MAX_STEP) { b.via = { x: tx, z: tz }; break; }
+      }
+    }
   };
   for (const b of s.allies) act(b);
   for (const b of s.rivals.values()) act(b);
@@ -267,9 +280,9 @@ export function stepBots(s: BotsState, w: BotWorld): BotOutcome {
     const hit = rng(s) < chance, miss = hit ? 0 : 1.2 + rng(s) * 2, ang = rng(s) * Math.PI * 2;
     s.shots.push({ from: { x: b.x, z: b.z }, to: { x: p.x + Math.cos(ang) * miss, z: p.z + Math.sin(ang) * miss }, team: b.team, hit, at: s.clock });
     if (!hit) return;
-    if (foe.kind === "player") { o.playerDamage += BOT.rivalDamageOnPlayer; return; }
+    if (foe.kind === "player") { o.playerDamage += BOT.rivalDamageOnPlayer; o.playerHitBy = b.id; return; }
     const target = foe.bot;
-    if (target.team === "them") { o.rivalHits.set(target.id, (o.rivalHits.get(target.id) ?? 0) + BOT.allyDamageOnRival); return; }
+    if (target.team === "them") { o.rivalHits.set(target.id, (o.rivalHits.get(target.id) ?? 0) + BOT.allyDamageOnRival); o.hitBy.set(target.id, b.id); return; }
     target.hp -= BOT.rivalDamageOnAlly;
     if (target.hp <= 0 && target.alive) { target.alive = false; target.respawnIn = BOT.respawn; o.allyDeaths++; }
   }
@@ -288,10 +301,10 @@ export function zonePresence(s: BotsState, st: PvpState, player: { x: number; z:
   return out;
 }
 
-/** rounds: your ally bots still up, and how many of them stand on the objective (pvp.ts PvpEvents alliesAlive / objectiveUs) */
-export function roundPresence(s: BotsState, a: KillboxArena, radius: number): { alliesAlive: number; objectiveUs: number } {
-  const up = s.allies.filter((b) => b.alive);
-  return { alliesAlive: up.length, objectiveUs: up.filter((b) => Math.hypot(b.x - a.objective[0], b.z - a.objective[1]) < radius).length };
+/** rounds: your ally bots still up, and how many of each side stand on the objective (pvp.ts PvpEvents alliesAlive / objectiveUs / objectiveThem) */
+export function roundPresence(s: BotsState, a: KillboxArena, radius: number): { alliesAlive: number; objectiveUs: number; objectiveThem: number } {
+  const up = s.allies.filter((b) => b.alive), on = (b: { x: number; z: number }) => Math.hypot(b.x - a.objective[0], b.z - a.objective[1]) < radius;
+  return { alliesAlive: up.length, objectiveUs: up.filter(on).length, objectiveThem: [...s.rivals.values()].filter((b) => b.alive && on(b)).length };
 }
 
 /** everyone on the field for Extraction's core (pvp.ts Unit): you as "player", the ally bots and the rivals by their ids */

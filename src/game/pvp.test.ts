@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { EXTRACT, PVP_MODES, RANKED, newPvp, rankedDelta, rankedKey, rankedRating, rankedTier, stepPvp, royaleRadius, stormDamage, fieldSize, respawns, ROYALE, type PvpEvents, type PvpModeId, type Unit } from "./pvp";
+import { EXTRACT, OVERTIME_S, PVP_MODES, RANKED, ffaSlot, newPvp, rankedDelta, rankedKey, rankedRating, rankedTier, stepPvp, royaleRadius, stormDamage, fieldSize, respawns, ROYALE, type PvpEvents, type PvpModeId, type Unit } from "./pvp";
 
 const quiet = (over: Partial<PvpEvents> = {}): PvpEvents => ({ dt: 0.1, kills: 0, died: false, px: 100, pz: 100, rivalsAlive: 3, ...over });
 function play(mode: PvpModeId, each: (t: number) => Partial<PvpEvents>, seconds = 2000) {
@@ -172,5 +172,62 @@ describe("Rounds with ally bots", () => {
     for (let i = 0; i < 20; i++) stepPvp(st, quiet({}));
     stepPvp(st, quiet({ died: true }));
     expect([st.themRounds, st.reason]).toEqual([1, "You went down"]);
+  });
+});
+
+describe("Round objectives in a bot match", () => {
+  const ev = (over: Partial<PvpEvents>): PvpEvents => ({ dt: 0.1, kills: 0, died: false, px: 0, pz: 30, rivalsAlive: 3, alliesAlive: 3, objectiveUs: 0, objectiveThem: 0, ...over });
+  it("defending in Lockdown, nothing is planted until a rival stands on the objective, and a contested objective holds", () => {
+    const st = newPvp("lockdown", 1, undefined, { allies: 3, rivals: 4 });
+    st.attacking = false;
+    for (let t = 0; t < 30; t += 0.1) stepPvp(st, ev({}));
+    expect(st.plant).toBe(0);
+    for (let t = 0; t < 6; t += 0.1) stepPvp(st, ev({ objectiveThem: 1, objectiveUs: 1 }));
+    expect(st.plant).toBe(0);
+    for (let t = 0; t < 12.5; t += 0.1) stepPvp(st, ev({ objectiveThem: 2 }));
+    expect([st.themRounds, st.reason]).toEqual([1, "The objective fell"]);
+  });
+  it("attacking, a rival on the objective stops you securing it", () => {
+    const st = newPvp("lockdown", 1, undefined, { allies: 3, rivals: 4 });
+    for (let t = 0; t < 20; t += 0.1) stepPvp(st, ev({ objectiveUs: 1, objectiveThem: 1 }));
+    expect(st.usRounds).toBe(0);
+    for (let t = 0; t < 20; t += 0.1) stepPvp(st, ev({ objectiveUs: 1 }));
+    expect([st.usRounds, st.reason]).toEqual([1, "Objective secured"]);
+  });
+  it("Ascendancy's zone goes to whoever stands in it unopposed after the buzzer", () => {
+    const st = newPvp("ascendancy", 1, undefined, { allies: 2, rivals: 3 });
+    for (let t = 0; t < (PVP_MODES.ascendancy.roundTime ?? 90) + 40; t += 0.1) stepPvp(st, ev({}));
+    expect(st.round).toBe(1);
+    for (let t = 0; t < 16; t += 0.1) stepPvp(st, ev({ objectiveThem: 1 }));
+    expect([st.themRounds, st.reason]).toEqual([1, "They took the zone"]);
+  });
+});
+
+describe("Freefall in a bot match", () => {
+  it("has a board slot per player on the field, credits each elimination to its scorer, and your death to who downed you", () => {
+    const st = newPvp("freefall", 1, undefined, { allies: 0, rivals: 6 });
+    expect(st.board).toHaveLength(7);
+    for (let t = 0; t < 60; t += 0.1) stepPvp(st, { dt: 0.1, kills: 0, died: false, px: 0, pz: 0, rivalsAlive: 6, ffaKills: new Map() });
+    expect(st.board.every((n) => n === 0)).toBe(true);
+    stepPvp(st, { dt: 0.1, kills: 2, died: false, px: 0, pz: 0, rivalsAlive: 6, ffaKills: new Map([["crucible:3", 1]]) });
+    stepPvp(st, { dt: 0.1, kills: 0, died: true, px: 0, pz: 0, rivalsAlive: 6, ffaKills: new Map(), killedBy: "crucible:3" });
+    expect(st.board[0]).toBe(2);
+    expect(st.board[ffaSlot(st, "crucible:3")]).toBe(2);
+    expect([st.us, st.them]).toEqual([2, 2]);
+  });
+});
+
+describe("Ascendancy overtime in a bot match", () => {
+  const ev = (over: Partial<PvpEvents>): PvpEvents => ({ dt: 0.1, kills: 0, died: false, px: 0, pz: 30, rivalsAlive: 2, alliesAlive: 2, objectiveUs: 0, objectiveThem: 0, ...over });
+  const toOvertime = (st: ReturnType<typeof newPvp>, over: Partial<PvpEvents>) => { for (let t = 0; t < (PVP_MODES.ascendancy.roundTime ?? 90) + OVERTIME_S + 0.3; t += 0.1) stepPvp(st, ev(over)); };
+  it("an untaken zone goes to the side with more fighters standing", () => {
+    const a = newPvp("ascendancy", 1, undefined, { allies: 2, rivals: 3 }); toOvertime(a, {});
+    expect([a.usRounds, a.reason]).toEqual([1, "Overtime: more of you standing"]);
+    const b = newPvp("ascendancy", 1, undefined, { allies: 2, rivals: 3 }); toOvertime(b, { alliesAlive: 0, rivalsAlive: 2 });
+    expect(b.themRounds).toBe(1);
+  });
+  it("a tie replays the round with no point to either side", () => {
+    const st = newPvp("ascendancy", 1, undefined, { allies: 2, rivals: 3 }); toOvertime(st, { alliesAlive: 1, rivalsAlive: 2 });
+    expect([st.usRounds, st.themRounds, st.round, st.reason]).toEqual([0, 0, 2, "Overtime draw — round replayed"]);
   });
 });

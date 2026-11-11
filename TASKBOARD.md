@@ -26,7 +26,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Owner ask (Nov 10): test the Killbox round fix and clean up the other web Killbox modes (bot-match FFA scoring, rival presence on round objectives) in pvp.ts / killbox-bots.ts | https://claude.ai/code/session_01HeBvGGZzSqLVyhhF3TcmJd | Nov 10 |
 | Owner ask (Nov 9 12:38): the Nexus Region after the owner's "Nexus Region v1.0" board (natural coastline; full region) — a new region map `nexus-region` (src/game/nexus-region.ts, a NewLand: Aether Ridge, Verdant Expanse, Ironcrest Outlands, Southreach, Nexus City's districts, Harbor, Beach, Azure Keys, Lighthouse Point, Eastpoint, Obsidian Cliffs, NOVA Research Complex, the Fracture Spire), opened first on the Nexus continent; region 3D only — not the Nexus street slice / districts (session_01PQQ… and the districts work own those) | session_01HeBvGF1Wp7cNYHiTnBkJXG | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
@@ -36,6 +35,7 @@ Rows are the lock; `git fetch` before you claim.
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
+  - Godot Killbox parity with the web clean-up (Nov 10, pvp.ts): Ascendancy overtime (`OVERTIME_S` after the buzzer, more standing wins, a tie replays the round) and a bot `stuck` step-off in enemies.gd — the web's bots were caught on stair rails and spawn walls and stalled rounds forever.
   6. City infrastructure and interiors (part 2 §1–2), ~~civilian life props (§3)~~ (done Nov 9), combat details (§5: casings, impacts, flinch, gore, destructible cover + debris done; holsters / magazines / attachments / armour damage / shields open), character appearance (§4: wear slot done Nov 10; shoes / formal clothing wait on clothing meshes).
   7. ~~Vegetation / rock gaps, natural effects, VFX~~ — done in region 3D and scripts/vfx/fx.gd (see Done).
   8. ~~Fantasy & dimensional set (§9)~~ — builders landed Nov 9 (scripts/vfx/fracture_set.gd) and placed at the Rift Gate and the Neon core; still to place in the Shattered Expanse regions when they get their dressing pass.
