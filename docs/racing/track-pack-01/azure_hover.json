@@ -1,0 +1,345 @@
+{
+  "schema": "world-fracture-race-track/v1",
+  "id": "azure_hover",
+  "name": "Azure Hover Challenge",
+  "region": "Azure Isles",
+  "raceType": "hovercraft_water_circuit",
+  "closedCircuit": true,
+  "lengthM": 28000.0,
+  "laneWidthM": 35,
+  "coordinateSystem": "local meters; requires world anchor during integration",
+  "routePoints": [
+    {
+      "xM": 0.0,
+      "zM": 0.0
+    },
+    {
+      "xM": 3119.32,
+      "zM": -779.83
+    },
+    {
+      "xM": 6238.64,
+      "zM": 779.83
+    },
+    {
+      "xM": 7798.3,
+      "zM": 3899.15
+    },
+    {
+      "xM": 5458.81,
+      "zM": 7018.47
+    },
+    {
+      "xM": 2339.49,
+      "zM": 7798.3
+    },
+    {
+      "xM": -779.83,
+      "zM": 5458.81
+    },
+    {
+      "xM": -2339.49,
+      "zM": 2339.49
+    },
+    {
+      "xM": 0.0,
+      "zM": 0.0
+    }
+  ],
+  "checkpoints": [
+    {
+      "index": 0,
+      "distanceM": 0,
+      "xM": 0.0,
+      "zM": 0.0,
+      "headingDeg": -14.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 1,
+      "distanceM": 800,
+      "xM": 776.11,
+      "zM": -194.03,
+      "headingDeg": -14.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 2,
+      "distanceM": 1600,
+      "xM": 1552.23,
+      "zM": -388.06,
+      "headingDeg": -14.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 3,
+      "distanceM": 2400,
+      "xM": 2328.34,
+      "zM": -582.09,
+      "headingDeg": -14.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 4,
+      "distanceM": 3200,
+      "xM": 3104.46,
+      "zM": -776.11,
+      "headingDeg": 5.9,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 5,
+      "distanceM": 4000,
+      "xM": 3821.16,
+      "zM": -428.91,
+      "headingDeg": 26.2,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 6,
+      "distanceM": 4800,
+      "xM": 4536.7,
+      "zM": -71.14,
+      "headingDeg": 26.6,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 7,
+      "distanceM": 5600,
+      "xM": 5252.24,
+      "zM": 286.63,
+      "headingDeg": 26.6,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 8,
+      "distanceM": 6400,
+      "xM": 5967.78,
+      "zM": 644.4,
+      "headingDeg": 37.8,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 9,
+      "distanceM": 7200,
+      "xM": 6460.98,
+      "zM": 1224.51,
+      "headingDeg": 56.7,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 10,
+      "distanceM": 8000,
+      "xM": 6818.75,
+      "zM": 1940.06,
+      "headingDeg": 63.4,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 11,
+      "distanceM": 8800,
+      "xM": 7176.52,
+      "zM": 2655.6,
+      "headingDeg": 63.4,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 12,
+      "distanceM": 9600,
+      "xM": 7534.3,
+      "zM": 3371.14,
+      "headingDeg": 70.6,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 13,
+      "distanceM": 10400,
+      "xM": 7672.5,
+      "zM": 4066.88,
+      "headingDeg": 104.4,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 14,
+      "distanceM": 11200,
+      "xM": 7192.5,
+      "zM": 4706.88,
+      "headingDeg": 126.9,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 15,
+      "distanceM": 12000,
+      "xM": 6712.5,
+      "zM": 5346.88,
+      "headingDeg": 126.9,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 16,
+      "distanceM": 12800,
+      "xM": 6232.5,
+      "zM": 5986.88,
+      "headingDeg": 126.9,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 17,
+      "distanceM": 13600,
+      "xM": 5752.5,
+      "zM": 6626.88,
+      "headingDeg": 134.2,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 18,
+      "distanceM": 14400,
+      "xM": 5157.56,
+      "zM": 7093.78,
+      "headingDeg": 154.3,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 19,
+      "distanceM": 15200,
+      "xM": 4381.45,
+      "zM": 7287.81,
+      "headingDeg": 166.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 20,
+      "distanceM": 16000,
+      "xM": 3605.34,
+      "zM": 7481.84,
+      "headingDeg": 166.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 21,
+      "distanceM": 16800,
+      "xM": 2829.22,
+      "zM": 7675.87,
+      "headingDeg": 174.7,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 22,
+      "distanceM": 17600,
+      "xM": 2103.33,
+      "zM": 7621.18,
+      "headingDeg": -158.6,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 23,
+      "distanceM": 18400,
+      "xM": 1463.33,
+      "zM": 7141.18,
+      "headingDeg": -143.1,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 24,
+      "distanceM": 19200,
+      "xM": 823.33,
+      "zM": 6661.18,
+      "headingDeg": -143.1,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 25,
+      "distanceM": 20000,
+      "xM": 183.33,
+      "zM": 6181.18,
+      "headingDeg": -143.1,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 26,
+      "distanceM": 20800,
+      "xM": -456.67,
+      "zM": 5701.18,
+      "headingDeg": -136.6,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 27,
+      "distanceM": 21600,
+      "xM": -956.95,
+      "zM": 5104.58,
+      "headingDeg": -123.2,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 28,
+      "distanceM": 22400,
+      "xM": -1314.72,
+      "zM": 4389.03,
+      "headingDeg": -116.6,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 29,
+      "distanceM": 23200,
+      "xM": -1672.49,
+      "zM": 3673.49,
+      "headingDeg": -116.6,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 30,
+      "distanceM": 24000,
+      "xM": -2030.26,
+      "zM": 2957.95,
+      "headingDeg": -112.7,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 31,
+      "distanceM": 24800,
+      "xM": -2262.74,
+      "zM": 2262.74,
+      "headingDeg": -75.2,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 32,
+      "distanceM": 25600,
+      "xM": -1697.06,
+      "zM": 1697.06,
+      "headingDeg": -45.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 33,
+      "distanceM": 26400,
+      "xM": -1131.37,
+      "zM": 1131.37,
+      "headingDeg": -45.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 34,
+      "distanceM": 27200,
+      "xM": -565.68,
+      "zM": 565.68,
+      "headingDeg": -45.0,
+      "gateWidthM": 43.75
+    },
+    {
+      "index": 35,
+      "distanceM": 28000.0,
+      "xM": 0.0,
+      "zM": 0.0,
+      "headingDeg": -45.0,
+      "gateWidthM": 43.75
+    }
+  ],
+  "lapsDefault": 3,
+  "recommendedOpponents": 11,
+  "trafficEnabled": false,
+  "policePursuitEnabled": false,
+  "surface": "water",
+  "implementationStatus": "layout definition only; not integrated into live world"
+}

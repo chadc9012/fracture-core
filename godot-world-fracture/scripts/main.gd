@@ -935,6 +935,32 @@ func _shoot(path: String, opts: Array) -> void:
 				modes.view.countdown = 0.05
 				modes.view.controls.scripted = true
 				modes.view.autopilot = true
+		# route:<id>[:go][:<metres along>]  a Track Pack 01 route (scripts/racing/route_view.gd); :go skips the lights and
+		# lets the car drive itself; a number starts the shot that far along the road (to see a route's look anywhere)
+		if String(o).begins_with("route:"):
+			var rq := String(o).split(":")
+			var rv := preload("res://scripts/racing/route_view.gd").new()
+			rv.route_id = rq[1]
+			add_child(rv)
+			await get_tree().process_frame
+			if rq.has("go"):
+				rv.countdown = 0.01
+				rv.autopilot = true
+			if rq.has("top"):
+				rv.look_dev = [Vector3(0, 220, 60), Vector3(0, 0, -40)]
+			if rq.has("side"):
+				rv.look_dev = [Vector3(40, 18, 30), Vector3(0, 2, -10)]
+			for part in rq:
+				if part.is_valid_float() and float(part) > 0.0:
+					var at: float = float(part)
+					var c: Vector3 = rv.route.at(at)
+					var fwd: Vector3 = rv.route.dir_at(at)
+					rv.player_entry.hint = at
+					rv.player.node.position = Vector3(c.x, rv.player.ground_at.call(c.x, c.z), c.z)
+					rv.player.node.rotation.y = atan2(-fwd.x, -fwd.z)
+					rv.cam_yaw = rv.player.node.rotation.y
+					rv._stream(true)
+					rv._place_camera(1.0)
 		# race[:go]  Nexus Speedway from the grid; :go skips the lights and holds the throttle
 		if String(o).begins_with("race"):
 			_open_race()

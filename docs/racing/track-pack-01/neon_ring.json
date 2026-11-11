@@ -1,0 +1,309 @@
+{
+  "schema": "world-fracture-race-track/v1",
+  "id": "neon_ring",
+  "name": "Neon Ring Express",
+  "region": "Neon City",
+  "raceType": "elevated_circuit",
+  "closedCircuit": true,
+  "lengthM": 24000.0,
+  "laneWidthM": 18,
+  "coordinateSystem": "local meters; requires world anchor during integration",
+  "routePoints": [
+    {
+      "xM": 0.0,
+      "zM": 0.0
+    },
+    {
+      "xM": 1733.68,
+      "zM": -1155.78
+    },
+    {
+      "xM": 4623.14,
+      "zM": -1155.78
+    },
+    {
+      "xM": 6934.71,
+      "zM": 0.0
+    },
+    {
+      "xM": 8090.49,
+      "zM": 2311.57
+    },
+    {
+      "xM": 6356.82,
+      "zM": 4623.14
+    },
+    {
+      "xM": 4045.25,
+      "zM": 5201.03
+    },
+    {
+      "xM": 1155.78,
+      "zM": 4045.25
+    },
+    {
+      "xM": -1155.78,
+      "zM": 2311.57
+    },
+    {
+      "xM": 0.0,
+      "zM": 0.0
+    }
+  ],
+  "checkpoints": [
+    {
+      "index": 0,
+      "distanceM": 0,
+      "xM": 0.0,
+      "zM": 0.0,
+      "headingDeg": -33.7,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 1,
+      "distanceM": 800,
+      "xM": 665.64,
+      "zM": -443.76,
+      "headingDeg": -33.7,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 2,
+      "distanceM": 1600,
+      "xM": 1331.28,
+      "zM": -887.52,
+      "headingDeg": -27.2,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 3,
+      "distanceM": 2400,
+      "xM": 2050.06,
+      "zM": -1155.78,
+      "headingDeg": -10.0,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 4,
+      "distanceM": 3200,
+      "xM": 2850.06,
+      "zM": -1155.78,
+      "headingDeg": 0.0,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 5,
+      "distanceM": 4000,
+      "xM": 3650.06,
+      "zM": -1155.78,
+      "headingDeg": 0.0,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 6,
+      "distanceM": 4800,
+      "xM": 4450.06,
+      "zM": -1155.78,
+      "headingDeg": 10.4,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 7,
+      "distanceM": 5600,
+      "xM": 5183.87,
+      "zM": -875.41,
+      "headingDeg": 23.8,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 8,
+      "distanceM": 6400,
+      "xM": 5899.42,
+      "zM": -517.64,
+      "headingDeg": 26.6,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 9,
+      "distanceM": 7200,
+      "xM": 6614.96,
+      "zM": -159.87,
+      "headingDeg": 36.5,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 10,
+      "distanceM": 8000,
+      "xM": 7132.6,
+      "zM": 395.79,
+      "headingDeg": 55.4,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 11,
+      "distanceM": 8800,
+      "xM": 7490.37,
+      "zM": 1111.33,
+      "headingDeg": 63.4,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 12,
+      "distanceM": 9600,
+      "xM": 7848.14,
+      "zM": 1826.88,
+      "headingDeg": 72.4,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 13,
+      "distanceM": 10400,
+      "xM": 7935.63,
+      "zM": 2518.05,
+      "headingDeg": 106.4,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 14,
+      "distanceM": 11200,
+      "xM": 7455.63,
+      "zM": 3158.05,
+      "headingDeg": 126.9,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 15,
+      "distanceM": 12000,
+      "xM": 6975.64,
+      "zM": 3798.05,
+      "headingDeg": 126.9,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 16,
+      "distanceM": 12800,
+      "xM": 6495.64,
+      "zM": 4438.05,
+      "headingDeg": 140.6,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 17,
+      "distanceM": 13600,
+      "xM": 5805.16,
+      "zM": 4761.05,
+      "headingDeg": 160.6,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 18,
+      "distanceM": 14400,
+      "xM": 5029.05,
+      "zM": 4955.08,
+      "headingDeg": 166.0,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 19,
+      "distanceM": 15200,
+      "xM": 4252.93,
+      "zM": 5149.11,
+      "headingDeg": 178.9,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 20,
+      "distanceM": 16000,
+      "xM": 3501.23,
+      "zM": 4983.42,
+      "headingDeg": -162.8,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 21,
+      "distanceM": 16800,
+      "xM": 2758.45,
+      "zM": 4686.31,
+      "headingDeg": -158.2,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 22,
+      "distanceM": 17600,
+      "xM": 2015.67,
+      "zM": 4389.2,
+      "headingDeg": -158.2,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 23,
+      "distanceM": 18400,
+      "xM": 1272.88,
+      "zM": 4092.09,
+      "headingDeg": -151.9,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 24,
+      "distanceM": 19200,
+      "xM": 616.68,
+      "zM": 3640.92,
+      "headingDeg": -144.3,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 25,
+      "distanceM": 20000,
+      "xM": -23.32,
+      "zM": 3160.92,
+      "headingDeg": -143.1,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 26,
+      "distanceM": 20800,
+      "xM": -663.32,
+      "zM": 2680.92,
+      "headingDeg": -136.0,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 27,
+      "distanceM": 21600,
+      "xM": -1073.31,
+      "zM": 2146.62,
+      "headingDeg": -92.4,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 28,
+      "distanceM": 22400,
+      "xM": -715.54,
+      "zM": 1431.08,
+      "headingDeg": -63.4,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 29,
+      "distanceM": 23200,
+      "xM": -357.77,
+      "zM": 715.54,
+      "headingDeg": -63.4,
+      "gateWidthM": 22.5
+    },
+    {
+      "index": 30,
+      "distanceM": 24000.0,
+      "xM": 0.0,
+      "zM": 0.0,
+      "headingDeg": -63.4,
+      "gateWidthM": 22.5
+    }
+  ],
+  "lapsDefault": 3,
+  "recommendedOpponents": 11,
+  "trafficEnabled": false,
+  "policePursuitEnabled": false,
+  "surface": "asphalt",
+  "implementationStatus": "layout definition only; not integrated into live world"
+}

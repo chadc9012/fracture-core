@@ -126,6 +126,16 @@ def engine_loop(d=2.0, rpm_hz=46.0):
     return x
 
 
+def siren_loop(d=2.0):
+    # a two-tone wail: the pitch sweeps up and down once per second (a whole number of sweeps, so it loops), a square-ish
+    # tone with a little bandpass so it carries over an engine
+    tt = t(d)
+    f = 760 + 380 * (0.5 - 0.5 * np.cos(2 * np.pi * (1.0 / 1.0) * tt))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = np.tanh(3.0 * np.sin(ph)) * 0.6 + np.sin(ph * 2) * 0.15
+    return bp(x, 400, 3200)
+
+
 def step(d=0.16):
     thud = sweep(d, 160, 70, 0.025)
     grit = bp(noise(d), 600, 4500) * env(d, 0.0005, 0.012)
@@ -183,6 +193,7 @@ SOUNDS = {
     "reload": lambda: finish(reload(), peak=0.75, drive=1.2),
     "dry": lambda: finish(dry(), peak=0.6),
     "engine": lambda: finish(engine_loop(), peak=0.8, drive=1.4),
+    "siren": lambda: finish(siren_loop(), peak=0.7, drive=1.2),
     # combat details (asset catalog §5, Nov 10): a bolt on an energy shield, the shield collapsing, cover breaking up
     "shield": lambda: finish(mix(0.22, (0, zap(0.22, 2400, 1600, buzz=0.2), 0.8), (0, hit(0.12, ping=0.8), 0.5)), peak=0.7),
     "shield_break": lambda: finish(mix(0.7, (0, zap(0.7, 2600, 180, buzz=0.7), 1.0), (0, bp(noise(0.7), 2000, 8000) * env(0.7, 0.003, 0.18), 0.6)), peak=0.85, drive=1.5),
