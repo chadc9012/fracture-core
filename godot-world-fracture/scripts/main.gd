@@ -683,6 +683,26 @@ func _shoot(path: String, opts: Array) -> void:
 				street.go_to_court(String(o).split("court=")[1].split(":")[0])
 				if String(o).contains("still"):
 					street.controls.move = Vector2.ZERO
+			# slicewalk:npc=<id>[:hour=<h>][:talk]  stands by one of Nexus City's named people (scripts/npc/) at that hour, and
+			# optionally opens a conversation
+			if String(o).contains("npc=") and street.npcs:
+				var nid := String(o).split("npc=")[1].split(":")[0]
+				if String(o).contains("hour="):
+					street.npcs.hour_override = float(String(o).split("hour=")[1].split(":")[0])
+					street.npcs._schedule()
+				street.controls.scripted = true
+				street.controls.move = Vector2.ZERO
+				if street.npcs.npcs.has(nid):
+					var nm: Node3D = street.npcs.npcs[nid].mover
+					nm.position = nm.position.move_toward(street.npcs.npcs[nid].goal, 99.0)
+					var at: Vector3 = nm.position + Vector3(-signf(nm.position.x) * 2.6, 0, 1.6)
+					street.operator.position = at
+					street.operator.heading = atan2(nm.position.x - at.x, nm.position.z - at.z)
+					street.operator.cam_yaw = street.operator.heading + PI
+					if String(o).contains(":talk"):
+						for k in 3:
+							await get_tree().process_frame
+						street.npcs.talk(nid)
 			# slicewalk:tank walks the operator to the Goliath tank by the garage and climbs in (then drives)
 			if String(o).contains("walk:tank"):
 				for c in street.parked:
