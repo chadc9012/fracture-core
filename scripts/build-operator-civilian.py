@@ -7,8 +7,10 @@ clips:
   1. the armour is remeshed into one closed surface (voxel remesh), its plates smoothed away and the surface pulled in
      to a body's width (less at the hands, so the fingers survive)
   2. the skin weights come back from the authored body (nearest-face interpolated)
-  3. it is dressed by the bone each vertex follows: a hoodie or sweater over the torso and arms, jeans or leggings on the
-     legs, trainers, bare hands and neck, painted as vertex colour with a little weave noise
+  3. it is dressed in urban streetwear by the bone each vertex follows and where it sits on the body: an oversized hoodie
+     (hood down, kangaroo pocket, drawstrings, chest logo, ribbed hem and cuffs), joggers with side stripes, cargo pockets
+     and ankle cuffs (cargos for the female cut), chunky trainers with a midsole, side flash and heel tab; painted as
+     vertex colour with a little weave noise
 
 The result is headless like every game body (the face chosen in character creation is skinned on at load).
 
@@ -25,12 +27,17 @@ from mathutils import Vector
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 base_path, out_path, sex = argv[0], argv[1], argv[2]
 
+# urban streetwear (owner, Nov 10: "regular civilian clothing, urban style"): an oversized hoodie with the hood down, a
+# kangaroo pocket, drawstrings and a chest logo; joggers or cargos; chunky trainers
 OUTFIT = {
-    # region: (r, g, b) linear-ish sRGB
-    "male": {"top": (0.13, 0.14, 0.16), "cuff": (0.1, 0.11, 0.12), "legs": (0.16, 0.24, 0.38), "shoes": (0.86, 0.86, 0.84),
-             "sole": (0.95, 0.95, 0.93), "skin": None},
-    "female": {"top": (0.52, 0.5, 0.47), "cuff": (0.44, 0.42, 0.4), "legs": (0.07, 0.07, 0.08), "shoes": (0.9, 0.9, 0.88),
-               "sole": (0.96, 0.96, 0.94), "skin": None},
+    "male": {"top": (0.075, 0.075, 0.085), "top2": (0.05, 0.05, 0.058), "logo": (0.86, 0.13, 0.12), "logo2": (0.95, 0.95, 0.93),
+             "string": (0.92, 0.92, 0.9), "legs": (0.24, 0.24, 0.26), "legs2": (0.17, 0.17, 0.19), "stripe": (0.93, 0.93, 0.91),
+             "shoes": (0.94, 0.94, 0.92), "accent": (0.86, 0.13, 0.12), "sole": (0.96, 0.96, 0.94), "mid": (0.06, 0.06, 0.07),
+             "toe": (0.8, 0.8, 0.8), "stripes": True},
+    "female": {"top": (0.8, 0.74, 0.64), "top2": (0.69, 0.63, 0.54), "logo": (0.08, 0.08, 0.09), "logo2": (0.8, 0.74, 0.64),
+               "string": (0.12, 0.12, 0.12), "legs": (0.27, 0.29, 0.19), "legs2": (0.21, 0.23, 0.15), "stripe": (0.27, 0.29, 0.19),
+               "shoes": (0.95, 0.95, 0.93), "accent": (0.09, 0.09, 0.1), "sole": (0.97, 0.97, 0.95), "mid": (0.86, 0.66, 0.42),
+               "toe": (0.85, 0.85, 0.84), "stripes": False},
 }[sex]
 SKIN = (0.55, 0.38, 0.28)   # the hands; the game tints them with the chosen skin tone through the head's material
 
@@ -68,7 +75,7 @@ def seg_dist(p, a, b):
 
 
 mb_data = bpy.data.metaballs.new("body")
-mb_data.resolution = height * 0.012
+mb_data.resolution = height * 0.0075
 mb_data.threshold = 0.6
 mb = bpy.data.objects.new("body", mb_data)
 bpy.context.collection.objects.link(mb)
@@ -97,6 +104,19 @@ for bone in arm.data.bones:
             r = min(r, height * (0.05 - 0.012 * s))      # calf to ankle
         if "Foot" in n or "Toe" in n:
             r = min(r, height * 0.036)
+        # streetwear cut: a roomy hoodie and baggy sleeves, relaxed thighs, joggers gathered at the ankle, chunky trainers
+        if "Spine" in n or ("Hips" in n and s > 0.4):
+            r *= 1.08
+        elif "Arm" in n and "ForeArm" not in n:
+            r *= 1.12
+        elif "ForeArm" in n:
+            r *= 1.1 if s < 0.8 else 0.92
+        elif "UpLeg" in n:
+            r *= 1.06
+        elif "Leg" in n and s > 0.85:
+            r = min(r, height * 0.031)
+        if "Foot" in n or "Toe" in n:
+            r = max(r, height * 0.04)
         r = max(r, height * 0.018)
         e = mb_data.elements.new()
         e.co = Vector(a + (b - a) * s)
@@ -108,6 +128,30 @@ for s in (0.0, 0.5, 1.0):
     e = mb_data.elements.new()
     e.co = (AW @ nk.head_local).lerp(AW @ nk.tail_local, s)
     e.radius = height * 0.04 * K
+# which way the body faces (heel to toe) and its side axis
+UPV = np.array([0.0, 0.0, 1.0])
+ft = arm.data.bones["mixamorig:LeftFoot"]
+tt = arm.data.bones["mixamorig:LeftToeBase"]
+F = np.array((AW @ tt.head_local - AW @ ft.head_local)[:])
+F[2] = 0.0
+F /= np.linalg.norm(F)
+LAT = np.cross(UPV, F)
+neck0 = np.array((AW @ nk.head_local)[:])
+# the hood, down, lying on the upper back
+HOOD = []
+for off, rad in (((0.0, -0.085, -0.02), 0.06), ((0.07, -0.065, -0.03), 0.048), ((-0.07, -0.065, -0.03), 0.048), ((0.0, -0.095, -0.065), 0.052)):
+    e = mb_data.elements.new()
+    e.co = Vector(neck0 + LAT * off[0] * height + F * off[1] * height + UPV * off[2] * height)
+    e.radius = rad * height * K
+    HOOD.append((np.array(e.co[:]), rad * height))
+# chunky soles under each foot
+for side in ("Left", "Right"):
+    fb = arm.data.bones["mixamorig:%sFoot" % side]
+    tb = arm.data.bones["mixamorig:%sToeBase" % side]
+    for q in (np.array((AW @ fb.head_local)[:]), np.array((AW @ tb.head_local)[:])):
+        e = mb_data.elements.new()
+        e.co = Vector(q - UPV * height * 0.012)
+        e.radius = height * 0.036 * K
 bpy.context.view_layer.update()
 bpy.ops.object.select_all(action="DESELECT")
 bpy.context.view_layer.objects.active = mb
@@ -125,7 +169,7 @@ for it in range(4):
 bm.to_mesh(new.data)
 bm.free()
 dec = new.modifiers.new("dec", "DECIMATE")
-dec.ratio = min(1.0, 13000.0 / max(1, len(new.data.polygons)))
+dec.ratio = min(1.0, 26000.0 / max(1, len(new.data.polygons)))   # enough vertices to paint seams and logos on
 bpy.ops.object.modifier_apply(modifier="dec")
 
 # the hands are the authored ones (gloves): fingers do not grow from metaballs
@@ -183,39 +227,85 @@ dom = regions()
 
 # ------------------------------------------------------------------------------------------------ 3. dressed by bone
 co = np.array([(new.matrix_world @ v.co)[:] for v in new.data.vertices])   # world space, Z up
+rot = new.matrix_world.to_3x3()
+nrm = np.array([(rot @ v.normal).normalized()[:] for v in new.data.vertices])
 up = 2
 rng = np.random.default_rng(3)
+m = arm.matrix_world
+hips = arm.data.bones["mixamorig:Hips"]
+hip_line = (m @ hips.head_local)[up] + height * 0.015
+mid_x = float(np.array((m @ hips.head_local)[:]) @ LAT)
+neck_z = neck0[2]
+chest_z = (m @ arm.data.bones["mixamorig:Spine2"].head_local)[up] + height * 0.03
+feet = [c[up] for c, n in zip(co, dom) if "Foot" in n or "Toe" in n]
+floor = min(feet) if feet else -1e9
+knee = {s_: np.array((m @ arm.data.bones["mixamorig:%sLeg" % s_].head_local)[:]) for s_ in ("Left", "Right")}
+ankle = {s_: np.array((m @ arm.data.bones["mixamorig:%sFoot" % s_].head_local)[:]) for s_ in ("Left", "Right")}
+wrist = [m @ arm.data.bones["mixamorig:%sHand" % s_].head_local for s_ in ("Left", "Right")]
+wrist_near = [min((Vector(c) - w).length for w in wrist) < height * 0.05 for c in co]
+H = height
+O = OUTFIT
 
 
 def colour_of(i, n):
+    p, nv = co[i], nrm[i]
+    z = p[up]
+    lat = float(p @ LAT) - mid_x                 # across the body
+    front = float(nv @ F)
+    side = "Left" if "Left" in n else "Right"
     if is_hand(n):
         return SKIN
-    if "Neck" in n or "Head" in n:
+    hood = float((p - neck0) @ F) < -0.01 * H and any(np.linalg.norm(p - hc) < hr * 1.3 for hc, hr in HOOD)
+    if ("Neck" in n or "Head" in n) and not hood:
         return SKIN
     if "Foot" in n or "Toe" in n:
-        return OUTFIT["sole"] if co[i][up] < foot_floor else OUTFIT["shoes"]
-    if "Arm" in n or "Shoulder" in n:
-        return OUTFIT["top"]
-    # one straight hem: below the line is the trousers, above it the top
-    if co[i][up] < hip_line:
-        return OUTFIT["legs"]
+        out = float(nv @ LAT) * (1 if lat > 0 else -1)
+        if z < floor + 0.016 * H:
+            return O["sole"]
+        if z < floor + 0.023 * H:
+            return O["mid"]
+        if float(nv @ F) < -0.55 and z < floor + 0.06 * H:
+            return O["accent"]                 # heel tab
+        if out > 0.45 and floor + 0.03 * H < z < floor + 0.05 * H:
+            return O["accent"]                 # side flash
+        if float((p - ankle[side]) @ F) > 0.09 * H:
+            return O["toe"]
+        return O["shoes"]
+    if hood:
+        return O["top2"] if float((p - neck0) @ F) > -0.04 * H and z > neck_z - 0.04 * H else O["top"]   # the opening
+    if ("Arm" in n or "Shoulder" in n) and "ForeArm" not in n:
+        return O["top"]
     if "ForeArm" in n:
-        return OUTFIT["cuff"] if wrist_near[i] else OUTFIT["top"]
-    return OUTFIT["top"]
+        return O["top2"] if wrist_near[i] else O["top"]
+    if z < hip_line:
+        # joggers: ankle cuffs, a side stripe, cargo pockets on the thighs
+        out = float(nv @ LAT) * (1 if lat > 0 else -1)
+        if "Leg" in n and "UpLeg" not in n and z < ankle[side][up] + 0.04 * H:
+            return O["legs2"]
+        if O["stripes"] and out > 0.93 and "Leg" in n:
+            return O["stripe"]
+        if "UpLeg" in n and 0.4 < out < 0.92 and knee[side][up] + 0.05 * H < z < knee[side][up] + 0.15 * H:
+            return O["legs2"] if z < knee[side][up] + 0.135 * H else O["legs"]
+        return O["legs"]
+    # the hoodie: ribbed hem, kangaroo pocket, drawstrings, a chest logo
+    if z < hip_line + 0.025 * H:
+        return O["top2"]
+    if front > 0.3:
+        if hip_line + 0.035 * H < z < hip_line + 0.13 * H and abs(lat) < 0.085 * H:
+            return O["top2"] if abs(lat) > 0.074 * H or z > hip_line + 0.12 * H else O["top"]
+        if neck_z - 0.1 * H < z < neck_z - 0.025 * H and min(abs(lat - 0.03 * H), abs(lat + 0.03 * H)) < 0.0045 * H:
+            return O["string"]
+        # a box-logo print on the chest, a stripe of the second colour through it
+        logo_z = neck_z - 0.155 * H
+        if abs(z - logo_z) < 0.03 * H and abs(lat) < 0.06 * H:
+            return O["logo2"] if abs(z - logo_z) < 0.006 * H and abs(lat) < 0.045 * H else O["logo"]
+    return O["top"]
 
-
-hips = arm.data.bones["mixamorig:Hips"]
-m = arm.matrix_world
-hip_line = (m @ hips.head_local)[up] + height * 0.015
-feet = [c[up] for c, n in zip(co, dom) if "Foot" in n or "Toe" in n]
-foot_floor = (min(feet) + height * 0.012) if feet else -1e9
-wrist = [m @ arm.data.bones["mixamorig:%sHand" % s].head_local for s in ("Left", "Right")]
-wrist_near = [min((Vector(c) - w).length for w in wrist) < height * 0.045 for c in co]
 
 cols = np.zeros((len(co), 4))
 for i, n in enumerate(dom):
     c = np.array(colour_of(i, n))
-    cols[i, :3] = np.clip(c * (0.94 + rng.random() * 0.1), 0, 1)
+    cols[i, :3] = np.clip(c * (0.95 + rng.random() * 0.07), 0, 1)
     cols[i, 3] = 1.0
 attr = new.data.color_attributes.new("Col", "BYTE_COLOR", "POINT")
 for i, c in enumerate(cols):
