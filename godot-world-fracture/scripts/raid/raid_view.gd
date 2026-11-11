@@ -119,6 +119,7 @@ func _ready() -> void:
 	operator.obstacles = obstacles
 	operator.position = spawn_point
 	operator.heading = PI
+	operator.civilian = false   # the armour is for the fights (streetwear in the city)
 	operator.build()
 	operator.attach_camera(cam)
 	gunplay = Gunplay.new()

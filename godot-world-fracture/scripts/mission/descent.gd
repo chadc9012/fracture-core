@@ -114,6 +114,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 	operator.ground_at = func(x: float, z: float) -> float: return region.ground(x, z)
 	operator.obstacles = region.building_boxes()
 	operator.position = region.stand_point()
+	operator.civilian = false   # the armour is for the fights (streetwear in the city)
 	operator.build()
 	operator.attach_camera(region.camera())
 	region.camera().current = true
