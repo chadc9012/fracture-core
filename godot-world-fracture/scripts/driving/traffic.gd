@@ -92,7 +92,28 @@ func set_span(lo: float, hi: float, v_lo: float, v_hi: float) -> void:
 	vis_lo = v_lo
 	vis_hi = v_hi
 
+## other cars the lanes stop for (a street race's rivals and the police: street_life.gd)
+var watch_boxes: Array = []
+
+## a race's grid: the cars within `half` metres of z go back to where their lane comes in
+func clear_zone(z: float, half: float) -> void:
+	for c in cars:
+		var n: Node3D = c.sc.node
+		if absf(n.position.z - z) < half:
+			n.position = Vector3(c.lane_x, 0, (span_lo + 6.0) if c.dir > 0 else (span_hi - 6.0))
+			c.sc.speed = 0.0
+			obstacles[c.box_index] = c.sc.box()
+
+## a sanctioned race has the road (street_life.gd): the cars pull off — hidden, their boxes out of the way — until it ends
+var closed := false
+const OFF_ROAD := AABB(Vector3(0, -1000, 0), Vector3(0.1, 0.1, 0.1))
+
 func step(dt: float) -> void:
+	if closed:
+		for c in cars:
+			c.sc.node.visible = false
+			obstacles[c.box_index] = OFF_ROAD
+		return
 	for c in cars:
 		_drive(c, dt)
 		obstacles[c.box_index] = c.sc.box()
@@ -113,6 +134,10 @@ func clear_ahead(c: Car) -> float:
 	var pz := (watch_point.z - n.position.z) * c.dir
 	if pz > 0.0 and absf(watch_point.x - c.lane_x) < 2.0:
 		best = minf(best, pz - StreetCar.HALF_LENGTH - 0.6)
+	for wb: AABB in watch_boxes:
+		var bz := (wb.get_center().z - n.position.z) * c.dir
+		if bz > 0.0 and wb.position.x - 1.0 < c.lane_x and wb.end.x + 1.0 > c.lane_x:
+			best = minf(best, bz - wb.size.z * 0.5 - StreetCar.HALF_LENGTH)
 	if watch_box.size.x > 0.1:
 		var wz := ((watch_box.get_center().z) - n.position.z) * c.dir
 		if wz > 0.0 and watch_box.position.x - 1.0 < c.lane_x and watch_box.end.x + 1.0 > c.lane_x:

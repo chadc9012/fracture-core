@@ -10,6 +10,8 @@ var credits := 40000
 var rep := { "nexus-customs": 1, "neon-performance": 1, "ironworks": 1, "fracture-dynamics": 0 }
 ## vehicle id -> { "paint": item id, "finish": item id, "parts": { slot: item id }, "damage": 0..100 }
 var cars := {}
+## the street racing reputation (street_career.gd), read when the garage loads: some parts need a rung of the ladder
+var street_rep := 0
 
 static func fresh() -> RefCounted:
 	var s = load("res://scripts/garage/garage_state.gd").new()
@@ -77,4 +79,5 @@ static func load_or_fresh(path := SAVE_PATH) -> RefCounted:
 		var d = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if d is Dictionary:
 			s.from_dict(d)
+	s.street_rep = int(load("res://scripts/racing/street_career.gd").load_or_fresh().rep)
 	return s

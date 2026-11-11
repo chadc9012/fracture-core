@@ -188,8 +188,19 @@ SOUNDS = {
     "shield_break": lambda: finish(mix(0.7, (0, zap(0.7, 2600, 180, buzz=0.7), 1.0), (0, bp(noise(0.7), 2000, 8000) * env(0.7, 0.003, 0.18), 0.6)), peak=0.85, drive=1.5),
     # the nitrous firing: a hiss that swells into a rushing roar (Nov 11, the garage's nitrous)
     "nitro": lambda: finish(mix(1.2, (0, bp(noise(1.2), 1200, 9000) * env(1.2, 0.05, 0.5), 1.0), (0, lp(noise(1.2), 600) * env(1.2, 0.15, 0.6), 0.8)), peak=0.8, drive=1.3),
+    # police pursuit (Nov 11, street racing life): the siren loop on the units' approach
+    "siren": lambda: finish(siren(), peak=0.7, drive=1.1),
     "debris": lambda: finish(mix(0.9, (0, lp(noise(0.9), 1800) * env(0.9, 0.004, 0.35), 1.0), (0, hit(0.2), 0.8), (0.08, lp(noise(0.5), 900) * env(0.5, 0.01, 0.2), 0.6), (0.21, bp(noise(0.3), 300, 2500) * env(0.3, 0.002, 0.08), 0.5)), peak=0.85, drive=1.4),
 }
+
+
+def siren(d=2.0):
+    # a police wail that loops: the pitch rises and falls once over the loop (phase-continuous so it loops cleanly)
+    tt = t(d)
+    f = 820 + 460 * (0.5 - 0.5 * np.cos(2 * np.pi * tt / d))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3 * ph)
+    return lp(x, 3200) * 0.5
 
 
 def write(name, x):

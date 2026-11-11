@@ -710,6 +710,32 @@ func _shoot(path: String, opts: Array) -> void:
 						st.enter_car(nearest)
 						st.controls.move = Vector2(-0.12, 1.0)   # pull out toward the road
 					, CONNECT_ONE_SHOT)
+			# slicewalk:neon:race=<event id>  takes a road car to that meet and starts the race, driving itself (shots);
+			# race=meet only parks at the meets for a look at them
+			if String(o).contains("race="):
+				var rid := String(o).split("race=")[1].split(":")[0]
+				var st2 := street
+				get_tree().process_frame.connect(func():
+					for c in st2.parked:
+						if is_instance_valid(c) and String(c.get_meta("vehicle", "")) in ["tuner", "street-racer", "muscle-car"]:
+							st2.enter_car(c)
+							break
+					st2.controls.scripted = true
+					st2.controls.move = Vector2.ZERO
+					if st2.driving_car == null or st2.life == null:
+						return
+					var car: RefCounted = st2.driving_car
+					if rid == "meet":
+						car.node.position = Vector3(0, 0, 105.0)
+						car.node.rotation.y = 0.0
+						st2.operator.cam_yaw = 0.0
+						return
+					var e: Dictionary = load("res://scripts/racing/street_career.gd").event(rid)
+					car.node.position = Vector3(0, 0, float(e.get("at", 0.0)))
+					st2.life.begin(rid)
+					st2.life.countdown = 0.05     # straight to GO
+					st2.life.autopilot = true
+					, CONNECT_ONE_SHOT)
 			if String(o).contains("walk:shop"):
 				street.open_mall()
 				street.mall_overlay.open_shop("haven" if String(o).contains("haven") else "nova")
@@ -729,7 +755,7 @@ func _shoot(path: String, opts: Array) -> void:
 			if String(o).contains("garage"):
 				street.open_garage()
 			var cam_q := String(o).split(":")
-			if cam_q.size() > 2:
+			if cam_q.size() > 2 and cam_q[1].contains(",") and cam_q[2].contains(","):
 				var cf := cam_q[1].split(","); var ct := cam_q[2].split(",")
 				street.look_from(Vector3(float(cf[0]), float(cf[1]), float(cf[2])), Vector3(float(ct[0]), float(ct[1]), float(ct[2])))
 		# casino[:view]  the Neon City Grand Casino (Neon City's alone): 0-3 the floor, 4-6 the penthouse, 7-8 the skydeck concert

@@ -66,6 +66,8 @@ const Gear = preload("res://scripts/gear/gear_store.gd")
 const StreetCar = preload("res://scripts/driving/street_car.gd")
 const Traffic = preload("res://scripts/driving/traffic.gd")
 var traffic: Node3D
+const StreetLife = preload("res://scripts/racing/street_life.gd")
+var life: Node
 ## district streaming (district.gd): the authored slice is tile 0 and stays; the blocks either way along the avenue are
 ## built when Active, kept as boxes when Simulated, parked when Frozen. Each tile's meshes hang under one root node at
 ## z = k * TILE, so the builders below work in tile-local coordinates (`_tile_root` set while a tile is being built).
@@ -375,6 +377,10 @@ func _after_enemies() -> void:
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
 	_apply_district(first_plan)
+	# street racing life (street_life.gd): the city's race meets on the avenue, challenges, the police
+	life = StreetLife.new()
+	add_child(life)
+	life.setup(self)
 	gunplay.killed.connect(func(t: Variant) -> void:
 		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
 		var source := "enemy"
@@ -632,7 +638,11 @@ func _process(dt: float) -> void:
 		traffic.step(minf(dt, 0.05))
 	if driving_car:
 		_drive(minf(dt, 0.05))
+		if life:
+			life.step(minf(dt, 0.05))
 		return
+	if life:
+		life.step(minf(dt, 0.05))
 	operator.step(minf(dt, 0.05), controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if style == "nexus":
 		# entering a district court (or the plaza) names it once
@@ -1883,6 +1893,8 @@ func enter_car(c: Node3D) -> void:
 		controls._enter_button.visible = true
 
 func exit_car() -> void:
+	if life:
+		life.on_exit()
 	var car: RefCounted = driving_car
 	driving_car = null
 	var c: Node3D = car.node
@@ -1925,6 +1937,10 @@ func _exit_tree() -> void:
 
 func _drive(dt: float) -> void:
 	var car: RefCounted = driving_car
+	# ENTER at a race meet (or on a racer's challenge) starts the race; otherwise, stopped, it gets you out
+	if life and life.offer != "" and not life.busy():
+		if controls.take_enter() and life.take_offer():
+			return
 	if controls.take_enter() and absf(car.speed) < 2.0:
 		exit_car()
 		return

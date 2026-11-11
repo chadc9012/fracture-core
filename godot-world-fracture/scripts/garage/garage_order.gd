@@ -46,6 +46,11 @@ func block_reason(state, item_id: String) -> String:
 	var need := int(it.get("rep", 0))
 	if int(state.rep.get(shop_id, 0)) < need:
 		return "Needs reputation %d here" % need
+	var street := String(it.get("street", ""))
+	if street != "":
+		var Career = load("res://scripts/racing/street_career.gd")
+		if Career.tier_index(int(state.get("street_rep") if state.get("street_rep") != null else 0)) < Career.tier_named(street):
+			return "Street rep: needs %s" % street
 	if state.installed(vehicle_id).get(it.slot, "") == item_id:
 		return "Already fitted"
 	return ""
