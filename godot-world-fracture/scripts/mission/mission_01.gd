@@ -754,7 +754,7 @@ func _lounge() -> void:
 
 func _lobby() -> void:
 	var c := LOBBY
-	var marble := Materials.pbr("floor_tiles_06", Color(1.0, 0.98, 0.96), 2.6, 0.35)
+	var marble := Materials.pbr("marble_01", Color(1.0, 0.98, 0.96), 3.2, 0.35)
 	var stone := Materials.pbr("painted_plaster_wall", Color(0.62, 0.58, 0.56), 3.0)
 	_shell(c, 26.0, 18.0, 7.0, marble, stone, flat(Color(0.1, 0.09, 0.11), 0.6), "e")
 	# double ring chandelier

@@ -13,6 +13,7 @@ uniform int i_desert; uniform int i_dunes; uniform int i_sandstone; uniform int 
 uniform int i_urban; uniform int i_paved; uniform int i_town; uniform int i_snow; uniform int i_ice; uniform int i_crystal; uniform int i_rift;
 
 varying vec2 wpos;
+varying vec3 wnorm;
 
 float hash2(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
 float vnoise(vec2 p) {
@@ -23,6 +24,7 @@ float vnoise(vec2 p) {
 
 void vertex() {
 	wpos = bounds.xy + UV * bounds.z;
+	wnorm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 void fragment() {
@@ -73,6 +75,13 @@ void fragment() {
 	} else if (cover == i_snow || cover == i_ice) {
 		rough = 0.55;
 		c += vec3(6.0) / 255.0 * grain;
+		// snow lies on the gentle slopes; the steep faces show dark rock in streaks down the fall line
+		float slope = 1.0 - clamp(wnorm.y, 0.0, 1.0);
+		float streak = vnoise(vec2(w.x * 0.12, w.y * 0.03)) * 0.5 + vnoise(w * 0.4) * 0.25;
+		float rock = smoothstep(0.24, 0.44, slope + (streak - 0.35) * 0.4);
+		vec3 rock_c = mix(vec3(0.2, 0.21, 0.24), vec3(0.34, 0.33, 0.35), vnoise(w * 0.9));
+		c = mix(c, rock_c, rock);
+		rough = mix(rough, 0.9, rock);
 	} else {
 		c += vec3(16.0, 15.0, 14.0) / 255.0 * grain;
 	}

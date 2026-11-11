@@ -270,7 +270,8 @@ func _build_civic_roofs() -> void:
 
 ## Snow and lava mountains read as one smooth cone: scatter rock outcrops where the ground is steep and high
 func _build_slope_rock() -> void:
-	if map_id not in ["frostspire", "ember", "crystal-badlands", "wastelands", "frostveil"]:
+	# (the snowy lands get their rock from the ground shader: steep faces bare, see terrain3d.gdshader)
+	if map_id not in ["ember", "crystal-badlands", "wastelands"]:
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(map_id) + 7
