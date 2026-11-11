@@ -549,8 +549,11 @@ city's street) or the region on foot (`arrival_view.gd`, with a FLIGHTS desk hom
 piers, seaplane terminal, resorts), Frostveil International (FRV: snow, falling snow, glaciers and peaks, pines, rescue
 orange) and Solara Desert International (SOL: sandstone walls, a solar-panel roof, solar fields, dunes and mesas). Flights
 to them land in their terminal; the forecourt EXIT walks you out into the region (`outside` signal → arrival_view.gd),
-and that view's FLIGHTS desk walks you back in. Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
+and that view's FLIGHTS desk walks you back in. Nov 10, three more, on the land the asset catalog gives their biomes: Thalassia Coast Seaplane
+Terminal (THA: coast by the Verdant Forest, seaplanes, a submarine dock under a glass dome down to underwater Thalassia),
+Obsidian Reach Airport (OBS, in the volcanic Ember Peaks: basalt, lava channels, smoking volcanoes, container stacks and
+the heavy-lift airship) and Shattered Expanse Expedition Airfield (SHX, in the Crystal Badlands: giant rift crystals,
+glowing cracks, floating ruins, a lightning storm). Aetherion and Eldergrove stay NOT YET OPEN (no land for them yet). Each look is a `LOOKS` row in airport_view.gd. All rules are in `airport.gd`
 (state in the profile under `air`, so it rides the cloud save); add an airport as an `AIRPORTS` row and a destination
-as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove, Obsidian
-Reach). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
+as a `DESTINATIONS` row (a row with no region shows on the board as NOT YET OPEN: Aetherion, Eldergrove). Tests: `--script res://tests/airport/airport_test.gd` (rules) and `res://tests/airport/airport_play.tscn` (the
 whole trip through main.gd). Shots: `--shot airport[:NXC|NEC[:x,y,z:tx,ty,tz]]`.
