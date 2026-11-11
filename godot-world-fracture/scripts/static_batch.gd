@@ -173,6 +173,11 @@ static func compact(model: Node3D) -> void:
 	if model.scene_file_path != "" and _compacted.has(file):
 		# the same model again: reuse its folded meshes, so copies share them (and a batch can instance them)
 		for mi in model.find_children("*", "MeshInstance3D", true, false):
+			if not is_instance_valid(mi):
+				continue
+			if mi.get_child_count() > 0:
+				mi.mesh = null     # it holds other nodes (nested meshes): keep it, drop its mesh
+				continue
 			mi.get_parent().remove_child(mi)
 			mi.free()
 		for e in _compacted[file]:
@@ -227,7 +232,14 @@ static func compact(model: Node3D) -> void:
 		out.visibility_range_fade_mode = src.visibility_range_fade_mode
 		model.add_child(out)
 		made.append([out.mesh, out.material_override, out.cast_shadow, out.visibility_range_end, out.visibility_range_end_margin, out.visibility_range_fade_mode])
+	# a merged mesh's node goes; one with children (a model that nests meshes, the Aurora GT's wheels) only loses its
+	# mesh, so the children it holds aren't freed with it
 	for mi in list:
+		if not is_instance_valid(mi):
+			continue
+		if mi.get_child_count() > 0:
+			mi.mesh = null
+			continue
 		mi.get_parent().remove_child(mi)
 		mi.free()
 	if model.scene_file_path != "":

@@ -27,6 +27,8 @@ var _room: Node3D
 var _yaw := 0.7
 var _pitch := 17.0
 var _dist := 7.2
+## the camera's furthest orbit; the bay's furniture stands outside it
+const MAX_DIST := 10.0
 var _drag := false
 var _auto := true
 
@@ -157,7 +159,7 @@ func _load_car() -> void:
 	var f := Kit.frame(_car)
 	_car.position = Vector3(-f.c.x, 0.12 - f.floor, -f.c.z)
 	var length: float = f.hl * 2.0
-	_dist = clampf(length * 2.0, 6.0, 11.0)
+	_dist = clampf(length * 2.0, 6.0, MAX_DIST)
 	_apply_preview()
 
 func _apply_preview() -> void:
@@ -275,13 +277,15 @@ func _build_room() -> void:
 	steel.albedo_color = Color("#3d6fa8")
 	steel.roughness = 0.35
 	steel.metallic = 0.5
-	for x in [6.2, 9.0]:
-		_slab(Vector3(0.3, 4.2, 0.3), Vector3(x, 2.1, 3.5), steel)
-	_slab(Vector3(3.1, 0.2, 0.3), Vector3(7.6, 4.1, 3.5), steel)
+	# the lift and the tool shelves stand beyond the camera's orbit (MAX_DIST): the orbit used to pass through the lift
+	# posts, a slab filling half the view on the phone (owner, Nov 11: "fix vehicles rendering")
+	for x in [9.0, 11.8]:
+		_slab(Vector3(0.3, 4.2, 0.3), Vector3(x, 2.1, -8.6), steel)
+	_slab(Vector3(3.1, 0.2, 0.3), Vector3(10.4, 4.1, -8.6), steel)
 	for y in [0.9, 1.9, 2.9]:
-		_slab(Vector3(3.0, 0.06, 0.6), Vector3(-8.6, y, 2.5), dark)
+		_slab(Vector3(0.6, 0.06, 3.0), Vector3(-12.4, y, 3.0), dark)
 		for k in 4:
-			_slab(Vector3(0.45, 0.35, 0.4), Vector3(-8.6 + (k - 1.5) * 0.7, y + 0.2, 2.5), _flat(Color.from_hsv(0.55 + k * 0.08, 0.25, 0.35), 0.6))
+			_slab(Vector3(0.4, 0.35, 0.45), Vector3(-12.4, y + 0.2, 3.0 + (k - 1.5) * 0.7), _flat(Color.from_hsv(0.55 + k * 0.08, 0.25, 0.35), 0.6))
 	# the turntable: a dark steel disc with a lit rim
 	var deck := StandardMaterial3D.new()
 	deck.albedo_color = Color("#22262c")
@@ -398,7 +402,7 @@ func _input_3d(e: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
 			_dist = maxf(3.0, _dist * 0.9)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
-			_dist = minf(12.0, _dist * 1.1)
+			_dist = minf(MAX_DIST, _dist * 1.1)
 	elif e is InputEventMouseMotion and _drag:
 		var mm := e as InputEventMouseMotion
 		_yaw -= mm.relative.x * 0.008

@@ -10,6 +10,9 @@ extends RefCounted
 ## the cars a garage can work on, from the web game's fleet models (public/models/fleet -> res://models/fleet)
 ## stats are 0..100: top speed, acceleration, handling, armour
 const VEHICLES := [
+	# a detailed, realistic model (Khronos glTF sample "Car Concept", CC-BY 4.0 — credited in CREDITS.md; simplified for the
+	# phone by gltfpack and fitted to Godot by tools/fix_glb_materials.py)
+	{ "id": "aurora-gt", "name": "Aurora GT", "cls": "super", "model": "res://models/fleet/concept-gt.glb", "paint": "#b3121a", "stats": { "speed": 84, "accel": 80, "handling": 74, "armor": 16 } },
 	{ "id": "street-racer", "name": "Vex GT Street Racer", "cls": "super", "model": "res://models/fleet/street-racer-lod.glb", "paint": "#c8102e", "stats": { "speed": 78, "accel": 74, "handling": 70, "armor": 18 } },
 	{ "id": "muscle-car", "name": "Rift Runner Muscle", "cls": "muscle", "model": "res://models/fleet/muscle-car-lod.glb", "paint": "#d9dde2", "stats": { "speed": 70, "accel": 72, "handling": 52, "armor": 26 } },
 	{ "id": "tuner", "name": "Kaido Street Tuner", "cls": "street", "model": "res://models/fleet/tuner.glb", "paint": "#2a5bd7", "stats": { "speed": 58, "accel": 60, "handling": 66, "armor": 20 } },

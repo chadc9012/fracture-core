@@ -452,7 +452,7 @@ func _spire() -> void:
 		prop("street/bench-neon.glb", 1.0, 82.0, zz, 0.0)
 		prop("planter.glb", 2.2, 70.0, zz * 1.6, 0.0)
 		prop("planter.glb", 2.2, 96.0, zz * 1.6, 0.0)
-	vehicle("luxury-sedan.glb", 5.0, 52.0, 30.0, 0.0)
+	vehicle("concept-gt.glb", 4.6, 52.0, 30.0, 0.0)
 	vehicle("hover-car.glb", 5.0, 52.0, -30.0, 180.0)
 	lamp(82.0, 0.0, 8.0, Color(0.7, 0.9, 1.0), 2.4, 30.0)
 

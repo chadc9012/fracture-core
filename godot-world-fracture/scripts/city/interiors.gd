@@ -667,7 +667,7 @@ static func _parking(v) -> void:
 	for z in range(-40, -2, 6):
 		v.box(Vector3(0.25, 0.06, 2.4), Vector3(0, 3.36, z), v.glow(Color(0.9, 0.97, 1.0), 2.2), false)
 	# two rows of bays each side of the aisle, pillars between every three
-	var cars := ["luxury-sedan.glb", "muscle-car-lod.glb", "tuner.glb", "security-suv.glb", "city-pod.glb", "street-racer-lod.glb"]
+	var cars := ["concept-gt.glb", "muscle-car-lod.glb", "street-racer-lod.glb", "security-suv.glb", "muscle-car-lod.glb", "street-racer-lod.glb"]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 9
 	var ci := 0

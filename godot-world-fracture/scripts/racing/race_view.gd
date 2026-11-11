@@ -24,7 +24,7 @@ const Sound := preload("res://scripts/audio/sound.gd")
 const PackVenue := preload("res://scripts/racing/pack_venue.gd")
 const FLEET := "res://models/fleet/"
 const PROFILE := "user://profile.json"
-const RIVAL_FILES := ["muscle-car-lod.glb", "street-racer-lod.glb", "tuner.glb"]
+const RIVAL_FILES := ["muscle-car-lod.glb", "street-racer-lod.glb", "concept-gt.glb"]
 const RIVAL_NAMES := ["K. Voss", "Mara Lin", "D. Okafor"]
 ## the street racers (Neon Night Circuit)
 const STREET_NAMES := ["Ghost", "Vex", "Nightjar"]
