@@ -204,9 +204,10 @@ static func _hospital(v) -> void:
 	_plant(v, Vector3(14.5, 0, -1.5))
 	v.light(Vector3(0, 3.8, -6), Color(1, 1, 1), 0.6, 16.0)
 	v.light(Vector3(0, 3.8, -26), Color(0.95, 1.0, 1.0), 0.6, 16.0)
-	v.people([[Vector3(0, 0, -9.4), 0.0], [Vector3(1.6, 0, -9.4), 0.2], [Vector3(-11.5, 0, -5.2), PI], [Vector3(-10.0, 0, -10.4), 2.6],
-		[Vector3(13.4, 0, -6.0), -PI * 0.5], [Vector3(1.0, 0, -20.6), 0.0], [Vector3(-4.0, 0, -28.0), 0.7], [Vector3(5.0, 0, -26.0), -0.4],
-		[Vector3(-6.0, 0, -15.0), 1.2]], 11)
+	v.staff([[Vector3(-1.0, 0, -9.3), 0.0, "uniform-scrubs", "female"], [Vector3(1.6, 0, -9.3), 0.0, "uniform-doctor", "male"],
+		[Vector3(13.4, 0, -6.0), -PI * 0.5, "uniform-doctor", "female"], [Vector3(1.0, 0, -20.6), 0.0, "uniform-scrubs", "male"],
+		[Vector3(-4.0, 0, -27.0), 0.7, "uniform-doctor", "male"], [Vector3(6.0, 0, -3.5), PI, "uniform-paramedic", "female"]])
+	v.people([[Vector3(-11.5, 0, -5.2), PI], [Vector3(-10.0, 0, -10.4), 2.6], [Vector3(5.0, 0, -26.0), -0.4], [Vector3(-6.0, 0, -15.0), 1.2]], 11)
 
 # --------------------------------------------------------------------------------------------- the police station
 static func _police(v) -> void:
@@ -252,8 +253,10 @@ static func _police(v) -> void:
 		v.box(Vector3(0.6, 2.0, 0.9), Vector3(14.4, 1.0, -4.0 - k * 0.95), v.mat(Color(0.3, 0.35, 0.3), 0.5, 0.6))
 	v.light(Vector3(0, 3.8, -8), Color(0.95, 0.97, 1.0), 1.0, 16.0)
 	v.light(Vector3(0, 3.8, -24), Color(0.9, 0.95, 1.0), 0.9, 16.0)
-	v.people([[Vector3(0.5, 0, -7.6), 0.0], [Vector3(-6.0, 0, -12.2), PI], [Vector3(6.2, 0, -17.6), 2.8], [Vector3(-9.0, 0, -21.5), 0.4],
-		[Vector3(-4.0, 0, -29.5), 0.0], [Vector3(9.0, 0, -3.0), -1.4]], 13)
+	v.staff([[Vector3(0.5, 0, -7.6), 0.0, "uniform-police", "male"], [Vector3(-6.0, 0, -11.6), PI, "uniform-police", "female"],
+		[Vector3(6.2, 0, -16.6), 2.8, "uniform-police", "male"], [Vector3(-9.0, 0, -21.5), 0.4, "uniform-police", "female"],
+		[Vector3(9.0, 0, -3.0), -1.4, "uniform-security", "male"]])
+	v.people([[Vector3(-4.0, 0, -29.5), 0.0]], 13)
 
 # --------------------------------------------------------------------------------------------- the fire station
 static func _fire_truck(v, at: Vector3) -> void:
@@ -307,7 +310,8 @@ static func _fire(v) -> void:
 	v.sign("STATION 12 · %s FIRE RESCUE" % String(CITY.get(v.style, "NEXUS CITY")), Vector3(0, 6.6, -31.7), 0.0, Color(1.0, 0.85, 0.3), 80)
 	v.light(Vector3(0, 6.5, -10), Color(1.0, 0.95, 0.88), 1.4, 22.0)
 	v.light(Vector3(0, 3.5, -27), Color(1.0, 0.9, 0.8), 0.8, 12.0)
-	v.people([[Vector3(-3.2, 0, -2.0), 0.6], [Vector3(10.0, 0, -3.0), -0.6], [Vector3(-14.5, 0, -6.0), 1.6], [Vector3(3.0, 0, -20.0), 0.0]], 17)
+	v.staff([[Vector3(-3.2, 0, -2.5), 0.6, "uniform-firefighter", "male"], [Vector3(10.0, 0, -3.0), -0.6, "uniform-firefighter", "female"],
+		[Vector3(-14.5, 0, -6.0), 1.6, "uniform-firefighter", "male"], [Vector3(3.0, 0, -20.0), 0.0, "uniform-paramedic", "male"]])
 
 # --------------------------------------------------------------------------------------------- the hotel
 static func _hotel(v) -> void:
@@ -359,8 +363,9 @@ static func _hotel(v) -> void:
 	v.spot("gilded", "THE GILDED BAR · A DRINK", Vector3(10.6, 0, -4.5))
 	for p in [Vector3(-16.5, 0, -2.0), Vector3(16.5, 0, -32.0), Vector3(-16.5, 0, -32.0)]:
 		_plant(v, p)
-	v.people([[Vector3(-1.5, 0, -30.5), 0.0], [Vector3(1.5, 0, -30.5), 0.0], [Vector3(-8.0, 0, -12.0), 0.8], [Vector3(-13.0, 0, -20.0), -0.5],
-		[Vector3(13.5, 0, -4.0), -PI * 0.5], [Vector3(3.0, 0, -14.0), 2.0], [Vector3(14.6, 0, -12.0), PI * 0.5]], 19)
+	v.staff([[Vector3(-1.5, 0, -30.4), 0.0, "uniform-office", "female"], [Vector3(1.5, 0, -30.4), 0.0, "uniform-office", "male"],
+		[Vector3(13.4, 0, -4.0), -PI * 0.5, "uniform-bartender", "male"], [Vector3(-4.0, 0, -2.5), PI, "uniform-security", "male"]])
+	v.people([[Vector3(-8.0, 0, -12.0), 0.8], [Vector3(-13.0, 0, -20.0), -0.5], [Vector3(3.0, 0, -14.0), 2.0], [Vector3(14.6, 0, -12.0), PI * 0.5]], 19)
 
 # --------------------------------------------------------------------------------------------- the nightclub
 const FLOOR_SHADER := """
@@ -486,8 +491,8 @@ static func _nightclub(v) -> void:
 	rng.seed = 5
 	for i in 30:
 		crowd.append([Vector3(rng.randf_range(-6.5, 6.5), 0, rng.randf_range(-19.5, -10.5)), rng.randf() * TAU])
-	crowd.append([Vector3(0, 1.0, -27.8), 0.0])
-	crowd.append([Vector3(14.4, 0, -10.0), -PI * 0.5])
+	v.staff([[Vector3(0, 1.0, -27.9), 0.0, "uniform-bartender", "male"], [Vector3(14.2, 0, -10.0), -PI * 0.5, "uniform-bartender", "female"],
+		[Vector3(-10.0, 0, -4.0), PI * 0.5, "uniform-security", "male"]])
 	for k in 5:
 		crowd.append([Vector3(9.8, 0, -7.0 - k * 2.4), PI * 0.5])
 	v.people(crowd, 23)
@@ -537,8 +542,9 @@ static func _restaurant(v) -> void:
 	v.box(Vector3(1.0, 1.1, 8.0), Vector3(11.5, 0.55, -8.0), dark)
 	v.spot("bar", "BAR · A DRINK", Vector3(10.2, 0, -8.0))
 	v.light(Vector3(0, 3.5, -10), Color(1.0, 0.8, 0.6), 1.0, 16.0)
-	v.people([[Vector3(-3.2, 0, -3.2), PI], [Vector3(0.5, 0, -24.0), 0.0], [Vector3(3.5, 0, -24.2), 0.3], [Vector3(-5.0, 0, -7.0), PI],
-		[Vector3(5.0, 0, -11.9), 0.4], [Vector3(12.8, 0, -7.0), -PI * 0.5], [Vector3(-12.0, 0, -11.0), PI * 0.5]], 29)
+	v.staff([[Vector3(-3.2, 0, -3.2), PI, "uniform-bartender", "female"], [Vector3(0.5, 0, -24.0), 0.0, "uniform-chef", "male"],
+		[Vector3(3.5, 0, -24.2), 0.3, "uniform-chef", "female"], [Vector3(12.8, 0, -7.0), -PI * 0.5, "uniform-bartender", "male"]])
+	v.people([[Vector3(-5.0, 0, -7.6), PI], [Vector3(5.0, 0, -12.6), 0.4], [Vector3(-12.0, 0, -11.0), PI * 0.5]], 29)
 
 # --------------------------------------------------------------------------------------------- the school
 static func _school(v) -> void:
@@ -593,7 +599,8 @@ static func _school(v) -> void:
 	v.sign("GO CONDORS", Vector3(17.7, 3.4, -27.5), -PI * 0.5, Color(0.95, 0.75, 0.2), 90, false)
 	v.light(Vector3(-9, 3.6, -27), Color(1.0, 1.0, 0.95), 0.6, 14.0)
 	v.light(Vector3(9, 3.6, -27), Color(1.0, 1.0, 0.95), 0.6, 14.0)
-	v.people([[Vector3(-9.0, 0, -37.8), 0.0], [Vector3(-11.5, 0, -24.0), PI], [Vector3(2.5, 0, -8.0), -1.0], [Vector3(-2.0, 0, -11.0), 1.4],
+	v.staff([[Vector3(-9.0, 0, -38.2), 0.0, "uniform-office", "female"], [Vector3(9.0, 0, -22.0), PI, "uniform-office", "male"]])
+	v.people([[Vector3(-11.5, 0, -24.0), PI], [Vector3(2.5, 0, -8.0), -1.0], [Vector3(-2.0, 0, -11.0), 1.4],
 		[Vector3(7.0, 0, -33.0), 0.3], [Vector3(11.0, 0, -30.0), 2.4], [Vector3(15.6, 0.9, -25.0), -PI * 0.5]], 31)
 
 # --------------------------------------------------------------------------------------------- the office floor
@@ -644,7 +651,8 @@ static func _office(v) -> void:
 	v.spot("meeting", "MEETING ROOM", Vector3(9.2, 0, -6.0), 2.0)
 	v.light(Vector3(0, 3.5, -10), Color(0.95, 0.97, 1.0), 1.0, 16.0)
 	v.light(Vector3(0, 3.5, -24), Color(0.95, 0.97, 1.0), 0.9, 16.0)
-	v.people([[Vector3(0, 0, -6.8), 0.0], [Vector3(-12.0, 0, -11.5), PI], [Vector3(-4.0, 0, -18.0), 0.5], [Vector3(4.5, 0, -14.0), -0.8],
+	v.staff([[Vector3(0, 0, -6.8), 0.0, "uniform-office", "female"], [Vector3(-4.0, 0, -18.6), 0.5, "uniform-office", "male"]])
+	v.people([[Vector3(-12.0, 0, -11.5), PI], [Vector3(4.5, 0, -14.0), -0.8],
 		[Vector3(12.5, 0, -5.0), PI * 0.5], [Vector3(15.0, 0, -7.0), -PI * 0.5], [Vector3(-14.0, 0, -27.0), 0.2]], 37)
 
 # --------------------------------------------------------------------------------------------- the underground parking
@@ -691,6 +699,7 @@ static func _parking(v) -> void:
 	v.spot("paystation", "PAY STATION", Vector3(-4.0, 0, -2.8), 1.8)
 	v.light(Vector3(0, 3.0, -10), Color(0.9, 0.95, 1.0), 0.9, 14.0)
 	v.light(Vector3(0, 3.0, -30), Color(0.9, 0.95, 1.0), 0.9, 14.0)
+	v.staff([[Vector3(-5.2, 0, -2.4), PI * 0.5, "uniform-security", "male"]])
 	v.people([[Vector3(-3.0, 0, -18.0), 0.3], [Vector3(8.0, 0, -26.0), -1.4]], 41)
 
 # --------------------------------------------------------------------------------------------- the metro
@@ -781,4 +790,5 @@ static func _metro(v) -> void:
 		board.text = "NEXT TRAIN  %s" % ("NOW BOARDING" if String(st.phase) == "docked" else ("ARRIVING" if String(st.phase) == "in" else ("DEPARTED" if String(st.phase) == "out" else "%d s" % int(ceil(float(st.t)))))))
 	v.light(Vector3(-3, 4.2, -12), Color(0.95, 0.98, 1.0), 0.8, 16.0)
 	v.light(Vector3(-3, 4.2, -42), Color(0.95, 0.98, 1.0), 0.8, 16.0)
+	v.staff([[Vector3(-6.0, 0, -9.0), 0.6, "uniform-police", "female"]])
 	v.people([[Vector3(-4.0, 0, -14.0), 0.8], [Vector3(-1.0, 0, -28.0), -PI * 0.5], [Vector3(-5.5, 0, -36.0), 1.6], [Vector3(-0.5, 0, -46.0), -1.2]], 43)

@@ -15,6 +15,8 @@ const Gear := preload("res://scripts/gear/gear_store.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const Crowd := preload("res://scripts/city/crowd.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
+const CharacterStore := preload("res://scripts/character/character_store.gd")
+const Catalog := preload("res://scripts/character/catalog.gd")
 
 var kind := "hospital"
 var style := "nexus"
@@ -35,6 +37,8 @@ var exit_at := Vector3.INF
 var animate: Array[Callable] = []
 ## what the builder keeps for its own use (counters cycled, labels to refresh)
 var data := {}
+## the people at work here (full-body, in uniform): [{mover, yaw}]
+var _staff: Array = []
 var _vp: SubViewport
 var _hud: Label
 var _near := ""
@@ -114,6 +118,12 @@ func _process(dt: float) -> void:
 	_t += dt
 	for f in animate:
 		f.call(dt)
+	for st in _staff:
+		var m: Node3D = st.mover
+		var to: Vector3 = operator.position - m.position if operator else Vector3.ZERO
+		var want: float = atan2(to.x, to.z) if to.length() < 4.0 else float(st.yaw)
+		m.heading = lerp_angle(m.heading, want, minf(1.0, 5.0 * dt))
+		m.step(dt, Vector2.ZERO, Vector2.ZERO, false, false)
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if not _look.is_empty():
 		cam.position = _look[0]
@@ -280,6 +290,30 @@ static func _bounds(n: Node) -> AABB:
 		out = b if first else out.merge(b)
 		first = false
 	return out
+
+## the people at work here, full-body like the city's named people, in their work uniforms (outfits.gd "uniform-*"):
+## [[pos, yaw, uniform, body ("male" / "female", else alternating)], ...]. They stand at their posts (each a small
+## obstacle) and turn to face you when you come close.
+func staff(list: Array) -> void:
+	var frames := ["cipher", "nyx", "goliath", "cipher"]
+	for i in list.size():
+		var e: Array = list[i]
+		var at: Vector3 = e[0]
+		var body: String = String(e[3]) if e.size() > 3 else ("female" if i % 2 == 1 else "male")
+		var key := "%s-%d" % [kind, i]
+		var look := CharacterStore.clean({ "frame": frames[absi(hash(key)) % frames.size()], "body": body, "name": "staff", "outfit": String(e[2]) })
+		var faces: Array = Catalog.faces(body)
+		if not faces.is_empty():
+			look = CharacterStore.apply_face(look, String(faces[absi(hash(key + "f")) % faces.size()].id))
+		var m := Player.new()
+		world.add_child(m)
+		m.bounds = room
+		m.obstacles = [] as Array[AABB]
+		m.position = at
+		m.heading = float(e[1])
+		m.build(look)
+		obstacles.append(AABB(Vector3(at.x - 0.35, 0, at.z - 0.35), Vector3(0.7, 1.8, 0.7)))
+		_staff.append({ "mover": m, "yaw": float(e[1]) })
 
 ## people standing about: [[pos, yaw], ...] as one crowd multimesh
 func people(at: Array, seed := 7) -> void:
