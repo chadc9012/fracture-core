@@ -6,7 +6,7 @@ const Race = preload("res://scripts/racing/race.gd")
 func _init() -> void:
 	var t := Track.new("nexus-speedway")
 	var ok := true
-	var r1: bool = t.length > 400.0 and t.length < 900.0 and t.at(0.0).distance_to(t.at(t.length)) < 0.5 and t.progress(t.at(10.0)) > 0.0 and t.progress(t.at(10.0)) < 0.05
+	var r1: bool = t.length > 1500.0 and t.length < 3500.0 and t.at(0.0).distance_to(t.at(t.length)) < 0.5 and t.progress(t.at(10.0)) > 0.0 and t.progress(t.at(10.0)) < 0.05
 	print("a closed lap with progress: ", r1, " length ", t.length)
 	ok = ok and r1
 	var r2: bool = not t.off_track(t.at(100.0)) and t.off_track(t.at(100.0) + Vector3(20, 0, 0)) and t.curvature_ahead(t.at(5.0), 20.0) < 0.3
@@ -25,7 +25,7 @@ func _init() -> void:
 		d_r += 26.0 / 60.0
 		race.tick(1.0 / 60.0, [t.at(d_me), t.at(d_r)])
 		steps += 1
-	var r3: bool = race.finished and me.laps == 2 and rival.laps == 2 and race.position_of(rival) == 1 and race.position_of(me) == 2 and race.prize() == 500
+	var r3: bool = race.finished and me.laps == 2 and rival.laps == 2 and race.position_of(rival) == 1 and race.position_of(me) == 2 and race.prize() == int(t.def.prize[1])
 	print("laps, finish order and prize: ", r3, " me ", me.laps, " rival ", rival.laps, " place ", race.position_of(me), " prize ", race.prize())
 	ok = ok and r3
 	var r4: bool = me.best_lap > 20.0 and absf(me.best_lap - t.length / 20.0) < 1.0
