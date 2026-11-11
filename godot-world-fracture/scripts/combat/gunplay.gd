@@ -153,7 +153,7 @@ func _pull_aim(dt: float, cam: Camera3D) -> void:
 	for t in targets:
 		if not t.alive():
 			continue
-		if t.has_meta("cover") or (t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team):
+		if t.has_meta("cover") or t.has_meta("prop") or t.has_meta("cover_box") or (t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team):
 			continue
 		var c: Vector3 = t.box.get_center() + Vector3(0, t.box.size.y * 0.15, 0)
 		var to_c := c - from
@@ -291,7 +291,7 @@ func aim_point(cam: Camera3D) -> Vector3:
 		for t in targets:
 			if not t.alive():
 				continue
-			if t.has_meta("cover") or (t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team):
+			if t.has_meta("cover") or t.has_meta("prop") or t.has_meta("cover_box") or (t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team):
 				continue     # an ally bot, or a crate
 			var c: Vector3 = t.box.get_center()
 			var to_c := c - from
@@ -354,11 +354,7 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 				if v != Vector3.ZERO:
 					v.y -= 9.8 * dt
 					nd.global_position += v * dt
-<<<<<<< HEAD
 					if tr.has("spin"):
-=======
-					if tr.has("floor"):
->>>>>>> origin/main
 						nd.rotation += Vector3(tr.spin) * dt
 						if nd.global_position.y <= float(tr.floor) + 0.02 and v.y < 0.0:
 							nd.global_position.y = float(tr.floor) + 0.02
@@ -375,7 +371,7 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		_flash_t -= dt
 		_flash.visible = _flash_t > 0.0
 	for t in targets:
-		if not t.alive() and not t.has_meta("cover"):
+		if not t.alive() and not (t.has_meta("cover_box") or t.has_meta("prop")):
 			t.down -= dt
 			if t.down <= 0.0:
 				t.hp = t.max_hp
@@ -410,19 +406,15 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 		if not t.alive():
 			continue
 		var p2: Variant = t.box.intersects_ray(from, dir)
-<<<<<<< HEAD
-		# cover is an obstacle and a target with the same box: the tie goes to the target
-		if p2 != null and from.distance_to(p2) < dist + (0.02 if t.has_meta("cover") else 0.0):
-=======
 		# a tie goes to the target: destructible cover sits in the obstacle list too (the bots' sight lines), with the
 		# very same box
-		if p2 != null and from.distance_to(p2) <= dist + 0.001:
->>>>>>> origin/main
+		if p2 != null and from.distance_to(p2) <= dist + (0.02 if t.has_meta("cover_box") else 0.001):
 			dist = from.distance_to(p2)
 			hit_t = t
 	var end := from + dir * dist
 	tracer(from, end)
-	var cover := hit_t != null and hit_t.has_meta("cover")
+	# destructible cover: the street's (`cover_box`, gunplay.add_cover) and Killbox's props (`prop`, arena_view.gd)
+	var cover := hit_t != null and (hit_t.has_meta("cover_box") or hit_t.has_meta("prop"))
 	if cover:
 		spark(end, false)
 		_debris(end, 2, hit_t.get_meta("cover_color", Color(0.5, 0.5, 0.5)), 0.05)
@@ -431,36 +423,37 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 	if hit_t == null and gun().frame == "HEAVY":
 		_debris(end, 6, Color(0.42, 0.4, 0.38), 0.12)     # a cannon round throws up chunks of whatever it hit
 	if hit_t:
-<<<<<<< HEAD
-		var head := end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82 and not cover
-=======
-		# a prop (destructible cover) has no head, counts no kill and scavenges nothing; it stays down
-		var prop := hit_t.has_meta("prop")
-		var head := not prop and end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
->>>>>>> origin/main
+		# cover has no head, counts no kill and scavenges nothing; it stays down once broken
+		var head := not cover and end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
 		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult
 		var res: Dictionary = hit_t.take(dmg, gun().frame == "FUSION")
 		if float(res.shield) > 0.0:
 			_shield_flash(hit_t, bool(res.broke))
 		if cover:
 			if not hit_t.alive():
-				_break_cover(hit_t)
+				if hit_t.has_meta("cover_box"):
+					_break_cover(hit_t)
+				else:
+					# a Killbox prop: arena_view.gd takes it out of arena.boxes() on `killed`
+					hit_t.hp = 0.0
+					hit_t.down = INF
+					if hit_t.node:
+						hit_t.node.visible = false
+					debris(hit_t.box.get_center(), hit_t.box.size, Color(hit_t.get_meta("blood", Color(0.7, 0.65, 0.55))))
+					Sound.sfx_at("debris", end, from, -4.0)
+					killed.emit(hit_t)
 			return
 		hits_landed += 1
 		hit.emit(hit_t, dmg, head)
 		Sound.sfx_at("headshot" if head else "hit", end, from, -3.0)
 		if hit_t.hp <= 0.0:
 			hit_t.hp = 0.0
-			hit_t.down = INF if prop else 5.0
+			hit_t.down = 5.0
 			if hit_t.node:
 				hit_t.node.visible = false
-			if prop:
-				debris(hit_t.box.get_center(), hit_t.box.size, Color(hit_t.get_meta("blood", Color(0.7, 0.65, 0.55))))
-				Sound.sfx_at("stagger", end, from, -6.0)
-			else:
-				kills += 1
-				Sound.sfx_at("down", end, from, -4.0)
-				scavenge()
+			kills += 1
+			Sound.sfx_at("down", end, from, -4.0)
+			scavenge()
 			killed.emit(hit_t)
 
 func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
@@ -784,7 +777,7 @@ func _shield_flash(t: Target, broke: bool) -> void:
 ## chip and finally break — what shows it hides, the box is parked out of the world, and it falls into debris
 func add_cover(box: AABB, node: Node3D, hp: float, box_index: int, col := Color(0.45, 0.45, 0.45)) -> Target:
 	var t := Target.new(box, hp, node)
-	t.set_meta("cover", box_index)
+	t.set_meta("cover_box", box_index)
 	t.set_meta("cover_color", col)
 	targets.append(t)
 	return t
@@ -792,7 +785,7 @@ func add_cover(box: AABB, node: Node3D, hp: float, box_index: int, col := Color(
 func _break_cover(t: Target) -> void:
 	t.hp = 0.0
 	t.down = INF
-	var idx := int(t.get_meta("cover"))
+	var idx := int(t.get_meta("cover_box"))
 	if idx >= 0 and idx < obstacles.size():
 		obstacles[idx] = GONE_BOX
 	if t.node:

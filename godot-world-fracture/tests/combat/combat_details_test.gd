@@ -84,12 +84,12 @@ func _run() -> void:
 	# destructible cover: walk up to a crate and shoot it until it breaks
 	var crate: Gunplay.Target = null
 	for tg in gp.targets:
-		if tg.has_meta("cover") and tg.max_hp < 100.0:
+		if tg.has_meta("cover_box") and tg.max_hp < 100.0:
 			crate = tg
 			break
 	ok(crate != null, "crates stand on the walks as cover")
 	if crate:
-		var idx := int(crate.get_meta("cover"))
+		var idx := int(crate.get_meta("cover_box"))
 		ok(st.operator.obstacles[idx] == crate.box, "the crate is a solid box")
 		var broken := [false]
 		gp.cover_broken.connect(func(_c): broken[0] = true)
