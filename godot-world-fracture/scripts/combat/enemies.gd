@@ -103,6 +103,8 @@ func setup(p: Node3D, g: Node3D) -> void:
 	gunplay = g
 	_rng.seed = 19
 	g.killed.connect(_on_target_killed)
+	if "roster" in g:
+		g.roster = self      # grenades.gd's Rift Well heals the operator's hull here
 	g.hit.connect(_on_target_hit)
 
 ## spawns one enemy of `type` at `at` with a patrol beat (world points it walks between)
@@ -276,7 +278,12 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 	to_player.y = 0.0
 	var dist := to_player.length()
 	var foe_up := (foe == null and down <= 0.0) or (foe != null and (foe as Enemy).target.alive())
-	var sees := dist < SIGHT and foe_up and _clear(m.position + Vector3(0, 1.4, 0), foe_pos + Vector3(0, 1.2, 0))
+	# Shroud smoke (grenades.gd): nothing sees into or out of it past SMOKE_SIGHT of its range
+	var sight := SIGHT
+	var gr: Node = gunplay.get("grenades") if gunplay else null
+	if gr and not gr.live.is_empty() and (gr.in_smoke(foe_pos) or gr.in_smoke(m.position)):
+		sight = SIGHT * float(gr.SMOKE_SIGHT)
+	var sees := dist < sight and foe_up and _clear(m.position + Vector3(0, 1.4, 0), foe_pos + Vector3(0, 1.2, 0))
 	e.set_meta("foe", foe)
 	var move := Vector2.ZERO
 	var sprint := false
@@ -326,6 +333,12 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 					e.timer = 1.5 + _rng.randf() * 2.0
 			if sees and e.cool <= 0.0 and dist <= want + 2.5:
 				_attack(e, dist)
+	# stunned by a grenade (Concussion, Arc Chain, a Singularity's pull): it stands there and holds its fire
+	if e.target.stun > 0.0:
+		move = Vector2.ZERO
+		sprint = false
+		e.burst_left = 0
+		e.cool = maxf(e.cool, e.target.stun)
 	# bursts in flight
 	if e.burst_left > 0:
 		e.burst_cool -= dt

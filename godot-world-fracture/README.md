@@ -400,6 +400,18 @@ droplets that fall and a splash that lingers; colours follow the owner's board �
 coolant, Fracture creatures violet, wildlife green (a target's `blood` meta). Kills return half a magazine to every
 carried gun (`gunplay.scavenge`).
 
+**Operator grenades** (`scripts/combat/grenades.gd`, owner ask Nov 10, port of the web's grenades.ts — same nine
+grenades and numbers, damage ×10 for the Godot hull scale): each frame carries three of its own and equips one (saved per
+frame in `user://grenades.json`). GOLIATH: Breacher Frag (heavy blast, knockback), Thermite (burning pool), Concussion
+(wide stun). NYX: Shroud (smoke — bots see nothing in or out past 15% of their range), Tripmine (sticks, arms, goes off
+when a bot comes within 3 m; two at a time), Tracer (marks: +33% from bolts and grenades for 6 s). CIPHER: Singularity
+(pulls bots in, then bursts), Arc Chain (stuns and arcs to the three nearest), Rift Well (heals the operator's hull
+9/s, bots in it fire at half rate). gunplay.gd owns and steps it, so every combat view has grenades with no wiring:
+**J** throws and **K** cycles on the desk, **GRENADE** and **⟳** on the phone (hidden in the simple HUD); the read-out
+sits above the weapon's name. Damage goes through `gunplay.grenade_hit` (the bolt's hit / killed signals); stuns and
+marks are `Target.stun` / `Target.mark`, which enemies.gd and gunplay read; the operator's own team is never touched.
+Test: tests/combat/grenades_test.gd.
+
 **Act 1: the story past the forest** (`scripts/mission/descent.gd`, `cutscene.gd`, schedule step 11, Nov 9): the Fracture
 Descent now runs fd-02 to fd-07, the web chain's words and rewards (quests.ts). After the forest, **fd-05 Crossing the
 Shrouded Swamps** (region `swamps`, from the Drowned Ruins: hold out 90 s in the fog while patrols come out of the reeds,
