@@ -100,8 +100,8 @@ func _ready() -> void:
 	box.add_child(grow)
 	var perf := CheckButton.new()
 	perf.text = "Frame-time readout (fps · ms · draws · tris · vram)"
-	perf.button_pressed = bool(s.get("perf_hud", true))
-	perf.toggled.connect(func(on: bool): Store.set_value("perf_hud", on))
+	perf.button_pressed = bool(s.get("perf_readout", false))
+	perf.toggled.connect(func(on: bool): Store.set_value("perf_readout", on))
 	box.add_child(perf)
 	# audio
 	box.add_child(_label("AUDIO"))

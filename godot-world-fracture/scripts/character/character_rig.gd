@@ -19,6 +19,23 @@ var _body_meshes: Array = []
 var anim: AnimationPlayer
 ## where the head sits on this body (body skeleton space), for framing a camera
 var head_point := Vector3(0, 1.6, 0)
+
+## nobody fills the screen (owner, Nov 11 — an NPC standing where the camera was showed only a face across the whole
+## view): a person the camera is inside, or right against, is hidden until it is clear; the clothing store's turntable
+## and the creator stand far enough off never to trip it
+var _cam_hidden := false
+func _process(_dt: float) -> void:
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam == null:
+		return
+	var d := cam.global_position - global_position
+	var flat := Vector2(d.x, d.z).length()
+	var inside := flat < 0.45 * maxf(scale.x, 0.01) and d.y > -0.3 and d.y < 2.2 * maxf(scale.y, 0.01)
+	if inside != _cam_hidden:
+		_cam_hidden = inside
+		for c in get_children():
+			if c is Node3D:
+				(c as Node3D).visible = not inside
 var _head_bone := -1
 
 ## the head bone's world position as it animates (for a camera that follows the face)

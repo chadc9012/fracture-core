@@ -154,8 +154,11 @@ func _markers() -> void:
 		label.position.y = 4.2
 		label.font_size = 56
 		label.outline_size = 12
-		label.pixel_size = 0.012
+		label.pixel_size = 0.007
 		label.no_depth_test = false
+		# only near enough to read, and not on top of the camera (owner, Nov 11: "remove clutter from screen")
+		label.visibility_range_begin = 9.0
+		label.visibility_range_end = 45.0
 		root.add_child(label)
 		markers.append({ "id": id, "root": root, "pos": root.position, "mat": mat, "beam": beam, "label": label, "length": route_for(e).race_length() })
 	refresh_markers()

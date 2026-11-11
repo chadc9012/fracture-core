@@ -49,19 +49,61 @@ var _captured := false
 var _stick_base: Control
 var _stick_knob: Control
 var _sprint_held := false
+var _stick_label: Label
+var _gas_button: Button
+var _gas_held := false
+
+## the GAS pedal held (driving)
+func gas() -> bool:
+	return _gas_held
+
+## where the stick rests when no thumb is on it
+func _stick_rest() -> Vector2:
+	return Vector2(clampf(size.x * 0.13, 120.0, 190.0), size.y - clampf(size.y * 0.3, 150.0, 210.0))
+
+func _rest_stick() -> void:
+	if not _stick_base or _stick_id >= 0:
+		return
+	var p := _stick_rest()
+	_stick_base.position = p - _stick_base.size * 0.5
+	_stick_knob.position = p - _stick_knob.size * 0.5
+	_stick_base.modulate.a = 0.55
+	_stick_knob.modulate.a = 0.55
+	if _stick_label:
+		_stick_label.position = p + Vector2(-100, STICK_R + 30.0)
 
 func _ready() -> void:
 	add_to_group("touch_controls")
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	touch_ui = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
+	touch_ui = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_environment("WF_TOUCH")
 	if touch_ui:
 		_stick_base = _ring(STICK_R + 24.0, Color(1, 1, 1, 0.12))
 		_stick_knob = _ring(34.0, Color(1, 1, 1, 0.35))
-		_stick_base.visible = false
-		_stick_knob.visible = false
+		# the stick shows where it is (owner, Nov 11: "add controls to screen"): resting at the bottom left, dim, and
+		# picked up wherever the left thumb lands; a label says what it does in each mode
+		_stick_base.modulate = Color(1, 1, 1, 0.55)
+		_stick_knob.modulate = Color(1, 1, 1, 0.55)
 		add_child(_stick_base)
 		add_child(_stick_knob)
+		_stick_label = Label.new()
+		_stick_label.add_theme_font_size_override("font_size", 13)
+		_stick_label.modulate = Color(1, 1, 1, 0.6)
+		_stick_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_stick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_stick_label.custom_minimum_size = Vector2(200, 18)
+		add_child(_stick_label)
+		resized.connect(_rest_stick)
+		_rest_stick.call_deferred()
+		# driving: a held GAS pedal beside BRAKE (the stick steers, and pushes for gas too)
+		var gas := _button("GAS")
+		gas.custom_minimum_size = Vector2(120, 120)
+		gas.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		gas.position = Vector2(-250, -160)
+		gas.visible = false
+		bind(gas, func(): _gas_held = true; _lit(gas, true), func(): _gas_held = false; _lit(gas, false))
+		add_child(gas)
+		_gas_button = gas
 		var jump := _button("JUMP")
 		jump.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		jump.position = Vector2(-120, -140)
@@ -136,15 +178,16 @@ func _hud() -> void:
 	add_child(cross)
 	crosshair = cross
 	weapon_name = Label.new()
-	weapon_name.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	weapon_name.position = Vector2(20, -80)
+	# the read-outs sit at the top left, out of the stick's way (owner, Nov 11: "add controls to screen")
+	weapon_name.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	weapon_name.position = Vector2(20, 40)
 	weapon_name.add_theme_font_size_override("font_size", 16)
 	weapon_name.modulate = Color(0.75, 0.85, 0.95)
 	add_child(weapon_name)
 	# a tap on the weapon's name (or the magazine) swaps weapons: the simple HUD has no SWAP button
 	var swap_tap := Control.new()
-	swap_tap.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	swap_tap.position = Vector2(10, -96)
+	swap_tap.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	swap_tap.position = Vector2(10, 34)
 	swap_tap.size = Vector2(240, 90)
 	swap_tap.mouse_filter = Control.MOUSE_FILTER_STOP
 	swap_tap.gui_input.connect(func(e: InputEvent) -> void:
@@ -153,8 +196,8 @@ func _hud() -> void:
 			swap_tap.accept_event())
 	add_child(swap_tap)
 	ammo = Label.new()
-	ammo.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	ammo.position = Vector2(20, -56)
+	ammo.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	ammo.position = Vector2(20, 62)
 	ammo.add_theme_font_size_override("font_size", 30)
 	add_child(ammo)
 	# hull: a bar at the bottom left above the magazine, and a red wash when hit
@@ -166,15 +209,15 @@ func _hud() -> void:
 	move_child(hurt_flash, 0)
 	hull_back = ColorRect.new()
 	hull_back.color = Color(0, 0, 0, 0.45)
-	hull_back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	hull_back.position = Vector2(20, -112)
+	hull_back.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	hull_back.position = Vector2(20, 18)
 	hull_back.size = Vector2(220, 14)
 	hull_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hull_back)
 	hull_fill = ColorRect.new()
 	hull_fill.color = Color(0.35, 0.95, 0.75)
-	hull_fill.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	hull_fill.position = Vector2(22, -110)
+	hull_fill.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	hull_fill.position = Vector2(22, 20)
 	hull_fill.size = Vector2(216, 10)
 	hull_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hull_fill)
@@ -199,8 +242,8 @@ func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> vo
 		if not _shield_fill:
 			_shield_fill = ColorRect.new()
 			_shield_fill.color = Color(0.35, 0.8, 1.0)
-			_shield_fill.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-			_shield_fill.position = Vector2(22, -118)
+			_shield_fill.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			_shield_fill.position = Vector2(22, 12)
 			_shield_fill.size = Vector2(216, 4)
 			_shield_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(_shield_fill)
@@ -295,11 +338,17 @@ func set_mode(m: String) -> void:
 		_lit(_sprint_button, false)
 	if _fire_button:
 		_fire_button.visible = not drive and not fly and weapons_out
+	if _gas_button:
+		_gas_button.visible = drive
+		_gas_held = false
+		_lit(_gas_button, false)
+	if _stick_label:
+		_stick_label.text = "STEER" if drive else ("FLY" if fly else "MOVE")
 	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button]:
 		if b:
 			b.visible = not drive and not fly and weapons_out and not simple()
 	if crosshair:
-		crosshair.visible = not fly and (weapons_out or drive)
+		crosshair.visible = not fly and not drive and weapons_out
 	if drive or fly:
 		_sprint_held = false
 		fire = false
@@ -360,8 +409,8 @@ func take_cycle_grenade() -> bool:
 func show_grenade(h: Dictionary) -> void:
 	if not grenade_label:
 		grenade_label = Label.new()
-		grenade_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-		grenade_label.position = Vector2(20, -108)
+		grenade_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		grenade_label.position = Vector2(20, 100)
 		grenade_label.add_theme_font_size_override("font_size", 14)
 		grenade_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		grenade_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -537,8 +586,8 @@ func _gui_input(event: InputEvent) -> void:
 					_stick_origin = t.position
 					_stick_base.position = t.position - _stick_base.size * 0.5
 					_stick_knob.position = t.position - _stick_knob.size * 0.5
-					_stick_base.visible = true
-					_stick_knob.visible = true
+					_stick_base.modulate.a = 1.0
+					_stick_knob.modulate.a = 1.0
 					move = Vector2.ZERO
 				elif not left and _look_id < 0:
 					_look_id = t.index
@@ -546,8 +595,7 @@ func _gui_input(event: InputEvent) -> void:
 				if t.index == _stick_id:
 					_stick_id = -1
 					move = Vector2.ZERO
-					_stick_base.visible = false
-					_stick_knob.visible = false
+					_rest_stick()
 				elif t.index == _look_id:
 					_look_id = -1
 			accept_event()

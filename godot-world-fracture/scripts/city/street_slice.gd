@@ -56,7 +56,9 @@ var deck_cars: Array = []
 var _infra_t := 0.0
 const Interiors := preload("res://scripts/city/interiors.gd")
 var _radio_button: Button
-var _topbar: HFlowContainer
+var _menu_btn: Button
+var _menu: PanelContainer
+var _topbar: Container
 var _drive_m := 0.0
 var _near_door := ""
 var _near_npc := ""
@@ -233,8 +235,8 @@ func _ready() -> void:
 	_radio_button = Button.new()
 	_radio_button.text = "RADIO"
 	_radio_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_radio_button.position = Vector2(-240, 190)
-	_radio_button.custom_minimum_size = Vector2(224, 40)
+	_radio_button.position = Vector2(-240, 12)
+	_radio_button.custom_minimum_size = Vector2(150, 44)
 	_radio_button.add_theme_font_size_override("font_size", 13)
 	_radio_button.visible = false
 	_radio_button.pressed.connect(_radio_next)
@@ -274,7 +276,8 @@ func _ready() -> void:
 	sports.pressed.connect(open_sports)
 	_bar().add_child(sports)
 	_bar().move_child(back, 0)
-	move_child(_bar(), -1)   # over the touch controls, which fill the screen
+	move_child(_menu_btn, -1)   # over the touch controls, which fill the screen
+	move_child(_menu, -1)
 	if style != "nexus":
 		tod.visible = style != "neon"   # Neon City is always night
 
@@ -286,21 +289,54 @@ func look_from(from: Vector3, at: Vector3) -> void:
 	cam.look_at(at)
 
 # --------------------------------------------------------------------------------------------- on foot
-func _bar() -> HFlowContainer:
+## the street's menu (owner, Nov 11: "remove clutter from screen"): one ☰ button at the top right; the places, the
+## inventory, the operator, day / night, the city and the screen's turn open in a list under it and close on a pick.
+## (It used to be a wall of buttons across the top of the screen.)
+func _bar() -> Container:
 	if _topbar:
 		return _topbar
-	# the top bar wraps: on a phone held upright the door buttons used to run off the right edge (the mall, the casino
-	# and the sports district could not be reached); turned sideways they sit in one row
-	_topbar = HFlowContainer.new()
-	_topbar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_topbar.offset_left = 12
-	_topbar.offset_top = 12
-	_topbar.offset_right = -12
-	_topbar.add_theme_constant_override("h_separation", 8)
-	_topbar.add_theme_constant_override("v_separation", 6)
-	_topbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_topbar)
+	_menu_btn = Button.new()
+	_menu_btn.text = "☰"
+	_menu_btn.custom_minimum_size = Vector2(64, 56)
+	_menu_btn.add_theme_font_size_override("font_size", 26)
+	_menu_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_menu_btn.position = Vector2(-78, 12)
+	_menu_btn.pressed.connect(func(): _menu.visible = not _menu.visible)
+	add_child(_menu_btn)
+	_menu = PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.02, 0.05, 0.09, 0.92)
+	sb.border_color = Color(0.3, 0.8, 1.0, 0.5)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(10)
+	sb.set_content_margin_all(10)
+	_menu.add_theme_stylebox_override("panel", sb)
+	_menu.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_menu.position = Vector2(-330, 76)
+	_menu.custom_minimum_size = Vector2(316, 0)
+	_menu.visible = false
+	add_child(_menu)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(296, 0)
+	_menu.add_child(scroll)
+	_topbar = VBoxContainer.new()
+	_topbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_topbar.add_theme_constant_override("separation", 6)
+	scroll.add_child(_topbar)
+	# every entry closes the menu once it is picked; the list stays inside the screen
+	_topbar.child_entered_tree.connect(func(n: Node) -> void:
+		if n is Button:
+			(n as Button).custom_minimum_size = Vector2(0, 46)
+			(n as Button).pressed.connect(func(): _menu.visible = false))
+	resized.connect(_fit_menu)
+	_fit_menu.call_deferred()
 	return _topbar
+
+func _fit_menu() -> void:
+	if _menu:
+		var h := get_viewport_rect().size.y
+		(_menu.get_child(0) as Control).custom_minimum_size.y = clampf(h - 110.0, 200.0, 560.0)
 
 func _spawn_player() -> void:
 	controls = TouchControls.new()
@@ -412,7 +448,7 @@ func _after_enemies() -> void:
 	# span is (INF, -INF) and every walker spawned at z = NaN (the renderer then rejected their transforms every frame)
 	var first_plan: Dictionary = district.update(operator.position.z, true)
 	var act0: Vector2 = district.extent(District.State.ACTIVE)
-	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(6, int(round(16 * Phone.crowd()))), 9)
+	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(2, int(round(float(OS.get_environment("WF_WALKERS")) if OS.has_environment("WF_WALKERS") else 16 * Phone.crowd()))), 9)
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
 	if style == "nexus" or style == "neon":
@@ -2194,7 +2230,7 @@ func _drive(dt: float) -> void:
 	if controls.take_enter() and absf(car.speed) < 2.0:
 		exit_car()
 		return
-	var throttle: float = controls.move.y
+	var throttle: float = 1.0 if controls.gas() else controls.move.y
 	var steer: float = -controls.move.x
 	if not controls.touch_ui and not controls.scripted:
 		throttle = (1.0 if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) else 0.0)

@@ -213,6 +213,10 @@ func _place_camera(dt: float) -> void:
 	want.z = clampf(want.z, bounds.position.y + 0.3, bounds.end.y - 0.3)
 	want.y = maxf(want.y, (ground_at.call(want.x, want.z) as float) + 0.4)
 	want = _clear_camera(pivot, want)
+	# pulled in by a box right behind (a pillar, the overpass): never into the operator's head — up and over instead,
+	# looking down past the shoulder (owner, Nov 11: the view was a face filling the screen)
+	if (want - pivot).length() < 1.4:
+		want = pivot + Vector3(back.x, 0.0, back.z).normalized() * 1.4 + Vector3(0, 1.1, 0)
 	var k := 1.0 if dt >= 1.0 else 1.0 - exp(-14.0 * dt)
 	cam.position = cam.position.lerp(want, k)
 	cam.look_at(pivot + side * 0.6 + Vector3(0, 0.1, 0))

@@ -2,7 +2,7 @@ extends CanvasLayer
 ## The frame-time readout (schedule step 9: phone performance). One line over every screen — FPS, the frame's cost in
 ## milliseconds, draw calls, triangles drawn and video memory — averaged over the last second so a hitch reads as a hitch.
 ## Green at 30 fps and above, amber under it, red under 20: the gate is 30 fps in a Nexus firefight on the owner's phone.
-## On by default for the test builds (settings "perf_hud"); the settings screen turns it off.
+## Off by default (owner, Nov 11: "remove clutter from screen"); settings "perf_readout" turns it on.
 
 const Settings := preload("res://scripts/front/settings_store.gd")
 
@@ -27,7 +27,7 @@ func _init() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 func _process(dt: float) -> void:
-	var on := bool(Settings.get_value("perf_hud"))
+	var on := bool(Settings.get_value("perf_readout"))
 	_label.visible = on
 	if not on:
 		return
