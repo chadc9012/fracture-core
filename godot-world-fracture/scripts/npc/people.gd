@@ -123,8 +123,84 @@ const NEON := [
 		"outfit": "techwear", "tier": 3, "pay": 3, "heat": 3.0, "schedule": [[20, 4, "alley", "work"]] },
 ]
 
-const ROSTERS := { "nexus": PEOPLE, "neon": NEON }
-const CITY_PLACES := { "nexus": PLACES, "neon": NEON_PLACES }
+# --------------------------------------------------------------------------------------------- the regions (Nov 11)
+## a region's people stand in its airport (airport_view.gd's plan: the forecourt, the check-in hall, baggage claim, the
+## café) — `at` places are points in that view, not the avenue
+const AIRPORT_PLACES := {
+	"kerb": { "at": Vector3(-14, 0.18, 40), "label": "the drop-off kerb" },
+	"fountain": { "at": Vector3(-20, 0.18, 32), "label": "the fountain" },
+	"hall": { "at": Vector3(-12, 0.18, 22), "label": "the check-in hall" },
+	"checkin": { "at": Vector3(-25, 0.18, 8), "label": "the check-in desks" },
+	"carousel": { "at": Vector3(25, 0.18, 19), "label": "baggage claim" },
+	"cafe": { "at": Vector3(27, 0.18, -2.5), "label": "the café" },
+	"shops": { "at": Vector3(27, 0.18, 12), "label": "the shops" },
+}
+## the Verdant Forest has no airport: its people meet you on foot where you land (arrival_view.gd; points from there)
+const FOREST_PLACES := {
+	"trail": { "at": Vector3(6, 0, -5), "label": "the trailhead" },
+	"grove": { "at": Vector3(-7, 0, -9), "label": "the old grove" },
+}
+
+## the dialogue draft's regional cast (tier 3, open-world ambient in the draft) and the locals around them
+const REGIONS := {
+	"THA": [
+		{ "id": "neri", "name": "Pilot Neri", "age": 39, "body": "female", "build": "athletic", "job": "seaplane pilot", "personality": "proud",
+			"outfit": "olive-utility", "tier": 3, "schedule": [[6, 21, "kerb", "work"]] },
+		{ "id": "coral", "name": "Coral Adeyemi", "age": 29, "body": "female", "build": "athletic", "job": "diver", "personality": "cheerful",
+			"outfit": "tracksuit", "schedule": [[7, 19, "carousel", "work"]] },
+		{ "id": "mae", "name": "Mae Okonjo", "age": 47, "body": "female", "build": "heavy", "job": "ferry agent", "personality": "warm",
+			"outfit": "denim", "schedule": [[6, 22, "checkin", "work"]] },
+	],
+	"SOL": [
+		{ "id": "rook", "name": "Mechanic Rook", "age": 46, "body": "male", "build": "heavy", "job": "desert mechanic", "personality": "gruff",
+			"outfit": "workwear", "tier": 3, "schedule": [[7, 20, "kerb", "work"]] },
+		{ "id": "zahra", "name": "Zahra Haddad", "age": 35, "body": "female", "build": "slim", "job": "trader", "personality": "chatty",
+			"outfit": "sand-hoodie", "schedule": [[6, 22, "shops", "work"]] },
+		{ "id": "idris", "name": "Idris Bello", "age": 31, "body": "male", "build": "athletic", "job": "solar engineer", "personality": "cheerful",
+			"outfit": "sunset-tee", "schedule": [[8, 18, "fountain", "sit"]] },
+	],
+	"FRV": [
+		{ "id": "kest", "name": "Ranger Kest", "age": 41, "body": "male", "build": "athletic", "job": "mountain ranger", "personality": "gruff",
+			"outfit": "olive-utility", "tier": 3, "schedule": [[5, 20, "kerb", "work"]] },
+		{ "id": "anya", "name": "Anya Volkova", "age": 26, "body": "female", "build": "slim", "job": "traveller", "personality": "nervous",
+			"outfit": "heather-hoodie", "schedule": [[8, 22, "hall", "wait"]] },
+		{ "id": "lars", "name": "Lars Holm", "age": 55, "body": "male", "build": "heavy", "job": "glaciologist", "personality": "chatty",
+			"outfit": "black-denim", "schedule": [[7, 19, "cafe", "sit"]] },
+	],
+	"OBS": [
+		{ "id": "draev", "name": "Marshal Draev", "age": 58, "body": "male", "build": "heavy", "job": "marshal", "personality": "proud",
+			"outfit": "black-denim", "tier": 3, "schedule": [[6, 22, "hall", "patrol"]], "beat": [0.0, 24.0] },
+		{ "id": "ruth", "name": "Corporal Ruth Mbeki", "age": 33, "body": "female", "build": "athletic", "job": "soldier", "personality": "cynical",
+			"outfit": "olive-utility", "schedule": [[0, 24, "kerb", "work"]] },
+		{ "id": "gus", "name": "Gus Varga", "age": 49, "body": "male", "build": "heavy", "job": "miner", "personality": "gruff",
+			"outfit": "workwear", "schedule": [[16, 23, "cafe", "sit"]] },
+	],
+	"AZI": [
+		{ "id": "kiri", "name": "Kiri Tane", "age": 37, "body": "male", "build": "athletic", "job": "cargo trader", "personality": "cynical",
+			"outfit": "sunset-tee", "schedule": [[6, 20, "kerb", "work"]] },
+		{ "id": "leilani", "name": "Leilani Kahale", "age": 28, "body": "female", "build": "slim", "job": "resort concierge", "personality": "cheerful",
+			"outfit": "pastel-set", "schedule": [[7, 23, "hall", "work"]] },
+		{ "id": "sol", "name": "Sol Navarro", "age": 44, "body": "male", "build": "heavy", "job": "fisherman", "personality": "warm",
+			"outfit": "denim", "schedule": [[5, 14, "fountain", "sit"]] },
+	],
+	"SHX": [
+		{ "id": "wanderer", "name": "The Wanderer", "age": 60, "body": "male", "build": "slim", "job": "wanderer", "personality": "cynical",
+			"outfit": "sand-hoodie", "tier": 3, "schedule": [[0, 24, "fountain", "sit"]] },
+		{ "id": "brann", "name": "Brann Hale", "age": 42, "body": "male", "build": "heavy", "job": "expedition guide", "personality": "gruff",
+			"outfit": "olive-utility", "schedule": [[6, 22, "kerb", "work"]] },
+		{ "id": "ines", "name": "Ines Moreau", "age": 34, "body": "female", "build": "slim", "job": "rift researcher", "personality": "nervous",
+			"outfit": "techwear", "schedule": [[8, 20, "carousel", "work"]] },
+	],
+	"VRD": [
+		{ "id": "ilya", "name": "Warden Ilya", "age": 52, "body": "female", "build": "athletic", "job": "forest warden", "personality": "proud",
+			"outfit": "olive-utility", "tier": 3, "schedule": [[0, 24, "grove", "work"]] },
+		{ "id": "mira", "name": "Scout Mira", "age": 25, "body": "female", "build": "slim", "job": "scout", "personality": "shy",
+			"outfit": "heather-hoodie", "tier": 3, "schedule": [[5, 21, "trail", "work"]] },
+	],
+}
+
+const ROSTERS := { "nexus": PEOPLE, "neon": NEON, "THA": REGIONS.THA, "SOL": REGIONS.SOL, "FRV": REGIONS.FRV, "OBS": REGIONS.OBS, "AZI": REGIONS.AZI, "SHX": REGIONS.SHX, "VRD": REGIONS.VRD }
+const CITY_PLACES := { "nexus": PLACES, "neon": NEON_PLACES, "THA": AIRPORT_PLACES, "SOL": AIRPORT_PLACES, "FRV": AIRPORT_PLACES, "OBS": AIRPORT_PLACES, "AZI": AIRPORT_PLACES, "SHX": AIRPORT_PLACES, "VRD": FOREST_PLACES }
 
 static func roster(city: String) -> Array:
 	return ROSTERS.get(city, PEOPLE)
@@ -182,6 +258,9 @@ static func out_at(hour: float, city := "nexus", profile := {}) -> Array:
 static func spot(place: String, id: String, walk_x := 11.5) -> Vector3:
 	var all := places(city_of(id))
 	var pl: Dictionary = all.get(place, all.values()[0])
+	if pl.has("at"):
+		var hh := hash(id)
+		return (pl.at as Vector3) + Vector3(float(hh % 5) - 2.0, 0, float((hh / 5) % 5) - 2.0) * 0.7
 	var h := hash(id)
 	var dz := float(h % 7) - 3.0
 	var dx := float((h / 7) % 3) * 0.6

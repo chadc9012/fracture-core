@@ -44,6 +44,26 @@ const WORK := {
 	"street preacher": ["The sky's a screen, friend. And screens can be switched off.", "Count the stars tonight. Then count them again. Different number.", "We're all running on somebody's machine. Be kind to the other processes."],
 	"fixer": ["Every shortcut in this city has an owner.", "In Neon City every camera sees you, and every camera can lie.", "Weapons, vehicles, secrets. Everything has a price."],
 	"Operator response captain": ["We need people who can withstand the Fractures.", "Keep the district standing and we'll keep talking.", "Every breach we hold is a street people still live on."],
+	"seaplane pilot": ["Thalassia sits offshore from Verdant Forest, deeper than most maps admit.", "The currents are restless today.", "Crosswinds from the eastern seam. Hold tight."],
+	"diver": ["Keep the pressure seal locked until the chamber is clear.", "Down at forty metres the light goes violet. Nobody can tell me why.", "The city under the sea hums. You feel it in your teeth."],
+	"ferry agent": ["Next boat to the dome leaves on the hour, weather permitting.", "Seasick bags are free. Use them.", "Half my passengers are scientists, the other half are lost."],
+	"desert mechanic": ["Your ride will survive the dunes. Your driving? Different question.", "Out here the storm is a rival, not a backdrop.", "Performance parts are not magic. Balance the build."],
+	"trader": ["Water first, stories second.", "Everything's for sale. Shade costs extra.", "Caravan's late. Sandstorm or raiders, same delay."],
+	"solar engineer": ["Every panel on that roof feeds the city. Every grain of sand fights it.", "We clean the arrays at dawn. Afternoons are for regret.", "The sun out here could power three Nexus Cities."],
+	"mountain ranger": ["The storm does not kill you quickly. It convinces you to stop moving.", "Check your heat pack before you check your weapon.", "Stay on the marked route. The unmarked ones mark you."],
+	"traveller": ["The lights in the ice are beautiful. That worries me.", "My flight's been delayed three times. The snow has opinions.", "I came for the aurora. I'm staying for the coffee."],
+	"glaciologist": ["The ice is singing at a frequency it shouldn't.", "Forty years studying glaciers. These ones are studying back.", "Core samples show layers that don't match any calendar."],
+	"marshal": ["You trespass in a land built from the aftermath of war.", "Words are cheap here.", "Peace is a discipline, not a holiday."],
+	"soldier": ["The old battlefields still hum at night.", "Stay inside the lights after dark.", "Every crater out there has a name. We don't say them."],
+	"miner": ["Twelve hours down the shaft. Obsidian cuts gloves like paper.", "The deep veins glow. Foreman says don't look too long.", "Pay's good. Lungs aren't."],
+	"cargo trader": ["No cargo flies free, not even hope.", "Seaplanes for the island hops, big jets for the mainland.", "Coconuts out, electronics in. That's the whole economy."],
+	"resort concierge": ["Welcome to the Isles! Shuttles to every resort leave from the kerb.", "Sunset cruise at six. Bring the good camera.", "The lagoon glows at night. We tell the tourists it's plankton."],
+	"fisherman": ["Fish are swimming in circles lately. Never seen it.", "Forty years on these waters. They never used to whisper.", "Catch of the day's at the café. Tell them I sent you."],
+	"wanderer": ["You cannot force a legend to notice you.", "Some doors open for strength. Others for restraint.", "The road remembers every traveler."],
+	"expedition guide": ["Reinforced strip, reinforced boots, reinforced nerves. You'll need all three.", "Nobody goes past the second ridge without a guide. Nobody comes back without one either.", "The crystals move at night. I've stopped measuring."],
+	"rift researcher": ["Readings off every scale. I've had to invent new scales.", "Please don't touch the specimen case. Please.", "The rift breathes. Eleven-minute cycle. I'm almost sure."],
+	"forest warden": ["Outsiders keep taking samples. Then they wonder why the trees attack.", "Follow the living roots. They do not lie. They simply refuse to explain.", "Leave the seedlings. They are not loot."],
+	"scout": ["Do not mark that path. It changes by dawn.", "The forest remembers footsteps.", "Do not call every secret a target. Some deserve to stay hidden."],
 	"construction foreman": ["Crash-site cleanup's a twelve-week job. We're on week thirty.", "Hard hats past the tape, no exceptions.", "Every time we pour concrete, the ground hums."],
 }
 
@@ -76,6 +96,13 @@ const CANON := {
 		"wary": "People are calling you a hero. Others are calling you a threat.",
 		"close": "They know what your choices did to their streets. Good choices, mostly. Keep it that way.",
 	},
+	"neri": { "wary": "That is not better news.", "acquaintance": "We are crossing between continents. The air routes are unstable.", "friend": "Engineering. Stubbornness. A little luck. That's how I fly.", "close": "And the sea has new horizons. Fly with me sometime." },
+	"rook": { "wary": "I can. The bill might hurt more than the crash.", "acquaintance": "Sand gets into everything, including promises.", "friend": "More than you have, usually. For you, we can negotiate.", "close": "Your ride will survive the dunes. Your driving's improving, too." },
+	"kest": { "wary": "Then whoever sent you should be careful.", "acquaintance": "Check your heat pack before you check your weapon.", "friend": "That answer is why I agreed to guide you.", "close": "The storm doesn't scare me. Losing you to it would." },
+	"draev": { "wary": "Not all disagreements survive the first shot.", "acquaintance": "Words are cheap here.", "friend": "Now you ask the right question.", "close": "Peace is a discipline, not a holiday. You keep it well." },
+	"wanderer": { "wary": "Legends do not wait politely in marked arenas.", "acquaintance": "The road remembers every traveler.", "friend": "The world has begun answering your actions.", "close": "Some doors open for strength. Others for restraint. You know which." },
+	"ilya": { "wary": "The forest will not forgive another invasion.", "acquaintance": "Answers have a cost.", "friend": "Then you have an ally here.", "close": "I will hold you to every word. Gladly." },
+	"mira": { "wary": "That is how it catches you off guard.", "acquaintance": "The forest remembers footsteps. Yours, now too.", "friend": "The forest is growing around the scars.", "close": "You remembered what I told you about the forest." },
 	"sable": {
 		"wary": "Every shortcut in this city has an owner. You're standing on mine.",
 		"acquaintance": "In Neon City every camera sees you, and every camera can lie.",
@@ -133,8 +160,20 @@ static func work_line(p: Dictionary, today: String) -> String:
 	var lines: Array = WORK.get(String(p.job), ["Busy day."])
 	return String(lines[absi(hash(String(p.id) + today)) % lines.size()])
 
+## each region's own talk (the dialogue draft's ambient lines, then local colour)
+const REGION_RUMOURS := {
+	"THA": ["Do surface people really see the sky every day? A kid in the dome asked me that.", "The dome's lights flicker when the tide turns.", "Pilot Neri won't fly over the eastern seam after dark."],
+	"SOL": ["Water first, stories second.", "Raiders hit a convoy past the mesas. Rook says the storm got them first.", "The solar fields sing at noon. Like wind through wire."],
+	"FRV": ["The lights in the ice are beautiful. That worries me.", "A research team went silent on the north glacier. Kest went to look.", "Temperature drops ten degrees every time the aurora flickers."],
+	"OBS": ["The old battlefields still hum at night.", "The Marshal hasn't slept since the Accord talks started.", "Somebody found a sword in the slag. It was still warm."],
+	"AZI": ["No cargo flies free, not even hope.", "Crosswinds from the eastern seam. Hold tight on the island hops.", "The resorts are full. The fish are leaving."],
+	"SHX": ["The road remembers every traveler.", "An expedition came back with one more member than it left with.", "The crystals ring when somebody lies near them. Try it."],
+	"VRD": ["Leave the seedlings. They are not loot.", "The paths change by dawn. Mark nothing.", "The old grove is listening. Speak softly."],
+}
+
 static func rumour(p: Dictionary, today: String) -> String:
-	var list: Array = NEON_RUMOURS if People.city_of(String(p.id)) == "neon" else RUMOURS
+	var where := People.city_of(String(p.id))
+	var list: Array = NEON_RUMOURS if where == "neon" else REGION_RUMOURS.get(where, RUMOURS)
 	return String(list[absi(hash(today + String(p.id) + "r")) % list.size()])
 
 ## a callback to the last thing they remember about you, if any

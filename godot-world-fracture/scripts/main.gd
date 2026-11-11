@@ -835,6 +835,10 @@ func _shoot(path: String, opts: Array) -> void:
 			if aq.size() > 3 and aq[2] == "land" and _from_street:
 				_flown(ac, _from_street)
 				_from_street._landing.t = float(aq[3])
+				# …:land:<s>:x,y,z:tx,ty,tz  then looks from a point (after the landing)
+				if aq.size() > 5:
+					var lf := aq[4].split(","); var lt := aq[5].split(",")
+					_from_street.look_from(Vector3(float(lf[0]), float(lf[1]), float(lf[2])), Vector3(float(lt[0]), float(lt[1]), float(lt[2])))
 			# airport:<code>:board:<to>:<seconds>  buys and boards a flight and shoots it that far in
 			elif aq.size() > 4 and aq[2] == "board" and _from_street:
 				Airport.buy_ticket(_from_street.profile, ac, aq[3])

@@ -35,6 +35,8 @@ const StreetSlice := preload("res://scripts/city/street_slice.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 const StreetCar := preload("res://scripts/driving/street_car.gd")
 const FractureSet := preload("res://scripts/vfx/fracture_set.gd")
+const NpcStreet := preload("res://scripts/npc/npc_street.gd")
+const People := preload("res://scripts/npc/people.gd")
 
 ## which airport ("NXC" / "NEC") and whether you just flew in (you start in the arrivals hall, not on the forecourt)
 var code := "NXC"
@@ -125,7 +127,8 @@ var _overlay: Control            # a shop or Skyways over the airport
 var _flight: Dictionary = {}     # the take-off: { plane, t, to }
 var _landing: Dictionary = {}    # flying in: { plane, t, nodes }
 var _cls := "economy"
-var _fade: ColorRect             # the ticket desk's class toggle
+var _fade: ColorRect
+var npcs: Node3D                  # the region's people (people.gd REGIONS; Nexus / Neon people live on their streets)             # the ticket desk's class toggle
 var _bags: Array[Node3D] = []     # suitcases riding the baggage carousel
 var _bag_t := 0.0
 var _taxi: Node3D                # an airliner forever taking off down the runway, for life
@@ -210,6 +213,10 @@ func _ready() -> void:
 		var cx: float = HANGAR_X[Air.BAYS.find(bay)]
 		for k in 3:
 			gunplay.add_dummy(Vector3(cx - 8.0 + k * 8.0, 0, 13.0), 40.0)
+	if People.ROSTERS.has(code):
+		npcs = NpcStreet.new()
+		world.add_child(npcs)
+		npcs.setup(operator, controls, self, obstacles, operator.bounds, operator.ground_at, 11.5, Vector2(-400.0, 400.0), code)
 	_apply_lanes()
 	_apply_shutters()
 	_head()
@@ -246,6 +253,11 @@ func _process(dt: float) -> void:
 	if _board_t <= 0.0:
 		_board_t = 5.0
 		_refresh_board()
+	if npcs:
+		npcs.step(dt)
+		if npcs.busy:
+			operator.step(dt, Vector2.ZERO, Vector2.ZERO, false, false)
+			return
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if not _look.is_empty():
 		cam.position = _look[0]
@@ -265,10 +277,21 @@ func _process(dt: float) -> void:
 			near = String(s.id)
 			label = String(s.label)
 			break
+	# the region's people (scripts/npc/): talk to whoever is in reach when no desk or door is
+	if near == "" and npcs:
+		var who: String = npcs.near(operator.position)
+		if who != "":
+			near = "npc:" + who
+			label = npcs.label_for(who)
 	if near != _near:
 		_near = near
 		controls.prompt(label)
 	if controls.take_enter() and near != "":
+		if near.begins_with("npc:"):
+			controls.prompt("")
+			_near = ""
+			npcs.talk(near.substr(4))
+			return
 		_use(near)
 		return
 	if controls.take_next():

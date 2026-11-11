@@ -165,3 +165,34 @@ func _run() -> void:
 	await _frames(2)
 	ok(String((neon._panel.find_child("Say", true, false) as Label).text).contains("Fixer Sable"), "Fixer Sable introduces herself")
 	neon._close()
+	# the regions: the airports' people, and the Verdant Forest's on foot
+	m._street_door("airport")
+	await _frames(6)
+	m._flown("THA", m._from_street)
+	await _frames(6)
+	var tha: Control = m._from_street
+	tha._landing.t = 9.0
+	await _frames(3)
+	ok(tha.npcs != null and tha.npcs.city == "THA", "Thalassia Coast's terminal has its people")
+	tha.npcs.hour_override = 12.0
+	tha.npcs._schedule()
+	await _frames(2)
+	ok(tha.npcs.npcs.has("neri") and tha.npcs.npcs.has("coral") and tha.npcs.npcs.has("mae"), "Pilot Neri, a diver and the ferry agent are there at noon")
+	var neri: Node3D = tha.npcs.npcs["neri"].mover
+	tha.operator.position = neri.position + Vector3(1.0, 0, 0)
+	await _frames(3)
+	ok(tha._near == "npc:neri", "walking up to Neri shows TALK")
+	tha.npcs.talk("neri")
+	await _frames(2)
+	ok(String((tha.npcs._panel.find_child("Say", true, false) as Label).text).contains("Pilot Neri"), "Pilot Neri introduces herself")
+	tha.npcs._close()
+	m._flown("VRD", tha)
+	await _frames(10)
+	var vrd: Control = m._from_street
+	ok(vrd != null and vrd.get("dest") == "VRD" and vrd.npcs != null, "landing in the Verdant Forest on foot")
+	if vrd and vrd.npcs:
+		ok(vrd.npcs.npcs.has("ilya") and vrd.npcs.npcs.has("mira") or not People.out_at(vrd.npcs.hour(), "VRD").any(func(o): return o.person.id == "mira"), "Warden Ilya and Scout Mira meet you there")
+		var ilya: Node3D = vrd.npcs.npcs["ilya"].mover
+		ok(ilya.position.distance_to(vrd.operator.position) < 25.0, "close to where you land")
+		vrd.closed.emit()
+		await _frames(6)

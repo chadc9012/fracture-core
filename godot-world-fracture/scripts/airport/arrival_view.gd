@@ -15,6 +15,8 @@ const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const StreetSlice := preload("res://scripts/city/street_slice.gd")
+const NpcStreet := preload("res://scripts/npc/npc_street.gd")
+const People := preload("res://scripts/npc/people.gd")
 
 var dest := "THA"
 var region: Control
@@ -23,6 +25,9 @@ var controls: Control
 var gunplay: Node3D
 var profile: Dictionary
 var armed := false
+var npcs: Node3D        # the people who meet you here (people.gd REGIONS: the Verdant Forest's Warden Ilya and Scout Mira)
+var _near := ""
+var _shots := 0
 var _panel: Control
 
 func _ready() -> void:
@@ -54,6 +59,11 @@ func _ready() -> void:
 	gunplay = Gunplay.new()
 	region.world().add_child(gunplay)
 	gunplay.setup(operator, operator.obstacles)
+	if People.ROSTERS.has(dest):
+		npcs = NpcStreet.new()
+		npcs.origin = Vector3(operator.position.x, 0, operator.position.z)
+		region.world().add_child(npcs)
+		npcs.setup(operator, controls, self, operator.obstacles, operator.bounds, operator.ground_at, 11.5, Vector2(-100000.0, 100000.0), dest)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
@@ -88,7 +98,25 @@ func _process(dt: float) -> void:
 	if _panel or not operator:
 		return
 	dt = minf(dt, 0.05)
+	if npcs:
+		npcs.step(dt)
+		if npcs.busy:
+			operator.step(dt, Vector2.ZERO, Vector2.ZERO, false, false)
+			return
+		if gunplay.shots_fired != _shots:
+			_shots = gunplay.shots_fired
+			npcs.gunfire(operator.position)
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	if npcs:
+		var who: String = npcs.near(operator.position)
+		if who != _near:
+			_near = who
+			controls.prompt(npcs.label_for(who) if who != "" else "")
+		if who != "" and controls.take_enter():
+			controls.prompt("")
+			_near = ""
+			npcs.talk(who)
+			return
 	if controls.take_next():
 		gunplay.next_weapon()
 	gunplay.step(dt, region.camera(), controls.fire and armed, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())

@@ -40,7 +40,8 @@ var controls: Control
 var ui: Control                # where the conversation panel goes (the street's Control)
 var busy := false
 var hour_override := -1.0      # tests and shots set an hour; -1 is the device clock
-var city := "nexus"            # whose people: "nexus" or "neon" (people.gd ROSTERS)
+var city := "nexus"            # whose people (people.gd ROSTERS): "nexus" / "neon" on the avenue, an airport code, "VRD"
+var origin := Vector3.ZERO     # added to `at` places (a region on foot: where you landed)
 var profile: Dictionary        # the story gates tier 3 people (Captain Vale after Mission 01's chapters 04-05)
 var _boxes: Array[AABB]
 var _bounds: Rect2
@@ -89,13 +90,15 @@ func _schedule() -> void:
 		if not want.has(id):
 			n.leaving = true
 			n.goal = Vector3(n.mover.position.x, 0, _span.y - 2.0 if n.mover.position.z > 0.0 else _span.x + 2.0)
+			if not on_avenue():
+				n.goal = n.mover.position   # off the avenue there's nowhere to walk off to: they simply go
 		else:
 			var o: Dictionary = want[id]
 			if String(o.place) != n.place or String(o.activity) != n.activity:
 				n.place = String(o.place)
 				n.activity = String(o.activity)
 				n.leaving = false
-				n.goal = People.spot(n.place, id, _walk_x)
+				n.goal = _spot(n.place, id)
 	for id in want:
 		if not npcs.has(id):
 			_spawn(want[id])
@@ -106,7 +109,7 @@ func _spawn(o: Dictionary) -> void:
 	n.p = p
 	n.place = String(o.place)
 	n.activity = String(o.activity)
-	n.goal = People.spot(n.place, String(p.id), _walk_x)
+	n.goal = _spot(n.place, String(p.id))
 	n.mover = Player.new()
 	add_child(n.mover)
 	n.mover.bounds = _bounds
@@ -134,6 +137,14 @@ func _spawn(o: Dictionary) -> void:
 	_retag(n)
 
 ## a person's look, the same every time: their body and build, their outfit, a catalog face picked from their id
+## the avenue (side / z places) or a view with fixed points (an airport, a region on foot)
+func on_avenue() -> bool:
+	return city == "nexus" or city == "neon"
+
+func _spot(place: String, id: String) -> Vector3:
+	var at := People.spot(place, id, _walk_x)
+	return at if on_avenue() else at + origin
+
 func look_for(p: Dictionary) -> Dictionary:
 	var body := String(p.body)
 	var frame := { "slim": "nyx", "athletic": "cipher", "heavy": "goliath" }.get(String(p.build), "cipher") as String
@@ -201,9 +212,12 @@ func _step_one(n: Npc, dt: float) -> void:
 				var beat: Array = n.p.get("beat", [-80.0, 80.0])
 				var side := -1.0 if hash(String(n.p.id)) % 2 == 0 else 1.0
 				n.goal = Vector3(side * (_walk_x - 1.0), 0, float(beat[n.leg % 2]))
+				if not on_avenue():
+					var home := _spot(n.place, String(n.p.id))
+					n.goal = Vector3(home.x, 0, origin.z + float(beat[n.leg % 2]))
 			"route":
 				var stops: Array = n.p.get("route", [n.place])
-				n.goal = People.spot(String(stops[n.leg % stops.size()]), String(n.p.id), _walk_x)
+				n.goal = _spot(String(stops[n.leg % stops.size()]), String(n.p.id))
 	var to := Vector2(n.goal.x - m.position.x, n.goal.z - m.position.z)
 	if n.scare > 0.0:
 		to = Vector2(m.position.x - operator.position.x, m.position.z - operator.position.z).normalized() * 10.0
@@ -219,7 +233,8 @@ func _step_one(n: Npc, dt: float) -> void:
 			if operator and operator.position.distance_to(m.position) < 4.0:
 				_face(m, operator.position)
 			else:
-				m.heading = lerp_angle(m.heading, atan2(-signf(m.position.x), 0.0), minf(1.0, 4.0 * dt))
+				if on_avenue():
+					m.heading = lerp_angle(m.heading, atan2(-signf(m.position.x), 0.0), minf(1.0, 4.0 * dt))
 	var mag := 0.0
 	if walking:
 		mag = (1.0 if n.scare > 0.0 else 0.38) if n.activity != "route" else 0.5
