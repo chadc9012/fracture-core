@@ -31,8 +31,15 @@ func _init() -> void:
 	check("every outfit and wearable is one the rig knows", known)
 	var listed := true
 	for id: String in Outfits.ids():
-		listed = listed and not Wardrobe.item(id).is_empty()
-	check("every outfit is on sale (or free)", listed)
+		if not bool(Outfits.find(id).get("npc", false)) and not bool(Outfits.find(id).get("uniform", false)):
+			listed = listed and not Wardrobe.item(id).is_empty()
+	check("every outfit but the NPC wardrobe and work uniforms is on sale (or free)", listed)
+	var npc_ok := true
+	for id: String in Outfits.ids():
+		var o := Outfits.find(id)
+		if bool(o.get("npc", false)):
+			npc_ok = npc_ok and Wardrobe.item(id).is_empty() and o.has("c") and o.c.has("top")
+	check("the NPC wardrobe is worn, not sold", npc_ok)
 	for s: String in Wardrobe.STORES:
 		check("%s stocks outfits" % s, not Wardrobe.stock(s, "outfit").is_empty())
 	var cw := Outfits.find("crimson-tracksuit")

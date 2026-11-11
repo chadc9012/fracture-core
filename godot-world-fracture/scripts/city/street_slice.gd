@@ -401,14 +401,14 @@ func _after_enemies() -> void:
 	traffic = Traffic.new()
 	world.add_child(traffic)
 	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, maxi(3, int(round(8 * Phone.crowd()))), 5)
-	# civilians (civilians.gd): ten walkers on the sidewalks of the active blocks
+	# civilians (civilians.gd): sixteen walkers dressed from the NPC lineup on the sidewalks of the active blocks
 	civilians = Civilians.new()
 	world.add_child(civilians)
 	# the district's first update has to come before the walkers are placed: before it every tile is frozen, the active
 	# span is (INF, -INF) and every walker spawned at z = NaN (the renderer then rejected their transforms every frame)
 	var first_plan: Dictionary = district.update(operator.position.z, true)
 	var act0: Vector2 = district.extent(District.State.ACTIVE)
-	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(4, int(round(10 * Phone.crowd()))), 9)
+	civilians.setup(operator, operator.obstacles, operator.bounds, operator.ground_at, act0.x, act0.y, maxi(6, int(round(16 * Phone.crowd()))), 9)
 	if crowd:
 		crowd.set_span(act0.x, act0.y)
 	if style == "nexus":

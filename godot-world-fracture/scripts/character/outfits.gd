@@ -18,6 +18,10 @@ const PIECE_PART := { "cuffs": "wrist", "sleeve_hems": "sleeve_hi", "shorts_hems
 ## pieces the shader then leaves unpainted (outfit.gdshader `pieces`)
 const PIECE_BIT := { "strings": 1, "pocket": 2, "cargo": 4 }
 
+## a tank top's bare arms; a bare chest (outfit flags "tank", "bare_top")
+const BARE_ARMS := ["sleeve_hi", "sleeve_lo", "forearm", "wrist", "arm_stripe", "arm_stripe_hi"]
+const BARE_TOP := ["top", "hem", "zip", "string", "print", "print2", "pocket", "pocket_edge", "inner", "hood", "hood_open"]
+
 const PLAIN := 0
 const DENIM := 1
 const RIB := 2
@@ -120,6 +124,95 @@ const LIST := [
 	{ "id": "uniform-office", "name": "Office Blazer", "base": "denim", "uniform": true, "c": {
 		"top": "34405a", "rib": "2c374d", "hood": "2c374d", "zip": "2c374d", "inner": "e8e8e2", "print": "e8e8e2", "print2": "34405a",
 		"legs": "2a2f3a", "legs2": "232731", "legs_fabric": PLAIN, "shoe": "1a1310", "accent": "1a1310", "sole": "1a1310", "midsole": "1a1310", "toe": "1a1310" } },
+	# the city's people (owner's NPC lineup board, Nov 11: docs/reference/npc-lineup-full-body.png) — worn by NPCs,
+	# not sold ("npc"); "hat" / "wear" are what they put on with it
+	# civilians
+	{ "id": "npc-tee-jeans", "npc": true, "name": "White Tee & Jeans", "base": "tee-shorts", "pieces": ["sleeve_hems"], "c": {
+		"top": "f2f2ef", "rib": "e6e6e2", "print": "f2f2ef", "print2": "f2f2ef", "legs": "4f6f9a", "legs2": "46648c", "legs_fabric": DENIM,
+		"knee": "LEGS", "shin": "LEGS", "ankle": "46648c", "shoe": "2b4fa8", "accent": "f2f2ef", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "2b4fa8" } },
+	{ "id": "npc-crop-jeans", "npc": true, "name": "Crop Top & Jeans", "base": "tee-shorts", "pieces": [], "tank": true, "crop": 0.075, "c": {
+		"top": "a9a9ad", "rib": "a9a9ad", "print": "a9a9ad", "print2": "a9a9ad", "legs": "7f9fc4", "legs2": "6f8fb4", "legs_fabric": DENIM,
+		"knee": "c9d6e6", "shin": "LEGS", "ankle": "6f8fb4", "shoe": "f2f2ef", "accent": "d9534f", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "f2f2ef" } },
+	{ "id": "npc-beige-suit", "npc": true, "name": "Beige Suit", "base": "denim", "pieces": ["shirt_collar", "cuffs"], "c": {
+		"top": "c8b48e", "fabric": PLAIN, "rib": "c8b48e", "hood": "c8b48e", "zip": "2a2f3a", "inner": "f4f4f1", "print": "f4f4f1", "print2": "f4f4f1",
+		"legs": "c8b48e", "legs2": "b9a57f", "legs_fabric": PLAIN, "shoe": "3a2a1e", "accent": "2a1d14", "sole": "1a1410", "midsole": "1a1410", "toe": "3a2a1e" } },
+	{ "id": "npc-business", "npc": true, "name": "Black Blazer", "base": "denim", "pieces": ["shirt_collar", "cuffs"], "c": {
+		"top": "1a1b1f", "fabric": PLAIN, "rib": "1a1b1f", "hood": "1a1b1f", "zip": "f4f4f1", "inner": "f4f4f1", "print": "f4f4f1", "print2": "f4f4f1",
+		"legs": "1a1b1f", "legs2": "141518", "legs_fabric": PLAIN, "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	{ "id": "npc-hoodie-backpack", "npc": true, "name": "Grey Hoodie & Backpack", "base": "heather-hoodie", "wear": ["backpack"], "hat": "cap", "c": {
+		"top": "b4b6ba", "rib": "a0a2a6", "print": "b4b6ba", "print2": "b4b6ba", "legs": "1c1d21", "shoe": "f2f2ef", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "e6e6e3" } },
+	{ "id": "npc-summer", "npc": true, "name": "Yellow Tank & Shorts", "base": "tee-shorts", "pieces": ["shorts_hems"], "tank": true, "c": {
+		"top": "e9c440", "rib": "d9b430", "print": "e9c440", "print2": "e9c440", "legs": "f2efe6", "legs2": "e6e2d6", "ankle": "SKIN",
+		"shoe": "c9a06a", "accent": "8a6a3a", "sole": "8a6a3a", "midsole": "c9a06a", "toe": "c9a06a" } },
+	{ "id": "npc-jersey-shorts", "npc": true, "name": "Jersey & Cargo Shorts", "base": "tee-shorts", "pieces": ["sleeve_hems", "shorts_hems", "cargo"], "c": {
+		"top": "1e2024", "rib": "f2f2ef", "print": "f2f2ef", "print2": "1e2024", "legs": "b6a382", "legs2": "a69372", "cargo": "a69372",
+		"shoe": "f2f2ef", "accent": "dd3333", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "e6e6e3" } },
+	{ "id": "npc-elder", "npc": true, "name": "Print Shirt & Slacks", "base": "tee-shorts", "pieces": ["sleeve_hems"], "c": {
+		"top": "d7b9c4", "rib": "c9a9b6", "print": "8fa8c8", "print2": "e7d27a", "legs": "a8957a", "legs2": "998670",
+		"knee": "LEGS", "shin": "LEGS", "ankle": "998670", "shoe": "6a4a32", "accent": "4a3222", "sole": "2a2018", "midsole": "2a2018", "toe": "6a4a32" } },
+	# police and security
+	{ "id": "npc-police", "npc": true, "name": "Police", "base": "tracksuit", "pieces": ["hem", "cuffs"], "hat": "beanie", "c": {
+		"top": "15171c", "fabric": PLAIN, "rib": "15171c", "sleeve": "1f2a44", "stripe_arm": "1f2a44", "zip": "15171c", "print": "15171c", "print2": "f2f2ef",
+		"legs": "1f2a44", "legs2": "1a2439", "legs_fabric": PLAIN, "stripe": "LEGS", "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	{ "id": "npc-swat", "npc": true, "name": "Tactical Unit", "base": "techwear", "hat": "beanie", "wear": ["watch"], "c": {
+		"top": "17181b", "legs": "17181b", "legs2": "121315", "print2": "3a3c40", "stripe_arm": "17181b", "stripe": "LEGS" } },
+	{ "id": "npc-security", "npc": true, "name": "Security", "base": "tee-shorts", "pieces": ["cuffs", "hem"], "c": {
+		"top": "f2f2ef", "rib": "e6e6e2", "zip": "15171a", "print": "f2f2ef", "print2": "15171a", "sleeve_lo": "f2f2ef", "forearm": "f2f2ef", "wrist": "e6e6e2", "arm_stripe_lo": "f2f2ef",
+		"legs": "15171a", "legs2": "111215", "knee": "LEGS", "shin": "LEGS", "ankle": "111215", "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	{ "id": "npc-hivis", "npc": true, "name": "Hi-Vis Patrol", "base": "tracksuit", "pieces": ["hem", "cuffs"], "hat": "cap", "c": {
+		"top": "c6f02a", "fabric": PLAIN, "rib": "1b1c20", "sleeve": "1b1c20", "stripe_arm": "c0c4c8", "zip": "c0c4c8", "print": "c0c4c8", "print2": "c0c4c8",
+		"legs": "1b1c20", "legs2": "16171a", "legs_fabric": PLAIN, "stripe": "LEGS", "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	# business owners and workers
+	{ "id": "npc-apron", "npc": true, "name": "Shop Apron", "base": "tee-shorts", "pieces": ["sleeve_hems"], "c": {
+		"top": "33363b", "rib": "33363b", "print": "33363b", "print2": "33363b", "sleeve_hi": "f2f2ef",
+		"legs": "1c1d21", "legs2": "16171a", "knee": "LEGS", "shin": "LEGS", "ankle": "16171a", "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	{ "id": "npc-chef", "npc": true, "name": "Chef Whites", "base": "tracksuit", "pieces": ["rib_collar", "cuffs"], "c": {
+		"top": "f4f4f1", "fabric": PLAIN, "rib": "e8e8e4", "sleeve": "f4f4f1", "stripe_arm": "f4f4f1", "zip": "c8c8c4", "print": "f4f4f1", "print2": "f4f4f1",
+		"legs": "2a2b2f", "legs2": "222327", "legs_fabric": PLAIN, "stripe": "LEGS", "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	{ "id": "npc-mechanic", "npc": true, "name": "Mechanic Coveralls", "base": "workwear", "c": {
+		"top": "2c4166", "rib": "263a5c", "hood": "263a5c", "hood_open": "263a5c", "zip": "c8c8c4", "inner": "2c4166", "print": "dd3333", "print2": "f2f2ef",
+		"legs": "2c4166", "legs2": "263a5c", "legs_fabric": PLAIN, "shoe": "1a1a1c", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "1a1a1c" } },
+	{ "id": "npc-doctor", "npc": true, "name": "Lab Coat", "base": "denim", "pieces": ["shirt_collar", "cuffs"], "c": {
+		"top": "f4f4f2", "fabric": PLAIN, "rib": "eaeae7", "hood": "f4f4f2", "zip": "2a3a5c", "inner": "9cc0e2", "print": "9cc0e2", "print2": "9cc0e2",
+		"legs": "2a3346", "legs2": "232b3c", "legs_fabric": PLAIN, "shoe": "1a1a1c", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "1a1a1c" } },
+	{ "id": "npc-construction", "npc": true, "name": "Construction Hi-Vis", "base": "tracksuit", "pieces": ["hem"], "c": {
+		"top": "ff7a1a", "fabric": PLAIN, "rib": "ff7a1a", "sleeve": "6c6f75", "stripe_arm": "6c6f75", "zip": "c8ccd0", "print": "c8ccd0", "print2": "c8ccd0",
+		"legs": "3e5a80", "legs2": "354e70", "legs_fabric": DENIM, "stripe": "LEGS", "shoe": "6a4a2a", "accent": "3a2a1a", "sole": "1a1410", "midsole": "1a1410", "toe": "6a4a2a" } },
+	{ "id": "npc-delivery", "npc": true, "name": "Delivery Polo", "base": "tee-shorts", "pieces": ["sleeve_hems"], "hat": "cap", "c": {
+		"top": "2161c4", "rib": "1a52a8", "print": "f2f2ef", "print2": "2161c4", "legs": "1d2a44", "legs2": "18233a",
+		"knee": "LEGS", "shin": "LEGS", "ankle": "18233a", "shoe": "1a1a1c", "accent": "0e0e10", "sole": "f2f2ef", "midsole": "1a1a1c", "toe": "1a1a1c" } },
+	# criminals and gangs
+	{ "id": "npc-tank-cargo", "npc": true, "name": "Tank & Cargos", "base": "sand-hoodie", "pieces": ["cargo", "ankle_cuffs"], "tank": true, "wear": ["chain"], "c": {
+		"top": "f2f2ef", "rib": "e6e6e2", "print": "f2f2ef", "print2": "f2f2ef", "string": "TOP", "legs": "1c1d20", "legs2": "16171a", "cargo": "16171a",
+		"shoe": "f2f2ef", "accent": "1c1d20", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "e6e6e3" } },
+	{ "id": "npc-crop-cargo", "npc": true, "name": "Crop Top & Cargos", "base": "sand-hoodie", "pieces": ["cargo", "ankle_cuffs"], "tank": true, "crop": 0.075, "c": {
+		"top": "15161a", "rib": "15161a", "print": "15161a", "print2": "15161a", "string": "TOP", "legs": "5a6040", "legs2": "4a5034", "cargo": "4a5034",
+		"shoe": "1a1a1c", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "1a1a1c" } },
+	{ "id": "npc-jersey-23", "npc": true, "name": "Red Jersey", "base": "street-hoodie", "pieces": ["ankle_cuffs"], "tank": true, "hat": "bandana", "c": {
+		"top": "c3202a", "rib": "f2f2ef", "print": "f2f2ef", "print2": "c3202a", "string": "TOP", "legs": "1a1a1d", "legs2": "141416", "stripe": "LEGS",
+		"shoe": "f2f2ef", "accent": "c3202a", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "e6e6e3" } },
+	{ "id": "npc-all-black", "npc": true, "name": "All Black", "base": "tee-shorts", "pieces": ["sleeve_hems"], "wear": ["chain"], "c": {
+		"top": "141518", "rib": "141518", "print": "141518", "print2": "141518", "legs": "17181b", "legs2": "121315", "legs_fabric": DENIM,
+		"knee": "LEGS", "shin": "LEGS", "ankle": "121315", "shoe": "c9a54a", "accent": "141518", "sole": "f2f2ef", "midsole": "c9a54a", "toe": "c9a54a" } },
+	{ "id": "npc-leather", "npc": true, "name": "Leather Jacket", "base": "bomber", "c": {
+		"top": "17171a", "rib": "101012", "hood": "101012", "zip": "b0b3b8", "inner": "17171a", "print": "17171a", "print2": "e6e6e3",
+		"legs": "1c1c20", "legs2": "16161a", "shoe": "1a1a1c", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "1a1a1c" } },
+	{ "id": "npc-shirtless", "npc": true, "name": "Shirtless & Cargos", "base": "sand-hoodie", "pieces": ["cargo", "ankle_cuffs"], "bare_top": true, "wear": ["chain"], "c": {
+		"legs": "4f5536", "legs2": "42482c", "cargo": "42482c", "shoe": "f2f2ef", "accent": "1c1d20", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "e6e6e3" } },
+	# workers and support
+	{ "id": "npc-paramedic", "npc": true, "name": "Paramedic", "base": "tracksuit", "pieces": ["hem", "cuffs", "ankle_cuffs"], "c": {
+		"top": "c9282c", "fabric": PLAIN, "rib": "a51f23", "sleeve": "c9282c", "stripe_arm": "d9dde0", "zip": "d9dde0", "print": "d9dde0", "print2": "d9dde0",
+		"legs": "c9282c", "legs2": "a51f23", "legs_fabric": PLAIN, "stripe": "d9dde0", "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	{ "id": "npc-firefighter", "npc": true, "name": "Firefighter", "base": "workwear", "c": {
+		"top": "b89a3c", "rib": "a68a32", "hood": "a68a32", "hood_open": "a68a32", "zip": "d9dde0", "inner": "b89a3c", "print": "d9dde0", "print2": "d9dde0",
+		"legs": "b89a3c", "legs2": "a68a32", "legs_fabric": PLAIN, "shoe": "141414", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "141414" } },
+	{ "id": "npc-engineer", "npc": true, "name": "Engineer", "base": "workwear", "c": {
+		"top": "55595f", "rib": "4a4e54", "hood": "4a4e54", "hood_open": "4a4e54", "zip": "c8ccd0", "inner": "55595f", "print": "55595f", "print2": "c8ccd0",
+		"legs": "3a3e44", "legs2": "33363c", "legs_fabric": PLAIN, "shoe": "1a1a1c", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "1a1a1c" } },
+	{ "id": "npc-hunter", "npc": true, "name": "Field Hunter", "base": "olive-utility", "hat": "cap", "c": { "top": "4e5a3a", "legs": "4e5a3a" } },
+	{ "id": "npc-fisherman", "npc": true, "name": "Fisherman Overalls", "base": "tee-shorts", "pieces": ["sleeve_hems"], "hat": "beanie-red", "c": {
+		"top": "f06a1e", "rib": "d95a12", "print": "f06a1e", "print2": "f06a1e", "sleeve_hi": "3a5a2a",
+		"legs": "f06a1e", "legs2": "d95a12", "knee": "LEGS", "shin": "LEGS", "ankle": "d95a12", "shoe": "1e1e20", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "1e1e20" } },
 ]
 
 static var _landmarks: Dictionary = {}
@@ -149,6 +242,9 @@ static func find(id: String) -> Dictionary:
 			c.merge(o.c, true)
 			b.id = o.id
 			b.name = o.name
+			for k: String in ["pieces", "npc", "uniform", "tank", "bare_top", "crop", "hat", "wear"]:
+				if o.has(k):
+					b[k] = o[k]
 			b.erase("for")
 			return b
 	return {}
@@ -204,6 +300,10 @@ static func material(id: String, skin: Color) -> ShaderMaterial:
 			key = String(fallback.get(key, "top"))
 			v = c.get(key, named.get(key, null))
 			guard += 1
+		if part in BARE_ARMS and (bool(o.get("tank", false)) or bool(o.get("bare_top", false))):
+			v = "SKIN"
+		elif part in BARE_TOP and bool(o.get("bare_top", false)):
+			v = "SKIN"
 		var s := String(v if v != null else c.top)
 		if s == "SKIN":
 			pal[i] = Vector3(skin.r, skin.g, skin.b)
@@ -223,6 +323,7 @@ static func material(id: String, skin: Color) -> ShaderMaterial:
 	for pc: String in o.get("pieces", []):
 		bits |= int(PIECE_BIT.get(pc, 0))
 	m.set_shader_parameter("pieces", bits)
+	m.set_shader_parameter("crop", float(o.get("crop", -1.0)))
 	return m
 
 ## the material for one modelled piece of an outfit: its part's colour (linear, from the outfit material's palette) and fabric

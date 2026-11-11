@@ -92,7 +92,9 @@ void vertex() {
 void fragment() {
 	// people right at the camera dissolve (screen-door dither), so nobody fills the frame as a mannequin or gets cut by
 	// the near plane when the camera swings past them
-	float near_cam = smoothstep(2.6, 5.0, length(VERTEX));
+	// they are the far crowd only: the civilians up close are full characters (civilians.gd), so these thin out from
+	// 14 m and are gone by 9 m
+	float near_cam = smoothstep(9.0, 14.0, length(VERTEX));
 	vec2 fc = floor(FRAGCOORD.xy);
 	float ign = fract(52.9829189 * fract(0.06711056 * fc.x + 0.00583715 * fc.y));   // interleaved gradient noise
 	if (near_cam < 1.0 && ign > near_cam) { discard; }

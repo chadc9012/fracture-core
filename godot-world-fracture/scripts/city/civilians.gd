@@ -11,6 +11,17 @@ const CharacterStore := preload("res://scripts/character/character_store.gd")
 const Catalog := preload("res://scripts/character/catalog.gd")
 const STROLL := 1.35
 const HURRY := 3.4
+## who walks the Nexus (the owner's NPC lineup board, Nov 11: docs/reference/npc-lineup-full-body.png): mostly everyday
+## people, then workers, the gangs, the police and the support crews — each dressed from outfits.gd's NPC wardrobe
+const MIX := [
+	[0.5, ["npc-tee-jeans", "npc-crop-jeans", "npc-beige-suit", "npc-business", "npc-hoodie-backpack", "npc-summer", "npc-jersey-shorts", "npc-elder",
+		"street-hoodie", "sand-hoodie", "bomber", "denim", "varsity", "tracksuit", "pastel-set", "heather-hoodie"]],
+	[0.17, ["npc-apron", "npc-chef", "npc-mechanic", "npc-doctor", "npc-construction", "npc-delivery"]],
+	[0.15, ["npc-tank-cargo", "npc-crop-cargo", "npc-jersey-23", "npc-all-black", "npc-leather", "npc-shirtless", "heather-hoodie"]],
+	[0.1, ["npc-police", "npc-security", "npc-hivis", "npc-swat"]],
+	[0.08, ["npc-paramedic", "npc-firefighter", "npc-engineer", "npc-hunter", "npc-fisherman"]],
+]
+const Outfits := preload("res://scripts/character/outfits.gd")
 const CASUAL := [Color(0.35, 0.4, 0.5), Color(0.6, 0.25, 0.25), Color(0.25, 0.45, 0.3), Color(0.5, 0.5, 0.55), Color(0.7, 0.6, 0.35), Color(0.2, 0.2, 0.25), Color(0.75, 0.75, 0.78)]
 
 class Walker:
@@ -54,6 +65,20 @@ func random_look() -> Dictionary:
 	var faces: Array = Catalog.faces(body)
 	if not faces.is_empty():
 		look = CharacterStore.apply_face(look, String(faces[_rng.randi() % faces.size()].id))
+	# dressed for who they are
+	var r := _rng.randf()
+	var pool: Array = MIX[0][1]
+	for g: Array in MIX:
+		if r < float(g[0]):
+			pool = g[1]
+			break
+		r -= float(g[0])
+	var oid := String(pool[_rng.randi() % pool.size()])
+	var o := Outfits.find(oid)
+	look.outfit = oid
+	look.hat = String(o.get("hat", "cap" if _rng.randf() < 0.12 else "none"))
+	look.eyes = "shades" if _rng.randf() < 0.1 else "none"
+	look.wear = (o.get("wear", []) as Array).duplicate()
 	return look
 
 func _spawn(side: float, z: float, dir: float) -> Walker:
@@ -69,7 +94,6 @@ func _spawn(side: float, z: float, dir: float) -> Walker:
 	w.mover.position = Vector3(side * walk_x + _rng.randf_range(-1.5, 1.5), 0.18, z)
 	w.mover.cam_yaw = 0.0
 	w.mover.build(random_look())
-	_tint(w.mover, CASUAL[_rng.randi() % CASUAL.size()])
 	walkers.append(w)
 	return w
 

@@ -20,6 +20,8 @@ uniform float wrist = 0.02;
 uniform float armpit = 0.1;
 // which parts the outfit wears as modelled pieces instead (1 drawstrings, 2 kangaroo pocket, 4 cargo pockets): not painted too
 uniform int pieces = 0;
+// a crop top: the torso is bare below this height above the hip line (-1: covered)
+uniform float crop = -1.0;
 
 varying flat int zone;
 varying float jit;
@@ -79,6 +81,7 @@ int part_of(float lat, float hh, float front, float outn) {
 		if (k < 0.1) return THIGH_LO;
 		return THIGH_HI;
 	}
+	if (hh < crop) return SKIN;
 	if (hh < 0.025) return HEM;
 	float pc = neck * 0.6;                              // the chest print's height, and the pocket below it, by the torso's length
 	if (front > -0.1 && abs(lat) < 0.045 && distance(pal[INNER], pal[TOP]) > 0.002) {
