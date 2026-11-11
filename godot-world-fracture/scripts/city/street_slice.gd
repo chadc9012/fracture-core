@@ -1148,11 +1148,67 @@ func _buildings() -> void:
 				b.position.z = z + width * 0.5
 				if String(pick[0]) == "casino.glb":
 					_casino_at = b.position
+				else:
+					_shopfront(side, z, width)
 				if style == "nexus" and String(pick[0]) == "apartment.glb":
 					# street-level shops on the apartment blocks
 					prop("shopfront.glb", 5.2, Vector3(side * (half + 4.0), 0.18, b.position.z), -90.0 * side)
 			z += width + _rng.randf_range(0.0, 1.5)
 			k += 1
+
+## street-level shops along a building's face (GTA pass, Nov 11; shaders/shopfront.gdshader): one quad on the facade line
+## with the windows, the lit rooms behind them (interior mapping), the sign bands and shutters drawn in the shader, and a
+## fabric awning over some. Doors on the hub keep their own fronts.
+var _shop_mat: ShaderMaterial
+const AWNINGS := [Color(0.42, 0.1, 0.12), Color(0.12, 0.2, 0.32), Color(0.16, 0.3, 0.22), Color(0.82, 0.78, 0.7), Color(0.12, 0.12, 0.13)]
+
+func _shopfront(side: float, z0: float, width: float) -> void:
+	if style == "coast":
+		return
+	if not _shop_mat:
+		_shop_mat = ShaderMaterial.new()
+		_shop_mat.shader = load("res://shaders/shopfront.gdshader")
+		_shop_mat.set_shader_parameter("night", 1.0 if night else 0.0)
+	var half := ROAD_W * 0.5 + WALK_W
+	# leave the hub's doors (garage, mall, sports, apartment …) their own fronts
+	var spans: Array = [[z0 + 0.6, z0 + width - 0.6]]
+	if _tile_k == 0:
+		for d: Dictionary in DOORS:
+			if float(d.x) != side or (d.has("style") and d.style != "any" and d.style != style):
+				continue
+			var out: Array = []
+			for sp: Array in spans:
+				var dz := float(d.z)
+				if dz > sp[0] - 4.0 and dz < sp[1] + 4.0:
+					if dz - 4.0 - sp[0] > 3.0:
+						out.append([sp[0], dz - 4.0])
+					if sp[1] - (dz + 4.0) > 3.0:
+						out.append([dz + 4.0, sp[1]])
+				else:
+					out.append(sp)
+			spans = out
+	for sp: Array in spans:
+		var w: float = sp[1] - sp[0]
+		if w < 3.0:
+			continue
+		var q := QuadMesh.new()
+		q.size = Vector2(w, 4.35)
+		var mi := MeshInstance3D.new()
+		mi.mesh = q
+		mi.material_override = _shop_mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position = Vector3(side * (half - 0.04), 0.18 + 2.175, (sp[0] + sp[1]) * 0.5)
+		mi.rotation_degrees.y = -90.0 * side
+		_root().add_child(mi)
+		# an awning over about half the shops
+		if _rng.randf() < 0.5 and w > 5.0:
+			var aw := _rng.randf_range(4.0, minf(10.0, w - 1.0))
+			var az := _rng.randf_range(sp[0] + aw * 0.5, sp[1] - aw * 0.5)
+			var fabric := flat(AWNINGS[_rng.randi() % AWNINGS.size()], 0.9)
+			var box := _box(Vector3(1.5, 0.06, aw), Vector3(side * (half - 0.75), 3.45, az), fabric)
+			if box:
+				box.rotation_degrees.z = 14.0 * side
+			_box(Vector3(0.04, 0.32, aw), Vector3(side * (half - 1.47), 3.13, az), fabric)
 
 ## a Nexus district court opens on this side of the tile being built (never on the hub, never in the other cities)
 func _court_here(side: float) -> bool:
