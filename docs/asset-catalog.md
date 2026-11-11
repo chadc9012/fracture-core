@@ -41,7 +41,7 @@ Status: briefs saved; Meshy generation waits on the owner's account (the API is 
 | Category | Items on the board |
 | --- | --- |
 | City infrastructure (10) | Traffic lights, intersections, parking garages, subway stations, bus terminals, gas stations, bridges, tunnels, highway interchanges, construction sites |
-| Realistic buildings & interiors (10) | Hospitals, police stations, fire stations, shopping malls, hotels, nightclubs, restaurants, schools, office interiors, underground parking |
+| Realistic buildings & interiors (10) | Hospitals, police stations, fire stations, shopping malls, hotels, nightclubs, restaurants, schools, office interiors, underground parking — Godot has all ten (Nov 10): the Galleria mall (mall_interior.gd) and nine walk-in rooms off the Nexus avenue (scripts/city/interiors.gd ROOMS + interior_sets.gd, each with its frontage on the street) |
 | Everyday civilian life (12) | Shopping bags, smartphones, laptops, ATMs, vending machines, shopping carts, umbrellas, strollers, wheelchairs, delivery packages, street food stalls, outdoor seating |
 | Character appearance (10) | Hairstyles, facial hair, skin materials, tattoos, jewelry, watches, sunglasses, backpacks, casual shoes, formal clothing |
 | Combat details (10) | Holsters, ammo magazines, shell casings, bullet impacts, armor damage, weapon attachments, energy shields, combat debris, hit reactions, destructible cover — all ten in Godot (Nov 10): casings / impacts / flinch / gore earlier; shields (operator + elites, `Target.take`), destructible cover + debris (`gunplay.add_cover`), dropped magazines, back / thigh holsters, red-dot / laser / suppressor attachments, armour scorch + sparks (scripts/combat/gunplay.gd, enemies.gd) |
