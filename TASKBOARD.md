@@ -26,7 +26,6 @@ Rows are the lock; `git fetch` before you claim.
 ## Claimed
 | Task | Session | Since |
 | --- | --- | --- |
-| Owner ask (Nov 10): Operator grenades in Godot (port of the web's grenades.ts: three per Operator) — scripts/combat/grenades.gd + the on-foot views | https://claude.ai/code/session_01HeBvGGZzSqLVyhhF3TcmJd | Nov 11 |
 | Owner ask (Nov 9 12:38): the Nexus Region after the owner's "Nexus Region v1.0" board (natural coastline; full region) — a new region map `nexus-region` (src/game/nexus-region.ts, a NewLand: Aether Ridge, Verdant Expanse, Ironcrest Outlands, Southreach, Nexus City's districts, Harbor, Beach, Azure Keys, Lighthouse Point, Eastpoint, Obsidian Cliffs, NOVA Research Complex, the Fracture Spire), opened first on the Nexus continent; region 3D only — not the Nexus street slice / districts (session_01PQQ… and the districts work own those) | session_01HeBvGF1Wp7cNYHiTnBkJXG | 2026-11-09 |
 
 ## Open (unclaimed, take in order within a phase)
@@ -48,6 +47,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Done
 | Task | Commit |
 | --- | --- |
+| Owner ask (Nov 10): Operator grenades in Godot — scripts/combat/grenades.gd (port of grenades.ts: GOLIATH Breacher / Thermite / Concussion, NYX Shroud / Tripmine / Tracer, CIPHER Singularity / Arc Chain / Rift Well), stepped by gunplay so every combat view has them; J / K, GRENADE / ⟳ on the phone; tests/combat/grenades_test.gd | ee6f416 |
 | Owner ask (Nov 11): longer racing — Nexus Speedway is a ~2.1 km grand-prix lap × 5 (was a 569 m oval × 3), the Neon Night Circuit ~1.9 km × 4 through a dozen blocks (was 779 m × 3); venues sized from `Track.bounds()`, tyre walls that would reach the road on a tight corner are left out; prizes raised | see git log "Longer races" (Nov 11) |
 | Asset gap 6 §5 combat details: energy shields (operator 40 + HUD bar, elite troopers 30; `Target.take`, FUSION ×1.5), destructible cover on the street with debris (`gunplay.add_cover`), dropped magazines, back / thigh holsters, red-dot / laser / suppressor attachments, armour scorch + sparks; new cues shield / shield_break / debris; tests/combat/combat_details_test.gd | see git log "Combat details" (Nov 10) |
 | Owner ask (Nov 10 20:35): DONE — the operator's own clothes are urban streetwear (oversized hoodie, hood down, kangaroo pocket, drawstrings, box logo; joggers with side stripes, cargo pockets and ankle cuffs, cargos for the female cut; chunky trainers) for all six builds, and the city's operator wears them (armour only in the fights) | session_01PQQWemhLWEFEw4j69oN1tq, Nov 10 |
