@@ -40,4 +40,7 @@ shadows/positional_shadow/soft_shadow_filter_quality.mobile=0
 mesh_lod/lod_change/threshold_pixels=2.0
 scaling_3d/scale=1.0
 textures/default_filters/anisotropic_filtering_level.mobile=1
+; the street's reflection probes (one per streamed tile, GTA pass Nov 11): a small atlas so they cost little memory
+reflections/reflection_atlas/reflection_size=128
+reflections/reflection_atlas/reflection_count=8
 environment/defaults/default_clear_color=Color(0.012, 0.027, 0.059, 1)

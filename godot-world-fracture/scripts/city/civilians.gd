@@ -7,6 +7,7 @@ extends Node3D
 ## Pure enough to test headless: give it the ground, the bounds and the shared boxes.
 
 const Player := preload("res://scripts/player/operator_player.gd")
+const Grounding := preload("res://scripts/city/grounding.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 const Catalog := preload("res://scripts/character/catalog.gd")
 const STROLL := 1.35
@@ -67,6 +68,7 @@ func _spawn(side: float, z: float, dir: float) -> Walker:
 	w.mover.ground_at = _ground
 	w.mover.obstacles = _boxes
 	w.mover.position = Vector3(side * walk_x + _rng.randf_range(-1.5, 1.5), 0.18, z)
+	Grounding.blob(w.mover, Vector2(0.55, 0.45), 0.45)
 	w.mover.cam_yaw = 0.0
 	w.mover.build(random_look())
 	_tint(w.mover, CASUAL[_rng.randi() % CASUAL.size()])

@@ -1,6 +1,7 @@
 extends Control
 const Sound := preload("res://scripts/audio/sound.gd")
 const Phone := preload("res://scripts/phone.gd")
+const Grade := preload("res://scripts/grade.gd")
 const Flora := preload("res://scripts/region_flora.gd")
 const Weather := preload("res://scripts/region_weather.gd")
 const Barks := preload("res://scripts/cinema/barks.gd")
@@ -698,6 +699,8 @@ func _build_env() -> void:
 	_env.adjustment_enabled = true
 	_env.adjustment_saturation = _style.sat
 	_env.adjustment_contrast = 1.12
+	# the film grade (scripts/grade.gd, GTA pass Nov 11): split-tone and a gentle S-curve
+	_env.adjustment_color_correction = Grade.lut("night" if _style.night > 0.5 else "region")
 	we.environment = _env
 	_world.add_child(we)
 	var sun := DirectionalLight3D.new()

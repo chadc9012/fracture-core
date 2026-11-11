@@ -5,6 +5,8 @@ const Settings := preload("res://scripts/front/settings_store.gd")
 const Radio := preload("res://scripts/audio/radio.gd")
 const Phone := preload("res://scripts/phone.gd")
 const WetNight := preload("res://scripts/city/wet_night.gd")
+const Grounding := preload("res://scripts/city/grounding.gd")
+const Grade := preload("res://scripts/grade.gd")
 ## Nexus City street slice: one block of a Nexus avenue at golden hour, built to chase the owner's concept frames (wet
 ## reflective asphalt, palms and planters, a café terrace, mid-rise apartments over shopfronts, glass towers behind, warm
 ## low sun through haze). Meshy-generated props from res://models/city/, the fleet cars parked at the kerb.
@@ -553,10 +555,29 @@ func _build_tile(k: int) -> Node3D:
 			Nexus.south_quay(self, LENGTH * 0.5 - 0.5)
 		Nexus.tile_skyline(self, _rng)
 	StaticBatch.batch(root)
+	_reflections(root)
 	_rng.seed = keep_seed
 	_tile_root = null
 	_tile_k = 0
 	return root
+
+## a box-projected reflection probe over the tile's street (GTA pass, Nov 11): car paint, glass and the wet ground
+## reflect the street's own lights and facades instead of only the sky. Rendered once when the tile is built; the low
+## tier goes without.
+func _reflections(root: Node3D) -> void:
+	if Phone.tier() == "low":
+		return
+	var rp := ReflectionProbe.new()
+	rp.update_mode = ReflectionProbe.UPDATE_ONCE
+	rp.box_projection = true
+	rp.size = Vector3((ROAD_W * 0.5 + WALK_W) * 2.0 + 4.0, 40.0, LENGTH)
+	rp.origin_offset = Vector3(0, -17.0, 0)
+	rp.position = Vector3(0, 19.0, 0)
+	rp.max_distance = 160.0
+	rp.intensity = 0.85
+	rp.mesh_lod_threshold = 4.0
+	rp.ambient_mode = ReflectionProbe.AMBIENT_DISABLED
+	root.add_child(rp)
 
 ## the tile's obstacle boxes in world space: its props, buildings and parked cars, and both facade lines
 func _tile_boxes(k: int, root: Node3D) -> Array[AABB]:
@@ -698,13 +719,15 @@ func _environment() -> void:
 	sun.rotation_degrees = Vector3(-11.0, 148.0, 0.0)   # low sun ahead and to the right, long shadows across the street
 	sun.light_volumetric_fog_energy = 1.6
 	world.add_child(sun)
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.29, 0.43, 0.66)
-	sky_mat.sky_horizon_color = Color(0.98, 0.72, 0.50)
-	sky_mat.ground_horizon_color = Color(0.70, 0.55, 0.45)
-	sky_mat.ground_bottom_color = Color(0.18, 0.17, 0.17)
-	sky_mat.sun_angle_max = 20.0
-	sky_mat.sun_curve = 0.08
+	# the shared sky (shaders/sky3d.gdshader, GTA pass Nov 11): sun halo, lit clouds, stars at night
+	var sky_mat := ShaderMaterial.new()
+	sky_mat.shader = load("res://shaders/sky3d.gdshader")
+	sky_mat.set_shader_parameter("top_col", Color(0.29, 0.43, 0.66))
+	sky_mat.set_shader_parameter("hor_col", Color(0.98, 0.72, 0.50))
+	sky_mat.set_shader_parameter("ground_col", Color(0.18, 0.17, 0.17))
+	sky_mat.set_shader_parameter("sun_col", Color(1.0, 0.78, 0.55))
+	sky_mat.set_shader_parameter("cloud_cover", 0.4)
+	sky_mat.set_shader_parameter("cloud_tint", Color(1.0, 0.9, 0.82))
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
 	var env := Environment.new()
@@ -746,6 +769,7 @@ func _environment() -> void:
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.06
 	env.adjustment_saturation = 1.12
+	env.adjustment_color_correction = Grade.lut("day")
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
@@ -754,11 +778,13 @@ func _environment() -> void:
 		sun.light_energy = 0.22
 		sun.rotation_degrees = Vector3(-38.0, 120.0, 0.0)
 		sun.light_volumetric_fog_energy = 0.3
-		sky_mat.sky_top_color = Color(0.02, 0.025, 0.06)
-		sky_mat.sky_horizon_color = Color(0.22, 0.12, 0.28)
-		sky_mat.ground_horizon_color = Color(0.12, 0.08, 0.14)
-		sky_mat.ground_bottom_color = Color(0.02, 0.02, 0.03)
-		sky_mat.sun_angle_max = 2.0
+		sky_mat.set_shader_parameter("top_col", Color(0.02, 0.025, 0.06))
+		sky_mat.set_shader_parameter("hor_col", Color(0.22, 0.12, 0.28))
+		sky_mat.set_shader_parameter("ground_col", Color(0.02, 0.02, 0.03))
+		sky_mat.set_shader_parameter("sun_col", Color(0.55, 0.62, 0.9))
+		sky_mat.set_shader_parameter("night", 1.0)
+		sky_mat.set_shader_parameter("cloud_cover", 0.5)
+		sky_mat.set_shader_parameter("cloud_tint", Color(0.85, 0.6, 1.0))
 		# the owner's references are a lit night: a violet-cyan city bounce, not crushed darks (AGENTS: Neon City's
 		# cyberpunk comes from colour), so the ambient is a fixed colour at full energy and the moon is stronger
 		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
@@ -774,6 +800,7 @@ func _environment() -> void:
 		env.fog_sun_scatter = 0.05
 		env.volumetric_fog_density = 0.012
 		env.volumetric_fog_albedo = Color(0.7, 0.7, 0.9)
+		env.adjustment_color_correction = Grade.lut("night")
 
 # --------------------------------------------------------------------------------------------- materials
 static func _noise_tex(freq: float, octaves: int, size := 1024, normal := false, seamless := true) -> NoiseTexture2D:
@@ -794,24 +821,66 @@ static func _noise_tex(freq: float, octaves: int, size := 1024, normal := false,
 ## wet asphalt: dark, with puddles where the roughness noise drops low enough to mirror the sky and the buildings
 static func asphalt() -> ShaderMaterial:
 	var sh := Shader.new()
+	# GTA pass (Nov 11): a lived-in road — polished tyre lanes with the oil drip between them, cracks, darker patch
+	# repairs and tar-sealed seams, manhole covers, grime in the gutters; the puddles keep their mirror
 	sh.code = """
 shader_type spatial;
 uniform sampler2D puddle_noise : hint_default_white, repeat_enable;
 uniform sampler2D grain : hint_default_white, repeat_enable;
 uniform sampler2D grain_n : hint_normal, repeat_enable;
 uniform float wet = 0.75;
+uniform float lane_x = 3.0;
 varying vec3 wpos;
+float hash2(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
+float vnoise(vec2 p) {
+	vec2 i = floor(p), f = fract(p), s = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash2(i), hash2(i + vec2(1, 0)), s.x), mix(hash2(i + vec2(0, 1)), hash2(i + vec2(1, 1)), s.x), s.y);
+}
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 void fragment() {
 	vec2 p = wpos.xz;
+	float fw = length(fwidth(p));
 	float g = dot(texture(grain, p * 0.28).rgb, vec3(0.33)) * 1.6;
-	float puddle = smoothstep(0.52, 0.62, texture(puddle_noise, p * 0.018).r * 0.8 + texture(puddle_noise, p * 0.07).r * 0.3);
-	float wetness = clamp(wet * 0.55 + puddle * wet, 0.0, 1.0);
 	vec3 base = vec3(0.075, 0.078, 0.085) * (0.75 + 0.5 * g);
-	ALBEDO = mix(base, base * 0.55, wetness);
-	ROUGHNESS = mix(0.86, 0.05, wetness);
+	float ax = abs(p.x);
+	// tyre lanes: two polished, lighter bands per lane, the oil drip down the middle
+	float lane_d = abs(ax - lane_x);
+	float tyre = smoothstep(0.45, 0.2, abs(lane_d - 0.85)) * (0.6 + 0.4 * vnoise(p * vec2(2.0, 0.2)));
+	float oil = smoothstep(0.55, 0.0, lane_d) * (0.5 + 0.5 * vnoise(p * vec2(1.5, 0.35)));
+	base *= 1.0 + tyre * 0.22;
+	base *= 1.0 - oil * 0.35;
+	// patch repairs: rectangles of newer, darker asphalt with a tar seam round them
+	vec2 pc = floor(p / vec2(5.0, 11.0));
+	float has_patch = step(0.78, hash2(pc + 3.0));
+	vec2 pf = fract(p / vec2(5.0, 11.0));
+	vec2 lo = vec2(0.15, 0.1) + hash2(pc + 9.0) * 0.2;
+	vec2 hi = lo + vec2(0.35, 0.45) + hash2(pc + 5.0) * 0.2;
+	float in_patch = step(lo.x, pf.x) * step(pf.x, hi.x) * step(lo.y, pf.y) * step(pf.y, hi.y) * has_patch;
+	float edge = min(min(abs(pf.x - lo.x) * 5.0, abs(pf.x - hi.x) * 5.0), min(abs(pf.y - lo.y) * 11.0, abs(pf.y - hi.y) * 11.0));
+	float seam = has_patch * (1.0 - smoothstep(0.03, 0.06 + fw, edge)) * step(lo.x - 0.02, pf.x) * step(pf.x, hi.x + 0.02) * step(lo.y - 0.01, pf.y) * step(pf.y, hi.y + 0.01);
+	base = mix(base, base * 0.72, in_patch);
+	// cracks: thin ridged noise, more of them near the kerbs
+	float cr = 1.0 - abs(vnoise(p * 0.9 + vnoise(p * 0.2) * 3.0) * 2.0 - 1.0);
+	float crack = smoothstep(0.965, 0.99, cr) * (0.4 + 0.6 * smoothstep(5.0, 7.5, ax)) * (1.0 - smoothstep(0.0, 0.08, fw));
+	base *= 1.0 - (crack * 0.6 + seam * 0.45);
+	// manhole covers in each lane every 37 m
+	vec2 mh = vec2(ax - lane_x, mod(p.y + 9.0, 37.0) - 18.5);
+	float r = length(mh);
+	float cover = 1.0 - smoothstep(0.38, 0.4 + fw, r);
+	float rim = smoothstep(0.3, 0.33, r) * cover;
+	float grid = step(0.5, fract((mh.x + mh.y) * 4.0)) * 0.5 + step(0.5, fract((mh.x - mh.y) * 4.0)) * 0.5;
+	vec3 iron = vec3(0.11, 0.105, 0.1) * (0.8 + 0.4 * grid) * (1.0 + rim * 0.6);
+	// grime along the gutters
+	base *= 1.0 - smoothstep(6.6, 7.9, ax) * 0.3;
+	float puddle = smoothstep(0.52, 0.62, texture(puddle_noise, p * 0.018).r * 0.8 + texture(puddle_noise, p * 0.07).r * 0.3);
+	puddle = max(puddle, smoothstep(6.8, 7.9, ax) * step(0.5, texture(puddle_noise, p * 0.05).r));
+	float wetness = clamp(wet * 0.55 + puddle * wet, 0.0, 1.0);
+	vec3 col = mix(base, iron, cover);
+	ALBEDO = mix(col, col * 0.55, wetness);
+	ROUGHNESS = mix(mix(0.86 - tyre * 0.15 - oil * 0.2, 0.45, cover), 0.05, wetness);
+	METALLIC = cover * 0.5;
 	SPECULAR = mix(0.4, 0.75, wetness);
-	NORMAL_MAP = mix(texture(grain_n, p * 0.28).xyz, vec3(0.5, 0.5, 1.0), puddle);
+	NORMAL_MAP = mix(texture(grain_n, p * 0.28).xyz, vec3(0.5, 0.5, 1.0), max(puddle, cover * 0.6));
 	NORMAL_MAP_DEPTH = 0.8;
 }
 """
@@ -841,19 +910,44 @@ uniform float wet = 0.0;   // night rain: darker stone, glossy, puddles in the l
 uniform sampler2D puddle_noise : hint_default_white, repeat_enable;
 varying vec3 wpos;
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+float hash2(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
+float vnoise(vec2 p) {
+	vec2 i = floor(p), f = fract(p), s = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash2(i), hash2(i + vec2(1, 0)), s.x), mix(hash2(i + vec2(0, 1)), hash2(i + vec2(1, 1)), s.x), s.y);
+}
+uniform float wall_x = 10000.0;   // |x| of the building line: grime gathers at the foot of the walls
 void fragment() {
+	// GTA pass (Nov 11): slabs sit a little uneven, their edges chipped, dirt in the joints and against the walls,
+	// stains and gum spots; far away it all fades to the slab average so it never shimmers
 	vec2 p = wpos.xz / vec2(0.6, 0.6);
-	vec2 f = abs(fract(p) - 0.5);
-	float joint = 1.0 - smoothstep(0.46, 0.49, max(f.x, f.y));
 	vec2 id = floor(p);
+	// every other row offset half a slab (running bond)
+	p.x += step(1.0, mod(id.y, 2.0)) * 0.5;
+	id = floor(p);
+	vec2 f = abs(fract(p) - 0.5);
+	float fw = max(fwidth(p.x), fwidth(p.y));
+	float detail = 1.0 - smoothstep(0.15, 0.4, fw);
+	float chip = (vnoise(wpos.xz * 9.0) - 0.5) * 0.04 * detail;
+	float joint = 1.0 - smoothstep(0.455 + chip - fw, 0.475 + chip + fw, max(f.x, f.y));
+	joint = mix(0.93, joint, detail);
 	float tint = fract(sin(dot(id, vec2(12.9898, 78.233))) * 43758.5453);
 	float g = texture(grain, wpos.xz * 0.6).r;
 	vec3 stone = mix(lo_col, hi_col, tint) * (0.88 + 0.2 * g);
+	// stains, gum, and grime toward the wall
+	float stain = smoothstep(0.55, 0.85, vnoise(wpos.xz * 0.35 + 7.0)) * 0.18 + smoothstep(0.6, 0.9, vnoise(wpos.xz * 1.3)) * 0.08 * detail;
+	float gum = step(0.9985, hash2(floor(wpos.xz * 6.0))) * detail;
+	float wall = smoothstep(wall_x - 2.0, wall_x, abs(wpos.x));
+	stone *= 1.0 - stain - wall * 0.12;
+	stone = mix(stone, vec3(0.2, 0.2, 0.21), gum * 0.8);
+	vec3 joint_col = stone * 0.5 * vec3(0.95, 0.92, 0.88);
 	float puddle = wet * smoothstep(0.52, 0.64, texture(puddle_noise, wpos.xz * 0.02).r * 0.8 + texture(puddle_noise, wpos.xz * 0.08).r * 0.3);
-	float damp = clamp(wet * 0.6 + puddle, 0.0, 1.0);
-	ALBEDO = mix(stone * 0.62, stone, joint) * mix(1.0, 0.45, damp);
+	float damp = clamp(wet * 0.6 + puddle + (1.0 - joint) * wet * 0.3, 0.0, 1.0);
+	ALBEDO = mix(joint_col, stone, joint) * mix(1.0, 0.45, damp);
 	ROUGHNESS = mix(mix(0.35, 0.78 + 0.08 * tint, joint), 0.08, damp);
 	SPECULAR = mix(0.5, 0.8, damp);
+	// each slab tilted a touch (catches the light and the reflections differently)
+	vec2 tilt = (vec2(hash2(id + 1.7), hash2(id + 4.3)) - 0.5) * 0.09 * detail * (1.0 - puddle);
+	NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(tilt.x, 0.0, tilt.y, 0.0)).xyz);
 	if (has_n) { NORMAL_MAP = texture(grain_n, wpos.xz * 0.5).xyz; NORMAL_MAP_DEPTH = 0.6; }
 }
 """
@@ -863,6 +957,19 @@ void fragment() {
 	if ResourceLoader.exists("res://textures/pbr/brushed_concrete_nor.jpg"):
 		m.set_shader_parameter("grain_n", load("res://textures/pbr/brushed_concrete_nor.jpg"))
 		m.set_shader_parameter("has_n", true)
+	return m
+
+## kerb stones: real concrete (Poly Haven brushed_concrete) in 1 m blocks with a dark joint, world-mapped
+static func kerb_stone() -> StandardMaterial3D:
+	var m := flat(Color(0.66, 0.65, 0.62), 0.75)
+	if ResourceLoader.exists("res://textures/pbr/brushed_concrete_diff.jpg"):
+		m.albedo_texture = load("res://textures/pbr/brushed_concrete_diff.jpg")
+		m.normal_enabled = true
+		m.normal_texture = load("res://textures/pbr/brushed_concrete_nor.jpg")
+		m.normal_scale = 0.8
+		m.uv1_triplanar = true
+		m.uv1_world_triplanar = true
+		m.uv1_scale = Vector3(0.6, 0.6, 0.6)
 	return m
 
 static func flat(c: Color, rough := 0.8, metal := 0.0, emit := 0.0) -> StandardMaterial3D:
@@ -894,6 +1001,7 @@ func _street() -> void:
 	var half := ROAD_W * 0.5
 	_box(Vector3(ROAD_W, 0.1, LENGTH), Vector3(0, -0.05, 0), asphalt())
 	var pave := paving()
+	pave.set_shader_parameter("wall_x", half + WALK_W)
 	_pavings.append(pave)
 	if night:
 		_wet_paving(pave)
@@ -901,10 +1009,14 @@ func _street() -> void:
 		# pink and sand terrazzo for the Art Deco strip
 		pave.set_shader_parameter("lo_col", Vector3(0.78, 0.62, 0.58))
 		pave.set_shader_parameter("hi_col", Vector3(0.86, 0.78, 0.66))
-	var kerb := flat(Color(0.62, 0.61, 0.58), 0.6)
+	var kerb := kerb_stone()
 	for side: float in [-1.0, 1.0]:
 		_box(Vector3(WALK_W, 0.18, LENGTH), Vector3(side * (half + WALK_W * 0.5), 0.09, 0), pave)
 		_box(Vector3(0.3, 0.2, LENGTH), Vector3(side * (half + 0.15), 0.1, 0), kerb)
+		# contact shade (GTA pass, Nov 11): the foot of the building line, and grime in the gutter along the kerb
+		var wall := Vector3(side * (half + WALK_W), 0.18, -LENGTH * 0.5)
+		Grounding.wall_strip(_root(), wall, Vector3(0, 0, 1), LENGTH, Vector3(-side, 0, 0), 1.1, 0.3)
+		Grounding.wall_strip(_root(), Vector3(side * half, 0.0, -LENGTH * 0.5), Vector3(0, 0, 1), LENGTH, Vector3(-side, 0, 0), 0.7, 0.3)
 	# lane paint, worn, and a pedestrian crossing at the end of the block
 	var paint := flat(Color(0.85, 0.85, 0.82), 0.5)
 	var z := -LENGTH * 0.5 + 4.0
@@ -968,6 +1080,9 @@ func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
 	holder.set_meta("size", aabb.size * s)
 	holder.set_meta("file", file)
 	_root().add_child(holder)
+	# props stand in a pool of contact shade (buildings get the wall strip instead)
+	if height <= 8.0:
+		Grounding.blob(holder, Vector2(aabb.size.x * s, aabb.size.z * s), 0.45)
 	return holder
 
 ## scale a hull's children so its longest axis is `length` metres, resting on y = 0
@@ -1196,6 +1311,7 @@ func _cars() -> void:
 						break
 					up = up.get_parent()
 			StaticBatch.compact(car)   # ~40 draws a car down to one per look
+			Grounding.car(car)
 			if Phone.car_range() > 0.0:
 				for gi in car.find_children("*", "GeometryInstance3D", true, false):
 					(gi as GeometryInstance3D).visibility_range_end = Phone.car_range()

@@ -7,6 +7,7 @@ extends Node3D
 ## and the player's car all keep out of them. Pure enough to test headless: give it the boxes, the bounds and a ground.
 
 const StaticBatch = preload("res://scripts/static_batch.gd")
+const Grounding := preload("res://scripts/city/grounding.gd")
 const StreetCar := preload("res://scripts/driving/street_car.gd")
 const FLEET := "res://models/fleet/"
 const FILES := ["tuner.glb", "muscle-car-lod.glb", "street-racer-lod.glb", "offroad-truck.glb", "security-suv.glb"]
@@ -74,6 +75,7 @@ func _spawn(dir: float, z: float) -> Car:
 	node.rotation.y = 0.0 if dir < 0 else PI
 	StreetCar.face_forward(node)
 	StaticBatch.compact(node)   # one draw per look instead of ~40 per car
+	Grounding.car(node)
 	_world.add_child(node)
 	c.sc = StreetCar.new(node, "", { "max_speed": 14.0, "acceleration": 6.0, "steering": 1.1, "braking": 14.0 })
 	c.sc.bounds = bounds
