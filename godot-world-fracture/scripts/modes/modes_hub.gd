@@ -17,6 +17,8 @@ const ArenaView := preload("res://scripts/killbox/arena_view.gd")
 const Arena := preload("res://scripts/killbox/arena.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 const Track := preload("res://scripts/racing/track.gd")
+const Route := preload("res://scripts/racing/route.gd")
+const RouteView := preload("res://scripts/racing/route_view.gd")
 const RaidView := preload("res://scripts/raid/raid_view.gd")
 const HollowStar := preload("res://scripts/raid/hollow_star.gd")
 const PICS := "res://textures/ui/modes/"
@@ -408,7 +410,31 @@ func _races() -> void:
 		var body := "Neon City's blocks at night: barriers, right-angle corners, the market jog. Win: %d Nex." % int(tr.def.prize[0]) if street else "Stands, pit lane and start lights; an oval with a back-straight chicane. Win: %d Nex." % int(tr.def.prize[0])
 		row.add_child(_tile("race-" + tid, String(tr.def.name).to_upper(), sub, body, Color(0.3, 0.9, 1.0), func(): _launch_race(tid), true, 28))
 	row.add_child(_tile("race-open-world", "OPEN WORLD", "Race other players across the cities", "Point-to-point races through Nexus and Neon City traffic. Comes with online play.", Color(0.4, 0.5, 0.6), func(): pass, false, 28))
+	# the owner's Track Pack 01 (Nov 11, "GTA × Need for Speed"): eight long routes, two rows of four
+	v.add_child(_strip("TRACK PACK 01", ["Street sprints", "Highway pursuits", "Desert rally", "Mountain climb", "Coast & water"], Color(1.0, 0.55, 0.2)))
+	var ids := Route.ids()
+	for r0 in [0, 4]:
+		var prow := _row()
+		v.add_child(prow)
+		for i in range(r0, mini(r0 + 4, ids.size())):
+			var rid := String(ids[i])
+			var rd := Route.find(rid)
+			var km := float(rd.length_m) / 1000.0
+			var laps_n := int(rd.laps) if bool(rd.closed) else 1
+			var sub := "%s · %.0f km%s" % [String(rd.region), km * laps_n, (" · %d laps" % laps_n) if bool(rd.closed) else " stage"]
+			var extras: Array = []
+			if bool(rd.traffic):
+				extras.append("traffic")
+			if bool(rd.police):
+				extras.append("police pursuit")
+			var body := "%s. Win ~%d Nex.%s" % [String(rd.race_type).replace("_", " ").capitalize(), int(round(km * laps_n * 140.0 / 10.0) * 10.0), (" With " + " and ".join(extras) + ".") if not extras.is_empty() else ""]
+			prow.add_child(_tile("route-" + rid, String(rd.name).to_upper(), sub, body, Color(1.0, 0.55, 0.2), func(): _launch_route(rid), true, 22))
 	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "Motorcycle · soon", "Off-road / mud · soon", "Air races · soon"], Color(0.3, 0.9, 1.0)))
+
+func _launch_route(id: String) -> void:
+	var rv := RouteView.new()
+	rv.route_id = id
+	_host(rv)
 
 func _launch_race(id: String) -> void:
 	var rv := RaceView.new()

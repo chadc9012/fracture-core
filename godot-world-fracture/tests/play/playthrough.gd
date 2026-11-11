@@ -82,6 +82,8 @@ func _run() -> void:
 	await leak_check("street", base)
 	await _play_buildings()
 	await leak_check("walk-in buildings", base)
+	await _play_routes()
+	await leak_check("Track Pack 01 routes", base)
 	await _play_creator()
 	await leak_check("operator creator", base)
 	await _play_regions()
@@ -253,6 +255,35 @@ func _play_buildings() -> void:
 			problem("leaving the %s did not bring the street back" % id)
 	main._close_street()
 	await frames(4)
+
+# ---------------------------------------------------------------- the long routes (Track Pack 01)
+
+func _play_routes() -> void:
+	var Route = load("res://scripts/racing/route.gd")
+	var RouteView = load("res://scripts/racing/route_view.gd")
+	for id in Route.ids():
+		step("route %s" % id)
+		var rv = RouteView.new()
+		rv.route_id = id
+		rv.autopilot = true
+		root.add_child(rv)
+		await frames(3)
+		rv.countdown = 0.01
+		var start: Vector3 = rv.player.node.position
+		var rival_start: Vector3 = rv.rivals[0].sc.node.position
+		# five seconds from a standing start at the back of the grid (the pack pulls away first)
+		await create_timer(5.0).timeout
+		var moved: float = rv.player.node.position.distance_to(start)
+		if moved < 35.0:
+			problem("the car moved only %.1f m in 5 s on %s" % [moved, id])
+		if rv.rivals[0].sc.node.position.distance_to(rival_start) < 25.0:
+			problem("the rivals did not get going on %s" % id)
+		if float(rv.player_entry.side) > rv.route.width:
+			problem("the autopilot left the road on %s (%.1f m off)" % [id, float(rv.player_entry.side)])
+		if rv._chunks.size() < 4:
+			problem("the road did not stream in on %s" % id)
+		rv.queue_free()
+		await frames(3)
 
 func _play_creator() -> void:
 	step("creator open")

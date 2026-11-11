@@ -1,0 +1,197 @@
+{
+  "schema": "world-fracture-race-track/v1",
+  "id": "neon_midnight",
+  "name": "Neon Midnight Run",
+  "region": "Neon City",
+  "raceType": "street_sprint",
+  "closedCircuit": false,
+  "lengthM": 12000.0,
+  "laneWidthM": 12,
+  "coordinateSystem": "local meters; requires world anchor during integration",
+  "routePoints": [
+    {
+      "xM": 0.0,
+      "zM": 0.0
+    },
+    {
+      "xM": 1153.03,
+      "zM": 576.51
+    },
+    {
+      "xM": 1729.54,
+      "zM": 1729.54
+    },
+    {
+      "xM": 2882.57,
+      "zM": 1729.54
+    },
+    {
+      "xM": 3459.08,
+      "zM": 576.51
+    },
+    {
+      "xM": 4612.11,
+      "zM": 1153.03
+    },
+    {
+      "xM": 5765.14,
+      "zM": 576.51
+    },
+    {
+      "xM": 6341.66,
+      "zM": 2306.06
+    },
+    {
+      "xM": 7494.68,
+      "zM": 2882.57
+    },
+    {
+      "xM": 8647.71,
+      "zM": 2306.06
+    }
+  ],
+  "checkpoints": [
+    {
+      "index": 0,
+      "distanceM": 0,
+      "xM": 0.0,
+      "zM": 0.0,
+      "headingDeg": 26.6,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 1,
+      "distanceM": 800,
+      "xM": 715.54,
+      "zM": 357.77,
+      "headingDeg": 33.5,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 2,
+      "distanceM": 1600,
+      "xM": 1292.06,
+      "zM": 854.57,
+      "headingDeg": 52.4,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 3,
+      "distanceM": 2400,
+      "xM": 1649.83,
+      "zM": 1570.11,
+      "headingDeg": 39.6,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 4,
+      "distanceM": 3200,
+      "xM": 2351.29,
+      "zM": 1729.54,
+      "headingDeg": -3.4,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 5,
+      "distanceM": 4000,
+      "xM": 3002.74,
+      "zM": 1489.19,
+      "headingDeg": -43.4,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 6,
+      "distanceM": 4800,
+      "xM": 3360.51,
+      "zM": 773.65,
+      "headingDeg": -33.8,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 7,
+      "distanceM": 5600,
+      "xM": 3977.49,
+      "zM": 835.72,
+      "headingDeg": 14.3,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 8,
+      "distanceM": 6400,
+      "xM": 4693.03,
+      "zM": 1112.57,
+      "headingDeg": -3.2,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 9,
+      "distanceM": 7200,
+      "xM": 5408.57,
+      "zM": 754.8,
+      "headingDeg": -7.4,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 10,
+      "distanceM": 8000,
+      "xM": 5892.06,
+      "zM": 957.25,
+      "headingDeg": 52.5,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 11,
+      "distanceM": 8800,
+      "xM": 6145.04,
+      "zM": 1716.2,
+      "headingDeg": 66.9,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 12,
+      "distanceM": 9600,
+      "xM": 6501.08,
+      "zM": 2385.77,
+      "headingDeg": 43.8,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 13,
+      "distanceM": 10400,
+      "xM": 7216.62,
+      "zM": 2743.54,
+      "headingDeg": 11.0,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 14,
+      "distanceM": 11200,
+      "xM": 7932.16,
+      "zM": 2663.83,
+      "headingDeg": -17.0,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 15,
+      "distanceM": 12000,
+      "xM": 8647.7,
+      "zM": 2306.06,
+      "headingDeg": -26.6,
+      "gateWidthM": 15.0
+    },
+    {
+      "index": 16,
+      "distanceM": 12000.0,
+      "xM": 8647.71,
+      "zM": 2306.06,
+      "headingDeg": 0.0,
+      "gateWidthM": 15.0
+    }
+  ],
+  "lapsDefault": 1,
+  "recommendedOpponents": 7,
+  "trafficEnabled": true,
+  "policePursuitEnabled": true,
+  "surface": "asphalt",
+  "implementationStatus": "layout definition only; not integrated into live world"
+}

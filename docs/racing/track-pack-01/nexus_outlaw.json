@@ -1,0 +1,317 @@
+{
+  "schema": "world-fracture-race-track/v1",
+  "id": "nexus_outlaw",
+  "name": "Nexus Outlaw Highway",
+  "region": "Nexus Region",
+  "raceType": "highway_sprint",
+  "closedCircuit": false,
+  "lengthM": 42000.0,
+  "laneWidthM": 22,
+  "coordinateSystem": "local meters; requires world anchor during integration",
+  "routePoints": [
+    {
+      "xM": 0.0,
+      "zM": 0.0
+    },
+    {
+      "xM": 3206.12,
+      "zM": 0.0
+    },
+    {
+      "xM": 7480.95,
+      "zM": 1068.71
+    },
+    {
+      "xM": 12824.49,
+      "zM": 1068.71
+    },
+    {
+      "xM": 17099.32,
+      "zM": 4274.83
+    },
+    {
+      "xM": 21374.15,
+      "zM": 4274.83
+    },
+    {
+      "xM": 24580.27,
+      "zM": 2137.41
+    },
+    {
+      "xM": 29923.81,
+      "zM": 3206.12
+    },
+    {
+      "xM": 34198.64,
+      "zM": 5343.54
+    },
+    {
+      "xM": 39542.17,
+      "zM": 5343.54
+    }
+  ],
+  "checkpoints": [
+    {
+      "index": 0,
+      "distanceM": 0,
+      "xM": 0.0,
+      "zM": 0.0,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 1,
+      "distanceM": 1400,
+      "xM": 1400.0,
+      "zM": 0.0,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 2,
+      "distanceM": 2800,
+      "xM": 2800.0,
+      "zM": 0.0,
+      "headingDeg": 5.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 3,
+      "distanceM": 4200,
+      "xM": 4170.33,
+      "zM": 241.05,
+      "headingDeg": 12.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 4,
+      "distanceM": 5600,
+      "xM": 5528.52,
+      "zM": 580.6,
+      "headingDeg": 14.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 5,
+      "distanceM": 7000,
+      "xM": 6886.72,
+      "zM": 920.15,
+      "headingDeg": 10.1,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 6,
+      "distanceM": 8400,
+      "xM": 8268.44,
+      "zM": 1068.71,
+      "headingDeg": 3.1,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 7,
+      "distanceM": 9800,
+      "xM": 9668.44,
+      "zM": 1068.71,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 8,
+      "distanceM": 11200,
+      "xM": 11068.44,
+      "zM": 1068.71,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 9,
+      "distanceM": 12600,
+      "xM": 12468.44,
+      "zM": 1068.71,
+      "headingDeg": 13.6,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 10,
+      "distanceM": 14000,
+      "xM": 13659.65,
+      "zM": 1695.08,
+      "headingDeg": 32.4,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 11,
+      "distanceM": 15400,
+      "xM": 14779.65,
+      "zM": 2535.08,
+      "headingDeg": 36.9,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 12,
+      "distanceM": 16800,
+      "xM": 15899.65,
+      "zM": 3375.08,
+      "headingDeg": 36.9,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 13,
+      "distanceM": 18200,
+      "xM": 17019.65,
+      "zM": 4215.08,
+      "headingDeg": 19.8,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 14,
+      "distanceM": 19600,
+      "xM": 18399.73,
+      "zM": 4274.83,
+      "headingDeg": 1.2,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 15,
+      "distanceM": 21000,
+      "xM": 19799.73,
+      "zM": 4274.83,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 16,
+      "distanceM": 22400,
+      "xM": 21199.73,
+      "zM": 4274.83,
+      "headingDeg": -14.7,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 17,
+      "distanceM": 23800,
+      "xM": 22393.89,
+      "zM": 3595.0,
+      "headingDeg": -31.7,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 18,
+      "distanceM": 25200,
+      "xM": 23558.76,
+      "zM": 2818.42,
+      "headingDeg": -31.2,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 19,
+      "distanceM": 26600,
+      "xM": 24749.22,
+      "zM": 2171.2,
+      "headingDeg": -8.3,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 20,
+      "distanceM": 28000,
+      "xM": 26122.04,
+      "zM": 2445.76,
+      "headingDeg": 11.3,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 21,
+      "distanceM": 29400,
+      "xM": 27494.85,
+      "zM": 2720.33,
+      "headingDeg": 11.3,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 22,
+      "distanceM": 30800,
+      "xM": 28867.66,
+      "zM": 2994.89,
+      "headingDeg": 13.1,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 23,
+      "distanceM": 32200,
+      "xM": 30212.65,
+      "zM": 3350.54,
+      "headingDeg": 20.7,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 24,
+      "distanceM": 33600,
+      "xM": 31464.85,
+      "zM": 3976.64,
+      "headingDeg": 26.6,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 25,
+      "distanceM": 35000,
+      "xM": 32717.05,
+      "zM": 4602.74,
+      "headingDeg": 26.6,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 26,
+      "distanceM": 36400,
+      "xM": 33969.24,
+      "zM": 5228.84,
+      "headingDeg": 15.8,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 27,
+      "distanceM": 37800,
+      "xM": 35342.17,
+      "zM": 5343.54,
+      "headingDeg": 2.4,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 28,
+      "distanceM": 39200,
+      "xM": 36742.17,
+      "zM": 5343.54,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 29,
+      "distanceM": 40600,
+      "xM": 38142.17,
+      "zM": 5343.54,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 30,
+      "distanceM": 42000,
+      "xM": 39542.17,
+      "zM": 5343.54,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    },
+    {
+      "index": 31,
+      "distanceM": 42000.0,
+      "xM": 39542.17,
+      "zM": 5343.54,
+      "headingDeg": 0.0,
+      "gateWidthM": 27.5
+    }
+  ],
+  "lapsDefault": 1,
+  "recommendedOpponents": 7,
+  "trafficEnabled": true,
+  "policePursuitEnabled": true,
+  "surface": "asphalt",
+  "implementationStatus": "layout definition only; not integrated into live world"
+}

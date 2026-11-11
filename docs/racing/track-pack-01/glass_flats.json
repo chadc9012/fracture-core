@@ -1,0 +1,565 @@
+{
+  "schema": "world-fracture-race-track/v1",
+  "id": "glass_flats",
+  "name": "Glass Flats Rally",
+  "region": "Solara Desert",
+  "raceType": "offroad_rally",
+  "closedCircuit": false,
+  "lengthM": 86000.0,
+  "laneWidthM": 28,
+  "coordinateSystem": "local meters; requires world anchor during integration",
+  "routePoints": [
+    {
+      "xM": 0.0,
+      "zM": 0.0
+    },
+    {
+      "xM": 6769.43,
+      "zM": 5077.08
+    },
+    {
+      "xM": 15231.23,
+      "zM": 3384.72
+    },
+    {
+      "xM": 22000.66,
+      "zM": 11846.51
+    },
+    {
+      "xM": 30462.46,
+      "zM": 13538.87
+    },
+    {
+      "xM": 37231.89,
+      "zM": 8461.79
+    },
+    {
+      "xM": 44001.33,
+      "zM": 15231.23
+    },
+    {
+      "xM": 52463.12,
+      "zM": 20308.3
+    },
+    {
+      "xM": 62617.27,
+      "zM": 16923.59
+    },
+    {
+      "xM": 71079.07,
+      "zM": 23693.02
+    }
+  ],
+  "checkpoints": [
+    {
+      "index": 0,
+      "distanceM": 0,
+      "xM": 0.0,
+      "zM": 0.0,
+      "headingDeg": 36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 1,
+      "distanceM": 1400,
+      "xM": 1120.0,
+      "zM": 840.0,
+      "headingDeg": 36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 2,
+      "distanceM": 2800,
+      "xM": 2240.0,
+      "zM": 1680.0,
+      "headingDeg": 36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 3,
+      "distanceM": 4200,
+      "xM": 3360.0,
+      "zM": 2520.0,
+      "headingDeg": 36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 4,
+      "distanceM": 5600,
+      "xM": 4480.0,
+      "zM": 3360.0,
+      "headingDeg": 36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 5,
+      "distanceM": 7000,
+      "xM": 5600.0,
+      "zM": 4200.0,
+      "headingDeg": 36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 6,
+      "distanceM": 8400,
+      "xM": 6720.0,
+      "zM": 5040.0,
+      "headingDeg": 13.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 7,
+      "distanceM": 9800,
+      "xM": 8081.65,
+      "zM": 4814.64,
+      "headingDeg": -10.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 8,
+      "distanceM": 11200,
+      "xM": 9454.46,
+      "zM": 4540.07,
+      "headingDeg": -11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 9,
+      "distanceM": 12600,
+      "xM": 10827.28,
+      "zM": 4265.51,
+      "headingDeg": -11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 10,
+      "distanceM": 14000,
+      "xM": 12200.09,
+      "zM": 3990.95,
+      "headingDeg": -11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 11,
+      "distanceM": 15400,
+      "xM": 13572.9,
+      "zM": 3716.39,
+      "headingDeg": -11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 12,
+      "distanceM": 16800,
+      "xM": 14945.72,
+      "zM": 3441.82,
+      "headingDeg": 12.8,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 13,
+      "distanceM": 18200,
+      "xM": 15923.91,
+      "zM": 4250.57,
+      "headingDeg": 45.8,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 14,
+      "distanceM": 19600,
+      "xM": 16798.48,
+      "zM": 5343.79,
+      "headingDeg": 51.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 15,
+      "distanceM": 21000,
+      "xM": 17673.06,
+      "zM": 6437.0,
+      "headingDeg": 51.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 16,
+      "distanceM": 22400,
+      "xM": 18547.63,
+      "zM": 7530.22,
+      "headingDeg": 51.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 17,
+      "distanceM": 23800,
+      "xM": 19422.2,
+      "zM": 8623.44,
+      "headingDeg": 51.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 18,
+      "distanceM": 25200,
+      "xM": 20296.78,
+      "zM": 9716.65,
+      "headingDeg": 51.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 19,
+      "distanceM": 26600,
+      "xM": 21171.35,
+      "zM": 10809.87,
+      "headingDeg": 50.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 20,
+      "distanceM": 28000,
+      "xM": 22071.71,
+      "zM": 11860.72,
+      "headingDeg": 30.2,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 21,
+      "distanceM": 29400,
+      "xM": 23444.52,
+      "zM": 12135.28,
+      "headingDeg": 11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 22,
+      "distanceM": 30800,
+      "xM": 24817.33,
+      "zM": 12409.84,
+      "headingDeg": 11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 23,
+      "distanceM": 32200,
+      "xM": 26190.15,
+      "zM": 12684.41,
+      "headingDeg": 11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 24,
+      "distanceM": 33600,
+      "xM": 27562.96,
+      "zM": 12958.97,
+      "headingDeg": 11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 25,
+      "distanceM": 35000,
+      "xM": 28935.77,
+      "zM": 13233.53,
+      "headingDeg": 11.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 26,
+      "distanceM": 36400,
+      "xM": 30308.58,
+      "zM": 13508.09,
+      "headingDeg": -9.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 27,
+      "distanceM": 37800,
+      "xM": 31456.92,
+      "zM": 12793.02,
+      "headingDeg": -34.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 28,
+      "distanceM": 39200,
+      "xM": 32576.92,
+      "zM": 11953.02,
+      "headingDeg": -36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 29,
+      "distanceM": 40600,
+      "xM": 33696.92,
+      "zM": 11113.02,
+      "headingDeg": -36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 30,
+      "distanceM": 42000,
+      "xM": 34816.92,
+      "zM": 10273.02,
+      "headingDeg": -36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 31,
+      "distanceM": 43400,
+      "xM": 35936.92,
+      "zM": 9433.02,
+      "headingDeg": -36.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 32,
+      "distanceM": 44800,
+      "xM": 37056.92,
+      "zM": 8593.02,
+      "headingDeg": -3.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 33,
+      "distanceM": 46200,
+      "xM": 38067.18,
+      "zM": 9297.08,
+      "headingDeg": 40.3,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 34,
+      "distanceM": 47600,
+      "xM": 39057.13,
+      "zM": 10287.03,
+      "headingDeg": 45.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 35,
+      "distanceM": 49000,
+      "xM": 40047.08,
+      "zM": 11276.98,
+      "headingDeg": 45.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 36,
+      "distanceM": 50400,
+      "xM": 41037.03,
+      "zM": 12266.93,
+      "headingDeg": 45.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 37,
+      "distanceM": 51800,
+      "xM": 42026.98,
+      "zM": 13256.88,
+      "headingDeg": 45.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 38,
+      "distanceM": 53200,
+      "xM": 43016.93,
+      "zM": 14246.83,
+      "headingDeg": 45.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 39,
+      "distanceM": 54600,
+      "xM": 44008.06,
+      "zM": 15235.27,
+      "headingDeg": 37.9,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 40,
+      "distanceM": 56000,
+      "xM": 45208.55,
+      "zM": 15955.56,
+      "headingDeg": 31.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 41,
+      "distanceM": 57400,
+      "xM": 46409.04,
+      "zM": 16675.86,
+      "headingDeg": 31.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 42,
+      "distanceM": 58800,
+      "xM": 47609.53,
+      "zM": 17396.15,
+      "headingDeg": 31.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 43,
+      "distanceM": 60200,
+      "xM": 48810.02,
+      "zM": 18116.44,
+      "headingDeg": 31.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 44,
+      "distanceM": 61600,
+      "xM": 50010.51,
+      "zM": 18836.74,
+      "headingDeg": 31.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 45,
+      "distanceM": 63000,
+      "xM": 51211.0,
+      "zM": 19557.03,
+      "headingDeg": 31.0,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 46,
+      "distanceM": 64400,
+      "xM": 52411.5,
+      "zM": 20277.33,
+      "headingDeg": 7.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 47,
+      "distanceM": 65800,
+      "xM": 53734.16,
+      "zM": 19884.62,
+      "headingDeg": -17.5,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 48,
+      "distanceM": 67200,
+      "xM": 55062.32,
+      "zM": 19441.9,
+      "headingDeg": -18.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 49,
+      "distanceM": 68600,
+      "xM": 56390.48,
+      "zM": 18999.18,
+      "headingDeg": -18.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 50,
+      "distanceM": 70000,
+      "xM": 57718.63,
+      "zM": 18556.47,
+      "headingDeg": -18.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 51,
+      "distanceM": 71400,
+      "xM": 59046.79,
+      "zM": 18113.75,
+      "headingDeg": -18.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 52,
+      "distanceM": 72800,
+      "xM": 60374.95,
+      "zM": 17671.03,
+      "headingDeg": -18.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 53,
+      "distanceM": 74200,
+      "xM": 61703.1,
+      "zM": 17228.31,
+      "headingDeg": -10.4,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 54,
+      "distanceM": 75600,
+      "xM": 62958.03,
+      "zM": 17196.2,
+      "headingDeg": 19.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 55,
+      "distanceM": 77000,
+      "xM": 64051.25,
+      "zM": 18070.77,
+      "headingDeg": 38.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 56,
+      "distanceM": 78400,
+      "xM": 65144.46,
+      "zM": 18945.34,
+      "headingDeg": 38.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 57,
+      "distanceM": 79800,
+      "xM": 66237.68,
+      "zM": 19819.91,
+      "headingDeg": 38.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 58,
+      "distanceM": 81200,
+      "xM": 67330.9,
+      "zM": 20694.49,
+      "headingDeg": 38.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 59,
+      "distanceM": 82600,
+      "xM": 68424.11,
+      "zM": 21569.06,
+      "headingDeg": 38.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 60,
+      "distanceM": 84000,
+      "xM": 69517.33,
+      "zM": 22443.63,
+      "headingDeg": 38.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 61,
+      "distanceM": 85400,
+      "xM": 70610.55,
+      "zM": 23318.2,
+      "headingDeg": 38.7,
+      "gateWidthM": 35.0
+    },
+    {
+      "index": 62,
+      "distanceM": 86000.0,
+      "xM": 71079.07,
+      "zM": 23693.02,
+      "headingDeg": 38.7,
+      "gateWidthM": 35.0
+    }
+  ],
+  "lapsDefault": 1,
+  "recommendedOpponents": 7,
+  "trafficEnabled": false,
+  "policePursuitEnabled": false,
+  "surface": "sand_gravel",
+  "implementationStatus": "layout definition only; not integrated into live world"
+}

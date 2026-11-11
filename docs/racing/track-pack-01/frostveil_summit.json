@@ -1,0 +1,381 @@
+{
+  "schema": "world-fracture-race-track/v1",
+  "id": "frostveil_summit",
+  "name": "Frostveil Summit",
+  "region": "Frostveil",
+  "raceType": "mountain_point_to_point",
+  "closedCircuit": false,
+  "lengthM": 54000.0,
+  "laneWidthM": 11,
+  "coordinateSystem": "local meters; requires world anchor during integration",
+  "routePoints": [
+    {
+      "xM": 0.0,
+      "zM": 0.0
+    },
+    {
+      "xM": 4555.99,
+      "zM": 3037.32
+    },
+    {
+      "xM": 1518.66,
+      "zM": 7593.31
+    },
+    {
+      "xM": 7593.31,
+      "zM": 10630.63
+    },
+    {
+      "xM": 4555.99,
+      "zM": 15186.62
+    },
+    {
+      "xM": 10630.63,
+      "zM": 18223.94
+    },
+    {
+      "xM": 9111.97,
+      "zM": 22779.93
+    },
+    {
+      "xM": 15186.62,
+      "zM": 25817.25
+    },
+    {
+      "xM": 13667.96,
+      "zM": 30373.24
+    },
+    {
+      "xM": 19742.61,
+      "zM": 34929.22
+    }
+  ],
+  "checkpoints": [
+    {
+      "index": 0,
+      "distanceM": 0,
+      "xM": 0.0,
+      "zM": 0.0,
+      "headingDeg": 33.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 1,
+      "distanceM": 1400,
+      "xM": 1164.87,
+      "zM": 776.58,
+      "headingDeg": 33.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 2,
+      "distanceM": 2800,
+      "xM": 2329.74,
+      "zM": 1553.16,
+      "headingDeg": 33.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 3,
+      "distanceM": 4200,
+      "xM": 3494.61,
+      "zM": 2329.74,
+      "headingDeg": 36.4,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 4,
+      "distanceM": 5600,
+      "xM": 4486.99,
+      "zM": 3140.81,
+      "headingDeg": 83.8,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 5,
+      "distanceM": 7000,
+      "xM": 3710.41,
+      "zM": 4305.68,
+      "headingDeg": 123.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 6,
+      "distanceM": 8400,
+      "xM": 2933.83,
+      "zM": 5470.55,
+      "headingDeg": 123.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 7,
+      "distanceM": 9800,
+      "xM": 2157.25,
+      "zM": 6635.42,
+      "headingDeg": 118.1,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 8,
+      "distanceM": 11200,
+      "xM": 1741.16,
+      "zM": 7704.56,
+      "headingDeg": 63.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 9,
+      "distanceM": 12600,
+      "xM": 2993.36,
+      "zM": 8330.66,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 10,
+      "distanceM": 14000,
+      "xM": 4245.56,
+      "zM": 8956.76,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 11,
+      "distanceM": 15400,
+      "xM": 5497.76,
+      "zM": 9582.86,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 12,
+      "distanceM": 16800,
+      "xM": 6749.96,
+      "zM": 10208.95,
+      "headingDeg": 37.8,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 13,
+      "distanceM": 18200,
+      "xM": 7339.76,
+      "zM": 11010.96,
+      "headingDeg": 95.4,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 14,
+      "distanceM": 19600,
+      "xM": 6563.18,
+      "zM": 12175.83,
+      "headingDeg": 123.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 15,
+      "distanceM": 21000,
+      "xM": 5786.6,
+      "zM": 13340.7,
+      "headingDeg": 123.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 16,
+      "distanceM": 22400,
+      "xM": 5010.02,
+      "zM": 14505.58,
+      "headingDeg": 108.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 17,
+      "distanceM": 23800,
+      "xM": 5076.09,
+      "zM": 15446.67,
+      "headingDeg": 49.9,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 18,
+      "distanceM": 25200,
+      "xM": 6328.29,
+      "zM": 16072.77,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 19,
+      "distanceM": 26600,
+      "xM": 7580.48,
+      "zM": 16698.87,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 20,
+      "distanceM": 28000,
+      "xM": 8832.68,
+      "zM": 17324.97,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 21,
+      "distanceM": 29400,
+      "xM": 10084.88,
+      "zM": 17951.07,
+      "headingDeg": 46.8,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 22,
+      "distanceM": 30800,
+      "xM": 10380.86,
+      "zM": 18973.24,
+      "headingDeg": 93.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 23,
+      "distanceM": 32200,
+      "xM": 9938.15,
+      "zM": 20301.4,
+      "headingDeg": 108.4,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 24,
+      "distanceM": 33600,
+      "xM": 9495.43,
+      "zM": 21629.56,
+      "headingDeg": 104.4,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 25,
+      "distanceM": 35000,
+      "xM": 9279.58,
+      "zM": 22863.74,
+      "headingDeg": 60.9,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 26,
+      "distanceM": 36400,
+      "xM": 10531.78,
+      "zM": 23489.84,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 27,
+      "distanceM": 37800,
+      "xM": 11783.98,
+      "zM": 24115.93,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 28,
+      "distanceM": 39200,
+      "xM": 13036.18,
+      "zM": 24742.03,
+      "headingDeg": 26.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 29,
+      "distanceM": 40600,
+      "xM": 14288.38,
+      "zM": 25368.13,
+      "headingDeg": 35.6,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 30,
+      "distanceM": 42000,
+      "xM": 15061.48,
+      "zM": 26192.68,
+      "headingDeg": 81.3,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 31,
+      "distanceM": 43400,
+      "xM": 14618.76,
+      "zM": 27520.84,
+      "headingDeg": 108.4,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 32,
+      "distanceM": 44800,
+      "xM": 14176.04,
+      "zM": 28848.99,
+      "headingDeg": 108.4,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 33,
+      "distanceM": 46200,
+      "xM": 13733.32,
+      "zM": 30177.15,
+      "headingDeg": 78.7,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 34,
+      "distanceM": 47600,
+      "xM": 14622.6,
+      "zM": 31089.22,
+      "headingDeg": 41.1,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 35,
+      "distanceM": 49000,
+      "xM": 15742.6,
+      "zM": 31929.22,
+      "headingDeg": 36.9,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 36,
+      "distanceM": 50400,
+      "xM": 16862.6,
+      "zM": 32769.22,
+      "headingDeg": 36.9,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 37,
+      "distanceM": 51800,
+      "xM": 17982.6,
+      "zM": 33609.22,
+      "headingDeg": 36.9,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 38,
+      "distanceM": 53200,
+      "xM": 19102.6,
+      "zM": 34449.22,
+      "headingDeg": 36.9,
+      "gateWidthM": 13.75
+    },
+    {
+      "index": 39,
+      "distanceM": 54000.0,
+      "xM": 19742.61,
+      "zM": 34929.22,
+      "headingDeg": 36.9,
+      "gateWidthM": 13.75
+    }
+  ],
+  "lapsDefault": 1,
+  "recommendedOpponents": 7,
+  "trafficEnabled": false,
+  "policePursuitEnabled": false,
+  "surface": "snow_asphalt",
+  "implementationStatus": "layout definition only; not integrated into live world"
+}
