@@ -10,6 +10,9 @@ extends "res://scripts/city/street_slice.gd"
 signal finished
 
 const TouchPad := preload("res://scripts/player/touch_controls.gd")
+const Gamepad := preload("res://scripts/player/gamepad.gd")
+var _pad_was := {}
+var _pad_fire := false
 const Story := preload("res://scripts/mission/m01_story.gd")
 const Player := preload("res://scripts/mission/player.gd")
 const Echo := preload("res://scripts/mission/echo.gd")
@@ -1608,8 +1611,32 @@ func _read_input() -> void:
 	if _keys.get(KEY_D, false) or _keys.get(KEY_RIGHT, false): mv.x += 1
 	if _joy_id >= 0:
 		mv = _joy_vec
+	# a PlayStation / standard controller (gamepad.gd): stick to move, right stick to aim, R2 fire, △ use, □ reload,
+	# ✕ dash, L1 blast, R3 melee, L3 run
+	var pad := Gamepad.poll()
+	var pad_run := false
+	if not pad.is_empty():
+		var r := Gamepad.read(pad, "foot")
+		if r.move != Vector2.ZERO:
+			mv = r.move
+		op.look_delta += (r.look as Vector2) * get_process_delta_time()
+		if r.fire != _pad_fire:
+			op.fire_held = r.fire
+			_pad_fire = r.fire
+		var b: Dictionary = pad.buttons
+		for spec: Array in [[JOY_BUTTON_Y, "use"], [JOY_BUTTON_X, "reload"], [JOY_BUTTON_A, "dash"], [JOY_BUTTON_LEFT_SHOULDER, "blast"], [JOY_BUTTON_RIGHT_STICK, "melee"]]:
+			var now := bool(b.get(spec[0], false))
+			if now and not bool(_pad_was.get(spec[0], false)):
+				match spec[1]:
+					"use": _use()
+					"reload": op.reload()
+					"dash": op.dash()
+					"blast": op.blast()
+					"melee": op.melee()
+			_pad_was[spec[0]] = now
+		pad_run = bool(b.get(JOY_BUTTON_LEFT_STICK, false)) or (r.move as Vector2).length() > 0.9
 	op.move = mv.limit_length(1.0)
-	op.run = _keys.get(KEY_SHIFT, false) or _joy_vec.length() > 0.85
+	op.run = _keys.get(KEY_SHIFT, false) or _joy_vec.length() > 0.85 or pad_run
 
 func _input(e: InputEvent) -> void:
 	if e is InputEventKey:

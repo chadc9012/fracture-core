@@ -1,5 +1,6 @@
 extends Control
 const Settings := preload("res://scripts/front/settings_store.gd")
+const Gamepad := preload("res://scripts/player/gamepad.gd")
 ## On-foot input for the phone and the desk, one overlay over the 3D view: a virtual stick where the thumb lands on the left
 ## half of the screen, look-drag anywhere on the right half, JUMP, SPRINT, FIRE, RELOAD and SWAP buttons (phone), WASD / arrows + Space + Shift,
 ## left mouse to fire, right-drag look, R and Q on a keyboard, J / K (GRENADE / ⟳) for the Operator's grenades; a crosshair and the magazine read-out. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
@@ -250,7 +251,7 @@ var _brake_held := false
 func brake() -> float:
 	if mode != "drive":
 		return 0.0
-	return 1.0 if (_brake_held or (not touch_ui and Input.is_key_pressed(KEY_SPACE))) else 0.0
+	return 1.0 if (_brake_held or _pad_brake or (not touch_ui and Input.is_key_pressed(KEY_SPACE))) else 0.0
 
 ## the ENTER / EXIT press since the last call (the phone button, or E on the desk)
 func take_enter() -> bool:
@@ -262,6 +263,8 @@ func take_enter() -> bool:
 var _prompt_label: Label
 ## the interaction prompt: the ENTER button carries it on touch; a keyboard player sees "<text> · E" under the crosshair
 func prompt(text: String) -> void:
+	if pad_active and text != "":
+		text = "△ " + text     # the controller's enter button
 	if _enter_button:
 		_enter_button.text = text
 		_enter_button.visible = text != ""
@@ -276,7 +279,7 @@ func prompt(text: String) -> void:
 		_prompt_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		_prompt_label.modulate = Color(0.5, 0.95, 1.0)
 		add_child(_prompt_label)
-	_prompt_label.text = (text + "  ·  E") if text != "" else ""
+	_prompt_label.text = (text + ("" if pad_active else "  ·  E")) if text != "" else ""
 
 ## the simple phone HUD (settings "simple_hud", the owner's ask): stick, FIRE, JUMP and ENTER only — sprint is the stick
 ## pushed to its edge, a tap on the weapon's name swaps, an empty magazine reloads itself (gunplay does that on the pull)
@@ -316,10 +319,10 @@ func set_armed(on: bool) -> void:
 
 ## flight (mode "fly"): UP held (or Space) climbs, DOWN toggled (or Shift) descends — 0..1
 func ascend() -> float:
-	return 1.0 if (_brake_held or (not touch_ui and Input.is_key_pressed(KEY_SPACE))) else 0.0
+	return 1.0 if (_brake_held or _pad_up or (not touch_ui and Input.is_key_pressed(KEY_SPACE))) else 0.0
 
 func descend() -> float:
-	return 1.0 if (_sprint_held or (not touch_ui and Input.is_key_pressed(KEY_SHIFT))) else 0.0
+	return 1.0 if (_sprint_held or _pad_down or (not touch_ui and Input.is_key_pressed(KEY_SHIFT))) else 0.0
 
 func take_reload() -> bool:
 	var r := _reload
@@ -439,8 +442,98 @@ func _process(_dt: float) -> void:
 		return
 	if touch_ui:
 		sprint = _sprint_held or (simple() and mode == "foot" and move.length() > 0.92)
+	else:
+		_keyboard()
+	_pad_step(_dt)
+
+# --------------------------------------------------------------------------------------------- a controller
+## a PlayStation / standard controller (gamepad.gd holds the layout): read every frame on top of touch and keyboard. Using
+## it hides the on-screen buttons on a phone (the prompt stays, marked △); touching the screen brings them back.
+var pad_active := false
+var _pad_was := {}
+var _pad_moving := false
+var _pad_fire := false
+var _pad_brake := false
+var _pad_up := false
+var _pad_down := false
+var _pad_sprint := false
+var _pad_still := 0.0
+
+## `fake`: a test's pad state in Gamepad.read's shape (the live pad is polled otherwise)
+func _pad_step(dt: float, fake := {}) -> void:
+	var raw := fake if not fake.is_empty() else Gamepad.poll()
+	if raw.is_empty():
+		if pad_active:
+			_set_pad_active(false)
 		return
-	# keyboard
+	var r := Gamepad.read(raw, mode)
+	if r.active and not pad_active:
+		_set_pad_active(true)
+	# in the world ✕ is jump: a menu button left focused by a tap must not be pressed by it (Godot's ui_accept)
+	if pad_active and is_visible_in_tree():
+		var f := get_viewport().gui_get_focus_owner()
+		if f:
+			f.release_focus()
+	var mv: Vector2 = r.move
+	if mv != Vector2.ZERO:
+		move = mv
+		_pad_moving = true
+	elif _pad_moving:
+		move = Vector2.ZERO
+		_pad_moving = false
+	look_delta += (r.look as Vector2) * dt
+	if r.fire != _pad_fire:
+		fire = r.fire
+		_pad_fire = r.fire
+	_pad_brake = r.brake
+	_pad_up = r.ascend
+	_pad_down = r.descend
+	var held: Dictionary = r.held
+	var edge := func(name: String) -> bool:
+		var now := bool(held.get(name, false))
+		var was := bool(_pad_was.get(name, false))
+		_pad_was[name] = now
+		return now and not was
+	if edge.call("jump"):
+		_jump = true
+	if edge.call("reload"):
+		_reload = true
+	if edge.call("enter"):
+		_enter = true
+	if edge.call("next"):
+		_next = true
+	if edge.call("grenade"):
+		_grenade = true
+	if edge.call("cycle"):
+		_cycle_grenade = true
+	if edge.call("sprint"):
+		_pad_sprint = not _pad_sprint
+	# L3 sprint stays on until the operator stops
+	_pad_still = _pad_still + dt if move.length() < 0.2 else 0.0
+	if _pad_still > 0.4:
+		_pad_sprint = false
+	if _pad_sprint and mode == "foot":
+		sprint = true
+
+func _set_pad_active(on: bool) -> void:
+	pad_active = on
+	if not touch_ui:
+		return
+	if on:
+		for b in [_jump_button, _sprint_button, _fire_button, _reload_button, _swap_button, _grenade_button, _cycle_button]:
+			if b:
+				b.visible = false
+		if _stick_base:
+			_stick_base.visible = false
+			_stick_knob.visible = false
+	else:
+		if _jump_button:
+			_jump_button.visible = true
+		set_mode(mode)
+	if _enter_button and _enter_button.visible:
+		prompt(_enter_button.text.trim_prefix("△ "))
+
+func _keyboard() -> void:
 	var k := Vector2.ZERO
 	k.x = (1.0 if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) else 0.0) - (1.0 if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) else 0.0)
 	k.y = (1.0 if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) else 0.0)
@@ -511,6 +604,8 @@ func _gui_input(event: InputEvent) -> void:
 	if touch_ui:
 		if event is InputEventScreenTouch:
 			var t := event as InputEventScreenTouch
+			if pad_active and t.pressed:
+				_set_pad_active(false)    # a thumb on the glass: the touch controls come back
 			var left := t.position.x < size.x * 0.45
 			if t.pressed:
 				if left and _stick_id < 0:

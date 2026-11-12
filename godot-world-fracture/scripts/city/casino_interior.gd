@@ -105,6 +105,21 @@ func show_view(i: int) -> void:
 	cam.look_at(_views[_view][2])
 	_title.text = "NEON CITY GRAND CASINO · " + String(_views[_view][0])
 
+## a controller in here (gamepad.gd): R1 or D-pad → next view, L1 or D-pad ← back a view, ○ back to the street
+func _input(event: InputEvent) -> void:
+	if not (event is InputEventJoypadButton) or not (event as InputEventJoypadButton).pressed or not is_visible_in_tree():
+		return
+	match (event as InputEventJoypadButton).button_index:
+		JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_DPAD_RIGHT:
+			show_view(_view + 1)
+		JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_DPAD_LEFT:
+			show_view(_view - 1)
+		JOY_BUTTON_B:
+			closed.emit()
+		_:
+			return
+	get_viewport().set_input_as_handled()
+
 func _process(delta: float) -> void:
 	_t += delta
 	for w in _wheels:

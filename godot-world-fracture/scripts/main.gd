@@ -49,6 +49,30 @@ var region_3d: Control
 var garage: Control
 var driving: Control
 
+## menus with a controller (owner, Nov 11): the D-pad / left stick moves between buttons and ✕ presses (Godot's ui_*
+## actions). A menu opens with nothing focused, so the first pad press focuses its first button. Not while the operator
+## is in the world (touch_controls showing): there ✕ jumps and must never press a menu button.
+func _input(event: InputEvent) -> void:
+	if not (event is InputEventJoypadButton or event is InputEventJoypadMotion):
+		return
+	if event is InputEventJoypadMotion and absf((event as InputEventJoypadMotion).axis_value) < 0.5:
+		return
+	if get_viewport().gui_get_focus_owner() != null:
+		return
+	for tc in get_tree().get_nodes_in_group("touch_controls"):
+		if (tc as Control).is_visible_in_tree():
+			return
+	var best: Button = null
+	for b in find_children("*", "Button", true, false):
+		var bt := b as Button
+		if bt.is_visible_in_tree() and not bt.disabled and bt.focus_mode != Control.FOCUS_NONE:
+			# the first visible one: a screen hides the one under it while it is open
+			best = bt
+			break
+	if best:
+		best.grab_focus()
+		get_viewport().set_input_as_handled()
+
 func _ready() -> void:
 	preload("res://scripts/front/settings_store.gd").apply_orientation()   # the player's saved screen orientation
 	# the UI is laid out for a 540 px wide portrait phone; turned sideways the same rule would shrink every button to half
