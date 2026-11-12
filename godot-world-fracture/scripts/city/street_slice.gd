@@ -1400,7 +1400,14 @@ func _lamp_fallback(at: Vector3, side: float) -> void:
 
 # --------------------------------------------------------------------------------------------- parked cars
 func _cars() -> void:
-	var files := ["street-racer-lod.glb", "muscle-car-lod.glb", "security-suv.glb", "tuner.glb", "offroad-truck.glb"]
+	# the fleet's cars, then the showroom's everyday cars (catalog.gd SHOWROOM, Nov 12) between them
+	var files: Array = []
+	var everyday := Catalog.street_models()
+	var base := ["street-racer-lod.glb", "muscle-car-lod.glb", "security-suv.glb", "tuner.glb", "offroad-truck.glb"]
+	for k in maxi(base.size(), everyday.size()):
+		files.append(base[k % base.size()])
+		if k < everyday.size():
+			files.append(everyday[k])
 	var half := ROAD_W * 0.5
 	var z := -LENGTH * 0.5 + 20.0
 	var i := 0
@@ -1422,9 +1429,10 @@ func _cars() -> void:
 			parked.append(hull)
 	while z < LENGTH * 0.5 - 20.0:
 		var side := 1.0 if i % 2 == 0 else -1.0
-		var f: String = files[i % files.size()]
-		if ResourceLoader.exists(FLEET + f):
-			var car := (load(FLEET + f) as PackedScene).instantiate() as Node3D
+		var f: String = files[(i + _tile_k * 7) % files.size()]
+		var fpath := f if f.begins_with("res://") else FLEET + f
+		if ResourceLoader.exists(fpath):
+			var car := (load(fpath) as PackedScene).instantiate() as Node3D
 			car.position = Vector3(side * (half - 1.4), 0.0, z + _rng.randf_range(-2.0, 2.0))
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
 			StreetCar.face_forward(car)
@@ -1446,7 +1454,9 @@ func _cars() -> void:
 			# stand (and which block), so a block's cars are the same every visit
 			var spot := car.position + Vector3(0.0, 0.0, float(_tile_k) * 997.0 if _tile_root else 0.0)
 			CarDetail.dress(car, CarDetail.paint_at(spot))
-			car.set_meta("locked", CarDetail.locked_at(spot))
+			var vid := String(CAR_IDS.get(f, Catalog.id_for_model(fpath)))
+			# a high-end car on the street is always someone's: those are only ever yours from the showroom (owner, Nov 12)
+			car.set_meta("locked", CarDetail.locked_at(spot) or Catalog.high_end(vid))
 			if Phone.car_range() > 0.0:
 				for gi in car.find_children("*", "GeometryInstance3D", true, false):
 					(gi as GeometryInstance3D).visibility_range_end = Phone.car_range()
@@ -1457,11 +1467,11 @@ func _cars() -> void:
 				car.set_meta("size", Vector3(a.size.x, a.size.y, a.size.z))
 				# any parked car can be taken, not only the hub's (owner, Nov 9): it joins `parked` once its box has a slot
 				car.set_meta("car", true)
-				car.set_meta("vehicle", CAR_IDS.get(f, ""))
+				car.set_meta("vehicle", vid)
 				_tile_root.add_child(car)
 			else:
 				car.set_meta("car", true)
-				car.set_meta("vehicle", CAR_IDS.get(f, ""))
+				car.set_meta("vehicle", vid)
 				world.add_child(car)
 				parked.append(car)
 		z += _rng.randf_range(9.0, 16.0)
@@ -2019,7 +2029,32 @@ func open_garage(shop_id := "") -> void:
 	garage_overlay.shop_id = shop_id if shop_id != "" else String(CITY_GARAGE[style])
 	garage_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	garage_overlay.closed.connect(close_garage)
+	garage_overlay.can_drive_out = walk and operator != null
+	garage_overlay.drive_out.connect(drive_out)
 	add_child(garage_overlay)
+
+## DRIVE OUT from the garage: your car (a starter or one bought in the showroom) rolls out onto the apron and you are in it
+func drive_out(id: String) -> void:
+	close_garage()
+	var v := Catalog.vehicle(id)
+	if v.is_empty() or operator == null or driving_car != null or not ResourceLoader.exists(String(v.model)):
+		return
+	var car := (load(String(v.model)) as PackedScene).instantiate() as Node3D
+	var x0 := ROAD_W * 0.5 + WALK_W
+	car.position = Vector3(x0 - 3.2, 0.0, GARAGE_Z)
+	car.rotation_degrees.y = 0.0
+	StreetCar.face_forward(car)
+	StaticBatch.compact(car)
+	car.set_meta("car", true)
+	car.set_meta("vehicle", id)
+	car.set_meta("locked", false)
+	car.set_meta("yours", true)
+	world.add_child(car)
+	car.set_meta("box_index", operator.obstacles.size())
+	operator.obstacles.append(PARKED_BOX)
+	parked.append(car)
+	operator.position = car.position + Vector3(2.4, 0.18, 0.0)
+	enter_car(car)
 
 func close_garage() -> void:
 	if garage_overlay:

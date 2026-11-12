@@ -6,6 +6,15 @@ const Phone := preload("res://scripts/phone.gd")
 ## garage_state.gd; the parts on the car: garage_kit.gd.
 
 signal closed
+## DRIVE OUT (only when the garage stands on a street, `can_drive_out`): the street puts you in this car at the door
+signal drive_out(id: String)
+var can_drive_out := false
+const Dealer := preload("res://scripts/garage/dealership.gd")
+const Showroom := preload("res://scripts/garage/showroom_view.gd")
+const GearStore := preload("res://scripts/gear/gear_store.gd")
+## the cars you own (the starters and what the showroom sold you), in the order ◀ ▶ steps through them
+var _owned: Array[String] = []
+var _showroom: Control
 
 const Catalog := preload("res://scripts/garage/catalog.gd")
 const State := preload("res://scripts/garage/garage_state.gd")
@@ -53,6 +62,7 @@ var _history: Array = []
 
 func _ready() -> void:
 	state = State.load_or_fresh()
+	_load_owned()
 	var bg := ColorRect.new()
 	bg.color = Data.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -134,10 +144,10 @@ func _undo_step() -> void:
 	_refresh()
 
 func _vehicle() -> Dictionary:
-	return Catalog.VEHICLES[vehicle_i]
+	return Catalog.vehicle(_owned[clampi(vehicle_i, 0, _owned.size() - 1)])
 
 func _switch_car(d: int) -> void:
-	vehicle_i = posmod(vehicle_i + d, Catalog.VEHICLES.size())
+	vehicle_i = posmod(vehicle_i + d, _owned.size())
 	order = Order.new(shop_id, _vehicle().id)
 	_history.clear()
 	_load_car()
@@ -433,6 +443,9 @@ func _header() -> Control:
 	hb.add_child(_shop_pick)
 	_credits = Data.label("", 18, Data.GOLD)
 	hb.add_child(_credits)
+	var room := Data.button("SHOWROOM", true)
+	room.pressed.connect(open_showroom)
+	hb.add_child(room)
 	return head
 
 func _car_bar() -> Control:
@@ -453,6 +466,10 @@ func _car_bar() -> Control:
 	_cond.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mid.add_child(_cond)
 	bar.add_child(mid)
+	var out := Data.button("DRIVE OUT", true)
+	out.visible = can_drive_out
+	out.pressed.connect(func(): drive_out.emit(_vehicle().id))
+	bar.add_child(out)
 	var next := Data.button("▶")
 	next.pressed.connect(func(): _switch_car(1))
 	bar.add_child(next)
@@ -709,8 +726,8 @@ func pick(ids: Array) -> void:
 	_refresh()
 
 func show_car(id: String) -> void:
-	for i in Catalog.VEHICLES.size():
-		if Catalog.VEHICLES[i].id == id:
+	for i in _owned.size():
+		if _owned[i] == id:
 			vehicle_i = i
 	order = Order.new(shop_id, _vehicle().id)
 	_load_car()
@@ -785,3 +802,31 @@ func set_tune(key: String, value) -> void:
 	state.set_tune(_vehicle().id, key, value)
 	state.save()
 	_apply_preview()
+
+# ------------------------------------------------------------------------------------------------ the showroom
+## the cars you own (dealership.gd): the starters plus anything bought; a bought car gets a garage record on first sight
+func _load_owned() -> void:
+	_owned = Dealer.owned(GearStore.profile_load())
+	for id in _owned:
+		if not state.cars.has(id):
+			state.cars[id] = { "paint": "", "finish": "finish-gloss", "parts": {}, "damage": 0 }
+
+func open_showroom() -> void:
+	if _showroom:
+		return
+	_showroom = Showroom.new()
+	_showroom.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_showroom.closed.connect(close_showroom)
+	_showroom.bought.connect(func(id: String):
+		_load_owned()
+		show_car(id))
+	add_child(_showroom)
+	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+
+func close_showroom() -> void:
+	if _showroom:
+		_showroom.queue_free()
+		_showroom = null
+	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_load_owned()
+	_refresh()

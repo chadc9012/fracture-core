@@ -8,6 +8,7 @@ extends SceneTree
 
 const Nexus := preload("res://scripts/city/nexus_districts.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
+const Catalog := preload("res://scripts/garage/catalog.gd")
 var failed := 0
 
 func ok(cond: bool, what: String) -> void:
@@ -36,6 +37,17 @@ func _run() -> void:
 		_done()
 		return
 	st.controls.scripted = true
+	# DRIVE OUT from the garage (owner, Nov 12): your car rolls out at the door and you are in it, unlocked and yours
+	st.drive_out("vanguard-suv")
+	await frames(3)
+	ok(st.driving_car != null and String(st.driving_car.node.get_meta("vehicle", "")) == "vanguard-suv", "DRIVE OUT puts you in your showroom car")
+	if st.driving_car:
+		var mine: Node3D = st.driving_car.node
+		st.exit_car()
+		await frames(3)
+		ok(st.driving_car == null and not bool(mine.get_meta("locked", true)), "out of it again; your own car is never locked")
+	st.operator.position = Vector3(10.0, 0.18, 0.0)
+	await frames(2)
 	var seen := {}
 	for k in Nexus.COURTS:
 		for i in 2:
@@ -78,6 +90,16 @@ func _run() -> void:
 		if is_instance_valid(c) and c.has_meta("paint"):
 			paints[c.get_meta("paint")] = true
 	ok(paints.size() >= 4, "the parked cars wear different paints (%d)" % paints.size())
+	var showroom_parked := 0
+	var high_open := 0
+	for c in st.parked:
+		if is_instance_valid(c) and String(c.get_meta("vehicle", "")) != "":
+			if String(Catalog.vehicle(String(c.get_meta("vehicle"))).get("model", "")).contains("/showroom/"):
+				showroom_parked += 1
+			if Catalog.high_end(String(c.get_meta("vehicle"))) and not bool(c.get_meta("locked", false)) and not c.has_meta("yours"):
+				high_open += 1
+	ok(showroom_parked > 5, "the showroom's everyday cars park on the street (%d)" % showroom_parked)
+	ok(high_open == 0, "no high-end car on the street is unlocked (%d)" % high_open)
 	if locked_car:
 		st.operator.position = locked_car.global_position + Vector3(2.4, 0, 0)
 		st.operator.position.y = 0.18

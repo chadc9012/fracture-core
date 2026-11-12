@@ -9,6 +9,8 @@ extends Node3D
 const StaticBatch = preload("res://scripts/static_batch.gd")
 const StreetCar := preload("res://scripts/driving/street_car.gd")
 const FLEET := "res://models/fleet/"
+const Catalog := preload("res://scripts/garage/catalog.gd")
+const CarDetail := preload("res://scripts/driving/car_detail.gd")
 const FILES := ["tuner.glb", "muscle-car-lod.glb", "street-racer-lod.glb", "offroad-truck.glb", "security-suv.glb"]
 const CRUISE := 9.0            # m/s on an open lane
 const GAP := 7.0               # m kept to the car ahead (nose to tail)
@@ -59,10 +61,14 @@ func setup(world: Node3D, boxes: Array[AABB], b: Rect2, ground: Callable, street
 			_spawn(lane, z)
 
 func _spawn(dir: float, z: float) -> Car:
-	var f: String = FILES[_rng.randi() % FILES.size()]
+	# the fleet's cars and the showroom's everyday ones (catalog.gd: muscle, tuners, SUVs, off-road, luxury, trucks, vans)
+	var pool: Array = FILES.duplicate()
+	pool.append_array(Catalog.street_models())
+	var f: String = pool[_rng.randi() % pool.size()]
+	var path := f if f.begins_with("res://") else FLEET + f
 	var node: Node3D
-	if ResourceLoader.exists(FLEET + f):
-		node = (load(FLEET + f) as PackedScene).instantiate() as Node3D
+	if ResourceLoader.exists(path):
+		node = (load(path) as PackedScene).instantiate() as Node3D
 	else:
 		node = Node3D.new()
 		var mi := MeshInstance3D.new()
@@ -78,6 +84,7 @@ func _spawn(dir: float, z: float) -> Car:
 	node.rotation.y = 0.0 if dir < 0 else PI
 	StreetCar.face_forward(node)
 	StaticBatch.compact(node)   # one draw per look instead of ~40 per car
+	CarDetail.dress(node, (cars.size() * 5 + 3) % CarDetail.PALETTE.size())
 	_world.add_child(node)
 	c.sc = StreetCar.new(node, "", { "max_speed": 14.0, "acceleration": 6.0, "steering": 1.1, "braking": 14.0 })
 	c.sc.bounds = bounds
