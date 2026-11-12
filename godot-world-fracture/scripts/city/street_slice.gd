@@ -93,6 +93,17 @@ const Gear = preload("res://scripts/gear/gear_store.gd")
 const StreetCar = preload("res://scripts/driving/street_car.gd")
 const Traffic = preload("res://scripts/driving/traffic.gd")
 var traffic: Node3D
+const HeavyWeapons = preload("res://scripts/combat/heavy_weapons.gd")
+## the Goliath's guns (heavy_weapons.gd): the turret follows the camera, CANNON / left mouse fires the 120 mm, MISSILES /
+## right mouse / F the four-tube pod (owner, Nov 11: "Work on the tanks shooting missiles ... feel like call of duty")
+var heavy: Node3D
+var _turret: Node3D            # the pivot the Turret node was put under
+var _turret_info := {}         # barrel length and height, pod spread
+var _cannon_cd := 0.0
+var _missile_cd := 0.0
+var _missiles_left := 4
+const CANNON_RELOAD := 1.7
+const MISSILE_RELOAD := 7.0
 const StreetLife = preload("res://scripts/racing/street_life.gd")
 var life: Node
 ## district streaming (district.gd): the authored slice is tile 0 and stays; the blocks either way along the avenue are
@@ -442,6 +453,14 @@ func _after_enemies() -> void:
 	traffic = Traffic.new()
 	world.add_child(traffic)
 	traffic.setup(world, operator.obstacles, operator.bounds, operator.ground_at, LENGTH, maxi(3, int(round(8 * Phone.crowd()))), 5)
+	heavy = HeavyWeapons.new()
+	world.add_child(heavy)
+	heavy.gunplay = gunplay
+	heavy.traffic = traffic
+	heavy.obstacles = operator.obstacles
+	heavy.ground_at = operator.ground_at
+	heavy.listener = func() -> Vector3: return cam.global_position
+	heavy.shake = func(a: float) -> void: operator.add_shake(a)
 	# civilians (civilians.gd): sixteen walkers dressed from the NPC lineup on the sidewalks of the active blocks
 	civilians = Civilians.new()
 	world.add_child(civilians)
@@ -729,6 +748,8 @@ func _process(dt: float) -> void:
 		traffic.watch_point = operator.position
 		traffic.watch_box = driving_car.box() if driving_car else AABB()
 		traffic.step(minf(dt, 0.05))
+	if heavy:
+		heavy.step(minf(dt, 0.05))
 	if driving_car:
 		_drive(minf(dt, 0.05))
 		if life:
@@ -2180,9 +2201,14 @@ func enter_car(c: Node3D) -> void:
 	operator.cam_dist = 14.0 if Handling.BY_ID.has(id) else 9.0
 	operator.cam_pivot = Vector3(0, 3.2 if Handling.BY_ID.has(id) else 2.4, 0)
 	operator.cam_yaw = c.rotation.y
+	var tank: bool = Handling.kind_of(id) == "TANK" and _arm_tank(c)
+	controls.set_armed_vehicle(tank)
 	controls.set_mode("drive")
 	controls.prompt("")
-	controls.toast("Driving " + _car_name(c) + " · hold BRAKE to stop, EXIT to get out")
+	if tank:
+		controls.toast("GOLIATH · drag to aim the turret · CANNON fires · MISSILES lock on" if controls.touch_ui else "GOLIATH · mouse aims the turret · left click CANNON · right click / F MISSILES")
+	else:
+		controls.toast("Driving " + _car_name(c) + " · hold BRAKE to stop, EXIT to get out")
 	Sound.sfx("click", -6.0)
 	Sound.loop("engine", "hover" if bool(perf.get("hover", false)) else "engine", -9.0, 0.5 if Handling.kind_of(id) == "TANK" else 0.8)
 	var saved := String(Settings.get_value("radio"))
@@ -2214,6 +2240,7 @@ func exit_car() -> void:
 		operator.rig.visible = true
 	operator.cam_dist = 4.2
 	operator.cam_pivot = Vector3(0, 1.55, 0)
+	controls.set_armed_vehicle(false)
 	controls.set_mode("foot")
 	controls.prompt("")
 	Sound.loop_stop("engine")
@@ -2264,10 +2291,17 @@ func _drive(dt: float) -> void:
 	operator.velocity = car.forward() * car.speed
 	var look: Vector2 = controls.take_look()
 	operator.cam_yaw -= look.x * 0.0045
-	operator.cam_yaw = lerp_angle(operator.cam_yaw, c.rotation.y, minf(1.0, 2.5 * dt) if look.x == 0.0 else 0.0)
+	var gunner: bool = controls.armed_vehicle and _turret != null and is_instance_valid(_turret)
+	if gunner:
+		# the gunner's view: free look (it does not swing back behind the hull), pitch on the drag too
+		operator.cam_pitch = clampf(operator.cam_pitch - look.y * 0.003 * (-1.0 if Settings.invert() else 1.0), -0.6, 0.15)
+	else:
+		operator.cam_yaw = lerp_angle(operator.cam_yaw, c.rotation.y, minf(1.0, 2.5 * dt) if look.x == 0.0 else 0.0)
 	operator._place_camera(dt)
 	controls.weapon_name.text = _car_name(c)
 	controls.ammo.text = "%d km/h" % int(absf(car.speed) * 3.6)
+	if gunner:
+		_gunner(dt, car)
 	if float(car.profile.get("nos", 0.0)) > 0.0:
 		controls.ammo.text += "   NOS %d%%" % int(car.nos_tank * 100.0)
 	if float(car.profile.get("telemetry", 0.0)) > 0.0:
@@ -2284,3 +2318,162 @@ func _drive(dt: float) -> void:
 	Sound.loop_set("engine", (0.5 if Handling.kind_of(String(c.get_meta("vehicle", ""))) == "TANK" else 0.8) + k * 1.1, -12.0 + k * 6.0)
 	_radio_button.text = Sound.radio_line()
 
+
+# --------------------------------------------------------------------------------------------- the tank's guns
+## the Goliath's Turret node goes under a pivot at its own centre so it can traverse; what the barrel and the pod
+## measure is kept for the muzzle and the tubes. False if the model has no turret.
+func _arm_tank(c: Node3D) -> bool:
+	_cannon_cd = 0.0
+	_missile_cd = 0.0
+	_missiles_left = 4
+	if c.has_meta("turret_pivot"):
+		_turret = c.get_meta("turret_pivot")
+		_turret_info = c.get_meta("turret_info")
+		return is_instance_valid(_turret)
+	var t := c.find_child("Turret", true, false) as Node3D
+	if t == null:
+		_turret = null
+		return false
+	var box := _world_aabb(t)
+	if box.size.length() < 0.1:
+		_turret = null
+		return false
+	var f: Vector3 = -c.global_transform.basis.z
+	f = Vector3(f.x, 0, f.z).normalized()
+	var ctr := box.get_center()
+	var pivot := Node3D.new()
+	pivot.name = "TurretPivot"
+	t.get_parent().add_child(pivot)
+	pivot.global_position = Vector3(ctr.x, box.position.y, ctr.z)
+	t.reparent(pivot, true)
+	# how far the barrel reaches forward of the pivot, and its height; the hull's half width for the pod
+	var reach := 0.0
+	for i in 8:
+		reach = maxf(reach, (box.get_endpoint(i) - pivot.global_position).dot(f))
+	var side := f.cross(Vector3.UP).normalized()
+	var half_w := 0.0
+	for i in 8:
+		half_w = maxf(half_w, absf((box.get_endpoint(i) - pivot.global_position).dot(side)))
+	_turret_info = { "reach": reach, "h": box.size.y * 0.55, "top": box.size.y, "half_w": half_w }
+	c.set_meta("turret_pivot", pivot)
+	c.set_meta("turret_info", _turret_info)
+	_turret = pivot
+	return true
+
+func _world_aabb(n: Node3D) -> AABB:
+	var out := AABB()
+	var first := true
+	var list: Array = n.find_children("*", "MeshInstance3D", true, false)
+	if n is MeshInstance3D:
+		list.append(n)
+	for mi: MeshInstance3D in list:
+		var b: AABB = mi.global_transform * mi.get_aabb()
+		out = b if first else out.merge(b)
+		first = false
+	return out
+
+## each frame in the tank: the turret swings toward where the camera looks, the cannon and the pod fire on the buttons
+func _gunner(dt: float, car: RefCounted) -> void:
+	var c: Node3D = car.node
+	_cannon_cd = maxf(0.0, _cannon_cd - dt)
+	if _missiles_left < 4:
+		_missile_cd -= dt
+		if _missile_cd <= 0.0:
+			_missiles_left = 4
+			Sound.sfx("tank_reload", -8.0, 0.02)
+	# where the crosshair points: the first box or the ground along the camera's line, else 250 m out
+	var cf: Vector3 = -cam.global_transform.basis.z
+	var from: Vector3 = cam.global_position
+	var aim := from + cf * 250.0
+	var best := 250.0
+	var own := int(c.get_meta("box_index", -1))
+	for i in operator.obstacles.size():
+		if i == own:
+			continue
+		var b: AABB = operator.obstacles[i]
+		if b.position.y < -40.0:
+			continue
+		var p: Variant = b.intersects_ray(from, cf)
+		if p != null:
+			var d := from.distance_to(p)
+			if d > 4.0 and d < best:
+				best = d
+	if cf.y < -0.01:
+		var dg := (from.y - 0.0) / -cf.y
+		if dg > 4.0 and dg < best:
+			best = dg
+	aim = from + cf * best
+	# the turret traverses toward the aim at a heavy's pace, with a servo whine while it moves
+	var f: Vector3 = -c.global_transform.basis.z
+	f = Vector3(f.x, 0, f.z).normalized()
+	var to := Vector3(aim.x - _turret.global_position.x, 0, aim.z - _turret.global_position.z)
+	if to.length() > 0.5:
+		var want := f.signed_angle_to(to.normalized(), Vector3.UP)
+		var cur := _turret.rotation.y
+		var dd := angle_difference(cur, want)
+		_turret.rotation.y = cur + clampf(dd, -2.2 * dt, 2.2 * dt)
+	# the barrel's line: the turret's heading, pitched up or down to the aim point
+	var tf := f.rotated(Vector3.UP, _turret.rotation.y)
+	var info := _turret_info
+	var muzzle: Vector3 = _turret.global_position + tf * float(info.reach) + Vector3.UP * float(info.h)
+	var flat := Vector2(aim.x - muzzle.x, aim.z - muzzle.z).length()
+	var elev := clampf(atan2(aim.y - muzzle.y, maxf(flat, 1.0)), -0.2, 0.35)
+	var dir := (tf * cos(elev) + Vector3.UP * sin(elev)).normalized()
+	heavy.skip_box = own
+	if controls.cannon() and _cannon_cd <= 0.0:
+		_cannon_cd = CANNON_RELOAD
+		heavy.fire_shell(muzzle, dir)
+		# the hull rocks back on the shot
+		if absf(car.speed) < 6.0:
+			car.speed -= 1.2 * signf(tf.dot(f))
+		get_tree().create_timer(CANNON_RELOAD - 0.35).timeout.connect(func(): if driving_car == car: Sound.sfx("tank_reload", -6.0, 0.03))
+	if controls.take_missiles():
+		if _missiles_left > 0:
+			var side := tf.cross(Vector3.UP).normalized()
+			var base: Vector3 = _turret.global_position + Vector3.UP * float(info.top) * 0.95 - tf * 0.4
+			var pods: Array = []
+			for k in _missiles_left:
+				var sgn := -1.0 if k % 2 == 0 else 1.0
+				pods.append(base + side * sgn * float(info.half_w) * 0.85 + Vector3.UP * 0.25 * float(k / 2))
+			heavy.fire_missiles(pods, Vector3.UP * 0.8 + tf * 0.4, aim, _lock_target(muzzle, dir, aim))
+			_missiles_left = 0
+			_missile_cd = MISSILE_RELOAD
+		else:
+			Sound.sfx("dry", -4.0)
+	var can := "CANNON ▮ READY" if _cannon_cd <= 0.0 else "CANNON %d%%" % int(100.0 * (1.0 - _cannon_cd / CANNON_RELOAD))
+	var pod := "●".repeat(_missiles_left) + "○".repeat(4 - _missiles_left)
+	if _missiles_left == 0:
+		pod += " %d%%" % int(100.0 * (1.0 - _missile_cd / MISSILE_RELOAD))
+	controls.ammo.text = "%s   MISSILES %s   %d km/h" % [can, pod, int(absf(car.speed) * 3.6)]
+
+## the missiles' lock: the live foe (a trooper, a dummy) nearest the aim inside a 25° cone, else a traffic car there
+func _lock_target(from: Vector3, dir: Vector3, aim: Vector3) -> Variant:
+	var pick: Variant = null
+	var best := deg_to_rad(25.0)
+	if gunplay:
+		for t in gunplay.targets:
+			if not t.alive() or t.has_meta("cover_box") or t.has_meta("prop"):
+				continue
+			var p: Vector3 = (t.box as AABB).get_center()
+			var v := p - from
+			if v.length() > 140.0 or v.length() < 4.0:
+				continue
+			var a := dir.angle_to(v)
+			if a < best:
+				best = a
+				pick = t
+	if pick == null and traffic:
+		for tc in traffic.cars:
+			var n: Node3D = tc.sc.node
+			if not n.visible:
+				continue
+			var v2 := n.position + Vector3(0, 0.8, 0) - from
+			if v2.length() > 140.0 or v2.length() < 4.0:
+				continue
+			var a2 := dir.angle_to(v2)
+			if a2 < best:
+				best = a2
+				pick = n
+	if pick != null:
+		controls.toast("LOCKED")
+	return pick

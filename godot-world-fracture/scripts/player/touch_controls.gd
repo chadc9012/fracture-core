@@ -52,6 +52,37 @@ var _sprint_held := false
 var _stick_label: Label
 var _gas_button: Button
 var _gas_held := false
+## an armed vehicle (the Goliath tank: heavy_weapons.gd): CANNON held fires the main gun as it reloads, MISSILES a tap
+## fires the pod; on a computer the left mouse button is the cannon and the right button (or F) the missiles
+var armed_vehicle := false
+var _cannon_button: Button
+var _missile_button: Button
+var _cannon_held := false
+var _missiles := false
+var _f_was := false
+## the hit marker over the crosshair (CoD / Fortnite style): white on a hit, yellow on a head, red on a kill
+var _hitmark: Control
+var _hit_t := 0.0
+var _hit_col := Color.WHITE
+
+func cannon() -> bool:
+	return _cannon_held or (not touch_ui and fire)
+
+func take_missiles() -> bool:
+	var m := _missiles
+	_missiles = false
+	return m
+
+func set_armed_vehicle(on: bool) -> void:
+	armed_vehicle = on
+	set_mode(mode)
+
+## flashes the hit marker: "hit", "head", "kill" or "shield"
+func hit_marker(kind: String) -> void:
+	_hit_t = 0.26 if kind == "kill" else 0.16
+	_hit_col = { "head": Color(1.0, 0.85, 0.2), "kill": Color(1.0, 0.25, 0.2), "shield": Color(0.4, 0.85, 1.0) }.get(kind, Color.WHITE)
+	if _hitmark:
+		_hitmark.queue_redraw()
 
 ## the GAS pedal held (driving)
 func gas() -> bool:
@@ -104,6 +135,25 @@ func _ready() -> void:
 		bind(gas, func(): _gas_held = true; _lit(gas, true), func(): _gas_held = false; _lit(gas, false))
 		add_child(gas)
 		_gas_button = gas
+		var can := _button("CANNON")
+		can.custom_minimum_size = Vector2(120, 110)
+		can.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		can.position = Vector2(-250, -290)
+		can.visible = false
+		can.add_theme_color_override("font_color", Color(1.0, 0.75, 0.4))
+		bind(can, func(): _cannon_held = true, func(): _cannon_held = false, func(rel: Vector2): look_delta += rel)
+		add_child(can)
+		_cannon_button = can
+		var mis := _button("MISSILES")
+		mis.custom_minimum_size = Vector2(120, 76)
+		mis.add_theme_font_size_override("font_size", 16)
+		mis.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		mis.position = Vector2(-380, -250)
+		mis.visible = false
+		mis.add_theme_color_override("font_color", Color(1.0, 0.5, 0.35))
+		bind(mis, func(): _missiles = true)
+		add_child(mis)
+		_missile_button = mis
 		var jump := _button("JUMP")
 		jump.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		jump.position = Vector2(-120, -140)
@@ -177,6 +227,19 @@ func _hud() -> void:
 		cross.draw_circle(Vector2.ZERO, 1.6, c))
 	add_child(cross)
 	crosshair = cross
+	_hitmark = Control.new()
+	_hitmark.set_anchors_preset(Control.PRESET_CENTER)
+	_hitmark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hitmark.draw.connect(func():
+		if _hit_t <= 0.0:
+			return
+		var a := clampf(_hit_t / 0.12, 0.0, 1.0)
+		var c := Color(_hit_col.r, _hit_col.g, _hit_col.b, a)
+		var big := 1.25 if _hit_col.g < 0.5 else 1.0
+		for d in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+			_hitmark.draw_line(d * 7.0 * big, d * 16.0 * big, Color(0, 0, 0, a * 0.6), 4.5)
+			_hitmark.draw_line(d * 7.0 * big, d * 16.0 * big, c, 2.5))
+	add_child(_hitmark)
 	weapon_name = Label.new()
 	# the read-outs sit at the top left, out of the stick's way (owner, Nov 11: "add controls to screen")
 	weapon_name.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -347,8 +410,18 @@ func set_mode(m: String) -> void:
 	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button]:
 		if b:
 			b.visible = not drive and not fly and weapons_out and not simple()
+	var armed_drive := drive and armed_vehicle
+	if _cannon_button:
+		_cannon_button.visible = armed_drive
+		_cannon_held = false
+	if _missile_button:
+		_missile_button.visible = armed_drive
+	if _gas_button and armed_drive:
+		_gas_button.position = Vector2(-380, -150)
+	elif _gas_button:
+		_gas_button.position = Vector2(-250, -160)
 	if crosshair:
-		crosshair.visible = not fly and not drive and weapons_out
+		crosshair.visible = (not fly and not drive and weapons_out) or armed_drive
 	if drive or fly:
 		_sprint_held = false
 		fire = false
@@ -497,6 +570,10 @@ func take_look() -> Vector2:
 	return d
 
 func _process(_dt: float) -> void:
+	if _hit_t > 0.0:
+		_hit_t -= _dt
+		if _hitmark:
+			_hitmark.queue_redraw()
 	if _toast and _toast_t > 0.0:
 		_toast_t -= _dt
 		if not _toast_queue.is_empty() and 3.0 - _toast_t >= MIN_TOAST:
@@ -532,6 +609,9 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_E) and not _e_was:
 		_enter = true
 	_e_was = Input.is_key_pressed(KEY_E)
+	if Input.is_key_pressed(KEY_F) and not _f_was:
+		_missiles = true
+	_f_was = Input.is_key_pressed(KEY_F)
 var _e_was := false
 var _j_was := false
 var _k_was := false
@@ -567,6 +647,8 @@ func _input(event: InputEvent) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			fire = mb.pressed
+		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and mode == "drive" and armed_vehicle:
+			_missiles = true
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			if mb.pressed:
 				_next = true

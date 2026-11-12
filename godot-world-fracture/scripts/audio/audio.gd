@@ -19,7 +19,7 @@ const Settings := preload("res://scripts/front/settings_store.gd")
 const SFX_DIR := "res://audio/sfx/"
 const AMBIENCE_DIR := "res://audio/ambience/"
 const VOICE_DIR := "res://audio/voices/"
-const POOL := 12
+const POOL := 24             # a tank salvo, a burst and the hit ticks at once (Nov 11)
 const HEAR_FULL := 4.0        # m: no attenuation inside
 const HEAR_FAR := 90.0        # m: silent beyond
 const DUCK_DB := -9.0
@@ -95,15 +95,36 @@ static func _looping(s: AudioStream, on: bool) -> void:
 		(s as AudioStreamMP3).loop = on
 
 # ---------------------------------------------------------------------------------------------------- cues
+## takes per cue: `rifle`, `rifle_2`, `rifle_3` (tools/make_sfx.py VARIANTS) — one is picked at random each time
+var _takes := {}
+func _take(name: String) -> String:
+	if not _takes.has(name):
+		var n := 1
+		while ResourceLoader.exists(SFX_DIR + "%s_%d.wav" % [name, n + 1]):
+			n += 1
+		_takes[name] = n
+	var k: int = _takes[name]
+	if k <= 1:
+		return name
+	var i := randi() % k
+	return name if i == 0 else "%s_%d" % [name, i + 1]
+
 func sfx(name: String, volume_db := 0.0, jitter := 0.08) -> void:
-	var s := _stream(SFX_DIR + name + ".wav")
+	var s := _stream(SFX_DIR + _take(name) + ".wav")
 	last = ["sfx", name]
 	played.append(name)
 	if played.size() > 64:
 		played.pop_front()
 	if s == null:
 		return
+	# a free player if there is one, else the one that started longest ago
 	var p := _pool[_pool_i % POOL]
+	for i in POOL:
+		var q := _pool[(_pool_i + i) % POOL]
+		if not q.playing:
+			p = q
+			_pool_i += i
+			break
 	_pool_i += 1
 	p.stream = s
 	p.volume_db = volume_db

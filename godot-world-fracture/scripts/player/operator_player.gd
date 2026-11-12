@@ -42,6 +42,12 @@ var cam_yaw := 0.0
 var cam_pitch := -0.18
 ## the kick the gun adds to the pitch (gunplay.gd), settling back at RECOIL_SETTLE a second
 var recoil := 0.0
+## camera shake (a tank shot, a blast nearby): 0..~1.5, decays on its own
+var shake := 0.0
+var _shake_t := 0.0
+
+func add_shake(amount: float) -> void:
+	shake = minf(1.6, shake + amount)
 const RECOIL_SETTLE := 1.2
 var cam_dist := 4.2
 var cam_pivot := Vector3(0, 1.55, 0)
@@ -220,6 +226,14 @@ func _place_camera(dt: float) -> void:
 	var k := 1.0 if dt >= 1.0 else 1.0 - exp(-14.0 * dt)
 	cam.position = cam.position.lerp(want, k)
 	cam.look_at(pivot + side * 0.6 + Vector3(0, 0.1, 0))
+	if shake > 0.001:
+		# a fast rumble plus a jolt, both fading with the shake (squared, so a big hit kicks and a small one tickles)
+		_shake_t += maxf(dt, 0.016)
+		var s := shake * shake
+		cam.position += cam.global_transform.basis * Vector3(sin(_shake_t * 61.0) * 0.18, cos(_shake_t * 53.0) * 0.14, 0.0) * s
+		cam.rotate_object_local(Vector3(0, 0, 1), sin(_shake_t * 47.0) * 0.035 * s)
+		cam.rotate_object_local(Vector3(1, 0, 0), cos(_shake_t * 39.0) * 0.02 * s)
+		shake = maxf(0.0, shake - (2.2 * dt if dt < 1.0 else shake))
 
 ## where the eyes are, for anything that wants to look from the operator
 func eye() -> Vector3:

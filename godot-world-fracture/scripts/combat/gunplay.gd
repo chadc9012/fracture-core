@@ -113,6 +113,11 @@ func setup(p: Node3D, boxes: Array[AABB]) -> void:
 	grenades = Grenades.new()
 	add_child(grenades)
 	grenades.setup(self)
+	hit.connect(_hit_feedback)
+	killed.connect(func(t: Target) -> void:
+		if not (t.has_meta("cover_box") or t.has_meta("prop")):
+			_marker("kill")
+			Sound.sfx("kill_confirm", -3.0, 0.02))
 
 ## the operator's rig was rebuilt (new clothes): the guns go back on the new skeleton
 func remount() -> void:
@@ -361,6 +366,7 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 	_step_grenades(dt, cam)
 	for i in n:
 		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
+		_muzzle_flash(cam)
 		for k in Weapons.pellets(gun().frame):
 			_fire_one(cam, moving_speed)
 		_eject(cam)
@@ -540,6 +546,18 @@ func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
 	if len > 0.05:
 		mi.look_at(to, Vector3.UP if absf((to - from).normalized().dot(Vector3.UP)) < 0.99 else Vector3.RIGHT)
 	_tracers.append({ "node": mi, "t": 0.09 })
+	# the round itself, a bright streak running down the line at bullet speed (what reads as a shot in CoD / Fortnite)
+	if len > 2.0:
+		var st := MeshInstance3D.new()
+		var sb := BoxMesh.new()
+		sb.size = Vector3(0.045, 0.045, minf(3.2, len * 0.4))
+		st.mesh = sb
+		st.material_override = _streak_mat(col)
+		st.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(st)
+		st.global_position = from
+		st.look_at(to, Vector3.UP if absf((to - from).normalized().dot(Vector3.UP)) < 0.99 else Vector3.RIGHT)
+		_streaks.append({ "node": st, "from": from, "to": to, "d": 0.0, "len": len })
 	if not _flash:
 		_flash = OmniLight3D.new()
 		_flash.light_color = Color(1.0, 0.8, 0.5)
@@ -830,6 +848,142 @@ func _debris(at: Vector3, n: int, col: Color, size := 0.08) -> void:
 	_dot(at, Color(col.r, col.g, col.b, 0.35), size * 4.0, 0.5)
 
 ## a bolt on an energy shield: the shell lights up round the body (cyan); a collapsing shield bursts in sparks
+# ------------------------------------------------------------------------------------------------ shot feel
+## (owner, Nov 11: "should feel like call of duty fort nite") the hit marker on the crosshair, the floating damage number,
+## the muzzle flash star and the travelling round. Stepped in _process so they run while driving too (a tank kill
+## counts through grenade_hit and shows its number).
+const STREAK_SPEED := 420.0
+var _streaks: Array = []
+var _numbers: Array = []
+var _streak_mats := {}
+var _flash_mat: StandardMaterial3D
+var _flash_mesh: QuadMesh
+
+func _streak_mat(col: Color) -> StandardMaterial3D:
+	var key := col.to_html()
+	if not _streak_mats.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = Color(1.0, 0.97, 0.85).lerp(col, 0.4)
+		m.emission_enabled = true
+		m.emission = col
+		m.emission_energy_multiplier = 8.0
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_streak_mats[key] = m
+	return _streak_mats[key]
+
+func _controls() -> Node:
+	if controls:
+		return controls
+	return get_tree().get_first_node_in_group("touch_controls") if is_inside_tree() else null
+
+func _marker(kind: String) -> void:
+	var c := _controls()
+	if c and c.has_method("hit_marker"):
+		c.hit_marker(kind)
+
+func _hit_feedback(t: Target, dmg: float, head: bool) -> void:
+	var shielded := t.shield > 0.0
+	_marker("head" if head else ("shield" if shielded else "hit"))
+	Sound.sfx("hitmarker_head" if head else "hitmarker", -6.0 if head else -9.0, 0.04)
+	if not is_inside_tree() or dmg < 0.5:
+		return
+	# the number pops off the target: white, yellow on a head, blue into a shield; bigger for big hits
+	var l := Label3D.new()
+	l.text = str(int(round(dmg)))
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.fixed_size = true
+	l.pixel_size = 0.0011
+	l.font_size = 46 if dmg < 60.0 else 60
+	l.outline_size = 12
+	l.outline_modulate = Color(0, 0, 0, 0.85)
+	l.modulate = Color(1.0, 0.86, 0.2) if head else (Color(0.45, 0.85, 1.0) if shielded else Color.WHITE)
+	l.render_priority = 10
+	add_child(l)
+	var top := t.box.get_center() + Vector3(0, t.box.size.y * 0.55, 0)
+	l.global_position = top + Vector3(_rng.randf_range(-0.35, 0.35), _rng.randf_range(0.0, 0.3), _rng.randf_range(-0.35, 0.35))
+	_numbers.append({ "node": l, "t": 0.0, "drift": Vector3(_rng.randf_range(-0.4, 0.4), 1.4, _rng.randf_range(-0.4, 0.4)) })
+
+## a four-point star and a lick of fire at the muzzle for one frame or two
+func _muzzle_flash(cam: Camera3D) -> void:
+	if not _flash_mat:
+		_flash_mat = StandardMaterial3D.new()
+		_flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_flash_mat.albedo_color = Color(1.0, 0.8, 0.45)
+		_flash_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_flash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_flash_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		_flash_mat.albedo_texture = _star_texture()
+		_flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_flash_mesh = QuadMesh.new()
+		_flash_mesh.size = Vector2(0.55, 0.55)
+	var mi := MeshInstance3D.new()
+	mi.mesh = _flash_mesh
+	mi.material_override = _flash_mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	var big := 1.8 if gun().frame in ["SHOTGUN", "HEAVY", "SNIPER", "LMG"] else 1.0
+	mi.global_position = muzzle() + (-cam.global_transform.basis.z) * 0.12
+	mi.scale = Vector3.ONE * _rng.randf_range(0.7, 1.15) * big
+	mi.rotation.z = _rng.randf() * TAU
+	_streaks.append({ "node": mi, "flash": 0.045 })
+
+var _star_tex: ImageTexture
+func _star_texture() -> ImageTexture:
+	if _star_tex:
+		return _star_tex
+	var n := 64
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	for y in n:
+		for x in n:
+			var u := (x + 0.5) / n * 2.0 - 1.0
+			var v := (y + 0.5) / n * 2.0 - 1.0
+			var r := sqrt(u * u + v * v)
+			var spikes := maxf(exp(-absf(u) * 14.0) * (1.0 - absf(v)), exp(-absf(v) * 14.0) * (1.0 - absf(u)))
+			var a := clampf(maxf(exp(-r * r * 9.0), spikes * 1.2), 0.0, 1.0)
+			img.set_pixel(x, y, Color(1.0, lerpf(0.75, 1.0, a), lerpf(0.4, 0.95, a * a), a))
+	_star_tex = ImageTexture.create_from_image(img)
+	return _star_tex
+
+func _process(dt: float) -> void:
+	if _streaks.is_empty() and _numbers.is_empty():
+		return
+	dt = minf(dt, 0.05)
+	var keep: Array = []
+	for s in _streaks:
+		var nd: Node3D = s.node
+		if s.has("flash"):
+			s.flash = float(s.flash) - dt
+			if float(s.flash) <= 0.0:
+				nd.queue_free()
+				continue
+			keep.append(s)
+			continue
+		s.d = float(s.d) + STREAK_SPEED * dt
+		if float(s.d) >= float(s.len):
+			nd.queue_free()
+			continue
+		nd.global_position = (s.from as Vector3).lerp(s.to, float(s.d) / float(s.len))
+		keep.append(s)
+	_streaks = keep
+	var nk: Array = []
+	for d in _numbers:
+		d.t = float(d.t) + dt
+		var l: Label3D = d.node
+		if float(d.t) >= 0.9:
+			l.queue_free()
+			continue
+		# a pop (big, then settles), a rise that slows, a fade at the end
+		var k := float(d.t) / 0.9
+		l.global_position += (d.drift as Vector3) * dt * (1.0 - k)
+		var pop := 1.0 + 0.6 * exp(-float(d.t) * 18.0)
+		l.scale = Vector3.ONE * pop
+		l.modulate.a = 1.0 - smoothstep(0.6, 1.0, k)
+		l.outline_modulate.a = 0.85 * l.modulate.a
+		nk.append(d)
+	_numbers = nk
+
 func _shield_flash(t: Target, broke: bool) -> void:
 	var c := t.box.get_center()
 	_dot(c, Color(0.35, 0.8, 1.0, 0.28), maxf(t.box.size.y, t.box.size.x) * 0.55, 0.16)

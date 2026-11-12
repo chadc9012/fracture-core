@@ -90,13 +90,80 @@ def finish(x, peak=0.89, drive=1.6):
 
 
 def gun(d, crack=1.0, body=1.0, body_decay=0.045, thump=1.0, thump_f=(140, 48), thump_decay=0.09, tail=0.5,
-        tail_decay=0.25, bright=6000, slap=(0.09, 0.19)):
+        tail_decay=0.25, bright=6000, slap=(0.09, 0.19), mech=0.35, sub=0.8):
+    # Nov 11 (owner: "should feel like call of duty fort nite"): a harder transient, a sub kick you feel, the action's
+    # metal clack right after the shot, and a wider street tail (two slapbacks and a long low decay off the towers)
     c = hp(noise(0.012), 2500) * env(0.012, 0.0003, 0.0025)
+    c2 = hp(noise(0.004), 5000) * env(0.004, 0.0001, 0.0008)
     b = bp(noise(d), 180, bright) * env(d, 0.0008, body_decay)
     th = sweep(d, thump_f[0], thump_f[1], thump_decay)
+    sb = sweep(d, 70, 38, thump_decay * 0.8)
     tl = lp(noise(d), 1800) * env(d, 0.01, tail_decay) * 0.6
-    x = mix(d, (0, c, crack), (0, b, body), (0, th, thump), (0.004, tl, tail))
-    return echo(x, slap, [0.32, 0.16], 2200)
+    mk = (bp(noise(0.05), 2200, 6500) * env(0.05, 0.0002, 0.006) + np.sin(2 * np.pi * 3100 * t(0.05)) * env(0.05, 0.0002, 0.01) * 0.4)
+    x = mix(d, (0, c, crack), (0, c2, crack * 0.6), (0, b, body), (0, th, thump), (0, sb, sub), (0.004, tl, tail), (0.045, mk, mech))
+    return echo(x, slap, [0.32, 0.16], 2200) + lp(noise(d), 500) * env(d, 0.06, tail_decay * 1.4) * 0.12 * tail
+
+
+def metal(f, d=0.5, dec=0.12):
+    # a struck steel part: inharmonic partials over a noise strike
+    tt = t(d)
+    x = sum(np.sin(2 * np.pi * f * k * tt + k) * g for k, g in [(1, 1.0), (2.76, 0.5), (5.4, 0.3), (8.9, 0.15)])
+    return x * env(d, 0.0003, dec) + bp(noise(d), f, f * 4) * env(d, 0.0002, 0.006)
+
+
+def tank_cannon(d=3.2):
+    crack = hp(noise(0.03), 1200) * env(0.03, 0.0002, 0.005)
+    boom = sweep(d, 75, 24, 0.5)
+    chest = sweep(d, 140, 45, 0.12)
+    rumble = lp(noise(d), 220, 3) * env(d, 0.01, 0.9)
+    blast = bp(noise(d), 120, 2500) * env(d, 0.001, 0.12)
+    ring = metal(310, d, 0.35) * 0.25
+    x = mix(d, (0, crack, 1.2), (0, boom, 1.8), (0, chest, 1.2), (0, rumble, 2.4), (0, blast, 1.4), (0.01, ring, 1.0))
+    return echo(x, (0.32, 0.71, 1.2), (0.32, 0.18, 0.09), 700)
+
+
+def tank_reload(d=1.0):
+    return mix(d, (0.0, metal(520, 0.4, 0.05), 0.6), (0.18, metal(380, 0.5, 0.08), 0.8), (0.55, metal(240, 0.45, 0.06), 1.0),
+               (0.55, sweep(0.3, 140, 60, 0.05), 1.0), (0.62, bp(noise(0.2), 1500, 6000) * env(0.2, 0.0005, 0.01), 0.5))
+
+
+def missile_launch(d=1.6):
+    tt = t(d)
+    pop = sweep(d, 160, 50, 0.06)
+    hiss = bp(noise(d), 900, 8000) * env(d, 0.02, 0.6)
+    # the motor's roar rising in pitch as it leaves
+    f = 300 + 900 * (tt / d) ** 1.5
+    body = bp(noise(d), 200, 1600) * env(d, 0.04, 0.7)
+    tone = np.sin(2 * np.pi * np.cumsum(f) / SR) * env(d, 0.05, 0.5) * 0.15
+    return mix(d, (0, pop, 1.2), (0, hiss, 1.0), (0, body, 1.1), (0, tone, 1.0))
+
+
+def car_explode(d=2.4):
+    x = explosion(d) * 1.0
+    glass = sum(np.sin(2 * np.pi * rng.uniform(3500, 7000) * t(0.3)) * env(0.3, 0.0002, 0.04) for _ in range(6))
+    parts = [(0, x, 1.0)]
+    for i in range(10):
+        parts.append((0.12 + rng.uniform(0, 1.2), metal(rng.uniform(250, 900), 0.4, 0.05), 0.25))
+    parts.append((0.08, glass, 0.4))
+    return mix(d, *parts)
+
+
+def hitmarker(d=0.07):
+    # the crosshair's tick: a short bright click with a little body
+    return np.sin(2 * np.pi * 2900 * t(d)) * env(d, 0.0003, 0.012) + hp(noise(d), 4000) * env(d, 0.0002, 0.004) * 0.6
+
+
+def hitmarker_head(d=0.35):
+    tt = t(d)
+    ding = np.sin(2 * np.pi * 2350 * tt) + 0.6 * np.sin(2 * np.pi * 3525 * tt) + 0.25 * np.sin(2 * np.pi * 4700 * tt)
+    return ding * env(d, 0.0005, 0.08) + hitmarker(d) * 0.7
+
+
+def kill_confirm(d=0.5):
+    thunk = sweep(d, 200, 70, 0.05)
+    chime = sum(np.sin(2 * np.pi * f * t(d)) * g for f, g in [(1320, 1.0), (1980, 0.5)]) * env(d, 0.01, 0.12)
+    chime2 = np.sin(2 * np.pi * 2640 * t(d)) * env(d, 0.01, 0.1)
+    return mix(d, (0, thunk, 1.0), (0, chime, 0.5), (0.07, chime2, 0.45))
 
 
 def zap(d, f0, f1, buzz=0.4):
@@ -194,6 +261,16 @@ SOUNDS = {
     # when a car's locks open
     "car_alarm": lambda: finish(car_alarm(), peak=0.75, drive=1.2),
     "car_chirp": lambda: finish(car_chirp(), peak=0.7, drive=1.1),
+    # Nov 11 (owner: "Work on the tanks shooting missiles gun shooting audio ... should feel like call of duty fort nite"):
+    # the Goliath's cannon, its breech, the missile pod, a big blast, a car going up, and the hit / head / kill confirms
+    "tank_cannon": lambda: finish(tank_cannon(), drive=2.4),
+    "tank_reload": lambda: finish(tank_reload(), peak=0.7, drive=1.3),
+    "missile_launch": lambda: finish(missile_launch(), peak=0.85, drive=1.6),
+    "explosion_big": lambda: finish(mix(3.4, (0, explosion(3.4), 1.0), (0, tank_cannon(3.4), 0.5)), drive=2.4),
+    "car_explode": lambda: finish(car_explode(), drive=2.0),
+    "hitmarker": lambda: finish(hitmarker(), peak=0.7, drive=1.2),
+    "hitmarker_head": lambda: finish(hitmarker_head(), peak=0.75, drive=1.2),
+    "kill_confirm": lambda: finish(kill_confirm(), peak=0.75, drive=1.3),
     "debris": lambda: finish(mix(0.9, (0, lp(noise(0.9), 1800) * env(0.9, 0.004, 0.35), 1.0), (0, hit(0.2), 0.8), (0.08, lp(noise(0.5), 900) * env(0.5, 0.01, 0.2), 0.6), (0.21, bp(noise(0.3), 300, 2500) * env(0.3, 0.002, 0.08), 0.5)), peak=0.85, drive=1.4),
 }
 
@@ -237,8 +314,19 @@ def write(name, x):
         w.writeframes((x * 32767).astype(np.int16).tobytes())
 
 
+## the shots get two more takes each (name_2, name_3): Audio.sfx picks one at random so a burst never repeats a sample
+VARIANTS = ["rifle", "smg", "lmg", "sidearm", "sniper", "shotgun", "heavy", "explosion", "hit", "tank_cannon"]
+
 if __name__ == "__main__":
     names = sys.argv[1:] or list(SOUNDS)
     for n in names:
         write(n, SOUNDS[n]())
         print("sfx", n)
+        if n in VARIANTS:
+            for k in (2, 3):
+                rng = np.random.default_rng(7 + k * 101 + len(n))
+                globals()["rng"] = rng
+                write("%s_%d" % (n, k), SOUNDS[n]())
+                print("sfx", "%s_%d" % (n, k))
+            rng = np.random.default_rng(7)
+            globals()["rng"] = rng

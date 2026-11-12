@@ -715,6 +715,27 @@ func _shoot(path: String, opts: Array) -> void:
 						street.enter_car(c)
 				street.controls.scripted = true
 				street.controls.move = Vector2(0.6, 0.8)
+			# slicewalk:tankfire[:missiles][:delay=N] parks the Goliath mid-road facing down the avenue and, N frames in
+			# (default 40), holds CANNON or fires the missile pod once: a look at the shells, the rockets and the blasts
+			if String(o).contains("walk:tankfire"):
+				var st3 := street
+				var wait := [int(String(o).split("delay=")[1].split(":")[0]) if String(o).contains("delay=") else 40]
+				var pod := String(o).contains("missiles")
+				st3.controls.move = Vector2.ZERO
+				if st3.driving_car:
+					var tn: Node3D = st3.driving_car.node
+					tn.position = Vector3(1.5, 0.0, 30.0)
+					tn.rotation.y = 0.0
+					st3.operator.cam_yaw = 0.0
+					st3.operator.cam_pitch = -0.06
+				var tick := func() -> void:
+					wait[0] -= 1
+					if wait[0] == 0:
+						if pod:
+							st3.controls._missiles = true
+						else:
+							st3.controls._cannon_held = true
+				get_tree().process_frame.connect(tick)
 			# slicewalk:district starts at the far end of the hub block walking +z across the tile boundary
 			if String(o).contains("walk:district"):
 				street.controls.scripted = true

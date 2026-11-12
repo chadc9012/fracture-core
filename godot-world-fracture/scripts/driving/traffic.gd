@@ -21,6 +21,10 @@ class Car:
 	var box_index := -1
 	var lane_x := 0.0
 	var wait := 0.0
+	## a blast threw it (wreck): seconds left tumbling and burning, its flight and its spin
+	var wreck := 0.0
+	var vel := Vector3.ZERO
+	var spin := Vector3.ZERO
 
 var cars: Array[Car] = []
 var obstacles: Array[AABB]
@@ -118,6 +122,9 @@ func step(dt: float) -> void:
 			obstacles[c.box_index] = OFF_ROAD
 		return
 	for c in cars:
+		if c.wreck > 0.0:
+			_tumble(c, dt)
+			continue
 		_drive(c, dt)
 		obstacles[c.box_index] = c.sc.box()
 		var n: Node3D = c.sc.node
@@ -172,3 +179,62 @@ func _drive(c: Car, dt: float) -> void:
 	c.sc.step(dt, throttle, steer, brake)
 	if c.sc.speed < 0.0:
 		c.sc.speed = 0.0
+
+## a blast at `at` (heavy_weapons.gd): every car within `radius` is thrown up and away, spinning, and charred; it lands,
+## burns a few seconds and is towed (back in at its lane's far end). Returns where the wrecks are.
+var _char_mat: StandardMaterial3D
+func wreck(at: Vector3, radius: float) -> Array:
+	var out: Array = []
+	for c in cars:
+		var n: Node3D = c.sc.node
+		if not n.visible or c.wreck > 0.0:
+			continue
+		var p := n.position + Vector3(0, 0.8, 0)
+		var d := p.distance_to(at)
+		if d > radius:
+			continue
+		var k := 1.0 - d / radius
+		var away := Vector3(p.x - at.x, 0, p.z - at.z)
+		away = away.normalized() if away.length() > 0.1 else Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1)).normalized()
+		c.wreck = 6.0
+		c.vel = away * (4.0 + 7.0 * k) + Vector3(0, 6.0 + 9.0 * k, 0)
+		c.spin = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.6, 0.6), _rng.randf_range(-1, 1)) * (2.5 + 3.0 * k)
+		c.sc.speed = 0.0
+		if not _char_mat:
+			_char_mat = StandardMaterial3D.new()
+			_char_mat.albedo_color = Color(0.04, 0.035, 0.03, 0.78)
+			_char_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			_char_mat.roughness = 1.0
+		for mi in n.find_children("*", "MeshInstance3D", true, false):
+			(mi as MeshInstance3D).material_overlay = _char_mat
+		out.append(n.position)
+	return out
+
+func _tumble(c: Car, dt: float) -> void:
+	var n: Node3D = c.sc.node
+	c.wreck -= dt
+	var g: float = ground_at.call(n.position.x, n.position.z) if ground_at.is_valid() else 0.0
+	if n.position.y > g + 0.01 or c.vel.y > 0.0:
+		c.vel.y -= 16.0 * dt
+		n.position += c.vel * dt
+		n.rotation += c.spin * dt
+		if n.position.y <= g:
+			n.position.y = g
+			c.vel = Vector3(c.vel.x * 0.45, absf(c.vel.y) * 0.25 if absf(c.vel.y) > 3.0 else 0.0, c.vel.z * 0.45)
+			c.spin *= 0.4
+			# it settles on its wheels or its roof, whichever is nearer
+			if c.vel.y == 0.0:
+				n.rotation.x = 0.0 if absf(wrapf(n.rotation.x, -PI, PI)) < PI * 0.5 else PI
+				n.rotation.z = 0.0
+				c.spin = Vector3.ZERO
+	n.position.x = clampf(n.position.x, bounds.position.x + 1.0, bounds.end.x - 1.0)
+	obstacles[c.box_index] = c.sc.box()
+	if c.wreck <= 0.0:
+		# towed: clean, upright, back in at the far end of its lane
+		for mi in n.find_children("*", "MeshInstance3D", true, false):
+			(mi as MeshInstance3D).material_overlay = null
+		n.rotation = Vector3(0, 0.0 if c.dir < 0 else PI, 0)
+		n.position = Vector3(c.lane_x, 0, (span_lo + 6.0) if c.dir > 0 else (span_hi - 6.0))
+		c.vel = Vector3.ZERO
+		c.sc.speed = 0.0
+		obstacles[c.box_index] = c.sc.box()
