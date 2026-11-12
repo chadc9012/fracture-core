@@ -38,9 +38,9 @@ func _run() -> void:
 		return
 	st.controls.scripted = true
 	# DRIVE OUT from the garage (owner, Nov 12): your car rolls out at the door and you are in it, unlocked and yours
-	st.drive_out("vanguard-suv")
+	st.drive_out("tuner")
 	await frames(3)
-	ok(st.driving_car != null and String(st.driving_car.node.get_meta("vehicle", "")) == "vanguard-suv", "DRIVE OUT puts you in your showroom car")
+	ok(st.driving_car != null and String(st.driving_car.node.get_meta("vehicle", "")) == "tuner", "DRIVE OUT puts you in your own car")
 	if st.driving_car:
 		var mine: Node3D = st.driving_car.node
 		st.exit_car()
@@ -98,7 +98,7 @@ func _run() -> void:
 				showroom_parked += 1
 			if Catalog.high_end(String(c.get_meta("vehicle"))) and not bool(c.get_meta("locked", false)) and not c.has_meta("yours"):
 				high_open += 1
-	ok(showroom_parked > 5, "the showroom's everyday cars park on the street (%d)" % showroom_parked)
+	ok(showroom_parked == 0, "none of the pulled pack models park on the street (%d)" % showroom_parked)
 	ok(high_open == 0, "no high-end car on the street is unlocked (%d)" % high_open)
 	if locked_car:
 		st.operator.position = locked_car.global_position + Vector3(2.4, 0, 0)

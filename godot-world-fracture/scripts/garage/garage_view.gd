@@ -445,6 +445,7 @@ func _header() -> Control:
 	hb.add_child(_credits)
 	var room := Data.button("SHOWROOM", true)
 	room.pressed.connect(open_showroom)
+	room.visible = not Catalog.SHOWROOM.is_empty()
 	hb.add_child(room)
 	return head
 

@@ -27,38 +27,9 @@ const VEHICLES := [
 ## materials, a proper cabin) by tools/upgrade_vehicle.py (Blender). `cat` is the showroom row; the categories in SHOWROOM_CATS
 ## marked `street` also run in traffic and park on the street (locked or not, like any other car) — the rest (hyper,
 ## super, sports, classics, bikes) are only ever yours by buying them.
-const SHOWROOM := [
-	{ "id": "aether-hyper-gt", "name": "Aether Hyper GT", "cat": "hyper", "cls": "super", "price": 30000, "model": "res://models/fleet/showroom/aether-hyper-gt.glb", "stats": { "speed": 97, "accel": 95, "handling": 84, "armor": 12 } },
-	{ "id": "onyx-velocity", "name": "Onyx Velocity", "cat": "hyper", "cls": "super", "price": 28000, "model": "res://models/fleet/showroom/onyx-velocity.glb", "stats": { "speed": 96, "accel": 94, "handling": 80, "armor": 12 } },
-	{ "id": "obsidian-xr", "name": "Obsidian XR", "cat": "hyper", "cls": "super", "price": 27000, "model": "res://models/fleet/showroom/obsidian-xr.glb", "stats": { "speed": 95, "accel": 93, "handling": 83, "armor": 12 } },
-	{ "id": "nova-xr", "name": "Nova XR", "cat": "hyper", "cls": "super", "price": 25000, "model": "res://models/fleet/showroom/nova-xr.glb", "stats": { "speed": 94, "accel": 92, "handling": 82, "armor": 12 } },
-	{ "id": "solaris-v12", "name": "Solaris V12", "cat": "super", "cls": "super", "price": 18000, "model": "res://models/fleet/showroom/solaris-v12.glb", "stats": { "speed": 90, "accel": 87, "handling": 80, "armor": 14 } },
-	{ "id": "vesper-gt", "name": "Vesper GT", "cat": "super", "cls": "super", "price": 16000, "model": "res://models/fleet/showroom/vesper-gt.glb", "stats": { "speed": 88, "accel": 86, "handling": 80, "armor": 14 } },
-	{ "id": "voltstrike-zr", "name": "Voltstrike ZR", "cat": "super", "cls": "super", "price": 15000, "model": "res://models/fleet/showroom/voltstrike-zr.glb", "stats": { "speed": 87, "accel": 90, "handling": 78, "armor": 14 } },
-	{ "id": "nexus-sprint-r", "name": "Nexus Sprint R", "cat": "sports", "cls": "street", "price": 8500, "model": "res://models/fleet/showroom/nexus-sprint-r.glb", "stats": { "speed": 80, "accel": 78, "handling": 80, "armor": 18 } },
-	{ "id": "midnight-coupe", "name": "Midnight Coupe", "cat": "sports", "cls": "street", "price": 7500, "model": "res://models/fleet/showroom/midnight-coupe.glb", "stats": { "speed": 78, "accel": 74, "handling": 78, "armor": 18 } },
-	{ "id": "azure-turbo", "name": "Azure Turbo", "cat": "sports", "cls": "street", "price": 7000, "model": "res://models/fleet/showroom/azure-turbo.glb", "stats": { "speed": 77, "accel": 76, "handling": 76, "armor": 18 } },
-	{ "id": "ironclad-muscle", "name": "Ironclad Muscle", "cat": "muscle", "cls": "muscle", "price": 5800, "model": "res://models/fleet/showroom/ironclad-muscle.glb", "stats": { "speed": 74, "accel": 76, "handling": 54, "armor": 30 } },
-	{ "id": "obsidian-v8", "name": "Obsidian V8", "cat": "muscle", "cls": "muscle", "price": 5600, "model": "res://models/fleet/showroom/obsidian-v8.glb", "stats": { "speed": 73, "accel": 75, "handling": 52, "armor": 28 } },
-	{ "id": "raven-muscle", "name": "Raven Muscle", "cat": "muscle", "cls": "muscle", "price": 5200, "model": "res://models/fleet/showroom/raven-muscle.glb", "stats": { "speed": 71, "accel": 73, "handling": 53, "armor": 28 } },
-	{ "id": "nightfall-tuner", "name": "Nightfall Tuner", "cat": "tuner", "cls": "street", "price": 4600, "model": "res://models/fleet/showroom/nightfall-tuner.glb", "stats": { "speed": 64, "accel": 66, "handling": 72, "armor": 20 } },
-	{ "id": "ghostline-tuner", "name": "Ghostline Tuner", "cat": "tuner", "cls": "street", "price": 4400, "model": "res://models/fleet/showroom/ghostline-tuner.glb", "stats": { "speed": 63, "accel": 65, "handling": 72, "armor": 20 } },
-	{ "id": "ghostline-street", "name": "Ghostline Street", "cat": "tuner", "cls": "street", "price": 4200, "model": "res://models/fleet/showroom/ghostline-street.glb", "stats": { "speed": 62, "accel": 64, "handling": 70, "armor": 20 } },
-	{ "id": "vanguard-suv", "name": "Vanguard SUV", "cat": "suv", "cls": "armored", "price": 5200, "model": "res://models/fleet/showroom/vanguard-suv.glb", "stats": { "speed": 56, "accel": 50, "handling": 50, "armor": 48 } },
-	{ "id": "goliath-trail", "name": "Goliath Trail", "cat": "suv", "cls": "offroad", "price": 5000, "model": "res://models/fleet/showroom/goliath-trail.glb", "stats": { "speed": 54, "accel": 50, "handling": 48, "armor": 44 } },
-	{ "id": "aurora-suv", "name": "Aurora SUV", "cat": "suv", "cls": "offroad", "price": 4800, "model": "res://models/fleet/showroom/aurora-suv.glb", "stats": { "speed": 55, "accel": 52, "handling": 50, "armor": 40 } },
-	{ "id": "dune-breaker", "name": "Dune Breaker", "cat": "offroad", "cls": "offroad", "price": 6500, "model": "res://models/fleet/showroom/dune-breaker.glb", "stats": { "speed": 58, "accel": 56, "handling": 52, "armor": 46 } },
-	{ "id": "atlas-4x4", "name": "Atlas 4x4", "cat": "offroad", "cls": "offroad", "price": 6200, "model": "res://models/fleet/showroom/atlas-4x4.glb", "stats": { "speed": 54, "accel": 52, "handling": 48, "armor": 50 } },
-	{ "id": "wasteland-4x4", "name": "Wasteland 4x4", "cat": "offroad", "cls": "offroad", "price": 5600, "model": "res://models/fleet/showroom/wasteland-4x4.glb", "stats": { "speed": 52, "accel": 50, "handling": 46, "armor": 52 } },
-	{ "id": "crownline-lux", "name": "Crownline Lux", "cat": "luxury", "cls": "street", "price": 8800, "model": "res://models/fleet/showroom/crownline-lux.glb", "stats": { "speed": 72, "accel": 66, "handling": 62, "armor": 26 } },
-	{ "id": "aureline", "name": "Aureline Sedan", "cat": "luxury", "cls": "street", "price": 7800, "model": "res://models/fleet/showroom/aureline.glb", "stats": { "speed": 70, "accel": 64, "handling": 62, "armor": 24 } },
-	{ "id": "regent-classic", "name": "Regent Classic", "cat": "classic", "cls": "muscle", "price": 9500, "model": "res://models/fleet/showroom/regent-classic.glb", "stats": { "speed": 64, "accel": 62, "handling": 50, "armor": 24 } },
-	{ "id": "heritage-coupe", "name": "Heritage Coupe", "cat": "classic", "cls": "muscle", "price": 8200, "model": "res://models/fleet/showroom/heritage-coupe.glb", "stats": { "speed": 62, "accel": 60, "handling": 52, "armor": 22 } },
-	{ "id": "expedition-pickup", "name": "Expedition Pickup", "cat": "truck", "cls": "offroad", "price": 3400, "model": "res://models/fleet/showroom/expedition-pickup.glb", "stats": { "speed": 50, "accel": 46, "handling": 44, "armor": 42 } },
-	{ "id": "neon-express", "name": "Neon Express Van", "cat": "van", "cls": "offroad", "price": 2600, "model": "res://models/fleet/showroom/neon-express.glb", "stats": { "speed": 44, "accel": 40, "handling": 40, "armor": 36 } },
-	{ "id": "phantom-racer", "name": "Phantom Racer", "cat": "bike", "cls": "bike", "price": 3800, "model": "res://models/fleet/showroom/phantom-racer.glb", "stats": { "speed": 82, "accel": 86, "handling": 74, "armor": 6 } },
-	{ "id": "tempest-sport", "name": "Tempest Sport", "cat": "bike", "cls": "bike", "price": 3200, "model": "res://models/fleet/showroom/tempest-sport.glb", "stats": { "speed": 78, "accel": 82, "handling": 76, "armor": 6 } },
-]
+## (Nov 12: the 30 pack models were pulled at the owner's word — no stand-in or self-built vehicle models; the showroom
+## fills again only with real, detailed models the owner supplies or approves)
+const SHOWROOM := []
 ## showroom rows in order: id, label, whether its cars also drive / park on the street
 const SHOWROOM_CATS := [
 	["hyper", "HYPERCARS", false], ["super", "SUPERCARS", false], ["sports", "SPORTS", false], ["muscle", "MUSCLE", true],
