@@ -59,12 +59,37 @@ func _run() -> void:
 			seen[id] = true
 	ok(seen.size() == 11, "all eleven named districts are walkable (%d)" % seen.size())
 	# a car parked on any block can be taken (it leaves its block, so the block can unload behind it)
+	# most parked cars are someone's and locked (car_detail.gd): the door sets the alarm off instead of opening
 	var tile_car: Node3D = null
+	var locked_car: Node3D = null
+	var n_locked := 0
 	for c in st.parked:
-		if is_instance_valid(c) and c.get_parent() != st.world:
+		if not is_instance_valid(c):
+			continue
+		if bool(c.get_meta("locked", false)):
+			n_locked += 1
+			if locked_car == null and c.get_parent() != st.world:
+				locked_car = c
+		elif tile_car == null and c.get_parent() != st.world:
 			tile_car = c
-			break
-	ok(tile_car != null, "the streamed blocks' parked cars are takeable (%d in the list)" % st.parked.size())
+	ok(n_locked > 0 and n_locked < st.parked.size(), "some parked cars are locked, not all (%d of %d)" % [n_locked, st.parked.size()])
+	var paints := {}
+	for c in st.parked:
+		if is_instance_valid(c) and c.has_meta("paint"):
+			paints[c.get_meta("paint")] = true
+	ok(paints.size() >= 4, "the parked cars wear different paints (%d)" % paints.size())
+	if locked_car:
+		st.operator.position = locked_car.global_position + Vector3(2.4, 0, 0)
+		st.operator.position.y = 0.18
+		await frames(3)
+		ok(st._near_car == locked_car, "walking up to a locked car offers it (LOCKED)")
+		st.controls._enter = true
+		await frames(3)
+		ok(st.driving_car == null, "ENTER on a locked car does not get in")
+		ok(locked_car.has_node("Alarm"), "and its alarm goes off")
+		await create_timer(2.8).timeout
+		ok(not locked_car.has_node("Alarm"), "the alarm stops after a few seconds")
+	ok(tile_car != null, "the streamed blocks' unlocked parked cars are takeable (%d in the list)" % st.parked.size())
 	if tile_car:
 		st.operator.position = tile_car.global_position + Vector3(2.4, 0, 0)
 		st.operator.position.y = 0.18

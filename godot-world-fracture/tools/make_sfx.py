@@ -190,6 +190,10 @@ SOUNDS = {
     "nitro": lambda: finish(mix(1.2, (0, bp(noise(1.2), 1200, 9000) * env(1.2, 0.05, 0.5), 1.0), (0, lp(noise(1.2), 600) * env(1.2, 0.15, 0.6), 0.8)), peak=0.8, drive=1.3),
     # police pursuit (Nov 11, street racing life): the siren loop on the units' approach
     "siren": lambda: finish(siren(), peak=0.7, drive=1.1),
+    # parked cars (Nov 11, "some should be locked from owner"): a locked car's alarm when its door is tried, the chirp
+    # when a car's locks open
+    "car_alarm": lambda: finish(car_alarm(), peak=0.75, drive=1.2),
+    "car_chirp": lambda: finish(car_chirp(), peak=0.7, drive=1.1),
     "debris": lambda: finish(mix(0.9, (0, lp(noise(0.9), 1800) * env(0.9, 0.004, 0.35), 1.0), (0, hit(0.2), 0.8), (0.08, lp(noise(0.5), 900) * env(0.5, 0.01, 0.2), 0.6), (0.21, bp(noise(0.3), 300, 2500) * env(0.3, 0.002, 0.08), 0.5)), peak=0.85, drive=1.4),
 }
 
@@ -201,6 +205,27 @@ def siren(d=2.0):
     ph = 2 * np.pi * np.cumsum(f) / SR
     x = np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3 * ph)
     return lp(x, 3200) * 0.5
+
+
+def car_alarm(d=2.4):
+    # the classic pattern: a fast two-tone warble, then a rising whoop, square-ish through a small horn speaker
+    tt = t(d)
+    warble = np.where((tt * 9.0) % 1.0 < 0.5, 1650.0, 1150.0)
+    whoop = 900 + 1300 * ((tt - 1.2) / 0.6 % 1.0)
+    f = np.where(tt < 1.2, warble, whoop)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = np.tanh(3.0 * np.sin(ph)) * 0.6
+    x = bp(x, 500, 4200)
+    return x * np.clip(np.minimum(tt / 0.01, (d - tt) / 0.05), 0, 1)
+
+
+def car_chirp(d=0.32):
+    tt = t(d)
+    x = np.zeros_like(tt)
+    for s0 in (0.0, 0.16):
+        m = (tt >= s0) & (tt < s0 + 0.09)
+        x[m] = np.tanh(2.5 * np.sin(2 * np.pi * 2300 * (tt[m] - s0))) * np.exp(-(tt[m] - s0) * 18)
+    return bp(x, 600, 5000) * 0.8
 
 
 def write(name, x):

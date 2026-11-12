@@ -126,6 +126,7 @@ var _tile_k := 0
 const PARKED_BOX := AABB(Vector3(0, -1000, 0), Vector3(0.1, 0.1, 0.1))
 const DriveProfile = preload("res://scripts/driving/drive_profile.gd")
 const GarageState = preload("res://scripts/garage/garage_state.gd")
+const CarDetail := preload("res://scripts/driving/car_detail.gd")
 ## the parked cars you can take (phase 5): each fleet file's vehicle id for the garage build it drives with
 const CAR_IDS := { "street-racer-lod.glb": "street-racer", "muscle-car-lod.glb": "muscle-car", "security-suv.glb": "security-suv", "tuner.glb": "tuner", "offroad-truck.glb": "offroad-truck", "goliath-tank.glb": "goliath-tank", "hover-car.glb": "hover-car" }
 ## the hulls that are not garage cars drive on vehicle_handling.gd's numbers (web vehicle-handling.ts): max speed from the
@@ -782,7 +783,7 @@ func _process(dt: float) -> void:
 		_near_door = door_id
 		_near_car = near
 		_near_npc = npc_id
-		controls.prompt(("ENTER " + door_label) if door_id != "" else (npcs.label_for(npc_id) if npc_id != "" else (("ENTER " + _car_name(near)) if near else "")))
+		controls.prompt(("ENTER " + door_label) if door_id != "" else (npcs.label_for(npc_id) if npc_id != "" else (((("LOCKED · " if bool(near.get_meta("locked", false)) else "ENTER ") + _car_name(near))) if near else "")))
 	# one ENTER press, read once: a door within reach takes it, else a car (reading it twice ate every press on the way
 	# to the car check, so no car could be entered once the hub doors arrived)
 	var pressed_enter: bool = controls.take_enter()
@@ -795,6 +796,11 @@ func _process(dt: float) -> void:
 		npcs.talk(npc_id)
 		return
 	if pressed_enter and near:
+		if bool(near.get_meta("locked", false)):
+			# someone's car: the door will not open, the alarm goes off (owner, Nov 11)
+			CarDetail.alarm(near, operator.position)
+			controls.toast("Locked — this " + _car_name(near).to_lower() + " belongs to someone. Find an unlocked car, or take one of yours from the garage.")
+			return
 		enter_car(near)
 		return
 	if gunplay:
@@ -1390,6 +1396,7 @@ func _cars() -> void:
 			_fit_length(hull, float(spec[2]))
 			hull.set_meta("car", true)
 			hull.set_meta("vehicle", CAR_IDS.get(f2, ""))
+			hull.set_meta("locked", false)    # put out for the operator (asset catalog), never locked
 			world.add_child(hull)
 			parked.append(hull)
 	while z < LENGTH * 0.5 - 20.0:
@@ -1414,6 +1421,11 @@ func _cars() -> void:
 						break
 					up = up.get_parent()
 			StaticBatch.compact(car)   # ~40 draws a car down to one per look
+			# its own paint and a clear coat; most belong to someone and are locked (car_detail.gd), decided by where they
+			# stand (and which block), so a block's cars are the same every visit
+			var spot := car.position + Vector3(0.0, 0.0, float(_tile_k) * 997.0 if _tile_root else 0.0)
+			CarDetail.dress(car, CarDetail.paint_at(spot))
+			car.set_meta("locked", CarDetail.locked_at(spot))
 			if Phone.car_range() > 0.0:
 				for gi in car.find_children("*", "GeometryInstance3D", true, false):
 					(gi as GeometryInstance3D).visibility_range_end = Phone.car_range()
@@ -2160,6 +2172,9 @@ func enter_car(c: Node3D) -> void:
 	if own >= 0:
 		operator.obstacles[own] = AABB(c.position + Vector3(0, -50, 0), Vector3(0.01, 0.01, 0.01))
 	driving_car = car
+	# lights on while it is driven: dipped beams and tail lamps by day, full at night
+	CarDetail.set_lamps(c, 2.4 if night else 0.8)
+	Sound.sfx("car_chirp", -10.0)
 	if operator.rig:
 		operator.rig.visible = false
 	operator.cam_dist = 14.0 if Handling.BY_ID.has(id) else 9.0
@@ -2184,6 +2199,7 @@ func exit_car() -> void:
 	var car: RefCounted = driving_car
 	driving_car = null
 	var c: Node3D = car.node
+	CarDetail.set_lamps(c, 0.0)
 	var f: Vector3 = car.forward()
 	var side := Vector3(f.z, 0, -f.x)
 	# the car's box takes its new place; the operator steps out on the kerb side (the right of the car), clear of it
