@@ -737,6 +737,14 @@ func _shoot(path: String, opts: Array) -> void:
 			var cv := String(o).split(":")
 			if cv.size() > 1:
 				street.casino_overlay.show_view(int(cv[1]))
+		# nights[:view] / strip[:view]  the entertainment district (Nexus Nights / the Neon Strip): 0-2 the strip,
+		# 3-4 the nightclub, 5 the arcade, 6 the cinema
+		if String(o).begins_with("nights") or String(o).begins_with("strip"):
+			_open_street(true, "neon" if String(o).begins_with("strip") else "nexus", false)
+			street.open_nights()
+			var nv := String(o).split(":")
+			if nv.size() > 1:
+				street.casino_overlay.show_view(int(nv[1]))
 		# sports[:view]  the sports district: 0-2 Pulse Arena, 3-4 Sunset Courts, 5-7 Iron Pulse gym
 		if String(o).begins_with("sports"):
 			_open_street(false, "nexus", false)

@@ -79,8 +79,9 @@ static func roles() -> Array:
 			_roles = d.get("roles", [])
 	return _roles
 
-func pick_role() -> Dictionary:
-	var all := roles()
+func pick_role(group := "") -> Dictionary:
+	# the street draws from every group but the venue guests; a venue asks for its own group ("evening")
+	var all := roles().filter(func(r: Dictionary) -> bool: return r.group == group if group != "" else r.group != "evening")
 	var total := 0.0
 	for r in all:
 		total += float(r.weight)
@@ -90,6 +91,30 @@ func pick_role() -> Dictionary:
 		if x <= 0.0:
 			return r
 	return all.back() if not all.is_empty() else {}
+
+## a dressed guest standing at `at` for an interior (the casino, the clubs, the venues): a full civilian body, face,
+## hat and jewellery from a role of `group`, clothes from the clothing shader; idle (no stepping, no collision).
+## `role_id` picks a role by id (a croupier at a table). Returns the mover so the caller can place and turn it.
+func guest(parent: Node3D, at: Vector3, yaw: float, group := "evening", role_id := "") -> Node3D:
+	var role := {}
+	if role_id != "":
+		for r in roles():
+			if r.id == role_id:
+				role = r
+	if role.is_empty():
+		role = pick_role(group)
+	var m := Player.new()
+	m.npc = true
+	parent.add_child(m)
+	m.position = at
+	m.rotation.y = yaw
+	m.cam_yaw = 0.0
+	m.build(role_look(role) if not role.is_empty() else random_look())
+	_dress(m, "", role)
+	m.set_physics_process(false)
+	m.set_process(false)
+	Grounding.blob(m, Vector2(0.55, 0.45), 0.35)
+	return m
 
 ## a role as a built look: body and face for the role, its hats and jewellery
 func role_look(role: Dictionary) -> Dictionary:

@@ -1,5 +1,5 @@
 {
- "source": "Owner's NPC & Operator lineup board (Nov 11 2026, 'Realistic GTA V-style'), docs/reference/characters/npc-lineup.png: civilians, police / security, business owners & workers, criminals & gangs. Weights are shares of the street crowd.",
+ "source": "Owner's NPC & Operator lineup board (Nov 11 2026, 'Realistic GTA V-style'), docs/reference/characters/npc-lineup.png: civilians, police / security, business owners & workers, criminals & gangs. Weights are shares of the street crowd. 'evening' roles (Nov 11): the casino and the entertainment venues' guests; never on the street.",
  "roles": [
   {
    "group": "civilian",
@@ -559,6 +559,269 @@
     ]
    },
    "faces": "tattooed"
+  },
+  {
+   "group": "evening",
+   "id": "tux",
+   "label": "Black tie",
+   "weight": 6,
+   "sex": "male",
+   "look": {
+    "cut": 2,
+    "top": "#111114",
+    "trim": "#f2f0ea",
+    "legs_col": "#111114",
+    "legs": 2,
+    "shoe": "#0d0d0e",
+    "shoes": 1,
+    "acc": "#111114",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "watch"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "suit-navy",
+   "label": "Navy suit",
+   "weight": 6,
+   "sex": "male",
+   "look": {
+    "cut": 2,
+    "top": "#1d2433",
+    "trim": "#eceae4",
+    "legs_col": "#1d2433",
+    "legs": 2,
+    "shoe": "#2a1d15",
+    "shoes": 1,
+    "acc": "#7a1f2b",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "watch"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "suit-cream",
+   "label": "Cream suit",
+   "weight": 3,
+   "sex": "male",
+   "look": {
+    "cut": 2,
+    "top": "#d9cfbd",
+    "trim": "#2a2a2e",
+    "legs_col": "#d9cfbd",
+    "legs": 2,
+    "shoe": "#4a2f1d",
+    "shoes": 1,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "watch",
+     "chain"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "velvet-blazer",
+   "label": "Velvet blazer",
+   "weight": 3,
+   "sex": "male",
+   "look": {
+    "cut": 2,
+    "top": "#4a1520",
+    "trim": "#141416",
+    "legs_col": "#141416",
+    "legs": 2,
+    "shoe": "#121212",
+    "shoes": 1,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "rings"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "gown-black",
+   "label": "Black gown",
+   "weight": 5,
+   "sex": "female",
+   "look": {
+    "cut": 9,
+    "top": "#0f0f12",
+    "trim": "#0f0f12",
+    "legs_col": "#0f0f12",
+    "legs": 0,
+    "shoe": "#c9a23a",
+    "shoes": 1,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "earrings",
+     "chain"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "gown-red",
+   "label": "Red gown",
+   "weight": 4,
+   "sex": "female",
+   "look": {
+    "cut": 9,
+    "top": "#7a0f1c",
+    "trim": "#7a0f1c",
+    "legs_col": "#7a0f1c",
+    "legs": 0,
+    "shoe": "#141416",
+    "shoes": 1,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "earrings"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "gown-gold",
+   "label": "Gold gown",
+   "weight": 3,
+   "sex": "female",
+   "look": {
+    "cut": 9,
+    "top": "#b8913e",
+    "trim": "#b8913e",
+    "legs_col": "#b8913e",
+    "legs": 0,
+    "shoe": "#c9a23a",
+    "shoes": 1,
+    "acc": "#f3e3a8",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "earrings"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "cocktail",
+   "label": "Cocktail dress",
+   "weight": 6,
+   "sex": "female",
+   "look": {
+    "cut": 11,
+    "top": "#141416",
+    "trim": "#141416",
+    "legs_col": "#141416",
+    "legs": 0,
+    "shoe": "#141416",
+    "shoes": 1,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "earrings",
+     "chain"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "cocktail-teal",
+   "label": "Cocktail dress",
+   "weight": 3,
+   "sex": "female",
+   "look": {
+    "cut": 11,
+    "top": "#1f5a5a",
+    "trim": "#1f5a5a",
+    "legs_col": "#1f5a5a",
+    "legs": 0,
+    "shoe": "#141416",
+    "shoes": 1,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "earrings"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "smart",
+   "label": "Smart casual",
+   "weight": 5,
+   "sex": "",
+   "look": {
+    "cut": 1,
+    "top": "#f2f0ea",
+    "trim": "#f2f0ea",
+    "legs_col": "#1d2433",
+    "legs": 3,
+    "shoe": "#2a1d15",
+    "shoes": 1,
+    "acc": "#1d1e22",
+    "pattern": 0
+   },
+   "gear": {
+    "wear": [
+     "watch"
+    ]
+   },
+   "faces": ""
+  },
+  {
+   "group": "evening",
+   "id": "dealer",
+   "label": "Croupier",
+   "weight": 0,
+   "sex": "",
+   "look": {
+    "cut": 10,
+    "top": "#7a0f1c",
+    "trim": "#f2f0ea",
+    "legs_col": "#111114",
+    "legs": 2,
+    "shoe": "#0d0d0e",
+    "shoes": 1,
+    "acc": "#c9a23a",
+    "pattern": 0
+   },
+   "gear": {},
+   "faces": ""
   }
  ]
 }

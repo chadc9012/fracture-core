@@ -32,6 +32,9 @@ const DOORS := [
 	# Nexus City International / Neon City International (main.gd opens the street's own city's airport)
 	{ "id": "airport", "label": "AIRPORT EXPRESS", "x": 1.0, "z": -40.0, "color": Color(0.55, 0.8, 1.0), "kind": "stop", "style": "any" },
 	{ "id": "sports", "label": "SPORTS DISTRICT", "x": -1.0, "z": 20.0, "color": Color(0.1, 0.85, 1.0), "kind": "door" },
+	# the entertainment district (owner, Nov 11): Nexus Nights in Nexus (no casino), the Neon Strip in Neon City
+	{ "id": "nights", "label": "NEXUS NIGHTS", "x": 1.0, "z": 44.0, "color": Color(0.95, 0.78, 0.4), "kind": "door" },
+	{ "id": "nights", "label": "THE NEON STRIP", "x": 1.0, "z": 44.0, "color": Color(1.0, 0.25, 0.8), "kind": "door", "style": "neon" },
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
 var _radio_button: Button
@@ -60,6 +63,7 @@ const GarageView = preload("res://scripts/garage/garage_view.gd")
 const Mall = preload("res://scripts/city/mall_interior.gd")
 const Casino = preload("res://scripts/city/casino_interior.gd")
 const Sports = preload("res://scripts/city/sports_district.gd")
+const Nights = preload("res://scripts/city/entertainment_district.gd")
 const OperatorPlayer = preload("res://scripts/player/operator_player.gd")
 const TouchControls = preload("res://scripts/player/touch_controls.gd")
 const Gunplay = preload("res://scripts/combat/gunplay.gd")
@@ -234,6 +238,12 @@ func _ready() -> void:
 	casino.add_theme_color_override("font_color", Color(0.95, 0.72, 0.32))
 	casino.pressed.connect(open_casino)
 	_bar().add_child(casino)
+	var nights := Button.new()
+	nights.text = "THE NEON STRIP" if style == "neon" else "NEXUS NIGHTS"
+	nights.add_theme_color_override("font_color", Color(1.0, 0.3, 0.8) if style == "neon" else Color(0.95, 0.78, 0.4))
+	nights.pressed.connect(open_nights)
+	nights.visible = style == "nexus" or style == "neon"
+	_bar().add_child(nights)
 	var sports := Button.new()
 	sports.text = "SPORTS DISTRICT"
 	sports.add_theme_color_override("font_color", Color(0.1, 0.85, 1.0))
@@ -1818,6 +1828,8 @@ func _enter_door(id: String) -> void:
 			open_casino()
 		"sports":
 			open_sports()
+		"nights":
+			open_nights()
 		"apex", "rusty":
 			open_shop(id)
 		"cylinder":
@@ -1934,6 +1946,18 @@ func open_casino() -> void:
 	casino_overlay.closed.connect(close_casino)
 	add_child(casino_overlay)
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED   # the street isn't seen while inside
+
+## the entertainment district (entertainment_district.gd) for this city; it rides the casino's overlay slot, since the
+## two never open together (Neon City's casino and its strip are separate doors)
+func open_nights() -> void:
+	if casino_overlay or mall_overlay or garage_overlay or sports_overlay:
+		return
+	var n := Nights.new()
+	n.city = "neon" if style == "neon" else "nexus"
+	casino_overlay = n
+	casino_overlay.closed.connect(close_casino)
+	add_child(casino_overlay)
+	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 func close_casino() -> void:
 	if casino_overlay:
