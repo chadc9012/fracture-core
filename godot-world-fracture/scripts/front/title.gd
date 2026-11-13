@@ -12,8 +12,8 @@ const Progression := preload("res://scripts/progress/progression.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const ART := "res://textures/billboards/wf-nexus.jpg"
 
-## the menu music (owner, Nov 13: "Change main menu music"): Kinggg Dream, "New Day" — was the Night Drive instrumental
-const MUSIC := "res://audio/radio/kinggg-dream-new-day.mp3"
+## the menu music (owner, Nov 13: "Change main menu music"): Kinggg Dream, "Write Your Own Name" (owner, then: "Choose a different kinggg dream song" than New Day)
+const MUSIC := "res://audio/radio/kinggg-dream-write-your-own-name.mp3"
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
