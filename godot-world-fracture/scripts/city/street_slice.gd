@@ -5,6 +5,7 @@ const Settings := preload("res://scripts/front/settings_store.gd")
 const Radio := preload("res://scripts/audio/radio.gd")
 const Phone := preload("res://scripts/phone.gd")
 const WetNight := preload("res://scripts/city/wet_night.gd")
+const NightFX := preload("res://scripts/city/night_fx.gd")
 ## Nexus City street slice: one block of a Nexus avenue at golden hour, built to chase the owner's concept frames (wet
 ## reflective asphalt, palms and planters, a café terrace, mid-rise apartments over shopfronts, glass towers behind, warm
 ## low sun through haze). Meshy-generated props from res://models/city/, the fleet cars parked at the kerb.
@@ -231,6 +232,8 @@ func _ready() -> void:
 			_neon()   # Neon City: twice the signage
 	# the phone's draw budget: the block's static pieces folded into a few meshes per cell (static_batch.gd)
 	StaticBatch.batch(world)
+	if night:
+		NightFX.build(world, ROAD_W * 0.5, 0.18, style == "neon")
 	cam = Camera3D.new()
 	cam.fov = 58.0
 	cam.near = 0.05
@@ -660,6 +663,8 @@ func _build_tile(k: int) -> Node3D:
 			Nexus.south_quay(self, LENGTH * 0.5 - 0.5)
 		Nexus.tile_skyline(self, _rng)
 	StaticBatch.batch(root)
+	if night:
+		NightFX.build(root, ROAD_W * 0.5, 0.18, style == "neon")
 	_rng.seed = keep_seed
 	_tile_root = null
 	_tile_k = 0
@@ -944,6 +949,10 @@ func _environment() -> void:
 		env.fog_sun_scatter = 0.05
 		env.volumetric_fog_density = 0.012
 		env.volumetric_fog_albedo = Color(0.7, 0.7, 0.9)
+		# the street-racing night of the owner's Nov 15 boards (night_fx.gd): moon sky, navy darks, hot neon
+		NightFX.grade(env, sun, sky, style == "neon")
+		# the wet walks and road mirror the lit city, not the dark sky (baked once, like the day probe)
+		_day_probe()
 
 ## the day sky over Nexus City: a deep zenith blue to a pale horizon, white cumulus drifting slowly (two fbm octave
 ## sets, lit on the sun side), the sun disc. Cheap: a few noise taps per sky pixel, and the radiance map is small.
@@ -1379,8 +1388,8 @@ func _props() -> void:
 				prop("street-lamp.glb", 6.5, Vector3(edge, 0.18, z), 90.0 * side + 180.0)
 				if night:
 					var lamp := OmniLight3D.new()
-					lamp.light_color = Color(1.0, 0.82, 0.62)
-					lamp.light_energy = 2.6
+					lamp.light_color = Color(1.0, 0.72, 0.45)   # sodium orange (Nov 15 boards)
+					lamp.light_energy = 3.2
 					lamp.omni_range = 15.0
 					lamp.position = Vector3(edge - side * 1.2, 6.0, z)
 					_root().add_child(lamp)
