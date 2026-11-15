@@ -64,19 +64,23 @@ def measure(img):
     if mask.sum() < 100:
         mask = np.ones(a.shape[:2], bool)
     detail = float(np.abs(a - b).sum(axis=2)[mask].mean())
-    g = a[: h // 2 * 2, : w // 2 * 2]
-    flat = (np.abs(g[0::2, 0::2] - g[1::2, 0::2]).sum(-1) + np.abs(g[0::2, 0::2] - g[0::2, 1::2]).sum(-1)
-            + np.abs(g[0::2, 0::2] - g[1::2, 1::2]).sum(-1)) < 1e-6
-    m2 = mask[: h // 2 * 2 : 2, : w // 2 * 2 : 2]
-    blocky = float(flat[m2].mean()) if m2.any() else 0.0
+    # nearest-neighbour upscales: inside detailed areas (a 4x4 neighbourhood with real variation), how many 2x2 blocks
+    # are one flat colour (8x8 neighbourhood). Flat paint and the empty atlas background have no variation and are not counted.
+    H, W = h // 8 * 8, w // 8 * 8
+    g = a[:H, :W].mean(axis=2)
+    blk = g.reshape(H // 2, 2, W // 2, 2)
+    flat = (blk.max(axis=(1, 3)) - blk.min(axis=(1, 3))) < 1.5 / 255.0
+    nb = g.reshape(H // 8, 8, W // 8, 8).std(axis=(1, 3)) > 0.03
+    busy = np.repeat(np.repeat(nb, 4, axis=0), 4, axis=1)
+    blocky = float(flat[busy].mean()) if busy.any() else 0.0
     return min(w, h), detail, blocky
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--min", type=int, default=2048)
-    ap.add_argument("--min-detail", type=float, default=0.012)
-    ap.add_argument("--max-blocky", type=float, default=0.25)
+    ap.add_argument("--min-detail", type=float, default=0.02)
+    ap.add_argument("--max-blocky", type=float, default=0.6)
     ap.add_argument("--min-ppm", type=float, default=300.0, help="base colour texels per metre at --real-size")
     ap.add_argument("--real-size", type=float, default=0.0, help="the object's real largest side in metres")
     ap.add_argument("models", nargs="+")

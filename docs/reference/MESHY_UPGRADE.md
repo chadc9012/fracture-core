@@ -81,4 +81,17 @@ the seven bosses, then the hero lineup in `NPC_LINEUP.md` (rigged in Meshy, reta
 
 | Batch | Status |
 | --- | --- |
-| 1 Weapons | started Nov 15 |
+| 1 Weapons | 9 made in Meshy (4K PBR, remeshed to ~12k tris); **in the game: rifle, rifle-smg, heavy (LMG), shotgun, rifle-fusion**; pistol, sniper, launcher, sword waiting on the download |
+| 2 Nature | 13 made (oak, pine, 3 palms, bush, flowering shrub, rocks, boulder, grass, dead tree, birch, street tree); the hedge failed twice and was dropped |
+| 3 Animals | 13 made (fox, shepherd, terrier, cat, pigeon, crow, seagull, rat, squirrel, deer, wolf, horse, raccoon) |
+| 4 Street props | 20 concepts approved; the lamp made, 19 converting |
+| Vehicles | being re-made separately on the account from the vehicle roster sheets ("Recreate the exact vehicle"), not duplicated here |
+
+## How a model comes in
+
+1. Download the GLB from the Meshy canvas (the file name carries the model name).
+2. `python3 scripts/import-meshy.py SRC.glb godot-world-fracture/models/<dir>/<name>.glb --match <the old model> [--weapon [--flip]]`
+   or `--height <metres>`: placed where the old one was, textures to 2048 px JPEG, the pixelation gate run on the
+   result (a fail deletes it).
+3. `tests/tools/model_compare.gd -- out.png old.glb new.glb [--close]`: old and new side by side, then a close crop.
+4. Old extracted textures of the replaced model removed; the old `.import` kept (`generate_lods=false`).
