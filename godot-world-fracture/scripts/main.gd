@@ -900,10 +900,24 @@ func _shoot(path: String, opts: Array) -> void:
 		# m1[:moment]  Mission 01: apt (default), apt2, hall, lobby, lounge, cine, dazed, surge, anchor, done
 		if String(o).begins_with("m1"):
 			var mm := String(o).split(":")
+			if mm.size() > 2:
+				Mission01.skip_cinema = true   # the abilities' shots want the street, not the scene, and a mission in play
+				DirAccess.remove_absolute(ProjectSettings.globalize_path("user://mission01.json"))
 			_open_mission()
 			if mm.size() > 1:
 				await get_tree().process_frame
 				mission.shot(mm[1])
+			# m1:anchor:blast / m1:anchor:dash  the abilities' visuals: the blast cast (the charge, then the release), the dash
+			if mm.size() > 2 and mm[2] in ["blast", "dash"]:
+				for k in 3:
+					await get_tree().process_frame
+				mission.op.powers = 2
+				mission.op.frozen = false
+				if mm[2] == "blast":
+					mission.op.blast()
+				else:
+					mission.op.move = Vector2(1, 0)   # a dash to the right: the afterimages trail across the frame
+					mission.op.dash()
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o) == "cloud":
 			_open_cloud()

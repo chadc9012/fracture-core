@@ -338,6 +338,19 @@ storyline audio for dialogue"; two packages, see `docs/story/dialogue-integratio
   from their body and age (`make_voices.py person_voice`), played with the text (`_say_line`). The panel fits a phone
   in portrait now. `tests/npc/npc_test.gd` checks every person answers every ask and the bands and stages pick.
 
+**Ability visuals** (owner, Nov 15: "the abilities look like shit — think Destiny, Ready Player One with a splash of
+anime"): `scripts/vfx/ability_fx.gd`. The Resonance Blast now winds up for a third of a second — the body lights up in
+its element (a scanlined Fresnel shell over every skinned mesh, a Destiny super's charge) while an orb gathers at the
+chest from a ring of motes — and releases: a flat shockwave with a hard rim and scanlines, a second taller wave a beat
+behind (anime's double hit), a holographic pillar of light with scanlines and a grid, a glyph scorched into the ground
+(spokes, rings and cracks that linger three seconds), sixty neon voxels thrown up and falling, a two-frame screen flash
+(white, then the element), radial speed lines, an impact star, a hit-stop (the world at a quarter speed for a tenth of
+a second) and a camera punch. The dash leaves three afterimages of the body in the pose of the moment
+(`bake_mesh_from_current_skeleton_pose`, spaced over the dash so the chase camera sees them trail), a streak and a
+speed-line burst. All unshaded additive geometry, shaders and one GPUParticles3D, for the phone. `player.gd`: `blast()`
+starts the charge (`charging`), `_blast_release` does the damage after `BLAST_CHARGE`; `dashed(dir)`. Shots
+`m1:anchor:blast`, `m1:anchor:dash`; `tests/vfx/ability_fx_test.gd` (shell, pieces, afterimages, hit-stop, clean-up).
+
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive
 mirror over the road and both walks — the mobile renderer has no SSR, so the overlay marches the mirrored view ray through

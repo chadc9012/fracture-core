@@ -17,6 +17,7 @@ const Rig := preload("res://scripts/character/character_rig.gd")
 const CStore := preload("res://scripts/character/character_store.gd")
 const Materials := preload("res://scripts/city/materials.gd")
 const Cutscene := preload("res://scripts/cinema/cutscene.gd")
+const AbilityFx := preload("res://scripts/vfx/ability_fx.gd")
 const Cinema := preload("res://scripts/mission/m01_cinema.gd")
 const Lines := preload("res://scripts/cinema/lines.gd")
 const Scenes := preload("res://scripts/cinema/scenes.gd")
@@ -160,6 +161,8 @@ func _ready() -> void:
 	_vp3.add_child(op)
 	op.fired.connect(_on_fired)
 	op.blasted.connect(_on_blast)
+	op.charging.connect(func(secs: float): AbilityFx.charge(op.rig, secs, BLAST_COL))
+	op.dashed.connect(func(dir: Vector3): AbilityFx.dash(street_root if room == "street" else int_root, op.rig, dir, BLAST_COL, hud))
 	op.hurt.connect(_on_hurt)
 	_cine_cam = Camera3D.new()
 	_cine_cam.fov = 55.0
@@ -1485,36 +1488,21 @@ func _burst(at: Vector3, c: Color, n: int) -> void:
 		tw.parallel().tween_property(s, "scale", Vector3.ZERO, 0.35)
 		tw.tween_callback(s.queue_free)
 
+## the Resonance Blast's release (scripts/vfx/ability_fx.gd): the shockwave, the pillar, the glyph, the voxels, the
+## screen's impact frame, a hit-stop, and the camera's punch
+const BLAST_COL := Color(0.4, 0.9, 1.0)
+const BLAST_COL2 := Color(0.8, 0.45, 1.0)
+
 func _on_blast(at: Vector3, radius: float) -> void:
-	var ring := MeshInstance3D.new()
-	var tm := TorusMesh.new()
-	tm.inner_radius = 0.8
-	tm.outer_radius = 1.0
-	tm.rings = 40
-	ring.mesh = tm
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = Color(0.4, 0.9, 1.0, 0.8)
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.emission_enabled = true
-	m.emission = Color(0.3, 0.85, 1.0)
-	m.emission_energy_multiplier = 6.0
-	ring.material_override = m
-	street_root.add_child(ring)
-	ring.global_position = at - Vector3(0, 0.8, 0)
-	var fl := OmniLight3D.new()
-	fl.light_color = Color(0.4, 0.9, 1.0)
-	fl.omni_range = radius * 2.0
-	fl.light_energy = 8.0
-	street_root.add_child(fl)
-	fl.global_position = at
-	var tw := ring.create_tween()
-	tw.tween_property(ring, "scale", Vector3.ONE * radius, 0.35)
-	tw.parallel().tween_property(m, "albedo_color:a", 0.0, 0.45)
-	tw.parallel().tween_property(fl, "light_energy", 0.0, 0.45)
-	tw.tween_callback(ring.queue_free)
-	tw.tween_callback(fl.queue_free)
-	_burst(at, Color(0.4, 0.9, 1.0), 20)
+	AbilityFx.blast(street_root if room == "street" else int_root, at, radius, BLAST_COL, BLAST_COL2, hud, _camera_punch)
+
+func _camera_punch(strength: float) -> void:
+	if op == null or op.cam == null:
+		return
+	var base: float = op.cam.fov
+	var tw: Tween = op.cam.create_tween()
+	tw.tween_property(op.cam, "fov", base + 9.0 * strength, 0.06)
+	tw.tween_property(op.cam, "fov", base, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 # --------------------------------------------------------------------------------------------- the frame loop
 func _process(delta: float) -> void:

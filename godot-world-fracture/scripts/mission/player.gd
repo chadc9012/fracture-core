@@ -9,6 +9,8 @@ extends CharacterBody3D
 
 signal fired(from: Vector3, to: Vector3, hit: Object)
 signal blasted(at: Vector3, radius: float)
+signal charging(seconds: float)        # the blast's wind-up has begun (the body lights up)
+signal dashed(dir: Vector3)
 signal hurt(hp: float)
 
 const Rig := preload("res://scripts/character/character_rig.gd")
@@ -36,6 +38,7 @@ const MELEE_DAMAGE := 40.0
 const BLAST_DAMAGE := 140.0
 const BLAST_RADIUS := 6.5
 const BLAST_COOLDOWN := 6.0
+const BLAST_CHARGE := 0.32             # the wind-up before the release
 const DASH_COOLDOWN := 2.5
 
 var rig: Node3D
@@ -263,6 +266,10 @@ func _physics_process(delta: float) -> void:
 	if wish.length() > 1.0:
 		wish = wish.normalized()
 	var speed := RUN if run and not fire_held else WALK
+	if _charge_t > 0.0:
+		_charge_t -= delta
+		if _charge_t <= 0.0:
+			_blast_release()
 	if _dash_t > 0.0:
 		_dash_t -= delta
 		velocity.x = _dash_dir.x * 14.0
@@ -384,10 +391,18 @@ func melee() -> void:
 		if d.length() < 2.4 and d.normalized().dot(fwd) > 0.2:
 			n.call("take_damage", MELEE_DAMAGE)
 
+var _charge_t := 0.0
+
 func blast() -> bool:
-	if powers < 2 or blast_cd > 0.0:
+	if powers < 2 or blast_cd > 0.0 or _charge_t > 0.0:
 		return false
 	blast_cd = BLAST_COOLDOWN
+	_charge_t = BLAST_CHARGE
+	charging.emit(BLAST_CHARGE)
+	return true
+
+## the release, after the wind-up
+func _blast_release() -> void:
 	var fwd := Basis(Vector3.UP, yaw_pivot.rotation.y) * Vector3.FORWARD
 	var at := global_position + fwd * 3.5 + Vector3(0, 1.0, 0)
 	for e in get_tree().get_nodes_in_group("echo"):
@@ -399,7 +414,6 @@ func blast() -> bool:
 	Sound.sfx("shield_break", -2.0)
 	Sound.sfx("explosion_2", -6.0)
 	blasted.emit(at, BLAST_RADIUS)
-	return true
 
 func dash() -> bool:
 	if powers < 2 or dash_cd > 0.0:
@@ -409,6 +423,7 @@ func dash() -> bool:
 	_dash_dir = (basis_y * Vector3(move.x, 0, -move.y)).normalized() if move.length() > 0.2 else basis_y * Vector3.FORWARD
 	_dash_t = 0.22
 	Sound.sfx("jet", -8.0, 0.1)
+	dashed.emit(_dash_dir)
 	return true
 
 func take_damage(d: float) -> void:
