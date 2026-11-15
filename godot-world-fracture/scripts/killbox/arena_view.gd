@@ -233,7 +233,7 @@ func _start() -> void:
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
 	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
-	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 	var size: int = int(match_state.mode.get("teamSize", 6))
 	if match_state.kind == "ffa":
 		# everyone for themselves: each bot its own team, half from each side's spawns

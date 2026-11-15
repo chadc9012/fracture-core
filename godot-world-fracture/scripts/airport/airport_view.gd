@@ -190,7 +190,7 @@ func _ready() -> void:
 	world.add_child(gunplay)
 	gunplay.setup(operator, obstacles)
 	gunplay.set_loadout(Gear.loadout(gear))
-	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 	for bay in Air.BAYS:   # the target range at the back of each hangar (only usable where weapons are allowed)
 		var cx: float = HANGAR_X[Air.BAYS.find(bay)]
 		for k in 3:
@@ -533,7 +533,7 @@ func _open_shop(id: String) -> void:
 		_save()
 		gunplay.set_loadout(Gear.loadout(gear))
 		gunplay.set_holstered(not _armed_here())
-		OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", "")))))
+		OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear))
 	_overlay_open(v)
 
 func _fly_craft(craft: String) -> void:

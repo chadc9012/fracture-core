@@ -56,7 +56,7 @@ func _ready() -> void:
 	gunplay.setup(operator, operator.obstacles)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
-	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 	armed = StreetSlice.force_armed or StreetSlice.story_armed()
 	gunplay.set_holstered(not armed)
 	controls.set_armed(armed)

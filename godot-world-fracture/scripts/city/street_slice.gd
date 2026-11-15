@@ -427,7 +427,7 @@ func _fit_gear() -> void:
 	gunplay.set_holstered(not armed)
 	if controls:
 		controls.set_armed(armed)
-	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 	if enemies:
 		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 		enemies.hull = minf(enemies.hull, enemies.hull_max)
