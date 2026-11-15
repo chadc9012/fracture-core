@@ -2,25 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://pbjvnfk4335m"
-path.s3tc="res://.godot/imported/rifle-sniper_Image_2.jpg-40c9d139459ce92092876876d1a14f4c.s3tc.ctex"
-path.etc2="res://.godot/imported/rifle-sniper_Image_2.jpg-40c9d139459ce92092876876d1a14f4c.etc2.ctex"
+uid="uid://b1i74ny2rbado"
+path="res://.godot/imported/launcher_texture_0.jpg-bf2013a8ba2c2e16423c9e841633400c.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "a819a28367862b260df3904301154aea"
+"md5": "14335aa132e218ab2c0e448359f96648"
 }
 
 [deps]
 
-source_file="res://models/weapons/rifle-sniper_Image_2.jpg"
-dest_files=["res://.godot/imported/rifle-sniper_Image_2.jpg-40c9d139459ce92092876876d1a14f4c.s3tc.ctex", "res://.godot/imported/rifle-sniper_Image_2.jpg-40c9d139459ce92092876876d1a14f4c.etc2.ctex"]
+source_file="res://models/weapons/launcher_texture_0.jpg"
+dest_files=["res://.godot/imported/launcher_texture_0.jpg-bf2013a8ba2c2e16423c9e841633400c.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,5 +39,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=1024
+process/size_limit=0
 detect_3d/compress_to=1

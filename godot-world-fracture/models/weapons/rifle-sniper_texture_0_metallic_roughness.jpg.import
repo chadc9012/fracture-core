@@ -2,25 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d0hux80smftqx"
-path.s3tc="res://.godot/imported/pistol_PistolMat_finish.jpg-11d5442f0bc8724f4b9a85d13498ba46.s3tc.ctex"
-path.etc2="res://.godot/imported/pistol_PistolMat_finish.jpg-11d5442f0bc8724f4b9a85d13498ba46.etc2.ctex"
+uid="uid://dsl7t8he0x6it"
+path="res://.godot/imported/rifle-sniper_texture_0_metallic_roughness.jpg-b6a4c0104beb4e1f5ce3c7544f8c5a6a.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "e4ba988c9b0dd5d511a06df425befdd1"
+"md5": "1162819aa1d8dce27e6fe05533d6ee28"
 }
 
 [deps]
 
-source_file="res://models/weapons/pistol_PistolMat_finish.jpg"
-dest_files=["res://.godot/imported/pistol_PistolMat_finish.jpg-11d5442f0bc8724f4b9a85d13498ba46.s3tc.ctex", "res://.godot/imported/pistol_PistolMat_finish.jpg-11d5442f0bc8724f4b9a85d13498ba46.etc2.ctex"]
+source_file="res://models/weapons/rifle-sniper_texture_0_metallic_roughness.jpg"
+dest_files=["res://.godot/imported/rifle-sniper_texture_0_metallic_roughness.jpg-b6a4c0104beb4e1f5ce3c7544f8c5a6a.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,5 +39,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=1024
+process/size_limit=0
 detect_3d/compress_to=1

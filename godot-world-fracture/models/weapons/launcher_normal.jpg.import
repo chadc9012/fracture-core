@@ -2,25 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b0xqgd0lob1hy"
-path.s3tc="res://.godot/imported/launcher_LauncherMat_mr.jpg-2fd19b601c0c48527f383a3e3876207d.s3tc.ctex"
-path.etc2="res://.godot/imported/launcher_LauncherMat_mr.jpg-2fd19b601c0c48527f383a3e3876207d.etc2.ctex"
+uid="uid://csy7asojq8bup"
+path="res://.godot/imported/launcher_normal.jpg-afd23521124a9bad41bb95627f9e64a8.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "0dd08f5e237029e1f1f4813e4271d6dc"
+"md5": "fcfe224bda6decb71e07c1abf757afd7"
 }
 
 [deps]
 
-source_file="res://models/weapons/launcher_LauncherMat_mr.jpg"
-dest_files=["res://.godot/imported/launcher_LauncherMat_mr.jpg-2fd19b601c0c48527f383a3e3876207d.s3tc.ctex", "res://.godot/imported/launcher_LauncherMat_mr.jpg-2fd19b601c0c48527f383a3e3876207d.etc2.ctex"]
+source_file="res://models/weapons/launcher_normal.jpg"
+dest_files=["res://.godot/imported/launcher_normal.jpg-afd23521124a9bad41bb95627f9e64a8.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,5 +39,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=1024
+process/size_limit=0
 detect_3d/compress_to=1

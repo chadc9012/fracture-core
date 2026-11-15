@@ -2,25 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dymfrd7wkhduf"
-path.s3tc="res://.godot/imported/pistol_PistolMat_glow.jpg-d47de78e5b93e3ad49d1eeb1f85a89c6.s3tc.ctex"
-path.etc2="res://.godot/imported/pistol_PistolMat_glow.jpg-d47de78e5b93e3ad49d1eeb1f85a89c6.etc2.ctex"
+uid="uid://b3ulu6x5ove0n"
+path="res://.godot/imported/pistol_texture_0_metallic_roughness.jpg-26588a5582c5dcd1ed69a1369b1cd335.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "b487337160d3378a4c2aedada6b3e39a"
+"md5": "14b87f95a3cdf31dcef94d51346af96c"
 }
 
 [deps]
 
-source_file="res://models/weapons/pistol_PistolMat_glow.jpg"
-dest_files=["res://.godot/imported/pistol_PistolMat_glow.jpg-d47de78e5b93e3ad49d1eeb1f85a89c6.s3tc.ctex", "res://.godot/imported/pistol_PistolMat_glow.jpg-d47de78e5b93e3ad49d1eeb1f85a89c6.etc2.ctex"]
+source_file="res://models/weapons/pistol_texture_0_metallic_roughness.jpg"
+dest_files=["res://.godot/imported/pistol_texture_0_metallic_roughness.jpg-26588a5582c5dcd1ed69a1369b1cd335.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,5 +39,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=1024
+process/size_limit=0
 detect_3d/compress_to=1
