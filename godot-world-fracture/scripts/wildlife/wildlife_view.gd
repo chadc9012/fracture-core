@@ -79,7 +79,24 @@ func _body(c: Wildlife.Critter) -> void:
 	var p: Dictionary = Wildlife.profile(c.species)
 	var root := Node3D.new()
 	add_child(root)
-	if c.species == "FOX" and ResourceLoader.exists(FOX):
+	var meshy := "res://models/animals/%s.glb" % c.species.to_lower()
+	if c.species != "FOX" and ResourceLoader.exists(meshy):
+		# a Meshy animal (docs/reference/MESHY_UPGRADE.md batch 3): dropped in under the species' name, fitted to the
+		# rules' body height, nose +z; static unless it carries clips (the walk bob is the root's)
+		var body := (load(meshy) as PackedScene).instantiate() as Node3D
+		root.add_child(body)
+		var aabb := _node_aabb(body)
+		var want: float = float((p.body as Vector3).y) * c.size
+		var k := want / maxf(aabb.size.y, 0.001)
+		body.scale = Vector3.ONE * k
+		body.position = Vector3(-(aabb.position.x + aabb.size.x * 0.5) * k, -aabb.position.y * k, -(aabb.position.z + aabb.size.z * 0.5) * k)
+		var ap2 := body.find_child("AnimationPlayer", true, false) as AnimationPlayer
+		if ap2 and ap2.get_animation_list().size() > 0:
+			var first := ap2.get_animation_list()[0]
+			ap2.get_animation(first).loop_mode = Animation.LOOP_LINEAR
+			ap2.play(first)
+			root.set_meta("anim", ap2)
+	elif c.species == "FOX" and ResourceLoader.exists(FOX):
 		var fox := (load(FOX) as PackedScene).instantiate() as Node3D
 		# the sample fox is in centimetres and faces -z: a metre-scale fox nose-forward (+z, as the rules' heading)
 		fox.scale = Vector3.ONE * 0.011 * c.size
@@ -186,3 +203,15 @@ func step(dt: float) -> void:
 				pass
 			if c.down < 0.0 and t.hp <= 0.0:
 				t.hp = t.max_hp   # respawned
+
+## the bounds of a model's meshes in its own frame
+static func _node_aabb(n: Node3D) -> AABB:
+	var out := AABB()
+	var first := true
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		var b: AABB = (mi as MeshInstance3D).get_aabb()
+		var t: Transform3D = n.global_transform.affine_inverse() * (mi as Node3D).global_transform if n.is_inside_tree() else (mi as Node3D).transform
+		b = t * b
+		out = b if first else out.merge(b)
+		first = false
+	return out

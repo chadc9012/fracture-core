@@ -91,6 +91,18 @@ the seven bosses, then the hero lineup in `NPC_LINEUP.md` (rigged in Meshy, reta
 | Not yet | bosses and hero characters (needs a credit top-up: ~560 left after the batches above) |
 | Vehicles | being re-made separately on the account from the vehicle roster sheets ("Recreate the exact vehicle"), not duplicated here |
 
+## Drop-in wiring (lead session, Nov 15)
+
+The new kinds place themselves the moment their GLB is in the repo — no code change per model:
+- **Street props** (batch 4): `street_slice.gd` `MESHY_PROPS` rows place hydrant, trash-bin, parking-meter, mailbox,
+  news-box, phone-booth, dumpster, bollard, scooter, food-cart, atm and barrier per tile from `models/city/street/<file>`
+  (kerb line facing the road, or against the buildings), skipping the garage and the side-court mouths. Add a row for a
+  new prop; a file that is not there places nothing.
+- **Animals** (batch 3): `wildlife_view.gd` `_body` uses `models/animals/<species>.glb` (the SPECIES key in lower
+  case: deer, boar, wolf, …) when it exists — fitted to the rules' body height, nose +z, its first clip looped if it
+  has one, the procedural body otherwise. The fox keeps its own path.
+- **Weapons, buildings, furniture, fleet**: same file names, picked up as before.
+
 ## How a model comes in
 
 1. Download the GLB from the Meshy canvas (the file name carries the model name).

@@ -221,6 +221,7 @@ func _ready() -> void:
 	_garage_front()
 	_dressing()
 	_street_set()
+	_meshy_props()
 	_hub_dressing()
 	if style != "coast":
 		_doors()
@@ -1596,6 +1597,47 @@ void fragment() {
 		mi.position = Vector3(side * (half + 0.3), _rng.randf_range(24.0, 34.0), -40.0 - i * 26.0)
 		mi.rotation_degrees.y = 90.0 if side < 0 else -90.0
 		_root().add_child(mi)
+
+# --------------------------------------------------------------------------------------------- the Meshy street props
+## The Meshy upgrade's street props (docs/reference/MESHY_UPGRADE.md batch 4, owner Nov 15 "replace with new models
+## and assets"): each is placed per tile the moment its GLB is in models/city/street (a missing file places nothing —
+## the models come in from the owner's Meshy account one by one). Rows: file, height in metres, kerb (true: at the
+## kerb line, facing the road; false: against the building line), the tile-local z spots, and the side pattern.
+const MESHY_PROPS := [
+	{ "file": "hydrant.glb", "h": 0.85, "kerb": true, "z": [-96.0, 44.0], "sides": [1.0, -1.0] },
+	{ "file": "trash-bin.glb", "h": 1.1, "kerb": true, "z": [-112.0, -22.0, 66.0], "sides": [-1.0, 1.0, -1.0] },
+	{ "file": "parking-meter.glb", "h": 1.4, "kerb": true, "z": [-80.0, -60.0, 20.0, 40.0, 100.0], "sides": [1.0, 1.0, -1.0, -1.0, 1.0] },
+	{ "file": "mailbox.glb", "h": 1.3, "kerb": false, "z": [-48.0], "sides": [-1.0] },
+	{ "file": "news-box.glb", "h": 1.15, "kerb": true, "z": [-46.0, 84.0], "sides": [-1.0, 1.0] },
+	{ "file": "phone-booth.glb", "h": 2.4, "kerb": false, "z": [8.0], "sides": [1.0] },
+	{ "file": "dumpster.glb", "h": 1.5, "kerb": false, "z": [-124.0, 118.0], "sides": [1.0, -1.0] },
+	{ "file": "bollard.glb", "h": 1.0, "kerb": true, "z": [-6.0, -3.0, 0.0, 3.0, 6.0], "sides": [1.0, 1.0, 1.0, 1.0, 1.0] },
+	{ "file": "scooter.glb", "h": 1.1, "kerb": true, "z": [-70.0, 92.0], "sides": [-1.0, 1.0] },
+	{ "file": "food-cart.glb", "h": 2.2, "kerb": false, "z": [58.0], "sides": [-1.0] },
+	{ "file": "atm.glb", "h": 1.9, "kerb": false, "z": [-36.0, 76.0], "sides": [1.0, -1.0] },
+	{ "file": "barrier.glb", "h": 1.0, "kerb": true, "z": [104.0, 108.0], "sides": [-1.0, -1.0] },
+]
+
+func _meshy_props() -> int:
+	if style == "coast":
+		return 0
+	var half := ROAD_W * 0.5
+	var n := 0
+	for row in MESHY_PROPS:
+		if not ResourceLoader.exists(MODELS + SET + String(row.file)):
+			continue
+		for i in (row.z as Array).size():
+			var z: float = row.z[i]
+			var side: float = row.sides[i]
+			if _tile_k == 0 and side > 0.0 and absf(z - GARAGE_Z) < 16.0:
+				continue
+			if _in_mouth(side, z):
+				continue
+			var x := side * (half + 0.9) if bool(row.kerb) else side * (half + WALK_W - 0.7)
+			var yaw := 90.0 * side if bool(row.kerb) else -90.0 * side
+			if prop(SET + String(row.file), float(row.h), Vector3(x, 0.18, z), yaw):
+				n += 1
+	return n
 
 # --------------------------------------------------------------------------------------------- the street set
 ## The Meshy street set from the owner's Nov 8 renders (docs/reference/NEXUS_STREET_SET.md; models/city/street): neon
