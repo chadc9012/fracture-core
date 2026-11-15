@@ -14,14 +14,27 @@ extends RefCounted
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const META := "armor_nodes"
 const DIR := "res://models/operators/armor/%s/%s-%s.glb"
-## the fitted suits; every armour set wears one until each set has its own
+## the fitted suits, by the element of the set a slot shows: the Neon Sentinel (the armored-soldier sheet, plates and
+## glowing trim) for the energy sets, the Tactical suit (the tactical-character sheets: hooded jacket, harness, bracers,
+## knee armour, boots) for kinetic sets and the starting Field gear. The tactical model has a bare head, so its helmet
+## slot wears the Sentinel's (FALLBACK).
 const DEFAULT_SUIT := "neon-sentinel"
+const SUIT_BY_ELEMENT := { "KINETIC": "tactical" }
+const FALLBACK := "neon-sentinel"
 
 static var _scenes: Dictionary = {}
 
-## the suit a worn slot shows (later: per set, from the transmog look or the piece's own set)
-static func suit_for(_gear: Dictionary, _slot: String) -> String:
-	return DEFAULT_SUIT
+## the suit a worn slot shows: the transmog look's set first, then the piece's own set, then the piece's element
+static func suit_for(gear: Dictionary, slot: String) -> String:
+	var it: Dictionary = Gear.worn(gear, slot)
+	var sid := str(gear.get("transmog", {}).get(slot, ""))
+	if sid == "":
+		sid = str(it.get("set", ""))
+	var el := str(Gear.armor_set(sid).get("element", "")) if sid != "" else ""
+	if el == "":
+		el = str(it.get("element", "KINETIC"))
+	var suit: String = SUIT_BY_ELEMENT.get(el, DEFAULT_SUIT)
+	return suit if ResourceLoader.exists(path_for(suit, { "frame": "goliath", "body": "male" })) else DEFAULT_SUIT
 
 static func path_for(suit: String, look: Dictionary) -> String:
 	return DIR % [suit, String(look.get("frame", "goliath")), String(look.get("body", "male"))]
@@ -39,7 +52,11 @@ static func apply(rig: Node3D, gear: Dictionary) -> void:
 	for slot in Gear.ARMOR_SLOTS:
 		if Gear.worn(gear, slot).is_empty():
 			continue
-		var mi := _piece(rig, suit_for(gear, slot), slot)
+		var suit := suit_for(gear, slot)
+		var mi := _piece(rig, suit, slot)
+		if not mi and suit != FALLBACK:
+			# a suit without this piece (the tactical one has no helmet) wears the fallback suit's
+			mi = _piece(rig, FALLBACK, slot)
 		if mi:
 			nodes.append(mi)
 			if slot == "helmet":
