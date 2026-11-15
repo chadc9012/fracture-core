@@ -259,6 +259,8 @@ SOUNDS = {
     "siren": lambda: finish(siren(), peak=0.7, drive=1.1),
     # parked cars (Nov 11, "some should be locked from owner"): a locked car's alarm when its door is tried, the chirp
     # when a car's locks open
+    # a burning car (fx/burnt.gd, Nov 15): low roar under crackles and pops, made to loop
+    "fire": lambda: finish(fire_loop(), peak=0.7, drive=1.2),
     "car_alarm": lambda: finish(car_alarm(), peak=0.75, drive=1.2),
     "car_chirp": lambda: finish(car_chirp(), peak=0.7, drive=1.1),
     # Nov 11 (owner: "Work on the tanks shooting missiles gun shooting audio ... should feel like call of duty fort nite"):
@@ -282,6 +284,24 @@ def siren(d=2.0):
     ph = 2 * np.pi * np.cumsum(f) / SR
     x = np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3 * ph)
     return lp(x, 3200) * 0.5
+
+
+def fire_loop(d=4.0):
+    n = int(d * SR)
+    roar = lp(noise(d), 260, 2) * 1.3 + bp(noise(d), 300, 1400) * 0.25
+    roar *= 0.75 + 0.25 * np.sin(2 * np.pi * 0.7 * t(d)) * np.sin(2 * np.pi * 0.31 * t(d) + 1.0)
+    crack = np.zeros(n)
+    for _ in range(140):
+        i = int(rng.uniform(0, n - 800))
+        L = int(rng.uniform(60, 600))
+        b = bp(noise(L / SR), 1800, 7000)
+        crack[i:i + len(b)] += b * np.exp(-np.arange(len(b)) / (L * 0.2)) * rng.uniform(0.3, 1.0)
+    x = roar + crack * 0.9
+    # crossfade the ends so the loop has no seam
+    f = int(0.25 * SR)
+    w = np.linspace(0, 1, f)
+    x[:f] = x[:f] * w + x[-f:] * (1 - w)
+    return x[:-f]
 
 
 def car_alarm(d=2.4):

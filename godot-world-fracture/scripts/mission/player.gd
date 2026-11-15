@@ -15,6 +15,9 @@ const Rig := preload("res://scripts/character/character_rig.gd")
 const Store := preload("res://scripts/character/character_store.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const Weapons := preload("res://scripts/combat/weapons.gd")
+const Sound := preload("res://scripts/audio/sound.gd")
+## the shot cue per weapon frame (the same cues the open-world gunplay uses; owner, Nov 13: "i dont hear audio when shooting")
+const SHOT_CUES := { "AUTO": "rifle", "SNIPER": "sniper", "FUSION": "fusion", "SMG": "smg", "SHOTGUN": "shotgun", "SIDEARM": "sidearm", "LMG": "lmg", "HEAVY": "heavy" }
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const WALK := 2.4
 const RUN := 5.6
@@ -299,9 +302,11 @@ func _physics_process(delta: float) -> void:
 	dash_cd = maxf(0.0, dash_cd - delta)
 	if _flash:
 		_flash.light_energy = maxf(0.0, _flash.light_energy - delta * 40.0)
+	_shoulder(delta)
 	if _reload > 0.0:
 		_reload -= delta
 		if _reload <= 0.0:
+			Sound.sfx("click", -8.0)
 			var take := mini(mag_size - ammo, reserve)
 			ammo += take
 			reserve -= take
@@ -341,6 +346,9 @@ func reload() -> void:
 	if _reload > 0.0 or ammo >= mag_size or reserve <= 0:
 		return
 	_reload = float(Weapons.FRAMES[frame].reload) if Weapons.FRAMES.has(frame) else 1.6
+	if ammo <= 0:
+		Sound.sfx("dry", -6.0)
+	Sound.sfx("reload", -4.0)
 
 func reloading() -> bool:
 	return _reload > 0.0
@@ -348,6 +356,7 @@ func reloading() -> bool:
 func _shoot() -> void:
 	_fire_cd = 1.0 / fire_rate
 	ammo -= 1
+	Sound.sfx(SHOT_CUES.get(frame, "rifle"), -2.0, 0.05)
 	var r := aim_ray()
 	var from: Vector3 = r[0]
 	var dir: Vector3 = (r[1] as Vector3).rotated(Vector3.UP, randf_range(-0.008, 0.008))
@@ -359,6 +368,7 @@ func _shoot() -> void:
 	var collider: Object = hit.collider if hit else null
 	if collider and collider.has_method("take_damage"):
 		collider.take_damage(damage)
+		Sound.sfx("hitmarker", -9.0, 0.04)
 	if _flash:
 		_flash.light_energy = 3.0
 	fired.emit(muzzle.global_position if muzzle else global_position + Vector3(0, 1.4, 0), to, collider)
@@ -367,6 +377,7 @@ func melee() -> void:
 	if powers < 1:
 		return
 	var fwd := Basis(Vector3.UP, rig.rotation.y) * Vector3.BACK
+	Sound.sfx("stagger", -4.0)
 	for e in get_tree().get_nodes_in_group("echo"):
 		var n := e as Node3D
 		var d := n.global_position - global_position
@@ -385,6 +396,8 @@ func blast() -> bool:
 			n.call("take_damage", BLAST_DAMAGE)
 			if n.has_method("knock"):
 				n.call("knock", (n.global_position - global_position).normalized() * 9.0)
+	Sound.sfx("shield_break", -2.0)
+	Sound.sfx("explosion_2", -6.0)
 	blasted.emit(at, BLAST_RADIUS)
 	return true
 
@@ -395,9 +408,11 @@ func dash() -> bool:
 	var basis_y := Basis(Vector3.UP, yaw_pivot.rotation.y)
 	_dash_dir = (basis_y * Vector3(move.x, 0, -move.y)).normalized() if move.length() > 0.2 else basis_y * Vector3.FORWARD
 	_dash_t = 0.22
+	Sound.sfx("jet", -8.0, 0.1)
 	return true
 
 func take_damage(d: float) -> void:
+	Sound.sfx("hurt", -6.0)
 	hp = maxf(hp_floor, hp - d)
 	_since_hurt = 0.0
 	hurt.emit(hp)
@@ -407,3 +422,17 @@ func snap_camera(yaw: float) -> void:
 	yaw_pivot.rotation.y = yaw
 	rig.rotation.y = yaw + PI
 	pitch = -0.12
+
+## the over-the-shoulder offset gives way to a wall at the side (the spring arm only shortens backwards, so in the
+## Residences' corridor the camera stood in the wall and showed the city through it; owner, Nov 15)
+func _shoulder(delta: float) -> void:
+	if arm == null or not is_inside_tree():
+		return
+	var from := pitch_pivot.global_position
+	var side := pitch_pivot.global_transform.basis.x.normalized()
+	var q := PhysicsRayQueryParameters3D.create(from, from + side * 1.0, 1, [get_rid()])
+	var h := get_world_3d().direct_space_state.intersect_ray(q)
+	var want := 0.62
+	if h:
+		want = clampf(from.distance_to(h.position) - 0.38, 0.0, 0.62)
+	arm.position.x = want if want < arm.position.x else move_toward(arm.position.x, want, delta * 2.0)

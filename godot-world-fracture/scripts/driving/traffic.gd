@@ -11,6 +11,7 @@ const StreetCar := preload("res://scripts/driving/street_car.gd")
 const FLEET := "res://models/fleet/"
 const Catalog := preload("res://scripts/garage/catalog.gd")
 const CarDetail := preload("res://scripts/driving/car_detail.gd")
+const Burnt := preload("res://scripts/fx/burnt.gd")
 const FILES := ["tuner.glb", "muscle-car-lod.glb", "street-racer-lod.glb", "offroad-truck.glb", "security-suv.glb"]
 const CRUISE := 9.0            # m/s on an open lane
 const GAP := 7.0               # m kept to the car ahead (nose to tail)
@@ -132,7 +133,13 @@ func step(dt: float) -> void:
 		if c.wreck > 0.0:
 			_tumble(c, dt)
 			continue
+		var was: Vector3 = c.sc.node.position
 		_drive(c, dt)
+		# the player's car is out of the shared boxes while driven (the camera and the troopers must not snag on it), so a
+		# lane car never ran into it — it drove straight through (owner, Nov 13): it stops dead against it instead
+		if watch_box.size.x > 0.1 and c.sc.box().grow(-0.15).intersects(watch_box):
+			c.sc.node.position = was
+			c.sc.speed = 0.0
 		obstacles[c.box_index] = c.sc.box()
 		var n: Node3D = c.sc.node
 		n.visible = n.position.z >= vis_lo and n.position.z <= vis_hi
@@ -189,7 +196,6 @@ func _drive(c: Car, dt: float) -> void:
 
 ## a blast at `at` (heavy_weapons.gd): every car within `radius` is thrown up and away, spinning, and charred; it lands,
 ## burns a few seconds and is towed (back in at its lane's far end). Returns where the wrecks are.
-var _char_mat: StandardMaterial3D
 func wreck(at: Vector3, radius: float) -> Array:
 	var out: Array = []
 	for c in cars:
@@ -207,13 +213,11 @@ func wreck(at: Vector3, radius: float) -> Array:
 		c.vel = away * (4.0 + 7.0 * k) + Vector3(0, 6.0 + 9.0 * k, 0)
 		c.spin = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.6, 0.6), _rng.randf_range(-1, 1)) * (2.5 + 3.0 * k)
 		c.sc.speed = 0.0
-		if not _char_mat:
-			_char_mat = StandardMaterial3D.new()
-			_char_mat.albedo_color = Color(0.04, 0.035, 0.03, 0.78)
-			_char_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			_char_mat.roughness = 1.0
-		for mi in n.find_children("*", "MeshInstance3D", true, false):
-			(mi as MeshInstance3D).material_overlay = _char_mat
+		# charred and burning until it is towed (fx/burnt.gd; owner, Nov 13: "the way cars looked when destroyed")
+		Burnt.char_car(n)
+		CarDetail.set_lamps(n, 0.0)
+		if not n.has_node("Fire"):
+			n.add_child(Burnt.fire(0.9))
 		out.append(n.position)
 	return out
 
@@ -238,8 +242,9 @@ func _tumble(c: Car, dt: float) -> void:
 	obstacles[c.box_index] = c.sc.box()
 	if c.wreck <= 0.0:
 		# towed: clean, upright, back in at the far end of its lane
-		for mi in n.find_children("*", "MeshInstance3D", true, false):
-			(mi as MeshInstance3D).material_overlay = null
+		Burnt.unchar(n)
+		if n.has_node("Fire"):
+			n.get_node("Fire").queue_free()
 		n.rotation = Vector3(0, 0.0 if c.dir < 0 else PI, 0)
 		n.position = Vector3(c.lane_x, 0, (span_lo + 6.0) if c.dir > 0 else (span_hi - 6.0))
 		c.vel = Vector3.ZERO

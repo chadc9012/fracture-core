@@ -138,6 +138,7 @@ const PARKED_BOX := AABB(Vector3(0, -1000, 0), Vector3(0.1, 0.1, 0.1))
 const DriveProfile = preload("res://scripts/driving/drive_profile.gd")
 const GarageState = preload("res://scripts/garage/garage_state.gd")
 const CarDetail := preload("res://scripts/driving/car_detail.gd")
+const Burnt := preload("res://scripts/fx/burnt.gd")
 ## the parked cars you can take (phase 5): each fleet file's vehicle id for the garage build it drives with
 const CAR_IDS := { "street-racer-lod.glb": "street-racer", "muscle-car-lod.glb": "muscle-car", "security-suv.glb": "security-suv", "tuner.glb": "tuner", "offroad-truck.glb": "offroad-truck", "goliath-tank.glb": "goliath-tank", "hover-car.glb": "hover-car" }
 ## the hulls that are not garage cars drive on vehicle_handling.gd's numbers (web vehicle-handling.ts): max speed from the
@@ -1179,6 +1180,14 @@ const SHATTERED := ["planter.glb", "bus-shelter.glb", "apartment.glb", "brick.gl
 func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
 	if file.get_file() in SHATTERED:
 		return null
+	if file.get_file() == "wreck.glb":
+		# the wreck model read as loose orange triangles (owner, Nov 13): a burnt-out fleet car instead (fx/burnt.gd)
+		var w: Node3D = Burnt.burnt_car(int(absf(pos.x * 7.0 + pos.z * 3.0)), false)
+		w.position = pos
+		w.rotation_degrees.y = yaw_deg
+		w.set_meta("file", file)
+		_root().add_child(w)
+		return w
 	var path := MODELS + file
 	if not ResourceLoader.exists(path):
 		push_warning("street slice: missing " + path)
@@ -1431,9 +1440,15 @@ func _cars() -> void:
 		var side := 1.0 if i % 2 == 0 else -1.0
 		var f: String = files[(i + _tile_k * 7) % files.size()]
 		var fpath := f if f.begins_with("res://") else FLEET + f
-		if ResourceLoader.exists(fpath):
+		var at := Vector3(side * (half - 1.4), 0.0, z + _rng.randf_range(-2.0, 2.0))
+		# never on the tank's or the hover-car's spot (a parked car stood inside the tank; owner, Nov 15)
+		var taken := false
+		for h in parked:
+			if is_instance_valid(h) and Vector2(h.position.x - at.x, h.position.z - at.z).length() < 7.5:
+				taken = true
+		if ResourceLoader.exists(fpath) and not taken:
 			var car := (load(fpath) as PackedScene).instantiate() as Node3D
-			car.position = Vector3(side * (half - 1.4), 0.0, z + _rng.randf_range(-2.0, 2.0))
+			car.position = at
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
 			StreetCar.face_forward(car)
 			# a fleet car is ~40 draws (21 material pieces, 5 per wheel): past 110 m it is a few pixels, so it fades out,

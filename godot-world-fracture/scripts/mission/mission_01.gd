@@ -149,6 +149,9 @@ func _ready() -> void:
 	_cine_props = { "cracks": Cinema.window_cracks(self), "tear": Cinema.sky_tear(self), "nova": Cinema.nova_ui(self, APT + Vector3(5.0, 0, -2.4)) }
 	_cine_props.sleeper = Cinema.sleeper(self)
 	_stairwell = Cinema.stairwell(self)
+	# the fallen slab only lies across the stairs once the alarm goes (it stood there all morning, a black panel with a
+	# purple seam blocking the corridor; owner, Nov 15)
+	_stairwell_down(false)
 	world = street_root
 	we = WorldEnvironment.new()
 	_vp3.add_child(we)
@@ -436,10 +439,21 @@ func _street_collision() -> void:
 		_alarm_lights.append(lb)
 		_text("NEXUS PD · EVACUATION ZONE", Vector3(0, 1.6, zz + (0.15 if zz < 0 else -0.15)), 0.0 if zz < 0 else PI, Color(1.0, 0.9, 0.3), 64, 0.01)
 	# police cruisers at the barricades, wrecks where the fires will be
-	_hero("police-car.glb", 1.5, Vector3(-7.0, 0, BOUNDS.position.y + 5.0), 65.0)
-	_hero("police-car.glb", 1.5, Vector3(6.5, 0, BOUNDS.end.y - 5.0), -115.0)
+	var heroes: Array[Vector3] = [Vector3(-7.0, 0, BOUNDS.position.y + 5.0), Vector3(6.5, 0, BOUNDS.end.y - 5.0)]
+	_hero("police-car.glb", 1.5, heroes[0], 65.0)
+	_hero("police-car.glb", 1.5, heroes[1], -115.0)
 	for at3: Vector3 in [Vector3(7, 0, -24), Vector3(-8, 0, 6), Vector3(8, 0, 22)]:
 		_hero("wreck.glb", 1.4, at3 + Vector3(0, 0, 0.5), randf_range(-40.0, 40.0))
+		heroes.append(at3 + Vector3(0, 0, 0.5))
+	# a parked car the cruisers or the wrecks landed on goes (they sat one inside the other; owner, Nov 13)
+	for c1 in street_root.get_children():
+		if c1 is Node3D and String(c1.scene_file_path).contains("fleet"):
+			for hp: Vector3 in heroes:
+				if Vector2(c1.position.x - hp.x, c1.position.z - hp.z).length() < 5.2:
+					street_root.remove_child(c1)
+					c1.queue_free()
+					parked.erase(c1)
+					break
 	# the parked cars
 	for c0 in street_root.get_children():
 		if c0 is Node3D and String(c0.scene_file_path).contains("fleet"):
@@ -687,8 +701,9 @@ void fragment() {
 func _hallway() -> void:
 	var c := HALL
 	var runner := Materials.surface("quatrefoil_jacquard_fabric", Color(0.28, 0.16, 0.42), 0.6)
-	var panel := Materials.pbr("wood_floor", Color(0.28, 0.24, 0.26), 1.5, 0.6)
-	_shell(c, 3.4, 26.0, 3.0, runner, panel, flat(Color(0.12, 0.11, 0.13), 0.8))
+	# warm light oak panelling and a pale ceiling (owner, Nov 15: the corridor read as a dark brown box on the phone)
+	var panel := Materials.pbr("wood_floor", Color(0.62, 0.52, 0.44), 1.5, 0.6)
+	_shell(c, 3.4, 26.0, 3.0, runner, panel, flat(Color(0.78, 0.76, 0.74), 0.8))
 	for k in 8:
 		var z := -10.0 + k * 3.0
 		var sx := -1.0 if k % 2 == 0 else 1.0
@@ -697,7 +712,7 @@ func _hallway() -> void:
 		_text("12-0%d" % (k + 1), c + Vector3(sx * 1.58, 2.6, z), -sx * PI / 2, GOLD, 40, 0.005)
 		_box(Vector3(0.08, 0.3, 0.12), c + Vector3(-sx * 1.6, 2.0, z), flat(Color(1.0, 0.8, 0.55), 0.3, 0.0, 5.0))
 	for k in 4:
-		_lamp(c + Vector3(0, 2.6, -9.0 + k * 6.0), Color(1.0, 0.82, 0.62), 0.9, 6.0)
+		_lamp(c + Vector3(0, 2.6, -9.0 + k * 6.0), Color(1.0, 0.86, 0.7), 1.5, 7.0)
 	# the elevators at the south end, the emergency stairs at the north end
 	for dx: float in [-0.75, 0.75]:
 		_box(Vector3(1.1, 2.4, 0.08), c + Vector3(dx, 1.2, 12.9), flat(GOLD, 0.2, 1.0))
@@ -946,6 +961,7 @@ func _after_fracture(fresh: bool) -> void:
 	(tear.material_override as ShaderMaterial).set_shader_parameter("open", 1.0)
 	(_cine_props.nova as Node3D).visible = false
 	_news_mat().set_shader_parameter("noise", 1.0)
+	_stairwell_down(not _first_power)
 	var mother: Node3D = _stairwell.get("mother")
 	if mother:
 		mother.visible = true
@@ -1075,27 +1091,30 @@ func _set_fracture(on: bool) -> void:
 	if not fracture_env:
 		fracture_env = street_env.duplicate(true)
 		var sky_mat := ProceduralSkyMaterial.new()
-		sky_mat.sky_top_color = Color(0.04, 0.02, 0.1)
-		sky_mat.sky_horizon_color = Color(0.45, 0.12, 0.42)
+		# the split sky stays bruised violet, but the street under it is lit enough to read (owner, Nov 15: the building
+		# bases and the operators went black under it on the phone)
+		sky_mat.sky_top_color = Color(0.10, 0.07, 0.22)
+		sky_mat.sky_horizon_color = Color(0.62, 0.32, 0.62)
 		sky_mat.ground_horizon_color = Color(0.25, 0.08, 0.2)
 		sky_mat.ground_bottom_color = Color(0.03, 0.02, 0.04)
 		var sky := Sky.new()
 		sky.sky_material = sky_mat
 		fracture_env.sky = sky
 		fracture_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		fracture_env.ambient_light_color = Color(0.5, 0.35, 0.7)
-		fracture_env.ambient_light_energy = 0.4
+		fracture_env.ambient_light_color = Color(0.72, 0.62, 0.86)
+		fracture_env.ambient_light_energy = 0.95
 		fracture_env.fog_enabled = true
 		fracture_env.fog_light_color = Color(0.35, 0.15, 0.45)
-		fracture_env.fog_density = 0.012
+		fracture_env.fog_density = 0.006
 		fracture_env.glow_enabled = true
 		fracture_env.glow_intensity = 1.0
 		fracture_env.glow_bloom = 0.1
 		_build_fracture()
 	we.environment = fracture_env if on else street_env
 	if sun:
-		sun.light_color = Color(0.55, 0.4, 1.0) if on else Color(1.0, 0.78, 0.55)
-		sun.light_energy = 0.6 if on else 2.6
+		# the day sun is the Nexus day look's (street_slice.gd _environment), not the old golden hour
+		sun.light_color = Color(0.82, 0.72, 1.0) if on else Color(1.0, 0.95, 0.86)
+		sun.light_energy = 1.3 if on else 2.3
 	for n in _fracture_nodes:
 		(n as Node3D).visible = on
 
@@ -1200,7 +1219,8 @@ void fragment() {
 		f.position = at2
 		street_root.add_child(f)
 		_fracture_nodes.append(f)
-		var fire := _fire()
+		# the burnt cars' fires, with their crackle (fx/burnt.gd; owner, Nov 15: the fires were silent)
+		var fire: Node3D = preload("res://scripts/fx/burnt.gd").fire(1.0)
 		fire.position = at2 - Vector3(0, 0.45, 0)
 		street_root.add_child(fire)
 		_fracture_nodes.append(fire)
@@ -2121,3 +2141,14 @@ func shot(moment: String) -> void:
 			_on_phase()
 			if moment != "done":
 				op.fire_held = moment != "dazed"
+
+func _stairwell_down(on: bool) -> void:
+	var slab: Node3D = _stairwell.get("slab")
+	if is_instance_valid(slab):
+		slab.visible = on
+	var body: StaticBody3D = _stairwell.get("body")
+	if is_instance_valid(body):
+		body.collision_layer = 1 if on else 0
+	for b in _stairwell.get("bits", []):
+		if is_instance_valid(b):
+			(b as Node3D).visible = on

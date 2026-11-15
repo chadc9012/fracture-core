@@ -3,6 +3,7 @@ extends CharacterBody3D
 ## on the casino's figure mesh), closes on the player and strikes. The elite ("anchor") is twice the size, ringed by
 ## shards, and charges. Group "echo"; the player's shots call take_damage().
 
+const Sound := preload("res://scripts/audio/sound.gd")
 signal died(echo: Node3D)
 
 const Figure := preload("res://scripts/city/casino_interior.gd")
@@ -196,6 +197,7 @@ func _physics_process(delta: float) -> void:
 	elif _hit_cd <= 0.0:
 		_hit_cd = 1.3 if elite else 1.1
 		if target.has_method("take_damage"):
+			Sound.sfx("heavy" if elite else "stagger", -8.0)
 			target.call("take_damage", 24.0 if elite else 11.0)
 	v += _knock
 	_knock = _knock.move_toward(Vector3.ZERO, 30.0 * delta)
@@ -212,8 +214,11 @@ func take_damage(d: float) -> void:
 		return
 	hp -= d
 	_flash = 1.0
+	Sound.sfx("hit", -8.0)
 	if hp <= 0.0:
 		dead = true
+		Sound.sfx("kill_confirm", -4.0, 0.02)
+		Sound.sfx("down", -6.0)
 		remove_from_group("echo")
 		died.emit(self)
 		var tw := create_tween()
