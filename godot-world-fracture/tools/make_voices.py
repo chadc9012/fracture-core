@@ -147,6 +147,41 @@ def piper(model_dir, model, speaker, text, out_wav):
         v.synthesize_wav(text, w, syn_config=cfg)
 
 
+# NOVA and the news anchor have lines the owner recorded (the opening cinematic) and lines voiced here: the voiced ones
+# take the cast speaker closest to the recordings (tools/match_voice.py picked them by pitch and timbre) and are then
+# equalised to the recordings' long-term spectrum, so the two kinds sound like one person (owner, Nov 15: "Fix NOVA
+# dialogue and voice same for the news reporter")
+MATCH = {"NOVA": ["04.ogg", "06.ogg", "08.ogg", "09.ogg"], "NEWS": ["00.ogg", "02.ogg"]}
+_ltas = {}
+
+
+def _spectrum(y):
+    import numpy as np, librosa
+    m = np.abs(librosa.stft(y, n_fft=1024, hop_length=256))
+    e = (m ** 2).sum(axis=0)
+    keep = e > e.max() * 0.01
+    return np.sqrt((m[:, keep] ** 2).mean(axis=1)) + 1e-9
+
+
+def eq_match(model_dir, model, spk, sp, wav):
+    import numpy as np, librosa, soundfile as sf
+    from scipy.ndimage import uniform_filter1d
+    if sp not in _ltas:
+        ref = np.concatenate([librosa.load(os.path.join(PROVIDED, f), sr=22050)[0] for f in MATCH[sp]])
+        probe = os.path.join(tempfile.mkdtemp(), "probe.wav")
+        piper(model_dir, model, spk, "My designation is NOVA. Your reality is collapsing. Good morning, Nexus City. "
+              "We are receiving reports of an unidentified phenomenon above the central district. Move. Now.", probe)
+        src = librosa.load(probe, sr=22050)[0]
+        g = _spectrum(ref) / _spectrum(src)
+        g = g / np.median(g[20:200])
+        g = np.exp(uniform_filter1d(np.log(g), 9))
+        _ltas[sp] = np.clip(g, 10 ** (-9 / 20), 10 ** (9 / 20))
+    y, sr = librosa.load(wav, sr=22050)
+    S = librosa.stft(y, n_fft=1024, hop_length=256)
+    out = librosa.istft(S * _ltas[sp][:, None], hop_length=256, length=len(y))
+    sf.write(wav, out / max(1e-6, np.abs(out).max()) * 0.9, sr)
+
+
 def ffmpeg(src, out, af):
     # 0.12 s of air before and after, the treatment, then evened out in two passes: measure the speech's mean level,
     # gain it to -19 dB mean, and a limiter keeps the peaks under -1.5 dB (loudnorm pumps on clips under three seconds)
@@ -178,6 +213,8 @@ def main():
     model_dir = sys.argv[1]
     force = "--force" in sys.argv
     only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else ""
+    # --speakers NOVA,NEWS: re-voice only those speakers' lines (with --force)
+    speakers = sys.argv[sys.argv.index("--speakers") + 1].split(",") if "--speakers" in sys.argv else []
     os.makedirs(OUT, exist_ok=True)
     idx_path = os.path.join(ROOT, "data", "dialogue", "voices.json")
     index = {"lines": {}, "by_text": {}}
@@ -191,7 +228,7 @@ def main():
         for var in variants:
             out = os.path.join(OUT, lid + var + ".ogg")
             key = sp + var if sp == "PLAYER" else sp
-            if (force or not os.path.exists(out)) and (not only or lid.startswith(only)):
+            if (force or not os.path.exists(out)) and (not only or lid.startswith(only)) and (not speakers or sp in speakers):
                 prov = l.get("provided")
                 if prov and var in ("", "_m"):
                     ffmpeg(os.path.join(PROVIDED, prov), out, PROVIDED_FX.get(sp, "highpass=f=70"))
@@ -201,6 +238,8 @@ def main():
                     model, spk, fx = CAST.get(key, person_voice(l) if l.get("body") else FALLBACK)
                     wav = os.path.join(tmp, "x.wav")
                     piper(model_dir, model, spk, speakable(text), wav)
+                    if sp in MATCH:
+                        eq_match(model_dir, model, spk, sp, wav)
                     ffmpeg(wav, out, FX[fx])
                 print("voiced", lid + var, flush=True)
             if os.path.exists(out):
