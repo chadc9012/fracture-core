@@ -2,25 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1v3i2ma5nlt7"
-path.s3tc="res://.godot/imported/palm-a_dead11.png-88b881406aeaade123292d04c9273c19.s3tc.ctex"
-path.etc2="res://.godot/imported/palm-a_dead11.png-88b881406aeaade123292d04c9273c19.etc2.ctex"
+uid="uid://dp0v0ra6qinnb"
+path="res://.godot/imported/boulder_texture_0_metallic_roughness.jpg-fc78c2b593dc71f009d799405d5d3f49.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "17ae4a84551199497c6a8f711b6a7069"
+"md5": "d539e7fd7cdf94d4175f57d4961a77fc"
 }
 
 [deps]
 
-source_file="res://models/foliage/palm-a_dead11.png"
-dest_files=["res://.godot/imported/palm-a_dead11.png-88b881406aeaade123292d04c9273c19.s3tc.ctex", "res://.godot/imported/palm-a_dead11.png-88b881406aeaade123292d04c9273c19.etc2.ctex"]
+source_file="res://models/foliage/boulder_texture_0_metallic_roughness.jpg"
+dest_files=["res://.godot/imported/boulder_texture_0_metallic_roughness.jpg-fc78c2b593dc71f009d799405d5d3f49.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,5 +39,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=1024
+process/size_limit=0
 detect_3d/compress_to=1

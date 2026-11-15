@@ -2,25 +2,23 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cgngqkgbg1c2u"
-path.s3tc="res://.godot/imported/palm-a_frond11.png-9bdff0df75e5e48df59cdebee2d85933.s3tc.ctex"
-path.etc2="res://.godot/imported/palm-a_frond11.png-9bdff0df75e5e48df59cdebee2d85933.etc2.ctex"
+uid="uid://cqhmuc554i3oh"
+path="res://.godot/imported/birch_texture_0_metallic_roughness.jpg-05bec6cfe943b730f1ba095e60f64770.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
-"md5": "087ea55d092b9f138e4de609d8633e4c"
+"md5": "41ae0a05bc295689d0dec4eb096fcd04"
 }
 
 [deps]
 
-source_file="res://models/foliage/palm-a_frond11.png"
-dest_files=["res://.godot/imported/palm-a_frond11.png-9bdff0df75e5e48df59cdebee2d85933.s3tc.ctex", "res://.godot/imported/palm-a_frond11.png-9bdff0df75e5e48df59cdebee2d85933.etc2.ctex"]
+source_file="res://models/foliage/birch_texture_0_metallic_roughness.jpg"
+dest_files=["res://.godot/imported/birch_texture_0_metallic_roughness.jpg-05bec6cfe943b730f1ba095e60f64770.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -41,5 +39,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=1024
+process/size_limit=0
 detect_3d/compress_to=1

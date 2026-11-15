@@ -82,7 +82,7 @@ the seven bosses, then the hero lineup in `NPC_LINEUP.md` (rigged in Meshy, reta
 | Batch | Status |
 | --- | --- |
 | 1 Weapons | 9 made in Meshy (4K PBR, remeshed to ~12k tris); **in the game: rifle, rifle-smg, heavy (LMG), shotgun, rifle-fusion**; pistol, sniper, launcher, sword waiting on the download |
-| 2 Nature | 13 made (oak, pine, 3 palms, bush, flowering shrub, rocks, boulder, grass, dead tree, birch, street tree); the hedge failed twice and was dropped |
+| 2 Nature | **in the game: palm-a (coconut palm), conifer (pine); new: birch, tree-dead, rocks, boulder** (remeshed in Meshy, ~4-12k tris). Rejected after the remesh: the flowering shrub (lost its blossoms) and the street tree (too sparse) — to be remeshed again at a higher count. 13 made (oak, pine, 3 palms, bush, flowering shrub, rocks, boulder, grass, dead tree, birch, street tree); the hedge failed twice and was dropped |
 | 3 Animals | 13 made (fox, shepherd, terrier, cat, pigeon, crow, seagull, rat, squirrel, deer, wolf, horse, raccoon) |
 | 4 Street props | 20 made (lamp, bench, bus shelter, kiosk, vending, motorbike, plaza arch, planter, bin, dumpster, hydrant, barrier, bollard, news box, mailbox, phone booth, parking meter, food cart, ATM; the traffic light concept was dropped by the agent) |
 | 5 Interiors | 12 made (bed, sofa, kitchen island, cafe set, reception, concierge, office desk, bar, slot machine, roulette, shelving, TV wall) |
