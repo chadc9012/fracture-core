@@ -89,8 +89,18 @@ func _ready() -> void:
 	add_child(cutscene)
 	_begin(progress.current)
 
+## the chain (the campaign runner, scripts/mission/campaign.gd, extends this with its own)
+func _quests() -> Array:
+	return QUESTS
+
+func _save_path() -> String:
+	return SAVE
+
+func _first_id() -> String:
+	return "fd-02"
+
 func _quest_def(id: String) -> Dictionary:
-	for q in QUESTS:
+	for q in _quests():
 		if q.id == id:
 			return q
 	return {}
@@ -305,11 +315,12 @@ func _complete() -> void:
 		controls.toast(String(l))
 	Sound.sfx("confirm", -3.0)
 	var i := 0
-	for q in QUESTS:
+	var qs := _quests()
+	for q in qs:
 		if q.id == id:
 			break
 		i += 1
-	progress.current = String(QUESTS[i + 1].id) if i + 1 < QUESTS.size() else ACT_END
+	progress.current = String(qs[i + 1].id) if i + 1 < qs.size() else ACT_END
 	progress.kills = 0
 	progress.relay = 0
 	progress.timer = 0.0
@@ -531,19 +542,19 @@ func _spawn_patrol(scout: bool) -> void:
 
 # --------------------------------------------------------------------------------------------- saving
 func _load() -> void:
-	var f := FileAccess.open(SAVE, FileAccess.READ)
+	var f := FileAccess.open(_save_path(), FileAccess.READ)
 	if f:
 		var d: Variant = JSON.parse_string(f.get_as_text())
 		if d is Dictionary:
 			progress.merge(d, true)
 	var ids: Array[String] = [ACT_END]
-	for q in QUESTS:
+	for q in _quests():
 		ids.append(String(q.id))
 	if progress.current not in ids:
-		progress.current = "fd-02"
+		progress.current = _first_id()
 
 func _save() -> void:
-	var f := FileAccess.open(SAVE, FileAccess.WRITE)
+	var f := FileAccess.open(_save_path(), FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(progress))
 

@@ -320,6 +320,16 @@ storyline audio for dialogue"; two packages, see `docs/story/dialogue-integratio
   that is not theirs) turning each beat into chapters of the descent's kinds (reach / kills / survive / trace / hack /
   core) plus talk, choice, boss, race, drive and cutscene, each on a named world and POI. The build asserts the
   coverage. All of it voiced (the cast's Piper voices; PLAYER in `_m` / `_f` / `_r`).
+  **The runner**: `scripts/mission/campaign.gd` extends the descent (`descent.gd` now exposes `_quests()`,
+  `_save_path()`, `_first_id()`) and plays the 61 chapters on its machinery — the region in PLAY mode, the operator,
+  troopers, terminal, waves, boss — opening every chapter on its lines as a voiced cutscene, running its objective
+  (the descent's reach / kills / survive / trace / hack / core; the campaign's talk — the named person stands at the
+  POI in their people.gd look —, choice — `scripts/cinema/choice.gd`, the key to `m<nn>_choice` in user://profile.json
+  —, boss — boss_view with `BOSS_FOR` stand-ins for the beats' bosses —, race / drive — reach the POI —, cutscene),
+  then its closing lines; a survive hold ends on its time. A finished mission goes to the profile's `campaign_done`
+  (the people's news). The crash-site transport door opens the campaign once Act 1's descent is cleared. Shot hook
+  `campaign[:<chapter>][:scene]`. `tests/mission/campaign_play.tscn` plays Mission 02 end to end, Mission 05's choice
+  into Mission 06's forest, and begins every chapter on its world (17 checks, ~4 min).
 - **Asking the people** (same ask): `tools/people_lines.py` → `data/dialogue/people.json` — all 51 named people
   (Nexus, Neon, the seven airports, the forest) answer four questions in the conversation panel: the Fracture, this
   place, what they think of you (by how well they know you: wary / acquaintance / friend / close) and what is happening

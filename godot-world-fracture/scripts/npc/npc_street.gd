@@ -154,7 +154,7 @@ func _spot(place: String, id: String) -> Vector3:
 	var at := People.spot(place, id, _walk_x)
 	return at if on_avenue() else at + origin
 
-func look_for(p: Dictionary) -> Dictionary:
+static func look_for(p: Dictionary) -> Dictionary:
 	var body := String(p.body)
 	var frame := { "slim": "nyx", "athletic": "cipher", "heavy": "goliath" }.get(String(p.build), "cipher") as String
 	var look := CharacterStore.clean({ "frame": frame, "body": body, "name": String(p.name).left(18), "outfit": String(p.get("outfit", "")) })

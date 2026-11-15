@@ -15,6 +15,7 @@ const CloudSave := preload("res://scripts/cloud/cloud_save.gd")
 const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 const Descent := preload("res://scripts/mission/descent.gd")
+const Campaign := preload("res://scripts/mission/campaign.gd")
 const ArenaView := preload("res://scripts/killbox/arena_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
@@ -255,7 +256,8 @@ func _street_door(id: String) -> void:
 		"rift":
 			view = BossArena.new()
 		"descent":
-			view = Descent.new()
+			# the crash-site transport: Act 1's descent, then the campaign's missions 02–25 once the act is cleared
+			view = Campaign.new() if Descent.chapter_cleared() else Descent.new()
 		"apartment":
 			view = Mission01.new()
 			view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -905,6 +907,23 @@ func _shoot(path: String, opts: Array) -> void:
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o) == "cloud":
 			_open_cloud()
+		# campaign[:<chapter id>][:scene]  the campaign's chapters (scripts/mission/campaign.gd) standing in a chapter (02A …
+		# 25C) with its opening skipped, or :scene with it playing
+		if String(o).begins_with("campaign"):
+			var cid := "02A"
+			for part in String(o).split(":"):
+				if part.length() == 3 and part.substr(0, 2).is_valid_int():
+					cid = part
+			var fc := FileAccess.open("user://campaign.json", FileAccess.WRITE)
+			fc.store_string(JSON.stringify({ "done": [], "current": cid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 0, "stage": 0 }))
+			fc.close()
+			var camp: Control = Campaign.new()
+			camp.closed.connect(_close_descent)
+			descent = camp
+			add_child(camp)
+			planet_view.set_process(false)
+			if not String(o).contains("scene") and camp.cutscene and camp.cutscene.playing:
+				camp.cutscene._end()
 		# descent[:fight|:wild]  the Fracture Descent in the Verdant Forest; :fight sprints and fires; :wild stands by the deer herd
 		if String(o).begins_with("descent"):
 			# descent[:wild] [:fd-05|:fd-06|:fd-07] [:vyrak]: the quest to stand in (the chain is set to it), vyrak summons the boss
