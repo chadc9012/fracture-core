@@ -84,7 +84,11 @@ the seven bosses, then the hero lineup in `NPC_LINEUP.md` (rigged in Meshy, reta
 | 1 Weapons | 9 made in Meshy (4K PBR, remeshed to ~12k tris); **in the game: rifle, rifle-smg, heavy (LMG), shotgun, rifle-fusion**; pistol, sniper, launcher, sword waiting on the download |
 | 2 Nature | 13 made (oak, pine, 3 palms, bush, flowering shrub, rocks, boulder, grass, dead tree, birch, street tree); the hedge failed twice and was dropped |
 | 3 Animals | 13 made (fox, shepherd, terrier, cat, pigeon, crow, seagull, rat, squirrel, deer, wolf, horse, raccoon) |
-| 4 Street props | 20 concepts approved; the lamp made, 19 converting |
+| 4 Street props | 20 made (lamp, bench, bus shelter, kiosk, vending, motorbike, plaza arch, planter, bin, dumpster, hydrant, barrier, bollard, news box, mailbox, phone booth, parking meter, food cart, ATM; the traffic light concept was dropped by the agent) |
+| 5 Interiors | 12 made (bed, sofa, kitchen island, cafe set, reception, concierge, office desk, bar, slot machine, roulette, shelving, TV wall) |
+| 6 Buildings | 24 made at 4K (2 neon offices, 3 neon skyscrapers, 6 neon towers, 3 civic, spire, 2 terraces, brick corner, apartment, brownstone, casino, art deco hotel, glass office, villa) |
+| Remesh | weapons ~12k; animals ~10k and nature (trees ~12k, shrubs ~6k, rocks ~4k) requested in Meshy |
+| Not yet | bosses and hero characters (needs a credit top-up: ~560 left after the batches above) |
 | Vehicles | being re-made separately on the account from the vehicle roster sheets ("Recreate the exact vehicle"), not duplicated here |
 
 ## How a model comes in
