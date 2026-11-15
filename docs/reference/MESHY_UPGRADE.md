@@ -1,0 +1,84 @@
+# Meshy full upgrade (owner, Nov 15)
+
+> "use meshy to recreate everything in the game from trees to builds animals to weapons i want all better models not the
+> shit we have now build everything the is missing as well ... triple check every model for pixelization"
+
+Every model in `godot-world-fracture/models/` is regenerated in Meshy, and the missing ones are added. They are made
+through the owner's signed-in Meshy web app (the Meshy API and CLI are blocked from the build machines), downloaded as
+GLB and brought in under the same file names, so the game picks them up without code changes.
+
+## Quality gate: every model is checked three times before it goes in
+
+1. **Meshy preview**: the right subject, complete, nothing melted, no text or logos baked in.
+2. **Texture check** (`scripts/check-meshy-textures.py`): base colour at least 2048 px (hero pieces, vehicles and
+   buildings at 4096), not upscaled mush (high-frequency energy against a 2× down-up resample), no flat colour blocks.
+   A model that fails is regenerated, never used.
+3. **In-game render**: a look-dev shot at play distance and close up.
+
+Settings: Meshy 7.1 High Detail or Smart Topology (game budget), PBR (base colour, normal, metallic, roughness), 2K or
+4K textures, upright, base at the origin, real-world scale set on import.
+
+## Polygon budgets (mobile)
+
+| Kind | Triangles | Texture |
+| --- | --- | --- |
+| Weapons (first person) | 8–15k | 2K |
+| Trees, bushes, rocks | 3–8k (leaf cards alpha) | 2K |
+| Animals | 6–12k | 2K |
+| Street props | 1–6k | 2K |
+| Interior furniture | 2–8k | 2K |
+| Buildings | 10–30k | 4K |
+| Vehicles | 15–30k | 4K |
+| Bosses, heroes | 20–40k | 4K |
+
+## Batches and prompts
+
+Common prompt tail: *"realistic AAA game asset, PBR, neutral studio background, whole object in frame, no text"*.
+
+### 1. Weapons → `models/weapons/`
+| File | Prompt |
+| --- | --- |
+| rifle.glb | modern assault rifle, black polymer and gunmetal, rail optic, angled foregrip, side view |
+| rifle-smg.glb | compact submachine gun, folding stock, suppressor, black and tan, side view |
+| rifle-sniper.glb | long-range bolt-action sniper rifle, large scope, bipod, matte olive, side view |
+| rifle-fusion.glb | sci-fi fusion rifle, glowing cyan energy cells in the body, white and graphite panels, side view |
+| pistol.glb | modern semi-automatic pistol, black slide, textured grip, side view |
+| shotgun.glb | tactical pump-action shotgun, black synthetic stock, heat shield, side view |
+| heavy.glb | belt-fed light machine gun, box magazine, bipod, gunmetal, side view |
+| launcher.glb | shoulder rocket launcher, olive tube, optics and grip, side view |
+| sword.glb | sci-fi katana, dark steel blade with a faint violet edge, wrapped hilt, side view |
+
+### 2. Trees and nature → `models/foliage/`
+broadleaf (oak, full canopy), conifer (pine), palm-a/b/c (three heights and lean), plus new: bush, flowering shrub,
+hedge block, rock cluster, boulder, grass clump, dead tree, birch, cypress, potted city tree.
+
+### 3. Animals → `models/animals/` (new, plus the fox)
+fox, dog (shepherd), dog (small terrier), cat, pigeon, crow, seagull, rat, squirrel, deer, wolf, horse, raccoon.
+Meshy rigging is biped-only: animals come static and move with the existing walk-cycle bob, or with Meshy's animal
+animation presets where they exist.
+
+### 4. Street props → `models/city/street/` and `models/city/`
+street lamp, bench, bus shelter, kiosk, vending machine, motorbike, plaza arch, planter, trash bin, dumpster, fire
+hydrant, traffic light, road barrier, bollard, newspaper box, mailbox, neon sign pole, phone booth, parking meter,
+food cart, scooter, ATM.
+
+### 5. Interiors → `models/city/`
+bed, sofa, kitchen island, café set, reception desk, concierge desk, office desk and chair, bar counter and stools,
+slot machine, roulette table, shelving, TV wall.
+
+### 6. Buildings → `models/buildings/` and `models/city/`
+neon blocks a–b, neon towers a–c, neon-v A–F, nexus civic a–c, nexus spire, nexus terraces a–b, riverdale corner,
+apartment, brick, casino, deco, office, villa, shopfront, wreck.
+
+### 7. Vehicles → `models/fleet/` and `models/city/police-car.glb`
+all 27 fleet models under the same names (goliath-tank keeps separate `Body` and `Turret` nodes, made with
+Split on, so the turret still traverses).
+
+### 8. Bosses and characters
+the seven bosses, then the hero lineup in `NPC_LINEUP.md` (rigged in Meshy, retargeted to the game's skeleton).
+
+## Log
+
+| Batch | Status |
+| --- | --- |
+| 1 Weapons | started Nov 15 |
