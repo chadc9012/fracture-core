@@ -25,6 +25,9 @@ from mathutils import Matrix, Vector
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 suit_path, body_path, out_path = argv[0], argv[1], argv[2]
 target_tris = int(argv[3]) if len(argv) > 3 else 36000
+# "nohelmet": the suit's head is a bare head (the tactical character), not a helmet — drop it; the game puts another
+# suit's helmet on that slot
+NO_HELMET = "nohelmet" in argv[4:]
 
 SLOTS = {
     "helmet": ["Head", "Neck", "HeadTop_End", "headfront"],
@@ -326,7 +329,7 @@ for v in suit.data.vertices:
     vslot.append(slot_of(gname[best.group]) if best else "chest")
 import bmesh
 pieces = {}
-for slot in SLOTS:
+for slot in [s_ for s_ in SLOTS if not (NO_HELMET and s_ == "helmet")]:
     bpy.ops.object.select_all(action="DESELECT")
     suit.select_set(True)
     bpy.context.view_layer.objects.active = suit
