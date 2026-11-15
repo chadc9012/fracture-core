@@ -189,5 +189,63 @@ static func remember(p: Dictionary, s: Dictionary) -> String:
 		return String(MEMORY[key]) % name if String(MEMORY[key]).contains("%s") else String(MEMORY[key])
 	return ""
 
+# ---------------------------------------------------------------------------------------------------- asking them
+## What they say when asked (data/dialogue/people.json, tools/people_lines.py): the Fracture, this place, what they
+## think of you (by how well they know you), what is happening (by the campaign's stage). Every answer is a line id, so
+## the voice tool's recording plays with it (scripts/cinema/lines.gd).
+const PEOPLE_PATH := "res://data/dialogue/people.json"
+static var _people: Dictionary = {}
+
+static func people_data() -> Dictionary:
+	if _people.is_empty() and ResourceLoader.exists(PEOPLE_PATH):
+		var f := FileAccess.open(PEOPLE_PATH, FileAccess.READ)
+		if f:
+			var d: Variant = JSON.parse_string(f.get_as_text())
+			if d is Dictionary:
+				_people = d
+	return _people
+
+## the questions you can ask, in order: [[topic, text], …]
+static func asks() -> Array:
+	var out: Array = []
+	var a: Dictionary = people_data().get("asks", {})
+	for t in ["fracture", "place", "you", "news"]:
+		if a.has(t):
+			out.append([t, String(a[t])])
+	return out
+
+## the campaign's stage for the news: what the profile says is done (`campaign_done`, the mission ids) and Mission 05's choice
+static func stage(profile: Dictionary) -> String:
+	var done: Array = profile.get("campaign_done", [])
+	if done.has("25"):
+		return "kept"
+	if done.has("22"):
+		return "unbound"
+	if done.has("16"):
+		return "masks"
+	if done.has("05") or String(profile.get("m05_choice", "")) != "":
+		return "allied"
+	return "start"
+
+## the answer's line id ("" when this person has nothing on it); `s` is the memory state, for how well they know you
+static func topic_id(p: Dictionary, topic: String, s: Dictionary, today: String, profile := {}) -> String:
+	var entry: Dictionary = people_data().get("people", {}).get(String(p.id), {})
+	var t: Variant = entry.get("topics", {}).get(topic)
+	if t == null:
+		return ""
+	if t is Array:
+		var arr: Array = t
+		return "" if arr.is_empty() else String(arr[absi(hash(String(p.id) + topic + today)) % arr.size()])
+	var keyed: Dictionary = t
+	var key := Memory.band(Memory.affinity(s, String(p.id))) if topic == "you" else stage(profile)
+	return String(keyed.get(key, keyed.get("start", "")))
+
+## the text of a people line
+static func line_text(id: String) -> String:
+	for l in people_data().get("lines", []):
+		if String(l.id) == id:
+			return String(l.text)
+	return ""
+
 static func police_line(verdict: String) -> String:
 	return String(POLICE.get(verdict, "")) % Memory.FINE if verdict == "fine" else String(POLICE.get(verdict, ""))

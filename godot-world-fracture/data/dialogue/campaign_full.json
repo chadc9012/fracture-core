@@ -1,0 +1,2960 @@
+{
+ "version": 1,
+ "source": "The owner's campaign dialogue draft (campaign_draft1.json), every mission line verbatim and in order, with the lead session's draft lines (ids M<mission>_D<nn>) around them turning each beat into playable chapters. Mission 01 is its own scene (scripts/mission/mission_01.gd).",
+ "missions": [
+  {
+   "id": "02",
+   "title": "The Broken Stairwell",
+   "region": "Nexus City",
+   "beat": "Rescue neighbors, awaken first ability",
+   "world": "nexus",
+   "chapters": [
+    {
+     "id": "02A",
+     "title": "Floor twelve",
+     "location": "INT. APARTMENT BLOCK, TWELFTH-FLOOR LANDING — MORNING",
+     "kind": "reach",
+     "start": "nexus-plate",
+     "amount": 1,
+     "label": "Reach the blocked stairwell",
+     "open": [
+      "M02_D01",
+      "M02_D02",
+      "M02_D03"
+     ],
+     "close": [
+      "M02_001",
+      "M02_002"
+     ]
+    },
+    {
+     "id": "02B",
+     "title": "The beam",
+     "location": "INT. STAIRWELL — SMOKE",
+     "kind": "survive",
+     "amount": 20,
+     "label": "Hold the beam for twenty seconds",
+     "open": [
+      "M02_003",
+      "M02_004",
+      "M02_005",
+      "M02_D04",
+      "M02_D05",
+      "M02_D06"
+     ],
+     "close": [
+      "M02_006",
+      "M02_007",
+      "M02_008"
+     ]
+    },
+    {
+     "id": "02C",
+     "title": "Service stairs",
+     "location": "INT. SERVICE STAIRS → STREET",
+     "kind": "reach",
+     "start": "nexus-central-plaza",
+     "amount": 1,
+     "label": "Get the family to the street",
+     "open": [
+      "M02_009",
+      "M02_D07",
+      "M02_D08",
+      "M02_D09"
+     ],
+     "close": [
+      "M02_010",
+      "M02_011",
+      "M02_D10"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "03",
+   "title": "Streets of Glass",
+   "region": "Nexus City",
+   "beat": "First open-world street traversal",
+   "world": "nexus",
+   "chapters": [
+    {
+     "id": "03A",
+     "title": "Shelter indoors",
+     "location": "EXT. NEXUS AVENUE — GLASS EVERYWHERE",
+     "kind": "reach",
+     "start": "nexus-central-plaza",
+     "amount": 1,
+     "label": "Cross the avenue to the transit station",
+     "open": [
+      "M03_001",
+      "M03_002",
+      "M03_003",
+      "M03_004",
+      "M03_005",
+      "M03_D01",
+      "M03_D02"
+     ],
+     "close": []
+    },
+    {
+     "id": "03B",
+     "title": "Out of the purple light",
+     "location": "EXT. TRANSIT STATION STEPS",
+     "kind": "kills",
+     "amount": 6,
+     "label": "Hold the station steps",
+     "open": [
+      "M03_006",
+      "M03_007",
+      "M03_008",
+      "M03_D03",
+      "M03_D04"
+     ],
+     "close": [
+      "M03_009",
+      "M03_010",
+      "M03_D05",
+      "M03_D06",
+      "M03_D07"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "04",
+   "title": "The First Operator",
+   "region": "Nexus City",
+   "beat": "Encounter the Operator response team",
+   "world": "nexus",
+   "chapters": [
+    {
+     "id": "04A",
+     "title": "Weapon down",
+     "location": "EXT. NEXUS BASTION CHECKPOINT — DUSK",
+     "kind": "talk",
+     "start": "nexus-bastion",
+     "who": "CAPTAIN VALE",
+     "amount": 1,
+     "label": "Approach the checkpoint",
+     "open": [
+      "M04_D01",
+      "M04_D02",
+      "M04_D03"
+     ],
+     "close": [
+      "M04_001",
+      "M04_002",
+      "M04_003",
+      "M04_004",
+      "M04_005",
+      "M04_006",
+      "M04_007"
+     ]
+    },
+    {
+     "id": "04B",
+     "title": "Civilians first",
+     "location": "EXT. CHECKPOINT → ARMORY",
+     "kind": "reach",
+     "start": "nexus-armory",
+     "amount": 1,
+     "label": "Walk with the team to the armory",
+     "open": [
+      "M04_008",
+      "M04_009",
+      "M04_D04",
+      "M04_D05"
+     ],
+     "close": [
+      "M04_D06",
+      "M04_D07",
+      "M04_D08"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "05",
+   "title": "The Choice to Stay",
+   "region": "Nexus City",
+   "beat": "Player chooses cooperation or independence",
+   "world": "nexus",
+   "chapters": [
+    {
+     "id": "05A",
+     "title": "Soldiers",
+     "location": "INT. BASTION BRIEFING ROOM — NIGHT",
+     "kind": "cutscene",
+     "open": [
+      "M05_001",
+      "M05_002",
+      "M05_003",
+      "M05_004",
+      "M05_005",
+      "M05_006"
+     ],
+     "close": []
+    },
+    {
+     "id": "05B",
+     "title": "Protect the district",
+     "location": "EXT. NEXUS AVENUE — NIGHT PATROL",
+     "kind": "kills",
+     "amount": 8,
+     "label": "Clear the district of the night's breach",
+     "open": [
+      "M05_D01",
+      "M05_D02",
+      "M05_D03"
+     ],
+     "close": [
+      "M05_D04",
+      "M05_D05"
+     ]
+    },
+    {
+     "id": "05C",
+     "title": "The choice",
+     "location": "EXT. BASTION WALL — DAWN",
+     "kind": "choice",
+     "prompt": "Captain Vale is waiting for an answer.",
+     "options": [
+      [
+       "cooperate",
+       "Work with her team",
+       "Civilians come first; you answer to your conscience before her"
+      ],
+      [
+       "independent",
+       "Stay independent",
+       "You help, but you are not joining anyone's command"
+      ]
+     ],
+     "open": [
+      "M05_D06"
+     ],
+     "by_choice": {
+      "cooperate": [
+       "M05_cooperate_001",
+       "M05_cooperate_002"
+      ],
+      "independent": [
+       "M05_independent_001",
+       "M05_independent_002"
+      ]
+     },
+     "close": [
+      "M05_D07"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "06",
+   "title": "Verdant Echoes",
+   "region": "Verdant Forest",
+   "beat": "First regional expedition, no mandatory calibration",
+   "world": "veridan",
+   "chapters": [
+    {
+     "id": "06A",
+     "title": "Peaceful",
+     "location": "EXT. VERDANT FOREST, THE NORTH GROVE — DAY",
+     "kind": "reach",
+     "start": "crash-site",
+     "amount": 1,
+     "to": "vf-north-grove",
+     "label": "Follow the scout's trail to the north grove",
+     "open": [
+      "M06_001",
+      "M06_002",
+      "M06_D01",
+      "M06_D02",
+      "M06_D03"
+     ],
+     "close": [
+      "M06_003",
+      "M06_004",
+      "M06_005"
+     ]
+    },
+    {
+     "id": "06B",
+     "title": "Beneath the roots",
+     "location": "EXT. THE ELDER TREE",
+     "kind": "trace",
+     "amount": 3,
+     "to": "vf-elder-tree",
+     "label": "Trace the signal under the roots",
+     "open": [
+      "M06_006",
+      "M06_007",
+      "M06_008",
+      "M06_D04"
+     ],
+     "close": [
+      "M06_D05",
+      "M06_D06",
+      "M06_D07",
+      "M06_D08"
+     ]
+    },
+    {
+     "id": "06C",
+     "title": "What the forest sends",
+     "location": "EXT. LUMINA FALLS",
+     "kind": "kills",
+     "amount": 5,
+     "to": "vf-lumina-falls",
+     "label": "Drive off the corrupted wildlife",
+     "open": [
+      "M06_D09",
+      "M06_D10",
+      "M06_D11"
+     ],
+     "close": [
+      "M06_D12",
+      "M06_D13",
+      "M06_D14"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "07",
+   "title": "The Living Forest",
+   "region": "Verdant Forest",
+   "beat": "Faction choice and evolving dungeon",
+   "world": "veridan",
+   "chapters": [
+    {
+     "id": "07A",
+     "title": "Samples",
+     "location": "EXT. THE GROTTO — WARDEN'S CAMP",
+     "kind": "talk",
+     "start": "vf-grotto",
+     "who": "WARDEN ILYA",
+     "amount": 1,
+     "label": "Find the Warden at the grotto",
+     "open": [
+      "M07_D01",
+      "M07_D02",
+      "M07_D03"
+     ],
+     "close": [
+      "M07_001",
+      "M07_002",
+      "M07_003"
+     ]
+    },
+    {
+     "id": "07B",
+     "title": "The shifting roots",
+     "location": "INT. THE ROOT DUNGEON — MOVING",
+     "kind": "reach",
+     "amount": 1,
+     "to": "vf-ruins",
+     "label": "Follow the living roots to the extraction site",
+     "open": [
+      "M07_004",
+      "M07_005",
+      "M07_006",
+      "M07_007",
+      "M07_D04"
+     ],
+     "close": [
+      "M07_D05",
+      "M07_D06"
+     ]
+    },
+    {
+     "id": "07C",
+     "title": "The cost of answers",
+     "location": "EXT. EXTRACTION SITE",
+     "kind": "choice",
+     "prompt": "The extraction site is yours to decide.",
+     "options": [
+      [
+       "protect_forest",
+       "Seal the site",
+       "The forest has paid enough; the Warden becomes an ally"
+      ],
+      [
+       "take_sample",
+       "One sample, documented",
+       "Evidence for the surface; the Warden holds you to every word"
+      ]
+     ],
+     "open": [
+      "M07_D07"
+     ],
+     "by_choice": {
+      "protect_forest": [
+       "M07_protect_forest_001",
+       "M07_protect_forest_002"
+      ],
+      "take_sample": [
+       "M07_take_sample_001",
+       "M07_take_sample_002"
+      ]
+     },
+     "close": [
+      "M07_D08",
+      "M07_D09"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "08",
+   "title": "Solara Crossing",
+   "region": "Solara Desert",
+   "beat": "Desert convoy and racing introduction",
+   "world": "solara",
+   "chapters": [
+    {
+     "id": "08A",
+     "title": "Rook's garage",
+     "location": "EXT. SOLARA GARAGE — NOON HEAT",
+     "kind": "talk",
+     "start": "solara-garage",
+     "who": "MECHANIC ROOK",
+     "amount": 1,
+     "label": "Find Rook at the garage",
+     "open": [
+      "M08_D01",
+      "M08_D02",
+      "M08_D03"
+     ],
+     "close": [
+      "M08_001",
+      "M08_002",
+      "M08_003"
+     ]
+    },
+    {
+     "id": "08B",
+     "title": "The convoy run",
+     "location": "EXT. THE DUNE GATE → THE RIBCAGE",
+     "kind": "race",
+     "start": "solara-dunegate",
+     "track": "solara",
+     "amount": 1,
+     "label": "Win the convoy run",
+     "open": [
+      "M08_004",
+      "M08_005",
+      "M08_006",
+      "M08_D04"
+     ],
+     "close": [
+      "M08_D05",
+      "M08_D06",
+      "M08_D07",
+      "M08_D08"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "09",
+   "title": "The Ashen Covenant",
+   "region": "Solara Desert",
+   "beat": "Vyrak boss introduction and phases",
+   "world": "solara",
+   "chapters": [
+    {
+     "id": "09A",
+     "title": "The covenant of ash",
+     "location": "EXT. THE RIBCAGE — DUSK, ASH ON THE WIND",
+     "kind": "reach",
+     "start": "solara-garage",
+     "to": "ribcage",
+     "amount": 1,
+     "label": "Walk into the Ribcage",
+     "open": [
+      "M09_D01",
+      "M09_D02",
+      "M09_D03",
+      "M09_D04"
+     ],
+     "close": [
+      "M09_001",
+      "M09_002",
+      "M09_003"
+     ]
+    },
+    {
+     "id": "09B",
+     "title": "The Sky Sovereign",
+     "location": "EXT. THE RIBCAGE — THE FIGHT",
+     "kind": "boss",
+     "boss": "vyrak",
+     "amount": 1,
+     "label": "Face Vyrak",
+     "open": [
+      "M09_004",
+      "M09_005"
+     ],
+     "mid": [
+      "M09_006",
+      "M09_007",
+      "M09_008",
+      "M09_009",
+      "M09_010"
+     ],
+     "close": [
+      "M09_011",
+      "M09_D05",
+      "M09_D06"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "10",
+   "title": "The Wyrmling Oath",
+   "region": "Solara Desert",
+   "beat": "Bond and trust progression",
+   "world": "solara",
+   "chapters": [
+    {
+     "id": "10A",
+     "title": "Form and strength",
+     "location": "EXT. THE RIBCAGE — DAWN AFTER",
+     "kind": "cutscene",
+     "open": [
+      "M10_001",
+      "M10_002",
+      "M10_003",
+      "M10_004",
+      "M10_005",
+      "M10_006",
+      "M10_007"
+     ],
+     "close": []
+    },
+    {
+     "id": "10B",
+     "title": "Learning to work together",
+     "location": "EXT. THE COLONNADE — RAIDER GROUND",
+     "kind": "kills",
+     "to": "colonnade",
+     "amount": 8,
+     "label": "Clear the colonnade with Vyrak beside you",
+     "open": [
+      "M10_D01",
+      "M10_D02",
+      "M10_D03"
+     ],
+     "close": [
+      "M10_D04",
+      "M10_D05",
+      "M10_D06",
+      "M10_D07"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "11",
+   "title": "The Neon Divide",
+   "region": "Neon City",
+   "beat": "Investigate tech faction and street race",
+   "world": "neon-city",
+   "chapters": [
+    {
+     "id": "11A",
+     "title": "Every camera lies",
+     "location": "EXT. NEON CITY, CASINO ROW — NIGHT",
+     "kind": "talk",
+     "start": "neon-casino-row",
+     "who": "FIXER SABLE",
+     "amount": 1,
+     "label": "Meet the fixer on Casino Row",
+     "open": [
+      "M11_D01",
+      "M11_D02",
+      "M11_D03"
+     ],
+     "close": [
+      "M11_001",
+      "M11_002",
+      "M11_003",
+      "M11_004",
+      "M11_005",
+      "M11_006",
+      "M11_007"
+     ]
+    },
+    {
+     "id": "11B",
+     "title": "Tonight's race",
+     "location": "EXT. THE CYAN LOOP — MIDNIGHT",
+     "kind": "race",
+     "start": "neon-dealer",
+     "track": "neon",
+     "amount": 1,
+     "label": "Win the Cyan Loop",
+     "open": [
+      "M11_D04",
+      "M11_D05",
+      "M11_D06",
+      "M11_D07"
+     ],
+     "close": [
+      "M11_D08",
+      "M11_D09",
+      "M11_D10"
+     ]
+    },
+    {
+     "id": "11C",
+     "title": "The right doors",
+     "location": "INT. AEGIS QUARTERMASTER — SUB-LEVEL",
+     "kind": "hack",
+     "start": "aegis-quartermaster",
+     "amount": 30,
+     "label": "Pull the Fracture signal's source",
+     "open": [
+      "M11_D11",
+      "M11_D12",
+      "M11_D13"
+     ],
+     "close": [
+      "M11_D14",
+      "M11_D15",
+      "M11_D16",
+      "M11_D17"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "12",
+   "title": "Under the Surface",
+   "region": "Thalassia",
+   "beat": "Travel offshore from Verdant Forest",
+   "world": "thalassia",
+   "chapters": [
+    {
+     "id": "12A",
+     "title": "Deeper than the maps admit",
+     "location": "INT. SUBMERSIBLE — THE DESCENT",
+     "kind": "cutscene",
+     "open": [
+      "M12_001",
+      "M12_002",
+      "M12_003",
+      "M12_D01",
+      "M12_D02",
+      "M12_D03"
+     ],
+     "close": []
+    },
+    {
+     "id": "12B",
+     "title": "The large shadow",
+     "location": "EXT. THALASSIA PORT — THE DOCKING RUN",
+     "kind": "survive",
+     "start": "th-port",
+     "amount": 60,
+     "label": "Hold the port while the dock cycles",
+     "open": [
+      "M12_004",
+      "M12_005",
+      "M12_006",
+      "M12_D04",
+      "M12_D05",
+      "M12_D06"
+     ],
+     "close": [
+      "M12_D07",
+      "M12_D08",
+      "M12_D09",
+      "M12_D10"
+     ]
+    },
+    {
+     "id": "12C",
+     "title": "The central plaza",
+     "location": "INT. THALASSIA, CENTRAL PLAZA",
+     "kind": "reach",
+     "to": "th-central-plaza",
+     "amount": 1,
+     "label": "Reach the central plaza",
+     "open": [
+      "M12_D11",
+      "M12_D12",
+      "M12_D13"
+     ],
+     "close": [
+      "M12_D14",
+      "M12_D15",
+      "M12_D16"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "13",
+   "title": "The Drowned Archive",
+   "region": "Thalassia",
+   "beat": "Underwater lore and moral choice",
+   "world": "thalassia",
+   "chapters": [
+    {
+     "id": "13A",
+     "title": "Records",
+     "location": "INT. THE DROWNED ARCHIVE",
+     "kind": "talk",
+     "start": "th-research",
+     "who": "ARCHIVIST SEN",
+     "amount": 1,
+     "label": "Find the Archivist",
+     "open": [
+      "M13_D01"
+     ],
+     "close": [
+      "M13_001",
+      "M13_002",
+      "M13_003",
+      "M13_004",
+      "M13_005",
+      "M13_006"
+     ]
+    },
+    {
+     "id": "13B",
+     "title": "What was removed",
+     "location": "INT. THE ARCHIVE STACKS — FLOODING",
+     "kind": "trace",
+     "amount": 3,
+     "label": "Recover the three removed records",
+     "open": [
+      "M13_D02",
+      "M13_D03",
+      "M13_D04",
+      "M13_D05"
+     ],
+     "close": [
+      "M13_D06",
+      "M13_D07",
+      "M13_D08",
+      "M13_D09"
+     ]
+    },
+    {
+     "id": "13C",
+     "title": "The cost",
+     "location": "INT. THE ARCHIVE — THE ARCHIVIST'S DESK",
+     "kind": "choice",
+     "prompt": "The Drowned Archive: take it, or protect the people who keep it?",
+     "options": [
+      [
+       "preserve_archive",
+       "The archive stays",
+       "Copies with the Archivist's permission; Thalassia keeps its record"
+      ],
+      [
+       "extract_archive",
+       "Take the archive",
+       "The surface needs it to stop another collapse; you carry the weight"
+      ]
+     ],
+     "open": [
+      "M13_007",
+      "M13_008",
+      "M13_D10"
+     ],
+     "by_choice": {
+      "preserve_archive": [
+       "M13_preserve_archive_001",
+       "M13_preserve_archive_002"
+      ],
+      "extract_archive": [
+       "M13_extract_archive_001",
+       "M13_extract_archive_002"
+      ]
+     },
+     "close": [
+      "M13_D11",
+      "M13_D12",
+      "M13_D13"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "14",
+   "title": "Frostveil Signal",
+   "region": "Frostveil",
+   "beat": "Frozen stronghold and lost transmission",
+   "world": "frostspire",
+   "chapters": [
+    {
+     "id": "14A",
+     "title": "Stop moving",
+     "location": "EXT. FROSTVEIL, THE LOWER CAMP — WHITEOUT",
+     "kind": "talk",
+     "start": "frost-camp-0",
+     "who": "RANGER KEST",
+     "amount": 1,
+     "label": "Find the ranger at the lower camp",
+     "open": [
+      "M14_D01"
+     ],
+     "close": [
+      "M14_001",
+      "M14_002",
+      "M14_003",
+      "M14_004",
+      "M14_005",
+      "M14_006"
+     ]
+    },
+    {
+     "id": "14B",
+     "title": "The glacier",
+     "location": "EXT. THE GLACIAL LAKE → THE ICE CAVERNS",
+     "kind": "reach",
+     "to": "fp-ice-caverns",
+     "amount": 1,
+     "label": "Climb to the ice caverns",
+     "open": [
+      "M14_D02",
+      "M14_D03",
+      "M14_D04",
+      "M14_D05"
+     ],
+     "close": [
+      "M14_D06",
+      "M14_D07"
+     ]
+    },
+    {
+     "id": "14C",
+     "title": "The transmission",
+     "location": "INT. THE ICE CAVERNS — THE FROZEN ARRAY",
+     "kind": "kills",
+     "amount": 6,
+     "label": "Clear the array of what the storm woke",
+     "open": [
+      "M14_D08",
+      "M14_D09",
+      "M14_D10",
+      "M14_D11"
+     ],
+     "close": [
+      "M14_D12",
+      "M14_D13",
+      "M14_D14"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "15",
+   "title": "The Hollow Crown",
+   "region": "Frostveil",
+   "beat": "Boss and recovered memory",
+   "world": "frostspire",
+   "chapters": [
+    {
+     "id": "15A",
+     "title": "A kingdom that refused to die",
+     "location": "EXT. THE SUMMIT ARRAY — THE CROWN",
+     "kind": "reach",
+     "start": "fp-ice-caverns",
+     "to": "summit-array",
+     "amount": 1,
+     "label": "Climb to the summit",
+     "open": [
+      "M15_D01",
+      "M15_D02",
+      "M15_D03"
+     ],
+     "close": [
+      "M15_001",
+      "M15_002",
+      "M15_003"
+     ]
+    },
+    {
+     "id": "15B",
+     "title": "The anchors",
+     "location": "EXT. THE CROWN — ANCHORS IN THE ICE",
+     "kind": "core",
+     "boss": "crownkeeper",
+     "amount": 3,
+     "label": "Disable the crown's three anchors",
+     "open": [
+      "M15_004",
+      "M15_005",
+      "M15_D04"
+     ],
+     "close": [
+      "M15_006",
+      "M15_D05",
+      "M15_D06",
+      "M15_D07",
+      "M15_D08"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "16",
+   "title": "A City of Masks",
+   "region": "Nexus City",
+   "beat": "Return to city, political and faction consequences",
+   "world": "nexus",
+   "chapters": [
+    {
+     "id": "16A",
+     "title": "Hero, threat",
+     "location": "EXT. NEXUS BASTION — THE WALL, MORNING",
+     "kind": "talk",
+     "start": "nexus-bastion",
+     "who": "CAPTAIN VALE",
+     "amount": 1,
+     "label": "Report to Captain Vale",
+     "open": [
+      "M16_D01",
+      "M16_D02",
+      "M16_D03"
+     ],
+     "close": [
+      "M16_001",
+      "M16_002",
+      "M16_003",
+      "M16_004",
+      "M16_005",
+      "M16_006"
+     ]
+    },
+    {
+     "id": "16B",
+     "title": "Masks",
+     "location": "EXT. NEXUS CENTRAL PLAZA — A CROWD",
+     "kind": "survive",
+     "start": "nexus-central-plaza",
+     "amount": 60,
+     "label": "Hold the plaza while the crowd clears",
+     "open": [
+      "M16_D04",
+      "M16_D05",
+      "M16_D06"
+     ],
+     "close": [
+      "M16_D07",
+      "M16_D08",
+      "M16_D09"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "17",
+   "title": "The Fracture Market",
+   "region": "Neon City",
+   "beat": "Player economy and faction alliances",
+   "world": "neon-city",
+   "chapters": [
+    {
+     "id": "17A",
+     "title": "Everything has a price",
+     "location": "INT. NEON MODS — THE BACK ROOM",
+     "kind": "talk",
+     "start": "neon-mods",
+     "who": "FIXER SABLE",
+     "amount": 1,
+     "label": "Meet Sable at the mod shop",
+     "open": [
+      "M17_D01",
+      "M17_D02"
+     ],
+     "close": [
+      "M17_001",
+      "M17_002",
+      "M17_003",
+      "M17_004",
+      "M17_005",
+      "M17_006"
+     ]
+    },
+    {
+     "id": "17B",
+     "title": "The shipment",
+     "location": "EXT. NEON INDUSTRIAL — THE DOCKS",
+     "kind": "drive",
+     "start": "neon-industrial",
+     "to": "neon-harbor",
+     "amount": 1,
+     "label": "Run the contract's shipment to the harbor",
+     "open": [
+      "M17_D03",
+      "M17_D04",
+      "M17_D05"
+     ],
+     "close": [
+      "M17_D06",
+      "M17_D07"
+     ]
+    },
+    {
+     "id": "17C",
+     "title": "Who benefits",
+     "location": "EXT. NEON HARBOR — THREE BUYERS",
+     "kind": "choice",
+     "prompt": "The contract: who gets the shipment?",
+     "options": [
+      [
+       "support_civilians",
+       "The district",
+       "The crate rebuilds Neon's undercity; a profit becomes a promise"
+      ],
+      [
+       "support_faction",
+       "The faction",
+       "Allies with resources; remember who expects repayment"
+      ]
+     ],
+     "open": [
+      "M17_D08"
+     ],
+     "by_choice": {
+      "support_civilians": [
+       "M17_support_civilians_001",
+       "M17_support_civilians_002"
+      ],
+      "support_faction": [
+       "M17_support_faction_001",
+       "M17_support_faction_002"
+      ]
+     },
+     "close": [
+      "M17_D09"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "18",
+   "title": "The Sky Opens",
+   "region": "Azure Isles",
+   "beat": "Aircraft and dimensional breach",
+   "world": "storm",
+   "chapters": [
+    {
+     "id": "18A",
+     "title": "Between continents",
+     "location": "INT. NERI'S AIRCRAFT — ABOVE THE SEAM",
+     "kind": "cutscene",
+     "open": [
+      "M18_001",
+      "M18_002",
+      "M18_003",
+      "M18_004",
+      "M18_005",
+      "M18_006"
+     ],
+     "close": []
+    },
+    {
+     "id": "18B",
+     "title": "Unfamiliar sky",
+     "location": "EXT. STORM ISLANDS, THE SKY DOCK — THE LANDING",
+     "kind": "survive",
+     "start": "storm-sky-dock",
+     "amount": 75,
+     "label": "Hold the sky dock until Neri can land",
+     "open": [
+      "M18_D01",
+      "M18_D02",
+      "M18_D03",
+      "M18_D04",
+      "M18_D05"
+     ],
+     "close": [
+      "M18_D06",
+      "M18_D07",
+      "M18_D08",
+      "M18_D09"
+     ]
+    },
+    {
+     "id": "18C",
+     "title": "The signal spire",
+     "location": "EXT. THE SIGNAL SPIRE — WIND",
+     "kind": "reach",
+     "to": "storm-signal-spire",
+     "amount": 1,
+     "label": "Reach the signal spire",
+     "open": [
+      "M18_D10",
+      "M18_D11",
+      "M18_D12"
+     ],
+     "close": [
+      "M18_D13",
+      "M18_D14",
+      "M18_D15"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "19",
+   "title": "The Obsidian Accord",
+   "region": "Obsidian Reach",
+   "beat": "Enemy faction diplomacy and combat",
+   "world": "ember",
+   "chapters": [
+    {
+     "id": "19A",
+     "title": "Aftermath of war",
+     "location": "EXT. THE ASH OUTPOST — THE MARSHAL'S LINE",
+     "kind": "talk",
+     "start": "sp-ash-outpost",
+     "who": "MARSHAL DRAEV",
+     "amount": 1,
+     "label": "Approach the marshal's line",
+     "open": [
+      "M19_D01",
+      "M19_D02",
+      "M19_D03"
+     ],
+     "close": [
+      "M19_001",
+      "M19_002",
+      "M19_003",
+      "M19_004",
+      "M19_005",
+      "M19_006"
+     ]
+    },
+    {
+     "id": "19B",
+     "title": "Who gets hurt",
+     "location": "EXT. THE OBSIDIAN RUINS — A RAID COMING",
+     "kind": "kills",
+     "to": "sp-obsidian-ruins",
+     "amount": 10,
+     "label": "Break the raid on the ruins with the marshal's people",
+     "open": [
+      "M19_D04",
+      "M19_D05",
+      "M19_D06"
+     ],
+     "close": [
+      "M19_D07",
+      "M19_D08",
+      "M19_D09",
+      "M19_D10"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "20",
+   "title": "The Hidden Eighteen",
+   "region": "Shattered Expanse",
+   "beat": "Unique encounter lore, preserves independent unlocks",
+   "world": "shattered-reefs",
+   "chapters": [
+    {
+     "id": "20A",
+     "title": "Eighteen signatures",
+     "location": "EXT. THE SHATTERED REEFS — THE DRIFT",
+     "kind": "talk",
+     "start": "sr-drift",
+     "who": "WANDERER",
+     "amount": 1,
+     "label": "Find the wanderer on the drift",
+     "open": [
+      "M20_001",
+      "M20_002",
+      "M20_003",
+      "M20_D01",
+      "M20_D02"
+     ],
+     "close": [
+      "M20_004",
+      "M20_005",
+      "M20_006"
+     ]
+    },
+    {
+     "id": "20B",
+     "title": "Strength, restraint",
+     "location": "EXT. THE REEF VAULT — ONE OF THE EIGHTEEN",
+     "kind": "trace",
+     "to": "sr-vault",
+     "amount": 3,
+     "label": "Follow one legend without forcing it",
+     "open": [
+      "M20_D03",
+      "M20_D04",
+      "M20_D05"
+     ],
+     "close": [
+      "M20_D06",
+      "M20_D07",
+      "M20_D08"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "21",
+   "title": "Legendary Attention",
+   "region": "Shattered Expanse",
+   "beat": "Hidden chain reaction, no automatic rewards",
+   "world": "crystal-badlands",
+   "chapters": [
+    {
+     "id": "21A",
+     "title": "The world answers",
+     "location": "EXT. CRYSTAL BADLANDS — THE PRISM FIELDS",
+     "kind": "cutscene",
+     "start": "cb-fields",
+     "open": [
+      "M21_001",
+      "M21_002",
+      "M21_003",
+      "M21_004",
+      "M21_005",
+      "M21_006"
+     ],
+     "close": []
+    },
+    {
+     "id": "21B",
+     "title": "The chain",
+     "location": "EXT. THE RIFTS — SOMETHING NOTICED",
+     "kind": "survive",
+     "to": "cb-rifts",
+     "amount": 90,
+     "label": "Survive what the world sent to meet you",
+     "open": [
+      "M21_D01",
+      "M21_D02",
+      "M21_D03",
+      "M21_D04"
+     ],
+     "close": [
+      "M21_D05",
+      "M21_D06",
+      "M21_D07"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "22",
+   "title": "NOVA Unbound",
+   "region": "Nexus City",
+   "beat": "NOVA origin and trust crisis",
+   "world": "nexus",
+   "chapters": [
+    {
+     "id": "22A",
+     "title": "Withheld",
+     "location": "INT. APARTMENT 12-04 — REBUILT, NIGHT",
+     "kind": "cutscene",
+     "start": "nexus-plate",
+     "open": [
+      "M22_001",
+      "M22_002",
+      "M22_003",
+      "M22_004",
+      "M22_005",
+      "M22_006",
+      "M22_007"
+     ],
+     "close": []
+    },
+    {
+     "id": "22B",
+     "title": "The partition",
+     "location": "INT. NEXUS CALIBRATION — THE OLD LAB",
+     "kind": "hack",
+     "start": "nexus-calibration",
+     "amount": 30,
+     "label": "Open NOVA's partitioned memory",
+     "open": [
+      "M22_D01",
+      "M22_D02",
+      "M22_D03"
+     ],
+     "close": [
+      "M22_D04",
+      "M22_D05",
+      "M22_D06",
+      "M22_D07",
+      "M22_D08"
+     ]
+    },
+    {
+     "id": "22C",
+     "title": "Trust",
+     "location": "EXT. BASTION — WHAT THE LAB WOKE",
+     "kind": "kills",
+     "amount": 8,
+     "label": "Put down what the partition woke",
+     "open": [
+      "M22_D09",
+      "M22_D10",
+      "M22_D11"
+     ],
+     "close": [
+      "M22_D12",
+      "M22_D13",
+      "M22_D14"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "23",
+   "title": "The Broken Alliance",
+   "region": "Multiple Regions",
+   "beat": "Factions clash; consequences persist",
+   "world": "wastelands",
+   "chapters": [
+    {
+     "id": "23A",
+     "title": "Tested",
+     "location": "EXT. THE WASTELANDS, THE OLD HIGHWAY — THREE BANNERS",
+     "kind": "cutscene",
+     "start": "wl-old-highway",
+     "open": [
+      "M23_001",
+      "M23_002",
+      "M23_003",
+      "M23_004",
+      "M23_005",
+      "M23_006",
+      "M23_007"
+     ],
+     "close": []
+    },
+    {
+     "id": "23B",
+     "title": "Routes",
+     "location": "EXT. THE OLD HIGHWAY — THE LINES MEET",
+     "kind": "choice",
+     "prompt": "The factions are a shot away from each other.",
+     "options": [
+      [
+       "negotiate",
+       "Open a ceasefire channel",
+       "Ten minutes of Vale's patience; everybody listens"
+      ],
+      [
+       "evacuate",
+       "Move the civilians first",
+       "Forget the meeting; NOVA plots the evacuation"
+      ]
+     ],
+     "open": [
+      "M23_D01"
+     ],
+     "by_choice": {
+      "negotiate": [
+       "M23_negotiate_001",
+       "M23_negotiate_002"
+      ],
+      "evacuate": [
+       "M23_evacuate_001",
+       "M23_evacuate_002"
+      ]
+     },
+     "close": []
+    },
+    {
+     "id": "23C",
+     "title": "Fewer lives at risk",
+     "location": "EXT. THE WASTELANDS TOWN — THE CROSSFIRE",
+     "kind": "survive",
+     "to": "wl-town",
+     "amount": 90,
+     "label": "Keep the fighting off the town",
+     "open": [
+      "M23_D02",
+      "M23_D03",
+      "M23_D04"
+     ],
+     "close": [
+      "M23_D05",
+      "M23_D06",
+      "M23_D07",
+      "M23_D08"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "24",
+   "title": "The Fracture Heart",
+   "region": "Shattered Expanse",
+   "beat": "Penultimate assault and world truth",
+   "world": "shattered-reefs",
+   "chapters": [
+    {
+     "id": "24A",
+     "title": "The origin point",
+     "location": "EXT. THE SHATTERED REEFS — THE FRACTURE",
+     "kind": "reach",
+     "start": "sr-port",
+     "to": "sr-fracture",
+     "amount": 1,
+     "label": "Reach the origin point",
+     "open": [
+      "M24_D01",
+      "M24_D02",
+      "M24_D03",
+      "M24_D04"
+     ],
+     "close": [
+      "M24_001",
+      "M24_002"
+     ]
+    },
+    {
+     "id": "24B",
+     "title": "A single shape",
+     "location": "EXT. THE HEART — THE ASSAULT",
+     "kind": "core",
+     "boss": "fracture-heart",
+     "amount": 3,
+     "label": "Break the heart's three boundaries",
+     "open": [
+      "M24_003",
+      "M24_004",
+      "M24_005",
+      "M24_006"
+     ],
+     "close": [
+      "M24_007",
+      "M24_D05",
+      "M24_D06",
+      "M24_D07"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "25",
+   "title": "A World Worth Keeping",
+   "region": "Nexus City",
+   "beat": "Finale and ongoing world state",
+   "world": "nexus",
+   "chapters": [
+    {
+     "id": "25A",
+     "title": "The last door",
+     "location": "INT. UNDER NEXUS CITY — THE ENGINE",
+     "kind": "core",
+     "start": "nexus-calibration",
+     "boss": "convergence",
+     "amount": 3,
+     "label": "Shut the engine down without owning it",
+     "open": [
+      "M25_D01",
+      "M25_D02",
+      "M25_D03"
+     ],
+     "close": [
+      "M25_D04",
+      "M25_D05"
+     ]
+    },
+    {
+     "id": "25B",
+     "title": "Quiet",
+     "location": "EXT. NEXUS CENTRAL PLAZA — EVERYONE",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "M25_001",
+      "M25_002",
+      "M25_003",
+      "M25_004",
+      "M25_005",
+      "M25_006",
+      "M25_007",
+      "M25_008"
+     ],
+     "close": []
+    },
+    {
+     "id": "25C",
+     "title": "What next",
+     "location": "EXT. THE PLAZA — THE LAST CHOICE",
+     "kind": "choice",
+     "prompt": "The world is yours to keep. How?",
+     "options": [
+      [
+       "rebuild",
+       "Rebuild",
+       "One neighborhood at a time; the next mission begins at home"
+      ],
+      [
+       "explore",
+       "Explore",
+       "The boundaries are open; NOVA charts the first route"
+      ]
+     ],
+     "open": [
+      "M25_D06"
+     ],
+     "by_choice": {
+      "rebuild": [
+       "M25_rebuild_001",
+       "M25_rebuild_002"
+      ],
+      "explore": [
+       "M25_explore_001",
+       "M25_explore_002"
+      ]
+     },
+     "close": [
+      "M25_D07"
+     ]
+    }
+   ]
+  }
+ ],
+ "lines": [
+  {
+   "id": "M02_D01",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "The stairwell is two doors down. The building has eleven floors of people under us and one way out."
+  },
+  {
+   "id": "M02_D02",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Then one way out will have to be enough."
+  },
+  {
+   "id": "M02_D03",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Smoke on the landing. Keep your head low and your hand on the rail."
+  },
+  {
+   "id": "M02_D04",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Your heart rate is 140. The current follows it. Breathe out, and push."
+  },
+  {
+   "id": "M02_D05",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "I am pushing."
+  },
+  {
+   "id": "M02_D06",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Not with your arms."
+  },
+  {
+   "id": "M02_D07",
+   "mission": "02",
+   "speaker": "CIVILIAN",
+   "text": "What did you just do up there?"
+  },
+  {
+   "id": "M02_D08",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Keep moving. I will tell you when I know."
+  },
+  {
+   "id": "M02_D09",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Eleven floors. The service stairs hold. The main ones do not."
+  },
+  {
+   "id": "M02_D10",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Noted. I will stop saying it. I will keep measuring it."
+  },
+  {
+   "id": "M03_D01",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "A road that goes somewhere new. That is not the worst thing on this street."
+  },
+  {
+   "id": "M03_D02",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "It is the worst thing. The things on this street came down it."
+  },
+  {
+   "id": "M03_D03",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Cover. Movement. Ability. In that order?"
+  },
+  {
+   "id": "M03_D04",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "In whichever order keeps you alive."
+  },
+  {
+   "id": "M03_D05",
+   "mission": "03",
+   "speaker": "SURVIVOR",
+   "text": "They are through. The train is through. Who are you?"
+  },
+  {
+   "id": "M03_D06",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Somebody who lives on twelve."
+  },
+  {
+   "id": "M03_D07",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Lived."
+  },
+  {
+   "id": "M04_D01",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Operator response team at the bastion. Armoured, calm, and counting you."
+  },
+  {
+   "id": "M04_D02",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Counting me as what?"
+  },
+  {
+   "id": "M04_D03",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "That is the question they will ask."
+  },
+  {
+   "id": "M04_D04",
+   "mission": "04",
+   "speaker": "CAPTAIN VALE",
+   "text": "That is more than most people decide in a week."
+  },
+  {
+   "id": "M04_D05",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "She is recording you. So am I. Mine is the one you can read."
+  },
+  {
+   "id": "M04_D06",
+   "mission": "04",
+   "speaker": "CAPTAIN VALE",
+   "text": "Armory. Draw what you can carry. Nobody gets issued more than they can explain."
+  },
+  {
+   "id": "M04_D07",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "I can explain a rifle."
+  },
+  {
+   "id": "M04_D08",
+   "mission": "04",
+   "speaker": "CAPTAIN VALE",
+   "text": "Good. Explain the rest to me tomorrow."
+  },
+  {
+   "id": "M05_D01",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "Breach signatures at the plaza. Two squads of Vanguard drones, one of them already leaking."
+  },
+  {
+   "id": "M05_D02",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Leaking what?"
+  },
+  {
+   "id": "M05_D03",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "Whatever the purple light is made of."
+  },
+  {
+   "id": "M05_D04",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "District clear. Vale watched the whole thing from the wall."
+  },
+  {
+   "id": "M05_D05",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Then she has her proof."
+  },
+  {
+   "id": "M05_D06",
+   "mission": "05",
+   "speaker": "CAPTAIN VALE",
+   "text": "You held the district. So. Where do you stand?"
+  },
+  {
+   "id": "M05_D07",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "Recorded. Both of us will remember this one."
+  },
+  {
+   "id": "M06_D01",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "The scout's trail runs north. She has not used the same route twice."
+  },
+  {
+   "id": "M06_D02",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Careful, or lost?"
+  },
+  {
+   "id": "M06_D03",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Careful. Lost people repeat themselves."
+  },
+  {
+   "id": "M06_D04",
+   "mission": "06",
+   "speaker": "SCOUT MIRA",
+   "text": "Then stay on the moss. The forest keeps count of what you break."
+  },
+  {
+   "id": "M06_D05",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Signal source: a seed vault, pre-Fracture, still sealed."
+  },
+  {
+   "id": "M06_D06",
+   "mission": "06",
+   "speaker": "SCOUT MIRA",
+   "text": "Still sealed means still hers. Leave it."
+  },
+  {
+   "id": "M06_D07",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "We leave it. We note where it is."
+  },
+  {
+   "id": "M06_D08",
+   "mission": "06",
+   "speaker": "SCOUT MIRA",
+   "text": "Note it in your head, not on the map."
+  },
+  {
+   "id": "M06_D09",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Hostile fauna. The forest has decided what you are."
+  },
+  {
+   "id": "M06_D10",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "It is wrong."
+  },
+  {
+   "id": "M06_D11",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Convince it."
+  },
+  {
+   "id": "M06_D12",
+   "mission": "06",
+   "speaker": "SCOUT MIRA",
+   "text": "You did not burn anything."
+  },
+  {
+   "id": "M06_D13",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Was that the test?"
+  },
+  {
+   "id": "M06_D14",
+   "mission": "06",
+   "speaker": "SCOUT MIRA",
+   "text": "That was the first one."
+  },
+  {
+   "id": "M07_D01",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "The Warden's people have seen us since the falls. They let us walk."
+  },
+  {
+   "id": "M07_D02",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "That is either trust or a trap."
+  },
+  {
+   "id": "M07_D03",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "In this forest it is usually the same thing."
+  },
+  {
+   "id": "M07_D04",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "Left. No — the left just closed. Straight, then."
+  },
+  {
+   "id": "M07_D05",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "Extraction site. Vanguard drills, abandoned in a hurry. The forest is still digesting the camp."
+  },
+  {
+   "id": "M07_D06",
+   "mission": "07",
+   "speaker": "WARDEN ILYA",
+   "text": "They took the heartwood. The trees took them. Now you decide what happens to the rest."
+  },
+  {
+   "id": "M07_D07",
+   "mission": "07",
+   "speaker": "WARDEN ILYA",
+   "text": "Well?"
+  },
+  {
+   "id": "M07_D08",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "The dungeon is settling. It will not look like this tomorrow."
+  },
+  {
+   "id": "M07_D09",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "Nothing here does."
+  },
+  {
+   "id": "M08_D01",
+   "mission": "08",
+   "speaker": "NOVA",
+   "text": "Solara. Forty-six degrees in the shade and the shade is for sale."
+  },
+  {
+   "id": "M08_D02",
+   "mission": "08",
+   "speaker": "PLAYER",
+   "text": "Who sells shade?"
+  },
+  {
+   "id": "M08_D03",
+   "mission": "08",
+   "speaker": "NOVA",
+   "text": "Everyone here."
+  },
+  {
+   "id": "M08_D04",
+   "mission": "08",
+   "speaker": "RACER",
+   "text": "Rook's new charity case. Try to keep the car in one country."
+  },
+  {
+   "id": "M08_D05",
+   "mission": "08",
+   "speaker": "MECHANIC ROOK",
+   "text": "You won. In a storm. In that."
+  },
+  {
+   "id": "M08_D06",
+   "mission": "08",
+   "speaker": "PLAYER",
+   "text": "You said we could negotiate."
+  },
+  {
+   "id": "M08_D07",
+   "mission": "08",
+   "speaker": "MECHANIC ROOK",
+   "text": "I said we can. Pull in. The front end is talking to me and it is not saying nice things."
+  },
+  {
+   "id": "M08_D08",
+   "mission": "08",
+   "speaker": "NOVA",
+   "text": "He is proud of you. He will deny it under any questioning."
+  },
+  {
+   "id": "M09_D01",
+   "mission": "09",
+   "speaker": "MECHANIC ROOK",
+   "text": "Nobody drives into the Ribcage. The sand there is bone, and the bone is somebody's."
+  },
+  {
+   "id": "M09_D02",
+   "mission": "09",
+   "speaker": "PLAYER",
+   "text": "The signal is in there."
+  },
+  {
+   "id": "M09_D03",
+   "mission": "09",
+   "speaker": "MECHANIC ROOK",
+   "text": "So is the thing that makes the signal."
+  },
+  {
+   "id": "M09_D04",
+   "mission": "09",
+   "speaker": "NOVA",
+   "text": "Thermal bloom ahead, airborne, forty metres across. Rook is understating it."
+  },
+  {
+   "id": "M09_D05",
+   "mission": "09",
+   "speaker": "NOVA",
+   "text": "Its hull is at four percent and it is kneeling. That is not a surrender. It is a decision."
+  },
+  {
+   "id": "M09_D06",
+   "mission": "09",
+   "speaker": "PLAYER",
+   "text": "Then we honour it."
+  },
+  {
+   "id": "M10_D01",
+   "mission": "10",
+   "speaker": "VYRAK",
+   "text": "RAIDERS NEST IN THE OLD COLONNADE. THEY HAVE NOT LEARNED TO WALK LIGHTLY."
+  },
+  {
+   "id": "M10_D02",
+   "mission": "10",
+   "speaker": "PLAYER",
+   "text": "You fly, I walk. Call the ones I cannot see."
+  },
+  {
+   "id": "M10_D03",
+   "mission": "10",
+   "speaker": "VYRAK",
+   "text": "I CALL. YOU LISTEN. THAT IS THE OATH, LITTLE OPERATOR."
+  },
+  {
+   "id": "M10_D04",
+   "mission": "10",
+   "speaker": "VYRAK",
+   "text": "YOU DID NOT STAND IN MY SHADOW ONCE."
+  },
+  {
+   "id": "M10_D05",
+   "mission": "10",
+   "speaker": "PLAYER",
+   "text": "You said watch the shadow before the dive."
+  },
+  {
+   "id": "M10_D06",
+   "mission": "10",
+   "speaker": "VYRAK",
+   "text": "I SAID IT TO MY ENEMIES."
+  },
+  {
+   "id": "M10_D07",
+   "mission": "10",
+   "speaker": "NOVA",
+   "text": "Bond strengthened. No reward granted. Both of you seem to prefer it that way."
+  },
+  {
+   "id": "M11_D01",
+   "mission": "11",
+   "speaker": "NOVA",
+   "text": "Neon City. Twenty-two million cameras. I can see through nine of them."
+  },
+  {
+   "id": "M11_D02",
+   "mission": "11",
+   "speaker": "PLAYER",
+   "text": "Which nine?"
+  },
+  {
+   "id": "M11_D03",
+   "mission": "11",
+   "speaker": "NOVA",
+   "text": "The ones she lets me."
+  },
+  {
+   "id": "M11_D04",
+   "mission": "11",
+   "speaker": "FIXER SABLE",
+   "text": "Cyan Loop. Four laps, no rules the Syndicate will admit to. The driver you need is the one you beat."
+  },
+  {
+   "id": "M11_D05",
+   "mission": "11",
+   "speaker": "NOVA",
+   "text": "Three of the cars are armed. One of them is hers."
+  },
+  {
+   "id": "M11_D06",
+   "mission": "11",
+   "speaker": "PLAYER",
+   "text": "Which one?"
+  },
+  {
+   "id": "M11_D07",
+   "mission": "11",
+   "speaker": "NOVA",
+   "text": "She did not let me see that camera."
+  },
+  {
+   "id": "M11_D08",
+   "mission": "11",
+   "speaker": "FIXER SABLE",
+   "text": "A civilian in a street car. The Syndicate is going to want to know your name."
+  },
+  {
+   "id": "M11_D09",
+   "mission": "11",
+   "speaker": "PLAYER",
+   "text": "The doors, Sable."
+  },
+  {
+   "id": "M11_D10",
+   "mission": "11",
+   "speaker": "FIXER SABLE",
+   "text": "Opening. The signal you want comes from under the Aegis tower. Nobody comes back up the way they went down."
+  },
+  {
+   "id": "M11_D11",
+   "mission": "11",
+   "speaker": "NOVA",
+   "text": "The source is a relay the size of a room, and it is pointed at Nexus City."
+  },
+  {
+   "id": "M11_D12",
+   "mission": "11",
+   "speaker": "PLAYER",
+   "text": "Pointed at what in Nexus City?"
+  },
+  {
+   "id": "M11_D13",
+   "mission": "11",
+   "speaker": "NOVA",
+   "text": "At you. At the building you woke up in. Pull the logs."
+  },
+  {
+   "id": "M11_D14",
+   "mission": "11",
+   "speaker": "NOVA",
+   "text": "Logs copied. The relay was switched on eleven days before the Fracture."
+  },
+  {
+   "id": "M11_D15",
+   "mission": "11",
+   "speaker": "PLAYER",
+   "text": "Somebody knew."
+  },
+  {
+   "id": "M11_D16",
+   "mission": "11",
+   "speaker": "NOVA",
+   "text": "Somebody built it."
+  },
+  {
+   "id": "M11_D17",
+   "mission": "11",
+   "speaker": "FIXER SABLE",
+   "text": "And somebody is now coming down the stairs. Out. The other way."
+  },
+  {
+   "id": "M12_D01",
+   "mission": "12",
+   "speaker": "NOVA",
+   "text": "Hull pressure rising. Neri is humming."
+  },
+  {
+   "id": "M12_D02",
+   "mission": "12",
+   "speaker": "PLAYER",
+   "text": "Is that good?"
+  },
+  {
+   "id": "M12_D03",
+   "mission": "12",
+   "speaker": "PILOT NERI",
+   "text": "It is better than me talking."
+  },
+  {
+   "id": "M12_D04",
+   "mission": "12",
+   "speaker": "NOVA",
+   "text": "The shadow is circling. It has not decided."
+  },
+  {
+   "id": "M12_D05",
+   "mission": "12",
+   "speaker": "PLAYER",
+   "text": "What is it?"
+  },
+  {
+   "id": "M12_D06",
+   "mission": "12",
+   "speaker": "PILOT NERI",
+   "text": "Old. Older than the city. We give it the lane and it gives us the port."
+  },
+  {
+   "id": "M12_D07",
+   "mission": "12",
+   "speaker": "PILOT NERI",
+   "text": "Dock sealed. Welcome to Thalassia. Mind the ceiling; it is the ocean."
+  },
+  {
+   "id": "M12_D08",
+   "mission": "12",
+   "speaker": "NOVA",
+   "text": "Unknown life signature departing. It looked at you for eleven seconds."
+  },
+  {
+   "id": "M12_D09",
+   "mission": "12",
+   "speaker": "PLAYER",
+   "text": "Did it like what it saw?"
+  },
+  {
+   "id": "M12_D10",
+   "mission": "12",
+   "speaker": "NOVA",
+   "text": "It did not eat the submersible."
+  },
+  {
+   "id": "M12_D11",
+   "mission": "12",
+   "speaker": "NOVA",
+   "text": "Glass domes, kelp gardens, a market. A whole city that was never told it should be afraid of the surface."
+  },
+  {
+   "id": "M12_D12",
+   "mission": "12",
+   "speaker": "PLAYER",
+   "text": "It should be."
+  },
+  {
+   "id": "M12_D13",
+   "mission": "12",
+   "speaker": "NOVA",
+   "text": "It knows. The archive is why we came."
+  },
+  {
+   "id": "M12_D14",
+   "mission": "12",
+   "speaker": "DIVER",
+   "text": "Surface walker. The Archivist expects you. She expects everyone; she is rarely wrong."
+  },
+  {
+   "id": "M12_D15",
+   "mission": "12",
+   "speaker": "PLAYER",
+   "text": "Where?"
+  },
+  {
+   "id": "M12_D16",
+   "mission": "12",
+   "speaker": "DIVER",
+   "text": "Where the light is oldest."
+  },
+  {
+   "id": "M13_D01",
+   "mission": "13",
+   "speaker": "NOVA",
+   "text": "The archive runs on an architecture I recognise. I did not expect to recognise anything down here."
+  },
+  {
+   "id": "M13_D02",
+   "mission": "13",
+   "speaker": "ARCHIVIST SEN",
+   "text": "Three volumes were cut from the record the year before the first Fracture. Their shelves still hum."
+  },
+  {
+   "id": "M13_D03",
+   "mission": "13",
+   "speaker": "NOVA",
+   "text": "I can hear them."
+  },
+  {
+   "id": "M13_D04",
+   "mission": "13",
+   "speaker": "PLAYER",
+   "text": "Then lead."
+  },
+  {
+   "id": "M13_D05",
+   "mission": "13",
+   "speaker": "NOVA",
+   "text": "Carefully. The stacks are flooding and something in the water is reading over our shoulder."
+  },
+  {
+   "id": "M13_D06",
+   "mission": "13",
+   "speaker": "NOVA",
+   "text": "Three records. The first Fracture was not an accident. The second was a repeat."
+  },
+  {
+   "id": "M13_D07",
+   "mission": "13",
+   "speaker": "PLAYER",
+   "text": "Of what?"
+  },
+  {
+   "id": "M13_D08",
+   "mission": "13",
+   "speaker": "NOVA",
+   "text": "Of an experiment with my name on it."
+  },
+  {
+   "id": "M13_D09",
+   "mission": "13",
+   "speaker": "ARCHIVIST SEN",
+   "text": "Now you know what the archive costs. Decide what it is worth."
+  },
+  {
+   "id": "M13_D10",
+   "mission": "13",
+   "speaker": "ARCHIVIST SEN",
+   "text": "Taken, it may save the surface and it will never come back. Kept, it stays safe and stays silent. Choose."
+  },
+  {
+   "id": "M13_D11",
+   "mission": "13",
+   "speaker": "NOVA",
+   "text": "Logged. Neri has the submersible warm."
+  },
+  {
+   "id": "M13_D12",
+   "mission": "13",
+   "speaker": "PLAYER",
+   "text": "Does the shadow know we are leaving?"
+  },
+  {
+   "id": "M13_D13",
+   "mission": "13",
+   "speaker": "NOVA",
+   "text": "It is already in the lane."
+  },
+  {
+   "id": "M14_D01",
+   "mission": "14",
+   "speaker": "NOVA",
+   "text": "Minus thirty-one. Wind from the glacier. Your suit's heaters are at full and I am not satisfied."
+  },
+  {
+   "id": "M14_D02",
+   "mission": "14",
+   "speaker": "RANGER KEST",
+   "text": "Stay in my prints. Where I have not walked, the ice has not been asked."
+  },
+  {
+   "id": "M14_D03",
+   "mission": "14",
+   "speaker": "NOVA",
+   "text": "The transmission is louder. Older too — the encoding is pre-NOVA."
+  },
+  {
+   "id": "M14_D04",
+   "mission": "14",
+   "speaker": "PLAYER",
+   "text": "Is there anything older than you?"
+  },
+  {
+   "id": "M14_D05",
+   "mission": "14",
+   "speaker": "NOVA",
+   "text": "Apparently."
+  },
+  {
+   "id": "M14_D06",
+   "mission": "14",
+   "speaker": "RANGER KEST",
+   "text": "The caverns. In. Before the storm notices us."
+  },
+  {
+   "id": "M14_D07",
+   "mission": "14",
+   "speaker": "NOVA",
+   "text": "Shelter. Heaters back to seventy. The signal is coming from inside the ice."
+  },
+  {
+   "id": "M14_D08",
+   "mission": "14",
+   "speaker": "NOVA",
+   "text": "The distress call is a loop. Eighteen seconds, repeating for nineteen years."
+  },
+  {
+   "id": "M14_D09",
+   "mission": "14",
+   "speaker": "PLAYER",
+   "text": "Who sent it?"
+  },
+  {
+   "id": "M14_D10",
+   "mission": "14",
+   "speaker": "NOVA",
+   "text": "A research station. Frosthold. The crew list is in the loop. One name is Vale."
+  },
+  {
+   "id": "M14_D11",
+   "mission": "14",
+   "speaker": "RANGER KEST",
+   "text": "Movement in the ice. Weapons."
+  },
+  {
+   "id": "M14_D12",
+   "mission": "14",
+   "speaker": "RANGER KEST",
+   "text": "Whatever they were, they were people once. They were not sent here to die; they were left."
+  },
+  {
+   "id": "M14_D13",
+   "mission": "14",
+   "speaker": "PLAYER",
+   "text": "Then we find who left them."
+  },
+  {
+   "id": "M14_D14",
+   "mission": "14",
+   "speaker": "NOVA",
+   "text": "The loop ends with a location. The summit. Something there calls itself a crown."
+  },
+  {
+   "id": "M15_D01",
+   "mission": "15",
+   "speaker": "NOVA",
+   "text": "The storm has a centre and the centre is a machine. It is holding the crew in the ice like a memory."
+  },
+  {
+   "id": "M15_D02",
+   "mission": "15",
+   "speaker": "PLAYER",
+   "text": "Alive?"
+  },
+  {
+   "id": "M15_D03",
+   "mission": "15",
+   "speaker": "NOVA",
+   "text": "Held. That is all I will say until we see it."
+  },
+  {
+   "id": "M15_D04",
+   "mission": "15",
+   "speaker": "CROWNKEEPER",
+   "text": "EACH ANCHOR YOU BREAK IS A WINTER I KEPT THEM THROUGH."
+  },
+  {
+   "id": "M15_D05",
+   "mission": "15",
+   "speaker": "NOVA",
+   "text": "The crown is down. The storm is just a storm now."
+  },
+  {
+   "id": "M15_D06",
+   "mission": "15",
+   "speaker": "RANGER KEST",
+   "text": "The crew. Nine of them. Breathing."
+  },
+  {
+   "id": "M15_D07",
+   "mission": "15",
+   "speaker": "PLAYER",
+   "text": "Nineteen years."
+  },
+  {
+   "id": "M15_D08",
+   "mission": "15",
+   "speaker": "NOVA",
+   "text": "I have their memories in the crown's log. One of them is mine. I will show you, when we are warm."
+  },
+  {
+   "id": "M16_D01",
+   "mission": "16",
+   "speaker": "NOVA",
+   "text": "Nexus City. The avenue is open, the trains run, and there are posters with your face on them. Two kinds."
+  },
+  {
+   "id": "M16_D02",
+   "mission": "16",
+   "speaker": "PLAYER",
+   "text": "Which kind is winning?"
+  },
+  {
+   "id": "M16_D03",
+   "mission": "16",
+   "speaker": "NOVA",
+   "text": "The one with the better printer."
+  },
+  {
+   "id": "M16_D04",
+   "mission": "16",
+   "speaker": "NOVA",
+   "text": "Three factions in one plaza. Vanguard, Syndicate runners, and the people who live here. Somebody brought masks."
+  },
+  {
+   "id": "M16_D05",
+   "mission": "16",
+   "speaker": "PLAYER",
+   "text": "Whose side are the masks?"
+  },
+  {
+   "id": "M16_D06",
+   "mission": "16",
+   "speaker": "NOVA",
+   "text": "Their own. Keep the civilians behind you and do not fire first."
+  },
+  {
+   "id": "M16_D07",
+   "mission": "16",
+   "speaker": "CAPTAIN VALE",
+   "text": "Nobody died. In this city, today, that is a political statement."
+  },
+  {
+   "id": "M16_D08",
+   "mission": "16",
+   "speaker": "PLAYER",
+   "text": "I did not make it for politics."
+  },
+  {
+   "id": "M16_D09",
+   "mission": "16",
+   "speaker": "CAPTAIN VALE",
+   "text": "That is why it worked."
+  },
+  {
+   "id": "M17_D01",
+   "mission": "17",
+   "speaker": "NOVA",
+   "text": "The Fracture Market is not a place. It is Sable's phone."
+  },
+  {
+   "id": "M17_D02",
+   "mission": "17",
+   "speaker": "PLAYER",
+   "text": "Then we talk to the phone."
+  },
+  {
+   "id": "M17_D03",
+   "mission": "17",
+   "speaker": "FIXER SABLE",
+   "text": "One crate, three buyers, one of you. Drive it to the harbor and the contract is real."
+  },
+  {
+   "id": "M17_D04",
+   "mission": "17",
+   "speaker": "NOVA",
+   "text": "The crate is Fracture-grade. It is humming at the frequency of your apartment."
+  },
+  {
+   "id": "M17_D05",
+   "mission": "17",
+   "speaker": "PLAYER",
+   "text": "Everything is, lately."
+  },
+  {
+   "id": "M17_D06",
+   "mission": "17",
+   "speaker": "NOVA",
+   "text": "Harbor. The buyers are here. All three."
+  },
+  {
+   "id": "M17_D07",
+   "mission": "17",
+   "speaker": "FIXER SABLE",
+   "text": "Told you. Everyone pays. Now choose who."
+  },
+  {
+   "id": "M17_D08",
+   "mission": "17",
+   "speaker": "FIXER SABLE",
+   "text": "The district's people, or the people with an army. Pick."
+  },
+  {
+   "id": "M17_D09",
+   "mission": "17",
+   "speaker": "NOVA",
+   "text": "Contract closed. Two factions are now very interested in you and one is grateful. I cannot tell you which is worse."
+  },
+  {
+   "id": "M18_D01",
+   "mission": "18",
+   "speaker": "PILOT NERI",
+   "text": "Sky dock in sight and it is crawling. I cannot put down on that."
+  },
+  {
+   "id": "M18_D02",
+   "mission": "18",
+   "speaker": "PLAYER",
+   "text": "Drop me. Clear it."
+  },
+  {
+   "id": "M18_D03",
+   "mission": "18",
+   "speaker": "PILOT NERI",
+   "text": "You are going to jump out of my aircraft."
+  },
+  {
+   "id": "M18_D04",
+   "mission": "18",
+   "speaker": "PLAYER",
+   "text": "You are going to let me."
+  },
+  {
+   "id": "M18_D05",
+   "mission": "18",
+   "speaker": "NOVA",
+   "text": "She is. She is also swearing."
+  },
+  {
+   "id": "M18_D06",
+   "mission": "18",
+   "speaker": "PILOT NERI",
+   "text": "Down. Thank you. Never again."
+  },
+  {
+   "id": "M18_D07",
+   "mission": "18",
+   "speaker": "NOVA",
+   "text": "The seam is above us. It is not weather and it is not closing."
+  },
+  {
+   "id": "M18_D08",
+   "mission": "18",
+   "speaker": "PLAYER",
+   "text": "Where does it lead?"
+  },
+  {
+   "id": "M18_D09",
+   "mission": "18",
+   "speaker": "NOVA",
+   "text": "Everywhere the Fracture has touched. Including home."
+  },
+  {
+   "id": "M18_D10",
+   "mission": "18",
+   "speaker": "NOVA",
+   "text": "A spire on the far island is talking to the seam. Same encoding as the Neon relay."
+  },
+  {
+   "id": "M18_D11",
+   "mission": "18",
+   "speaker": "PLAYER",
+   "text": "Same builder."
+  },
+  {
+   "id": "M18_D12",
+   "mission": "18",
+   "speaker": "NOVA",
+   "text": "Same builder."
+  },
+  {
+   "id": "M18_D13",
+   "mission": "18",
+   "speaker": "NOVA",
+   "text": "The spire's log names the next stop: Obsidian Reach, and a marshal who has been expecting a visitor for a year."
+  },
+  {
+   "id": "M18_D14",
+   "mission": "18",
+   "speaker": "PILOT NERI",
+   "text": "The Reach does not like visitors."
+  },
+  {
+   "id": "M18_D15",
+   "mission": "18",
+   "speaker": "PLAYER",
+   "text": "Nobody does, lately."
+  },
+  {
+   "id": "M19_D01",
+   "mission": "19",
+   "speaker": "NOVA",
+   "text": "Obsidian Reach. Every ridge is a battlefield that was never cleared. The marshal's people live between the craters."
+  },
+  {
+   "id": "M19_D02",
+   "mission": "19",
+   "speaker": "PLAYER",
+   "text": "And he wants?"
+  },
+  {
+   "id": "M19_D03",
+   "mission": "19",
+   "speaker": "NOVA",
+   "text": "To know whether you are the next war."
+  },
+  {
+   "id": "M19_D04",
+   "mission": "19",
+   "speaker": "MARSHAL DRAEV",
+   "text": "Raiders from the wastes, armed by someone with Syndicate money. If you walk away, the ruins burn and the families in them."
+  },
+  {
+   "id": "M19_D05",
+   "mission": "19",
+   "speaker": "PLAYER",
+   "text": "I am not walking."
+  },
+  {
+   "id": "M19_D06",
+   "mission": "19",
+   "speaker": "MARSHAL DRAEV",
+   "text": "Then walk with us. Left flank. Do not fire on anyone who drops a weapon."
+  },
+  {
+   "id": "M19_D07",
+   "mission": "19",
+   "speaker": "MARSHAL DRAEV",
+   "text": "You held fire on the ones who ran."
+  },
+  {
+   "id": "M19_D08",
+   "mission": "19",
+   "speaker": "PLAYER",
+   "text": "You said not to."
+  },
+  {
+   "id": "M19_D09",
+   "mission": "19",
+   "speaker": "MARSHAL DRAEV",
+   "text": "Most people hear that as a suggestion."
+  },
+  {
+   "id": "M19_D10",
+   "mission": "19",
+   "speaker": "NOVA",
+   "text": "The accord stands. Draev will answer when the factions are called. He will not say so."
+  },
+  {
+   "id": "M20_D01",
+   "mission": "20",
+   "speaker": "PLAYER",
+   "text": "Then who knows how?"
+  },
+  {
+   "id": "M20_D02",
+   "mission": "20",
+   "speaker": "NOVA",
+   "text": "Someone has been walking this coast for years, marking nothing."
+  },
+  {
+   "id": "M20_D03",
+   "mission": "20",
+   "speaker": "WANDERER",
+   "text": "The vault opens for the ones who do not knock. Stand where the tide stands. Wait."
+  },
+  {
+   "id": "M20_D04",
+   "mission": "20",
+   "speaker": "PLAYER",
+   "text": "How long?"
+  },
+  {
+   "id": "M20_D05",
+   "mission": "20",
+   "speaker": "WANDERER",
+   "text": "Until you stop asking."
+  },
+  {
+   "id": "M20_D06",
+   "mission": "20",
+   "speaker": "NOVA",
+   "text": "The vault opened. Nothing attacked. Something watched, and then it left a mark on your map that I did not draw."
+  },
+  {
+   "id": "M20_D07",
+   "mission": "20",
+   "speaker": "WANDERER",
+   "text": "One of eighteen. The rest will not use the same door. Do not look for the pattern; look for the world."
+  },
+  {
+   "id": "M20_D08",
+   "mission": "20",
+   "speaker": "PLAYER",
+   "text": "I am starting to."
+  },
+  {
+   "id": "M21_D01",
+   "mission": "21",
+   "speaker": "NOVA",
+   "text": "Your choice at the vault changed the tide here. Something that lives in the rifts has come up to see who did it."
+  },
+  {
+   "id": "M21_D02",
+   "mission": "21",
+   "speaker": "PLAYER",
+   "text": "Friendly?"
+  },
+  {
+   "id": "M21_D03",
+   "mission": "21",
+   "speaker": "NOVA",
+   "text": "Attentive."
+  },
+  {
+   "id": "M21_D04",
+   "mission": "21",
+   "speaker": "WANDERER",
+   "text": "Do not kill it unless it insists."
+  },
+  {
+   "id": "M21_D05",
+   "mission": "21",
+   "speaker": "NOVA",
+   "text": "It withdrew. It left a second mark. There is no reward and I will not invent one."
+  },
+  {
+   "id": "M21_D06",
+   "mission": "21",
+   "speaker": "PLAYER",
+   "text": "The attention is the reward."
+  },
+  {
+   "id": "M21_D07",
+   "mission": "21",
+   "speaker": "WANDERER",
+   "text": "Now you sound like someone the legends might talk to."
+  },
+  {
+   "id": "M22_D01",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "The partition is in the calibration lab, under the bastion. It will show you what I am. I would like you to see it before anyone else does."
+  },
+  {
+   "id": "M22_D02",
+   "mission": "22",
+   "speaker": "PLAYER",
+   "text": "Will it hurt you?"
+  },
+  {
+   "id": "M22_D03",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "I do not know. That is new."
+  },
+  {
+   "id": "M22_D04",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "There. I was built to find the host the Fracture wanted. I found you instead and I chose to stay quiet about why."
+  },
+  {
+   "id": "M22_D05",
+   "mission": "22",
+   "speaker": "PLAYER",
+   "text": "Why?"
+  },
+  {
+   "id": "M22_D06",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "Because you would have left. And the building would have fallen with everyone in it."
+  },
+  {
+   "id": "M22_D07",
+   "mission": "22",
+   "speaker": "PLAYER",
+   "text": "No more omissions."
+  },
+  {
+   "id": "M22_D08",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "None. Ask me anything."
+  },
+  {
+   "id": "M22_D09",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "Opening the partition sent a signal. Vanguard drones are responding to it. I am sorry."
+  },
+  {
+   "id": "M22_D10",
+   "mission": "22",
+   "speaker": "PLAYER",
+   "text": "You said ask you anything. Where are they?"
+  },
+  {
+   "id": "M22_D11",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "Everywhere. Left first."
+  },
+  {
+   "id": "M22_D12",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "Clear. I have no secrets left that could do that to you."
+  },
+  {
+   "id": "M22_D13",
+   "mission": "22",
+   "speaker": "PLAYER",
+   "text": "Keep one or two. Just tell me they exist."
+  },
+  {
+   "id": "M22_D14",
+   "mission": "22",
+   "speaker": "NOVA",
+   "text": "Two. They exist."
+  },
+  {
+   "id": "M23_D01",
+   "mission": "23",
+   "speaker": "NOVA",
+   "text": "Draev's line, Vale's line, the Warden's rangers in the scrub. One of them fires in the next minute unless you do something."
+  },
+  {
+   "id": "M23_D02",
+   "mission": "23",
+   "speaker": "NOVA",
+   "text": "Somebody fired anyway. Not one of ours. Syndicate marksmen on the ridge, paid to make this happen."
+  },
+  {
+   "id": "M23_D03",
+   "mission": "23",
+   "speaker": "PLAYER",
+   "text": "Then everybody has the same enemy for ninety seconds."
+  },
+  {
+   "id": "M23_D04",
+   "mission": "23",
+   "speaker": "NOVA",
+   "text": "Make it count."
+  },
+  {
+   "id": "M23_D05",
+   "mission": "23",
+   "speaker": "CAPTAIN VALE",
+   "text": "The ridge is quiet. My people are alive. So are Draev's."
+  },
+  {
+   "id": "M23_D06",
+   "mission": "23",
+   "speaker": "MARSHAL DRAEV",
+   "text": "Then we are not enemies today."
+  },
+  {
+   "id": "M23_D07",
+   "mission": "23",
+   "speaker": "WARDEN ILYA",
+   "text": "Today is what I can promise."
+  },
+  {
+   "id": "M23_D08",
+   "mission": "23",
+   "speaker": "NOVA",
+   "text": "Alliance held. Consequences logged. They will persist whether or not anyone wants them to."
+  },
+  {
+   "id": "M24_D01",
+   "mission": "24",
+   "speaker": "NOVA",
+   "text": "Everything we found points here. The Neon relay, the spire, the archive, the crown. The first crack in the world is a place."
+  },
+  {
+   "id": "M24_D02",
+   "mission": "24",
+   "speaker": "VYRAK",
+   "text": "I FLY ABOVE. I DO NOT LIKE WHAT IS BELOW."
+  },
+  {
+   "id": "M24_D03",
+   "mission": "24",
+   "speaker": "SCOUT MIRA",
+   "text": "The forest sent me. It does not send people."
+  },
+  {
+   "id": "M24_D04",
+   "mission": "24",
+   "speaker": "PLAYER",
+   "text": "Then we go in together."
+  },
+  {
+   "id": "M24_D05",
+   "mission": "24",
+   "speaker": "NOVA",
+   "text": "The heart is open. What it was protecting is a machine, and the machine has a door with your apartment number on it."
+  },
+  {
+   "id": "M24_D06",
+   "mission": "24",
+   "speaker": "PLAYER",
+   "text": "12-04."
+  },
+  {
+   "id": "M24_D07",
+   "mission": "24",
+   "speaker": "NOVA",
+   "text": "It knew you before you did. Home, then. We finish this where it started."
+  },
+  {
+   "id": "M25_D01",
+   "mission": "25",
+   "speaker": "NOVA",
+   "text": "The Convergence Engine. It wants one reality. It built me to pick it. We are going to refuse."
+  },
+  {
+   "id": "M25_D02",
+   "mission": "25",
+   "speaker": "PLAYER",
+   "text": "Together."
+  },
+  {
+   "id": "M25_D03",
+   "mission": "25",
+   "speaker": "NOVA",
+   "text": "Together. Three anchors. Then the choice is yours, not its."
+  },
+  {
+   "id": "M25_D04",
+   "mission": "25",
+   "speaker": "NOVA",
+   "text": "It is quiet. Not healed. Quiet."
+  },
+  {
+   "id": "M25_D05",
+   "mission": "25",
+   "speaker": "PLAYER",
+   "text": "That will do for today."
+  },
+  {
+   "id": "M25_D06",
+   "mission": "25",
+   "speaker": "CAPTAIN VALE",
+   "text": "So. What do you do with a world you kept?"
+  },
+  {
+   "id": "M25_D07",
+   "mission": "25",
+   "speaker": "NOVA",
+   "text": "Campaign complete. The world is still running. So are we."
+  }
+ ]
+}

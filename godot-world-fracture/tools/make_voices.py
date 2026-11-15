@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """World Fracture's voice bank: every line in data/dialogue/*.json, voiced.
 
-Sources: the owner's campaign dialogue draft (campaign_draft1.json, 257 lines, stable ids) and Mission 01's opening
+Sources: the owner's campaign dialogue draft (campaign_draft1.json, 257 lines, stable ids), the campaign's playable
+chapters (campaign_full.json, the lead's draft lines M<nn>_D<nn>), the people's talk (people.json) and Mission 01's opening
 (m01_opening.json: the owner's cinematic script, ten lines of it recorded by the owner, plus the lines that join it to
 the game). Lines with a `provided` recording use it (from assets-src/voices-provided); everything else is voiced with
 Piper (local neural TTS, voices from github.com/rhasspy/piper v0.0.2), one cast voice per speaker, then given the
@@ -63,6 +64,23 @@ CAST = {
 }
 FALLBACK = (LT, 885, "plain")
 
+# the named people (people.json): a LibriTTS speaker per person, fixed by their id, from pools that sound their body
+# and age (young / grown / older), so Rosa always sounds like Rosa
+VOICE_POOLS = {
+    "female": {"young": [15, 60, 240, 345, 480], "grown": [120, 225, 300, 450, 585], "older": [690, 735, 810, 885]},
+    "male": {"young": [30, 75, 195, 405, 495], "grown": [105, 180, 270, 540, 600], "older": [346, 660, 780, 840]},
+}
+
+
+def person_voice(l):
+    body = "female" if str(l.get("body", "")).startswith("f") else "male"
+    age = int(l.get("age", 35))
+    band = "young" if age < 28 else ("older" if age >= 50 else "grown")
+    pool = VOICE_POOLS[body][band]
+    spk = pool[sum(ord(c) for c in str(l.get("person", l["id"]))) % len(pool)]
+    return (LT, spk, "plain")
+
+
 # ffmpeg -af chains per treatment (the input is mono 22.05 kHz)
 FX = {
     "plain": "highpass=f=70,acompressor=threshold=-18dB:ratio=2.5:attack=5:release=80",
@@ -102,6 +120,16 @@ def load_lines():
     c = json.load(open(os.path.join(ROOT, "data", "dialogue", "campaign_draft1.json")))
     for l in c["lines"]:
         lines.append({"id": l["id"], "speaker": l["speaker"], "text": l["text"]})
+    # the campaign's playable chapters (tools/campaign/build.py): the lead's draft lines around the owner's
+    full = os.path.join(ROOT, "data", "dialogue", "campaign_full.json")
+    if os.path.exists(full):
+        for l in json.load(open(full))["lines"]:
+            lines.append({"id": l["id"], "speaker": l["speaker"], "text": l["text"]})
+    # the people's talk lines (tools/people_lines.py → data/dialogue/people.json), one voice per job
+    people = os.path.join(ROOT, "data", "dialogue", "people.json")
+    if os.path.exists(people):
+        for l in json.load(open(people))["lines"]:
+            lines.append({"id": l["id"], "speaker": l["speaker"], "text": l["text"]})
     return lines
 
 
@@ -170,7 +198,7 @@ def main():
                 elif prov and var == "_r":
                     ffmpeg(os.path.join(PROVIDED, prov), out, FX["robot"])
                 else:
-                    model, spk, fx = CAST.get(key, FALLBACK)
+                    model, spk, fx = CAST.get(key, person_voice(l) if l.get("body") else FALLBACK)
                     wav = os.path.join(tmp, "x.wav")
                     piper(model_dir, model, spk, speakable(text), wav)
                     ffmpeg(wav, out, FX[fx])

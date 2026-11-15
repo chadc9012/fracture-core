@@ -313,6 +313,20 @@ storyline audio for dialogue"; two packages, see `docs/story/dialogue-integratio
 - Voices: `tools/make_voices.py` (Piper local TTS from github.com/rhasspy/piper v0.0.2 voices, a cast voice per speaker,
   per-character treatment in ffmpeg; the owner's ten recordings from `assets-src/voices-provided/` are kept as
   recorded). Music and effects: `tools/make_cinema_audio.py` (synthesized). Re-run either after changing the lines.
+- **The whole campaign as playable chapters** (Nov 13–15, owner: "work on all the dialogue … and the rest of missions"):
+  `tools/campaign/act1.py`, `act2.py`, `act3.py` → `tools/campaign/build.py` → `data/dialogue/campaign_full.json`.
+  Every mission after Mission 01 (02–25, 61 chapters) plays every one of the owner's 197 draft lines verbatim and in the
+  draft's order, with the lead's lines around them (238, ids `M<nn>_D<nn>` — the owner can find and rewrite every word
+  that is not theirs) turning each beat into chapters of the descent's kinds (reach / kills / survive / trace / hack /
+  core) plus talk, choice, boss, race, drive and cutscene, each on a named world and POI. The build asserts the
+  coverage. All of it voiced (the cast's Piper voices; PLAYER in `_m` / `_f` / `_r`).
+- **Asking the people** (same ask): `tools/people_lines.py` → `data/dialogue/people.json` — all 51 named people
+  (Nexus, Neon, the seven airports, the forest) answer four questions in the conversation panel: the Fracture, this
+  place, what they think of you (by how well they know you: wary / acquaintance / friend / close) and what is happening
+  (by the campaign's stage: start, after Mission 05, after 16, after 22, after 25 — `Talk.stage(profile)` from
+  `campaign_done` / `m05_choice` in user://profile.json). 663 lines, each voiced in a LibriTTS speaker fixed per person
+  from their body and age (`make_voices.py person_voice`), played with the text (`_say_line`). The panel fits a phone
+  in portrait now. `tests/npc/npc_test.gd` checks every person answers every ask and the bands and stages pick.
 
 **Wet night and the street set** (owner, Nov 8 19:26: "better quality … add more … looks basic"; the target is
 `docs/reference/nexus-city-*.png`): at night the street slice rains. `scripts/city/wet_night.gd` lays a thin additive

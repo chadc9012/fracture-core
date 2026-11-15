@@ -11,6 +11,8 @@ extends Node3D
 const People := preload("res://scripts/npc/people.gd")
 const Memory := preload("res://scripts/npc/memory.gd")
 const Talk := preload("res://scripts/npc/talk.gd")
+const Lines := preload("res://scripts/cinema/lines.gd")
+const Sound := preload("res://scripts/audio/sound.gd")
 const Player := preload("res://scripts/player/operator_player.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 const Catalog := preload("res://scripts/character/catalog.gd")
@@ -54,6 +56,13 @@ var _panel: Control
 var _cop_coming := ""
 
 func setup(op: Node3D, ctl: Control, panel_parent: Control, boxes: Array[AABB], b: Rect2, ground: Callable, walk_x: float, span: Vector2, which := "nexus") -> void:
+	if profile.is_empty():
+		# the story's state (user://profile.json: Mission 01's choice, the campaign's done list) for what people say
+		var f := FileAccess.open("user://profile.json", FileAccess.READ)
+		if f:
+			var d: Variant = JSON.parse_string(f.get_as_text())
+			if d is Dictionary:
+				profile = d
 	city = which
 	operator = op
 	controls = ctl
@@ -354,8 +363,10 @@ func _open(id: String, text: String, law: bool) -> void:
 	sb.set_content_margin_all(16)
 	_panel.add_theme_stylebox_override("panel", sb)
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_panel.offset_left = -330
-	_panel.offset_right = 330
+	# as wide as the screen allows (a phone in portrait is 540 logical pixels across)
+	var half := minf(330.0, ui.get_viewport_rect().size.x * 0.5 - 12.0)
+	_panel.offset_left = -half
+	_panel.offset_right = half
 	_panel.offset_top = -24
 	_panel.offset_bottom = -24
 	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN   # as tall as what's said, standing on the bottom edge
@@ -373,7 +384,7 @@ func _open(id: String, text: String, law: bool) -> void:
 	say.name = "Say"
 	say.text = "“%s”" % text
 	say.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	say.custom_minimum_size = Vector2(620, 0)
+	say.custom_minimum_size = Vector2(half * 2.0 - 40.0, 0)
 	say.add_theme_font_size_override("font_size", 17)
 	box.add_child(say)
 	var row := HFlowContainer.new()
@@ -383,6 +394,11 @@ func _open(id: String, text: String, law: bool) -> void:
 	if not law:
 		_button(row, "How's work?", func(): _say(Talk.work_line(p, today())))
 		_button(row, "Heard anything?", func(): _say(Talk.rumour(p, today())))
+		# asking them (people.json): the Fracture, this place, what they think of you, what is happening — voiced
+		for ask in Talk.asks():
+			var lid := Talk.topic_id(p, String(ask[0]), state, today(), profile)
+			if lid != "":
+				_button(row, String(ask[1]), func(): _say_line(lid))
 		var e: Dictionary = state.errand
 		if not e.is_empty() and String(e.to) == id:
 			_button(row, "Here — %s, from %s" % [String(e.item), String(People.by_id(String(e.from)).name).get_slice(" ", 0)], func(): _deliver(id))
@@ -402,6 +418,12 @@ func _button(row: Control, text: String, f: Callable) -> void:
 func _say(text: String) -> void:
 	if _panel:
 		(_panel.find_child("Say", true, false) as Label).text = "“%s”" % text
+
+## a people line by id: its text, and its recording when the voice pack has one
+func _say_line(id: String) -> void:
+	_say(Talk.line_text(id))
+	if Lines.has(id):
+		Sound.voice_path(Lines.path(id))
 
 func _ask_errand(id: String) -> void:
 	var offer := Memory.errand_offer(state, id, today(), present_ids())

@@ -34,6 +34,20 @@ func _init() -> void:
 	var sv := Memory.blank()
 	Memory.talk(sv, "vale", "2026-11-11")
 	check("Vale remembers your Mission 05 choice", Talk.greeting(People.by_id("vale"), sv, 10.0, "Nyx", { "m05_choice": "independent" }).contains("independence"))
+	# asking them (people.json): every named person answers every ask; "you" follows the band, "news" the campaign stage
+	var asks := Talk.asks()
+	check("four things to ask", asks.size() == 4)
+	var all_answer := true
+	for city in People.ROSTERS:
+		for p in People.ROSTERS[city]:
+			for a in asks:
+				if Talk.topic_id(p, String(a[0]), sv, "2026-11-15") == "":
+					all_answer = false
+					print("  no answer: ", p.id, " ", a[0])
+	check("every named person answers every ask", all_answer)
+	check("a new face's 'you' is the acquaintance line", Talk.topic_id(People.by_id("rosa"), "you", sv, "2026-11-15") == "P_rosa_you_acquaintance")
+	check("the news follows the campaign", Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15") == "P_rosa_news_start" and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "campaign_done": ["16"] }) == "P_rosa_news_masks" and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "m05_choice": "cooperate" }) == "P_rosa_news_allied")
+	check("the answer has text", Talk.line_text("P_rosa_you_wary").begins_with("You're new"))
 	check("Sable speaks her own lines", Talk.greeting(People.by_id("sable"), sv, 23.0, "Nyx").begins_with("In Neon City") or Talk.greeting(People.by_id("sable"), sv, 23.0, "Nyx").begins_with("Every shortcut"))
 	Memory.talk(sv, "sable", "2026-11-11")
 	var job := {}
