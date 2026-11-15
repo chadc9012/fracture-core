@@ -116,7 +116,7 @@ func _start() -> void:
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
 	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
-	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 	# the boss, out across the clearing
 	boss = BossView.new()
 	region.world().add_child(boss)

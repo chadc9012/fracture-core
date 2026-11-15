@@ -154,7 +154,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
 	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
-	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 	gunplay.killed.connect(_on_kill)
 	_spawn_origin = operator.position
 	# the trace, the swamp edge, the relay, the terminal and the core all lie out from where you stand, toward the map's edge
