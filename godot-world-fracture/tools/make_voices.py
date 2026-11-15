@@ -25,11 +25,11 @@ OUT = os.path.join(ROOT, "audio", "voices", "lines")
 LT = "en-us-libritts-high"
 # speaker -> (model, libritts speaker id or None, treatment)
 CAST = {
-    "NOVA": (LT, 555, "nova"),
+    "NOVA": (LT, 723, "nova"),       # closest cast voice to the owner's NOVA recordings (was 555)
     "PLAYER_m": (LT, 90, "plain"),
     "PLAYER_f": (LT, 195, "plain"),
     "PLAYER_r": (LT, 90, "robot"),
-    "NEWS": (LT, 15, "tv"),
+    "NEWS": (LT, 764, "tv"),         # closest to the owner's news anchor (was 15)
     "RADIO": (LT, 330, "radio"),
     "MOM": (LT, 255, "phone"),
     "MARA": (LT, 525, "plain"),

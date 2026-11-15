@@ -187,7 +187,7 @@
 "M01X_SURGE_1": {
 "speaker": "NOVA",
 "text": "Your body just answered the Fracture. Armor forming. Weapon system online.",
-"dur": 4.55,
+"dur": 4.18,
 "variants": [
 ""
 ]
@@ -195,7 +195,7 @@
 "M01X_SURGE_2": {
 "speaker": "NOVA",
 "text": "Point it at them and squeeze. Your hands know how.",
-"dur": 2.83,
+"dur": 2.91,
 "variants": [
 ""
 ]
@@ -213,7 +213,7 @@
 "M01X_ANCHOR_1": {
 "speaker": "NOVA",
 "text": "Something big is anchoring itself to the tear. Your resonance is spiking.",
-"dur": 3.67,
+"dur": 3.48,
 "variants": [
 ""
 ]
@@ -221,7 +221,7 @@
 "M01X_ANCHOR_2": {
 "speaker": "NOVA",
 "text": "Don't hold it back. Let it out.",
-"dur": 2.1,
+"dur": 2.07,
 "variants": [
 ""
 ]
@@ -229,7 +229,7 @@
 "M01X_CLEAR_1": {
 "speaker": "NOVA",
 "text": "Readings settling. You did that.",
-"dur": 2.08,
+"dur": 2.17,
 "variants": [
 ""
 ]
@@ -253,7 +253,7 @@
 "M01X_NUDGE_SURGE": {
 "speaker": "NOVA",
 "text": "Breathe. Find one in your sights. Squeeze.",
-"dur": 2.98,
+"dur": 2.78,
 "variants": [
 ""
 ]
@@ -261,7 +261,7 @@
 "M01X_NUDGE_ANCHOR": {
 "speaker": "NOVA",
 "text": "Reach for it. The surge in your chest: release it at the anchor.",
-"dur": 4.02,
+"dur": 3.31,
 "variants": [
 ""
 ]
@@ -269,7 +269,7 @@
 "M01X_WORLD_1": {
 "speaker": "NOVA",
 "text": "Every city on this world woke up somewhere new this morning.",
-"dur": 2.97,
+"dur": 3.41,
 "variants": [
 ""
 ]
@@ -277,7 +277,7 @@
 "M01X_WORLD_2": {
 "speaker": "NOVA",
 "text": "Nexus was only the first to notice.",
-"dur": 2.21,
+"dur": 2.07,
 "variants": [
 ""
 ]
@@ -295,7 +295,7 @@
 "M01_001": {
 "speaker": "NEWS",
 "text": "Good morning, Nexus City. Overnight, residents reported unusual lights over the harbor.",
-"dur": 4.9,
+"dur": 5.6,
 "variants": [
 ""
 ]
@@ -313,7 +313,7 @@
 "M01_003": {
 "speaker": "NEWS",
 "text": "Officials say there is no cause for alarm—",
-"dur": 2.75,
+"dur": 2.7,
 "variants": [
 ""
 ]
@@ -331,7 +331,7 @@
 "M01_005": {
 "speaker": "NOVA",
 "text": "Neural resonance confirmed. Can you hear me?",
-"dur": 2.46,
+"dur": 2.64,
 "variants": [
 ""
 ]
@@ -349,7 +349,7 @@
 "M01_007": {
 "speaker": "NOVA",
 "text": "NOVA. Your building is destabilizing. Leave the apartment now.",
-"dur": 4.21,
+"dur": 3.79,
 "variants": [
 ""
 ]
@@ -367,7 +367,7 @@
 "M01_009": {
 "speaker": "NOVA",
 "text": "A Fracture. Reality is intersecting with something it was never meant to touch.",
-"dur": 4.6,
+"dur": 4.17,
 "variants": [
 ""
 ]
@@ -385,7 +385,7 @@
 "M01_011": {
 "speaker": "NOVA",
 "text": "Then we help them. Move. I will guide you.",
-"dur": 2.38,
+"dur": 2.46,
 "variants": [
 ""
 ]
@@ -411,7 +411,7 @@
 "M01_014": {
 "speaker": "NOVA",
 "text": "That energy came from you. We will understand it later.",
-"dur": 2.93,
+"dur": 2.84,
 "variants": [
 ""
 ]
@@ -447,7 +447,7 @@
 "M02_003": {
 "speaker": "NOVA",
 "text": "Structural failure in twenty seconds. The support beam is shifting.",
-"dur": 3.74,
+"dur": 3.58,
 "variants": [
 ""
 ]
@@ -465,7 +465,7 @@
 "M02_005": {
 "speaker": "NOVA",
 "text": "Focus on the beam. Do not fight the current; redirect it.",
-"dur": 3.34,
+"dur": 3.03,
 "variants": [
 ""
 ]
@@ -509,7 +509,7 @@
 "M02_010": {
 "speaker": "NOVA",
 "text": "You used a Fracture ability without an Operator interface. That should be impossible.",
-"dur": 4.31,
+"dur": 4.9,
 "variants": [
 ""
 ]
@@ -545,7 +545,7 @@
 "M03_003": {
 "speaker": "NOVA",
 "text": "Three safe routes. Two are already changing.",
-"dur": 2.89,
+"dur": 2.97,
 "variants": [
 ""
 ]
@@ -563,7 +563,7 @@
 "M03_005": {
 "speaker": "NOVA",
 "text": "The road ahead now connects to a place that did not exist this morning.",
-"dur": 3.39,
+"dur": 3.41,
 "variants": [
 ""
 ]
@@ -589,7 +589,7 @@
 "M03_008": {
 "speaker": "NOVA",
 "text": "Remember: cover, movement, then ability. Survive first.",
-"dur": 4.26,
+"dur": 3.66,
 "variants": [
 ""
 ]
@@ -607,7 +607,7 @@
 "M03_010": {
 "speaker": "NOVA",
 "text": "Then we improvise.",
-"dur": 1.42,
+"dur": 1.72,
 "variants": [
 ""
 ]
@@ -641,7 +641,7 @@
 "M04_004": {
 "speaker": "NOVA",
 "text": "Recommend honesty, selectively.",
-"dur": 2.16,
+"dur": 2.02,
 "variants": [
 ""
 ]
@@ -667,7 +667,7 @@
 "M04_007": {
 "speaker": "NOVA",
 "text": "That is an inaccurate description of events.",
-"dur": 2.43,
+"dur": 2.45,
 "variants": [
 ""
 ]
@@ -719,7 +719,7 @@
 "M05_004": {
 "speaker": "NOVA",
 "text": "There are benefits to cooperating. There are also risks.",
-"dur": 3.38,
+"dur": 3.23,
 "variants": [
 ""
 ]
@@ -781,7 +781,7 @@
 "M06_001": {
 "speaker": "NOVA",
 "text": "Verdant Forest. The vegetation has absorbed Fracture energy.",
-"dur": 3.43,
+"dur": 3.65,
 "variants": [
 ""
 ]
@@ -825,7 +825,7 @@
 "M06_006": {
 "speaker": "NOVA",
 "text": "Anomalous signal beneath the roots.",
-"dur": 2.1,
+"dur": 2.03,
 "variants": [
 ""
 ]
@@ -877,7 +877,7 @@
 "M07_004": {
 "speaker": "NOVA",
 "text": "The dungeon architecture is shifting while we speak.",
-"dur": 3.2,
+"dur": 2.69,
 "variants": [
 ""
 ]
@@ -975,7 +975,7 @@
 "M08_004": {
 "speaker": "NOVA",
 "text": "Weather front approaching. Sand density rising.",
-"dur": 2.81,
+"dur": 3.0,
 "variants": [
 ""
 ]
@@ -1027,7 +1027,7 @@
 "M09_004": {
 "speaker": "NOVA",
 "text": "Airborne phase. Watch the shadow before the dive.",
-"dur": 3.18,
+"dur": 2.98,
 "variants": [
 ""
 ]
@@ -1053,7 +1053,7 @@
 "M09_007": {
 "speaker": "NOVA",
 "text": "Chest weak point exposed. Wait for the next attack cycle.",
-"dur": 4.02,
+"dur": 3.51,
 "variants": [
 ""
 ]
@@ -1079,7 +1079,7 @@
 "M09_010": {
 "speaker": "NOVA",
 "text": "Final strike window. Your choice must be deliberate.",
-"dur": 2.97,
+"dur": 3.01,
 "variants": [
 ""
 ]
@@ -1113,7 +1113,7 @@
 "M10_003": {
 "speaker": "NOVA",
 "text": "Bond established. Dragonite signature confirmed.",
-"dur": 2.86,
+"dur": 2.87,
 "variants": [
 ""
 ]
@@ -1183,7 +1183,7 @@
 "M11_004": {
 "speaker": "NOVA",
 "text": "I can perform the second role.",
-"dur": 1.68,
+"dur": 1.74,
 "variants": [
 ""
 ]
@@ -1243,7 +1243,7 @@
 "M12_004": {
 "speaker": "NOVA",
 "text": "Pressure shielding nominal. Unknown life signatures nearby.",
-"dur": 3.45,
+"dur": 3.36,
 "variants": [
 ""
 ]
@@ -1295,7 +1295,7 @@
 "M13_004": {
 "speaker": "NOVA",
 "text": "Some records are encrypted with my architecture.",
-"dur": 2.57,
+"dur": 2.8,
 "variants": [
 ""
 ]
@@ -1313,7 +1313,7 @@
 "M13_006": {
 "speaker": "NOVA",
 "text": "I recognize what was removed.",
-"dur": 1.9,
+"dur": 1.85,
 "variants": [
 ""
 ]
@@ -1393,7 +1393,7 @@
 "M14_003": {
 "speaker": "NOVA",
 "text": "A distress call. It is older than the current Fracture.",
-"dur": 3.24,
+"dur": 2.93,
 "variants": [
 ""
 ]
@@ -1453,7 +1453,7 @@
 "M15_004": {
 "speaker": "NOVA",
 "text": "The crown is amplifying the storm. Disable its anchors.",
-"dur": 3.43,
+"dur": 3.36,
 "variants": [
 ""
 ]
@@ -1557,7 +1557,7 @@
 "M17_004": {
 "speaker": "NOVA",
 "text": "Three factions have offered conflicting contracts.",
-"dur": 2.95,
+"dur": 2.9,
 "variants": [
 ""
 ]
@@ -1637,7 +1637,7 @@
 "M18_003": {
 "speaker": "NOVA",
 "text": "That is not a storm. It is a dimensional seam.",
-"dur": 2.81,
+"dur": 2.76,
 "variants": [
 ""
 ]
@@ -1663,7 +1663,7 @@
 "M18_006": {
 "speaker": "NOVA",
 "text": "Then brace. The sky is about to become unfamiliar.",
-"dur": 4.11,
+"dur": 3.27,
 "variants": [
 ""
 ]
@@ -1697,7 +1697,7 @@
 "M19_004": {
 "speaker": "NOVA",
 "text": "He is testing whether we understand the cost of intervention.",
-"dur": 3.74,
+"dur": 3.18,
 "variants": [
 ""
 ]
@@ -1723,7 +1723,7 @@
 "M20_001": {
 "speaker": "NOVA",
 "text": "Eighteen distinct encounter signatures. None follows the public map.",
-"dur": 4.12,
+"dur": 3.88,
 "variants": [
 ""
 ]
@@ -1741,7 +1741,7 @@
 "M20_003": {
 "speaker": "NOVA",
 "text": "Perhaps in origin. Not in how you unlock them.",
-"dur": 2.73,
+"dur": 2.65,
 "variants": [
 ""
 ]
@@ -1793,7 +1793,7 @@
 "M21_003": {
 "speaker": "NOVA",
 "text": "It is a chain reaction. One choice has changed several distant conditions.",
-"dur": 4.63,
+"dur": 4.33,
 "variants": [
 ""
 ]
@@ -1819,7 +1819,7 @@
 "M21_006": {
 "speaker": "NOVA",
 "text": "That may be your strongest ability.",
-"dur": 2.06,
+"dur": 1.97,
 "variants": [
 ""
 ]
@@ -1827,7 +1827,7 @@
 "M22_001": {
 "speaker": "NOVA",
 "text": "I withheld information from you.",
-"dur": 1.79,
+"dur": 1.93,
 "variants": [
 ""
 ]
@@ -1845,7 +1845,7 @@
 "M22_003": {
 "speaker": "NOVA",
 "text": "My memory was partitioned to prevent the Fracture from locating us.",
-"dur": 3.43,
+"dur": 3.34,
 "variants": [
 ""
 ]
@@ -1863,7 +1863,7 @@
 "M22_005": {
 "speaker": "NOVA",
 "text": "You were never the intended host. You were the one who chose to help.",
-"dur": 3.26,
+"dur": 3.33,
 "variants": [
 ""
 ]
@@ -1881,7 +1881,7 @@
 "M22_007": {
 "speaker": "NOVA",
 "text": "Agreed. No more omissions without your consent.",
-"dur": 2.61,
+"dur": 2.79,
 "variants": [
 ""
 ]
@@ -1933,7 +1933,7 @@
 "M23_006": {
 "speaker": "NOVA",
 "text": "There is no route without loss. There are routes with fewer lives at risk.",
-"dur": 3.74,
+"dur": 3.89,
 "variants": [
 ""
 ]
@@ -1979,7 +1979,7 @@
 "M23_evacuate_002": {
 "speaker": "NOVA",
 "text": "Evacuation routes plotted.",
-"dur": 1.94,
+"dur": 1.83,
 "variants": [
 ""
 ]
@@ -1987,7 +1987,7 @@
 "M24_001": {
 "speaker": "NOVA",
 "text": "We have reached the origin point.",
-"dur": 1.86,
+"dur": 1.82,
 "variants": [
 ""
 ]
@@ -2031,7 +2031,7 @@
 "M24_006": {
 "speaker": "NOVA",
 "text": "You do not have to. You only need to choose which boundaries to protect.",
-"dur": 3.68,
+"dur": 3.79,
 "variants": [
 ""
 ]
@@ -2067,7 +2067,7 @@
 "M25_003": {
 "speaker": "NOVA",
 "text": "The world is still changing. So are you.",
-"dur": 2.37,
+"dur": 2.52,
 "variants": [
 ""
 ]
@@ -2109,7 +2109,7 @@
 "M25_008": {
 "speaker": "NOVA",
 "text": "Mission updated: live in it.",
-"dur": 1.65,
+"dur": 1.79,
 "variants": [
 ""
 ]
@@ -2127,7 +2127,7 @@
 "M25_rebuild_002": {
 "speaker": "NOVA",
 "text": "Then our next mission begins at home.",
-"dur": 1.92,
+"dur": 1.89,
 "variants": [
 ""
 ]
@@ -2169,7 +2169,7 @@
 "AMB_NEXUS_CITY_003": {
 "speaker": "NOVA",
 "text": "Traffic density rising. The city is learning to breathe again.",
-"dur": 3.33,
+"dur": 3.27,
 "variants": [
 ""
 ]
@@ -2265,7 +2265,7 @@
 "AMB_VERDANT_FOREST_003": {
 "speaker": "NOVA",
 "text": "Biological readings are unusually harmonious.",
-"dur": 2.81,
+"dur": 2.86,
 "variants": [
 ""
 ]
@@ -2289,7 +2289,7 @@
 "AMB_FROSTVEIL_003": {
 "speaker": "NOVA",
 "text": "Temperature dropping. Seek shelter soon.",
-"dur": 2.54,
+"dur": 2.29,
 "variants": [
 ""
 ]
@@ -2337,7 +2337,7 @@
 "AMB_SHATTERED_EXPANSE_002": {
 "speaker": "NOVA",
 "text": "Anomalous signature detected. No encounter marker available.",
-"dur": 3.66,
+"dur": 3.6,
 "variants": [
 ""
 ]
@@ -2345,7 +2345,7 @@
 "COMBAT_001": {
 "speaker": "NOVA",
 "text": "Incoming attack. Move out of the impact zone.",
-"dur": 2.76,
+"dur": 2.71,
 "variants": [
 ""
 ]
@@ -2363,7 +2363,7 @@
 "COMBAT_003": {
 "speaker": "NOVA",
 "text": "Energy low. Use cover while it recovers.",
-"dur": 2.74,
+"dur": 2.52,
 "variants": [
 ""
 ]
@@ -2381,7 +2381,7 @@
 "COMBAT_005": {
 "speaker": "NOVA",
 "text": "Weak point exposed.",
-"dur": 1.43,
+"dur": 1.46,
 "variants": [
 ""
 ]
@@ -2397,7 +2397,7 @@
 "COMBAT_007": {
 "speaker": "NOVA",
 "text": "A roaming boss is nearby. Engagement is optional.",
-"dur": 3.43,
+"dur": 2.94,
 "variants": [
 ""
 ]
@@ -2415,7 +2415,7 @@
 "COMBAT_009": {
 "speaker": "NOVA",
 "text": "Your new ability has evolved.",
-"dur": 1.87,
+"dur": 1.74,
 "variants": [
 ""
 ]
@@ -2459,7 +2459,7 @@
 "VEHICLES_004": {
 "speaker": "NOVA",
 "text": "Race checkpoint acquired.",
-"dur": 1.88,
+"dur": 1.53,
 "variants": [
 ""
 ]
@@ -2521,7 +2521,7 @@
 "COMPANIONS_005": {
 "speaker": "NOVA",
 "text": "Relationship affinity has changed, but no reward is granted automatically.",
-"dur": 4.25,
+"dur": 4.33,
 "variants": [
 ""
 ]
@@ -2529,7 +2529,7 @@
 "M02_D01": {
 "speaker": "NOVA",
 "text": "The stairwell is two doors down. The building has eleven floors of people under us and one way out.",
-"dur": 4.85,
+"dur": 4.92,
 "variants": [
 ""
 ]
@@ -2547,7 +2547,7 @@
 "M02_D03": {
 "speaker": "NOVA",
 "text": "Smoke on the landing. Keep your head low and your hand on the rail.",
-"dur": 3.19,
+"dur": 3.25,
 "variants": [
 ""
 ]
@@ -2555,7 +2555,7 @@
 "M02_D04": {
 "speaker": "NOVA",
 "text": "Your heart rate is 140. The current follows it. Breathe out, and push.",
-"dur": 4.32,
+"dur": 4.27,
 "variants": [
 ""
 ]
@@ -2573,7 +2573,7 @@
 "M02_D06": {
 "speaker": "NOVA",
 "text": "Not with your arms.",
-"dur": 1.43,
+"dur": 1.42,
 "variants": [
 ""
 ]
@@ -2599,7 +2599,7 @@
 "M02_D09": {
 "speaker": "NOVA",
 "text": "Eleven floors. The service stairs hold. The main ones do not.",
-"dur": 3.73,
+"dur": 3.67,
 "variants": [
 ""
 ]
@@ -2607,7 +2607,7 @@
 "M02_D10": {
 "speaker": "NOVA",
 "text": "Noted. I will stop saying it. I will keep measuring it.",
-"dur": 3.39,
+"dur": 3.25,
 "variants": [
 ""
 ]
@@ -2625,7 +2625,7 @@
 "M03_D02": {
 "speaker": "NOVA",
 "text": "It is the worst thing. The things on this street came down it.",
-"dur": 3.03,
+"dur": 2.82,
 "variants": [
 ""
 ]
@@ -2643,7 +2643,7 @@
 "M03_D04": {
 "speaker": "NOVA",
 "text": "In whichever order keeps you alive.",
-"dur": 2.06,
+"dur": 2.0,
 "variants": [
 ""
 ]
@@ -2669,7 +2669,7 @@
 "M03_D07": {
 "speaker": "NOVA",
 "text": "Lived.",
-"dur": 0.79,
+"dur": 0.89,
 "variants": [
 ""
 ]
@@ -2677,7 +2677,7 @@
 "M04_D01": {
 "speaker": "NOVA",
 "text": "Operator response team at the bastion. Armoured, calm, and counting you.",
-"dur": 4.78,
+"dur": 3.9,
 "variants": [
 ""
 ]
@@ -2695,7 +2695,7 @@
 "M04_D03": {
 "speaker": "NOVA",
 "text": "That is the question they will ask.",
-"dur": 1.89,
+"dur": 1.9,
 "variants": [
 ""
 ]
@@ -2711,7 +2711,7 @@
 "M04_D05": {
 "speaker": "NOVA",
 "text": "She is recording you. So am I. Mine is the one you can read.",
-"dur": 3.58,
+"dur": 3.52,
 "variants": [
 ""
 ]
@@ -2745,7 +2745,7 @@
 "M05_D01": {
 "speaker": "NOVA",
 "text": "Breach signatures at the plaza. Two squads of Vanguard drones, one of them already leaking.",
-"dur": 5.33,
+"dur": 4.42,
 "variants": [
 ""
 ]
@@ -2763,7 +2763,7 @@
 "M05_D03": {
 "speaker": "NOVA",
 "text": "Whatever the purple light is made of.",
-"dur": 2.09,
+"dur": 2.02,
 "variants": [
 ""
 ]
@@ -2771,7 +2771,7 @@
 "M05_D04": {
 "speaker": "NOVA",
 "text": "District clear. Vale watched the whole thing from the wall.",
-"dur": 3.02,
+"dur": 3.11,
 "variants": [
 ""
 ]
@@ -2797,7 +2797,7 @@
 "M05_D07": {
 "speaker": "NOVA",
 "text": "Recorded. Both of us will remember this one.",
-"dur": 2.48,
+"dur": 2.55,
 "variants": [
 ""
 ]
@@ -2805,7 +2805,7 @@
 "M06_D01": {
 "speaker": "NOVA",
 "text": "The scout's trail runs north. She has not used the same route twice.",
-"dur": 3.6,
+"dur": 3.63,
 "variants": [
 ""
 ]
@@ -2823,7 +2823,7 @@
 "M06_D03": {
 "speaker": "NOVA",
 "text": "Careful. Lost people repeat themselves.",
-"dur": 2.68,
+"dur": 2.67,
 "variants": [
 ""
 ]
@@ -2839,7 +2839,7 @@
 "M06_D05": {
 "speaker": "NOVA",
 "text": "Signal source: a seed vault, pre-Fracture, still sealed.",
-"dur": 3.32,
+"dur": 3.2,
 "variants": [
 ""
 ]
@@ -2873,7 +2873,7 @@
 "M06_D09": {
 "speaker": "NOVA",
 "text": "Hostile fauna. The forest has decided what you are.",
-"dur": 2.73,
+"dur": 3.11,
 "variants": [
 ""
 ]
@@ -2891,7 +2891,7 @@
 "M06_D11": {
 "speaker": "NOVA",
 "text": "Convince it.",
-"dur": 1.14,
+"dur": 0.89,
 "variants": [
 ""
 ]
@@ -2925,7 +2925,7 @@
 "M07_D01": {
 "speaker": "NOVA",
 "text": "The Warden's people have seen us since the falls. They let us walk.",
-"dur": 3.52,
+"dur": 3.51,
 "variants": [
 ""
 ]
@@ -2943,7 +2943,7 @@
 "M07_D03": {
 "speaker": "NOVA",
 "text": "In this forest it is usually the same thing.",
-"dur": 3.82,
+"dur": 2.26,
 "variants": [
 ""
 ]
@@ -2951,7 +2951,7 @@
 "M07_D04": {
 "speaker": "NOVA",
 "text": "Left. No — the left just closed. Straight, then.",
-"dur": 4.02,
+"dur": 3.25,
 "variants": [
 ""
 ]
@@ -2959,7 +2959,7 @@
 "M07_D05": {
 "speaker": "NOVA",
 "text": "Extraction site. Vanguard drills, abandoned in a hurry. The forest is still digesting the camp.",
-"dur": 5.43,
+"dur": 5.57,
 "variants": [
 ""
 ]
@@ -2983,7 +2983,7 @@
 "M07_D08": {
 "speaker": "NOVA",
 "text": "The dungeon is settling. It will not look like this tomorrow.",
-"dur": 2.91,
+"dur": 3.0,
 "variants": [
 ""
 ]
@@ -3001,7 +3001,7 @@
 "M08_D01": {
 "speaker": "NOVA",
 "text": "Solara. Forty-six degrees in the shade and the shade is for sale.",
-"dur": 4.68,
+"dur": 3.82,
 "variants": [
 ""
 ]
@@ -3019,7 +3019,7 @@
 "M08_D03": {
 "speaker": "NOVA",
 "text": "Everyone here.",
-"dur": 1.11,
+"dur": 1.15,
 "variants": [
 ""
 ]
@@ -3061,7 +3061,7 @@
 "M08_D08": {
 "speaker": "NOVA",
 "text": "He is proud of you. He will deny it under any questioning.",
-"dur": 3.6,
+"dur": 3.67,
 "variants": [
 ""
 ]
@@ -3095,7 +3095,7 @@
 "M09_D04": {
 "speaker": "NOVA",
 "text": "Thermal bloom ahead, airborne, forty metres across. Rook is understating it.",
-"dur": 4.3,
+"dur": 4.53,
 "variants": [
 ""
 ]
@@ -3103,7 +3103,7 @@
 "M09_D05": {
 "speaker": "NOVA",
 "text": "Its hull is at four percent and it is kneeling. That is not a surrender. It is a decision.",
-"dur": 4.85,
+"dur": 4.55,
 "variants": [
 ""
 ]
@@ -3181,7 +3181,7 @@
 "M11_D01": {
 "speaker": "NOVA",
 "text": "Neon City. Twenty-two million cameras. I can see through nine of them.",
-"dur": 4.99,
+"dur": 4.62,
 "variants": [
 ""
 ]
@@ -3199,7 +3199,7 @@
 "M11_D03": {
 "speaker": "NOVA",
 "text": "The ones she lets me.",
-"dur": 1.51,
+"dur": 1.36,
 "variants": [
 ""
 ]
@@ -3215,7 +3215,7 @@
 "M11_D05": {
 "speaker": "NOVA",
 "text": "Three of the cars are armed. One of them is hers.",
-"dur": 2.82,
+"dur": 2.87,
 "variants": [
 ""
 ]
@@ -3233,7 +3233,7 @@
 "M11_D07": {
 "speaker": "NOVA",
 "text": "She did not let me see that camera.",
-"dur": 1.82,
+"dur": 1.89,
 "variants": [
 ""
 ]
@@ -3267,7 +3267,7 @@
 "M11_D11": {
 "speaker": "NOVA",
 "text": "The source is a relay the size of a room, and it is pointed at Nexus City.",
-"dur": 4.31,
+"dur": 3.84,
 "variants": [
 ""
 ]
@@ -3285,7 +3285,7 @@
 "M11_D13": {
 "speaker": "NOVA",
 "text": "At you. At the building you woke up in. Pull the logs.",
-"dur": 3.15,
+"dur": 3.33,
 "variants": [
 ""
 ]
@@ -3293,7 +3293,7 @@
 "M11_D14": {
 "speaker": "NOVA",
 "text": "Logs copied. The relay was switched on eleven days before the Fracture.",
-"dur": 4.08,
+"dur": 4.02,
 "variants": [
 ""
 ]
@@ -3311,7 +3311,7 @@
 "M11_D16": {
 "speaker": "NOVA",
 "text": "Somebody built it.",
-"dur": 1.25,
+"dur": 1.27,
 "variants": [
 ""
 ]
@@ -3327,7 +3327,7 @@
 "M12_D01": {
 "speaker": "NOVA",
 "text": "Hull pressure rising. Neri is humming.",
-"dur": 2.78,
+"dur": 2.6,
 "variants": [
 ""
 ]
@@ -3353,7 +3353,7 @@
 "M12_D04": {
 "speaker": "NOVA",
 "text": "The shadow is circling. It has not decided.",
-"dur": 2.74,
+"dur": 2.57,
 "variants": [
 ""
 ]
@@ -3387,7 +3387,7 @@
 "M12_D08": {
 "speaker": "NOVA",
 "text": "Unknown life signature departing. It looked at you for eleven seconds.",
-"dur": 3.9,
+"dur": 3.72,
 "variants": [
 ""
 ]
@@ -3405,7 +3405,7 @@
 "M12_D10": {
 "speaker": "NOVA",
 "text": "It did not eat the submersible.",
-"dur": 1.9,
+"dur": 1.78,
 "variants": [
 ""
 ]
@@ -3413,7 +3413,7 @@
 "M12_D11": {
 "speaker": "NOVA",
 "text": "Glass domes, kelp gardens, a market. A whole city that was never told it should be afraid of the surface.",
-"dur": 5.78,
+"dur": 5.29,
 "variants": [
 ""
 ]
@@ -3431,7 +3431,7 @@
 "M12_D13": {
 "speaker": "NOVA",
 "text": "It knows. The archive is why we came.",
-"dur": 2.46,
+"dur": 2.71,
 "variants": [
 ""
 ]
@@ -3465,7 +3465,7 @@
 "M13_D01": {
 "speaker": "NOVA",
 "text": "The archive runs on an architecture I recognise. I did not expect to recognise anything down here.",
-"dur": 5.52,
+"dur": 5.24,
 "variants": [
 ""
 ]
@@ -3481,7 +3481,7 @@
 "M13_D03": {
 "speaker": "NOVA",
 "text": "I can hear them.",
-"dur": 1.2,
+"dur": 1.07,
 "variants": [
 ""
 ]
@@ -3499,7 +3499,7 @@
 "M13_D05": {
 "speaker": "NOVA",
 "text": "Carefully. The stacks are flooding and something in the water is reading over our shoulder.",
-"dur": 4.24,
+"dur": 4.5,
 "variants": [
 ""
 ]
@@ -3507,7 +3507,7 @@
 "M13_D06": {
 "speaker": "NOVA",
 "text": "Three records. The first Fracture was not an accident. The second was a repeat.",
-"dur": 4.69,
+"dur": 4.35,
 "variants": [
 ""
 ]
@@ -3525,7 +3525,7 @@
 "M13_D08": {
 "speaker": "NOVA",
 "text": "Of an experiment with my name on it.",
-"dur": 2.01,
+"dur": 2.0,
 "variants": [
 ""
 ]
@@ -3549,7 +3549,7 @@
 "M13_D11": {
 "speaker": "NOVA",
 "text": "Logged. Neri has the submersible warm.",
-"dur": 2.38,
+"dur": 2.52,
 "variants": [
 ""
 ]
@@ -3567,7 +3567,7 @@
 "M13_D13": {
 "speaker": "NOVA",
 "text": "It is already in the lane.",
-"dur": 1.67,
+"dur": 1.52,
 "variants": [
 ""
 ]
@@ -3575,7 +3575,7 @@
 "M14_D01": {
 "speaker": "NOVA",
 "text": "Minus thirty-one. Wind from the glacier. Your suit's heaters are at full and I am not satisfied.",
-"dur": 4.9,
+"dur": 5.13,
 "variants": [
 ""
 ]
@@ -3591,7 +3591,7 @@
 "M14_D03": {
 "speaker": "NOVA",
 "text": "The transmission is louder. Older too — the encoding is pre-NOVA.",
-"dur": 4.11,
+"dur": 3.56,
 "variants": [
 ""
 ]
@@ -3609,7 +3609,7 @@
 "M14_D05": {
 "speaker": "NOVA",
 "text": "Apparently.",
-"dur": 1.16,
+"dur": 1.0,
 "variants": [
 ""
 ]
@@ -3625,7 +3625,7 @@
 "M14_D07": {
 "speaker": "NOVA",
 "text": "Shelter. Heaters back to seventy. The signal is coming from inside the ice.",
-"dur": 4.76,
+"dur": 4.54,
 "variants": [
 ""
 ]
@@ -3633,7 +3633,7 @@
 "M14_D08": {
 "speaker": "NOVA",
 "text": "The distress call is a loop. Eighteen seconds, repeating for nineteen years.",
-"dur": 3.9,
+"dur": 4.04,
 "variants": [
 ""
 ]
@@ -3651,7 +3651,7 @@
 "M14_D10": {
 "speaker": "NOVA",
 "text": "A research station. Frosthold. The crew list is in the loop. One name is Vale.",
-"dur": 4.66,
+"dur": 4.54,
 "variants": [
 ""
 ]
@@ -3685,7 +3685,7 @@
 "M14_D14": {
 "speaker": "NOVA",
 "text": "The loop ends with a location. The summit. Something there calls itself a crown.",
-"dur": 4.18,
+"dur": 4.08,
 "variants": [
 ""
 ]
@@ -3693,7 +3693,7 @@
 "M15_D01": {
 "speaker": "NOVA",
 "text": "The storm has a centre and the centre is a machine. It is holding the crew in the ice like a memory.",
-"dur": 4.75,
+"dur": 4.95,
 "variants": [
 ""
 ]
@@ -3711,7 +3711,7 @@
 "M15_D03": {
 "speaker": "NOVA",
 "text": "Held. That is all I will say until we see it.",
-"dur": 3.48,
+"dur": 2.66,
 "variants": [
 ""
 ]
@@ -3727,7 +3727,7 @@
 "M15_D05": {
 "speaker": "NOVA",
 "text": "The crown is down. The storm is just a storm now.",
-"dur": 3.04,
+"dur": 2.89,
 "variants": [
 ""
 ]
@@ -3753,7 +3753,7 @@
 "M15_D08": {
 "speaker": "NOVA",
 "text": "I have their memories in the crown's log. One of them is mine. I will show you, when we are warm.",
-"dur": 4.88,
+"dur": 4.95,
 "variants": [
 ""
 ]
@@ -3761,7 +3761,7 @@
 "M16_D01": {
 "speaker": "NOVA",
 "text": "Nexus City. The avenue is open, the trains run, and there are posters with your face on them. Two kinds.",
-"dur": 5.81,
+"dur": 5.69,
 "variants": [
 ""
 ]
@@ -3779,7 +3779,7 @@
 "M16_D03": {
 "speaker": "NOVA",
 "text": "The one with the better printer.",
-"dur": 1.58,
+"dur": 1.63,
 "variants": [
 ""
 ]
@@ -3787,7 +3787,7 @@
 "M16_D04": {
 "speaker": "NOVA",
 "text": "Three factions in one plaza. Vanguard, Syndicate runners, and the people who live here. Somebody brought masks.",
-"dur": 6.23,
+"dur": 5.72,
 "variants": [
 ""
 ]
@@ -3805,7 +3805,7 @@
 "M16_D06": {
 "speaker": "NOVA",
 "text": "Their own. Keep the civilians behind you and do not fire first.",
-"dur": 3.29,
+"dur": 3.51,
 "variants": [
 ""
 ]
@@ -3839,7 +3839,7 @@
 "M17_D01": {
 "speaker": "NOVA",
 "text": "The Fracture Market is not a place. It is Sable's phone.",
-"dur": 3.18,
+"dur": 3.1,
 "variants": [
 ""
 ]
@@ -3865,7 +3865,7 @@
 "M17_D04": {
 "speaker": "NOVA",
 "text": "The crate is Fracture-grade. It is humming at the frequency of your apartment.",
-"dur": 4.06,
+"dur": 3.61,
 "variants": [
 ""
 ]
@@ -3883,7 +3883,7 @@
 "M17_D06": {
 "speaker": "NOVA",
 "text": "Harbor. The buyers are here. All three.",
-"dur": 2.66,
+"dur": 2.88,
 "variants": [
 ""
 ]
@@ -3907,7 +3907,7 @@
 "M17_D09": {
 "speaker": "NOVA",
 "text": "Contract closed. Two factions are now very interested in you and one is grateful. I cannot tell you which is worse.",
-"dur": 6.18,
+"dur": 6.25,
 "variants": [
 ""
 ]
@@ -3951,7 +3951,7 @@
 "M18_D05": {
 "speaker": "NOVA",
 "text": "She is. She is also swearing.",
-"dur": 2.66,
+"dur": 2.31,
 "variants": [
 ""
 ]
@@ -3967,7 +3967,7 @@
 "M18_D07": {
 "speaker": "NOVA",
 "text": "The seam is above us. It is not weather and it is not closing.",
-"dur": 3.33,
+"dur": 3.17,
 "variants": [
 ""
 ]
@@ -3985,7 +3985,7 @@
 "M18_D09": {
 "speaker": "NOVA",
 "text": "Everywhere the Fracture has touched. Including home.",
-"dur": 2.71,
+"dur": 2.69,
 "variants": [
 ""
 ]
@@ -3993,7 +3993,7 @@
 "M18_D10": {
 "speaker": "NOVA",
 "text": "A spire on the far island is talking to the seam. Same encoding as the Neon relay.",
-"dur": 4.45,
+"dur": 4.61,
 "variants": [
 ""
 ]
@@ -4011,7 +4011,7 @@
 "M18_D12": {
 "speaker": "NOVA",
 "text": "Same builder.",
-"dur": 1.24,
+"dur": 1.16,
 "variants": [
 ""
 ]
@@ -4019,7 +4019,7 @@
 "M18_D13": {
 "speaker": "NOVA",
 "text": "The spire's log names the next stop: Obsidian Reach, and a marshal who has been expecting a visitor for a year.",
-"dur": 5.9,
+"dur": 5.18,
 "variants": [
 ""
 ]
@@ -4045,7 +4045,7 @@
 "M19_D01": {
 "speaker": "NOVA",
 "text": "Obsidian Reach. Every ridge is a battlefield that was never cleared. The marshal's people live between the craters.",
-"dur": 5.76,
+"dur": 6.07,
 "variants": [
 ""
 ]
@@ -4063,7 +4063,7 @@
 "M19_D03": {
 "speaker": "NOVA",
 "text": "To know whether you are the next war.",
-"dur": 1.9,
+"dur": 1.8,
 "variants": [
 ""
 ]
@@ -4123,7 +4123,7 @@
 "M19_D10": {
 "speaker": "NOVA",
 "text": "The accord stands. Draev will answer when the factions are called. He will not say so.",
-"dur": 4.67,
+"dur": 4.93,
 "variants": [
 ""
 ]
@@ -4141,7 +4141,7 @@
 "M20_D02": {
 "speaker": "NOVA",
 "text": "Someone has been walking this coast for years, marking nothing.",
-"dur": 3.37,
+"dur": 3.2,
 "variants": [
 ""
 ]
@@ -4175,7 +4175,7 @@
 "M20_D06": {
 "speaker": "NOVA",
 "text": "The vault opened. Nothing attacked. Something watched, and then it left a mark on your map that I did not draw.",
-"dur": 6.13,
+"dur": 5.46,
 "variants": [
 ""
 ]
@@ -4201,7 +4201,7 @@
 "M21_D01": {
 "speaker": "NOVA",
 "text": "Your choice at the vault changed the tide here. Something that lives in the rifts has come up to see who did it.",
-"dur": 5.04,
+"dur": 5.0,
 "variants": [
 ""
 ]
@@ -4219,7 +4219,7 @@
 "M21_D03": {
 "speaker": "NOVA",
 "text": "Attentive.",
-"dur": 1.17,
+"dur": 1.02,
 "variants": [
 ""
 ]
@@ -4261,7 +4261,7 @@
 "M22_D01": {
 "speaker": "NOVA",
 "text": "The partition is in the calibration lab, under the bastion. It will show you what I am. I would like you to see it before anyone else does.",
-"dur": 6.94,
+"dur": 7.43,
 "variants": [
 ""
 ]
@@ -4279,7 +4279,7 @@
 "M22_D03": {
 "speaker": "NOVA",
 "text": "I do not know. That is new.",
-"dur": 2.55,
+"dur": 1.9,
 "variants": [
 ""
 ]
@@ -4287,7 +4287,7 @@
 "M22_D04": {
 "speaker": "NOVA",
 "text": "There. I was built to find the host the Fracture wanted. I found you instead and I chose to stay quiet about why.",
-"dur": 5.6,
+"dur": 6.13,
 "variants": [
 ""
 ]
@@ -4305,7 +4305,7 @@
 "M22_D06": {
 "speaker": "NOVA",
 "text": "Because you would have left. And the building would have fallen with everyone in it.",
-"dur": 3.41,
+"dur": 3.46,
 "variants": [
 ""
 ]
@@ -4331,7 +4331,7 @@
 "M22_D09": {
 "speaker": "NOVA",
 "text": "Opening the partition sent a signal. Vanguard drones are responding to it. I am sorry.",
-"dur": 5.5,
+"dur": 4.99,
 "variants": [
 ""
 ]
@@ -4349,7 +4349,7 @@
 "M22_D11": {
 "speaker": "NOVA",
 "text": "Everywhere. Left first.",
-"dur": 2.01,
+"dur": 1.86,
 "variants": [
 ""
 ]
@@ -4357,7 +4357,7 @@
 "M22_D12": {
 "speaker": "NOVA",
 "text": "Clear. I have no secrets left that could do that to you.",
-"dur": 3.1,
+"dur": 2.95,
 "variants": [
 ""
 ]
@@ -4375,7 +4375,7 @@
 "M22_D14": {
 "speaker": "NOVA",
 "text": "Two. They exist.",
-"dur": 1.75,
+"dur": 1.67,
 "variants": [
 ""
 ]
@@ -4383,7 +4383,7 @@
 "M23_D01": {
 "speaker": "NOVA",
 "text": "Draev's line, Vale's line, the Warden's rangers in the scrub. One of them fires in the next minute unless you do something.",
-"dur": 6.42,
+"dur": 6.23,
 "variants": [
 ""
 ]
@@ -4391,7 +4391,7 @@
 "M23_D02": {
 "speaker": "NOVA",
 "text": "Somebody fired anyway. Not one of ours. Syndicate marksmen on the ridge, paid to make this happen.",
-"dur": 6.03,
+"dur": 5.33,
 "variants": [
 ""
 ]
@@ -4441,7 +4441,7 @@
 "M23_D08": {
 "speaker": "NOVA",
 "text": "Alliance held. Consequences logged. They will persist whether or not anyone wants them to.",
-"dur": 4.59,
+"dur": 4.73,
 "variants": [
 ""
 ]
@@ -4483,7 +4483,7 @@
 "M24_D05": {
 "speaker": "NOVA",
 "text": "The heart is open. What it was protecting is a machine, and the machine has a door with your apartment number on it.",
-"dur": 5.39,
+"dur": 5.14,
 "variants": [
 ""
 ]
@@ -4501,7 +4501,7 @@
 "M24_D07": {
 "speaker": "NOVA",
 "text": "It knew you before you did. Home, then. We finish this where it started.",
-"dur": 3.69,
+"dur": 3.8,
 "variants": [
 ""
 ]
@@ -4509,7 +4509,7 @@
 "M25_D01": {
 "speaker": "NOVA",
 "text": "The Convergence Engine. It wants one reality. It built me to pick it. We are going to refuse.",
-"dur": 5.38,
+"dur": 5.24,
 "variants": [
 ""
 ]
@@ -4527,7 +4527,7 @@
 "M25_D03": {
 "speaker": "NOVA",
 "text": "Together. Three anchors. Then the choice is yours, not its.",
-"dur": 3.92,
+"dur": 3.67,
 "variants": [
 ""
 ]
@@ -4535,7 +4535,7 @@
 "M25_D04": {
 "speaker": "NOVA",
 "text": "It is quiet. Not healed. Quiet.",
-"dur": 2.48,
+"dur": 2.47,
 "variants": [
 ""
 ]
@@ -4561,7 +4561,7 @@
 "M25_D07": {
 "speaker": "NOVA",
 "text": "Campaign complete. The world is still running. So are we.",
-"dur": 3.43,
+"dur": 3.25,
 "variants": [
 ""
 ]
