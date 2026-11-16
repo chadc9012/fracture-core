@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ob10bggks5rp"
-path="res://.godot/imported/shark_Image_0.jpg-cc6529e4e6434e46662b0e1e19ff5969.ctex"
+path.s3tc="res://.godot/imported/shark_Image_0.jpg-cc6529e4e6434e46662b0e1e19ff5969.s3tc.ctex"
+path.etc2="res://.godot/imported/shark_Image_0.jpg-cc6529e4e6434e46662b0e1e19ff5969.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "22841c448871d4793dcece2adf86b19c"
@@ -14,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://models/animals/shark_Image_0.jpg"
-dest_files=["res://.godot/imported/shark_Image_0.jpg-cc6529e4e6434e46662b0e1e19ff5969.ctex"]
+dest_files=["res://.godot/imported/shark_Image_0.jpg-cc6529e4e6434e46662b0e1e19ff5969.s3tc.ctex", "res://.godot/imported/shark_Image_0.jpg-cc6529e4e6434e46662b0e1e19ff5969.etc2.ctex"]
 
 [params]
 

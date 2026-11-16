@@ -988,8 +988,8 @@ func _shoot(path: String, opts: Array) -> void:
 				var sp: Vector3 = descent.region.stand_point()
 				var k := 0
 				for c in descent.wildlife.rules.critters:
-					if c.species in ["DEER", "FOX", "WOLF", "BOAR", "BEAR"]:
-						c.home = Vector2(sp.x, sp.z) + Vector2(-6.0 + 3.0 * (k % 5), -14.0 - 3.0 * (k / 5))
+					if c.species in ["DEER", "FOX", "WOLF", "BOAR", "BEAR", "RABBIT", "CROCODILE", "REPTILE", "PANTHER"]:
+						c.home = Vector2(sp.x, sp.z) + Vector2(-6.0 + 2.4 * (k % 6), -7.0 - 2.5 * (k / 6))
 						c.pos = c.home
 						c.target = c.home
 						c.state = 1 if c.species == "DEER" else 0   # GRAZE / IDLE

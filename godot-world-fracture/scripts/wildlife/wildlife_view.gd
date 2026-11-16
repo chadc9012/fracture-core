@@ -87,8 +87,10 @@ func _body(c: Wildlife.Critter) -> void:
 		var body := (load(meshy) as PackedScene).instantiate() as Node3D
 		root.add_child(body)
 		var aabb := _node_aabb(body)
-		var want: float = float((p.body as Vector3).y) * c.size
-		var k := want / maxf(aabb.size.y, 0.001)
+		# a soaring bird's rules body is its wingspan (x) over a thin height: fit the model's span, not its height
+		var soars: bool = int(p.loco) == Wildlife.Loco.SOAR
+		var want: float = float((p.body as Vector3).x if soars else (p.body as Vector3).y) * c.size
+		var k := want / maxf(aabb.size.x if soars else aabb.size.y, 0.001)
 		body.scale = Vector3.ONE * k
 		body.position = Vector3(-(aabb.position.x + aabb.size.x * 0.5) * k, -aabb.position.y * k, -(aabb.position.z + aabb.size.z * 0.5) * k)
 		var ap2 := body.find_child("AnimationPlayer", true, false) as AnimationPlayer
