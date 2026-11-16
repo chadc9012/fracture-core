@@ -81,6 +81,7 @@ var hud: Control
 var _obj_box: VBoxContainer
 var _sub_name: Label
 var _sub_text: Label
+var _sub_box: PanelContainer
 var _prompt: Label
 var _ammo: Label
 var _hp_bar: ProgressBar
@@ -172,6 +173,7 @@ func _ready() -> void:
 	_cs = Cutscene.new()
 	add_child(_cs)
 	_cs.cam = _cine_cam
+	_cs.clip_exclude.append(op.get_rid())
 	_siren = AudioStreamPlayer.new()
 	_siren.bus = "SFX"
 	_siren.volume_db = -18.0
@@ -1086,6 +1088,7 @@ func _exit_to_street() -> void:
 	_cine_t = 0.0
 	_cine_cam.current = true
 	_title_card.text = "M1 · THE FRACTURE"
+	_fit_hud()
 	_title_card.modulate.a = 0.0
 	await _fade_in()
 
@@ -1606,7 +1609,7 @@ func _say(lines: Array, interrupt := false) -> void:
 		_line_t = 0.0
 	for l in lines:
 		var text := String(l[1])
-		if _sub_text.get_parent().visible and _sub_text.text == text and _line_t > 0.0:
+		if _sub_box.visible and _sub_text.text == text and _line_t > 0.0:
 			continue
 		if _lines.any(func(q: Array) -> bool: return String(q[1]) == text):
 			continue
@@ -1618,13 +1621,13 @@ func _next_line() -> void:
 	if _lines.is_empty():
 		_sub_name.text = ""
 		_sub_text.text = ""
-		_sub_text.get_parent().visible = false
+		_sub_box.visible = false
 		return
 	var l: Array = _lines.pop_front()
 	_sub_name.text = String(l[0]) if String(l[0]) != "PLAYER" else "YOU"
 	_sub_name.add_theme_color_override("font_color", { "NOVA": Color(0.4, 0.9, 1.0), "MARA": Color(1.0, 0.7, 0.4), "ELLIS": GOLD, "BUILDING": Color(1.0, 0.35, 0.3), "NEXUS ALERT": Color(1.0, 0.35, 0.3) }.get(String(l[0]), Color(0.85, 0.85, 0.9)))
 	_sub_text.text = String(l[1])
-	_sub_text.get_parent().visible = true
+	_sub_box.visible = true
 	_line_t = clampf(String(l[1]).length() * 0.06, 2.6, 6.5)
 	# the voiced lines (scripts/cinema/lines.gd): the subtitle stays up as long as the line is spoken
 	var id := Lines.find(String(l[0]), String(l[1]))
@@ -1746,6 +1749,42 @@ static func _place(c: Control, preset: int, left: float, top: float, w: float, h
 	c.offset_right = left + w
 	c.offset_bottom = top + h
 
+## the HUD's wide pieces held inside the screen: on a phone held upright (540 wide) the subtitles, the abilities row,
+## the prompt and the title card were laid out for landscape and ran off both edges (owner's playthrough video, Nov 16)
+func _fit_hud() -> void:
+	if hud == null or not is_inside_tree():
+		return
+	var w := get_viewport_rect().size.x
+	var sw := minf(760.0, w - 24.0)
+	# upright, the line sits above the minimap (bottom left, 170 tall) rather than over it
+	_place(_sub_box, Control.PRESET_CENTER_BOTTOM, -sw * 0.5, -160 if w >= 900.0 else -232, sw, 0)
+	_sub_text.custom_minimum_size = Vector2(sw - 30.0, 0)
+	var aw := minf(590.0, w - 48.0)
+	_place(_abil, Control.PRESET_BOTTOM_RIGHT, -aw - 30.0, -126 if touch else -62, aw, 24)
+	_abil.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if aw < 590.0 else TextServer.AUTOWRAP_OFF
+	_abil.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var pw := minf(500.0, w - 32.0)
+	_place(_prompt, Control.PRESET_CENTER, -pw * 0.5, 60, pw, 30)
+	_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var tw := minf(1000.0, w - 24.0)
+	_place(_title_card, Control.PRESET_CENTER, -tw * 0.5, -60, tw, 90)
+	_place(_location, Control.PRESET_BOTTOM_LEFT, 30, -34, minf(360.0, w - 60.0), 24)
+	_location.clip_text = true
+	fit_font(_title_card, 64, tw)
+
+## the largest size up to `base` at which the label's longest line fits `max_w` (never below `least`)
+static func fit_font(l: Label, base: int, max_w: float, least := 16) -> void:
+	var f := l.get_theme_font("font")
+	var size := base
+	while size > least:
+		var widest := 0.0
+		for line in l.text.split("\n"):
+			widest = maxf(widest, f.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x)
+		if widest <= max_w:
+			break
+		size -= 2
+	l.add_theme_font_size_override("font_size", size)
+
 func _build_hud() -> void:
 	hud = Control.new()
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1808,6 +1847,7 @@ func _build_hud() -> void:
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sub.visible = false
 	hud.add_child(sub)
+	_sub_box = sub
 	var sv := VBoxContainer.new()
 	sub.add_child(sv)
 	_sub_name = _hud_label("", 15, Color(0.4, 0.9, 1.0), sv)
@@ -1834,6 +1874,9 @@ func _build_hud() -> void:
 	_title_card = _hud_label("", 64, Color(1, 1, 1), hud)
 	_place(_title_card, Control.PRESET_CENTER, -500, -60, 1000, 90)
 	_title_card.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_card.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	get_viewport().size_changed.connect(_fit_hud)
+	_fit_hud.call_deferred()
 	# mission complete
 	_complete = PanelContainer.new()
 	_complete.add_theme_stylebox_override("panel", _panel_box(Color(0.02, 0.04, 0.08, 0.9), Color(1.0, 0.82, 0.3, 0.6), 12))

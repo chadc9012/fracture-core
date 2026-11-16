@@ -25,6 +25,8 @@ var tab := "BODY"
 var onboarding := false
 var rig: Node3D
 var cam: Camera3D
+var _svc: SubViewportContainer
+var _panel: PanelContainer
 var turn := -0.75
 var _drag := false
 var _dirty := false
@@ -55,6 +57,7 @@ func _ready() -> void:
 	svc.offset_right = -460
 	svc.gui_input.connect(_stage_input)
 	add_child(svc)
+	_svc = svc
 	var vp := SubViewport.new()
 	Phone.fit_viewport(vp)
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -66,6 +69,7 @@ func _ready() -> void:
 	panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	panel.offset_left = -460
 	add_child(panel)
+	_panel = panel
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 	panel.add_child(col)
@@ -124,6 +128,33 @@ func _ready() -> void:
 	foot.add_child(ok)
 	_rebuild()
 	_fill()
+	get_viewport().size_changed.connect(_fit)
+	_fit()
+
+## landscape: the stage on the left, the panel down the right (460 wide). Upright, that left the stage 80 px and the
+## operator out of sight (owner's playthrough video, Nov 16): the stage takes the top of the screen, the panel the rest.
+func _fit() -> void:
+	if _svc == null or _panel == null:
+		return
+	var s := get_viewport_rect().size
+	var upright := s.y > s.x
+	var split := 0.42
+	_svc.anchor_left = 0.0
+	_svc.anchor_top = 0.0
+	_svc.anchor_right = 1.0
+	_svc.anchor_bottom = split if upright else 1.0
+	_svc.offset_left = 0.0
+	_svc.offset_top = 0.0
+	_svc.offset_right = 0.0 if upright else -460.0
+	_svc.offset_bottom = 0.0
+	_panel.anchor_left = 0.0 if upright else 1.0
+	_panel.anchor_top = split if upright else 0.0
+	_panel.anchor_right = 1.0
+	_panel.anchor_bottom = 1.0
+	_panel.offset_left = 0.0 if upright else -460.0
+	_panel.offset_top = 0.0
+	_panel.offset_right = 0.0
+	_panel.offset_bottom = 0.0
 
 func _stage(vp: SubViewport) -> void:
 	var world := Node3D.new()

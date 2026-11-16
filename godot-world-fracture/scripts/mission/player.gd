@@ -447,7 +447,14 @@ func _shoulder(delta: float) -> void:
 	var side := pitch_pivot.global_transform.basis.x.normalized()
 	var q := PhysicsRayQueryParameters3D.create(from, from + side * 1.0, 1, [get_rid()])
 	var h := get_world_3d().direct_space_state.intersect_ray(q)
-	var want := 0.62
+	# held upright the screen is narrow and the 0.62 m shoulder put the operator at the very edge with the target out of
+	# frame (the Breach fight; owner's playthrough video, Nov 16): the offset narrows with the screen and the arm draws
+	# back a little to show more of the street
+	var vp := get_viewport().get_visible_rect().size
+	var aspect := vp.x / maxf(vp.y, 1.0)
+	var side_max := 0.62 * clampf(aspect / 1.6, 0.35, 1.0)
+	arm.spring_length = 2.5 if aspect >= 1.0 else 3.2
+	var want := side_max
 	if h:
-		want = clampf(from.distance_to(h.position) - 0.38, 0.0, 0.62)
+		want = clampf(from.distance_to(h.position) - 0.38, 0.0, side_max)
 	arm.position.x = want if want < arm.position.x else move_toward(arm.position.x, want, delta * 2.0)
