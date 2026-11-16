@@ -85,7 +85,9 @@ func _init() -> void:
 			var names := inst.find_children("Piece_*", "MeshInstance3D", true, false).map(func(n: Node) -> String: return String(n.name).substr(6))
 			var all := true
 			for pc: String in wanted:
-				all = all and pc in names
+				# the MakeHuman bodies have no hood piece (it stood up in lumps either side of the neck; Nov 16): the hood
+				# is painted round the neck instead
+				all = all and (pc in names or pc == "hood")
 			check("civ-%s-%s carries every garment piece (%d)" % [f, b, names.size()], all)
 			inst.free()
 	# a dressed rig shows exactly its outfit's pieces
