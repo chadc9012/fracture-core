@@ -496,6 +496,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 		preload("res://scripts/thalassia_city.gd").new().build(_world, m, _loc, _h)
 	_build_lamps()
 	Flora.landmark_fx(self)
+	Flora.fracture_set(self)
 	_build_labels()
 	_apply_season()
 	_cam = Camera3D.new()

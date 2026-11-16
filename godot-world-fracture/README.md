@@ -663,3 +663,7 @@ are the dialogue draft's own people speaking its lines (`tier: 3`, talk.gd `CANO
 Nexus plaza once Mission 05's choice is made (`needs: m05_choice`; she greets you by that choice) and Fixer Sable in a
 Neon City alley at night (her jobs pay ×3 and add notoriety). The regions have people too (`people.gd` REGIONS, met in each airport's halls and forecourt, the Verdant Forest on arrival): Pilot Neri, dock hand Coral and vendor Mae at Thalassia Coast; Mechanic Rook, Zahra and Idris at Solmara; Ranger Kest, Anya and Lars at Frostveil; Marshal Draev (who patrols), Ruth and Gus at Obsidian Reach; Kiri, Leilani and Sol at the Azure Isles; the Wanderer, Brann and Ines at the Shattered Expanse; Warden Ilya and Scout Mira in the Verdant Forest. ★ characters speak the dialogue draft's lines by band. Shot: `--shot <png> airport:<code>:land:<s>[:x,y,z:tx,ty,tz]`. Tests: `--script res://tests/npc/npc_test.gd`, `res://tests/npc/npc_play.tscn`. Shots:
 `--shot <png> slicedaywalk:npc=<id>:hour=<h>[:talk]`.
+
+## Distance LODs for the Meshy models
+
+`blender -b -P tools/make_lod.py -- models/buildings/<name>.glb 7000` writes `<name>-lod.glb` beside the model (a quarter of the triangles, no textures); `street_slice.gd prop()` draws the full model within 70 m and the LOD beyond, wearing the full model's materials. Rebuild a LOD after replacing its model. `tests/tools/prim_breakdown.gd -- neon|nexus` prints where a street's triangles come from.

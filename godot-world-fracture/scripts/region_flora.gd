@@ -669,3 +669,71 @@ static func landmark_fx(r: Node) -> void:
 			hg.position = Vector3(at.x, top + 0.2, at.y)
 			r._world.add_child(hg)
 			holos += 1
+
+## The fantasy & dimensional set (asset catalog part 2 §9, scripts/vfx/fracture_set.gd) placed in the Shattered
+## Expanse regions (TASKBOARD §8, "still to place in the Shattered Expanse regions"): each place gets the pieces its
+## board blurb describes — crystal fields round the Prism, the Spire and Refraction Valley, the Shattered Fields'
+## burst of shards with ruins drifting over them, the Void Rifts' hanging slabs, Echo Ruins' ring of broken columns
+## with its conduits, the Ancient Vault's relic case, the Fracture trench's drift of slabs and the Sunken Spire's
+## crystals at the waterline. Budget: one MultiMesh per crystal field, a handful of drifting nodes; nothing on the
+## other regions.
+const FractureSet := preload("res://scripts/vfx/fracture_set.gd")
+const VIOLET := Color(0.72, 0.4, 1.0)
+const CYAN := Color(0.35, 0.9, 1.0)
+const AMBER := Color(1.0, 0.75, 0.35)
+
+static func fracture_set(r: Node) -> void:
+	var id: String = r.map_id
+	if id not in ["crystal-badlands", "shattered-reefs"]:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(id + ":fracture-set")
+	var world: Node3D = r._world
+	var ground := func(x: float, z: float) -> float: return maxf(r._h(x, z), r._water)
+	var n := Phone.crowd()
+	for p in r.m.pois:
+		var pid := String(p.id)
+		var at: Vector2 = r._loc(p.x, p.z)
+		var c := Vector3(at.x, ground.call(at.x, at.y), at.y)
+		match pid:
+			"cb-prism":
+				# the colossal crystal itself, then the field that catches its light
+				var big := MeshInstance3D.new()
+				big.mesh = FractureSet.prism_mesh(3.2, 26.0)
+				big.position = c + Vector3(0, -1.0, 0)
+				big.rotation = Vector3(0.06, rng.randf() * TAU, -0.04)
+				# dark glass with a low glow: at full emission a 26 m prism read as a flat pink block
+				var m := FractureSet._mat(VIOLET.darkened(0.72), 0.08, 0.3)
+				m.emission_enabled = true
+				m.emission = VIOLET
+				m.emission_energy_multiplier = 0.28
+				big.material_override = m
+				world.add_child(big)
+				FractureSet.crystals(world, c, 30.0, int(26 * n) + 8, VIOLET, rng, ground)
+			"cb-spire":
+				FractureSet.crystals(world, c, 36.0, int(22 * n) + 6, CYAN, rng, ground)
+			"cb-valley":
+				FractureSet.crystals(world, c, 60.0, int(40 * n) + 10, CYAN, rng, ground)
+				FractureSet.crystals(world, c + Vector3(70.0, 0, -40.0), 40.0, int(20 * n) + 6, VIOLET, rng, ground)
+			"cb-fields":
+				FractureSet.crystals(world, c, 55.0, int(44 * n) + 12, VIOLET, rng, ground)
+				FractureSet.floating_ruins(world, c + Vector3(0, 14.0, 0), 40.0, int(8 * n) + 3, rng)
+			"cb-rifts":
+				FractureSet.floating_ruins(world, c + Vector3(0, 10.0, 0), 30.0, int(9 * n) + 4, rng, Color(0.16, 0.13, 0.2))
+				FractureSet.crystals(world, c, 24.0, int(10 * n) + 4, Color(0.5, 0.25, 0.9), rng, ground)
+			"cb-mines":
+				FractureSet.crystals(world, c, 20.0, int(10 * n) + 4, AMBER, rng, ground)
+			"sr-ruins":
+				# the ring of broken columns from before the Fracture, its conduits still humming
+				FractureSet.arena_ring(world, c, 18.0, CYAN, rng, ground, 10)
+			"sr-vault":
+				var rc := FractureSet.relic_container(world, c + Vector3(10.0, 0, 6.0), AMBER)
+				rc.position.y = ground.call(rc.position.x, rc.position.z)
+				FractureSet.crystals(world, c, 22.0, int(8 * n) + 3, AMBER, rng, ground)
+			"sr-fracture":
+				FractureSet.floating_ruins(world, c + Vector3(0, 8.0, 0), 34.0, int(9 * n) + 4, rng, Color(0.14, 0.18, 0.22))
+				FractureSet.conduit(world, c + Vector3(-22.0, 4.0, -8.0), c + Vector3(20.0, 7.0, 10.0), CYAN, 0.25)
+			"sr-spire":
+				FractureSet.crystals(world, c, 26.0, int(14 * n) + 5, CYAN, rng, ground)
+			"sr-deep":
+				FractureSet.crystals(world, c, 30.0, int(8 * n) + 3, Color(0.3, 0.5, 1.0), rng, ground)
