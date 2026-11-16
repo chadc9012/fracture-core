@@ -1225,12 +1225,44 @@ func prop(file: String, height: float, pos: Vector3, yaw_deg := 0.0) -> Node3D:
 	var s := height / maxf(aabb.size.y, 0.001)
 	node.scale = Vector3.ONE * s
 	node.position = Vector3(-(aabb.position.x + aabb.size.x * 0.5) * s, -aabb.position.y * s, -(aabb.position.z + aabb.size.z * 0.5) * s)
+	_lod(path, node, holder)
 	holder.position = pos
 	holder.rotation_degrees.y = yaw_deg
 	holder.set_meta("size", aabb.size * s)
 	holder.set_meta("file", file)
 	_root().add_child(holder)
 	return holder
+
+## a distance LOD beside the model (`<name>-lod.glb`, tools/make_lod.py): the full model within LOD_M, the LOD beyond,
+## wearing the full model's materials surface for surface (the LOD file carries none, so no second 4K texture set).
+## The Meshy buildings are 22-30k triangles each and a street shows twenty: the far ones at a quarter of that.
+const LOD_M := 70.0
+func _lod(path: String, full: Node3D, holder: Node3D) -> void:
+	var lp := path.get_basename() + "-lod.glb"
+	if not ResourceLoader.exists(lp):
+		return
+	if not _cache.has(lp):
+		_cache[lp] = load(lp)
+	var lod := (_cache[lp] as PackedScene).instantiate() as Node3D
+	lod.scale = full.scale
+	lod.position = full.position
+	holder.add_child(lod)
+	var fm := full.find_children("*", "MeshInstance3D", true, false)
+	var lm := lod.find_children("*", "MeshInstance3D", true, false)
+	for i in lm.size():
+		var l := lm[i] as MeshInstance3D
+		if i < fm.size():
+			var f := fm[i] as MeshInstance3D
+			for si in mini(l.mesh.get_surface_count(), f.mesh.get_surface_count()):
+				l.set_surface_override_material(si, f.get_active_material(si))
+		l.visibility_range_begin = LOD_M
+		l.visibility_range_begin_margin = 6.0
+		l.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	for f in fm:
+		var fi := f as MeshInstance3D
+		fi.visibility_range_end = LOD_M
+		fi.visibility_range_end_margin = 6.0
+		fi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 ## scale a hull's children so its longest axis is `length` metres, resting on y = 0
 static func _fit_length(hull: Node3D, length: float) -> void:

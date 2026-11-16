@@ -67,7 +67,7 @@ static func batch(root: Node3D, cell := -1.0) -> Dictionary:
 				var o := mi.get_surface_override_material(s)
 				over += ":" + (_look(o) if o else "")
 			var mo := mi.material_override
-			var key2 := "%d|%s|%s|%d|%d|%d|%d" % [mi.mesh.get_rid().get_id(), over, _look(mo) if mo else "", at2.x, at2.y, int(mi.cast_shadow), int(mi.visibility_range_end)]
+			var key2 := "%d|%s|%s|%d|%d|%d|%d|%d" % [mi.mesh.get_rid().get_id(), over, _look(mo) if mo else "", at2.x, at2.y, int(mi.cast_shadow), int(mi.visibility_range_end), int(mi.visibility_range_begin)]
 			if not copies.has(key2):
 				copies[key2] = { "mi0": mi, "list": [] }
 			copies[key2].list.append(xf)
@@ -132,6 +132,11 @@ static func batch(root: Node3D, cell := -1.0) -> Dictionary:
 		var size := mi0.get_aabb().size * mi0.global_transform.basis.get_scale()
 		if maxf(size.x, maxf(size.y, size.z)) < Phone.shadowless_below():
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if mi0.visibility_range_begin > 0.0:
+			# a distance LOD (street_slice.gd _lod): it starts where the full model stops
+			mmi.visibility_range_begin = mi0.visibility_range_begin
+			mmi.visibility_range_begin_margin = mi0.visibility_range_begin_margin
+			mmi.visibility_range_fade_mode = mi0.visibility_range_fade_mode
 		if mi0.visibility_range_end > 0.0:
 			mmi.visibility_range_end = minf(mi0.visibility_range_end, Phone.dressing_range()) if mi0.visibility_range_end <= 140.0 else mi0.visibility_range_end
 			mmi.visibility_range_end_margin = mi0.visibility_range_end_margin
