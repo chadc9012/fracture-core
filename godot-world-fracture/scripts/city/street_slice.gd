@@ -223,6 +223,7 @@ func _ready() -> void:
 	_dressing()
 	_street_set()
 	_meshy_props()
+	_meshy_fauna()
 	_hub_dressing()
 	if style != "coast":
 		_doors()
@@ -1639,6 +1640,84 @@ func _meshy_props() -> int:
 			if prop(SET + String(row.file), float(row.h), Vector3(x, 0.18, z), yaw):
 				n += 1
 	return n
+
+# --------------------------------------------------------------------------------------------- the Meshy city animals
+## The Meshy upgrade's city animals (docs/reference/MESHY_UPGRADE.md batch 3, owner Nov 15 "add everything to game"):
+## pigeons pecking on the walks, a crow on the kerb, a cat and a dog by the buildings, a rat and a raccoon by the
+## dumpsters, a squirrel by the planters, gulls on the coast. Each is placed per tile when its GLB is in models/animals
+## (a missing file places nothing). Rows: file, height in metres, the tile-local spots [side, z, out from the kerb (0) or
+## in from the building line (1)], how many in a flock, and whether it pecks. The animals (fitted, nose +z) are never
+## batched: each carries a Peck node, a small head-down bob and turn, so they read as alive.
+const ANIMALS := "res://models/animals/"
+const MESHY_FAUNA := [
+	{ "file": "pigeon.glb", "h": 0.3, "spots": [[1.0, -88.0, 0], [-1.0, 12.0, 0], [1.0, 72.0, 0]], "flock": 4, "peck": true, "styles": ["nexus", "neon"] },
+	{ "file": "crow.glb", "h": 0.35, "spots": [[-1.0, -58.0, 0]], "flock": 1, "peck": true, "styles": ["nexus", "neon"] },
+	{ "file": "cat.glb", "h": 0.3, "spots": [[-1.0, 36.0, 1]], "flock": 1, "peck": false, "styles": ["nexus"] },
+	{ "file": "shepherd.glb", "h": 0.65, "spots": [[1.0, -18.0, 1]], "flock": 1, "peck": false, "styles": ["nexus"] },
+	{ "file": "terrier.glb", "h": 0.35, "spots": [[-1.0, 94.0, 1]], "flock": 1, "peck": false, "styles": ["nexus", "neon"] },
+	{ "file": "rat.glb", "h": 0.12, "spots": [[1.0, -121.0, 1], [-1.0, 115.0, 1]], "flock": 1, "peck": true, "styles": ["nexus", "neon"] },
+	{ "file": "raccoon.glb", "h": 0.35, "spots": [[-1.0, 121.0, 1]], "flock": 1, "peck": false, "styles": ["nexus", "neon"] },
+	{ "file": "squirrel.glb", "h": 0.22, "spots": [[1.0, 52.0, 0]], "flock": 1, "peck": true, "styles": ["nexus"] },
+	{ "file": "seagull.glb", "h": 0.35, "spots": [[1.0, -60.0, 0], [-1.0, 40.0, 0]], "flock": 3, "peck": true, "styles": ["coast"] },
+]
+
+func _meshy_fauna() -> int:
+	var half := ROAD_W * 0.5
+	var n := 0
+	for row in MESHY_FAUNA:
+		if not (row.styles as Array).has(style):
+			continue
+		var path := ANIMALS + String(row.file)
+		if not ResourceLoader.exists(path):
+			continue
+		if not _cache.has(path):
+			_cache[path] = load(path)
+		for spot: Array in row.spots:
+			var side: float = spot[0]
+			var z: float = spot[1]
+			if _tile_k == 0 and side > 0.0 and absf(z - GARAGE_Z) < 16.0:
+				continue
+			if _in_mouth(side, z):
+				continue
+			var x := side * (half + 1.6) if int(spot[2]) == 0 else side * (half + WALK_W - 0.9)
+			for k in int(row.flock):
+				var a := Peck.new()
+				a.peck = bool(row.peck)
+				var body := (_cache[path] as PackedScene).instantiate() as Node3D
+				a.add_child(body)
+				var aabb := _aabb(body)
+				var sc := float(row.h) / maxf(aabb.size.y, 0.001)
+				body.scale = Vector3.ONE * sc
+				body.position = Vector3(-(aabb.position.x + aabb.size.x * 0.5) * sc, -aabb.position.y * sc, -(aabb.position.z + aabb.size.z * 0.5) * sc)
+				var jx := _rng.randf_range(-0.7, 0.7) if int(row.flock) > 1 else 0.0
+				var jz := _rng.randf_range(-1.2, 1.2) if int(row.flock) > 1 else 0.0
+				a.position = Vector3(x + jx, 0.18, z + jz)
+				a.rotation.y = _rng.randf_range(-PI, PI)
+				a.phase = _rng.randf_range(0.0, 10.0)
+				a.set_meta("dynamic", true)
+				# small and ~10k triangles each: drawn only near (a pigeon at 30 m is a few pixels)
+				for mi: MeshInstance3D in body.find_children("*", "MeshInstance3D", true, false):
+					mi.visibility_range_end = 22.0 + float(row.h) * 30.0
+					mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if float(row.h) < 0.4 else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+				_root().add_child(a)
+				n += 1
+	return n
+
+## a city animal standing about: a slow look round, and for the pecking birds (and the rat) a quick head-down dip
+class Peck extends Node3D:
+	var peck := false
+	var phase := 0.0
+	var _yaw0 := 0.0
+	func _ready() -> void:
+		_yaw0 = rotation.y
+	func _process(dt: float) -> void:
+		phase += dt
+		rotation.y = _yaw0 + sin(phase * 0.35) * 0.6
+		if peck:
+			var dip := maxf(0.0, sin(phase * 2.6)) ** 6
+			rotation.x = dip * 0.45
+		else:
+			rotation.x = 0.0
 
 # --------------------------------------------------------------------------------------------- the street set
 ## The Meshy street set from the owner's Nov 8 renders (docs/reference/NEXUS_STREET_SET.md; models/city/street): neon

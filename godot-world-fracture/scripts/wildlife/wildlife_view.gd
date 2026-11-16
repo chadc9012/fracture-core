@@ -46,6 +46,7 @@ func populate(centre: Vector2, radius := 160.0) -> void:
 	for i in 2:
 		_group("DEER", spot.call(40.0, radius, false), 3 + i)
 	_group("BOAR", spot.call(50.0, radius, false), 3)
+	_group("HORSE", spot.call(60.0, radius, false), 2, 5.0)   # wild horses (the Meshy horse, models/animals/horse.glb)
 	_group("RABBIT", spot.call(25.0, 80.0, false), 4, 3.0)
 	_one("FOX", spot.call(30.0, radius, false))
 	_group("WOLF", spot.call(90.0, radius, false), 3, 3.0)

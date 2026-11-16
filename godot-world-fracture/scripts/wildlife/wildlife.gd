@@ -16,6 +16,7 @@ enum St { IDLE, GRAZE, WANDER, ALERT, FLEE, GROUND, FLY, SOAR, SWIM, STALK, CHAS
 
 const SPECIES := {
 	"DEER": { "loco": Loco.GROUND, "walk": 1.3, "run": 9.0, "alert": 34.0, "flee": 18.0, "home": 26.0, "stride": 1.4, "stride_run": 4.2, "pause": [2.0, 6.0], "grazes": true, "predator": false, "night": false, "size": 1.0, "body": Vector3(0.6, 1.0, 1.7), "color": Color(0.55, 0.4, 0.26) },
+	"HORSE": { "loco": Loco.GROUND, "walk": 1.5, "run": 11.0, "alert": 30.0, "flee": 16.0, "home": 30.0, "stride": 1.8, "stride_run": 5.0, "pause": [3.0, 8.0], "grazes": true, "predator": false, "night": false, "size": 1.0, "body": Vector3(0.6, 1.65, 2.3), "color": Color(0.5, 0.3, 0.16) },
 	"BOAR": { "loco": Loco.GROUND, "walk": 1.0, "run": 7.5, "alert": 22.0, "flee": 10.0, "home": 20.0, "stride": 0.9, "stride_run": 2.4, "pause": [2.0, 7.0], "grazes": true, "predator": false, "night": true, "size": 1.0, "body": Vector3(0.6, 0.7, 1.3), "color": Color(0.25, 0.2, 0.17) },
 	"RABBIT": { "loco": Loco.GROUND, "walk": 0.8, "run": 6.5, "alert": 14.0, "flee": 7.0, "home": 10.0, "stride": 0.5, "stride_run": 1.6, "pause": [1.5, 5.0], "grazes": true, "predator": false, "night": false, "size": 1.0, "body": Vector3(0.25, 0.3, 0.45), "color": Color(0.5, 0.45, 0.4) },
 	"FOX": { "loco": Loco.GROUND, "walk": 1.1, "run": 7.0, "alert": 24.0, "flee": 12.0, "home": 30.0, "stride": 0.9, "stride_run": 2.4, "pause": [2.0, 5.0], "grazes": false, "predator": false, "night": false, "size": 1.0, "body": Vector3(0.3, 0.45, 1.0), "color": Color(0.8, 0.4, 0.15) },
