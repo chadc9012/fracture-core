@@ -102,6 +102,8 @@ static func _dress_mat(mat: StandardMaterial3D, k: String, paint: int) -> Standa
 	_dressed[key] = m
 	return m
 
+const STREET_LOD_BIAS := 0.3
+
 ## repaint and detail a parked car (after StaticBatch.compact, which folds it to one mesh per material)
 static func dress(car: Node3D, paint := -1) -> void:
 	if paint < 0:
@@ -109,6 +111,9 @@ static func dress(car: Node3D, paint := -1) -> void:
 	car.set_meta("paint", String(PALETTE[paint][0]))
 	for n in car.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
+		# the board models are 100k triangles for the garage and the chase camera; on the street they step down to their
+		# import LODs a lot sooner (a parked row of them was ~5 M triangles a frame with shadows)
+		mi.lod_bias = STREET_LOD_BIAS
 		if mi.mesh == null:
 			continue
 		if mi.material_override:

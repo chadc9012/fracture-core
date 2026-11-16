@@ -73,7 +73,7 @@ if n > tris:
     bpy.ops.object.modifier_apply(modifier="dec")
 n2 = sum(len(p.vertices) - 2 for p in ob.data.polygons)
 
-# textures: base colour at TEX (4096 keeps paint lines and decals crisp up close), normal at half, metal/rough at a quarter
+# textures: base colour at TEX (4096 keeps paint lines and decals crisp up close), normal at a quarter, metal/rough an eighth
 mat = ob.data.materials[0]
 role = {}
 for node in mat.node_tree.nodes:
@@ -83,7 +83,7 @@ for node in mat.node_tree.nodes:
             role[node.image.name] = "base" if "base color" in sock else ("normal" if l.to_node.type == "NORMAL_MAP" else "mr")
 for img in bpy.data.images:
     r = role.get(img.name, "mr")
-    edge = tex if r == "base" else (tex // 2 if r == "normal" else tex // 4)
+    edge = tex if r == "base" else (tex // 4 if r == "normal" else tex // 8)   # phone memory: paint carries the look
     if img.size[0] > edge:
         img.scale(edge, edge)
 

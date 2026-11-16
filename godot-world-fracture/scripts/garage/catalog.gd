@@ -7,34 +7,68 @@ extends RefCounted
 ## One coherent system in place of the six Unity prototype packages (106 C# scripts with several parallel order, checkout and
 ## save paths): one catalog, one order, one checkout, one save.
 
-## the cars a garage can work on, from the web game's fleet models (public/models/fleet -> res://models/fleet)
+## the cars a garage can work on. Since Nov 15 the street racer, muscle car, tuner, 4x4, SUV and hoverbike files hold the
+## owner's approved roster vehicles (Neon Drift, Rift Runner, Blue Underglow, Goliath-4x4 Apex, Ironclad Scout, Ghost-Ray),
+## made in Meshy from the roster board and fitted by tools/vehicle_set.py; the ids stay so saves keep their cars
 ## stats are 0..100: top speed, acceleration, handling, armour
 const VEHICLES := [
 	# a detailed, realistic model (Khronos glTF sample "Car Concept", CC-BY 4.0 — credited in CREDITS.md; simplified for the
 	# phone by gltfpack and fitted to Godot by tools/fix_glb_materials.py)
 	{ "id": "aurora-gt", "name": "Aurora GT", "cls": "super", "model": "res://models/fleet/concept-gt.glb", "paint": "#b3121a", "stats": { "speed": 84, "accel": 80, "handling": 74, "armor": 16 } },
-	{ "id": "street-racer", "name": "Vex GT Street Racer", "cls": "super", "model": "res://models/fleet/street-racer-lod.glb", "paint": "#c8102e", "stats": { "speed": 78, "accel": 74, "handling": 70, "armor": 18 } },
-	{ "id": "muscle-car", "name": "Rift Runner Muscle", "cls": "muscle", "model": "res://models/fleet/muscle-car-lod.glb", "paint": "#d9dde2", "stats": { "speed": 70, "accel": 72, "handling": 52, "armor": 26 } },
-	{ "id": "tuner", "name": "Kaido Street Tuner", "cls": "street", "model": "res://models/fleet/tuner.glb", "paint": "#2a5bd7", "stats": { "speed": 58, "accel": 60, "handling": 66, "armor": 20 } },
-	{ "id": "offroad-truck", "name": "Ironback 4x4", "cls": "offroad", "model": "res://models/fleet/offroad-truck.glb", "paint": "#3d4a2f", "stats": { "speed": 48, "accel": 46, "handling": 44, "armor": 42 } },
-	{ "id": "security-suv", "name": "Bastion Security SUV", "cls": "armored", "model": "res://models/fleet/security-suv.glb", "paint": "#1f2328", "stats": { "speed": 50, "accel": 44, "handling": 46, "armor": 60 } },
-	{ "id": "aether-hoverbike", "name": "Aether Hoverbike", "cls": "bike", "model": "res://models/fleet/aether-hoverbike.glb", "paint": "#5b2be0", "stats": { "speed": 74, "accel": 82, "handling": 76, "armor": 8 } },
+	{ "id": "street-racer", "name": "Neon Drift", "cls": "super", "model": "res://models/fleet/street-racer-lod.glb", "paint": "#c8102e", "stats": { "speed": 78, "accel": 74, "handling": 70, "armor": 18 } },
+	{ "id": "muscle-car", "name": "Rift Runner", "cls": "muscle", "model": "res://models/fleet/muscle-car-lod.glb", "paint": "#d9dde2", "stats": { "speed": 70, "accel": 72, "handling": 52, "armor": 26 } },
+	{ "id": "tuner", "name": "Blue Underglow", "cls": "street", "model": "res://models/fleet/tuner.glb", "paint": "#2a5bd7", "stats": { "speed": 58, "accel": 60, "handling": 66, "armor": 20 } },
+	{ "id": "offroad-truck", "name": "Goliath-4x4 Apex", "cls": "offroad", "model": "res://models/fleet/offroad-truck.glb", "paint": "#3d4a2f", "stats": { "speed": 48, "accel": 46, "handling": 44, "armor": 42 } },
+	{ "id": "security-suv", "name": "Ironclad Scout", "cls": "armored", "model": "res://models/fleet/security-suv.glb", "paint": "#1f2328", "stats": { "speed": 50, "accel": 44, "handling": 46, "armor": 60 } },
+	{ "id": "aether-hoverbike", "name": "Ghost-Ray Hover Bike", "cls": "bike", "model": "res://models/fleet/aether-hoverbike.glb", "paint": "#5b2be0", "stats": { "speed": 74, "accel": 82, "handling": 76, "armor": 8 } },
 ]
 
-## the dealership (owner's Vehicle Showroom, Nov 12, with two packs of vehicle models: "Add all 30 … Add the vehicles to car
-## shopping list some cars can stay for traffic but high end vehicles have to be purchase"). Bought with Nex
-## (dealership.gd); the models were upgraded from the packs' blockouts (bevelled panels, real glass / lamps / paint
-## materials, a proper cabin) by tools/upgrade_vehicle.py (Blender). `cat` is the showroom row; the categories in SHOWROOM_CATS
-## marked `street` also run in traffic and park on the street (locked or not, like any other car) — the rest (hyper,
-## super, sports, classics, bikes) are only ever yours by buying them.
-## (Nov 12: the 30 pack models were pulled at the owner's word — no stand-in or self-built vehicle models; the showroom
-## fills again only with real, detailed models the owner supplies or approves)
-const SHOWROOM := []
+## the dealership (owner's Vehicle Showroom, Nov 12; filled Nov 15 from the owner's vehicle roster boards: "work on vehicles
+## quality ... use reference images ... triple check quality for no pixelization"). Every model was made in Meshy from the
+## board (a clean high-resolution render of each board picture first, then image-to-3D at 4K textures) and fitted by
+## tools/vehicle_set.py: real length, the fleet's facing, a phone triangle budget. Bought with Nex (dealership.gd). `cat` is
+## the showroom row; the rows marked `street` in SHOWROOM_CATS also run in traffic and park on the street — the rest
+## (hyper, super, sports, bikes, military) are only ever yours by buying them.
+const SHOWROOM := [
+	{ "id": "void-chaser", "name": "Void Chaser", "cat": "hyper", "cls": "super", "price": 30000, "model": "res://models/fleet/showroom/void-chaser.glb", "stats": { "speed": 97, "accel": 95, "handling": 84, "armor": 12 } },
+	{ "id": "zenith-v12", "name": "Zenith V12", "cat": "hyper", "cls": "super", "price": 28000, "model": "res://models/fleet/showroom/zenith-v12.glb", "stats": { "speed": 96, "accel": 94, "handling": 82, "armor": 12 } },
+	{ "id": "eclipse-gtr", "name": "Eclipse GT-R", "cat": "hyper", "cls": "super", "price": 27000, "model": "res://models/fleet/showroom/eclipse-gtr.glb", "stats": { "speed": 95, "accel": 94, "handling": 83, "armor": 12 } },
+	{ "id": "venom-rs", "name": "Venom RS", "cat": "super", "cls": "super", "price": 18000, "model": "res://models/fleet/showroom/venom-rs.glb", "stats": { "speed": 90, "accel": 88, "handling": 80, "armor": 14 } },
+	{ "id": "hyperion-x", "name": "Hyperion X", "cat": "super", "cls": "super", "price": 17000, "model": "res://models/fleet/showroom/hyperion-x.glb", "stats": { "speed": 89, "accel": 87, "handling": 81, "armor": 14 } },
+	{ "id": "crimson-z", "name": "Crimson Z", "cat": "sports", "cls": "street", "price": 8500, "model": "res://models/fleet/armored-muscle.glb", "stats": { "speed": 80, "accel": 78, "handling": 80, "armor": 18 } },
+	{ "id": "nightshade", "name": "Nightshade", "cat": "tuner", "cls": "street", "price": 4600, "model": "res://models/fleet/showroom/nightshade.glb", "stats": { "speed": 62, "accel": 64, "handling": 64, "armor": 26 } },
+	{ "id": "civic-rover", "name": "Civic Rover", "cat": "luxury", "cls": "street", "price": 3200, "model": "res://models/fleet/luxury-sedan.glb", "stats": { "speed": 60, "accel": 56, "handling": 60, "armor": 22 } },
+	{ "id": "atlas-overland", "name": "Atlas Overland", "cat": "suv", "cls": "offroad", "price": 5600, "model": "res://models/fleet/showroom/atlas-overland.glb", "stats": { "speed": 56, "accel": 52, "handling": 50, "armor": 44 } },
+	{ "id": "summit-crawler", "name": "Summit Crawler", "cat": "offroad", "cls": "offroad", "price": 6200, "model": "res://models/fleet/showroom/summit-crawler.glb", "stats": { "speed": 54, "accel": 52, "handling": 48, "armor": 48 } },
+	{ "id": "trailblazer-6x6", "name": "Trailblazer 6x6", "cat": "offroad", "cls": "offroad", "price": 7400, "model": "res://models/fleet/tech-transport.glb", "stats": { "speed": 52, "accel": 48, "handling": 44, "armor": 56 } },
+	{ "id": "wasteland-raider", "name": "Wasteland Raider", "cat": "offroad", "cls": "offroad", "price": 6800, "model": "res://models/fleet/showroom/wasteland-raider.glb", "stats": { "speed": 56, "accel": 54, "handling": 48, "armor": 52 } },
+	{ "id": "behemoth-crusher", "name": "Behemoth-Crusher V16", "cat": "offroad", "cls": "offroad", "price": 9800, "model": "res://models/fleet/showroom/behemoth-crusher.glb", "stats": { "speed": 50, "accel": 56, "handling": 40, "armor": 66 } },
+	{ "id": "sandstalker-atv", "name": "Sandstalker ATV", "cat": "offroad", "cls": "offroad", "price": 2600, "model": "res://models/fleet/showroom/sandstalker-atv.glb", "stats": { "speed": 56, "accel": 66, "handling": 70, "armor": 10 } },
+	{ "id": "dune-stalker-trike", "name": "Dune-Stalker Trike", "cat": "offroad", "cls": "offroad", "price": 3000, "model": "res://models/fleet/showroom/dune-stalker-trike.glb", "stats": { "speed": 62, "accel": 68, "handling": 62, "armor": 10 } },
+	{ "id": "nomad-bike", "name": "Nomad Bike", "cat": "bike", "cls": "bike", "price": 3400, "model": "res://models/fleet/showroom/nomad-bike.glb", "stats": { "speed": 80, "accel": 84, "handling": 74, "armor": 6 } },
+	{ "id": "shadow-r1", "name": "Shadow R1", "cat": "bike", "cls": "bike", "price": 4200, "model": "res://models/fleet/showroom/shadow-r1.glb", "stats": { "speed": 86, "accel": 88, "handling": 76, "armor": 6 } },
+	{ "id": "tempest-900", "name": "Tempest 900", "cat": "bike", "cls": "bike", "price": 3800, "model": "res://models/fleet/showroom/tempest-900.glb", "stats": { "speed": 82, "accel": 84, "handling": 78, "armor": 6 } },
+	{ "id": "ravager-chopper", "name": "Ravager Chopper", "cat": "bike", "cls": "bike", "price": 3600, "model": "res://models/fleet/showroom/ravager-chopper.glb", "stats": { "speed": 72, "accel": 70, "handling": 58, "armor": 10 } },
+	{ "id": "aether-bike", "name": "Aether Bike", "cat": "bike", "cls": "bike", "price": 5200, "model": "res://models/fleet/showroom/aether-bike.glb", "stats": { "speed": 88, "accel": 90, "handling": 80, "armor": 6 } },
+	{ "id": "apex-hauler", "name": "Apex Hauler", "cat": "heavy", "cls": "offroad", "price": 6400, "model": "res://models/fleet/showroom/apex-hauler.glb", "stats": { "speed": 46, "accel": 34, "handling": 30, "armor": 60 } },
+	{ "id": "war-rig", "name": "War Rig", "cat": "heavy", "cls": "armored", "price": 12000, "model": "res://models/fleet/war-rig.glb", "stats": { "speed": 48, "accel": 38, "handling": 32, "armor": 80 } },
+	{ "id": "cargo-hauler", "name": "Cargo Hauler", "cat": "truck", "cls": "offroad", "price": 3600, "model": "res://models/fleet/showroom/cargo-hauler.glb", "stats": { "speed": 46, "accel": 38, "handling": 36, "armor": 46 } },
+	{ "id": "fire-rescue", "name": "Fire Rescue", "cat": "heavy", "cls": "offroad", "price": 5800, "model": "res://models/fleet/showroom/fire-rescue.glb", "stats": { "speed": 48, "accel": 40, "handling": 34, "armor": 54 } },
+	{ "id": "metro-bus", "name": "Metro Bus", "cat": "heavy", "cls": "offroad", "price": 4200, "model": "res://models/fleet/showroom/metro-bus.glb", "stats": { "speed": 40, "accel": 30, "handling": 30, "armor": 50 } },
+	{ "id": "service-van", "name": "Service Van", "cat": "van", "cls": "offroad", "price": 2600, "model": "res://models/fleet/showroom/service-van.glb", "stats": { "speed": 46, "accel": 40, "handling": 40, "armor": 36 } },
+	{ "id": "medical-response", "name": "Medical Response", "cat": "van", "cls": "offroad", "price": 3400, "model": "res://models/fleet/showroom/medical-response.glb", "stats": { "speed": 52, "accel": 46, "handling": 42, "armor": 40 } },
+	{ "id": "bastion-apc", "name": "Bastion APC", "cat": "military", "cls": "armored", "price": 24000, "model": "res://models/fleet/showroom/bastion-apc.glb", "stats": { "speed": 48, "accel": 40, "handling": 40, "armor": 88 } },
+	{ "id": "havoc-ifv", "name": "Havoc IFV", "cat": "military", "cls": "armored", "price": 26000, "model": "res://models/fleet/showroom/havoc-ifv.glb", "stats": { "speed": 52, "accel": 46, "handling": 44, "armor": 86 } },
+	{ "id": "revenant-tank", "name": "Revenant Tank", "cat": "military", "cls": "armored", "price": 34000, "model": "res://models/fleet/fracture-behemoth.glb", "stats": { "speed": 40, "accel": 32, "handling": 30, "armor": 96 } },
+	{ "id": "aegis-siege-breaker", "name": "Aegis Siege Breaker", "cat": "military", "cls": "armored", "price": 32000, "model": "res://models/fleet/goliath-tank.glb", "stats": { "speed": 42, "accel": 34, "handling": 32, "armor": 94 } },
+	{ "id": "warden-mech", "name": "Warden Mech", "cat": "military", "cls": "armored", "price": 38000, "model": "res://models/fleet/showroom/warden-mech.glb", "stats": { "speed": 36, "accel": 40, "handling": 46, "armor": 92 } },
+]
 ## showroom rows in order: id, label, whether its cars also drive / park on the street
 const SHOWROOM_CATS := [
-	["hyper", "HYPERCARS", false], ["super", "SUPERCARS", false], ["sports", "SPORTS", false], ["muscle", "MUSCLE", true],
+	["hyper", "HYPERCARS", false], ["super", "SUPERCARS", false], ["sports", "SPORTS", false],
 	["tuner", "TUNERS", true], ["suv", "SUVs", true], ["offroad", "OFF-ROAD", true], ["luxury", "LUXURY", true],
-	["classic", "CLASSICS", false], ["bike", "BIKES", false], ["truck", "TRUCKS", true], ["van", "VANS", true],
+	["bike", "BIKES", false], ["truck", "TRUCKS", true], ["van", "VANS", true],
+	["heavy", "HEAVY", false], ["military", "MILITARY", false],
 ]
 
 static func street_cat(cat: String) -> bool:
@@ -50,6 +84,12 @@ static func street_models() -> Array[String]:
 		if street_cat(String(v.cat)):
 			out.append(String(v.model))
 	return out
+
+## the street's lighter cut of a model (models/fleet/street/: the same 4K textures, ~30 % of the triangles) for traffic
+## and parked cars, so a block of board cars stays a phone-sized scene; the showroom and the garage keep the full model
+static func street_cut(path: String) -> String:
+	var cut := "res://models/fleet/street/" + path.get_file()
+	return cut if ResourceLoader.exists(cut) else path
 
 ## a high-end car: never taken off the street, only bought (the showroom's hyper / super / sports / classics, and the
 ## starter super cars)

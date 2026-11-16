@@ -49,8 +49,15 @@ const BAYS := ["H1", "H2", "H3"]
 const HANGAR_PRICE := 6000
 const AIRCRAFT := {
 	"rift-helicopter": { "name": "Rift-Jumper Attack Helicopter", "price": 8000 },
-	"vanguard-jet": { "name": "Resonant Strike Jet", "price": 15000 },
+	"vanguard-jet": { "name": "F-39 Jupiter", "price": 15000 },
 	"leviathan": { "name": "Leviathan Cargo Airship", "price": 25000 },
+	# the owner's roster boards (Nov 15, Meshy): `model` under models/fleet when it isn't <id>.glb
+	"skyhawk": { "name": "Skyhawk", "price": 6000, "model": "craft/skyhawk.glb" },
+	"valkyrie-vtol": { "name": "Valkyrie VTOL-MkII", "price": 14000, "model": "craft/valkyrie-vtol.glb" },
+	"riftwing": { "name": "Riftwing", "price": 18000, "model": "craft/riftwing.glb" },
+	"solara-falcon": { "name": "Solara Falcon", "price": 20000, "model": "craft/solara-falcon.glb" },
+	"thunderbolt-a7": { "name": "Thunderbolt A-7", "price": 22000, "model": "craft/thunderbolt-a7.glb" },
+	"void-skimmer": { "name": "Void-Skimmer Prototype", "price": 30000 },
 }
 ## where weapons may be out: the airstrip (apron, taxiways, runway) and inside a hangar you own; never landside, in the
 ## terminal, the shops or the gate lounges

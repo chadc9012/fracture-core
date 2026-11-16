@@ -24,6 +24,11 @@ const BY_ID := {
 	"goliath-tank": "TANK", "fracture-behemoth": "TANK", "vanguard-jet": "JET", "ai-interceptor": "JET", "rift-helicopter": "HELI",
 	"leviathan": "AIRSHIP", "scrap-patrol-boat": "BOAT", "hydro-sub-skiff": "SUB", "hover-car": "RACER", "void-skimmer": "JET",
 	"aether-hoverbike": "RACER", "war-rig": "OFFROAD", "tech-transport": "OFFROAD",
+	# the roster boards (Nov 15): showroom military, Skyways craft
+	"revenant-tank": "TANK", "aegis-siege-breaker": "TANK", "warden-mech": "TANK",
+	"skyhawk": "JET", "riftwing": "JET", "solara-falcon": "JET", "thunderbolt-a7": "JET", "nimbus-cargo": "JET",
+	"starliner-shuttle": "JET", "valkyrie-vtol": "HELI", "horizon-dropship": "HELI",
+	"corsair-speedboat": "BOAT", "leviathan-yacht": "BOAT", "abyssal-carrier": "BOAT", "deepfin-explorer": "SUB", "tidehunter-sub": "SUB",
 }
 
 ## the fleet's speed / handling multipliers (vehicles.ts) for the hulls this view flies and sails

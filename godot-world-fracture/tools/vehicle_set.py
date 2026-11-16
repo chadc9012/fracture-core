@@ -2,16 +2,16 @@
 
 Each row: roster id -> (real length in metres, triangle budget, output file under models/fleet/). Rows whose output is
 an existing fleet file replace that model in place, so every street, garage, Skyways and district call keeps working;
-the rest are new files (showroom/, craft/, airliners/). The Meshy downloads are matched to ids in RAW (probe renders).
+the rest are new files (showroom/, craft/, airliners/).
 
-    python3 tools/vehicle_set.py RAW_DIR      # fits every RAW entry with tools/fit_meshy_vehicle.py
+    python3 tools/vehicle_set.py RAW_DIR CHECK_DIR [ids...]   # fits RAW_DIR/<id>.glb, check renders into CHECK_DIR
 """
-import json, os, subprocess, sys
+import json, os, struct, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FLEET = os.path.join(HERE, "..", "models", "fleet")
 
-CAR, BIG, AIR, LINER = 60000, 70000, 70000, 80000
+CAR, BIG, AIR, LINER = 100000, 120000, 120000, 150000
 SET = {
     # ---- in place: the starters, traffic, parked and district vehicles take the boards' models
     "neon-drift": (4.6, CAR, "street-racer-lod.glb"),
@@ -77,31 +77,50 @@ SET = {
     "deepfin-explorer": (10.0, CAR, "craft/deepfin-explorer.glb"),
     "tidehunter-sub": (24.0, CAR, "craft/tidehunter-sub.glb"),
     "abyssal-carrier": (60.0, BIG, "craft/abyssal-carrier.glb"),
-    # ---- the airport fleet's passenger airliners (airport_view.gd picks one per airline)
-    "a320n-aerolink": (37.6, LINER, "airliners/a320n-aerolink.glb"),
-    "b737-atlas": (39.5, LINER, "airliners/b737-atlas.glb"),
-    "a330-solmara-air": (63.7, LINER, "airliners/a330-solmara-air.glb"),
+    # ---- the airport fleet's passenger airliners (airport_view.gd picks one per airline); lengths keep the wingspans inside
+    # the gates the airport was laid out for (the old narrow-body spanned 35 m, the wide-body 55 m)
+    "a320n-aerolink": (38.0, LINER, "airliners/a320n-aerolink.glb"),
+    "b737-atlas": (39.0, LINER, "airliners/b737-atlas.glb"),
+    "a330-solmara-air": (58.0, LINER, "airliners/a330-solmara-air.glb"),
     "b787-dreamliner": (57.0, LINER, "airliners/b787-dreamliner.glb"),
-    "a350-horizon": (66.8, LINER, "airliners/a350-horizon.glb"),
-    "b777-veyron": (73.9, LINER, "airliners/b777-veyron.glb"),
-    "a380-world-fracture": (72.7, LINER, "airliners/a380-world-fracture.glb"),
-    "l1011-tristar": (54.2, LINER, "airliners/l1011-tristar.glb"),
+    "a350-horizon": (58.0, LINER, "airliners/a350-horizon.glb"),
+    "b777-veyron": (58.0, LINER, "airliners/b777-veyron.glb"),
+    "a380-world-fracture": (58.0, LINER, "airliners/a380-world-fracture.glb"),
+    "l1011-tristar": (52.0, LINER, "airliners/l1011-tristar.glb"),
 }
 
-# Meshy download -> [roster id, nose] (nose: which glTF axis end is the front, from the probe renders)
-RAW = {}
+# the Meshy downloads are saved as RAW_DIR/<roster id>.glb; Meshy lays a vehicle along glTF X with the nose at -X
+# (checked on the probe renders), so only the exceptions are listed here
+NOSE = {}
+
+def tris(path):
+    with open(path, "rb") as h:
+        head = h.read(20)
+        j = json.loads(h.read(struct.unpack("<I", head[12:16])[0]))
+    return sum(j["accessors"][p["indices"]]["count"] // 3 for m in j["meshes"] for p in m["primitives"] if "indices" in p)
+
+# Meshy's Ultra models run to 5M triangles, more than Blender can hold in this machine's memory while decimating:
+# gltfpack (meshoptimizer, `npm i gltfpack`) takes them down to about a million first, textures untouched
+GLTFPACK = os.environ.get("GLTFPACK", "gltfpack")
+PRE = 1_000_000
 
 if __name__ == "__main__":
-    raw_dir = sys.argv[1]
-    raw = json.load(open(os.path.join(raw_dir, "raw.json"))) if os.path.exists(os.path.join(raw_dir, "raw.json")) else RAW
-    only = set(sys.argv[2:])
-    for f, (vid, nose) in raw.items():
-        if only and vid not in only:
+    raw_dir, check_dir = sys.argv[1], sys.argv[2]
+    only = set(sys.argv[3:])
+    for f in sorted(os.listdir(raw_dir)):
+        vid = f[:-4]
+        if not f.endswith(".glb") or vid not in SET or (only and vid not in only):
             continue
-        length, tris, out = SET[vid]
+        length, budget, out = SET[vid]
         dst = os.path.join(FLEET, out)
         os.makedirs(os.path.dirname(dst), exist_ok=True)
-        cmd = ["blender", "-b", "-P", os.path.join(HERE, "fit_meshy_vehicle.py"), "--", os.path.join(raw_dir, f), dst,
-               str(length), str(tris), "4096", "--nose", nose]
+        src = os.path.join(raw_dir, f)
+        n = tris(src)
+        if n > PRE * 1.2:
+            pre = os.path.join(tempfile.gettempdir(), vid + ".pre.glb")
+            subprocess.run([GLTFPACK, "-i", src, "-o", pre, "-si", "%.4f" % (PRE / n), "-noq"], check=True, capture_output=True)
+            src = pre
+        cmd = ["blender", "-b", "-P", os.path.join(HERE, "fit_meshy_vehicle.py"), "--", src, dst,
+               str(length), str(budget), "4096", "--nose", NOSE.get(vid, "-x"), "--render", os.path.join(check_dir, vid + ".png")]
         r = subprocess.run(cmd, capture_output=True, text=True)
-        print([l for l in r.stdout.splitlines() if l.startswith("FIT")] or r.stderr[-400:])
+        print([l for l in r.stdout.splitlines() if l.startswith("FIT")] or r.stderr[-400:], flush=True)

@@ -166,6 +166,8 @@ var side := 1.0
 var id := ""
 var accent := Color.WHITE
 
+const Catalog := preload("res://scripts/garage/catalog.gd")
+
 func _init(slice, tile: int, sd: float) -> void:
 	s = slice
 	k = tile
@@ -228,7 +230,7 @@ func vehicle(file: String, length: float, d: float, z: float, yaw := 0.0, y := 0
 	var path := "res://models/fleet/" + file
 	if not ResourceLoader.exists(path):
 		return
-	var hull := (load(path) as PackedScene).instantiate() as Node3D
+	var hull := (load(Catalog.street_cut(path)) as PackedScene).instantiate() as Node3D
 	s._fit_length(hull, length)
 	hull.position = at(d, z, y)
 	hull.rotation_degrees.y = yaw

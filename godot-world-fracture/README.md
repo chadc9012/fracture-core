@@ -18,6 +18,25 @@ rates, gated by your standing there, and checked out all or nothing; repairs, cr
 `user://garage.json`. It merges the design of the owner's Unity garage packages into one system (catalog, order, state, kit,
 view). Rules are tested headless: `godot --headless --path godot-world-fracture --script res://tests/garage_test.gd`.
 
+**Vehicles from the owner's roster boards** (Nov 15: the approved 21, the 61-vehicle roster, the airport fleet; boards and
+per-vehicle crops in `docs/reference/vehicles/`). Every model was made in Meshy from the board: the small board pictures
+were first re-rendered as clean high-resolution studio images (Nano Banana Pro), then image-to-3D (Meshy 7.1, Ultra 2K
+mesh, 4K PBR textures). `tools/vehicle_set.py` fits each download for the game (`tools/fit_meshy_vehicle.py` in Blender,
+gltfpack first for the 2–5 M-triangle ones): real length, the fleet's nose-to-+Z facing, origin on the ground, 100k
+triangles for cars and bikes (120k big vehicles and aircraft, 150k airliners; Godot adds LODs on import), base colour at
+4096 px, normal 1024, metal/roughness 512, plus a check render. The starters, the street's parked and traffic cars, the
+hub's tank, the district War Rig and armoured cars and three Skyways craft keep their ids and file names and now hold the
+board's models (Neon Drift, Rift Runner, Blue Underglow, Goliath-4x4 Apex, Ironclad Scout, Ghost-Ray, Civic Rover,
+Crimson Z, Aegis Siege Breaker, Revenant Tank, Trailblazer 6x6, F-39 Jupiter, Void-Skimmer, Nautilus Abyss); the rest
+fill the dealership (`catalog.gd` SHOWROOM, `models/fleet/showroom/`, rows down to HEAVY and MILITARY), Skyways and the
+airport hangars (`models/fleet/craft/`), and the airliners at every gate (`models/fleet/airliners/`, a narrow- or
+wide-body per flight). Board models carry their own paint, so the garage's PAINT colours don't recolour them yet.
+`tests/garage/dealership_test.gd` checks every vehicle loads with its 4K texture inside the triangle budget.
+Street cuts: traffic, parked cars, district set dressing, the garage ramp and burnt wrecks load `models/fleet/street/<file>`
+(`Catalog.street_cut`), a gltfpack `-si 0.3` copy (~30k triangles) whose images point at the full model's extracted 4K
+jpgs (`tools/street_variant_share.py`), so nothing is stored or loaded twice; the board textures import VRAM-compressed
+(`compress/mode=2`) at full size. Street shot (medium): 5.06M primitives / 2.1 GB video before, 2.94M / 1.06 GB after.
+
 **Driving** (`scripts/driving/`, the DRIVE button on the globe): the garage's six cars in a Nexus City practice district,
 with keyboard, gamepad and on-screen controls, a chase camera, a boulevard and cross avenue (lane lines, zebra crossings,
 kerbs, sidewalks, street lights, buildings), a four-checkpoint lap with best lap per car (`user://drive_records.json`), and

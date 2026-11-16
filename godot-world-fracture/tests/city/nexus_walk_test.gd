@@ -98,7 +98,7 @@ func _run() -> void:
 				showroom_parked += 1
 			if Catalog.high_end(String(c.get_meta("vehicle"))) and not bool(c.get_meta("locked", false)) and not c.has_meta("yours"):
 				high_open += 1
-	ok(showroom_parked == 0, "none of the pulled pack models park on the street (%d)" % showroom_parked)
+	ok(showroom_parked >= 1, "the board's everyday showroom vehicles park on the street (%d)" % showroom_parked)
 	ok(high_open == 0, "no high-end car on the street is unlocked (%d)" % high_open)
 	if locked_car:
 		st.operator.position = locked_car.global_position + Vector3(2.4, 0, 0)

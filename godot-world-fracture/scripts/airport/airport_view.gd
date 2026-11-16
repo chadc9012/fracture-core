@@ -1441,9 +1441,25 @@ func _gates() -> void:
 
 ## an airliner, procedural (no airliner model in the fleet yet): white fuselage, swept wings, two engines, tail in the
 ## airline's colour; nose toward -z, ~40 m long, wheels at y 0
+## the owner's airport fleet board (Nov 15), made in Meshy with their own liveries (tools/vehicle_set.py): narrow-bodies for
+## short hops, wide-bodies for long-haul; an airline always flies the same type, and parked planes vary
+var _liner_n := 0
+const LINERS_NARROW := ["a320n-aerolink", "b737-atlas"]
+const LINERS_WIDE := ["a380-world-fracture", "b777-veyron", "a350-horizon", "b787-dreamliner", "a330-solmara-air", "l1011-tristar"]
+
 func _airliner(tail: Color, name: String, wide := false) -> Node3D:
-	# the authored airliner (scripts/build-airliner.py; `wide` is the ~62 m long-haul), repainted in the airline's colour;
-	# the shapes below if it's missing
+	# a board airliner when it's there (its own livery, nose turned to the old model's -z), else the authored one
+	# (scripts/build-airliner.py; `wide` is the ~62 m long-haul) repainted in the airline's colour, else the shapes below
+	var pool: Array = LINERS_WIDE if wide else LINERS_NARROW
+	var pick := String(pool[(absi(hash(name)) + _liner_n) % pool.size()])
+	_liner_n += 1
+	var liner := _model("res://models/fleet/airliners/%s.glb" % pick)
+	if liner:
+		var lw := Node3D.new()
+		liner.rotation.y = PI
+		lw.add_child(liner)
+		lw.set_meta("liner", pick)
+		return lw
 	var model := _model("res://models/fleet/airliner-wide.glb" if wide else "res://models/fleet/airliner.glb")
 	var k := 1.55 if wide else 1.0
 	if model:
@@ -1640,7 +1656,7 @@ func _hangars() -> void:
 
 func _craft_model(id: String, length: float) -> Node3D:
 	var root := Node3D.new()
-	var m := _model("res://models/fleet/%s.glb" % id)
+	var m := _model("res://models/fleet/%s" % String(Air.AIRCRAFT.get(id, {}).get("model", id + ".glb")))
 	if not m:
 		return root
 	StreetCar.face_forward(m)

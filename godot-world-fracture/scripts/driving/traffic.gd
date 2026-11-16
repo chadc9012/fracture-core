@@ -66,7 +66,7 @@ func _spawn(dir: float, z: float) -> Car:
 	var pool: Array = FILES.duplicate()
 	pool.append_array(Catalog.street_models())
 	var f: String = pool[_rng.randi() % pool.size()]
-	var path := f if f.begins_with("res://") else FLEET + f
+	var path := Catalog.street_cut(f if f.begins_with("res://") else FLEET + f)
 	var node: Node3D
 	if ResourceLoader.exists(path):
 		node = (load(path) as PackedScene).instantiate() as Node3D

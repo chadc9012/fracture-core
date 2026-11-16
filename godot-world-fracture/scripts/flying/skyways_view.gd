@@ -22,11 +22,30 @@ const FLEET := "res://models/fleet/"
 ## the craft on offer: hull file, handling kind, display name, where it starts (poi), fleet speed multiplier
 const CRAFT := {
 	"rift-helicopter": { "name": "Rift-Jumper Attack Helicopter", "kind": "HELI", "poi": "nexus-airport", "length": 14.0 },
-	"vanguard-jet": { "name": "Resonant Strike Jet", "kind": "JET", "poi": "nexus-airport", "length": 17.0 },
+	"vanguard-jet": { "name": "F-39 Jupiter", "kind": "JET", "poi": "nexus-airport", "length": 17.0 },
 	"leviathan": { "name": "Leviathan Cargo Airship", "kind": "AIRSHIP", "poi": "nexus-airport", "length": 42.0 },
 	"scrap-patrol-boat": { "name": "Scrap-Iron Patrol Boat", "kind": "BOAT", "poi": "seaport:nexus", "length": 11.0 },
-	"hydro-sub-skiff": { "name": "Hydro-Sub Skiff", "kind": "SUB", "poi": "seaport:nexus", "length": 9.0 },
+	"hydro-sub-skiff": { "name": "Nautilus Abyss-01", "kind": "SUB", "poi": "seaport:nexus", "length": 9.0 },
+	# the owner's vehicle roster boards (Nov 15), made in Meshy (tools/vehicle_set.py); the jet and the sub above hold the
+	# board's F-39 Jupiter and Nautilus Abyss models under their old ids
+	"skyhawk": { "name": "Skyhawk", "kind": "JET", "poi": "nexus-airport", "length": 8.3, "model": "craft/skyhawk.glb" },
+	"riftwing": { "name": "Riftwing", "kind": "JET", "poi": "nexus-airport", "length": 14.0, "model": "craft/riftwing.glb" },
+	"solara-falcon": { "name": "Solara Falcon", "kind": "JET", "poi": "nexus-airport", "length": 15.0, "model": "craft/solara-falcon.glb" },
+	"void-skimmer": { "name": "Void-Skimmer Prototype", "kind": "JET", "poi": "nexus-airport", "length": 14.0 },
+	"thunderbolt-a7": { "name": "Thunderbolt A-7", "kind": "JET", "poi": "nexus-airport", "length": 16.0, "model": "craft/thunderbolt-a7.glb" },
+	"valkyrie-vtol": { "name": "Valkyrie VTOL-MkII", "kind": "HELI", "poi": "nexus-airport", "length": 17.5, "model": "craft/valkyrie-vtol.glb" },
+	"horizon-dropship": { "name": "Horizon Dropship", "kind": "HELI", "poi": "nexus-airport", "length": 20.0, "model": "craft/horizon-dropship.glb" },
+	"nimbus-cargo": { "name": "Nimbus Cargo", "kind": "JET", "poi": "nexus-airport", "length": 30.0, "model": "craft/nimbus-cargo.glb" },
+	"starliner-shuttle": { "name": "Starliner Shuttle", "kind": "JET", "poi": "nexus-airport", "length": 37.0, "model": "craft/starliner-shuttle.glb" },
+	"corsair-speedboat": { "name": "Corsair Speedboat", "kind": "BOAT", "poi": "seaport:nexus", "length": 12.0, "model": "craft/corsair-speedboat.glb" },
+	"leviathan-yacht": { "name": "Leviathan Yacht", "kind": "BOAT", "poi": "seaport:nexus", "length": 45.0, "model": "craft/leviathan-yacht.glb" },
+	"abyssal-carrier": { "name": "Abyssal Carrier", "kind": "BOAT", "poi": "seaport:nexus", "length": 60.0, "model": "craft/abyssal-carrier.glb" },
+	"deepfin-explorer": { "name": "Deepfin Explorer", "kind": "SUB", "poi": "seaport:nexus", "length": 10.0, "model": "craft/deepfin-explorer.glb" },
 }
+
+## a craft's model file (its own `model` under the fleet folder, else <id>.glb)
+static func model_of(id: String) -> String:
+	return FLEET + String(CRAFT[id].get("model", id + ".glb"))
 const RINGS := 8
 const RING_R := 9.0
 
@@ -83,15 +102,27 @@ func _pick() -> void:
 	sub.custom_minimum_size = Vector2(492, 0)
 	sub.modulate = Color(0.8, 0.85, 0.9)
 	box.add_child(sub)
+	# twenty craft: a scrolling two-column list, so the BACK button stays on screen
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(492, 360)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	scroll.add_child(grid)
 	for id in CRAFT:
 		var c: Dictionary = CRAFT[id]
 		var b := Button.new()
-		b.text = "%s — %s" % [String(c.name).to_upper(), String(c.kind).capitalize()]
-		b.custom_minimum_size = Vector2(0, 52)
+		b.text = "%s\n%s" % [String(c.name).to_upper(), String(c.kind).capitalize()]
+		b.custom_minimum_size = Vector2(238, 60)
+		b.clip_text = true
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.disabled = not ResourceLoader.exists(FLEET + id + ".glb")
+		b.disabled = not ResourceLoader.exists(model_of(id))
 		b.pressed.connect(func(): craft_id = id; _picker.queue_free(); _picker = null; _start())
-		box.add_child(b)
+		grid.add_child(b)
 	var back := Button.new()
 	back.text = "← BACK"
 	back.custom_minimum_size = Vector2(0, 48)
@@ -121,7 +152,7 @@ func _start() -> void:
 	cam.far = 4000.0
 	_boxes = region.building_boxes()
 	# the hull
-	hull = (load(FLEET + craft_id + ".glb") as PackedScene).instantiate() as Node3D
+	hull = (load(model_of(craft_id)) as PackedScene).instantiate() as Node3D
 	StreetCar.face_forward(hull)
 	region.world().add_child(hull)
 	_fit_hull(float(c.length))

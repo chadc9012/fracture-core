@@ -1436,7 +1436,7 @@ func _cars() -> void:
 			var f2 := String(spec[0])
 			if not ResourceLoader.exists(FLEET + f2):
 				continue
-			var hull := (load(FLEET + f2) as PackedScene).instantiate() as Node3D
+			var hull := (load(Catalog.street_cut(FLEET + f2)) as PackedScene).instantiate() as Node3D
 			hull.position = spec[1]
 			hull.rotation_degrees.y = 180.0
 			StreetCar.face_forward(hull)
@@ -1457,7 +1457,7 @@ func _cars() -> void:
 			if is_instance_valid(h) and Vector2(h.position.x - at.x, h.position.z - at.z).length() < 7.5:
 				taken = true
 		if ResourceLoader.exists(fpath) and not taken:
-			var car := (load(fpath) as PackedScene).instantiate() as Node3D
+			var car := (load(Catalog.street_cut(fpath)) as PackedScene).instantiate() as Node3D
 			car.position = at
 			car.rotation_degrees.y = 0.0 if side > 0 else 180.0
 			StreetCar.face_forward(car)
@@ -2081,7 +2081,7 @@ func _garage_front() -> void:
 	# a car up on the ramp and one waiting on the apron
 	for spec in [["tuner.glb", Vector3(x0 + 9.0, 1.45, GARAGE_Z - 4.0), 90.0], ["muscle-car-lod.glb", Vector3(x0 - 2.5, 0.18, GARAGE_Z + 4.0), 30.0]]:
 		if ResourceLoader.exists(FLEET + String(spec[0])):
-			var car := (load(FLEET + String(spec[0])) as PackedScene).instantiate() as Node3D
+			var car := (load(Catalog.street_cut(FLEET + String(spec[0]))) as PackedScene).instantiate() as Node3D
 			car.position = spec[1]
 			car.rotation_degrees.y = float(spec[2])
 			car.set_meta("car", true)

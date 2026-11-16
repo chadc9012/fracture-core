@@ -169,7 +169,7 @@ static func burnt_car(seed := 0, burning := true) -> Node3D:
 	var file: String = WRECKS[posmod(seed, WRECKS.size())]
 	if not ResourceLoader.exists(FLEET + file):
 		return holder
-	var car := (load(FLEET + file) as PackedScene).instantiate() as Node3D
+	var car := (load(load("res://scripts/garage/catalog.gd").street_cut(FLEET + file)) as PackedScene).instantiate() as Node3D
 	holder.add_child(car)
 	var StreetCar = load("res://scripts/driving/street_car.gd")
 	StreetCar.face_forward(car)
