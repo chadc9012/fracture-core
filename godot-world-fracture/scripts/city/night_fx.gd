@@ -274,12 +274,15 @@ static func grade(env: Environment, sun: DirectionalLight3D, sky: Sky, neon_city
 	sky.process_mode = Sky.PROCESS_MODE_AUTOMATIC
 	sky.radiance_size = Sky.RADIANCE_SIZE_64
 	sun.light_color = Color(0.55, 0.65, 1.0)
-	sun.light_energy = 0.35
+	# lifted Nov 15 evening (owner: "why is the night image so dark"): the boards average 45-85 of 255 in luminance
+	# with lit wet roads at 48-85; the street measured 25 overall and 15 on the road. Moonlight, the navy ambient and
+	# the exposure all up — still night, but a night you can see the road in
+	sun.light_energy = 1.2
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.17, 0.18, 0.36) if not neon_city else Color(0.22, 0.14, 0.38)
-	env.ambient_light_energy = 1.45
+	env.ambient_light_color = Color(0.24, 0.26, 0.48) if not neon_city else Color(0.3, 0.2, 0.5)
+	env.ambient_light_energy = 2.9
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.tonemap_exposure = 1.55
+	env.tonemap_exposure = 2.35
 	env.glow_enabled = true
 	env.glow_intensity = 1.0
 	env.glow_strength = 1.1

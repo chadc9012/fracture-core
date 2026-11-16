@@ -39,5 +39,5 @@ shadows/directional_shadow/soft_shadow_filter_quality.mobile=0
 shadows/positional_shadow/soft_shadow_filter_quality.mobile=0
 mesh_lod/lod_change/threshold_pixels=2.0
 scaling_3d/scale=1.0
-textures/default_filters/anisotropic_filtering_level.mobile=1
+textures/default_filters/anisotropic_filtering_level.mobile=2
 environment/defaults/default_clear_color=Color(0.012, 0.027, 0.059, 1)
