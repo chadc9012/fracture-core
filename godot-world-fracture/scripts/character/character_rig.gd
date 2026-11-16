@@ -349,8 +349,7 @@ static func _sample_skin(m: Material) -> Variant:
 		return null
 	img = img.duplicate()
 	img.resize(96, 96, Image.INTERPOLATE_BILINEAR)
-	var sum := Color(0, 0, 0)
-	var n := 0
+	var px: Array[Color] = []
 	for y in 96:
 		for x in 96:
 			var c := img.get_pixel(x, y)
@@ -359,14 +358,30 @@ static func _sample_skin(m: Material) -> Variant:
 			var sat := (mx - mn) / (mx + 1e-4)
 			var lum := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
 			if c.r - c.b > 0.06 and sat > 0.15 and sat < 0.8 and lum > 0.12 and c.b <= c.g + 0.04:
-				sum += c
-				n += 1
-	return Color(sum.r / n, sum.g / n, sum.b / n) if n > 50 else null
+				px.append(c)
+	if px.size() <= 50:
+		return null
+	# the lit skin (forehead, cheeks, nose): the brightest quarter of the skin texels. The mean of all of them took in
+	# the beard shadow, the lips, the ears and the creases, and the hands painted from it came out darker and redder
+	# than the face (Nov 16)
+	px.sort_custom(func(a: Color, b: Color) -> bool: return a.get_luminance() > b.get_luminance())
+	var n := maxi(1, px.size() / 4)
+	var sum := Color(0, 0, 0)
+	for i in n:
+		sum += px[i]
+	return Color(sum.r / n, sum.g / n, sum.b / n)
 
 ## a bare scalp's colour: the chosen skin tone, the head's own skin, or a warm tone at its skin brightness
 func _scalp_tone() -> Color:
 	var tone: Variant = Catalog.swatch("skin", look.skin)
 	if tone != null:
+		# the face is the swatch scaled by the head texture's brightness over its skin_lum (skin_shader.gd); the hands
+		# and a bare scalp took the plain swatch and came out far darker than the face (owner's video, Nov 16)
+		if _tex_skin != null and _skin_lum > 0.0:
+			var t: Color = (_tex_skin as Color).srgb_to_linear()
+			var l := 0.3 * t.r + 0.59 * t.g + 0.11 * t.b
+			var lin := (tone as Color).srgb_to_linear() * clampf(l / _skin_lum, 0.0, 2.2)
+			return Color(minf(lin.r, 1.0), minf(lin.g, 1.0), minf(lin.b, 1.0)).linear_to_srgb()
 		return tone
 	if _tex_skin != null:
 		return _tex_skin

@@ -162,7 +162,25 @@ bpy.ops.object.select_all(action="DESELECT")
 new.select_set(True)
 arm.select_set(True)
 bpy.context.view_layer.objects.active = arm
-bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+if MPFB:
+    # MakeHuman's own weights, matched to each vertex by position (bone heat failed on some MakeHuman bodies)
+    from mathutils.kdtree import KDTree
+    src_p = MHD["body_v"]
+    kd = KDTree(len(src_p))
+    for i_, p_ in enumerate(src_p):
+        kd.insert(Vector(p_.tolist()), i_)
+    kd.balance()
+    wn = [str(x) for x in MHD["w_names"]]
+    groups = {n_: new.vertex_groups.new(name=n_) for n_ in wn}
+    mw_ = new.matrix_world
+    for v in new.data.vertices:
+        _, j, _ = kd.find(mw_ @ v.co)
+        for b_, w_ in zip(MHD["w_idx"][j], MHD["w_val"][j]):
+            if w_ > 1e-4:
+                groups[wn[int(b_)]].add([v.index], float(w_), "REPLACE")
+    bpy.ops.object.parent_set(type="ARMATURE_NAME")
+else:
+    bpy.ops.object.parent_set(type="ARMATURE_AUTO")
 for md in list(new.modifiers):
     new.modifiers.remove(md)
 new.parent = None

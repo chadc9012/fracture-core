@@ -294,7 +294,8 @@ static func opening(m: Node) -> Array:
 			"on": [[0.0, func() -> void: m._set_world(true); m._cine_cam.current = true]],
 			"title": ["NEXUS CITY", "06 : 47  ·  THE LAST ORDINARY MORNING"], "title_at": 1.6, "title_for": 5.5,
 			"lines": ["M01X_RADIO_01"], "line_at": 2.2 },
-		{ "dur": 6.0, "pos": [Vector3(-6.0, 9.0, 34.0), Vector3(-9.5, 6.0, 8.0)], "look": [Vector3(-14.2, 8.0, -18.0), Vector3(-14.2, 14.0, -22.0)], "fov": 46.0,
+		# down the avenue over the road, clear of the palm crowns on the kerb (it flew through them; Nov 16)
+		{ "dur": 6.0, "pos": [Vector3(-1.5, 8.5, 34.0), Vector3(-4.0, 6.5, 8.0)], "look": [Vector3(-14.2, 8.0, -18.0), Vector3(-14.2, 14.0, -22.0)], "fov": 46.0,
 			"fade_out": 0.8 },
 		# the apartment: the alarm going, across the living room into the bedroom, the operator still asleep
 		{ "dur": 7.5, "fade_in": 0.8,

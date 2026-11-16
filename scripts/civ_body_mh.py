@@ -204,7 +204,10 @@ for name, pairs in wts.items():
             foot_w[int(i)] += float(w)
 head_w /= total
 foot_w /= total
-keep_faces = [f for f in faces if all(head_w[i] < 0.5 for i in f)]
+# the neck runs up into the head (the creator's head sits on the Head bone and its own neck stub is short): cut at a
+# height just over the skull's base, not by weight (that left a gap under the jaw and the head floated; Nov 16)
+cut_z = float(B["Head"][0][2]) + 0.03 * H
+keep_faces = [f for f in faces if not all(Wv[i][2] > cut_z for i in f) and not all(head_w[i] > 0.97 for i in f)]
 tris = []
 for f in keep_faces:
     for k in range(1, len(f) - 1):
@@ -255,5 +258,17 @@ e = np.zeros((0, 3))
 # where the thighs now hang from: the builder moves the civ skeleton's hip joints there, so the stance and the walk
 # turn the thighs about the same point the body bends at
 UPLEGS = np.array([TARGET["LeftUpLeg"][0], TARGET["RightUpLeg"][0]])
-np.savez(OUT, upleg_heads=UPLEGS, body_v=P, body_f=T, hands_v=e, hands_f=np.zeros((0, 3), int), hood_v=e, hood_f=np.zeros((0, 3), int))
+# MakeHuman's own skin weights for our bones (the four largest per vertex, normalised): Blender's bone heat solve
+# failed on some of these bodies (half the slim man bound to the head and the thumbs; Nov 16)
+names = sorted(n for n in wts if n.replace("mixamorig:", "") in B)
+col = {n: k for k, n in enumerate(names)}
+dense = np.zeros((len(Wv), len(names)))
+for n in names:
+    for i, w in wts[n]:
+        dense[int(i), col[n]] += float(w)
+dense = dense[used]
+top = np.argsort(-dense, axis=1)[:, :4]
+val = np.take_along_axis(dense, top, axis=1)
+val = val / np.maximum(val.sum(axis=1, keepdims=True), 1e-9)
+np.savez(OUT, upleg_heads=UPLEGS, w_names=np.array(names), w_idx=top, w_val=val, body_v=P, body_f=T, hands_v=e, hands_f=np.zeros((0, 3), int), hood_v=e, hood_f=np.zeros((0, 3), int))
 print("mh body", len(P), "verts", len(T), "tris; build", BUILD, SEX, "muscle", MUSCLE, "weight", WEIGHT)

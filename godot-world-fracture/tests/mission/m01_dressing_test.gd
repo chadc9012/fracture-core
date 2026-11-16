@@ -44,6 +44,10 @@ func _run() -> void:
 	check(towers >= 12, "windows: the skyline is the Meshy towers (%d)" % towers)
 	check(_count_file(m.int_root, "../props-ph/armchair.glb") >= 13, "rooms: the armchairs and the lounge's ten seats are the Poly Haven chair (%d)" % _count_file(m.int_root, "../props-ph/armchair.glb"))
 	check(_count_file(m.int_root, "../foliage/palm-b.glb") >= 6, "rooms: the plants are the Meshy fan palm (%d)" % _count_file(m.int_root, "../foliage/palm-b.glb"))
+	# the people: built, in their own clothes (woman.glb was torn, man.glb untextured)
+	for id: String in ["mara", "res1", "res2"]:
+		var n: Node = m._npcs.get(id)
+		check(n != null and n.get("look") != null and bool(n.look.get("civ", false)), "people: %s is a built person in their own clothes" % id)
 	# sound between the cinematics
 	m.room = "apt"
 	m.story.phase = "MORNING"

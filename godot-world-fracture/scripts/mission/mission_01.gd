@@ -797,7 +797,7 @@ func _lounge() -> void:
 		var d := _solid(Vector3(randf_range(0.6, 1.4), randf_range(0.2, 0.5), randf_range(0.6, 1.4)), c + Vector3(6.0 + randf_range(-1, 1), 0.2, -4.0 + randf_range(-1, 1)), Materials.pbr("brushed_concrete", Color(0.6, 0.6, 0.62), 1.0))
 		d.rotation = Vector3(randf() * 0.4, randf() * PI, randf() * 0.4)
 	# Mara, trapped by the seats; the stairs on down
-	_person("mara_trapped", "woman.glb", c + Vector3(-4.6, 0, 0.6), PI * 0.2, func() -> void: _npc("mara_trapped", "f-athletic", "female", "nyx", c + Vector3(-4.6, 0, 0.6), PI * 0.2))
+	_person("mara_trapped", "woman.glb", c + Vector3(-4.6, 0, 0.6), PI * 0.2, func() -> void: _npc("mara_trapped", "f-athletic", "female", "nyx", c + Vector3(-4.6, 0, 0.6), PI * 0.2, "pastel-set"))
 	_interact("lounge", c + Vector3(-4.6, 0, 0.6), 2.0, "Free Mara", func() -> void:
 		_say(story.rescue())
 		_update_hud()
@@ -847,7 +847,7 @@ func _lobby() -> void:
 	_armchair(c + Vector3(-3.6, 0, 4.2), -120.0, Color(0.55, 0.53, 0.56))
 	_armchair(c + Vector3(-10.4, 0, 3.4), 120.0, Color(0.55, 0.53, 0.56))
 	_solid(Vector3(1.8, 0.4, 1.0), c + Vector3(-6.6, 0.2, 4.8), _stone_top())
-	_person("mara", "woman.glb", c + Vector3(-5.0, 0, 5.2), PI * 0.8, func() -> void: _npc("mara", "f-athletic", "female", "nyx", c + Vector3(-5.0, 0, 5.2), PI * 0.8))
+	_person("mara", "woman.glb", c + Vector3(-5.0, 0, 5.2), PI * 0.8, func() -> void: _npc("mara", "f-athletic", "female", "nyx", c + Vector3(-5.0, 0, 5.2), PI * 0.8, "pastel-set"))
 	_interact("lobby", c + Vector3(-5.0, 0, 5.2), 2.0, "Say hi to Mara", func() -> void: _say([["MARA", "Morning, neighbor! Coffee in the Sky Lounge later? Eleventh floor. Don't be late."]]), func() -> bool: return story.phase == "MORNING", "neighbour")
 	# the mail room alcove (west wall): a grid of lockers
 	_solid(Vector3(0.6, 3.0, 6.0), c + Vector3(-12.6, 1.5, -2.0), flat(Color(0.2, 0.2, 0.22), 0.4, 0.6))
@@ -892,8 +892,8 @@ func _lobby() -> void:
 	var r := RandomNumberGenerator.new()
 	r.seed = 4
 	if ResourceLoader.exists(MODELS + "man.glb"):
-		_person("res1", "man.glb", c + Vector3(-1.5, 0, 2.5), 2.4, Callable())
-		_person("res2", "woman.glb", c + Vector3(3.5, 0, 4.0), -2.2, Callable())
+		_person("res1", "man.glb", c + Vector3(-1.5, 0, 2.5), 2.4, func() -> void: _npc("res1", "m-older", "male", "goliath", c + Vector3(-1.5, 0, 2.5), 2.4, "npc-elder"))
+		_person("res2", "woman.glb", c + Vector3(3.5, 0, 4.0), -2.2, func() -> void: _npc("res2", "f-latina", "female", "cipher", c + Vector3(3.5, 0, 4.0), -2.2, "npc-summer"))
 	for k in (0 if ResourceLoader.exists(MODELS + "man.glb") else 3):
 		var mi := MeshInstance3D.new()
 		mi.mesh = Casino.figure(0, k % 2 == 0)
@@ -905,8 +905,12 @@ func _lobby() -> void:
 		world.add_child(mi)
 
 ## a Meshy person (models/city/<file>, rigged with an idle when Meshy animated it), or the fallback
+## the Meshy people that came apart: woman.glb is torn triangles, man.glb has lost its textures (owner's playthrough
+## video and the lobby look-dev, Nov 16) — Mara and the residents are built people in their own clothes instead
+const BROKEN_PEOPLE := ["woman.glb", "man.glb"]
+
 func _person(id: String, file: String, at: Vector3, yaw: float, fallback: Callable) -> void:
-	var h := prop(file, 1.78 if file != "concierge.glb" else 1.82, at, rad_to_deg(yaw))
+	var h: Node3D = null if file in BROKEN_PEOPLE else prop(file, 1.78 if file != "concierge.glb" else 1.82, at, rad_to_deg(yaw))
 	if not h:
 		if fallback.is_valid():
 			fallback.call()
@@ -924,10 +928,15 @@ func _person(id: String, file: String, at: Vector3, yaw: float, fallback: Callab
 			a.play(nm)
 			a.seek(randf() * 1.5, true)
 
-func _npc(id: String, face: String, body: String, frame: String, at: Vector3, yaw: float) -> void:
+func _npc(id: String, face: String, body: String, frame: String, at: Vector3, yaw: float, outfit := "") -> void:
 	var rig := Rig.new()
 	world.add_child(rig)
-	rig.build(CStore.clean({"frame": frame, "body": body, "face": face}, true))
+	var lk := CStore.clean({"frame": frame, "body": body, "face": face}, true)
+	if outfit != "":
+		# a neighbour at home in the morning: their own clothes, not an operator's armour
+		lk.civ = true
+		lk.outfit = outfit
+	rig.build(lk)
 	rig.position = at
 	rig.rotation.y = yaw
 	_npcs[id] = rig
