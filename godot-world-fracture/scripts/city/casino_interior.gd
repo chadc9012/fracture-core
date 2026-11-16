@@ -543,7 +543,7 @@ func _meshy(file: String, at: Vector3, yaw: float, fit: float) -> Node3D:
 
 var _screen_mat: ShaderMaterial
 func _slot(at: Vector3, yaw: float, seed: int) -> void:
-	if _meshy("slot-machine.glb", at, yaw, 1.3):
+	if _meshy("slot-machine.glb", at, yaw - PI * 0.5, 1.3):   # the model's screen faces +x
 		_cyl(0.28, 0.08, at + Basis(Vector3.UP, yaw) * Vector3(0, 0.75, 0.85), flat(CRIMSON, 0.6))
 		_cyl(0.05, 0.72, at + Basis(Vector3.UP, yaw) * Vector3(0, 0.36, 0.85), flat(GOLD, 0.2, 1.0))
 		return

@@ -302,7 +302,7 @@ func _text(t: String, pos: Vector3, yaw: float, c: Color, size := 64, px := 0.00
 ## Meshy furniture whose meshes my in-browser decimation (Nov 8) tore apart (the faces no longer join, so the sofa, the
 ## island and the bed read as shredded — bug sweep, Nov 9): the apartment builds its own pieces instead, until they are
 ## regenerated from Meshy
-const TORN := ["bed.glb", "sofa.glb", "kitchen-island.glb"]
+const TORN := []   # bed, sofa and island are whole again (Nov 15 Meshy remeshes)
 
 func _hero(file: String, height: float, pos: Vector3, yaw_deg: float, solid := true) -> Node3D:
 	if file in TORN:

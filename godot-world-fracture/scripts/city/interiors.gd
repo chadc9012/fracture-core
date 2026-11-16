@@ -334,7 +334,7 @@ static func _hotel(v) -> void:
 			v.box(Vector3(0.18, 0.5, 0.18), Vector3(cos(a) * 1.5, 5.75, z + sin(a) * 1.5), v.glow(Color(1.0, 0.88, 0.6), 3.0), false)
 		v.light(Vector3(0, 5.5, z), Color(1.0, 0.85, 0.6), 1.5, 18.0)
 	# reception at the back, the name above it
-	if v.model("res://models/city/concierge-desk.glb", Vector3(0, 0, -29.0), 0.0, 7.0) == null:
+	if v.model("res://models/city/concierge-desk.glb", Vector3(0, 0, -29.2), 0.0, 5.0) == null:
 		v.box(Vector3(10.0, 1.15, 1.4), Vector3(0, 0.58, -29.0), v.mat(Color(0.95, 0.94, 0.9), 0.1, 0.05))
 		v.box(Vector3(10.1, 0.1, 1.5), Vector3(0, 1.2, -29.0), gold, false)
 	v.box(Vector3(14, 6.0, 0.3), Vector3(0, 3.0, -33.7), v.mat(Color(0.12, 0.09, 0.07), 0.4))
@@ -356,7 +356,7 @@ static func _hotel(v) -> void:
 		v.box(Vector3(0.05, 0.3, 0.8), Vector3(17.5, 3.5, z), v.glow(Color(1.0, 0.75, 0.3), 2.0), false)
 	v.spot("elevator", "ELEVATORS", Vector3(15.6, 0, -14.0), 2.4)
 	# the Gilded Bar by the door
-	if v.model("res://models/city/bar-counter.glb", Vector3(12.0, 0, -4.5), PI * 0.5, 6.0) == null:
+	if v.model("res://models/city/bar-counter.glb", Vector3(12.5, 0, -4.5), -PI * 0.5, 4.4) == null:
 		v.box(Vector3(1.0, 1.1, 6.0), Vector3(12.0, 0.55, -4.5), v.mat(Color(0.1, 0.08, 0.06), 0.3))
 		v.box(Vector3(1.1, 0.06, 6.1), Vector3(12.0, 1.12, -4.5), gold, false)
 	# the lounge's screen on the left wall
@@ -643,7 +643,7 @@ static func _office(v) -> void:
 		var cz := -13.0 - (pod / 3) * 7.0
 		for k in 4:
 			var at := Vector3(cx + (-0.85 if k % 2 == 0 else 0.85), 0, cz + (-0.9 if k < 2 else 0.9))
-			if v.model("res://models/city/office-desk.glb", at, 0.0 if k < 2 else PI, 1.6) == null:
+			if v.model("res://models/city/office-desk.glb", at, PI if k < 2 else 0.0, 1.6) == null:
 				_desk_pc(v, at, 0.0 if k < 2 else PI, Color(0.35, 0.75, 1.0))
 		_plant(v, Vector3(cx + 2.4, 0, cz))
 	# the stores along the left wall
