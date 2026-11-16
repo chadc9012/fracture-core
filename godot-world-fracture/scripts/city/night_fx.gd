@@ -178,6 +178,30 @@ static func _halos(root: Node3D, list: Array, amp: float) -> void:
 		mm.set_instance_transform(k, Transform3D(Basis().scaled(Vector3.ONE * float(e[2])), e[0]))
 		mm.set_instance_color(k, e[1])
 
+## the trees lit from below (the owner's Nov 15 plaza render: warm uplights at every palm and planter): a warm pool
+## at each foot and a short lit column up the trunk, additive, one multimesh each
+static func uplights(root: Node3D, feet: Array) -> void:
+	if feet.is_empty():
+		return
+	var warm := Color(1.0, 0.72, 0.4)
+	var pools: Array = []
+	for f in feet:
+		pools.append([Vector3(f.x, f.y + 0.03, f.z), warm, 2.6])
+	_pools(root, pools, 1.3)
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.9
+	cm.bottom_radius = 0.5
+	cm.height = 3.2
+	cm.radial_segments = 10
+	cm.rings = 1
+	cm.cap_top = false
+	cm.cap_bottom = false
+	var mm := _mm(root, cm, feet.size(), _mat(HALO, 0.35))
+	for k in feet.size():
+		var f: Vector3 = feet[k]
+		mm.set_instance_transform(k, Transform3D(Basis(), f + Vector3(0, 1.6, 0)))
+		mm.set_instance_color(k, warm)
+
 static func _pools(root: Node3D, list: Array, amp: float) -> void:
 	if list.is_empty():
 		return
@@ -282,11 +306,11 @@ static func grade(env: Environment, sun: DirectionalLight3D, sky: Sky, neon_city
 	env.ambient_light_color = Color(0.24, 0.26, 0.48) if not neon_city else Color(0.3, 0.2, 0.5)
 	env.ambient_light_energy = 2.9
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.tonemap_exposure = 2.35
+	env.tonemap_exposure = 2.5
 	env.glow_enabled = true
-	env.glow_intensity = 1.0
-	env.glow_strength = 1.1
-	env.glow_bloom = 0.12
+	env.glow_intensity = 1.25
+	env.glow_strength = 1.15
+	env.glow_bloom = 0.2
 	env.glow_hdr_threshold = 0.9
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 	for lv in 7:

@@ -237,6 +237,8 @@ func _ready() -> void:
 	StaticBatch.batch(world)
 	if night:
 		NightFX.build(world, ROAD_W * 0.5, 0.18, style == "neon")
+		NightFX.uplights(world, _tree_feet)
+		_tree_feet.clear()
 	cam = Camera3D.new()
 	cam.fov = 58.0
 	cam.near = 0.05
@@ -668,6 +670,8 @@ func _build_tile(k: int) -> Node3D:
 	StaticBatch.batch(root)
 	if night:
 		NightFX.build(root, ROAD_W * 0.5, 0.18, style == "neon")
+		NightFX.uplights(root, _tree_feet)
+		_tree_feet.clear()
 	_rng.seed = keep_seed
 	_tile_root = null
 	_tile_k = 0
@@ -1142,14 +1146,19 @@ func _street() -> void:
 ## the rain-soaked night of the owner's renders (scripts/city/wet_night.gd): the walks go dark and glossy, a mirror
 ## overlay on the road and both walks, rain round the camera
 var _rain: GPUParticles3D
+const RAIN := false
+## the trees' feet on this tile (the night pass lights them from below, as the owner's plaza render)
+var _tree_feet: Array = []
 ## every paving material this slice made (tiles stream in later), so the night can wet them all
 var _pavings: Array[ShaderMaterial] = []
 
 func _wet_paving(sm: ShaderMaterial) -> void:
-	sm.set_shader_parameter("wet", 0.9)
+	# the owner's Nov 15 plaza render: pale polished pavers under a film of water, mirroring every neon — lighter stone
+	# than the Nov 8 pass and fully wet
+	sm.set_shader_parameter("wet", 1.0)
 	sm.set_shader_parameter("puddle_noise", _noise_tex(0.004, 4, 512))
-	sm.set_shader_parameter("lo_col", Vector3(0.17, 0.17, 0.2))
-	sm.set_shader_parameter("hi_col", Vector3(0.24, 0.24, 0.28))
+	sm.set_shader_parameter("lo_col", Vector3(0.3, 0.3, 0.34))
+	sm.set_shader_parameter("hi_col", Vector3(0.42, 0.42, 0.47))
 
 ## Nexus by day: polished pale pavers, freshly hosed — a light sheen everywhere and shallow glossy patches that
 ## catch the towers and the sky (owner's street frame)
@@ -1177,12 +1186,15 @@ func _wet_night() -> void:
 	for sm: ShaderMaterial in _pavings:
 		_wet_paving(sm)
 	if WetNight.supported():
-		var road := WetNight.overlay_material(0.95, 0.55)
+		var road := WetNight.overlay_material(1.0, 0.6)
 		WetNight.overlay(world, Vector2(ROAD_W, LENGTH), Vector3(0, 0.0, 0), road)
-		var walks := WetNight.overlay_material(0.7, 0.35)
+		var walks := WetNight.overlay_material(0.95, 0.55)
 		for side: float in [-1.0, 1.0]:
 			WetNight.overlay(world, Vector2(WALK_W, LENGTH), Vector3(side * (half + WALK_W * 0.5), 0.18, 0), walks)
-	_rain = WetNight.rain(world, 700 if Phone.on_phone() else 1400)
+	# a clear night after the rain (the owner's Nov 15 plaza render has no rain falling): the particles stay off
+	# unless RAIN is set
+	if RAIN:
+		_rain = WetNight.rain(world, 700 if Phone.on_phone() else 1400)
 
 # --------------------------------------------------------------------------------------------- loading models
 ## a Meshy prop scaled so its height is `height` metres, base on the ground, centred on x/z
@@ -1380,6 +1392,7 @@ func _props() -> void:
 		while z < LENGTH * 0.5 - 6.0:
 			var edge := side * (half + 1.3)
 			if i % 2 == 0 or style != "nexus":
+				_tree_feet.append(Vector3(edge, 0.18, z))
 				if style == "coast" and ResourceLoader.exists(MODELS + "../foliage/palm-a.glb"):
 					# the web build's three authored palms on the resort strip
 					prop("../foliage/palm-%s.glb" % ["a", "b", "c"][(i + int(side + 1.0)) % 3], _rng.randf_range(8.5, 11.5), Vector3(edge, 0.18, z), _rng.randf() * 360.0)
@@ -1885,6 +1898,7 @@ func _dressing() -> void:
 				continue
 			var at := Vector3(side * (half + WALK_W - 1.9), 0.18, zt)
 			_box(Vector3(0.35, 2.8, 0.35), at + Vector3(0, 1.4, 0), bark)
+			_tree_feet.append(at)
 			for b in 4:
 				var mi := MeshInstance3D.new()
 				var sm := SphereMesh.new()
