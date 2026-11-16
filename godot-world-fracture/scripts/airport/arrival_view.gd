@@ -158,7 +158,7 @@ func _flights() -> void:
 			continue
 		var price := Air.fare(home)
 		var b := Button.new()
-		b.text = "✈ %s (%s) · %d Nex" % [String(Air.AIRPORTS[home].name), home, price]
+		b.text = "✈ %s (%s) · %d Nex" % [String(Air.AIRPORTS[home].name), Air.tag(home), price]
 		b.custom_minimum_size = Vector2(0, 48)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(func():

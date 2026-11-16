@@ -13,8 +13,9 @@ func _init() -> void:
 	# the board: every open destination but home, soonest first, closed ones last
 	var b := Air.departures("NXC", 600)
 	check("board lists every destination but home", b.size() == Air.DESTINATIONS.size() - 1 and b.all(func(f): return f.to != "NXC"))
-	check("open flights first, in time order", b[0].open and not b[b.size() - 1].open and int(b[0].minute) <= int(b[1].minute), [b[0], b[1]])
-	check("not-yet-open destinations are on the board but not sold", b.any(func(f): return f.to == "AET" and f.status == "NOT YET OPEN") and not Air.bookable("NXC", "AET"))
+	check("open flights first, in time order", b[0].open and int(b[0].minute) <= int(b[1].minute), [b[0], b[1]])
+	check("the owner's network: thirteen airports (the board's twelve and Neon City), every one sold from Nexus", Air.AIRPORTS.size() == 13 and Air.AIRPORTS.keys().all(func(c): return c == "NXC" or Air.bookable("NXC", c)))
+	check("board codes", Air.tag("NXC") == "NCI" and Air.tag("SOL") == "SSP" and Air.tag("ELD") == "EGA" and Air.tag("VRD") == "VFA" and Air.tag("SHX") == "SEA" and Air.tag("GLD") == "GLD")
 	check("routes never include home", "NXC" not in Air.routes("NXC") and "NEC" in Air.routes("NXC") and "THA" in Air.routes("NEC"))
 	check("board wraps past midnight", Air.departures("NEC", 1435).all(func(f): return int(f.minute) >= 0 and int(f.minute) < 1440))
 	# tickets
@@ -22,7 +23,7 @@ func _init() -> void:
 	var line := Air.buy_ticket(p, "NXC", "THA")
 	check("buy a ticket", int(p.nex) == 500 - Air.fare("THA") and Air.tickets_from(p, "NXC").size() == 1, line)
 	check("a pass opens security at its airport only", Air.can_go_airside(p, "NXC") and not Air.can_go_airside(p, "NEC"))
-	check("can't book home or a closed route", Air.buy_ticket(p, "NXC", "NXC").begins_with("No flights") and Air.buy_ticket(p, "NXC", "ELD").begins_with("No flights"))
+	check("can't book home or a closed route", Air.buy_ticket(p, "NXC", "NXC").begins_with("No flights") and Air.buy_ticket(p, "NXC", "XYZ").begins_with("No flights"))
 	var poor := { "nex": 10 }
 	check("not enough Nex", Air.buy_ticket(poor, "NEC", "NXC").begins_with("Needs") and int(poor.nex) == 10 and Air.air(poor).tickets.is_empty())
 	check("boarding uses the ticket", Air.board(p, "NXC", "THA") and Air.tickets_from(p, "NXC").is_empty() and not Air.board(p, "NXC", "THA"))

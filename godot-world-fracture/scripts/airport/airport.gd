@@ -10,38 +10,61 @@ extends RefCounted
 ## `street` airports open from a city street (AIRPORT EXPRESS) and leave back onto it; the others stand in a region (Nov 9,
 ## the owner's network: Azure Isles, Frostveil, Solara first) — you fly in, and walk out into the region.
 const AIRPORTS := {
-	"NXC": { "name": "Nexus City International Airport", "city": "Nexus City", "region": "nexus", "style": "nexus", "night": false, "street": true },
-	"NEC": { "name": "Neon City International Airport", "city": "Neon City", "region": "neon-city", "style": "neon", "night": true, "street": true },
-	"AZI": { "name": "Azure Isles International Airport", "city": "Azure Isles", "region": "azure-isles", "style": "tropical", "night": false, "street": false },
-	"FRV": { "name": "Frostveil International Airport", "city": "Frostveil", "region": "frostveil", "style": "arctic", "night": false, "street": false },
-	"SOL": { "name": "Solara Desert International Airport", "city": "Solara", "region": "solara", "style": "desert", "night": false, "street": false },
-	# Nov 10, the rest of the owner's list that has land in the game (docs/asset-catalog.md maps the biomes): the seaplane
-	# terminal on the coast for underwater Thalassia, Obsidian Reach's industrial airport in the volcanic Ember Peaks, and
-	# the Shattered Expanse's expedition airfield in the Crystal Badlands' reality rifts
-	"THA": { "name": "Thalassia Coast Seaplane Terminal", "city": "Thalassia Coast", "region": "thalassia", "style": "coastal", "night": false, "street": false },
-	"OBS": { "name": "Obsidian Reach Airport", "city": "Obsidian Reach", "region": "ember", "style": "volcanic", "night": false, "street": false },
-	"SHX": { "name": "Shattered Expanse Expedition Airfield", "city": "Shattered Expanse", "region": "crystal-badlands", "style": "expedition", "night": false, "street": false },
+	# Nov 15, the owner's network board ("THE 12 AIRPORTS"): each airport's board name, its board code (`tag`, shown on
+	# every sign, ticket and departures row; the key stays the save's id), the board's four lines (`lines`) and which
+	# take aircraft customization (`custom`: the Aviation Hangar, facility.gd) or have a military sector (`military`)
+	"NXC": { "name": "Nexus City International Airport", "tag": "NCI", "city": "Nexus City", "region": "nexus", "style": "nexus", "night": false, "street": true, "custom": true, "military": true,
+		"lines": ["Aetherion – main hub (global)", "International & domestic", "Cargo & private terminals", "VIP / executive lounge"] },
+	"NEC": { "name": "Neon City International Airport", "tag": "NCA", "city": "Neon City", "region": "neon-city", "style": "neon", "night": true, "street": true, "custom": true,
+		"lines": ["The night city's gateway", "International & domestic", "Private hangars", "VIP lounge"] },
+	"SOL": { "name": "Solmara Skyport", "tag": "SSP", "city": "Solmara", "region": "solara", "style": "desert", "night": false, "street": false,
+		"lines": ["Regional international", "Desert & trade routes", "Cargo & resource exports", "Charter & luxury flights"] },
+	"ELD": { "name": "Eldergrove Airfield", "tag": "EGA", "city": "Eldergrove", "region": "riverdale", "style": "forest", "night": false, "street": false,
+		"lines": ["Regional hub", "Eco-friendly design", "Cargo (timber, flora, goods)", "Air taxi & tourism"] },
+	"FRV": { "name": "Frostveil International Airport", "tag": "FVI", "city": "Frostveil", "region": "frostveil", "style": "arctic", "night": false, "street": false,
+		"lines": ["Regional international", "Cold-weather operations", "Research & supply flights", "Reinforced, all-weather"] },
+	"OBS": { "name": "Obsidian Reach Airport", "tag": "ORA", "city": "Obsidian Reach", "region": "ember", "style": "volcanic", "night": false, "street": false, "custom": true, "military": true,
+		"lines": ["Regional hub", "Heavy cargo & minerals", "Heat-resistant facilities", "Military airstrip (restricted)"] },
+	"AZI": { "name": "Azure Isles Airport", "tag": "AZI", "city": "Azure Isles", "region": "azure-isles", "style": "tropical", "night": false, "street": false,
+		"lines": ["Regional international", "Tourism & luxury travel", "Cargo (goods, seafood)", "Island hopping routes"] },
+	"VRD": { "name": "Verdant Forest Airport", "tag": "VFA", "city": "Verdant Forest", "region": "veridan", "style": "verdant", "night": false, "street": false,
+		"lines": ["Regional hub", "Eco & exploration flights", "Cargo (materials, goods)", "Links to Thalassia & Nexus City"] },
+	"THA": { "name": "Thalassia Oceanic Airport", "tag": "THA", "city": "Thalassia", "region": "thalassia", "style": "coastal", "night": false, "street": false,
+		"lines": ["Unique oceanic airport", "Surface & submersible hangars", "Research & trade access", "Direct link to Verdant Forest"] },
+	"SKA": { "name": "Skyhaven Airport", "tag": "SKA", "city": "Skyhaven", "region": "storm", "style": "skyhaven", "night": false, "street": false, "custom": true,
+		"lines": ["Aerial gateway (high altitude)", "Special & research flights", "Airship / VTOL operations", "Limited commercial access"] },
+	"AGA": { "name": "Aurora Gate Airport", "tag": "AGA", "city": "Aurora Gate", "region": "frostspire", "style": "aurora", "night": true, "street": false,
+		"lines": ["Regional international", "Northern trade routes", "Exploration & research", "Aurora viewing terminal"] },
+	"HGA": { "name": "Horizon Gate Airport", "tag": "HGA", "city": "Horizon Gate", "region": "wastelands", "style": "horizon", "night": false, "street": false,
+		"lines": ["Regional international", "Trade & expedition hub", "Cargo & logistics center", "Strategic west gate"] },
+	"SHX": { "name": "Shattered Expanse Airport", "tag": "SEA", "city": "Shattered Expanse", "region": "crystal-badlands", "style": "expedition", "night": false, "street": false, "custom": true, "military": true,
+		"lines": ["Specialized airport", "Rift & anomaly operations", "High security", "Research & military support"] },
 }
 ## where flights go: code -> name, the region you land in ("" = on the owner's boards but not open yet, shown and not sold),
 ## the fare in Nex, and the region's own name for arrivals. NXC / NEC land in the other airport's terminal.
 const DESTINATIONS := {
 	"NXC": { "name": "Nexus City", "region": "nexus", "fare": 150 },
 	"NEC": { "name": "Neon City", "region": "neon-city", "fare": 150 },
-	"THA": { "name": "Thalassia Coast", "region": "thalassia", "fare": 260 },
-	"SOL": { "name": "Solara Desert", "region": "solara", "fare": 220 },
-	"AZI": { "name": "Azure Isles", "region": "azure-isles", "fare": 300 },
-	"FRV": { "name": "Frostveil Ice Cap", "region": "frostveil", "fare": 340 },
+	"SOL": { "name": "Solmara", "region": "solara", "fare": 220 },
+	"ELD": { "name": "Eldergrove", "region": "riverdale", "fare": 190 },
+	"FRV": { "name": "Frostveil", "region": "frostveil", "fare": 340 },
 	"OBS": { "name": "Obsidian Reach", "region": "ember", "fare": 300 },
+	"AZI": { "name": "Azure Isles", "region": "azure-isles", "fare": 300 },
+	"VRD": { "name": "Verdant Forest", "region": "veridan", "fare": 190 },
+	"THA": { "name": "Thalassia", "region": "thalassia", "fare": 260 },
+	"SKA": { "name": "Skyhaven", "region": "storm", "fare": 360 },
+	"AGA": { "name": "Aurora Gate", "region": "frostspire", "fare": 320 },
+	"HGA": { "name": "Horizon Gate", "region": "wastelands", "fare": 280 },
 	"SHX": { "name": "Shattered Expanse", "region": "crystal-badlands", "fare": 380 },
+	# towns without an airport of their own: you land on their strip and walk out
 	"GLD": { "name": "Goldenreach", "region": "goldenreach", "fare": 200 },
 	"RVD": { "name": "Riverdale", "region": "riverdale", "fare": 160 },
 	"OHR": { "name": "Old Harrow", "region": "old-harrow", "fare": 210 },
-	"VRD": { "name": "Verdant Forest", "region": "veridan", "fare": 190 },
-	"WST": { "name": "The Wastelands", "region": "wastelands", "fare": 240 },
-	# on the Neon City board, not built yet
-	"AET": { "name": "Aetherion", "region": "", "fare": 0 },
-	"ELD": { "name": "Eldergrove", "region": "", "fare": 0 },
 }
+
+## the board code an airport shows (the owner's network board: NCI, SSP, EGA …); any other place keeps its own
+static func tag(code: String) -> String:
+	return String(AIRPORTS[code].get("tag", code)) if AIRPORTS.has(code) else code
 const GATES := ["A1", "A2", "A3", "B1", "B2", "B3"]
 const FLIGHT_EVERY := 45          # minutes between departures to one destination
 ## the private hangars on each apron, and what they and the aircraft cost

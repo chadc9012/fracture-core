@@ -89,6 +89,26 @@ const LOOKS := {
 	"expedition": { "top": Color(0.14, 0.12, 0.22), "hor": Color(0.46, 0.38, 0.56), "fog": Color(0.4, 0.34, 0.5), "fogd": 0.0012,
 		"land": Color(0.3, 0.28, 0.34), "apron": Color(0.44, 0.44, 0.48), "wall": Color(0.36, 0.36, 0.4), "roof": Color(0.32, 0.32, 0.36),
 		"a1": Color(0.72, 0.36, 1.0), "a2": Color(1.0, 0.7, 0.2), "tree": "", "skyline": "", "airline": "EXPEDITION AIR", "sun": 1.0, "roof_shape": "shards", "walls": "steel", "frame": Color(0.2, 0.2, 0.24), "glass": Color(0.6, 0.45, 0.9), "hangar": Color(0.38, 0.38, 0.42), "floor": ["metal_plate", Color(0.4, 0.4, 0.45)], "ceil": Color(0.5, 0.48, 0.58), "feature": "specimen", "extras": ["crystals", "ruins", "storm"] },
+	# the owner's network board (Nov 15): Eldergrove's eco airfield under a green arched roof in the forest
+	"forest": { "top": Color(0.22, 0.46, 0.78), "hor": Color(0.7, 0.82, 0.86), "fog": Color(0.66, 0.78, 0.76), "fogd": 0.0005,
+		"land": Color(0.26, 0.42, 0.22), "apron": Color(0.58, 0.6, 0.6), "wall": Color(0.62, 0.48, 0.34), "roof": Color(0.3, 0.5, 0.28),
+		"a1": Color(0.45, 0.9, 0.4), "a2": Color(1.0, 0.8, 0.4), "tree": "conifer", "skyline": "", "airline": "ELDERGROVE AIR", "walls": "timber", "frame": Color(0.42, 0.32, 0.22), "glass": Color(0.6, 0.85, 0.7), "hangar": Color(0.5, 0.56, 0.48), "floor": ["wood_floor", Color(0.86, 0.78, 0.66)], "ceil": Color(0.78, 0.66, 0.5), "feature": "palms", "extras": ["mountains", "woods"], "rock": Color(0.3, 0.42, 0.3), "caps": false },
+	# Verdant Forest: the central region's hub, broadleaf canopy and lakes, a sweeping gull roof
+	"verdant": { "top": Color(0.2, 0.44, 0.8), "hor": Color(0.72, 0.84, 0.88), "fog": Color(0.68, 0.8, 0.78), "fogd": 0.0007,
+		"land": Color(0.3, 0.48, 0.24), "apron": Color(0.6, 0.62, 0.63), "wall": Color(0.85, 0.88, 0.84), "roof": Color(0.88, 0.9, 0.86),
+		"a1": Color(0.3, 0.85, 0.55), "a2": Color(1.0, 0.85, 0.45), "tree": "broadleaf", "skyline": "", "airline": "VERDANT AIR", "roof_shape": "gull", "walls": "timber", "frame": Color(0.85, 0.88, 0.84), "glass": Color(0.55, 0.85, 0.75), "hangar": Color(0.72, 0.76, 0.7), "floor": ["wood_floor", Color(0.9, 0.84, 0.74)], "ceil": Color(0.86, 0.9, 0.82), "feature": "palms", "extras": ["mountains", "woods"], "rock": Color(0.28, 0.4, 0.26), "caps": false },
+	# Skyhaven: the high-altitude gateway on the floating isles: thin blue air, islands and ruins drifting round the strip
+	"skyhaven": { "top": Color(0.1, 0.32, 0.85), "hor": Color(0.62, 0.8, 0.98), "fog": Color(0.75, 0.86, 0.98), "fogd": 0.0003,
+		"land": Color(0.36, 0.56, 0.3), "apron": Color(0.7, 0.72, 0.76), "wall": Color(0.92, 0.94, 0.98), "roof": Color(0.95, 0.96, 0.99),
+		"a1": Color(0.35, 0.65, 1.0), "a2": Color(1.0, 0.85, 0.4), "tree": "broadleaf", "skyline": "", "airline": "SKYHAVEN AIR", "roof_shape": "vault", "walls": "plaster", "frame": Color(0.9, 0.93, 0.98), "glass": Color(0.6, 0.8, 1.0), "hangar": Color(0.86, 0.88, 0.92), "floor": ["marble_01", Color(0.92, 0.94, 0.98)], "ceil": Color(0.9, 0.93, 0.98), "feature": "hologram", "extras": ["ruins", "isles"] },
+	# Aurora Gate: the northern airport at night under the aurora (its viewing terminal), snow and peaks
+	"aurora": { "top": Color(0.02, 0.04, 0.1), "hor": Color(0.1, 0.2, 0.3), "fog": Color(0.1, 0.16, 0.24), "fogd": 0.0009,
+		"land": Color(0.85, 0.9, 0.96), "apron": Color(0.5, 0.53, 0.58), "wall": Color(0.7, 0.76, 0.86), "roof": Color(0.8, 0.86, 0.94),
+		"a1": Color(0.3, 1.0, 0.65), "a2": Color(0.75, 0.45, 1.0), "tree": "conifer", "skyline": "", "airline": "AURORA AIR", "walls": "ice", "frame": Color(0.75, 0.82, 0.92), "glass": Color(0.5, 0.9, 0.8), "hangar": Color(0.66, 0.72, 0.8), "floor": ["marble_01", Color(0.8, 0.86, 0.94)], "ceil": Color(0.6, 0.7, 0.82), "feature": "ice", "extras": ["mountains", "snow", "aurora"] },
+	# Horizon Gate: the strategic west gate at sunset, a trade and logistics hub on the badlands
+	"horizon": { "top": Color(0.2, 0.26, 0.5), "hor": Color(1.0, 0.6, 0.32), "fog": Color(0.9, 0.62, 0.42), "fogd": 0.0005,
+		"land": Color(0.6, 0.42, 0.28), "apron": Color(0.62, 0.58, 0.54), "wall": Color(0.82, 0.7, 0.56), "roof": Color(0.3, 0.32, 0.38),
+		"a1": Color(1.0, 0.62, 0.25), "a2": Color(0.4, 0.75, 1.0), "tree": "", "skyline": "", "airline": "HORIZON AIR", "sun": 1.2, "roof_shape": "vault", "walls": "sandstone", "frame": Color(0.62, 0.48, 0.34), "glass": Color(1.0, 0.75, 0.5), "hangar": Color(0.66, 0.58, 0.5), "floor": ["floor_tiles_06", Color(0.86, 0.74, 0.6)], "ceil": Color(0.9, 0.8, 0.66), "feature": "fountain", "extras": ["mountains", "cargo"], "rock": Color(0.55, 0.36, 0.24), "caps": false },
 }
 ## the flight: take-off, then the cruise over the clouds, then `flew` (seconds)
 const TAKEOFF_S := 8.0
@@ -138,6 +158,7 @@ var _hud: Label
 var _land: MeshInstance3D
 var _snow: CPUParticles3D
 var _flash: DirectionalLight3D     # the Shattered Expanse's lightning
+var _aurora: Node3D                # Aurora Gate's ribbons (they sway)
 var _flash_t := 4.0
 var _look: Array = []            # [from, to] for a fixed look-dev camera (main.gd --shot airport:...)
 
@@ -234,6 +255,12 @@ func _process(dt: float) -> void:
 	_step_taxi(dt)
 	if _snow and operator:
 		_snow.global_position = operator.global_position + Vector3(0, 14, 0)
+	if _aurora:
+		var tt := Time.get_ticks_msec() * 0.001
+		for i in _aurora.get_child_count():
+			var q := _aurora.get_child(i) as Node3D
+			q.rotation.y = sin(tt * 0.05 + i * 1.3) * 0.4
+			q.scale.y = 1.0 + 0.12 * sin(tt * 0.3 + i)
 	if _flash:
 		_flash_t -= dt
 		if _flash_t <= 0.0:
@@ -301,7 +328,7 @@ func _process(dt: float) -> void:
 	var g = gunplay.gun()
 	controls.weapon_name.text = g.display_name() if armed else "WEAPONS STOWED"
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text()) if armed else ""
-	_hud.text = "%s · %s   %d Nex%s" % [code, _zone_name(zone), int(profile.get("nex", 0)), _pass_line()]
+	_hud.text = "%s · %s   %d Nex%s" % [Air.tag(code), _zone_name(zone), int(profile.get("nex", 0)), _pass_line()]
 
 ## a fixed camera for look-dev shots
 func look_from(from: Vector3, to: Vector3) -> void:
@@ -518,7 +545,7 @@ func _redo(f: Callable, msg: String) -> void:
 		_line(_panel.get_child(1).get_child(0), msg, 16, Color(0.55, 1.0, 0.8)).move_to_front()
 
 func _tickets_panel() -> void:
-	var box := _panel_open("TICKETS · %s" % code, accent2)
+	var box := _panel_open("TICKETS · %s" % Air.tag(code), accent2)
 	_line(box, "One way. Your boarding pass gets you through security; board at the gate shown. First Class (×%.1f) also opens the VIP lounge airside. Refunds pay back 90%%." % Air.FIRST_CLASS)
 	var cls_row := HBoxContainer.new()
 	cls_row.add_theme_constant_override("separation", 8)
@@ -542,7 +569,7 @@ func _tickets_panel() -> void:
 		_line(box, "YOUR BOARDING PASSES", 17, accent2)
 		for t in mine:
 			var tid := String(t.id)
-			_row_button(box, "✈ %s → %s · %s · gate %s   REFUND" % [code, String(Air.DESTINATIONS[t.to].name), "FIRST" if String(t.get("class", "economy")) == "first" else "economy", Air.gate(code, String(t.to))],
+			_row_button(box, "✈ %s → %s · %s · gate %s   REFUND" % [Air.tag(code), String(Air.DESTINATIONS[t.to].name), "FIRST" if String(t.get("class", "economy")) == "first" else "economy", Air.gate(code, String(t.to))],
 				Color(1.0, 0.7, 0.6), func(): _redo(_tickets_panel, Air.refund(profile, tid)); _apply_lanes())
 	var later := Air.DESTINATIONS.keys().filter(func(c): return String(Air.DESTINATIONS[c].region) == "")
 	_line(box, "Not open yet: " + ", ".join(later.map(func(c): return String(Air.DESTINATIONS[c].name))), 13, Color(0.55, 0.6, 0.68))
@@ -554,7 +581,7 @@ func _gate_panel(g: String) -> void:
 		var to := String(t.to)
 		any = true
 		if Air.gate(code, to) == g:
-			_row_button(box, "BOARD · %s → %s" % [code, String(Air.DESTINATIONS[to].name).to_upper()], Color(0.5, 1.0, 0.7), func(): _board(to))
+			_row_button(box, "BOARD · %s → %s" % [Air.tag(code), String(Air.DESTINATIONS[to].name).to_upper()], Color(0.5, 1.0, 0.7), func(): _board(to))
 		else:
 			_line(box, "Your flight to %s boards at gate %s." % [String(Air.DESTINATIONS[to].name), Air.gate(code, to)])
 	if not any:
@@ -577,7 +604,7 @@ func _cafe_panel() -> void:
 
 func _hangar_panel(bay: String) -> void:
 	var mine := Air.hangar_bay(profile, code)
-	var box := _panel_open("PRIVATE HANGAR %s · %s" % [bay, code], accent2)
+	var box := _panel_open("PRIVATE HANGAR %s · %s" % [bay, Air.tag(code)], accent2)
 	if mine == bay:
 		_line(box, "Your hangar. The door is open; your aircraft are inside. Weapons are allowed in here (target range at the back) and out on the airstrip.")
 	elif mine != "":
@@ -601,8 +628,10 @@ func _aircraft_panel() -> void:
 			_row_button(box, "BUY · %s · %d Nex" % [String(d.name), int(d.price)], Color(0.85, 0.92, 1.0), func():
 				_redo(_aircraft_panel, Air.buy_aircraft(profile, code, craft))
 				_apply_shutters())
-	if not have.is_empty():
+	if not have.is_empty() and bool(Air.AIRPORTS[code].get("custom", false)):
 		_row_button(box, "AVIATION HANGAR · engines, avionics, airframes", Color(0.55, 0.8, 1.0), func(): _panel_close(); open_facility())
+	elif not have.is_empty():
+		_line(box, "Aircraft customization: the Aviation Hangars at %s." % ", ".join(Air.AIRPORTS.keys().filter(func(c): return bool(Air.AIRPORTS[c].get("custom", false))).map(func(c): return Air.tag(c))), 13)
 	_line(box, "Flying takes your aircraft out over %s; landing brings you back here." % String(Air.AIRPORTS[code].city), 13)
 
 ## the Aviation Hangar (facility_view.gd): upgrades for the aircraft you own, paid from the same Nex
@@ -678,7 +707,7 @@ func _board(to: String) -> void:
 	Sound.loop("jet", "jet", -8.0, 0.7)
 	var l := Label.new()
 	l.name = "FlightLine"
-	l.text = "✈ %s → %s" % [code, String(Air.DESTINATIONS[to].name).to_upper()]
+	l.text = "✈ %s → %s" % [Air.tag(code), String(Air.DESTINATIONS[to].name).to_upper()]
 	l.add_theme_font_size_override("font_size", 24)
 	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	l.add_theme_constant_override("outline_size", 8)
@@ -807,7 +836,7 @@ func _step_flight(dt: float) -> void:
 	cam.look_at(plane.position + Vector3(8, 2, 0))
 	var line := get_node_or_null("FlightLine") as Label
 	if line:
-		line.text = "✈ %s → %s · cruising · landing in %ds" % [code, String(Air.DESTINATIONS[_flight.to].name).to_upper(), int(ceil(FLIGHT_S - t))]
+		line.text = "✈ %s → %s · cruising · landing in %ds" % [Air.tag(code), String(Air.DESTINATIONS[_flight.to].name).to_upper(), int(ceil(FLIGHT_S - t))]
 	if t > FLIGHT_S:
 		var to := String(_flight.to)
 		_flight = {}
@@ -861,7 +890,7 @@ func _minute() -> int:
 func _refresh_board() -> void:
 	var rows: Array[String] = ["DEPARTURES                     GATE  STATUS"]
 	for f in Air.departures(code, _minute()).slice(0, 9):
-		rows.append("%s  %-3s %-18s  %-4s  %s" % [f.time, f.to, String(f.name).to_upper().left(18), f.gate if f.open else "--", f.status])
+		rows.append("%s  %-3s %-18s  %-4s  %s" % [f.time, Air.tag(String(f.to)), String(f.name).to_upper().left(18), f.gate if f.open else "--", f.status])
 	var text := "\n".join(rows)
 	for l in _board_labels:
 		l.text = text
@@ -1105,7 +1134,7 @@ func _terminal() -> void:
 	# under the canopy, over the doors
 	_box(Vector3(40, 4.4, 0.8), Vector3(0, 10.6, 26.7), _mat(Color(0.06, 0.07, 0.1), 0.3, 0.7))
 	_text(String(a.city).to_upper(), Vector3(0, 11.5, 27.2), 280, accent.lerp(Color.WHITE, 0.55))
-	_text("%s (%s)" % [String(a.name).trim_prefix(String(a.city) + " ").to_upper(), code], Vector3(0, 9.6, 27.2), 140, Color(0.92, 0.95, 1.0))
+	_text("%s (%s)" % [String(a.name).trim_prefix(String(a.city) + " ").to_upper(), Air.tag(code)], Vector3(0, 9.6, 27.2), 140, Color(0.92, 0.95, 1.0))
 	_box(Vector3(40, 0.2, 0.3), Vector3(0, 8.3, 27.1), _glow(accent, 3.0))
 	_box(Vector3(40, 0.2, 0.3), Vector3(0, 12.9, 27.1), _glow(accent, 3.0))
 	_text("DEPARTURES ↑  ·  ARRIVALS", Vector3(0, 5.6, 26.5), 90, accent2)
@@ -1789,8 +1818,8 @@ func _extras() -> void:
 				continue
 			_palm(at, k + 11)
 	if "mountains" in ex:
-		var rock := _mat(Color(0.45, 0.5, 0.58), 0.9)
-		var snowcap := _mat(Color(0.95, 0.97, 1.0), 0.6)
+		var rock := _mat(look.get("rock", Color(0.45, 0.5, 0.58)), 0.9)
+		var snowcap := _mat(Color(0.95, 0.97, 1.0), 0.6) if bool(look.get("caps", true)) else rock
 		for k in 16:
 			var a := -PI * 0.15 - k * PI * 0.7 / 15.0 - PI * 0.5
 			var r := rng.randf_range(900, 1300)
@@ -1985,6 +2014,42 @@ func _extras() -> void:
 			holder.scale = Vector3.ONE * 4.0
 			world.add_child(holder)
 			FractureSet.floating_ruins(holder, Vector3.ZERO, 22.0, int(10 * Phone.crowd()) + 4, rng)
+	if "woods" in ex:   # the forest round the field, beyond the fences
+		for k in 70:
+			var at := Vector3(rng.randf_range(-440, 440), 0, rng.randf_range(-460, 220))
+			if absf(at.z - RUNWAY_Z) < 45.0 or (at.z > -120.0 and at.z < 30.0 and at.x > -140.0 and at.x < 230.0) or (absf(at.x) < 70.0 and at.z > 20.0):
+				continue
+			_palm(at, k + 31)
+	if "isles" in ex:   # Skyhaven's floating islands: grassy tops on hanging rock, drifting round the strip
+		var grass := _mat(Color(0.34, 0.56, 0.28), 0.9)
+		var stone := _mat(Color(0.42, 0.4, 0.38), 0.95)
+		for k in 9:
+			var a := -PI * 0.1 - k * PI * 0.8 / 8.0
+			var r := rng.randf_range(420, 760)
+			var at := Vector3(cos(a) * r, rng.randf_range(60, 220), sin(a) * r - 120.0)
+			var w := rng.randf_range(40, 90)
+			_cyl(w, 6.0, at, grass, null, -1.0, 10).rotation.y = rng.randf() * TAU
+			_cyl(w * 0.12, w * 0.9, at - Vector3(0, w * 0.45 + 3.0, 0), stone, null, w * 0.95, 10).rotation.y = rng.randf() * TAU
+	if "aurora" in ex:  # the aurora over the north: tall, slow ribbons of light
+		_aurora = Node3D.new()
+		_aurora.set_meta("dynamic", true)
+		world.add_child(_aurora)
+		for k in 5:
+			var q := MeshInstance3D.new()
+			var qm := QuadMesh.new()
+			qm.size = Vector2(rng.randf_range(500, 900), rng.randf_range(160, 260))
+			q.mesh = qm
+			var am := StandardMaterial3D.new()
+			am.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			am.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			am.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			am.cull_mode = BaseMaterial3D.CULL_DISABLED
+			am.albedo_texture = _aurora_tex(k)
+			am.albedo_color = Color(1, 1, 1, 0.75)
+			q.material_override = am
+			q.position = Vector3(rng.randf_range(-600, 600), rng.randf_range(260, 380), -900.0 - k * 120.0)
+			q.rotation = Vector3(0.0, rng.randf_range(-0.5, 0.5), 0.0)
+			_aurora.add_child(q)
 	if "storm" in ex:
 		_flash = DirectionalLight3D.new()
 		_flash.rotation_degrees = Vector3(-60, 30, 0)
@@ -1992,6 +2057,23 @@ func _extras() -> void:
 		_flash.light_energy = 0.0
 		_flash.shadow_enabled = false
 		world.add_child(_flash)
+
+## an aurora ribbon: green at the foot rising to violet, fading out top and bottom, in soft vertical rays
+func _aurora_tex(seed: int) -> Texture2D:
+	var img := Image.create(128, 64, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 900 + seed
+	var rays: Array = []
+	for i in 128:
+		rays.append(0.55 + 0.45 * sin(i * 0.31 + rng.randf() * 0.6) * sin(i * 0.07 + seed))
+	for y in 64:
+		var t := 1.0 - float(y) / 63.0           # 0 at the foot, 1 at the top
+		var c := Color(0.25, 1.0, 0.55).lerp(Color(0.7, 0.35, 1.0), clampf((t - 0.35) / 0.65, 0.0, 1.0))
+		var fade := smoothstep(0.0, 0.18, t) * (1.0 - smoothstep(0.55, 1.0, t))
+		for x in 128:
+			var edge := smoothstep(0.0, 0.12, float(x) / 127.0) * smoothstep(0.0, 0.12, 1.0 - float(x) / 127.0)
+			img.set_pixel(x, y, Color(c.r, c.g, c.b, clampf(fade * edge * float(rays[x]), 0.0, 1.0)))
+	return ImageTexture.create_from_image(img)
 
 ## the check-in hall's centrepiece, one per airport (LOOKS "feature")
 func _feature(at: Vector3) -> void:
