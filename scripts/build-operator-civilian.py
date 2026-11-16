@@ -87,6 +87,27 @@ with open(os.path.join(tmp, "bones.json"), "w") as fh:
 sdf_tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "civ_body_sdf.py")
 subprocess.run(["python3", sdf_tool, os.path.join(tmp, "bones.json"), os.path.join(tmp, "body.npz")], check=True)
 D = np.load(os.path.join(tmp, "body.npz"))
+# the body itself from the MakeHuman base mesh when its data is here (scripts/civ_body_mh.py; owner, Nov 16: the SDF
+# bodies "still look bulky and boxy"): MPFB_DATA = mpfb2's src/mpfb/data. The SDF still makes the hood piece.
+MPFB = os.environ.get("MPFB_DATA", "")
+if MPFB:
+    mh_tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "civ_body_mh.py")
+    subprocess.run(["python3", mh_tool, os.path.join(tmp, "bones.json"), os.path.join(tmp, "mh.npz"), MPFB], check=True)
+    MHD = np.load(os.path.join(tmp, "mh.npz"))
+    D = {"body_v": MHD["body_v"], "body_f": MHD["body_f"], "hands_v": MHD["hands_v"], "hands_f": MHD["hands_f"],
+         "hood_v": D["hood_v"], "hood_f": D["hood_f"]}
+    # the rig's hip joints (rigged on armour) sit well below a body's: the civ skeleton's move up to where the
+    # MakeHuman pelvis puts them (the knees stay), so the thighs turn where the body bends
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    inv = arm.matrix_world.inverted()
+    for side, p_ in zip(("Left", "Right"), MHD["upleg_heads"]):
+        eb = arm.data.edit_bones["mixamorig:%sUpLeg" % side]
+        eb.use_connect = False
+        eb.head = inv @ Vector(p_.tolist())
+    bpy.ops.object.mode_set(mode="OBJECT")
+    arm.data.pose_position = "REST"
+    bpy.context.view_layer.update()
 
 
 def from_arrays(name, v, f):
@@ -117,8 +138,10 @@ def decimate(ob, faces):
 
 new = from_arrays("civilian", D["body_v"], D["body_f"])
 decimate(new, 24000)                               # enough vertices to cut seams and logos on
-hands = from_arrays("hands", D["hands_v"], D["hands_f"])
-decimate(hands, 5000)
+hands = None
+if len(D["hands_v"]):                              # the SDF body's hands are meshed apart; MakeHuman's are the body's own
+    hands = from_arrays("hands", D["hands_v"], D["hands_f"])
+    decimate(hands, 5000)
 HOOD_VF = (D["hood_v"], D["hood_f"])
 # the body's own surface, before the hands join (the garment pieces in part 4 are measured against it)
 from mathutils.bvhtree import BVHTree
@@ -126,8 +149,9 @@ BVH = BVHTree.FromPolygons([v.co.copy() for v in new.data.vertices], [tuple(p_.v
 bpy.ops.object.select_all(action="DESELECT")
 bpy.context.view_layer.objects.active = new
 new.select_set(True)
-hands.select_set(True)
-bpy.ops.object.join()
+if hands is not None:
+    hands.select_set(True)
+    bpy.ops.object.join()
 new = bpy.context.view_layer.objects.active
 
 # 2. skinned by bone heat to the rig's deforming body bones (not the armour's coat bones or the end markers)
