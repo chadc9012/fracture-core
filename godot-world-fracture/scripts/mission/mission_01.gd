@@ -179,6 +179,7 @@ func _ready() -> void:
 	_siren.volume_db = -18.0
 	add_child(_siren)
 	_load()
+	_room_audio.call_deferred()
 	op.dress(story.powers() == 0)   # at home in regular clothes until the Fracture
 	if story.phase == "DONE":
 		_go_street(RES_DOOR + Vector3(3, 0, 0), -PI / 2, false)
@@ -319,6 +320,10 @@ func _hero(file: String, height: float, pos: Vector3, yaw_deg: float, solid := t
 ## an upholstered armchair (there is no armchair model: the scene asked for armchair.glb, which never existed, so the
 ## apartment and the lobby lounge had empty spots and a warning on every load): seat, back and two arms, one solid
 func _armchair(pos: Vector3, yaw_deg: float, col: Color) -> void:
+	# Poly Haven's modern arm chair (CC0, models/props-ph); the built one when it isn't there
+	if prop("../props-ph/armchair.glb", 0.82, pos, yaw_deg + ARMCHAIR_FACING) != null:
+		_block(Vector3(0.8, 0.9, 0.8), pos + Vector3(0, 0.45, 0))
+		return
 	var holder := Node3D.new()
 	world.add_child(holder)
 	holder.position = pos
@@ -329,6 +334,9 @@ func _armchair(pos: Vector3, yaw_deg: float, col: Color) -> void:
 	for sx: float in [-0.46, 0.46]:
 		_box(Vector3(0.14, 0.6, 0.86), Vector3(sx, 0.3, 0.02), cloth, holder)
 	_block(Vector3(0.95, 0.9, 0.9), Vector3(0, 0.45, 0.02), holder)
+
+## the model faces +z; the built chair (and every caller's yaw) faces −z
+const ARMCHAIR_FACING := 180.0
 
 var _stone: StandardMaterial3D
 ## polished white stone for counters and tables (the tile sets read as tiles on furniture)
@@ -353,8 +361,9 @@ func _glass_mat() -> StandardMaterial3D:
 	return m
 
 func _plant(at: Vector3, h := 1.6) -> void:
-	# the Meshy planter when it's there; a simple one otherwise
-	if prop("planter.glb", h * 0.95, at) != null:
+	# a Meshy fan palm in a dark pot (the Meshy planter is shattered, so the rooms got box leaves; Nov 16)
+	if prop("../foliage/palm-b.glb", h * 0.85, at + Vector3(0, h * 0.18, 0), at.x * 37.0) != null:
+		_cyl(0.34, 0.5, at + Vector3(0, 0.25, 0), flat(Color(0.12, 0.12, 0.13), 0.35, 0.3))
 		return
 	_cyl(0.32, 0.6, at + Vector3(0, 0.3, 0), flat(Color(0.12, 0.12, 0.13), 0.3, 0.3))
 	var leaf := flat(Color(0.14, 0.36, 0.14), 0.7)
@@ -416,6 +425,9 @@ func _street_collision() -> void:
 	_block(Vector3(400, 1, 400), Vector3(0, -0.5, 0))
 	_block(Vector3(1, 30, 300), Vector3(BOUNDS.position.x - 0.5, 15, 0))
 	_block(Vector3(1, 30, 300), Vector3(BOUNDS.end.x + 0.5, 15, 0))
+	# the evacuation (barricades, cruisers, burnt wrecks) is the Fracture's: the last ordinary morning's street had them
+	# in its opening shots (the wrecks read as black car shapes on the road; owner's playthrough video, Nov 16)
+	var evac_from := street_root.get_child_count()
 	for zz: float in [BOUNDS.position.y, BOUNDS.end.y]:
 		_block(Vector3(40, 30, 1), Vector3(0, 15, zz))
 		# barricades and flashing lights across the street
@@ -459,6 +471,11 @@ func _street_collision() -> void:
 					c1.queue_free()
 					parked.erase(c1)
 					break
+	for k in range(evac_from, street_root.get_child_count()):
+		var n := street_root.get_child(k)
+		if n is Node3D and not n is StaticBody3D and not n is Light3D:
+			_evac_nodes.append(n)
+			(n as Node3D).visible = false
 	# the parked cars
 	for c0 in street_root.get_children():
 		if c0 is Node3D and String(c0.scene_file_path).contains("fleet"):
@@ -507,24 +524,39 @@ func _interior_env() -> void:
 	int_sun.rotation_degrees = Vector3(-16, 20, 0)   # low morning sun through the north glass
 	int_root.add_child(int_sun)
 
+## the city out of the Residences' glass. It was 110 mirror-glass boxes that took the sky's colour and all but vanished
+## (the windows looked onto an empty sky; owner's playthrough video, Nov 16): now the street's own Meshy towers, scaled
+## to skyline height in rings round the building, with a few boxes far out for depth.
+const SKYLINE := ["../buildings/nexus-civic-a.glb", "../buildings/nexus-civic-b.glb", "../buildings/nexus-civic-c.glb", "../buildings/nexus-spire.glb", "../buildings/nexus-terrace-a.glb", "../buildings/neon-tower-a.glb", "../buildings/neon-tower-b.glb", "../buildings/neon-tower-c.glb", "../buildings/nexus-terrace-b.glb", "../buildings/neon-block-a.glb"]
 func _interior_skyline() -> void:
-	var glass_tower := Materials.pbr("brushed_concrete", Color(0.55, 0.62, 0.72), 6.0, 0.4)
-	var win := StandardMaterial3D.new()
-	win.albedo_color = Color(0.35, 0.48, 0.62)
-	win.metallic = 0.8
-	win.roughness = 0.08
 	var r := RandomNumberGenerator.new()
 	r.seed = 12
-	for i in 110:
+	var mid := INT + Vector3(50, 0, 0)
+	var placed := 0
+	# ~28k triangles a tower and no LODs: 20 round the building (12 on a low-tier phone), about a third in any view
+	var count := 12 if Phone.tier() == "low" else 20
+	for i in count:
+		var a := TAU * (float(i) + r.randf_range(-0.3, 0.3)) / float(count)
+		var dist := r.randf_range(270.0, 470.0)
+		var h := r.randf_range(80.0, 200.0)
+		var at := mid + Vector3(cos(a) * dist, -45.0, sin(a) * dist)
+		var t := prop(SKYLINE[i % SKYLINE.size()], h, at, r.randf() * 360.0)
+		if t:
+			placed += 1
+			for mi in t.find_children("*", "MeshInstance3D", true, false):
+				(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# the far ring: plain massing, too far to read as boxes
+	var far := StandardMaterial3D.new()
+	far.albedo_color = Color(0.42, 0.47, 0.55)
+	far.roughness = 0.7
+	for i in (48 if placed > 0 else 110):
 		var a := r.randf() * TAU
-		var dist := r.randf_range(140.0, 520.0)
-		var h := r.randf_range(50.0, 230.0)
-		var w := r.randf_range(18.0, 40.0)
-		var c := INT + Vector3(50, 0, 0) + Vector3(cos(a) * dist, h * 0.5 - 45.0, sin(a) * dist)
-		var mi := _box(Vector3(w, h, w), c, win if i % 3 else glass_tower)
+		var dist := r.randf_range(540.0, 780.0) if placed > 0 else r.randf_range(140.0, 520.0)
+		var h := r.randf_range(60.0, 220.0)
+		var w := r.randf_range(22.0, 44.0)
+		var mi := _box(Vector3(w, h, w), mid + Vector3(cos(a) * dist, h * 0.5 - 45.0, sin(a) * dist), far)
 		mi.rotation.y = r.randf() * PI
-		if i % 4 == 0:
-			_box(Vector3(w * 0.7, 12.0, w * 0.7), c + Vector3(0, h * 0.5 + 6.0, 0), win).rotation.y = mi.rotation.y
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 ## Haven Home (gear_store.gd FURNITURE): the newest bought piece per room slot replaces or joins the apartment's own
 func _haven() -> Dictionary:
@@ -659,8 +691,7 @@ func _apartment() -> void:
 			_cyl(0.2, 0.06, c + Vector3(3.2 + k * 1.0, 0.75, 2.2), flat(GOLD, 0.25, 0.9))
 			_cyl(0.025, 0.74, c + Vector3(3.2 + k * 1.0, 0.37, 2.2), flat(GOLD, 0.25, 0.9))
 	for k in 3:
-		_ball(0.15, c + Vector3(3.2 + k * 1.0, 2.5, 3.0), flat(Color(1.0, 0.85, 0.6), 0.3, 0.0, 5.0))
-	_box(Vector3(0.3, 0.12, 0.2), c + Vector3(3.6, 1.02, 3.0), flat(Color(0.95, 0.95, 0.95), 0.4))
+		_ball(0.15, c + Vector3(3.2 + k * 1.0, 2.5, 3.0), flat(Color(1.0, 0.85, 0.6), 0.3, 0.0, 1.8))
 	_interact("apt", c + Vector3(4.2, 0, 2.2), 1.6, "Make breakfast", func() -> void: _morning("breakfast"), func() -> bool: return _todo("breakfast"), "breakfast")
 	# plants, art, a floor lamp
 	_plant(c + Vector3(-1.8, 0, -4.7), 1.8)
@@ -690,11 +721,14 @@ void fragment() {
 	vec2 uv = UV;
 	vec3 bg = mix(vec3(0.05, 0.12, 0.3), vec3(0.1, 0.25, 0.5), uv.y);
 	float ticker = step(uv.y, 0.16) * (0.6 + 0.4 * step(0.5, fract(uv.x * 12.0 + TIME * 0.6)));
-	float anchor = smoothstep(0.2, 0.18, length((uv - vec2(0.3, 0.55)) * vec2(1.0, 1.6)));
-	vec3 c = bg + vec3(0.9, 0.2, 0.25) * ticker * 0.5 + vec3(0.8, 0.7, 0.6) * anchor;
+	// (the anchor's bright oval sat over the NEXUS NEWS title; the screen is the channel's graphics now; Nov 16)
+	float band = smoothstep(0.02, 0.0, abs(uv.y - 0.62)) * 0.25;
+	vec3 c = bg + vec3(0.9, 0.2, 0.25) * ticker * 0.5 + vec3(0.6, 0.8, 1.0) * band;
 	c = mix(c, vec3(1.0, 0.1, 0.1) * (0.5 + 0.5 * sin(TIME * 8.0)), alarm);
 	// the signal lost: snow and rolling bars
-	float sn = fract(sin(dot(floor(uv * vec2(160.0, 90.0)) + floor(TIME * 24.0), vec2(12.9898, 78.233))) * 43758.5453);
+	// interleaved-gradient noise: the sin() hash fell apart at phone shader precision into big grey blocks (Nov 16)
+	vec2 px = floor(uv * vec2(160.0, 90.0)) + vec2(mod(floor(TIME * 24.0), 64.0) * 5.588, 0.0);
+	float sn = fract(52.9829189 * fract(dot(px, vec2(0.06711056, 0.00583715))));
 	c = mix(c, vec3(sn) * (0.7 + 0.3 * step(0.5, fract(uv.y * 3.0 + TIME * 1.7))), noise * (1.0 - alarm));
 	ALBEDO = c * 1.4;
 }
@@ -741,14 +775,14 @@ func _hallway() -> void:
 
 func _lounge() -> void:
 	var c := LOUNGE
-	_shell(c, 16.0, 12.0, 3.4, Materials.pbr("floor_tiles_06", Color(0.6, 0.58, 0.62), 2.0, 0.5), Materials.pbr("painted_plaster_wall", Color(0.3, 0.27, 0.34), 3.0), flat(Color(0.08, 0.07, 0.1), 0.8), "n")
+	_shell(c, 16.0, 12.0, 3.4, Materials.pbr("marble_01", Color(0.42, 0.38, 0.46), 3.0, 0.3), Materials.pbr("painted_plaster_wall", Color(0.3, 0.27, 0.34), 3.0), flat(Color(0.08, 0.07, 0.1), 0.8), "n")
 	_box(Vector3(15.0, 0.05, 0.1), c + Vector3(0, 3.3, -5.7), flat(PURPLE, 0.3, 0.0, 4.0))
 	# the screen and theatre seats
 	_box(Vector3(6.0, 2.6, 0.08), c + Vector3(-3.0, 1.9, 5.85), _news_mat())
 	_text("WORLD FRACTURE", c + Vector3(-3.0, 2.0, 5.8), PI, Color(0.9, 0.85, 1.0), 90, 0.009)
 	for row in 2:
 		for k in 5:
-			_solid(Vector3(0.8, 0.9, 0.8), c + Vector3(-5.4 + k * 1.2, 0.45, 2.0 - row * 1.4), Materials.surface("velour_velvet", Color(0.45, 0.06, 0.12), 0.5))
+			_armchair(c + Vector3(-5.4 + k * 1.2, 0, 2.0 - row * 1.4), 180.0, Color(0.45, 0.06, 0.12))
 	# pool table and arcades
 	_solid(Vector3(2.6, 0.85, 1.4), c + Vector3(4.0, 0.43, -1.5), Materials.pbr("wood_floor", Color(0.3, 0.18, 0.1), 1.0, 0.5))
 	_box(Vector3(2.4, 0.04, 1.2), c + Vector3(4.0, 0.87, -1.5), Materials.surface("velour_velvet", Color(0.05, 0.5, 0.55), 0.4))
@@ -776,7 +810,7 @@ func _lounge() -> void:
 
 func _lobby() -> void:
 	var c := LOBBY
-	var marble := Materials.pbr("floor_tiles_06", Color(1.0, 0.98, 0.96), 2.6, 0.35)
+	var marble := Materials.pbr("marble_01", Color(1.0, 0.98, 0.96), 3.0, 0.25)
 	var stone := Materials.pbr("painted_plaster_wall", Color(0.62, 0.58, 0.56), 3.0)
 	_shell(c, 26.0, 18.0, 7.0, marble, stone, flat(Color(0.1, 0.09, 0.11), 0.6), "e")
 	# double ring chandelier
@@ -836,7 +870,18 @@ func _lobby() -> void:
 	# plants and the front doors (east glass wall, the street beyond)
 	for p: Vector3 in [Vector3(-11, 0, 7.5), Vector3(11, 0, 7.5), Vector3(-3.5, 0, -7.6), Vector3(3.5, 0, -7.6)]:
 		_plant(c + p, 2.2)
-	_box(Vector3(0.1, 3.4, 3.6), c + Vector3(12.9, 1.7, 3.0), flat(Color(1.0, 0.95, 0.85), 1.0, 0.0, 1.2))
+	var door_glass := StandardMaterial3D.new()
+	door_glass.albedo_color = Color(0.55, 0.68, 0.78, 0.35)
+	door_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	door_glass.metallic = 0.4
+	door_glass.roughness = 0.05
+	_box(Vector3(0.06, 3.3, 3.5), c + Vector3(12.9, 1.65, 3.0), door_glass)
+	var trim := flat(GOLD, 0.25, 1.0)
+	for dz2: float in [-1.78, 0.0, 1.78]:
+		_box(Vector3(0.12, 3.4, 0.08), c + Vector3(12.88, 1.7, 3.0 + dz2), trim)
+	_box(Vector3(0.12, 0.08, 3.6), c + Vector3(12.88, 3.4, 3.0), trim)
+	for dz3: float in [-0.25, 0.25]:
+		_box(Vector3(0.1, 0.5, 0.04), c + Vector3(12.8, 1.1, 3.0 + dz3), trim)
 	_text("EXIT", c + Vector3(12.8, 3.8, 3.0), -PI / 2, Color(0.2, 1.0, 0.3), 48, 0.007)
 	_interact("lobby", c + Vector3(11.6, 0, 3.0), 2.0, "Out to the street", func() -> void:
 		if story.phase == "MORNING":
@@ -926,6 +971,9 @@ func _play_cine(shots: Array) -> void:
 	_line_t = 0.0
 	_next_line()
 	_release_mouse()
+	if _radio_on:
+		Sound.music_stop()
+		_radio_on = false
 	_cs.play(shots)
 	await _cs.finished
 	_cs.music("")
@@ -933,6 +981,7 @@ func _play_cine(shots: Array) -> void:
 	op.frozen = false
 	op.cam.current = true
 	_busy = false
+	_room_audio()
 
 func _play_opening() -> void:
 	# a capture (shot()) or a story beat may already be playing something; the opening is only for a fresh morning
@@ -1007,8 +1056,30 @@ func _go_room(rm: String, at: Vector3, yaw: float, fade := true) -> void:
 	op.velocity = Vector3.ZERO
 	op.snap_camera(yaw)
 	_location_text()
+	_room_audio()
 	if fade:
 		await _fade_in()
+
+## what the rooms sound like between the cinematics (they had nothing: half a minute of silence at a time in the morning;
+## owner's playthrough video, Nov 16): the radio on low in 12-04 through the morning, the city humming through the glass
+## everywhere inside, the street itself out of doors. The cinematics bring their own music and cut the radio.
+const MORNING_RADIO := "res://audio/radio/golden-era-94-instrumental.ogg"
+var _radio_on := false
+func _room_audio() -> void:
+	if _cs == null or _cs.playing:
+		return
+	Sound.ambience("nexus-hum", -12.0 if room == "street" else -24.0)
+	var radio := room == "apt" and story.phase == "MORNING"
+	if radio and not _radio_on:
+		Sound.music(MORNING_RADIO, -17.0)
+	elif not radio and _radio_on:
+		Sound.music_stop()
+	_radio_on = radio
+
+func _exit_tree() -> void:
+	if _radio_on:
+		Sound.music_stop()
+		_radio_on = false
 
 func _go_street(at: Vector3, yaw: float, fade := true) -> void:
 	if fade:
@@ -1019,6 +1090,7 @@ func _go_street(at: Vector3, yaw: float, fade := true) -> void:
 	op.velocity = Vector3.ZERO
 	op.snap_camera(yaw)
 	_location_text()
+	_room_audio()
 	if fade:
 		await _fade_in()
 
@@ -1093,6 +1165,7 @@ func _exit_to_street() -> void:
 	await _fade_in()
 
 ## the street breaks: the sky splits, the light goes, tears open in the asphalt
+var _evac_nodes: Array = []
 func _set_fracture(on: bool) -> void:
 	if not fracture_env:
 		fracture_env = street_env.duplicate(true)
@@ -1123,6 +1196,9 @@ func _set_fracture(on: bool) -> void:
 		sun.light_energy = 1.3 if on else 2.3
 	for n in _fracture_nodes:
 		(n as Node3D).visible = on
+	for n in _evac_nodes:
+		if is_instance_valid(n):
+			(n as Node3D).visible = on
 
 func _build_fracture() -> void:
 	world = street_root

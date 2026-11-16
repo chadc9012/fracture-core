@@ -1,4 +1,5 @@
 extends Control
+const Sound := preload("res://scripts/audio/sound.gd")
 const Outfits := preload("res://scripts/character/outfits.gd")
 const Wardrobe := preload("res://scripts/character/wardrobe.gd")
 const Phone := preload("res://scripts/phone.gd")
@@ -130,6 +131,16 @@ func _ready() -> void:
 	_fill()
 	get_viewport().size_changed.connect(_fit)
 	_fit()
+	# a new player's creator has an instrumental under it (it was silent between the title's song and the mission; Nov 16)
+	# — not when it is opened from the street, where the car radio may be on
+	if onboarding:
+		Sound.music(CREATOR_MUSIC, -12.0)
+
+const CREATOR_MUSIC := "res://audio/radio/instrumental-dimensions.ogg"
+
+func _exit_tree() -> void:
+	if onboarding:
+		Sound.music_stop()
 
 ## landscape: the stage on the left, the panel down the right (460 wide). Upright, that left the stage 80 px and the
 ## operator out of sight (owner's playthrough video, Nov 16): the stage takes the top of the screen, the panel the rest.

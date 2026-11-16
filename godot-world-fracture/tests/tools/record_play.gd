@@ -101,6 +101,7 @@ func walk_use(tag: String, run := false) -> void:
 	var r: float = float(it.r) * 0.6
 	var t := 0.0
 	var stuck := 0.0
+	var tries := 0
 	var last: Vector3 = m.op.global_position
 	while t < 14.0:
 		var p: Vector3 = m.op.global_position
@@ -120,11 +121,17 @@ func walk_use(tag: String, run := false) -> void:
 		else:
 			stuck = 0.0
 		last = m.op.global_position
-		if stuck > 1.2:
-			# round a corner: a step to the side, then on
-			m._keys[KEY_D] = true
-			await wait(0.45)
-			m._keys[KEY_D] = false
+		if stuck > 0.8:
+			# round the furniture: back off a step, then sidestep (alternating sides), then on
+			tries += 1
+			var side := KEY_D if tries % 2 == 1 else KEY_A
+			m._keys[KEY_W] = false
+			m._keys[KEY_S] = true
+			await wait(0.3)
+			m._keys[KEY_S] = false
+			m._keys[side] = true
+			await wait(0.35 + 0.15 * tries)
+			m._keys[side] = false
 			stuck = 0.0
 	m._keys[KEY_W] = false
 	m._keys[KEY_SHIFT] = false
@@ -222,11 +229,11 @@ func _play_street() -> void:
 		await wait(1.2)
 	st.controls.move = Vector2.ZERO
 	await wait(1.0)
-	# into the nearest parked car and away
+	# into the nearest parked road car (not the tank or the hover-car) and away
 	var best: Node3D = null
 	var bd := 1e9
 	for c in st.parked:
-		if c is Node3D and is_instance_valid(c):
+		if c is Node3D and is_instance_valid(c) and not String(c.get_meta("vehicle", "")) in ["goliath-tank", "hover-car"]:
 			var d: float = (c as Node3D).global_position.distance_to(st.operator.global_position)
 			if d < bd:
 				bd = d
@@ -235,11 +242,23 @@ func _play_street() -> void:
 		say("into a car")
 		st.enter_car(best)
 		await wait(1.0)
-		st.controls.move = Vector2(0, 1)
-		await wait(10.0)
-		st.controls.move = Vector2(0.35, 1)
-		await wait(2.5)
-		st.controls.move = Vector2(0, 1)
-		await wait(8.0)
+		# drive up the avenue; a car that stops moving (traffic, a kerb) backs off and steers round
+		var t := 0.0
+		var last: Vector3 = best.global_position
+		var still := 0.0
+		var steer := 0.0
+		while t < 22.0:
+			st.controls.move = Vector2(steer, 1.0)
+			await wait(0.25)
+			t += 0.25
+			var p: Vector3 = best.global_position
+			still = still + 0.25 if p.distance_to(last) < 0.4 else 0.0
+			last = p
+			steer = move_toward(steer, 0.0, 0.1)
+			if still > 1.0:
+				st.controls.move = Vector2(0.9, -1.0)
+				await wait(1.4)
+				steer = -0.45
+				still = 0.0
 		st.controls.move = Vector2.ZERO
 		await wait(2.0)
