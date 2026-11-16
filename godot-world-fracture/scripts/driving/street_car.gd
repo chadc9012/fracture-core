@@ -73,6 +73,7 @@ func step(dt: float, throttle: float, steer: float, brake: float, boost := false
 		if _launch_t > 0.0:
 			prof.acceleration = float(prof.get("acceleration", 8.0)) * 1.35
 	speed = Physics.advance(speed, throttle, brake, prof, dt)
+	_braking = brake > 0.5
 	top_speed = maxf(top_speed, speed)
 	var slide := clampf(float(profile.get("slide", 0.0)), 0.0, 1.0)
 	node.rotation.y += Physics.yaw_delta(speed, steer, prof, dt) * (1.0 + slide * 0.35 * clampf(absf(speed) / 20.0, 0.0, 1.0))
@@ -195,3 +196,150 @@ func nitro_fx() -> void:
 		c.add_child(fx)
 	fx.visible = true
 	fx.scale = Vector3(1, 1, 0.8 + randf() * 0.5)
+
+# --------------------------------------------------------------------------------- driving effects (catalog §8)
+## exhaust puffs at the tail, tyre smoke and skid marks under the rear wheels when the car slides or brakes hard
+## (asset catalog "Vehicles & transportation": exhaust effects, tire smoke). CPU particles, two small emitters and one
+## ring of 240 skid quads a car: nothing on traffic, only the car you drive (and race rivals through race_view).
+const SKID_N := 240
+var _exhaust: Array = []
+var _smoke: Array = []
+var _skid: MultiMeshInstance3D
+var _skid_i := 0
+var _skid_last := Vector3.INF
+var _skidding := false
+
+func drive_fx(dt: float) -> void:
+	var c: Node3D = node
+	if _exhaust.is_empty():
+		_build_fx()
+	var sp := absf(speed)
+	var hover := bool(profile.get("hover", false))
+	# exhaust: idling breath, a heavier plume on the throttle, none on a hover hull
+	for e in _exhaust:
+		var p := e as CPUParticles3D
+		p.emitting = not hover
+		p.speed_scale = 1.0 + clampf(sp / 25.0, 0.0, 1.5)
+		# CPU particles have no amount ratio: the plume grows with the throttle instead
+		p.scale_amount_max = 0.7 + clampf(sp / 30.0, 0.0, 1.0) * 0.8 if not boosting else 1.6
+	# tyre smoke and marks: a slide past ~14 degrees at speed, or a hard stop from speed
+	var slide := slip_angle() > 0.25 and sp > 8.0
+	var hard := _braking and sp > 12.0
+	var skidding := (slide or hard) and not hover
+	for s in _smoke:
+		(s as CPUParticles3D).emitting = skidding
+	if skidding:
+		_lay_skid(dt)
+	elif _skidding:
+		_skid_last = Vector3.INF   # the next mark starts fresh
+	_skidding = skidding
+
+var _braking := false
+
+func _build_fx() -> void:
+	var c: Node3D = node
+	var grey := StandardMaterial3D.new()
+	grey.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	grey.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	grey.albedo_color = Color(0.55, 0.55, 0.58, 0.28)
+	grey.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	grey.vertex_color_use_as_albedo = true
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.5, 0.5)
+	quad.material = grey
+	for sx: float in [-0.4, 0.4]:
+		var p := CPUParticles3D.new()
+		p.name = "Exhaust"
+		p.mesh = quad
+		p.amount = 24
+		p.lifetime = 1.1
+		p.explosiveness = 0.0
+		p.direction = Vector3(0, 0.3, 1)
+		p.spread = 18.0
+		p.initial_velocity_min = 1.2
+		p.initial_velocity_max = 2.2
+		p.gravity = Vector3(0, 0.6, 0)
+		p.scale_amount_min = 0.5
+		p.scale_amount_max = 1.0
+		p.scale_amount_curve = _fade_curve(0.6, 2.4)
+		p.color_ramp = _fade_ramp(Color(0.5, 0.5, 0.52, 0.35), Color(0.6, 0.6, 0.62, 0.0))
+		p.position = Vector3(sx, 0.32, HALF_LENGTH + 0.15)
+		p.local_coords = false
+		c.add_child(p)
+		_exhaust.append(p)
+	var smoke_q := QuadMesh.new()
+	smoke_q.size = Vector2(1.2, 1.2)
+	smoke_q.material = grey
+	for sx: float in [-0.85, 0.85]:
+		var p := CPUParticles3D.new()
+		p.name = "TyreSmoke"
+		p.mesh = smoke_q
+		p.amount = 36
+		p.lifetime = 1.6
+		p.emitting = false
+		p.direction = Vector3(0, 0.6, 0.8)
+		p.spread = 40.0
+		p.initial_velocity_min = 1.5
+		p.initial_velocity_max = 3.5
+		p.gravity = Vector3(0, 0.9, 0)
+		p.scale_amount_min = 0.6
+		p.scale_amount_max = 1.2
+		p.scale_amount_curve = _fade_curve(0.5, 3.0)
+		p.color_ramp = _fade_ramp(Color(0.85, 0.85, 0.85, 0.5), Color(0.9, 0.9, 0.9, 0.0))
+		p.position = Vector3(sx, 0.15, HALF_LENGTH * 0.72)
+		p.local_coords = false
+		c.add_child(p)
+		_smoke.append(p)
+	# the skid ring lives in the world, not on the car
+	_skid = MultiMeshInstance3D.new()
+	_skid.name = "SkidMarks"
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.instance_count = SKID_N
+	mm.visible_instance_count = 0
+	var q := QuadMesh.new()
+	q.size = Vector2(0.26, 1.0)
+	q.orientation = PlaneMesh.FACE_Y
+	var km := StandardMaterial3D.new()
+	km.albedo_color = Color(0.05, 0.05, 0.05, 0.55)
+	km.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	km.roughness = 1.0
+	km.cull_mode = BaseMaterial3D.CULL_DISABLED
+	q.material = km
+	mm.mesh = q
+	_skid.multimesh = mm
+	_skid.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	c.get_parent().add_child(_skid)
+
+func _lay_skid(dt: float) -> void:
+	var c: Node3D = node
+	var mm := _skid.multimesh
+	var here := c.global_position
+	if _skid_last != Vector3.INF and here.distance_to(_skid_last) < 0.9:
+		return
+	var along := (here - _skid_last) if _skid_last != Vector3.INF else -c.global_basis.z
+	along.y = 0.0
+	if along.length() < 0.01:
+		along = -c.global_basis.z
+	var seg := along.length() if _skid_last != Vector3.INF else 1.0
+	var b := Basis.looking_at(along.normalized(), Vector3.UP)
+	for sx: float in [-0.85, 0.85]:
+		var at := here + c.global_basis.x * sx - along * 0.5
+		at.y = (ground_at.call(at.x, at.z) as float) + 0.03
+		var xf := Transform3D(b.scaled(Vector3(1.0, 1.0, maxf(seg, 0.8))), at)
+		mm.set_instance_transform(_skid_i, xf)
+		_skid_i = (_skid_i + 1) % SKID_N
+		mm.visible_instance_count = mini(SKID_N, mm.visible_instance_count + 1)
+	_skid_last = here
+
+static func _fade_curve(a: float, b: float) -> Curve:
+	var cv := Curve.new()
+	cv.add_point(Vector2(0.0, a))
+	cv.add_point(Vector2(1.0, b))
+	return cv
+
+static func _fade_ramp(a: Color, b: Color) -> Gradient:
+	var g := Gradient.new()
+	g.set_color(0, a)
+	g.set_color(1, b)
+	return g

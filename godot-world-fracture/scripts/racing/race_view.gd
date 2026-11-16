@@ -562,6 +562,7 @@ func _process(dt: float) -> void:
 	if player.nos_tank <= 0.02:
 		controls.nitro_off()
 	player.nitro_fx()
+	player.drive_fx(dt)
 	# the rivals: aim at a point ahead on the centreline, ease off for the corners, skill sets the pace
 	for r in rivals:
 		var sc: RefCounted = r.sc

@@ -2542,6 +2542,7 @@ func _drive(dt: float) -> void:
 	if car.nos_tank <= 0.02:
 		controls.nitro_off()
 	car.nitro_fx()
+	car.drive_fx(dt)
 	var c: Node3D = car.node
 	# the operator rides inside: enemies aim at the car, the chase camera follows it from behind
 	operator.position = c.position
