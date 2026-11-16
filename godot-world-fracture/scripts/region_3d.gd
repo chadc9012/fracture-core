@@ -1199,6 +1199,10 @@ func _build_trees() -> void:
 			# the region's species mix (oak, cherry, baobab, bamboo, alien flora); the conifers take what is left
 			var pines := Flora.plant(self, trees)
 			if not pines.is_empty():
+				# NOTE (Nov 16): the Meshy pine was tried here through Flora.conifer_lods + _multimesh_lod and taken out —
+				# a region plants over a thousand trees a tile, and a pine simplified to the 1k / 340 triangles that
+				# budget allows reads as grey shards (needle clusters do not collapse). The forests want authored
+				# low-poly trees (leaf cards); the Meshy pine stays for the street and airport singles.
 				_multimesh(_tree_mesh(cold), pines, _tree_material(cold))
 	if not tears.is_empty():
 		Flora.rift_tears(self, tears)
@@ -1316,10 +1320,24 @@ func _clearings() -> PackedByteArray:
 ## Instanced props, split into ground tiles so each tile is culled on its own (off screen, out of the shadow cascades, past
 ## its draw distance). One multimesh over a whole region was drawn whole every pass: 9000 trees in every shadow cascade.
 const TILE_M := 110.0
-func _multimesh(mesh: Mesh, xf: Array[Transform3D], mat: Material, draw_m := 900.0, shadow := true) -> void:
+## the same instances at three detail levels (the Meshy upgrade's trees, owner Nov 16 "forestation"): `lods` is
+## [[mesh, up_to_m], …] from the finest; each level draws between the previous level's reach and its own, so a
+## forest of 10k-triangle pines costs the phone a few hundred near trees at full detail and silhouettes beyond
+func _multimesh_lod(lods: Array, xf: Array[Transform3D], mat: Material, shadow := true) -> void:
+	var from := 0.0
+	for lv in lods:
+		var mesh: Mesh = lv[0]
+		var to := float(lv[1])
+		# small cells, so a level switches within a few metres of its reach rather than a whole 110 m tile at once
+		_multimesh(mesh, xf, mat, to, shadow, from, LOD_CELL_M)
+		from = to
+
+const LOD_CELL_M := 28.0
+
+func _multimesh(mesh: Mesh, xf: Array[Transform3D], mat: Material, draw_m := 900.0, shadow := true, from_m := 0.0, cell_m := TILE_M) -> void:
 	var tiles := {}
 	for t in xf:
-		var key := Vector2i(floori(t.origin.x / TILE_M), floori(t.origin.z / TILE_M))
+		var key := Vector2i(floori(t.origin.x / cell_m), floori(t.origin.z / cell_m))
 		if not tiles.has(key):
 			tiles[key] = [] as Array[Transform3D]
 		tiles[key].append(t)
@@ -1337,6 +1355,9 @@ func _multimesh(mesh: Mesh, xf: Array[Transform3D], mat: Material, draw_m := 900
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mmi.visibility_range_end = draw_m
 		mmi.visibility_range_end_margin = draw_m * 0.1
+		if from_m > 0.0:
+			mmi.visibility_range_begin = from_m
+			mmi.visibility_range_begin_margin = from_m * 0.1
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		_world.add_child(mmi)
 

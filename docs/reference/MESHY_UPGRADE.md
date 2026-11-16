@@ -83,6 +83,7 @@ the seven bosses, then the hero lineup in `NPC_LINEUP.md` (rigged in Meshy, reta
 | --- | --- |
 | 1 Weapons | 9 made in Meshy (4K PBR, remeshed to ~12k tris); **in the game: rifle, rifle-smg, heavy (LMG), shotgun, rifle-fusion**; pistol, sniper, launcher, sword waiting on the download |
 | 2 Nature | **in the game: palm-a (coconut palm), conifer (pine); new: birch, tree-dead, rocks, boulder** (remeshed in Meshy, ~4-12k tris). Rejected after the remesh: the flowering shrub (lost its blossoms) and the street tree (too sparse) — to be remeshed again at a higher count. 13 made (oak, pine, 3 palms, bush, flowering shrub, rocks, boulder, grass, dead tree, birch, street tree); the hedge failed twice and was dropped |
+| 3 Animals (Nov 8 set) | **in the game (Nov 16, lead): boar, shark** from the owner's Nov 8 downloads (Wild Boar 1.35M tris, Deep Sea Hunter 122k), simplified with `gltfpack -si` (meshoptimizer keeps fur shells whole; Blender's collapse decimate left the boar speckled with holes) and through import-meshy.py at 1024. **Rejected: the bear** (base colour failed the pixelation gate, detail 0.015); Moonlit Majesty is an untextured generate, not used |
 | 3 Animals | 13 made (fox, shepherd, terrier, cat, pigeon, crow, seagull, rat, squirrel, deer, wolf, horse, raccoon); **in the game (Nov 15): all but the fox** (the Khronos fox keeps its walk cycle) from the agent's ~10k remeshes — deer, wolf and a new HORSE herd in the wild (`wildlife.gd`); pigeons, crow, cat, shepherd, terrier, rat, raccoon, squirrel on the city walks and gulls on the coast (`street_slice.gd` MESHY_FAUNA, drawn within ~30 m, a pecking bob) |
 | 4 Street props | **in the game (Nov 15): hydrant, trash-bin, parking-meter, mailbox, news-box, dumpster, bollard, food-cart, atm, barrier** (remeshed in Meshy to ~5-10k, or decimated in Blender with the normal map dropped where Meshy would not remesh); the phone booth was rejected (black shards in its glass). 20 made (lamp, bench, bus shelter, kiosk, vending, motorbike, plaza arch, planter, bin, dumpster, hydrant, barrier, bollard, news box, mailbox, phone booth, parking meter, food cart, ATM; the traffic light concept was dropped by the agent) |
 | 5 Interiors | remeshed to ~10k in Meshy on Nov 15 (task ids in the session log), waiting on the download; drop-in wiring is in: hotel concierge desk, bar counter and lobby TV wall, office desks and shelving (`interiors.gd`), slot machines and roulette (`casino_interior.gd`) — `models/city/{concierge-desk,bar-counter,tv-wall,office-desk,shelving,slot-machine,roulette}.glb`; bed, sofa and kitchen island come off mission_01's TORN list when their remeshes land. 12 made (bed, sofa, kitchen island, cafe set, reception, concierge, office desk, bar, slot machine, roulette, shelving, TV wall) |
@@ -102,6 +103,13 @@ The new kinds place themselves the moment their GLB is in the repo — no code c
   case: deer, boar, wolf, …) when it exists — fitted to the rules' body height, nose +z, its first clip looped if it
   has one, the procedural body otherwise. The fox keeps its own path.
 - **Weapons, buildings, furniture, fleet**: same file names, picked up as before.
+
+## Simplifying (lead, Nov 16)
+
+`gltfpack -i SRC.glb -o OUT.glb -si <ratio> -sa -noq -kn` (meshoptimizer; `npm i -g gltfpack`) simplifies without opening
+holes in fur and multi-shell meshes, where Blender's collapse decimate speckles them. Pines and other needle trees
+do not simplify below ~3k whatever the tool — a forest (a thousand trees a tile) cannot carry Meshy trees; those
+need authored low-poly leaf-card trees. `region_3d.gd` has `_multimesh_lod` for when they come.
 
 ## How a model comes in
 

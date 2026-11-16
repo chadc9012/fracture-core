@@ -34,6 +34,65 @@ static func mix_for(id: String) -> Dictionary:
 	return {}
 
 ## deals the forest places out between the species; returns the ones left for the conifer
+# ---------------------------------------------------------------------------------------------- the Meshy trees
+## a Meshy tree GLB as one mesh standing `height` m on y = 0, centred, its own materials kept (models/foliage, the
+## Nov 15 upgrade); `materials_from` lends its surface materials to a texture-less LOD file
+static var _glb_cache: Dictionary = {}
+
+static func glb_mesh(path: String, height: float, materials_from: Mesh = null) -> Mesh:
+	var key := path + ":" + str(height)
+	if _glb_cache.has(key):
+		return _glb_cache[key]
+	if not ResourceLoader.exists(path):
+		return null
+	var scene := (load(path) as PackedScene).instantiate()
+	var mi: MeshInstance3D = null
+	for ch in scene.find_children("*", "MeshInstance3D", true, false):
+		mi = ch
+		break
+	if mi == null:
+		scene.free()
+		return null
+	var src: Mesh = mi.mesh
+	var aabb := src.get_aabb()
+	var xf := mi.transform
+	var par := mi.get_parent()
+	while par and par != scene:
+		xf = (par as Node3D).transform * xf
+		par = par.get_parent()
+	aabb = xf * aabb
+	var k := height / maxf(aabb.size.y, 0.001)
+	var fit := Transform3D(Basis().scaled(Vector3.ONE * k), Vector3(-(aabb.position.x + aabb.size.x * 0.5) * k, -aabb.position.y * k, -(aabb.position.z + aabb.size.z * 0.5) * k)) * xf
+	var out := ArrayMesh.new()
+	for i in src.get_surface_count():
+		var st := SurfaceTool.new()
+		st.append_from(src, i, fit)
+		var m: Material = src.surface_get_material(i)
+		if materials_from and i < materials_from.get_surface_count():
+			m = materials_from.surface_get_material(i)   # a LOD file carries no textures of its own
+		if mi.get_surface_override_material(i):
+			m = mi.get_surface_override_material(i)
+		st.set_material(m)
+		st.commit(out)
+	scene.free()
+	_glb_cache[key] = out
+	return out
+
+## the conifer at three levels for region_3d `_multimesh_lod`: the Meshy pine to 90 m, its LODs to 170 / 260 m;
+## empty when the models are not there (the procedural tree then)
+static func conifer_lods(cold: bool) -> Array:
+	var h := 15.0 if not cold else 13.0
+	var full := glb_mesh("res://models/foliage/conifer.glb", h)
+	if full == null:
+		return []
+	# a forest never draws the 10k-triangle pine: the regions plant a tree every few metres, so a tile holds over a
+	# thousand — 1k triangles (lod1) within 30 m, 340 (lod2) to 110 m, the old silhouette beyond; textures lent
+	var l1 := glb_mesh("res://models/foliage/conifer-lod1.glb", h, full)
+	var l2 := glb_mesh("res://models/foliage/conifer-lod2.glb", h, full)
+	if l1 == null or l2 == null:
+		return []
+	return [[l1, 30.0], [l2, 110.0]]
+
 static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 	var mix := mix_for(r.map_id)
 	if mix.is_empty():
