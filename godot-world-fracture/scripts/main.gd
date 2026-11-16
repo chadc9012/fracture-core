@@ -17,6 +17,7 @@ const RaceView := preload("res://scripts/racing/race_view.gd")
 const Descent := preload("res://scripts/mission/descent.gd")
 const Campaign := preload("res://scripts/mission/campaign.gd")
 const ArenaView := preload("res://scripts/killbox/arena_view.gd")
+const RoyaleView := preload("res://scripts/killbox/royale_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
 const BossArena := preload("res://scripts/combat/boss_arena.gd")
@@ -37,6 +38,7 @@ const ModesHub := preload("res://scripts/modes/modes_hub.gd")
 var modes: Control
 var descent: Control
 var killbox: Control
+var royale: Control
 var race_view: Control
 var cloud: Node
 var cloud_panel: Control
@@ -1045,6 +1047,15 @@ func _shoot(path: String, opts: Array) -> void:
 				skyways.controls._brake_held = true
 		# killbox[:fracture|:prime|:skydock][:dominion|:freefall|:lockdown|:ascendancy][:fight]  an arena (Kaiju Complex by
 		# default) in a mode (Clash by default); :fight sprints and fires
+		if String(o).begins_with("royale"):
+			# royale[:fight]  Fracture Royale on the Verdant Forest; `fight` runs the clock to the first closing phase
+			royale = RoyaleView.new()
+			royale.closed.connect(func(): royale.queue_free(); royale = null)
+			add_child(royale)
+			if String(o).contains("fight"):
+				royale.controls.scripted = true
+				for i in 1100:
+					royale._process(0.05)
 		if String(o).begins_with("killbox"):
 			killbox = ArenaView.new()
 			killbox.arena_id = "kaiju-complex"
@@ -1176,6 +1187,9 @@ func _shoot(path: String, opts: Array) -> void:
 		for c in wl.rules.critters:
 			counts[c.species] = int(counts.get(c.species, 0)) + 1
 		print("wildlife: ", counts, " alive ", wl.rules.alive(), " catches ", wl.rules.catches, " night ", wl.night)
+	if royale and royale.match_state:
+		var rv: Control = royale
+		print("royale: alive ", rv.match_state.alive, " radius ", int(rv.match_state.radius), " phase ", rv.match_state.phase, " closing ", rv.match_state.closing, " bots ", rv.enemies.enemies.size(), " at ", rv.operator.position.round(), " centre ", rv.centre.round(), " hull ", rv.enemies.hull)
 	if killbox and killbox.match_state:
 		var kb := killbox
 		print("killbox: ", kb.mode_id, " us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " zones ", kb.match_state.zones.map(func(z): return [z.id, z.owner]), " rounds ", kb.match_state.us_rounds, "-", kb.match_state.them_rounds, " board ", kb.match_state.board, " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)

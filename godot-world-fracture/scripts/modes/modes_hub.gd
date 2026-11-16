@@ -14,6 +14,7 @@ extends Control
 signal closed
 
 const ArenaView := preload("res://scripts/killbox/arena_view.gd")
+const RoyaleView := preload("res://scripts/killbox/royale_view.gd")
 const Arena := preload("res://scripts/killbox/arena.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 const Track := preload("res://scripts/racing/track.gd")
@@ -332,11 +333,14 @@ func _pvp() -> void:
 		var t := _tile("pvp-" + aid, String(a.def.name).to_upper(), String(a.def.get("tag", "Clash · 6 v 6")), "", Color(1.0, 0.3, 0.7), func(): _launch_arena(aid), true, 22)
 		t.custom_minimum_size = Vector2(0, 150)
 		grid.add_child(t)
+	var royale := _tile("pvp-royale", "FRACTURE ROYALE", "60-player survival · the Verdant Forest", "", Color(0.75, 0.3, 1.0), func(): _host(RoyaleView.new()), true, 22)
+	royale.custom_minimum_size = Vector2(0, 150)
+	grid.add_child(royale)
 	for s in PVP_SOON:
 		var t2 := _tile("pvp-" + String(s[0]), String(s[1]), String(s[2]) + " · coming", "", Color(0.4, 0.5, 0.6), func(): pass, false, 22)
 		t2.custom_minimum_size = Vector2(0, 150)
 		grid.add_child(t2)
-	v.add_child(_strip("PVP MODES", ["✓ Team Deathmatch (Clash)", "Domination · soon", "Control · soon", "Kill Confirmed · soon", "Free for All · soon", "Ranked · with online"], Color(1.0, 0.3, 0.7)))
+	v.add_child(_strip("PVP MODES", ["✓ Team Deathmatch (Clash)", "Domination · soon", "Control · soon", "Kill Confirmed · soon", "Free for All · soon", "✓ Fracture Royale", "Ranked · with online"], Color(1.0, 0.3, 0.7)))
 
 func _launch_arena(id: String) -> void:
 	var av := ArenaView.new()

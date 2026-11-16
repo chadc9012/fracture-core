@@ -157,5 +157,38 @@ func _init() -> void:
 	r6 = r6 and ex.over and ex.winner == "us" and ex.us == 3
 	print("Extraction: pick-up unopposed, carry, pad, drop on death, reset, first to 3: ", r6)
 	ok = ok and r6
+	# Fracture Royale: the circle holds 50 s then closes over 35 s a phase, the fracture burns outside it by phase, your
+	# eliminations and the clock empty a lobby of 60; the player's death places them; alive <= 3 is the win
+	var ry := Match.new(Arena.mode("royale"), [])
+	var r7: bool = ry.kind == "royale" and ry.alive == 60 and ry.squads() == 20 and is_equal_approx(ry.radius, Match.START_RADIUS)
+	var z0: Dictionary = Match.radius_at(49.0)
+	var z1: Dictionary = Match.radius_at(50.0 + 17.5)
+	var z5: Dictionary = Match.radius_at(600.0)
+	r7 = r7 and not bool(z0.closing) and int(z0.phase) == 0 and bool(z1.closing) and float(z1.radius) < Match.START_RADIUS and float(z1.radius) > Match.START_RADIUS - 0.2 * (Match.START_RADIUS - Match.FINAL_RADIUS)
+	r7 = r7 and is_equal_approx(float(z5.radius), Match.FINAL_RADIUS) and int(z5.phase) == 5
+	r7 = r7 and ry.storm_damage(ry.radius - 1.0) == 0.0 and ry.storm_damage(ry.radius + 1.0) == 2.0
+	var waves := 0
+	for i in 1800:   # 90 s
+		ry.tick(0.05)
+		if ry.wave_due:
+			waves += 1
+	r7 = r7 and waves == 2 and ry.alive < 60 and ry.alive > 3 and ry.phase == 1 and ry.them == ry.alive
+	ry.score(1, true)
+	var a1 := ry.alive
+	ry.score(1, true)
+	r7 = r7 and ry.player_kills == 2 and ry.alive == a1 - 1 and ry.us == 2
+	ry.score(0)   # an ally down changes nothing in the lobby count here
+	r7 = r7 and ry.alive == a1 - 1
+	for i in 9000:   # the lobby empties by the final circle
+		ry.tick(0.05)
+		if ry.over:
+			break
+	r7 = r7 and ry.over and ry.winner == "us" and ry.reason == "Last squad standing" and ry.alive == 3
+	var ry2 := Match.new(Arena.mode("royale"), [])
+	ry2.tick(0.05)
+	ry2.player_died()
+	r7 = r7 and ry2.over and ry2.winner == "them" and ry2.reason.begins_with("Eliminated · placed 20 of 20")
+	print("Fracture Royale: circle phases, storm damage, waves every 40 s, the lobby empties, placement on death: ", r7, " alive ", ry.alive)
+	ok = ok and r7
 	print("Modes test: ", ok)
 	quit(0 if ok else 1)

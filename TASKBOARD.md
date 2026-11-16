@@ -34,7 +34,7 @@ Rows are the lock; `git fetch` before you claim.
 ## Open (unclaimed, take in order within a phase)
 - Owner: add the release keystore secrets (ANDROID_KEYSTORE_BASE64 / _USER / _PASS) and run the Godot APK workflow's release job; read the frame-time readout on the S22 Ultra in a Nexus firefight (gate: 30 fps); check the cloud save both ways; send the playtest bug list for step 12.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
-  2. ~~Extraction in Godot~~ — done Nov 9 (see Done); Fracture Royale remains the one web mode without Godot rules.
+  2. ~~Extraction in Godot~~ — done Nov 9 (see Done); ~~Fracture Royale~~ — in Godot Nov 16 (`scripts/killbox/royale_view.gd` on the Verdant Forest from the PvP hub; rules in killbox_match.gd kind "royale"; tests/killbox/royale_play.tscn).
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
   4. ~~Wildlife models (Meshy)~~ — all in by Nov 16 (deer, boar, wolf, bear, crocodile, shark, raptor, reptile, rabbit, songbird, fish; the horse herd, pets and city birds) but the panther: every Meshy black panther fails the texture gate, so it keeps the stand-in until one passes.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).

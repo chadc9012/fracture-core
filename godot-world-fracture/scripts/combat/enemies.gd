@@ -526,6 +526,19 @@ func _damage_foe(e: Enemy, damage: float) -> void:
 	if o.target.hp <= 0.0:
 		o.target.hp = 0.0
 
+## environmental damage (the Royale's closing fracture): straight to the hull, past the shield, no spark
+func burn(damage: float) -> void:
+	if down > 0.0 or hull <= 0.0:
+		return
+	hull -= damage
+	hurt = maxf(hurt, 0.6)
+	if hull <= 0.0:
+		hull = 0.0
+		down = 5.0
+		deaths += 1
+		Sound.sfx("down", -2.0)
+		operator_down.emit()
+
 func _hit_operator(damage: float) -> void:
 	if down > 0.0:
 		return

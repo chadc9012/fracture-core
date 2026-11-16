@@ -11,6 +11,11 @@ extends RefCounted
 ##   extract Extraction — a data core drops in the middle; a team standing on it unopposed for PICK_TIME takes it, the
 ##          carrier runs it to their own pad (PAD_RADIUS), it drops where the carrier goes down, lies RESET_AFTER then goes
 ##          home; kills do not score; first to `target` extractions (pvp.ts stepExtract).
+##   royale Fracture Royale — twenty squads of three on open ground inside a closing circle (pvp.ts ROYALE: five phases,
+##          each held PHASE_HOLD then shrunk over PHASE_SHRINK toward FINAL_RADIUS; outside it the fracture burns
+##          DAMAGE_PER_S by phase). No respawns. `alive` is the lobby: your eliminations take players out, the rest fall
+##          elsewhere at a rate that empties it by the final circle; the last squad standing wins, your death places you.
+##          `wave_due` goes true every WAVE_EVERY s for the view to land a fresh rival squad at the circle's edge.
 ## The view feeds `tick` presence counts (who stands in each zone / on the objective) and the alive counts; Extraction
 ## feeds `units` instead: [{id, team (1 us / 0 them), x, z, alive}] — the operator is "player".
 
@@ -23,6 +28,14 @@ const PICK_RADIUS := 2.5
 const PICK_TIME := 1.2
 const PAD_RADIUS := 4.0
 const RESET_AFTER := 15.0
+## Fracture Royale (pvp.ts ROYALE)
+const START_RADIUS := 230.0
+const FINAL_RADIUS := 18.0
+const PHASES := 5
+const PHASE_HOLD := 50.0
+const PHASE_SHRINK := 35.0
+const DAMAGE_PER_S := [2.0, 3.0, 5.0, 8.0, 12.0]
+const WAVE_EVERY := 40.0
 
 var mode: Dictionary
 var kind := "team"
@@ -55,12 +68,23 @@ var round_reset := false
 var core := { "x": 0.0, "z": 0.0, "holder": -1, "carrier": "", "pick": 0.0, "idle": 0.0, "home": Vector2.ZERO, "pad_us": Vector2.ZERO, "pad_them": Vector2.ZERO }
 ## the last thing that happened to the core, for the HUD and the toasts (cleared by the view)
 var core_event := ""
+## royale: the lobby still standing, the circle now, its phase, whether it is closing, the next squad's timer
+var alive := 0
+var radius := START_RADIUS
+var phase := 0
+var closing := false
+var next_wave := WAVE_EVERY
+var wave_due := false
+var _rng := RandomNumberGenerator.new()
 
 func _init(m: Dictionary, zone_spots: Array = []) -> void:
 	mode = m
 	kind = String(m.get("kind", "team"))
 	for z in zone_spots:
 		zones.append({ "id": String(z.id), "dx": float(z.dx), "dz": float(z.dz), "cap": 0.0, "owner": -1 })
+	if kind == "royale":
+		alive = int(m.get("players", 60))
+		_rng.seed = 7
 
 ## Extraction's sites (killbox-arenas.ts extractionSites): the core drops at `home`, each team extracts at its pad
 func set_sites(home: Vector2, pad_us: Vector2, pad_them: Vector2) -> void:
@@ -99,6 +123,15 @@ func score(team: int, by_player := false, who := "") -> void:
 		if by_player:
 			player_kills += 1
 		return   # rounds are won by wipes and objectives, Extraction by the core, not kills
+	if kind == "royale":
+		# a rival down is one fewer in the lobby (an ally down is your squad's loss, counted by the view)
+		if team == 1:
+			if by_player:
+				player_kills += 1
+			us += 1
+			alive = maxi(team_size(), alive - 1)
+			_check_royale()
+		return
 	if team == 1:
 		us += 1
 		if by_player:
@@ -109,6 +142,66 @@ func score(team: int, by_player := false, who := "") -> void:
 
 func player_died() -> void:
 	player_deaths += 1
+	if kind == "royale" and not over:
+		# no second life in the circle: eliminated, placed by the squads still up
+		over = true
+		winner = "them"
+		reason = "Eliminated · placed %d of %d" % [placement(), squads()]
+
+func team_size() -> int:
+	return int(mode.get("teamSize", 3))
+
+func squads() -> int:
+	return maxi(1, int(mode.get("players", 60)) / team_size())
+
+## the squads still up, you among them
+func placement() -> int:
+	return maxi(1, ceili(float(alive) / float(team_size())))
+
+## the circle's radius at a match time (pvp.ts royaleRadius): held a phase, then shrunk linearly to the next
+static func radius_at(t: float) -> Dictionary:
+	var step := PHASE_HOLD + PHASE_SHRINK
+	var p := mini(PHASES, floori(t / step))
+	var r := func(k: int) -> float: return START_RADIUS + (FINAL_RADIUS - START_RADIUS) * (float(k) / float(PHASES))
+	if p >= PHASES:
+		return { "radius": FINAL_RADIUS, "phase": p, "closing": false }
+	var into := t - p * step
+	if into < PHASE_HOLD:
+		return { "radius": r.call(p), "phase": p, "closing": false }
+	var k := (into - PHASE_HOLD) / PHASE_SHRINK
+	return { "radius": r.call(p) + (r.call(p + 1) - r.call(p)) * k, "phase": p, "closing": true }
+
+## what the fracture burns per second at `dist` from the circle's centre (nothing inside it)
+func storm_damage(dist: float) -> float:
+	if dist <= radius:
+		return 0.0
+	return float(DAMAGE_PER_S[mini(DAMAGE_PER_S.size() - 1, phase)])
+
+func _step_royale(dt: float) -> void:
+	var z := radius_at(clock)
+	radius = float(z.radius)
+	phase = int(z.phase)
+	closing = bool(z.closing)
+	# squads fall elsewhere at a rate that empties the lobby by the final circle
+	var others := alive - team_size()
+	if others > 0:
+		var fall := others * dt / maxf(20.0, (PHASE_HOLD + PHASE_SHRINK) * PHASES - clock)
+		if _rng.randf() < fall:
+			alive -= 1
+	them = alive
+	next_wave -= dt
+	wave_due = false
+	if next_wave <= 0.0:
+		next_wave = WAVE_EVERY
+		wave_due = true
+	_check_royale()
+
+func _check_royale() -> void:
+	them = alive
+	if not over and alive <= team_size():
+		over = true
+		winner = "us"
+		reason = "Last squad standing"
 
 func _ffa_totals() -> void:
 	us = int(board.get("you", 0))
@@ -132,6 +225,8 @@ func tick(dt: float, presence: Dictionary = {}, alive_us := 1, alive_them := 1, 
 			_step_rounds(dt, presence, alive_us, alive_them)
 		"extract":
 			_step_extract(dt, units)
+		"royale":
+			_step_royale(dt)
 	if time_limit() > 0.0 and clock >= time_limit():
 		_check(true)
 

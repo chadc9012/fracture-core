@@ -141,7 +141,7 @@ func _pick_mode() -> void:
 	box.add_child(title)
 	for mid in a.def.get("modes", ["clash"]):
 		var m: Dictionary = Arena.mode(String(mid))
-		# Fracture Royale (kind "royale") has no Godot rules yet
+		# Fracture Royale plays on open ground (scripts/killbox/royale_view.gd, from the PvP hub), not in an arena
 		if m.is_empty() or String(m.get("kind", "")) == "royale":
 			continue
 		var b := Button.new()
