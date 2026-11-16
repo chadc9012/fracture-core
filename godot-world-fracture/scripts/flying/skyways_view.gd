@@ -17,6 +17,8 @@ const TouchControls := preload("res://scripts/player/touch_controls.gd")
 const Handling := preload("res://scripts/driving/vehicle_handling.gd")
 const StreetCar := preload("res://scripts/driving/street_car.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
+const Facility := preload("res://scripts/garage/facility.gd")
+const GarageState := preload("res://scripts/garage/garage_state.gd")
 const REGION := "nexus"
 const FLEET := "res://models/fleet/"
 ## the craft on offer: hull file, handling kind, display name, where it starts (poi), fleet speed multiplier
@@ -61,6 +63,9 @@ var state: Handling.State
 var top_speed := 62.0
 var pad := Vector3.ZERO
 var hull_hp := 1.0
+## how much of a crash / a hard landing the hull takes (Airframe Finish / Landing Gear at the Aviation Hangar)
+var hull_take := 1.0
+var land_take := 1.0
 var rings: Array = []          # [{pos, node, hit}]
 var next_ring := 0
 var clock := 0.0
@@ -138,6 +143,12 @@ func _start() -> void:
 	Sound.loop("craft", String(ENGINE.get(String(c.kind), "engine")), -10.0, 0.9)
 	Sound.loop("wind", "water" if String(c.kind) in ["BOAT", "SUB"] else "wind", -20.0, 1.0)
 	top_speed = Handling.BASE_SPEED * float(Handling.FLEET_SPEED.get(craft_id, 1.0))
+	# the Aviation Hangar's work on this aircraft (facility.gd): engine, avionics, gear, cockpit, airframe
+	var fs := Facility.apply_flight(profile, top_speed, GarageState.load_or_fresh(), craft_id)
+	profile = fs[0]
+	top_speed = float(fs[1])
+	hull_take = float(fs[2])
+	land_take = 1.0 - 0.1 * Facility.level(GarageState.load_or_fresh(), craft_id, "gear")
 	region = Region3D.new()
 	region.set_anchors_preset(Control.PRESET_FULL_RECT)
 	region.closed.connect(func(): closed.emit())
@@ -346,7 +357,7 @@ func _process(dt: float) -> void:
 			break
 	if crashed:
 		var hit_speed := absf(state.speed)
-		hull_hp -= clampf(hit_speed / 60.0, 0.05, 0.6)
+		hull_hp -= clampf(hit_speed / 60.0, 0.05, 0.6) * hull_take
 		state.speed = -state.speed * 0.2
 		want = before
 		controls.toast("Hit a building — hull %d%%" % int(hull_hp * 100))
@@ -355,7 +366,7 @@ func _process(dt: float) -> void:
 			_reset("The craft is wrecked — back on the pad")
 			return
 	if state.hard_landing:
-		hull_hp -= 0.25
+		hull_hp -= 0.25 * land_take
 		controls.toast("Hard landing — hull %d%%" % int(hull_hp * 100))
 		if hull_hp <= 0.0:
 			_reset("The craft is wrecked — back on the pad")

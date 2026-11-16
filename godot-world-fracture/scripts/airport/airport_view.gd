@@ -601,7 +601,18 @@ func _aircraft_panel() -> void:
 			_row_button(box, "BUY · %s · %d Nex" % [String(d.name), int(d.price)], Color(0.85, 0.92, 1.0), func():
 				_redo(_aircraft_panel, Air.buy_aircraft(profile, code, craft))
 				_apply_shutters())
+	if not have.is_empty():
+		_row_button(box, "AVIATION HANGAR · engines, avionics, airframes", Color(0.55, 0.8, 1.0), func(): _panel_close(); open_facility())
 	_line(box, "Flying takes your aircraft out over %s; landing brings you back here." % String(Air.AIRPORTS[code].city), 13)
+
+## the Aviation Hangar (facility_view.gd): upgrades for the aircraft you own, paid from the same Nex
+func open_facility() -> void:
+	_save()
+	var v: Control = load("res://scripts/garage/facility_view.gd").new()
+	v.fac = "aviation"
+	v.set_anchors_preset(Control.PRESET_FULL_RECT)
+	v.closed.connect(func(): profile = Gear.profile_load())
+	_overlay_open(v)
 
 func _paint_panel(craft: String) -> void:
 	var box := _panel_open("PAINT SHOP · %s" % String(Air.AIRCRAFT[craft].name).to_upper(), accent2)

@@ -12,6 +12,10 @@ var rep := { "nexus-customs": 1, "neon-performance": 1, "ironworks": 1, "fractur
 var cars := {}
 ## the street racing reputation (street_career.gd), read when the garage loads: some parts need a rung of the ladder
 var street_rep := 0
+## the specialist facilities' upgrades (facility.gd): vehicle id -> { option id: level 1..3 }
+var upgrades := {}
+## the garage's old ₵ credits have been moved into the profile's Nex (wallet.gd), once
+var wallet_merged := false
 
 static func fresh() -> RefCounted:
 	var s = load("res://scripts/garage/garage_state.gd").new()
@@ -35,12 +39,24 @@ func installed(id: String) -> Dictionary:
 	return out
 
 func to_dict() -> Dictionary:
-	return { "version": VERSION, "credits": credits, "rep": rep, "cars": cars }
+	return { "version": VERSION, "credits": credits, "rep": rep, "cars": cars, "upgrades": upgrades, "wallet_merged": wallet_merged }
 
 func from_dict(d: Dictionary) -> void:
 	if int(d.get("version", 0)) != VERSION:
 		return
 	credits = int(d.get("credits", credits))
+	wallet_merged = bool(d.get("wallet_merged", false))
+	var up: Variant = d.get("upgrades", {})
+	if up is Dictionary:
+		for vid in up:
+			if up[vid] is Dictionary:
+				var lv := {}
+				for o in up[vid]:
+					var n := clampi(int(up[vid][o]), 0, 3)
+					if n > 0:
+						lv[String(o)] = n
+				if not lv.is_empty():
+					upgrades[String(vid)] = lv
 	for k in d.get("rep", {}):
 		rep[k] = int(d.rep[k])
 	for id in d.get("cars", {}):

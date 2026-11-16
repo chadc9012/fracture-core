@@ -138,6 +138,7 @@ var _tile_k := 0
 const PARKED_BOX := AABB(Vector3(0, -1000, 0), Vector3(0.1, 0.1, 0.1))
 const DriveProfile = preload("res://scripts/driving/drive_profile.gd")
 const GarageState = preload("res://scripts/garage/garage_state.gd")
+const Facility := preload("res://scripts/garage/facility.gd")
 const CarDetail := preload("res://scripts/driving/car_detail.gd")
 const Burnt := preload("res://scripts/fx/burnt.gd")
 ## the parked cars you can take (phase 5): each fleet file's vehicle id for the garage build it drives with
@@ -2126,6 +2127,9 @@ func close_garage() -> void:
 	if garage_overlay:
 		garage_overlay.queue_free()
 		garage_overlay = null
+		# the garage spends the profile's Nex (wallet.gd): pick up what it left
+		if not wallet.is_empty():
+			wallet = Gear.profile_load()
 
 func open_mall() -> void:
 	if mall_overlay or garage_overlay:
@@ -2282,7 +2286,14 @@ func enter_car(c: Node3D) -> void:
 	var state := GarageState.load_or_fresh()
 	var perf: Dictionary = DriveProfile.performance(state, id) if id != "" else { "max_speed": 28.0, "acceleration": 7.0, "steering": 1.0, "braking": 12.0 }
 	if Handling.kind_of(id) != "OFFROAD" or perf.is_empty():
+		var armor := float(perf.get("armor", 0.0))
 		perf = hull_perf(id) if Handling.BY_ID.has(id) else perf
+		if not perf.has("armor"):
+			perf = perf.duplicate()
+			perf.armor = armor
+	# the Military Motor Pool's work (facility.gd): powertrain, tracks, armour, and the camouflage on the hull
+	perf = Facility.apply_drive(perf, state, id)
+	Facility.paint_camo(c, Facility.camo(state, id))
 	var car := StreetCar.new(c, id, perf)
 	controls.set_nitro(float(perf.get("nos", 0.0)) > 0.0)
 	car.bounds = operator.bounds
@@ -2365,6 +2376,22 @@ func sound_off() -> void:
 func _exit_tree() -> void:
 	sound_off()
 
+## your own car (driven out of the garage) takes damage when it hits something above this speed (m/s); armour cuts it
+## (facility.gd damage_through) and the garage repairs it
+const CRASH_SPEED := 10.0
+var crash_log: Array = []     # [vehicle id, damage added] per crash, for the tests
+
+func _crash_damage(car: RefCounted, speed: float) -> void:
+	var id := String(car.id)
+	var st := GarageState.load_or_fresh()
+	if not st.cars.has(id):
+		return
+	var dmg := int(round(clampf((speed - CRASH_SPEED) * 1.2 + 3.0, 3.0, 30.0) * Facility.damage_through(float(car.profile.get("armor", 0.0)))))
+	st.cars[id].damage = clampi(int(st.cars[id].get("damage", 0)) + dmg, 0, 100)
+	st.save()
+	crash_log.append([id, dmg])
+	controls.toast("Crash — %s %d%% damaged (repair at the garage)" % [_car_name(car.node), int(st.cars[id].damage)])
+
 func _drive(dt: float) -> void:
 	var car: RefCounted = driving_car
 	# ENTER at a race meet (or on a racer's challenge) starts the race; otherwise, stopped, it gets you out
@@ -2380,7 +2407,11 @@ func _drive(dt: float) -> void:
 		throttle = (1.0 if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) else 0.0) - (1.0 if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) else 0.0)
 		steer = (1.0 if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) else 0.0) - (1.0 if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) else 0.0)
 	var nos_was: bool = car.boosting
+	var speed_was: float = absf(car.speed)
+	var hits_was: int = car.hits
 	car.step(dt, throttle, steer, controls.brake(), controls.nitro())
+	if car.hits > hits_was and speed_was > CRASH_SPEED and bool(car.node.get_meta("yours", false)):
+		_crash_damage(car, speed_was)
 	if car.boosting and not nos_was:
 		Sound.sfx("nitro", -4.0)
 	if car.nos_tank <= 0.02:

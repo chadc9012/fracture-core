@@ -106,7 +106,7 @@ func checkout(state) -> String:
 			return why
 	var cost := total(state)
 	if cost > int(state.credits):
-		return "Need %s more credits" % _money(cost - int(state.credits))
+		return "Need %s more Nex" % _money(cost - int(state.credits))
 	# everything checked: now apply
 	var c: Dictionary = state.cars[vehicle_id]
 	for slot in lines:

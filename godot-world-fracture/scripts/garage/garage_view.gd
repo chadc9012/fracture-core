@@ -12,6 +12,7 @@ var can_drive_out := false
 const Dealer := preload("res://scripts/garage/dealership.gd")
 const Showroom := preload("res://scripts/garage/showroom_view.gd")
 const GearStore := preload("res://scripts/gear/gear_store.gd")
+const Wallet := preload("res://scripts/garage/wallet.gd")
 ## the cars you own (the starters and what the showroom sold you), in the order ◀ ▶ steps through them
 var _owned: Array[String] = []
 var _showroom: Control
@@ -62,6 +63,7 @@ var _history: Array = []
 
 func _ready() -> void:
 	state = State.load_or_fresh()
+	Wallet.open(state)
 	_load_owned()
 	var bg := ColorRect.new()
 	bg.color = Data.BG
@@ -447,6 +449,9 @@ func _header() -> Control:
 	room.pressed.connect(open_showroom)
 	room.visible = not Catalog.SHOWROOM.is_empty()
 	hb.add_child(room)
+	var pool := Data.button("MOTOR POOL")
+	pool.pressed.connect(open_motor_pool)
+	hb.add_child(pool)
 	return head
 
 func _car_bar() -> Control:
@@ -562,7 +567,7 @@ func _layout() -> void:
 func _refresh() -> void:
 	var v := _vehicle()
 	var car: Dictionary = state.car(v.id)
-	_credits.text = "₵ %s" % Order._money(int(state.credits))
+	_credits.text = "%s Nex" % Order._money(int(state.credits))
 	_car_name.text = v.name.to_upper()
 	var rep := int(state.rep.get(shop_id, 0))
 	_cond.text = "Condition %d%%  ·  %s  ·  Standing here: %s" % [100 - int(car.get("damage", 0)), Order._cls_label(v.cls).capitalize(), "★".repeat(rep) + "☆".repeat(3 - rep)]
@@ -617,7 +622,7 @@ func _refresh() -> void:
 		nl.clip_text = true
 		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(nl)
-		row.add_child(Data.label("₵ %s" % Order._money(order.price_of(it.id)), 13, Data.GOLD))
+		row.add_child(Data.label("%s Nex" % Order._money(order.price_of(it.id)), 13, Data.GOLD))
 		var x := Data.button("✕")
 		x.custom_minimum_size = Vector2(30, 26)
 		x.add_theme_font_size_override("font_size", 11)
@@ -629,15 +634,15 @@ func _refresh() -> void:
 		row.add_child(x)
 		_order_box.add_child(row)
 	if order.repair:
-		_order_box.add_child(Data.label("Repair %d%% damage: ₵ %s" % [int(car.damage), Order._money(order.repair_price(state))], 13))
+		_order_box.add_child(Data.label("Repair %d%% damage: %s Nex" % [int(car.damage), Order._money(order.repair_price(state))], 13))
 	if order.is_empty():
 		_order_box.add_child(Data.label("Pick parts to preview them on the car.", 13, Data.MUTED))
-	_total.text = "TOTAL  ₵ %s" % Order._money(order.total(state))
+	_total.text = "TOTAL  %s Nex" % Order._money(order.total(state))
 	_buy.disabled = order.is_empty()
 	_undo.disabled = _history.is_empty()
 	var can_fix: bool = Catalog.shop(shop_id).get("repairs", false) and int(car.get("damage", 0)) > 0
 	_repair.disabled = not can_fix
-	_repair.text = ("REPAIR ✓" if order.repair else "REPAIR ₵ %s" % Order._money(order.repair_price(state))) if can_fix else "REPAIR"
+	_repair.text = ("REPAIR ✓" if order.repair else "REPAIR %s Nex" % Order._money(order.repair_price(state))) if can_fix else "REPAIR"
 
 ## empty a container now (a queue_free'd child still counts until the frame ends, which shifted the grid)
 func _clear(box: Node) -> void:
@@ -655,7 +660,7 @@ func _item_button(it: Dictionary) -> Button:
 	var picked: bool = order.lines.get(it.slot, "") == it.id
 	var fitted: bool = state.installed(_vehicle().id).get(it.slot, "") == it.id
 	var price: int = order.price_of(it.id)
-	var b := Data.button("%s\n%s" % [it.name, "FITTED" if fitted else ("₵ %s" % Order._money(price) if why == "" else "🔒 " + why.replace("Needs reputation", "Standing").replace(" here", ""))], picked)
+	var b := Data.button("%s\n%s" % [it.name, "FITTED" if fitted else ("%s Nex" % Order._money(price) if why == "" else "🔒 " + why.replace("Needs reputation", "Standing").replace(" here", ""))], picked)
 	b.custom_minimum_size = Vector2(0, 56)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.add_theme_font_size_override("font_size", 13)
@@ -710,6 +715,7 @@ func _checkout() -> void:
 		_status.add_theme_color_override("font_color", Color("#ff8a7a"))
 		return
 	state.save()
+	Wallet.close(state)
 	_history.clear()
 	_status.text = "Done. The work's fitted and paid for."
 	_status.add_theme_color_override("font_color", Color("#7dff8a"))
@@ -812,6 +818,18 @@ func _load_owned() -> void:
 		if not state.cars.has(id):
 			state.cars[id] = { "paint": "", "finish": "finish-gloss", "parts": {}, "damage": 0 }
 
+## the Military Motor Pool (facility_view.gd) next door: armour, powertrains and camouflage for the military fleet
+func open_motor_pool() -> void:
+	if _showroom:
+		return
+	_showroom = load("res://scripts/garage/facility_view.gd").new()
+	_showroom.fac = "military"
+	_showroom.state = state
+	_showroom.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_showroom.closed.connect(close_showroom)
+	add_child(_showroom)
+	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+
 func open_showroom() -> void:
 	if _showroom:
 		return
@@ -829,5 +847,6 @@ func close_showroom() -> void:
 		_showroom.queue_free()
 		_showroom = null
 	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	Wallet.open(state)     # the showroom spent Nex from the profile: pick up what's left
 	_load_owned()
 	_refresh()

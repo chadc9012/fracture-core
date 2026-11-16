@@ -628,6 +628,27 @@ func _shoot(path: String, opts: Array) -> void:
 			planet_view.select(String(o).substr(7))
 		if String(o).begins_with("map:"):
 			_open_map(String(o).substr(4))
+		# facility:<aviation|military>:<vehicle>[:opt=level,...]  the Aviation Hangar / Military Motor Pool with that
+		# vehicle owned and worked on (a scratch save: nothing is written)
+		if String(o).begins_with("facility:"):
+			var fa := String(o).split(":")
+			var fv: Control = load("res://scripts/garage/facility_view.gd").new()
+			fv.fac = fa[1]
+			fv.persist = false
+			fv.state = load("res://scripts/garage/garage_state.gd").fresh()
+			fv.state.credits = 64000
+			var fid := fa[2] if fa.size() > 2 else ""
+			fv.profile = { "nex": 64000, "air": { "aircraft": { "NXC": [fid] } }, "cars_owned": [fid] }
+			if fa.size() > 3:
+				var lv := {}
+				for kv in fa[3].split(","):
+					lv[kv.get_slice("=", 0)] = int(kv.get_slice("=", 1))
+				fv.state.upgrades[fid] = lv
+			fv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			add_child(fv)
+			await get_tree().process_frame
+			if fid != "":
+				fv.show_vehicle(fid)
 		# garage[:shop[:car[:item,item...]]]  e.g. garage:neon-performance:street-racer:paint-red,spoiler-gt,glow-cyan
 		if String(o).begins_with("garage"):
 			var g := String(o).split(":")
