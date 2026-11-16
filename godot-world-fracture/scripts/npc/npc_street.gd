@@ -161,6 +161,8 @@ static func look_for(p: Dictionary) -> Dictionary:
 	var faces: Array = Catalog.faces(body)
 	if not faces.is_empty():
 		look = CharacterStore.apply_face(look, String(faces[absi(hash(String(p.id))) % faces.size()].id))
+	if People.is_police(p) and body == "male":
+		look.model = "police"    # the Meshy-made beat cop (catalog.gd PEOPLE)
 	return look
 
 ## the name tag: name and job once you've met (a "?" until then), ✉ when they're your errand's recipient, ! when

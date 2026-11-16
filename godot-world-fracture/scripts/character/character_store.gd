@@ -104,11 +104,13 @@ static func exists() -> bool:
 
 static func load_look() -> Dictionary:
 	var f := FileAccess.open(PATH, FileAccess.READ)
-	if not f:
-		return default_look()
-	return clean(JSON.parse_string(f.get_as_text()))
+	var look := default_look() if not f else clean(JSON.parse_string(f.get_as_text()))
+	look.hero = true    # the player's own operator: in armour it is their frame's Meshy character (catalog.gd HEROES)
+	return look
 
 static func save_look(look: Dictionary) -> void:
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify(clean(look)))
+		var out := clean(look)
+		out.erase("hero")
+		f.store_string(JSON.stringify(out))

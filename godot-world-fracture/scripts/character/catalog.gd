@@ -69,6 +69,25 @@ static func body_path(frame: String, body: String, civ := false) -> String:
 		return "res://models/operators/bodies/civ-%s-%s.glb" % [frame, body]
 	return "res://models/operators/bodies/%s-%s.glb" % [frame, body]
 
+## Meshy characters (owner, Nov 15: "fix all the models and npcs … use what ever you need"): whole people made in Meshy
+## from the NPC lineup board, rigged there on the Mixamo skeleton and textured back by tools/meshy_bake_rig.py. The
+## armoured operators wear the board's three suits — Titan on the heavy male frame, Hunter on the slim female frame,
+## Warlock on the athletic female frame — and a look can name any of them with "model" (the city's people do).
+const HEROES := { "goliath-male": "titan", "nyx-female": "hunter", "cipher-female": "warlock" }
+const PEOPLE := { "male": ["civ-tee"], "female": ["civ-business"], "police": ["police"] }
+
+static func model_path(id: String) -> String:
+	return "res://models/characters/%s.glb" % id
+
+## the whole-character model this look wears, or "" for the frame's body with a catalog head
+static func hero_model(look: Dictionary) -> String:
+	var id := String(look.get("model", ""))
+	if id == "" and bool(look.get("hero", false)) and not bool(look.get("civ", false)):
+		id = String(HEROES.get("%s-%s" % [look.get("frame", ""), look.get("body", "")], ""))
+	if id == "" or not ResourceLoader.exists(model_path(id)):
+		return ""
+	return model_path(id)
+
 ## the creator calls the three builds by the body they make, not by the armour that is fitted to them later
 const BUILDS := { "nyx": ["SLIM", "Lean and light"], "cipher": ["ATHLETIC", "Average height, fit"], "goliath": ["HEAVY", "Broad, big frame"] }
 

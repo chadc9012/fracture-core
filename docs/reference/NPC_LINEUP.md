@@ -9,7 +9,8 @@ chosen by the owner: **both** — MakeHuman for the crowds, Meshy for the hero c
 | Group | Now in game | Next |
 | --- | --- | --- |
 | Civilians, police & security, business & workers, gangs, workers & support | civ bodies (`scripts/civ_body_sdf.py`) with the Meshy heads, dressed from the NPC wardrobe in `scripts/character/outfits.gd` (`npc-*`), 16 walkers on the street (`scripts/city/civilians.gd` MIX); the MultiMesh stick crowd only beyond ~10 m | MakeHuman bodies once the CC0 system asset pack (skins, clothes, hair) is reachable: it downloads only from makehumancommunity.org (blocked in the build sandbox); the owner's computer can fetch it, or attach `makehuman_system_assets_cc0.zip`. MPFB2's base mesh, targets and its `rig.mixamo.json` / `weights.mixamo.json` are on GitHub and fit our skeleton |
-| Operators (Titan / Hunter / Warlock = goliath / nyx / cipher frames) | Meshy armour, full models restored (b66de13) | regenerate to the board's look in Meshy |
+| Operators (Titan / Hunter / Warlock = goliath / nyx / cipher frames) | **The board's own characters (Nov 15)**: made in Meshy from the board crops (`lineup-crops/`), rigged in Meshy, in `models/characters/{titan,hunter,warlock}.glb`; the player's armoured operator wears its frame's one (`catalog.gd` HEROES — out of armour the civ body and wardrobe stay) | — |
+| Police, business woman, white-tee man | **Meshy characters (Nov 15)**: `models/characters/{police,civ-business,civ-tee}.glb` — every male beat cop and `npc-police` walker, and about 60% of the everyday crowd (`catalog.gd` PEOPLE, `civilians.gd`) | the rest of the board needs Meshy credits (about 87 left; owner chose not to buy more) |
 | Companions, factions, special & legendary, dimensional citizens | — | Meshy, through the owner's browser (UI only — never the API, never a scraped token) |
 
 ## NPC wardrobe ↔ board
@@ -45,5 +46,11 @@ Each: "realistic GTA V style full body character, A-pose, neutral background, PB
   red-skinned horned woman in crimson silks; purple-skinned mage in a blue and gold robe; raccoon-like creature with
   goggles in a leather harness
 
-Then: auto-rig in Meshy, export GLB, re-target onto the game's mixamo skeleton (the operators' clips), import with
+How the Nov 15 six came in: image → 3D in Meshy (A-pose reference from the crop), Remesh (fixed 30K triangles —
+the textured remesh keeps the PBR maps), Rig (humanoid; Mixamo skeleton, Running / Walking / Combat_Stance), download
+GLB. `tools/meshy_prep_rig.py` renames the clips (walk / run / combat, idle seeded — `stand_idle.gd` rebuilds it) and
+scales the maps to 2048; a rig that came back untextured gets the original's maps baked on by `tools/meshy_bake_rig.py`.
+Every file passes `scripts/check-meshy-textures.py`; `tests/character/meshy_people_test.gd` checks they load and play.
+
+Earlier plan: auto-rig in Meshy, export GLB, re-target onto the game's mixamo skeleton (the operators' clips), import with
 `generate_lods=false` (the Nov 8 triangle collapse tore Meshy's multi-shell meshes — never decimate them that way).

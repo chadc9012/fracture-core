@@ -79,6 +79,13 @@ func random_look() -> Dictionary:
 	look.hat = String(o.get("hat", "cap" if _rng.randf() < 0.12 else "none"))
 	look.eyes = "shades" if _rng.randf() < 0.1 else "none"
 	look.wear = (o.get("wear", []) as Array).duplicate()
+	# the Meshy-made people from the NPC lineup board (catalog.gd PEOPLE): the beat cops, and a share of the everyday crowd
+	if oid == "npc-police" and body == "male":
+		look.model = "police"
+	elif pool == MIX[0][1] and _rng.randf() < 0.6:
+		var ids: Array = Catalog.PEOPLE.get(body, [])
+		if not ids.is_empty():
+			look.model = String(ids[_rng.randi() % ids.size()])
 	return look
 
 func _spawn(side: float, z: float, dir: float) -> Walker:

@@ -64,7 +64,8 @@ func build(new_look: Dictionary, animate := true) -> void:
 	look = new_look
 	for c in get_children():
 		c.free()
-	var ps: PackedScene = load(Catalog.body_path(look.frame, look.body, bool(look.get("civ", false))))
+	var hero := Catalog.hero_model(look)
+	var ps: PackedScene = load(hero if hero != "" else Catalog.body_path(look.frame, look.body, bool(look.get("civ", false))))
 	body_root = ps.instantiate()
 	add_child(body_root)
 	skeleton = _find(body_root, "Skeleton3D")
@@ -85,6 +86,8 @@ func build(new_look: Dictionary, animate := true) -> void:
 	_head_bone = hb
 	if hb >= 0:
 		head_point = skeleton.get_bone_global_rest(hb).origin
+	if hero != "":
+		return    # a whole Meshy character: its own face, hair and clothes
 	_attach_head(hb)
 	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
 		dress(String(look.get("outfit", "")))
