@@ -54,15 +54,19 @@ static func fit_viewport(vp: SubViewport) -> void:
 		"low":
 			vp.msaa_3d = Viewport.MSAA_DISABLED
 			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
-			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-			vp.scaling_3d_scale = 0.6
+			# FSR 1 instead of bilinear (owner, Nov 15: "the city looks pixelated"): the same 0.6 render scale, but the
+			# upscale is edge-aware and sharpened, so neon edges and text stop blocking up
+			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
+			vp.fsr_sharpness = 0.15
+			vp.scaling_3d_scale = 0.65
 			vp.positional_shadow_atlas_size = 1024
 			vp.mesh_lod_threshold = 8.0
 		"medium":
 			vp.msaa_3d = Viewport.MSAA_2X
 			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
-			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-			vp.scaling_3d_scale = 0.8
+			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
+			vp.fsr_sharpness = 0.2
+			vp.scaling_3d_scale = 0.85
 			vp.positional_shadow_atlas_size = 2048
 			# 4 px simplified meshes until they shattered (owner's phone test, Nov 9): the Meshy city models and the bodies
 			# import without LODs now (their faces split into shards when simplified) and the rest keep a gentler threshold
