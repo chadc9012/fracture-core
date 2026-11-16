@@ -74,6 +74,9 @@ var _skip_ring: ProgressBar
 var _panel: TextureRect
 var _caption: PanelContainer
 var _caption_l: Label
+var _rule: ColorRect
+## bodies the camera's wall check ignores (the operator's own capsule)
+var clip_exclude: Array[RID] = []
 var _music: AudioStreamPlayer
 var _sfx: Array[AudioStreamPlayer] = []
 var _hold := 0.0
@@ -120,6 +123,7 @@ func _ready() -> void:
 	_title_small = _label(18, Color(0.85, 0.82, 0.75), 6)
 	_title_big = _label(54, Color(1.0, 0.97, 0.9), 14)
 	var rule := ColorRect.new()
+	_rule = rule
 	rule.color = Color(1.0, 0.85, 0.55, 0.8)
 	rule.custom_minimum_size = Vector2(420, 1)
 	rule.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -205,6 +209,36 @@ func _ready() -> void:
 		add_child(p)
 		_sfx.append(p)
 	visible = false
+
+## the title card held inside the screen: the wide-tracked big line at 54 ran off a phone held upright
+## ("APARTMENT 12-04" was 673 wide on a 540 screen; owner's playthrough video, Nov 16)
+func fit_title() -> void:
+	var w := get_viewport_rect().size.x - 40.0
+	_fit_font(_title_big, 54, w, 24)
+	_fit_font(_title_small, 18, w, 11)
+	_rule.custom_minimum_size.x = minf(420.0, w)
+
+static func _fit_font(l: Label, base: int, max_w: float, least: int) -> void:
+	var f := l.get_theme_font("font")
+	var size := base
+	while size > least and f.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > max_w:
+		size -= 2
+	l.add_theme_font_size_override("font_size", size)
+
+## a close shot set by offsets from the operator's head stood inside the stairwell wall when he was against it (the first
+## power played black; owner's playthrough video, Nov 16): with a wall between what the shot looks at and the camera,
+## the camera comes in to just in front of the wall. Only close shots: a wide one is framed over the city on purpose.
+func _unclip(target: Vector3) -> void:
+	if cam == null or not cam.is_inside_tree():
+		return
+	var to := cam.global_position - target
+	if to.length() > 8.0 or to.length() < 0.05:
+		return
+	var q := PhysicsRayQueryParameters3D.create(target, cam.global_position, 1, clip_exclude)
+	var hit := cam.get_world_3d().direct_space_state.intersect_ray(q)
+	if hit:
+		var p: Vector3 = hit.position
+		cam.global_position = p - to.normalized() * 0.2
 
 func _bar(top: bool) -> ColorRect:
 	var b := ColorRect.new()
@@ -415,6 +449,7 @@ func _shot(s: Dictionary, gen: int) -> void:
 	if not title.is_empty():
 		_title_big.text = String(title[0])
 		_title_small.text = String(title[1]) if title.size() > 1 else ""
+		fit_title()
 	# the queue of things to say: voiced ids, then unvoiced pairs
 	var queue: Array = []
 	for id in lines:
@@ -448,6 +483,7 @@ func _shot(s: Dictionary, gen: int) -> void:
 				cam.fov = float(_pick(s.fov, k))
 			if s.has("look"):
 				var target: Vector3 = _pick(s.look, k)
+				_unclip(target)
 				if target.distance_to(cam.global_position) > 0.01:
 					cam.look_at(target)
 			if t >= shake_at and _shake > 0.0:
