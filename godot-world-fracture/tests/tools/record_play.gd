@@ -5,17 +5,33 @@ extends SceneTree
 ##
 ## The operator walks to each thing (camera turned toward it, W held) instead of being placed there, and the lines,
 ## cinematics and voices play at their own pace. Run under Godot's movie maker:
-##   godot --path . --write-movie out.avi --fixed-fps 30 --resolution 1280x720 --script res://tests/tools/record_play.gd
+##   godot --path . --write-movie out.avi --fixed-fps 24 --script res://tests/tools/record_play.gd [-- --from N --to M --ckpt DIR]
 ## (fixed fps: game time is the video's time, however slowly the frames render)
 
 var main: Node
 var m: Control      # Mission 01
 var log_t := 0.0
 
+## In parts (the sandbox recycles about hourly, and a full run renders for ~4 h): `-- --from N --to M --ckpt DIR`
+## plays steps N..M of STEPS and quits. After each step a checkpoint (DIR/<next>.json: the story, the room, where the
+## operator stands and faces) is written; a part that starts past 0 puts the game back there first, prints
+## "SEG_START frame=<n>" when its own footage starts (the frames before it are trimmed) and "SEG_END" when done.
+const STEPS := ["intro", "dress", "breakfast", "phone", "mail", "news", "to_hall", "stairs", "mara", "stairs_back", "front_fight", "city"]
+var from_i := 0
+var to_i := STEPS.size() - 1
+var ckpt := ""
+
 func _initialize() -> void:
-	# a fresh start: no saved mission, character or profile
-	for f in ["user://mission01.json", "user://character.json", "user://profile.json"]:
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(f))
+	var args := OS.get_cmdline_user_args()
+	for k in args.size() - 1:
+		match args[k]:
+			"--from": from_i = int(args[k + 1])
+			"--to": to_i = int(args[k + 1])
+			"--ckpt": ckpt = args[k + 1]
+	if from_i == 0:
+		# a fresh start: no saved mission, character or profile
+		for f in ["user://mission01.json", "user://character.json", "user://profile.json"]:
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(f))
 	_run.call_deferred()
 
 func say(t: String) -> void:
@@ -29,6 +45,76 @@ func wait(s: float) -> void:
 	await create_timer(s).timeout
 
 func _run() -> void:
+	if from_i > 0 and not await _resume():
+		say("resume failed")
+		quit(1)
+		return
+	for i in range(from_i, to_i + 1):
+		await call("_step_" + STEPS[i])
+		if ckpt != "" and i < STEPS.size() - 1 and STEPS[i + 1] != "city":
+			_checkpoint(i + 1)
+	say("SEG_END")
+	await wait(0.5)
+	quit(0)
+
+func _checkpoint(next: int) -> void:
+	DirAccess.make_dir_recursive_absolute(ckpt)
+	var d := { "story": m.story.save(), "phase": m.story.phase, "room": m.room,
+		"pos": [m.op.global_position.x, m.op.global_position.y, m.op.global_position.z], "yaw": m.op.yaw_pivot.rotation.y }
+	var f := FileAccess.open("%s/%d.json" % [ckpt, next], FileAccess.WRITE)
+	f.store_string(JSON.stringify(d))
+	for u in ["character.json", "profile.json"]:
+		DirAccess.copy_absolute(ProjectSettings.globalize_path("user://" + u), "%s/%s" % [ckpt, u])
+	say("checkpoint %d" % next)
+
+## back to where checkpoint `from_i` left off
+func _resume() -> bool:
+	for u in ["character.json", "profile.json"]:
+		if FileAccess.file_exists("%s/%s" % [ckpt, u]):
+			DirAccess.copy_absolute("%s/%s" % [ckpt, u], ProjectSettings.globalize_path("user://" + u))
+	var scene: PackedScene = load("res://scenes/main.tscn")
+	main = scene.instantiate()
+	root.add_child(main)
+	await wait(1.0)
+	main._close_title()
+	if main.creator:
+		main._close_creator()
+	if STEPS[from_i] == "city":
+		var mf := FileAccess.open("user://mission01.json", FileAccess.WRITE)
+		mf.store_string(JSON.stringify({ "phase": "DONE", "done": [], "rescued": true }))
+		mf = null
+		main._open_street(true, "nexus", true)
+		await wait(2.0)
+		say("SEG_START frame=%d" % Engine.get_frames_drawn())
+		return true
+	var f := FileAccess.open("%s/%d.json" % [ckpt, from_i], FileAccess.READ)
+	if f == null:
+		return false
+	var d: Dictionary = JSON.parse_string(f.get_as_text())
+	var sf := FileAccess.open("user://mission01.json", FileAccess.WRITE)
+	sf.store_string(JSON.stringify(d.story))
+	sf = null
+	var M = load("res://scripts/mission/mission_01.gd")
+	M.skip_cinema = true             # no opening again
+	main._open_mission()
+	await frames(8)
+	M.skip_cinema = false
+	m = main.mission
+	if m == null:
+		return false
+	m.story.phase = String(d.phase)
+	var p: Array = d.pos
+	await m._go_room(String(d.room), Vector3(p[0], p[1], p[2]), float(d.yaw), false)
+	m.op.set_powers(m.story.powers())
+	m._update_hud()
+	m._lines.clear()
+	m._line_t = 0.0
+	await wait(1.0)
+	say("SEG_START frame=%d" % Engine.get_frames_drawn())
+	return true
+
+# --------------------------------------------------------------------------------------------- the steps
+func _step_intro() -> void:
 	var scene: PackedScene = load("res://scenes/main.tscn")
 	main = scene.instantiate()
 	root.add_child(main)
@@ -53,19 +139,50 @@ func _run() -> void:
 		c.confirmed.emit(c.look)
 	await wait(1.0)
 	m = main.mission
-	if m == null:
-		say("no mission opened")
-		quit(1)
-		return
-	await _play_mission()
-	# out into the city: the mission's LEAVE goes to the Nexus street
+	say("mission 01: the opening")
+	# the opening cinematic plays by itself
+	await _settle(0.5, 120.0)
+	await _lines_out()
+
+func _morning(t: String) -> void:
+	await walk_use(t)
+	await _lines_out(12.0)
+
+func _step_dress() -> void: await _morning("dress")
+func _step_breakfast() -> void: await _morning("breakfast")
+func _step_phone() -> void: await _morning("phone")
+func _step_mail() -> void: await _morning("mail")
+
+func _step_news() -> void:
+	await walk_use("news")
+	say("the Fracture")
+	await _settle(0.5, 150.0)      # the Fracture cinematic
+	await _lines_out()
+
+func _step_to_hall() -> void:
+	await walk_use("to_hall", true)
+
+func _step_stairs() -> void:
+	await walk_use("stairs", true)
+	await _settle(0.5, 120.0)
+	await _lines_out(12.0)
+
+func _step_mara() -> void:
+	await walk_use("mara", true)
+	await _lines_out(15.0)
+
+func _step_stairs_back() -> void:
+	await walk_use("stairs", true)
+
+func _step_front_fight() -> void:
+	await _play_front_fight()
+
+func _step_city() -> void:
 	say("the city")
-	m.closed.emit()
-	await wait(2.0)
+	if m != null and is_instance_valid(m):
+		m.closed.emit()
+		await wait(2.0)
 	await _play_street()
-	say("done")
-	await wait(1.0)
-	quit(0)
 
 # --------------------------------------------------------------------------------------------- Mission 01
 ## wait until no cinematic, line or fade is holding the player
@@ -144,27 +261,7 @@ func walk_use(tag: String, run := false) -> void:
 	await frames(2)
 	await _settle(0.6)
 
-func _play_mission() -> void:
-	say("mission 01: the opening")
-	# the opening cinematic plays by itself
-	await _settle(0.5, 120.0)
-	await _lines_out()
-	# the morning: get dressed, breakfast, the phone, the mail, then the news
-	for t: String in ["dress", "breakfast", "phone", "mail"]:
-		await walk_use(t)
-		await _lines_out(12.0)
-	await walk_use("news")
-	say("the Fracture")
-	await _settle(0.5, 150.0)      # the Fracture cinematic
-	await _lines_out()
-	# the alarm: out, the stairwell (the first power), the Sky Lounge, Mara, down to the lobby, the doors
-	await walk_use("to_hall", true)
-	await walk_use("stairs", true)
-	await _settle(0.5, 120.0)
-	await _lines_out(12.0)
-	await walk_use("mara", true)
-	await _lines_out(15.0)
-	await walk_use("stairs", true)
+func _play_front_fight() -> void:
 	await walk_use("front", true)
 	say("the street: the cinematic")
 	var t0: float = m._now
