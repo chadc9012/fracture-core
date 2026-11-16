@@ -334,8 +334,9 @@ static func _hotel(v) -> void:
 			v.box(Vector3(0.18, 0.5, 0.18), Vector3(cos(a) * 1.5, 5.75, z + sin(a) * 1.5), v.glow(Color(1.0, 0.88, 0.6), 3.0), false)
 		v.light(Vector3(0, 5.5, z), Color(1.0, 0.85, 0.6), 1.5, 18.0)
 	# reception at the back, the name above it
-	v.box(Vector3(10.0, 1.15, 1.4), Vector3(0, 0.58, -29.0), v.mat(Color(0.95, 0.94, 0.9), 0.1, 0.05))
-	v.box(Vector3(10.1, 0.1, 1.5), Vector3(0, 1.2, -29.0), gold, false)
+	if v.model("res://models/city/concierge-desk.glb", Vector3(0, 0, -29.0), 0.0, 7.0) == null:
+		v.box(Vector3(10.0, 1.15, 1.4), Vector3(0, 0.58, -29.0), v.mat(Color(0.95, 0.94, 0.9), 0.1, 0.05))
+		v.box(Vector3(10.1, 0.1, 1.5), Vector3(0, 1.2, -29.0), gold, false)
 	v.box(Vector3(14, 6.0, 0.3), Vector3(0, 3.0, -33.7), v.mat(Color(0.12, 0.09, 0.07), 0.4))
 	v.sign("THE AURELIAN", Vector3(0, 4.6, -33.5), 0.0, Color(1.0, 0.8, 0.4), 140)
 	v.spot("concierge", "CONCIERGE", Vector3(0, 0, -27.4))
@@ -355,8 +356,11 @@ static func _hotel(v) -> void:
 		v.box(Vector3(0.05, 0.3, 0.8), Vector3(17.5, 3.5, z), v.glow(Color(1.0, 0.75, 0.3), 2.0), false)
 	v.spot("elevator", "ELEVATORS", Vector3(15.6, 0, -14.0), 2.4)
 	# the Gilded Bar by the door
-	v.box(Vector3(1.0, 1.1, 6.0), Vector3(12.0, 0.55, -4.5), v.mat(Color(0.1, 0.08, 0.06), 0.3))
-	v.box(Vector3(1.1, 0.06, 6.1), Vector3(12.0, 1.12, -4.5), gold, false)
+	if v.model("res://models/city/bar-counter.glb", Vector3(12.0, 0, -4.5), PI * 0.5, 6.0) == null:
+		v.box(Vector3(1.0, 1.1, 6.0), Vector3(12.0, 0.55, -4.5), v.mat(Color(0.1, 0.08, 0.06), 0.3))
+		v.box(Vector3(1.1, 0.06, 6.1), Vector3(12.0, 1.12, -4.5), gold, false)
+	# the lounge's screen on the left wall
+	v.model("res://models/city/tv-wall.glb", Vector3(-17.2, 0, -12.0), PI * 0.5, 3.2, false)
 	for k in 12:
 		v.cyl(0.07, 0.32, Vector3(17.2, 1.5 + (k % 2) * 0.5, -7.0 + k * 0.45), v.glow([Color(0.9, 0.6, 0.2), Color(0.5, 0.8, 0.4), Color(0.8, 0.3, 0.3)][k % 3], 1.2), false)
 	v.sign("THE GILDED BAR", Vector3(17.6, 3.2, -4.5), -PI * 0.5, Color(1.0, 0.8, 0.4), 60)
@@ -639,8 +643,12 @@ static func _office(v) -> void:
 		var cz := -13.0 - (pod / 3) * 7.0
 		for k in 4:
 			var at := Vector3(cx + (-0.85 if k % 2 == 0 else 0.85), 0, cz + (-0.9 if k < 2 else 0.9))
-			_desk_pc(v, at, 0.0 if k < 2 else PI, Color(0.35, 0.75, 1.0))
+			if v.model("res://models/city/office-desk.glb", at, 0.0 if k < 2 else PI, 1.6) == null:
+				_desk_pc(v, at, 0.0 if k < 2 else PI, Color(0.35, 0.75, 1.0))
 		_plant(v, Vector3(cx + 2.4, 0, cz))
+	# the stores along the left wall
+	for k in 4:
+		v.model("res://models/city/shelving.glb", Vector3(-17.3, 0, -12.0 - k * 2.2), PI * 0.5, 2.0)
 	# the glass meeting room in the corner
 	var gl = v.glass(Color(0.6, 0.8, 0.9, 0.22))
 	v.box(Vector3(0.08, 3.0, 8.0), Vector3(10.0, 1.5, -6.0), gl)

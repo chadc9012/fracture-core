@@ -518,8 +518,35 @@ func _chandelier(at: Vector3) -> void:
 			var a := TAU * k / n
 			_ball(0.07, Vector3(at.x + cos(a) * r, yy - 0.12, at.z + sin(a) * r), crystal)
 
+## a Meshy model (docs/reference/MESHY_UPGRADE.md batch 5) standing at `at`, its longest side `fit` metres; null when
+## the file isn't there (the built piece stays)
+func _meshy(file: String, at: Vector3, yaw: float, fit: float) -> Node3D:
+	var path := "res://models/city/" + file
+	if not ResourceLoader.exists(path):
+		return null
+	var n := (load(path) as PackedScene).instantiate() as Node3D
+	var bb := AABB()
+	var first := true
+	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
+		var a: AABB = mi.transform * mi.get_aabb()
+		bb = a if first else bb.merge(a)
+		first = false
+	var s := fit / maxf(maxf(bb.size.x, bb.size.z), 0.01)
+	n.scale = Vector3.ONE * s
+	var holder := Node3D.new()
+	holder.position = at
+	holder.rotation.y = yaw
+	n.position = Vector3(-bb.get_center().x * s, -bb.position.y * s, -bb.get_center().z * s)
+	holder.add_child(n)
+	world.add_child(holder)
+	return holder
+
 var _screen_mat: ShaderMaterial
 func _slot(at: Vector3, yaw: float, seed: int) -> void:
+	if _meshy("slot-machine.glb", at, yaw, 1.3):
+		_cyl(0.28, 0.08, at + Basis(Vector3.UP, yaw) * Vector3(0, 0.75, 0.85), flat(CRIMSON, 0.6))
+		_cyl(0.05, 0.72, at + Basis(Vector3.UP, yaw) * Vector3(0, 0.36, 0.85), flat(GOLD, 0.2, 1.0))
+		return
 	if not _screen_mat:
 		_screen_mat = _shader("""
 shader_type spatial;
@@ -582,6 +609,9 @@ func _blackjack(at: Vector3) -> void:
 		_cyl(0.22, 0.08, at + Vector3(cos(a2) * 1.95, 0.72, sin(a2) * 1.3), flat(CRIMSON, 0.6))
 
 func _roulette(at: Vector3) -> void:
+	if _meshy("roulette.glb", at + Vector3(0.6, 0, 0), 0.0, 4.6):
+		_light(at + Vector3(0, 2.8, 0), Color(1.0, 0.85, 0.65), 1.2, 5.0)
+		return
 	_box(Vector3(4.4, 0.12, 1.8), at + Vector3(0.6, 0.9, 0), _felt())
 	_box(Vector3(4.6, 0.85, 2.0), at + Vector3(0.6, 0.42, 0), Materials.pbr("wood_floor", Color(0.45, 0.25, 0.14), 0.8, 0.5))
 	# the layout: red and black numbers
