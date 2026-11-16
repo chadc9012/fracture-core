@@ -73,7 +73,7 @@ func _settle(extra := 0.4, limit := 60.0) -> void:
 	var t := 0.0
 	while t < limit and (m._busy or m._cine_t >= 0.0 or m.op.frozen or m._fade.color.a > 0.02 or (m._cs != null and m._cs.playing)):
 		await process_frame
-		t += get_process_delta_time()
+		t += root.get_process_delta_time()
 	await wait(extra)
 
 ## let the subtitles on screen finish (the story's lines are part of the show)
@@ -81,7 +81,7 @@ func _lines_out(limit := 25.0) -> void:
 	var t := 0.0
 	while t < limit and (m._line_t > 0.0 or not m._lines.is_empty()):
 		await process_frame
-		t += get_process_delta_time()
+		t += root.get_process_delta_time()
 
 func _find(tag: String) -> Dictionary:
 	for it: Dictionary in m._interacts:
@@ -113,7 +113,7 @@ func walk_use(tag: String, run := false) -> void:
 		m._keys[KEY_W] = absf(wrapf(want - m.op.yaw_pivot.rotation.y, -PI, PI)) < 0.9
 		m._keys[KEY_SHIFT] = run
 		await process_frame
-		var dt := get_process_delta_time()
+		var dt: float = root.get_process_delta_time()
 		t += dt
 		if m.op.global_position.distance_to(last) < 0.02:
 			stuck += dt
@@ -177,13 +177,13 @@ func _play_mission() -> void:
 		if live.is_empty() or m.op.frozen:
 			m.op.fire_held = false
 			await process_frame
-			guard += get_process_delta_time()
+			guard += root.get_process_delta_time()
 			continue
 		live.sort_custom(func(a: Node3D, b: Node3D) -> bool: return a.global_position.distance_to(m.op.global_position) < b.global_position.distance_to(m.op.global_position))
 		var e: Node3D = live[0]
 		if e._rise < 1.0:
 			await process_frame
-			guard += get_process_delta_time()
+			guard += root.get_process_delta_time()
 			continue
 		var cam_p: Vector3 = m.op.cam.global_position
 		var aim: Vector3 = (e.global_position + Vector3(0, 1.1, 0) - cam_p).normalized()
@@ -193,7 +193,7 @@ func _play_mission() -> void:
 		if m.op.powers >= 2 and m.op.blast_cd <= 0.0 and e.global_position.distance_to(m.op.global_position) < 8.0:
 			m.op.blast()
 		await physics_frame
-		guard += get_physics_process_delta_time()
+		guard += root.get_physics_process_delta_time()
 	m.op.fire_held = false
 	say("cleared: %s" % m.story.phase)
 	var t2: float = m._now
@@ -225,7 +225,7 @@ func _play_street() -> void:
 	# into the nearest parked car and away
 	var best: Node3D = null
 	var bd := 1e9
-	for c in st._cars:
+	for c in st.parked:
 		if c is Node3D and is_instance_valid(c):
 			var d: float = (c as Node3D).global_position.distance_to(st.operator.global_position)
 			if d < bd:
