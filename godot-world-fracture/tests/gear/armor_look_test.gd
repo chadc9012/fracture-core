@@ -15,12 +15,12 @@ func ok(c: bool, w: String) -> void:
 	if not c:
 		fails += 1
 
-func suit(slots: Array) -> Dictionary:
+func suit(slots: Array, set_id := "dragonite") -> Dictionary:
 	var g := Gear.fresh()
 	g.equipped = {}
 	for slot in slots:
 		var id: String = "t-" + str(slot)
-		g.items.append({ "id": id, "name": slot, "slot": slot, "power": 120, "level": 1, "element": "ARC", "set": "dragonite", "frame": "", "cls": "" })
+		g.items.append({ "id": id, "name": slot, "slot": slot, "power": 120, "level": 1, "element": "ARC", "set": set_id, "frame": "", "cls": "" })
 		g.equipped[slot] = id
 	return g
 
@@ -69,7 +69,8 @@ func _init() -> void:
 	ok(ArmorLook.worn_count(r) == 0 and body_tris(r) == full, "nothing worn: no pieces, the whole body back")
 	# the starting save wears the Field Helmet only
 	var fresh := Gear.fresh()
-	var want := Gear.ARMOR_SLOTS.filter(func(sl: String) -> bool: return not Gear.worn(fresh, sl).is_empty()).size()
+	# the starting Field gear is kinetic, so it wears the Tactical suit, which has no helmet
+	var want := Gear.ARMOR_SLOTS.filter(func(sl: String) -> bool: return not Gear.worn(fresh, sl).is_empty() and not (sl == "helmet" and ArmorLook.suit_for(fresh, sl) == "tactical")).size()
 	ArmorLook.apply(r, fresh)
 	ok(ArmorLook.worn_count(r) == want, "a fresh save shows its starting armour: %d pieces" % want)
 	r.free()
@@ -77,6 +78,13 @@ func _init() -> void:
 	ArmorLook.apply(rob, suit(Gear.ARMOR_SLOTS))
 	ok(ArmorLook.worn_count(rob) == 0, "robots wear none")
 	rob.free()
+	# a kinetic set wears the Tactical suit; its character has no helmet, so the face shows
+	var t := rig_for("goliath", "male")
+	ok(ArmorLook.suit_for(suit(["chest"], "ghost-recon"), "chest") == "tactical", "a kinetic set wears the Tactical suit")
+	ArmorLook.apply(t, suit(Gear.ARMOR_SLOTS, "ghost-recon"))
+	ok(ArmorLook.worn_count(t) == 4, "the Tactical suit: chest, gauntlets, legs, belt (%d pieces)" % ArmorLook.worn_count(t))
+	ok(t.head_mesh.visible, "the Tactical suit leaves the face showing")
+	t.free()
 	for frame in ["nyx", "cipher"]:
 		var f := rig_for(frame, "female")
 		ArmorLook.apply(f, suit(Gear.ARMOR_SLOTS))

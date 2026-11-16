@@ -84,7 +84,8 @@ func _init() -> void:
 		var g := gear_in(String(sets[i % sets.size()]))
 		if i == 0:
 			g.equipped.erase("helmet")
-		ArmorLook.apply(r, g)
+		if String(sets[0]) != "nogear":
+			ArmorLook.apply(r, g)
 		print("worn pieces: ", ArmorLook.worn_count(r))
 	var cam := Camera3D.new()
 	root.add_child(cam)

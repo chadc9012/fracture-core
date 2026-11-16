@@ -138,7 +138,7 @@ for side in (1, -1):
     upper = next(b for b in arm.data.bones if b.name.endswith(hname.replace("Hand", "Arm")) and "Fore" not in b.name)
     sho = arm.matrix_world @ upper.head_local
     diffs.append(math.atan2(sh_.z - sho.z, abs(sh_.x - sho.x)) - math.atan2(bh.z - sho.z, abs(bh.x - sho.x)))
-REPOSE = max(abs(d) for d in diffs) > math.radians(8.0)
+REPOSE = max(abs(d) for d in diffs) > math.radians(12.0)
 print("ARMOR arm offsets %s → %s" % (["%.1f°" % math.degrees(d) for d in diffs], "re-pose" if REPOSE else "already matching"))
 bpy.context.view_layer.objects.active = arm
 bpy.ops.object.mode_set(mode="POSE")
@@ -303,6 +303,31 @@ for v in suit.data.vertices:
     for g in v.groups:
         g.weight *= (1.0 - k)
     hg.add([v.index], k, "ADD")
+
+# a bare-headed suit: everything above the neck is the generated character's own face and hair, not armour — cut it
+# away before decimating (the collar and hood behind the neck stay)
+if NO_HELMET:
+    import bmesh as _bmh
+    hp_ = arm.matrix_world @ head_b.head_local
+    np_ = arm.matrix_world @ neck_b.head_local
+    bmh = _bmh.new()
+    bmh.from_mesh(suit.data)
+    mw_ = suit.matrix_world
+    drop = []
+    for f in bmh.faces:
+        c = mw_ @ f.calc_center_median()
+        r = Vector((c.x - hp_.x, c.y - hp_.y)).length
+        # well above the neck: all of it (face, hair, the hood's crown)
+        if c.z > hp_.z + 0.06:
+            drop.append(f)
+        # from just above the collar up: anything close round the neck/head axis — the generated face, jaw, beard and
+        # throat — while the hood and collar further out stay
+        elif c.z > np_.z + 0.015 and r < 0.115:
+            drop.append(f)
+    _bmh.ops.delete(bmh, geom=drop, context="FACES")
+    bmh.to_mesh(suit.data)
+    bmh.free()
+    print("ARMOR head cut: %d faces" % len(drop))
 
 # ---------------------------------------------------------------- 4. phone budget
 tris = sum(len(p.vertices) - 2 for p in suit.data.polygons)
