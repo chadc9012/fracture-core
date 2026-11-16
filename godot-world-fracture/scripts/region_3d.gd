@@ -1199,11 +1199,13 @@ func _build_trees() -> void:
 			# the region's species mix (oak, cherry, baobab, bamboo, alien flora); the conifers take what is left
 			var pines := Flora.plant(self, trees)
 			if not pines.is_empty():
-				# NOTE (Nov 16): the Meshy pine was tried here through Flora.conifer_lods + _multimesh_lod and taken out —
-				# a region plants over a thousand trees a tile, and a pine simplified to the 1k / 340 triangles that
-				# budget allows reads as grey shards (needle clusters do not collapse). The forests want authored
-				# low-poly trees (leaf cards); the Meshy pine stays for the street and airport singles.
-				_multimesh(_tree_mesh(cold), pines, _tree_material(cold))
+				# the Meshy pine near, its leaf cards beyond (Flora.tree_lods; the 1k / 340-triangle remeshes read as
+				# grey shards, so the far trees are the pine's own rendered silhouette on crossed cards)
+				var lods := Flora.tree_lods("conifer", 13.0 if not cold else 11.5)
+				if lods.is_empty():
+					_multimesh(_tree_mesh(cold), pines, _tree_material(cold))
+				else:
+					_multimesh_lod(lods, pines, null)
 	if not tears.is_empty():
 		Flora.rift_tears(self, tears)
 	if not shards.is_empty():
@@ -1323,6 +1325,7 @@ const TILE_M := 110.0
 ## the same instances at three detail levels (the Meshy upgrade's trees, owner Nov 16 "forestation"): `lods` is
 ## [[mesh, up_to_m], …] from the finest; each level draws between the previous level's reach and its own, so a
 ## forest of 10k-triangle pines costs the phone a few hundred near trees at full detail and silhouettes beyond
+## (28 m cells: 14 m ones were tried and doubled the draw calls for more, not fewer, near triangles)
 func _multimesh_lod(lods: Array, xf: Array[Transform3D], mat: Material, shadow := true) -> void:
 	var from := 0.0
 	for lv in lods:

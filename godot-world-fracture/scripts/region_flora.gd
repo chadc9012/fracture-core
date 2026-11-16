@@ -78,20 +78,19 @@ static func glb_mesh(path: String, height: float, materials_from: Mesh = null) -
 	_glb_cache[key] = out
 	return out
 
-## the conifer at three levels for region_3d `_multimesh_lod`: the Meshy pine to 90 m, its LODs to 170 / 260 m;
-## empty when the models are not there (the procedural tree then)
-static func conifer_lods(cold: bool) -> Array:
-	var h := 15.0 if not cold else 13.0
-	var full := glb_mesh("res://models/foliage/conifer.glb", h)
-	if full == null:
+## a forest tree at two levels for region_3d `_multimesh_lod` (owner, Nov 16 "forestation"): the full Meshy tree
+## (models/foliage/<kind>.glb, ~10k triangles) within Phone.tree_detail_range(), then its leaf-card impostor
+## (<kind>-cards.glb from tools/tree_cards.py: three crossed quads and a crown top, 8 triangles, the tree's own
+## rendered silhouette) out to the draw distance. Empty when either file is missing (the procedural tree then).
+## The pine's 1k / 340-triangle remeshes were tried first and read as grey shards; cards keep the tree's look.
+static func tree_lods(kind: String, height: float) -> Array:
+	var full := glb_mesh("res://models/foliage/%s.glb" % kind, height)
+	var cards := glb_mesh("res://models/foliage/%s-cards.glb" % kind, height)
+	if full == null or cards == null:
 		return []
-	# a forest never draws the 10k-triangle pine: the regions plant a tree every few metres, so a tile holds over a
-	# thousand — 1k triangles (lod1) within 30 m, 340 (lod2) to 110 m, the old silhouette beyond; textures lent
-	var l1 := glb_mesh("res://models/foliage/conifer-lod1.glb", h, full)
-	var l2 := glb_mesh("res://models/foliage/conifer-lod2.glb", h, full)
-	if l1 == null or l2 == null:
-		return []
-	return [[l1, 30.0], [l2, 110.0]]
+	return [[full, Phone.tree_detail_range()], [cards, 900.0]]
+
+const Phone := preload("res://scripts/phone.gd")
 
 static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 	var mix := mix_for(r.map_id)
@@ -120,7 +119,11 @@ static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 			continue
 		match k:
 			"oak":
-				r._multimesh(broadleaf(), list, r._tree_material(false))
+				var lods := tree_lods("broadleaf", 10.0)
+				if lods.is_empty():
+					r._multimesh(broadleaf(), list, r._tree_material(false))
+				else:
+					r._multimesh_lod(lods, list, null)
 			"cherry":
 				r._multimesh(broadleaf(), list, cherry_material(r))
 			"baobab":

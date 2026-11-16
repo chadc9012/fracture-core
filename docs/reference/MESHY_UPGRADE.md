@@ -112,6 +112,14 @@ holes in fur and multi-shell meshes, where Blender's collapse decimate speckles 
 do not simplify below ~3k whatever the tool — a forest (a thousand trees a tile) cannot carry Meshy trees; those
 need authored low-poly leaf-card trees. `region_3d.gd` has `_multimesh_lod` for when they come.
 
+**Forests (lead, Nov 16):** the Meshy trees carry the forests after all, as leaf-card impostors: `tools/tree_cards.py`
+(Blender) renders a tree's two side views and its top view with alpha into one atlas and writes `<kind>-cards.glb` —
+three crossed vertical quads and a crown-top quad, 8 triangles, normals up so the cards shade like the ground.
+`Flora.tree_lods(kind, height)` draws the full Meshy tree within `Phone.tree_detail_range()` (9 / 14 / 22 m by tier)
+and the cards beyond; the conifer and the oak (broadleaf) forests use it, birch cards are made for when birches plant.
+Rebuild a tree's cards after replacing its GLB: `blender -b -P tools/tree_cards.py -- models/foliage/conifer.glb
+models/foliage/conifer-cards.glb 13.0`.
+
 ## How a model comes in
 
 1. Download the GLB from the Meshy canvas (the file name carries the model name).

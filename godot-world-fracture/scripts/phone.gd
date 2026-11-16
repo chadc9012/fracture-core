@@ -40,6 +40,16 @@ static func car_range() -> float:
 			return 90.0
 	return 0.0
 
+## how far a forest draws the full Meshy tree (~10k triangles) before its leaf cards take over (region_flora.gd
+## tree_lods): a dense forest stands a tree every ~3 m, so the ring's area is the near triangle budget
+static func tree_detail_range() -> float:
+	match tier():
+		"low":
+			return 9.0
+		"medium":
+			return 14.0
+	return 22.0
+
 ## props under this size cast no shadow (a second draw per cascade for a few pixels)
 static func shadowless_below() -> float:
 	match tier():
