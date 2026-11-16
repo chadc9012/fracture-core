@@ -4,6 +4,7 @@ extends SceneTree
 const Rig := preload("res://scripts/character/character_rig.gd")
 const Store := preload("res://scripts/character/character_store.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
+const Catalog := preload("res://scripts/character/catalog.gd")
 const ArmorLook := preload("res://scripts/gear/armor_look.gd")
 const Grade := preload("res://scripts/grade.gd")
 var frames := 0
@@ -63,7 +64,15 @@ func _init() -> void:
 		var look: Dictionary = Store.default_look()
 		look.frame = fr[i]
 		look.body = body
-		look = Store.clean(look)
+		# a body type wears a face of its own (the default look's face is a male one)
+		if body == "female":
+			var pick: Array = (args[6] if args.size() > 6 else "").split(",") if args.size() > 6 else []
+			look.face = String(pick[i]) if i < pick.size() and pick[i] != "" else String(Catalog.faces("female")[i % Catalog.faces("female").size()].id)
+			look.erase("beard")
+			look.erase("marks")
+			look = Store.clean(look, true)
+		else:
+			look = Store.clean(look)
 		var r = Rig.new()
 		root.add_child(r)
 		r.build(look, true)
@@ -92,6 +101,11 @@ func _init() -> void:
 	cam.fov = 38.0
 	var at := Vector3(0, 1.25, 5.0)
 	var aim := Vector3(0, 1.0, 0)
+	if view == "faces":
+		# the left two figures' faces, head height, close
+		at = Vector3(-0.575, 1.6, 2.1)
+		aim = Vector3(-0.575, 1.6, 0)
+		cam.fov = 30.0
 	if view == "close":
 		at = Vector3(0, 1.45, 1.25)
 		aim = Vector3(0, 1.3, 0)
