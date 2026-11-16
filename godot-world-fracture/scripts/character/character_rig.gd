@@ -350,7 +350,6 @@ static func _sample_skin(m: Material) -> Variant:
 	img = img.duplicate()
 	img.resize(96, 96, Image.INTERPOLATE_BILINEAR)
 	var px: Array[Color] = []
-	var lsum := 0.0
 	for y in 96:
 		for x in 96:
 			var c := img.get_pixel(x, y)
@@ -360,18 +359,16 @@ static func _sample_skin(m: Material) -> Variant:
 			var lum := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
 			if c.r - c.b > 0.06 and sat > 0.15 and sat < 0.8 and lum > 0.12 and c.b <= c.g + 0.04:
 				px.append(c)
-				lsum += lum
 	if px.size() <= 50:
 		return null
-	# the lit skin (cheeks, forehead, nose): the brighter half of the skin texels. The mean of all of them took in the
-	# beard shadow and the creases, and the hands painted from it came out much darker than the face (Nov 16)
-	var mean_l := lsum / px.size()
+	# the lit skin (forehead, cheeks, nose): the brightest quarter of the skin texels. The mean of all of them took in
+	# the beard shadow, the lips, the ears and the creases, and the hands painted from it came out darker and redder
+	# than the face (Nov 16)
+	px.sort_custom(func(a: Color, b: Color) -> bool: return a.get_luminance() > b.get_luminance())
+	var n := maxi(1, px.size() / 4)
 	var sum := Color(0, 0, 0)
-	var n := 0
-	for c in px:
-		if 0.3 * c.r + 0.59 * c.g + 0.11 * c.b >= mean_l:
-			sum += c
-			n += 1
+	for i in n:
+		sum += px[i]
 	return Color(sum.r / n, sum.g / n, sum.b / n)
 
 ## a bare scalp's colour: the chosen skin tone, the head's own skin, or a warm tone at its skin brightness
