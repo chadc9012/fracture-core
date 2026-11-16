@@ -16,11 +16,11 @@ const META := "armor_nodes"
 const DIR := "res://models/operators/armor/%s/%s-%s.glb"
 ## the fitted suits, by the element of the set a slot shows: the Neon Sentinel (the armored-soldier sheet, plates and
 ## glowing trim) for the energy sets, the Tactical suit (the tactical-character sheets: hooded jacket, harness, bracers,
-## knee armour, boots) for kinetic sets and the starting Field gear. The tactical model has a bare head, so its helmet
-## slot wears the Sentinel's (FALLBACK).
+## knee armour, boots) for kinetic sets and the starting Field gear. The tactical character on the owner's sheet wears
+## no helmet, so a helmet from a tactical set leaves the face showing (the Sentinel's closed helmet, with its shoulder
+## fringe, did not suit the jacket).
 const DEFAULT_SUIT := "neon-sentinel"
 const SUIT_BY_ELEMENT := { "KINETIC": "tactical" }
-const FALLBACK := "neon-sentinel"
 
 static var _scenes: Dictionary = {}
 
@@ -52,11 +52,7 @@ static func apply(rig: Node3D, gear: Dictionary) -> void:
 	for slot in Gear.ARMOR_SLOTS:
 		if Gear.worn(gear, slot).is_empty():
 			continue
-		var suit := suit_for(gear, slot)
-		var mi := _piece(rig, suit, slot)
-		if not mi and suit != FALLBACK:
-			# a suit without this piece (the tactical one has no helmet) wears the fallback suit's
-			mi = _piece(rig, FALLBACK, slot)
+		var mi := _piece(rig, suit_for(gear, slot), slot)
 		if mi:
 			nodes.append(mi)
 			if slot == "helmet":
@@ -68,6 +64,9 @@ static func apply(rig: Node3D, gear: Dictionary) -> void:
 	var worn: Array = []
 	for n in nodes:
 		worn.append(String(n.name).trim_prefix("Armor_"))
+	# the neck goes under a helmet or a chest piece (the cuirass, the jacket's collar)
+	if worn.has("helmet") or worn.has("chest"):
+		worn.append("neck")
 	_mask_body(rig, worn)
 
 static func clear(rig: Node3D) -> void:
@@ -187,7 +186,9 @@ static func _bind(skin: Skin, from: Skeleton3D, to: Skeleton3D) -> Skin:
 static func slot_of(bone: String) -> String:
 	var b := bone.substr(bone.rfind("_") + 1) if bone.rfind("_") >= 0 else bone
 	b = b.substr(b.rfind(":") + 1)
-	if b.begins_with("Head") or b.begins_with("Neck") or b == "headfront":
+	if b.begins_with("Neck"):
+		return "neck"
+	if b.begins_with("Head") or b == "headfront":
 		return "helmet"
 	if b.contains("ForeArm") or b.contains("Hand"):
 		return "gauntlets"
