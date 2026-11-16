@@ -822,9 +822,30 @@ func _lobby() -> void:
 		tm.rings = 48
 		t.mesh = tm
 		t.position = c + Vector3(0, 5.6 + (ring - 2.4) * 0.5, 0)
-		t.material_override = flat(Color(1.0, 0.86, 0.6), 0.3, 0.0, 6.0)
+		# (at 6 the rings burnt out to white through the glow; Nov 16)
+		t.material_override = flat(Color(1.0, 0.86, 0.6), 0.3, 0.0, 2.2)
 		world.add_child(t)
 	_lamp(c + Vector3(0, 5.0, 0), Color(1.0, 0.86, 0.66), 2.6, 18.0, true)
+	# the walls dressed: a walnut wainscot with a gold rail, and walnut pilasters every few metres with marble panels
+	# between them up high (the plaster walls stood bare and made the hall look empty; owner's video, Nov 16)
+	var walnut := Materials.pbr("brown_planks_03", Color(0.62, 0.48, 0.4), 1.2, 0.45)
+	var panel := Materials.pbr("marble_tiles", Color(0.9, 0.88, 0.86), 1.5, 0.3)
+	var rail := flat(GOLD, 0.25, 1.0)
+	for wall: Array in [[Vector3(0, 0, 8.93), 26.0, true], [Vector3(-12.93, 0, 0), 18.0, false]]:
+		var at: Vector3 = c + (wall[0] as Vector3)
+		var along: float = wall[1]
+		var on_z: bool = wall[2]
+		var sz := Vector3(along, 1.3, 0.06) if on_z else Vector3(0.06, 1.3, along)
+		_box(sz, at + Vector3(0, 0.65, 0), walnut)
+		_box(Vector3(along, 0.05, 0.1) if on_z else Vector3(0.1, 0.05, along), at + Vector3(0, 1.32, 0), rail)
+		var n := int(along / 4.2)
+		for k in n + 1:
+			var o := -along * 0.5 + along * float(k) / float(n)
+			var off := Vector3(o, 0, 0) if on_z else Vector3(0, 0, o)
+			_box(Vector3(0.5, 5.6, 0.12) if on_z else Vector3(0.12, 5.6, 0.5), at + off + Vector3(0, 4.15, 0), walnut)
+			if k < n:
+				var mid := off + (Vector3(along / float(n) * 0.5, 0, 0) if on_z else Vector3(0, 0, along / float(n) * 0.5))
+				_box(Vector3(along / float(n) - 1.1, 3.6, 0.05) if on_z else Vector3(0.05, 3.6, along / float(n) - 1.1), at + mid + Vector3(0, 3.9, 0), panel)
 	_lamp(c + Vector3(-8, 4.5, 5), Color(1.0, 0.82, 0.62), 1.2, 10.0)
 	_lamp(c + Vector3(8, 4.5, 5), PURPLE, 1.0, 10.0)
 	# the crest wall behind reception (north)

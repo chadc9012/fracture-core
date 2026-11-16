@@ -324,6 +324,7 @@ func _head_material(m: Material, robot: bool) -> Material:
 		mat.set_shader_parameter("normal_tex", std.normal_texture)
 	mat.set_shader_parameter("roughness_v", std.roughness)
 	mat.set_shader_parameter("skin_lum", _skin_lum)
+	mat.set_shader_parameter("civ_clip", 1.0 if bool(look.get("civ", false)) else 0.0)
 	if tone != null:
 		var t: Color = tone
 		mat.set_shader_parameter("skin", Vector3(t.srgb_to_linear().r, t.srgb_to_linear().g, t.srgb_to_linear().b))

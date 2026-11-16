@@ -45,8 +45,16 @@ const int PRINT2 = 26; const int PRINT = 27; const int POCKET_EDGE = 28; const i
 
 // lat: across the body; hh: height above the hip line; front / outn: the rest normal toward the front / the outside
 int part_of(float lat, float hh, float front, float outn) {
-	if (zone == 0) return SKIN;
-	if (zone == 1) {
+	int zn = zone;
+	// round the neck the line between skin and the top is drawn here, by height (a little lower at the front): taken by
+	// the zone of each triangle it came out in a sawtooth up the neck (owner's video, Nov 16)
+	if ((zn == 0 || zn == 6 || zn == 2) && abs(lat) < 0.075 && hh > neck - 0.07) {
+		float nl = neck + 0.012 - 0.02 * clamp(front, 0.0, 1.0);
+		if (hh > nl) return SKIN;
+		if (zn == 0) zn = 6;
+	}
+	if (zn == 0) return SKIN;
+	if (zn == 1) {
 		float h = hh - floor_h;
 		if (h < 0.016) return SOLE;
 		if (h < 0.023) return MIDSOLE;
@@ -55,17 +63,17 @@ int part_of(float lat, float hh, float front, float outn) {
 		if (fwd > 0.09) return TOE;
 		return SHOE;
 	}
-	if (zone == 2) {
+	if (zn == 2) {
 		if (front > -0.1 && abs(lat) < 0.045 && hh < neck - 0.02 && distance(pal[INNER], pal[TOP]) > 0.002) return INNER;   // an open jacket's shirt, up to the collar
 		return hh > neck - 0.035 ? HOOD_OPEN : HOOD;
 	}
-	if (zone == 3) {
+	if (zn == 3) {
 		if (abs(lat) < armpit * 0.92) return TOP;          // the side of the chest under the arm is the top's, not the sleeve's
 		bool hi = hh > (shoulder + elbow) * 0.5;
 		if (outn > 0.92 && hh < shoulder - 0.045) return hi ? ARM_STRIPE_HI : ARM_STRIPE;
 		return hi ? SLEEVE_HI : SLEEVE_LO;
 	}
-	if (zone == 4) {
+	if (zn == 4) {
 		if (hh < wrist + 0.035) return WRIST;
 		return outn > 0.92 ? ARM_STRIPE : FOREARM;
 	}

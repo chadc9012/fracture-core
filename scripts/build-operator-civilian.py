@@ -248,7 +248,12 @@ def zone_of(i, n):
     if is_hand(n):
         return 0
     hood = float((p - neck0) @ F) < -0.01 * H and any(np.linalg.norm(p - hc) < hr * 1.3 for hc, hr in HOOD)
-    if ("Neck" in n or "Head" in n) and not hood:
+    if MPFB:
+        # a clean neckline at the base of the neck (by the bone each vertex follows, the hoodie's colour ran up the neck in
+        # a sawtooth; owner's video, Nov 16): skin above it, the garment below, a little lower at the front
+        if z > float(neck0[up]) + 0.012 * H - 0.02 * H * float(np.clip(((p - neck0) @ F) / (0.06 * H), 0.0, 1.0)):
+            return 0
+    elif ("Neck" in n or "Head" in n) and not hood:
         return 0
     if "Foot" in n or "Toe" in n:
         return 1
@@ -498,6 +503,13 @@ nk_a = np.array((m @ nk.head_local)[:])
 nk_b = np.array((m @ nk.tail_local)[:])
 nax = Vector(((nk_b - nk_a) / np.linalg.norm(nk_b - nk_a)).tolist())
 ncen = Vector(nk_a.tolist()) + nax * (0.004 * H)
+if MPFB:
+    # the rays for the collar go out from the neck's own middle: MakeHuman's neck doesn't sit centred on the rig's neck
+    # bone, and rays from the bone missed one side and left the rib collar in spikes (owner's video, Nov 16)
+    ring_ = [Vector(co[i_].tolist()) for i_ in range(len(co)) if abs((Vector(co[i_].tolist()) - ncen).dot(nax)) < 0.012 * H and (Vector(co[i_].tolist()) - ncen).length < 0.09 * H]
+    if len(ring_) > 12:
+        mid_ = sum(ring_, Vector((0, 0, 0))) / len(ring_)
+        ncen = mid_ - nax * (mid_ - ncen).dot(nax)
 add("rib_collar", band(ncen + nax * (0.018 * H), nax, 0.02 * H, 0.006 * H, n=40, rmax=0.07 * H, taper=0.1))
 # a fold-down shirt collar, open at the throat: a strip standing up the neck and turned down over itself
 rs, dirs = ring_r(ncen + nax * (0.012 * H), nax, 40, 0.2 * H, 0.07 * H)
@@ -563,7 +575,11 @@ for s_ in SIDES:
         add("cargo", solid_strip(rows, 0.004 * H))
 
 # the hood, down (scripts/civ_body_sdf.py meshes it): only hoodies wear it
-add("hood", ([Vector(x) for x in HOOD_VF[0].tolist()], [tuple(int(i) for i in f_) for f_ in HOOD_VF[1].tolist()]))
+if not MPFB:
+    add("hood", ([Vector(x) for x in HOOD_VF[0].tolist()], [tuple(int(i) for i in f_) for f_ in HOOD_VF[1].tolist()]))
+# (on a MakeHuman body there's no hood piece: the SDF made it for its own shoulders and on these its sides stood up in two
+# lumps either side of the neck that read as headphones, even laid on the body; owner's video, Nov 16. The drawstrings,
+# the pocket and the ribbing are painted, so it still reads as a hoodie.)
 
 piece_objs = []
 for kind, parts in PIECES.items():

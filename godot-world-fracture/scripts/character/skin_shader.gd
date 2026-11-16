@@ -80,7 +80,7 @@ static func code(hair_mode: int, beard: String, marks: Array, has_normal: bool) 
 	if has_normal:
 		s += "uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;\n"
 	s += "uniform vec3 skin = vec3(0.0); uniform float skin_lum = 0.2; uniform vec3 hair = vec3(0.07); uniform vec3 bald = vec3(0.4, 0.3, 0.25);\n"
-	s += "uniform vec3 beard_tone = vec3(0.01); uniform float roughness_v = 0.62;\n"
+	s += "uniform vec3 beard_tone = vec3(0.01); uniform float roughness_v = 0.62; uniform float civ_clip = 0.0;\n"
 	s += "varying vec3 rest;\n"
 	s += "vec3 wf_map(vec3 v) { return normalize((v - %s) / %s) * 0.1; }\n" % [_v3(sk.centre), _v3(sk.radii)]
 	s += """float wf_line(vec3 q, vec3 a, vec3 b, float w) {
@@ -100,6 +100,12 @@ void fragment() {
 	float sat = (mx - mn) / (mx + 1e-4);
 	float k = smoothstep(0.015, 0.05, c.r - c.b) * smoothstep(0.12, 0.25, sat) * (1.0 - smoothstep(0.78, 0.9, sat)) * smoothstep(0.012, 0.035, l) * step(c.b, c.g + 0.04);
 	vec3 p = rest;
+	// in everyday clothes, what flares wider than the neck below the jaw goes: the Meshy heads keep a scrap of their
+	// armour collar (a grey ring, red and black shards) that read as a neck brace over a hoodie (owner's video, Nov 16)
+	// (head space: y up from the Head bone, the jaw and the collar both just above it). Low and out at the sides and the
+	// back, and not skin or dark hair: grey metal and red trim
+	float cr = length(vec2(p.x, p.z + 0.01));
+	if (civ_clip > 0.5 && ((p.y < 0.0 && cr > 0.07) || (p.z < 0.045 && p.y < 0.032 && cr > 0.074) || (p.z < 0.065 && p.y < 0.09 && cr > 0.06 && ((k < 0.3 && (l > 0.05 || sat > 0.55)) || (c.r > 2.0 * c.g && sat > 0.6))))) { discard; }
 	if (skin_lum > 0.0 && skin.r + skin.g + skin.b > 0.0) {
 		col = mix(c, skin * clamp(l / skin_lum, 0.0, 2.2), k);
 	}
