@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwn1ch6yka7he"
-path.s3tc="res://.godot/imported/broadleaf_bark_col.png-b798ede6d4d682155e61e9929fe7ef24.s3tc.ctex"
-path.etc2="res://.godot/imported/broadleaf_bark_col.png-b798ede6d4d682155e61e9929fe7ef24.etc2.ctex"
+uid="uid://cnkd4r6okvhca"
+path.s3tc="res://.godot/imported/broadleaf_normal.jpg-ae29119014b1f207a08bfd062be0e122.s3tc.ctex"
+path.etc2="res://.godot/imported/broadleaf_normal.jpg-ae29119014b1f207a08bfd062be0e122.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "cc6d955b53573112f9cac260f9cea18e"
+"md5": "e42b4d507930a8a0634df23b208ed5c5"
 }
 
 [deps]
 
-source_file="res://models/foliage/broadleaf_bark_col.png"
-dest_files=["res://.godot/imported/broadleaf_bark_col.png-b798ede6d4d682155e61e9929fe7ef24.s3tc.ctex", "res://.godot/imported/broadleaf_bark_col.png-b798ede6d4d682155e61e9929fe7ef24.etc2.ctex"]
+source_file="res://models/foliage/broadleaf_normal.jpg"
+dest_files=["res://.godot/imported/broadleaf_normal.jpg-ae29119014b1f207a08bfd062be0e122.s3tc.ctex", "res://.godot/imported/broadleaf_normal.jpg-ae29119014b1f207a08bfd062be0e122.etc2.ctex"]
 
 [params]
 

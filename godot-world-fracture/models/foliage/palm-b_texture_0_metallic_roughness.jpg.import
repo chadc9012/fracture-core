@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cdjysqje28jk0"
-path.s3tc="res://.godot/imported/broadleaf_birch_nrm.png-d51dcacf41e483f95f7e53b0f9b48cba.s3tc.ctex"
-path.etc2="res://.godot/imported/broadleaf_birch_nrm.png-d51dcacf41e483f95f7e53b0f9b48cba.etc2.ctex"
+uid="uid://bmje1sj205xhi"
+path.s3tc="res://.godot/imported/palm-b_texture_0_metallic_roughness.jpg-1a8f40bdc606ddc63c6444c66a9468b8.s3tc.ctex"
+path.etc2="res://.godot/imported/palm-b_texture_0_metallic_roughness.jpg-1a8f40bdc606ddc63c6444c66a9468b8.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "174fe5c30ae7c53dec34d63d4d1e44cc"
+"md5": "10d91b48c4e97db4fa819d0fd06e13ee"
 }
 
 [deps]
 
-source_file="res://models/foliage/broadleaf_birch_nrm.png"
-dest_files=["res://.godot/imported/broadleaf_birch_nrm.png-d51dcacf41e483f95f7e53b0f9b48cba.s3tc.ctex", "res://.godot/imported/broadleaf_birch_nrm.png-d51dcacf41e483f95f7e53b0f9b48cba.etc2.ctex"]
+source_file="res://models/foliage/palm-b_texture_0_metallic_roughness.jpg"
+dest_files=["res://.godot/imported/palm-b_texture_0_metallic_roughness.jpg-1a8f40bdc606ddc63c6444c66a9468b8.s3tc.ctex", "res://.godot/imported/palm-b_texture_0_metallic_roughness.jpg-1a8f40bdc606ddc63c6444c66a9468b8.etc2.ctex"]
 
 [params]
 

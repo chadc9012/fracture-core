@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cgid05yot0bmd"
-path.s3tc="res://.godot/imported/palm-b_bark.jpg-6e1cb15475ee6401d6b871a6bee3ff1b.s3tc.ctex"
-path.etc2="res://.godot/imported/palm-b_bark.jpg-6e1cb15475ee6401d6b871a6bee3ff1b.etc2.ctex"
+uid="uid://by44r80sqcmks"
+path.s3tc="res://.godot/imported/palm-c_texture_0_metallic_roughness.jpg-c8b3cb12be5cfeb18e0cc9fdecc6277c.s3tc.ctex"
+path.etc2="res://.godot/imported/palm-c_texture_0_metallic_roughness.jpg-c8b3cb12be5cfeb18e0cc9fdecc6277c.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "c6d1afe6bbabc1072b9e294b67449964"
+"md5": "1997e42acdefee4a7c36fba3c6db4b81"
 }
 
 [deps]
 
-source_file="res://models/foliage/palm-b_bark.jpg"
-dest_files=["res://.godot/imported/palm-b_bark.jpg-6e1cb15475ee6401d6b871a6bee3ff1b.s3tc.ctex", "res://.godot/imported/palm-b_bark.jpg-6e1cb15475ee6401d6b871a6bee3ff1b.etc2.ctex"]
+source_file="res://models/foliage/palm-c_texture_0_metallic_roughness.jpg"
+dest_files=["res://.godot/imported/palm-c_texture_0_metallic_roughness.jpg-c8b3cb12be5cfeb18e0cc9fdecc6277c.s3tc.ctex", "res://.godot/imported/palm-c_texture_0_metallic_roughness.jpg-c8b3cb12be5cfeb18e0cc9fdecc6277c.etc2.ctex"]
 
 [params]
 

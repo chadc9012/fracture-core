@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://w4jqa1j5yhvf"
-path.s3tc="res://.godot/imported/palm-b_dead12.png-721236fa4d576e0c163344c394e374c0.s3tc.ctex"
-path.etc2="res://.godot/imported/palm-b_dead12.png-721236fa4d576e0c163344c394e374c0.etc2.ctex"
+uid="uid://d2mrf7faf3rii"
+path.s3tc="res://.godot/imported/broadleaf_texture_0.jpg-b2a104116c60c6fad945b176586dd5bd.s3tc.ctex"
+path.etc2="res://.godot/imported/broadleaf_texture_0.jpg-b2a104116c60c6fad945b176586dd5bd.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "84459990089c7d55e1993e7b24766ec8"
+"md5": "8944781c128253f340d1d4d907b0ae36"
 }
 
 [deps]
 
-source_file="res://models/foliage/palm-b_dead12.png"
-dest_files=["res://.godot/imported/palm-b_dead12.png-721236fa4d576e0c163344c394e374c0.s3tc.ctex", "res://.godot/imported/palm-b_dead12.png-721236fa4d576e0c163344c394e374c0.etc2.ctex"]
+source_file="res://models/foliage/broadleaf_texture_0.jpg"
+dest_files=["res://.godot/imported/broadleaf_texture_0.jpg-b2a104116c60c6fad945b176586dd5bd.s3tc.ctex", "res://.godot/imported/broadleaf_texture_0.jpg-b2a104116c60c6fad945b176586dd5bd.etc2.ctex"]
 
 [params]
 

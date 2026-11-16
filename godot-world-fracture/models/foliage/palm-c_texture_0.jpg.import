@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://diuwx35xgj3jl"
-path.s3tc="res://.godot/imported/palm-c_dead13.png-9472bd465cbe22681d54b839b62eee99.s3tc.ctex"
-path.etc2="res://.godot/imported/palm-c_dead13.png-9472bd465cbe22681d54b839b62eee99.etc2.ctex"
+uid="uid://bvpq2xihnvppo"
+path.s3tc="res://.godot/imported/palm-c_texture_0.jpg-73131226fcc564b3d7ddd38cc5ab9161.s3tc.ctex"
+path.etc2="res://.godot/imported/palm-c_texture_0.jpg-73131226fcc564b3d7ddd38cc5ab9161.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "30532fa06815e3d2a4599464808b3078"
+"md5": "ff5753f5529c1075720f4f0e140514da"
 }
 
 [deps]
 
-source_file="res://models/foliage/palm-c_dead13.png"
-dest_files=["res://.godot/imported/palm-c_dead13.png-9472bd465cbe22681d54b839b62eee99.s3tc.ctex", "res://.godot/imported/palm-c_dead13.png-9472bd465cbe22681d54b839b62eee99.etc2.ctex"]
+source_file="res://models/foliage/palm-c_texture_0.jpg"
+dest_files=["res://.godot/imported/palm-c_texture_0.jpg-73131226fcc564b3d7ddd38cc5ab9161.s3tc.ctex", "res://.godot/imported/palm-c_texture_0.jpg-73131226fcc564b3d7ddd38cc5ab9161.etc2.ctex"]
 
 [params]
 

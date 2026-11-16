@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://k7l7vujqh6c2"
-path.s3tc="res://.godot/imported/broadleaf_birch_col.png-ef5a72cbc4a4c8cef23d30eef0c5539a.s3tc.ctex"
-path.etc2="res://.godot/imported/broadleaf_birch_col.png-ef5a72cbc4a4c8cef23d30eef0c5539a.etc2.ctex"
+uid="uid://bscue7rfmcedd"
+path.s3tc="res://.godot/imported/palm-c_normal.jpg-743cfb4bc3c5b439ebccb0e7589bac4d.s3tc.ctex"
+path.etc2="res://.godot/imported/palm-c_normal.jpg-743cfb4bc3c5b439ebccb0e7589bac4d.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "521837cb5b2feb93c8ee5ffe0a28edfa"
+"md5": "f9cf495d76930c0e4e7a00c104633f02"
 }
 
 [deps]
 
-source_file="res://models/foliage/broadleaf_birch_col.png"
-dest_files=["res://.godot/imported/broadleaf_birch_col.png-ef5a72cbc4a4c8cef23d30eef0c5539a.s3tc.ctex", "res://.godot/imported/broadleaf_birch_col.png-ef5a72cbc4a4c8cef23d30eef0c5539a.etc2.ctex"]
+source_file="res://models/foliage/palm-c_normal.jpg"
+dest_files=["res://.godot/imported/palm-c_normal.jpg-743cfb4bc3c5b439ebccb0e7589bac4d.s3tc.ctex", "res://.godot/imported/palm-c_normal.jpg-743cfb4bc3c5b439ebccb0e7589bac4d.etc2.ctex"]
 
 [params]
 
