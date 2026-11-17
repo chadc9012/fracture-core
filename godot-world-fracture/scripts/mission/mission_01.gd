@@ -727,7 +727,8 @@ void fragment() {
 	c = mix(c, vec3(1.0, 0.1, 0.1) * (0.5 + 0.5 * sin(TIME * 8.0)), alarm);
 	// the signal lost: snow and rolling bars
 	// interleaved-gradient noise: the sin() hash fell apart at phone shader precision into big grey blocks (Nov 16)
-	vec2 px = floor(uv * vec2(160.0, 90.0)) + vec2(mod(floor(TIME * 24.0), 64.0) * 5.588, 0.0);
+	// by screen pixel (pairs), so a close shot of the TV is fine grain, not the screen's 160 x 90 cells as big squares
+	vec2 px = floor(FRAGCOORD.xy * 0.5) + vec2(mod(floor(TIME * 24.0), 64.0) * 5.588, 0.0);
 	float sn = fract(52.9829189 * fract(dot(px, vec2(0.06711056, 0.00583715))));
 	c = mix(c, vec3(sn) * (0.7 + 0.3 * step(0.5, fract(uv.y * 3.0 + TIME * 1.7))), noise * (1.0 - alarm));
 	ALBEDO = c * 1.4;

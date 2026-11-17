@@ -103,12 +103,14 @@ func _resume() -> bool:
 	if m == null:
 		return false
 	m.story.phase = String(d.phase)
+	m._hall_said = from_i > STEPS.find("to_hall")      # (the corridor's lines were said in the part before)
 	var p: Array = d.pos
 	await m._go_room(String(d.room), Vector3(p[0], p[1], p[2]), float(d.yaw), false)
 	m.op.set_powers(m.story.powers())
 	m._update_hud()
 	m._lines.clear()
 	m._line_t = 0.0
+	m._next_line()                  # (and the line on screen goes: cleared without it, it stayed up for minutes)
 	await wait(1.0)
 	say("SEG_START frame=%d" % Engine.get_frames_drawn())
 	return true
@@ -239,8 +241,11 @@ func walk_use(tag: String, run := false) -> void:
 			stuck = 0.0
 		last = m.op.global_position
 		if stuck > 0.8:
-			# round the furniture: back off a step, then sidestep (alternating sides), then on
+			# round the furniture: back off a step, then sidestep (alternating sides), then on; after three tries the
+			# last steps by hand (rows of lounge seats held it 40 s)
 			tries += 1
+			if tries > 3:
+				break
 			var side := KEY_D if tries % 2 == 1 else KEY_A
 			m._keys[KEY_W] = false
 			m._keys[KEY_S] = true
