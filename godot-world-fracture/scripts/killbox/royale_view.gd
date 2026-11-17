@@ -240,7 +240,13 @@ func _process(dt: float) -> void:
 	var step := Match.PHASE_HOLD + Match.PHASE_SHRINK
 	var into := fmod(m.clock, step)
 	var left := (Match.PHASE_HOLD - into) if not m.closing else (step - into)
-	hud.text = "%d ALIVE · %d squads   ·   circle %s %d s   ·   %d m   ·   you %d" % [m.alive, m.placement(), "CLOSING" if m.closing else "holds", int(maxf(0.0, left)), int(me.distance_to(centre)), m.player_kills]
+	# which way the circle's centre lies, against the way the camera faces (eight arrows)
+	var to_c := (centre - me).normalized()
+	var fwd := Vector2(-sin(operator.cam_yaw), -cos(operator.cam_yaw))
+	var right := Vector2(cos(operator.cam_yaw), -sin(operator.cam_yaw))
+	var rel := atan2(right.dot(to_c), fwd.dot(to_c))
+	var arrow: String = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"][posmod(int(round(rel / (PI / 4.0))), 8)]
+	hud.text = "%d ALIVE · %d squads   ·   circle %s %d s   ·   %s %d m   ·   you %d" % [m.alive, m.placement(), "CLOSING" if m.closing else "holds", int(maxf(0.0, left)), arrow, int(me.distance_to(centre)), m.player_kills]
 	if m.over and not was_over:
 		Sound.sfx("confirm" if m.winner == "us" else "buzzer", -2.0)
 	if m.over and not _paid:
