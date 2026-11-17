@@ -833,7 +833,7 @@ static func floor(r: Node, clear: PackedByteArray) -> void:
 	var marsh := [ci.call("marsh")]
 	var ice := [ci.call("ice"), ci.call("snow")]
 	var coast := id in ["azure-isles", "shattered-reefs", "thalassia", "goldenreach"]
-	var wild := forest + meadow + marsh + [ci.call("scrub"), ci.call("crop"), ci.call("sand"), ci.call("mud")]   # reeds never on a city's paving
+	var wild := forest + meadow + marsh + [ci.call("scrub"), ci.call("beach"), ci.call("dirt")]   # reeds never on a city's paving
 	var span: float = r._span
 	var water: float = r._water
 	var mpp := span / w
