@@ -775,7 +775,7 @@ func _hallway() -> void:
 
 func _lounge() -> void:
 	var c := LOUNGE
-	_shell(c, 16.0, 12.0, 3.4, Materials.pbr("marble_01", Color(0.42, 0.38, 0.46), 3.0, 0.3), Materials.pbr("painted_plaster_wall", Color(0.3, 0.27, 0.34), 3.0), flat(Color(0.08, 0.07, 0.1), 0.8), "n")
+	_shell(c, 16.0, 12.0, 3.4, Materials.pbr("marble_01", Color(0.5, 0.46, 0.54), 3.0, 0.3), Materials.pbr("painted_plaster_wall", Color(0.44, 0.4, 0.48), 3.0), flat(Color(0.08, 0.07, 0.1), 0.8), "n")
 	_box(Vector3(15.0, 0.05, 0.1), c + Vector3(0, 3.3, -5.7), flat(PURPLE, 0.3, 0.0, 4.0))
 	# the screen and theatre seats
 	_box(Vector3(6.0, 2.6, 0.08), c + Vector3(-3.0, 1.9, 5.85), _news_mat())
@@ -792,6 +792,15 @@ func _lounge() -> void:
 	_solid(Vector3(3.0, 0.45, 1.0), c + Vector3(2.0, 0.23, 3.8), Materials.surface("fabric_pattern_07", Color(0.25, 0.24, 0.3), 0.5))
 	_plant(c + Vector3(-7.0, 0, -5.0), 1.6)
 	_lamp(c + Vector3(0, 2.9, 0), Color(0.9, 0.75, 1.0), 1.0, 12.0)
+	# one lamp lit a 16 x 12 m room, and in the alarm (every light red) the lounge went nearly black (owner's video,
+	# Nov 16): lamps in the corners, and amber emergency strips along the floor that stay on through the alarm
+	for q: Vector3 in [Vector3(-5.5, 2.8, -3.5), Vector3(5.5, 2.8, -3.5), Vector3(-5.5, 2.8, 3.5), Vector3(5.5, 2.8, 3.5)]:
+		_lamp(c + q, Color(0.95, 0.8, 1.0), 0.6, 8.0)
+	var strip := flat(Color(1.0, 0.62, 0.2), 0.4, 0.0, 3.0)
+	for zz: float in [-5.9, 5.9]:
+		_box(Vector3(15.6, 0.04, 0.06), c + Vector3(0, 0.06, zz), strip)
+	for xx: float in [-7.9, 7.9]:
+		_box(Vector3(0.06, 0.04, 11.6), c + Vector3(xx, 0.06, 0), strip)
 	# debris from the ceiling by the far stairs, sparks
 	for k in 6:
 		var d := _solid(Vector3(randf_range(0.6, 1.4), randf_range(0.2, 0.5), randf_range(0.6, 1.4)), c + Vector3(6.0 + randf_range(-1, 1), 0.2, -4.0 + randf_range(-1, 1)), Materials.pbr("brushed_concrete", Color(0.6, 0.6, 0.62), 1.0))
