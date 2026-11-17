@@ -1,6 +1,6 @@
 extends SceneTree
 ## The Vehicle Showroom (owner, Nov 12; filled from the owner's vehicle roster boards, Nov 15): every showroom vehicle
-## loads with its 4K paint texture and a phone triangle budget, buying with Nex, the everyday ones on the street and the
+## loads with its paint texture at the phone cap (authored 4K, imported at 2048) and a phone triangle budget, buying with Nex, the everyday ones on the street and the
 ## high-end ones only ever bought; then the showroom screen itself (categories, a car on the turntable, BUY). Also the
 ## board's aircraft and boats in Skyways and the airport, and the fleet files that now hold board models.
 ##   godot --headless --path godot-world-fracture --script res://tests/garage/dealership_test.gd
@@ -51,7 +51,8 @@ func _run() -> void:
 		var l := _look(String(v.model))
 		ok(not l.is_empty(), "%s: the model loads" % v.id)
 		if not l.is_empty():
-			ok(int(l.tex) >= 4096, "%s: 4K paint texture (%d px)" % [v.id, int(l.tex)])
+			# the paint is authored at 4K; the phone import caps hero base colours at 2048 (Nov 15, scripts/phone.gd rules)
+			ok(int(l.tex) >= 2048, "%s: paint texture at the phone cap (%d px)" % [v.id, int(l.tex)])
 			ok(int(l.tris) > 20000 and int(l.tris) <= 125000, "%s: phone triangle budget (%d)" % [v.id, int(l.tris)])
 	ok(ids.size() == Catalog.SHOWROOM.size(), "ids are unique")
 	for c in Catalog.SHOWROOM_CATS:
@@ -69,11 +70,11 @@ func _run() -> void:
 	ok(street.size() >= 12, "everyday showroom vehicles join traffic and parking (%d)" % street.size())
 	for m in street:
 		ok(not Catalog.high_end(Catalog.id_for_model(m)), "no high-end vehicle in the street pool: " + m.get_file())
-	# the street's lighter cuts: every street vehicle has one, a third of the triangles, the same 4K paint (shared file)
+	# the street's lighter cuts: every street vehicle has one, a third of the triangles, the same paint (shared file)
 	for m in street + ["res://models/fleet/tuner.glb", "res://models/fleet/muscle-car-lod.glb", "res://models/fleet/war-rig.glb"]:
 		var cut := Catalog.street_cut(m)
 		var l := _look(cut)
-		ok(cut != m and not l.is_empty() and int(l.tex) >= 4096 and int(l.tris) <= 40000, "street cut of %s: %d tris, %d px" % [m.get_file(), int(l.get("tris", 0)), int(l.get("tex", 0))])
+		ok(cut != m and not l.is_empty() and int(l.tex) >= 2048 and int(l.tris) <= 40000, "street cut of %s: %d tris, %d px" % [m.get_file(), int(l.get("tris", 0)), int(l.get("tex", 0))])
 	# buying
 	var p := { "nex": 1000 }
 	ok(Dealer.owned(p).size() == Catalog.VEHICLES.size(), "the garage's starters are owned from the start")
@@ -90,7 +91,7 @@ func _run() -> void:
 	for f in DirAccess.get_files_at("res://models/fleet/craft"):
 		if f.ends_with(".glb"):
 			var l := _look("res://models/fleet/craft/" + f)
-			ok(not l.is_empty() and int(l.tex) >= 4096 and int(l.tris) <= 125000, "craft %s loads, 4K, %d tris" % [f, int(l.get("tris", 0))])
+			ok(not l.is_empty() and int(l.tex) >= 2048 and int(l.tris) <= 125000, "craft %s loads, paint at the cap, %d tris" % [f, int(l.get("tris", 0))])
 	for id in Air.AIRCRAFT:
 		var path := "res://models/fleet/" + String(Air.AIRCRAFT[id].get("model", id + ".glb"))
 		ok(ResourceLoader.exists(path), "the hangar's %s has its model" % id)

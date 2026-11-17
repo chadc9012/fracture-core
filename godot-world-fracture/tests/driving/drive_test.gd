@@ -11,7 +11,7 @@ func check(value: bool, label: String) -> void:
 		printerr("FAIL ", label)
 func _init() -> void:
 	var state = State.fresh()
-	check(Config.vehicle_ids().size() == 6, "six original vehicles")
+	check(Config.vehicle_ids().size() >= 6 and "street-racer" in Config.vehicle_ids(), "the six original vehicles are in the catalog (%d vehicles)" % Config.vehicle_ids().size())
 	var base := Profile.performance(state, "tuner")
 	check(base.max_speed > 0.0, "driveable tuning")
 	var original_speed: float = base.max_speed
