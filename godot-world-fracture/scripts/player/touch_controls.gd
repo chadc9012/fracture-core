@@ -375,8 +375,11 @@ func prompt(text: String) -> void:
 	if not _prompt_label:
 		_prompt_label = Label.new()
 		_prompt_label.set_anchors_preset(Control.PRESET_CENTER)
-		_prompt_label.position = Vector2(-150, 60)
 		_prompt_label.custom_minimum_size = Vector2(300, 30)
+		_prompt_label.offset_left = -150
+		_prompt_label.offset_top = 60
+		_prompt_label.offset_right = 150
+		_prompt_label.offset_bottom = 90
 		_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_prompt_label.add_theme_font_size_override("font_size", 18)
 		_prompt_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
@@ -416,15 +419,23 @@ func set_mode(m: String) -> void:
 		_cannon_held = false
 	if _missile_button:
 		_missile_button.visible = armed_drive
-	if _gas_button and armed_drive:
-		_gas_button.position = Vector2(-380, -150)
-	elif _gas_button:
-		_gas_button.position = Vector2(-250, -160)
+	# by the anchor's offsets: `position` here is in the parent's pixels, and (-250, -160) put GAS off the top left of
+	# the screen, so a phone in a car had BRAKE and no GAS (portrait audit, Nov 17)
+	if _gas_button:
+		_at_corner(_gas_button, Vector2(-380, -150) if armed_drive else Vector2(-250, -160))
 	if crosshair:
 		crosshair.visible = (not fly and not drive and weapons_out) or armed_drive
 	if drive or fly:
 		_sprint_held = false
 		fire = false
+
+## a bottom-right anchored button placed `at` from the corner (offsets, so it holds on any screen size)
+static func _at_corner(b: Control, at: Vector2) -> void:
+	b.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	b.offset_left = at.x
+	b.offset_top = at.y
+	b.offset_right = at.x + b.custom_minimum_size.x
+	b.offset_bottom = at.y + b.custom_minimum_size.y
 
 var crosshair: Control
 var weapons_out := true
