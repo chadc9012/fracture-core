@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c8okfvn4m0703"
-path="res://.godot/imported/conifer_texture_0_metallic_roughness.jpg-ec5300ab7d0251bf1e64c87e5a7c3077.ctex"
+path.s3tc="res://.godot/imported/conifer_texture_0_metallic_roughness.jpg-ec5300ab7d0251bf1e64c87e5a7c3077.s3tc.ctex"
+path.etc2="res://.godot/imported/conifer_texture_0_metallic_roughness.jpg-ec5300ab7d0251bf1e64c87e5a7c3077.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1e219d95fbe116f560fac292de38d42e"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/foliage/conifer_texture_0_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/conifer_texture_0_metallic_roughness.jpg-ec5300ab7d0251bf1e64c87e5a7c3077.ctex"]
+dest_files=["res://.godot/imported/conifer_texture_0_metallic_roughness.jpg-ec5300ab7d0251bf1e64c87e5a7c3077.s3tc.ctex", "res://.godot/imported/conifer_texture_0_metallic_roughness.jpg-ec5300ab7d0251bf1e64c87e5a7c3077.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

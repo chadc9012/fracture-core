@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b1i74ny2rbado"
-path="res://.godot/imported/launcher_texture_0.jpg-bf2013a8ba2c2e16423c9e841633400c.ctex"
+path.s3tc="res://.godot/imported/launcher_texture_0.jpg-bf2013a8ba2c2e16423c9e841633400c.s3tc.ctex"
+path.etc2="res://.godot/imported/launcher_texture_0.jpg-bf2013a8ba2c2e16423c9e841633400c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "14335aa132e218ab2c0e448359f96648"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/weapons/launcher_texture_0.jpg"
-dest_files=["res://.godot/imported/launcher_texture_0.jpg-bf2013a8ba2c2e16423c9e841633400c.ctex"]
+dest_files=["res://.godot/imported/launcher_texture_0.jpg-bf2013a8ba2c2e16423c9e841633400c.s3tc.ctex", "res://.godot/imported/launcher_texture_0.jpg-bf2013a8ba2c2e16423c9e841633400c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

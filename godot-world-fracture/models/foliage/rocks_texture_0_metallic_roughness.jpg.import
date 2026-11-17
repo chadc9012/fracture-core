@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dswhjdi8rhgeh"
-path="res://.godot/imported/rocks_texture_0_metallic_roughness.jpg-1dad1ececa7a60491bc028728359326c.ctex"
+path.s3tc="res://.godot/imported/rocks_texture_0_metallic_roughness.jpg-1dad1ececa7a60491bc028728359326c.s3tc.ctex"
+path.etc2="res://.godot/imported/rocks_texture_0_metallic_roughness.jpg-1dad1ececa7a60491bc028728359326c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "06592f01637a344c7626221412a9b8af"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/foliage/rocks_texture_0_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/rocks_texture_0_metallic_roughness.jpg-1dad1ececa7a60491bc028728359326c.ctex"]
+dest_files=["res://.godot/imported/rocks_texture_0_metallic_roughness.jpg-1dad1ececa7a60491bc028728359326c.s3tc.ctex", "res://.godot/imported/rocks_texture_0_metallic_roughness.jpg-1dad1ececa7a60491bc028728359326c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

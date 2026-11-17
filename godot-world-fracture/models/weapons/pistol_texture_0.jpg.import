@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://t2baycbckuka"
-path="res://.godot/imported/pistol_texture_0.jpg-49a265cb4f2c97ffa9ec25848131961d.ctex"
+path.s3tc="res://.godot/imported/pistol_texture_0.jpg-49a265cb4f2c97ffa9ec25848131961d.s3tc.ctex"
+path.etc2="res://.godot/imported/pistol_texture_0.jpg-49a265cb4f2c97ffa9ec25848131961d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "6095cce39d195a7ddeee3c31151bb82c"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/weapons/pistol_texture_0.jpg"
-dest_files=["res://.godot/imported/pistol_texture_0.jpg-49a265cb4f2c97ffa9ec25848131961d.ctex"]
+dest_files=["res://.godot/imported/pistol_texture_0.jpg-49a265cb4f2c97ffa9ec25848131961d.s3tc.ctex", "res://.godot/imported/pistol_texture_0.jpg-49a265cb4f2c97ffa9ec25848131961d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

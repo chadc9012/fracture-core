@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cqhmuc554i3oh"
-path="res://.godot/imported/birch_texture_0_metallic_roughness.jpg-05bec6cfe943b730f1ba095e60f64770.ctex"
+path.s3tc="res://.godot/imported/birch_texture_0_metallic_roughness.jpg-05bec6cfe943b730f1ba095e60f64770.s3tc.ctex"
+path.etc2="res://.godot/imported/birch_texture_0_metallic_roughness.jpg-05bec6cfe943b730f1ba095e60f64770.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "41ae0a05bc295689d0dec4eb096fcd04"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/foliage/birch_texture_0_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/birch_texture_0_metallic_roughness.jpg-05bec6cfe943b730f1ba095e60f64770.ctex"]
+dest_files=["res://.godot/imported/birch_texture_0_metallic_roughness.jpg-05bec6cfe943b730f1ba095e60f64770.s3tc.ctex", "res://.godot/imported/birch_texture_0_metallic_roughness.jpg-05bec6cfe943b730f1ba095e60f64770.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

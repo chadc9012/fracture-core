@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdt2ulcxgtdi2"
-path="res://.godot/imported/launcher_texture_0_metallic_roughness.jpg-5d2e5a17971905df46bd36ad314be433.ctex"
+path.s3tc="res://.godot/imported/launcher_texture_0_metallic_roughness.jpg-5d2e5a17971905df46bd36ad314be433.s3tc.ctex"
+path.etc2="res://.godot/imported/launcher_texture_0_metallic_roughness.jpg-5d2e5a17971905df46bd36ad314be433.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "5896b02ddc07e5047ccb52b34205ef1f"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/weapons/launcher_texture_0_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/launcher_texture_0_metallic_roughness.jpg-5d2e5a17971905df46bd36ad314be433.ctex"]
+dest_files=["res://.godot/imported/launcher_texture_0_metallic_roughness.jpg-5d2e5a17971905df46bd36ad314be433.s3tc.ctex", "res://.godot/imported/launcher_texture_0_metallic_roughness.jpg-5d2e5a17971905df46bd36ad314be433.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

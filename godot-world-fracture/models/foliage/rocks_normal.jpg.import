@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2stouypwhvyh"
-path="res://.godot/imported/rocks_normal.jpg-bc5eb71682c21f08df61885da6ae6be9.ctex"
+path.s3tc="res://.godot/imported/rocks_normal.jpg-bc5eb71682c21f08df61885da6ae6be9.s3tc.ctex"
+path.etc2="res://.godot/imported/rocks_normal.jpg-bc5eb71682c21f08df61885da6ae6be9.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1c7ac08fae8f083839865e81c06a71b0"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/foliage/rocks_normal.jpg"
-dest_files=["res://.godot/imported/rocks_normal.jpg-bc5eb71682c21f08df61885da6ae6be9.ctex"]
+dest_files=["res://.godot/imported/rocks_normal.jpg-bc5eb71682c21f08df61885da6ae6be9.s3tc.ctex", "res://.godot/imported/rocks_normal.jpg-bc5eb71682c21f08df61885da6ae6be9.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

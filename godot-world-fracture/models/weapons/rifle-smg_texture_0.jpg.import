@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dqx22q483eufg"
-path="res://.godot/imported/rifle-smg_texture_0.jpg-3d15153405f16f8555c658ca7f216cd5.ctex"
+path.s3tc="res://.godot/imported/rifle-smg_texture_0.jpg-3d15153405f16f8555c658ca7f216cd5.s3tc.ctex"
+path.etc2="res://.godot/imported/rifle-smg_texture_0.jpg-3d15153405f16f8555c658ca7f216cd5.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "2a6e5c38335ec97514d357d7974d0298"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/weapons/rifle-smg_texture_0.jpg"
-dest_files=["res://.godot/imported/rifle-smg_texture_0.jpg-3d15153405f16f8555c658ca7f216cd5.ctex"]
+dest_files=["res://.godot/imported/rifle-smg_texture_0.jpg-3d15153405f16f8555c658ca7f216cd5.s3tc.ctex", "res://.godot/imported/rifle-smg_texture_0.jpg-3d15153405f16f8555c658ca7f216cd5.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

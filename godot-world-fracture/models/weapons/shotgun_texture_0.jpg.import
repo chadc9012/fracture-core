@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://btxa7mjbs3oqc"
-path="res://.godot/imported/shotgun_texture_0.jpg-bad8dc2bda78f5fcac0d348807076e44.ctex"
+path.s3tc="res://.godot/imported/shotgun_texture_0.jpg-bad8dc2bda78f5fcac0d348807076e44.s3tc.ctex"
+path.etc2="res://.godot/imported/shotgun_texture_0.jpg-bad8dc2bda78f5fcac0d348807076e44.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "efbf1069f6ff285e163a0ddaef1879e6"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/weapons/shotgun_texture_0.jpg"
-dest_files=["res://.godot/imported/shotgun_texture_0.jpg-bad8dc2bda78f5fcac0d348807076e44.ctex"]
+dest_files=["res://.godot/imported/shotgun_texture_0.jpg-bad8dc2bda78f5fcac0d348807076e44.s3tc.ctex", "res://.godot/imported/shotgun_texture_0.jpg-bad8dc2bda78f5fcac0d348807076e44.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

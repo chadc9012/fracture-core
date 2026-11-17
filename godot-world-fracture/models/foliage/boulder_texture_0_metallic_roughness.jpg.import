@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dp0v0ra6qinnb"
-path="res://.godot/imported/boulder_texture_0_metallic_roughness.jpg-fc78c2b593dc71f009d799405d5d3f49.ctex"
+path.s3tc="res://.godot/imported/boulder_texture_0_metallic_roughness.jpg-fc78c2b593dc71f009d799405d5d3f49.s3tc.ctex"
+path.etc2="res://.godot/imported/boulder_texture_0_metallic_roughness.jpg-fc78c2b593dc71f009d799405d5d3f49.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d539e7fd7cdf94d4175f57d4961a77fc"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/foliage/boulder_texture_0_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/boulder_texture_0_metallic_roughness.jpg-fc78c2b593dc71f009d799405d5d3f49.ctex"]
+dest_files=["res://.godot/imported/boulder_texture_0_metallic_roughness.jpg-fc78c2b593dc71f009d799405d5d3f49.s3tc.ctex", "res://.godot/imported/boulder_texture_0_metallic_roughness.jpg-fc78c2b593dc71f009d799405d5d3f49.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

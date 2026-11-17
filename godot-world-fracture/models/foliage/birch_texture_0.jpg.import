@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dcaq0epgjpvsc"
-path="res://.godot/imported/birch_texture_0.jpg-5d0a0daca268affb1282ebc92ccc48ef.ctex"
+path.s3tc="res://.godot/imported/birch_texture_0.jpg-5d0a0daca268affb1282ebc92ccc48ef.s3tc.ctex"
+path.etc2="res://.godot/imported/birch_texture_0.jpg-5d0a0daca268affb1282ebc92ccc48ef.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "4925114bb58156d8506b56d2359f0337"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/foliage/birch_texture_0.jpg"
-dest_files=["res://.godot/imported/birch_texture_0.jpg-5d0a0daca268affb1282ebc92ccc48ef.ctex"]
+dest_files=["res://.godot/imported/birch_texture_0.jpg-5d0a0daca268affb1282ebc92ccc48ef.s3tc.ctex", "res://.godot/imported/birch_texture_0.jpg-5d0a0daca268affb1282ebc92ccc48ef.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

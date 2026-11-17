@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cl7tx85hlsh3d"
-path="res://.godot/imported/rifle-sniper_texture_0.jpg-50dfe89cb520d30917c4d4aa0c8b3865.ctex"
+path.s3tc="res://.godot/imported/rifle-sniper_texture_0.jpg-50dfe89cb520d30917c4d4aa0c8b3865.s3tc.ctex"
+path.etc2="res://.godot/imported/rifle-sniper_texture_0.jpg-50dfe89cb520d30917c4d4aa0c8b3865.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "158250fb74ec8a89765c3c409896e5a9"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/weapons/rifle-sniper_texture_0.jpg"
-dest_files=["res://.godot/imported/rifle-sniper_texture_0.jpg-50dfe89cb520d30917c4d4aa0c8b3865.ctex"]
+dest_files=["res://.godot/imported/rifle-sniper_texture_0.jpg-50dfe89cb520d30917c4d4aa0c8b3865.s3tc.ctex", "res://.godot/imported/rifle-sniper_texture_0.jpg-50dfe89cb520d30917c4d4aa0c8b3865.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

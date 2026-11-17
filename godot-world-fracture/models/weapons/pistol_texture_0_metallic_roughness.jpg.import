@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b3ulu6x5ove0n"
-path="res://.godot/imported/pistol_texture_0_metallic_roughness.jpg-26588a5582c5dcd1ed69a1369b1cd335.ctex"
+path.s3tc="res://.godot/imported/pistol_texture_0_metallic_roughness.jpg-26588a5582c5dcd1ed69a1369b1cd335.s3tc.ctex"
+path.etc2="res://.godot/imported/pistol_texture_0_metallic_roughness.jpg-26588a5582c5dcd1ed69a1369b1cd335.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "14b87f95a3cdf31dcef94d51346af96c"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/weapons/pistol_texture_0_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/pistol_texture_0_metallic_roughness.jpg-26588a5582c5dcd1ed69a1369b1cd335.ctex"]
+dest_files=["res://.godot/imported/pistol_texture_0_metallic_roughness.jpg-26588a5582c5dcd1ed69a1369b1cd335.s3tc.ctex", "res://.godot/imported/pistol_texture_0_metallic_roughness.jpg-26588a5582c5dcd1ed69a1369b1cd335.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

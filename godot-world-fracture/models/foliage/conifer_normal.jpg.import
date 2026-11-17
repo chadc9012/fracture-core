@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://uit0hx83npdx"
-path="res://.godot/imported/conifer_normal.jpg-0f59c38008b49f264dbf6962a0f58c55.ctex"
+path.s3tc="res://.godot/imported/conifer_normal.jpg-0f59c38008b49f264dbf6962a0f58c55.s3tc.ctex"
+path.etc2="res://.godot/imported/conifer_normal.jpg-0f59c38008b49f264dbf6962a0f58c55.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "79c61fe22a44e9ec0a7b46985b858624"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/foliage/conifer_normal.jpg"
-dest_files=["res://.godot/imported/conifer_normal.jpg-0f59c38008b49f264dbf6962a0f58c55.ctex"]
+dest_files=["res://.godot/imported/conifer_normal.jpg-0f59c38008b49f264dbf6962a0f58c55.s3tc.ctex", "res://.godot/imported/conifer_normal.jpg-0f59c38008b49f264dbf6962a0f58c55.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

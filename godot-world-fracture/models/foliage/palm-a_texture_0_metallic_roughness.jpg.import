@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ca0kexujrxfd5"
-path="res://.godot/imported/palm-a_texture_0_metallic_roughness.jpg-4b2319416af0f308c2efee0e56e16a2c.ctex"
+path.s3tc="res://.godot/imported/palm-a_texture_0_metallic_roughness.jpg-4b2319416af0f308c2efee0e56e16a2c.s3tc.ctex"
+path.etc2="res://.godot/imported/palm-a_texture_0_metallic_roughness.jpg-4b2319416af0f308c2efee0e56e16a2c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1997e42acdefee4a7c36fba3c6db4b81"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://models/foliage/palm-a_texture_0_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/palm-a_texture_0_metallic_roughness.jpg-4b2319416af0f308c2efee0e56e16a2c.ctex"]
+dest_files=["res://.godot/imported/palm-a_texture_0_metallic_roughness.jpg-4b2319416af0f308c2efee0e56e16a2c.s3tc.ctex", "res://.godot/imported/palm-a_texture_0_metallic_roughness.jpg-4b2319416af0f308c2efee0e56e16a2c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
