@@ -141,6 +141,36 @@ static func _desk_pc(v, at: Vector3, yaw: float, screen: Color) -> void:
 	v.obstacles.append(AABB(at + Vector3(-0.8, 0, -0.8), Vector3(1.6, 0.8, 1.6)))
 	_chair(v, at + b * Vector3(0, 0, 0.6), yaw + PI, v.mat(Color(0.12, 0.12, 0.14), 0.6))
 
+## an open laptop on a desk (asset catalog "Everyday civilian life": laptops): base, lid, lit screen
+static func _laptop(v, at: Vector3, yaw: float, screen: Color) -> void:
+	var b := Basis(Vector3.UP, yaw)
+	var base = v.box(Vector3(0.34, 0.018, 0.24), at + Vector3(0, 0.01, 0), v.mat(Color(0.2, 0.2, 0.22), 0.5, 0.6), false)
+	base.rotation.y = yaw
+	var lid = v.box(Vector3(0.34, 0.22, 0.012), at + b * Vector3(0, 0.12, -0.12), v.mat(Color(0.2, 0.2, 0.22), 0.5, 0.6), false)
+	lid.rotation.y = yaw
+	lid.rotation.x = -0.25
+	var scr = v.box(Vector3(0.3, 0.18, 0.004), at + b * Vector3(0, 0.12, -0.113), v.glow(screen, 1.2), false)
+	scr.rotation.y = yaw
+	scr.rotation.x = -0.25
+
+## a wheelchair (hospitals): seat, back, two big wheels, two casters
+static func _wheelchair(v, at: Vector3, yaw: float) -> void:
+	var b := Basis(Vector3.UP, yaw)
+	var frame = v.mat(Color(0.2, 0.2, 0.22), 0.5, 0.7)
+	var seat = v.mat(Color(0.15, 0.2, 0.3), 0.8)
+	v.box(Vector3(0.5, 0.06, 0.45), at + Vector3(0, 0.5, 0), seat, false).rotation.y = yaw
+	v.box(Vector3(0.5, 0.5, 0.05), at + b * Vector3(0, 0.78, 0.22), seat, false).rotation.y = yaw
+	for sx in [-0.3, 0.3]:
+		var w = v.cyl(0.3, 0.03, at + b * Vector3(sx, 0.3, 0.1), frame, false)
+		w.rotation.z = PI * 0.5
+		w.rotation.y = yaw
+		var c = v.cyl(0.08, 0.03, at + b * Vector3(sx * 0.7, 0.08, -0.28), frame, false)
+		c.rotation.z = PI * 0.5
+		c.rotation.y = yaw
+		v.box(Vector3(0.03, 0.03, 0.3), at + b * Vector3(sx, 0.62, 0.0), frame, false).rotation.y = yaw
+	v.box(Vector3(0.44, 0.03, 0.2), at + b * Vector3(0, 0.12, -0.3), frame, false).rotation.y = yaw
+	v.obstacles.append(AABB(at + Vector3(-0.35, 0, -0.35), Vector3(0.7, 1.0, 0.7)))
+
 static func _plant(v, at: Vector3) -> void:
 	v.cyl(0.32, 0.55, at, v.mat(Color(0.25, 0.25, 0.27), 0.6))
 	var leaves = v.cyl(0.55, 1.2, at + Vector3(0, 0.55, 0), v.mat(Color(0.18, 0.42, 0.2), 0.9), false, 0.1)
@@ -177,6 +207,10 @@ static func _hospital(v) -> void:
 		for k in 5:
 			_chair(v, Vector3(-13.0 + k * 1.0, 0, -4.0 - row * 2.6), PI, teal)
 	v.sign("WAITING AREA", Vector3(-15.7, 3.0, -7.5), PI * 0.5, Color(0.1, 0.45, 0.45), 56, false)
+	# wheelchairs parked by the waiting area and one at the doors
+	for k in 3:
+		_wheelchair(v, Vector3(-14.6 + k * 0.9, 0, -11.2), PI)
+	_wheelchair(v, Vector3(6.0, 0, -1.8), PI * 0.5)
 	# pharmacy on the right
 	v.box(Vector3(1.0, 1.1, 7.0), Vector3(12.0, 0.55, -6.5), white)
 	for k in 4:
@@ -645,6 +679,8 @@ static func _office(v) -> void:
 			var at := Vector3(cx + (-0.85 if k % 2 == 0 else 0.85), 0, cz + (-0.9 if k < 2 else 0.9))
 			if v.model("res://models/city/office-desk.glb", at, PI if k < 2 else 0.0, 1.6) == null:
 				_desk_pc(v, at, 0.0 if k < 2 else PI, Color(0.35, 0.75, 1.0))
+			elif k % 3 != 1:
+				_laptop(v, at + Vector3(0, 0.76, 0), 0.0 if k < 2 else PI, Color(0.35, 0.75, 1.0) if k % 2 == 0 else Color(0.9, 0.6, 0.3))
 		_plant(v, Vector3(cx + 2.4, 0, cz))
 	# the stores along the left wall
 	for k in 4:

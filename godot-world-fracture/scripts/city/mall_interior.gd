@@ -301,7 +301,35 @@ func _shell() -> void:
 			var rail := _box(Vector3(0.08, 1.0, 14.2), Vector3(g, 0.6, 0), glass(), esc)
 			rail.rotation_degrees.x = ramp.rotation_degrees.x
 
+## a shopping cart (asset catalog "Everyday civilian life"): a wire basket on a frame and four wheels; a row of them
+## nested at the entrance and a stray or two down the atrium
+func _cart(pos: Vector3, yaw: float) -> void:
+	var holder := Node3D.new()
+	holder.position = pos
+	holder.rotation.y = yaw
+	world.add_child(holder)
+	var wire := flat(Color(0.72, 0.74, 0.78), 0.3, 0.9)
+	var grip := flat(Color(0.8, 0.15, 0.15), 0.7)
+	var basket := _box(Vector3(0.56, 0.5, 0.9), Vector3(0, 0.75, 0), wire, holder)
+	var mat := wire.duplicate() as StandardMaterial3D
+	mat.albedo_color.a = 0.55
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	basket.material_override = mat
+	_box(Vector3(0.56, 0.03, 0.9), Vector3(0, 0.5, 0), wire, holder)
+	for sx: float in [-0.26, 0.26]:
+		_box(Vector3(0.03, 0.5, 0.03), Vector3(sx, 0.25, 0.38), wire, holder)
+		_box(Vector3(0.03, 0.5, 0.03), Vector3(sx, 0.25, -0.38), wire, holder)
+		for sz: float in [-0.38, 0.38]:
+			var w := _cyl(0.07, 0.03, Vector3(sx, 0.07, sz), wire, holder)
+			w.rotation.z = PI * 0.5
+	var h := _box(Vector3(0.6, 0.04, 0.04), Vector3(0, 1.02, 0.5), grip, holder)
+	h.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
 func _atrium() -> void:
+	for k in 5:
+		_cart(Vector3(-14.5, 0, L * 0.5 - 6.0 - k * 0.55), PI)
+	_cart(Vector3(-8.0, 0, 14.0), 0.6)
+	_cart(Vector3(11.0, 0, -22.0), -2.2)
 	# a fountain under the skylight, palms in planters around it
 	var basin := flat(Color(0.25, 0.27, 0.3), 0.2, 0.3)
 	_cyl(4.5, 0.6, Vector3(0, 0.3, -6.0), basin)
