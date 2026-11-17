@@ -1112,6 +1112,74 @@ func _box(size: Vector3, pos: Vector3, mat: Material, parent: Node3D = null) -> 
 func _root() -> Node3D:
 	return _tile_root if _tile_root else world
 
+## traffic signs along the kerbs (asset catalog "Vehicles & transportation": traffic signs): a speed limit plate past
+## each crossing, a pedestrian-crossing sign before it, no-parking and one-way plates between — plain plates on a
+## post, their faces drawn in geometry (one Label3D for the limit's digits), skipping the garage and the court mouths
+func _signs() -> void:
+	var half := ROAD_W * 0.5
+	var post := flat(Color(0.3, 0.31, 0.33), 0.5, 0.7)
+	var white := flat(Color(0.92, 0.92, 0.9), 0.5)
+	var red := flat(Color(0.8, 0.08, 0.08), 0.5)
+	var blue := flat(Color(0.1, 0.3, 0.75), 0.5)
+	var limit := "50" if style != "coast" else "35"
+	var cross: float = Infra.CROSS_LZ
+	var spots := [[cross - 26.0, "ped"], [cross + 14.0, "limit"], [cross + 60.0, "nopark"], [cross - 70.0, "oneway"], [cross + 100.0, "limit"], [cross - 110.0, "nopark"]]
+	var k := 0
+	for sp in spots:
+		var z: float = float(sp[0])
+		if absf(z) > LENGTH * 0.5 - 4.0:
+			continue
+		var side := -1.0 if k % 2 == 0 else 1.0
+		k += 1
+		if (_tile_k == 0 and side > 0 and absf(z - GARAGE_Z) < 16.0) or _in_mouth(side, z):
+			continue
+		var x := side * (half + 0.6)
+		var holder := Node3D.new()
+		holder.position = Vector3(x, 0.18, z)
+		holder.rotation.y = PI * 0.5 if side < 0 else -PI * 0.5   # the face toward the oncoming lane
+		_root().add_child(holder)
+		_box(Vector3(0.07, 2.4, 0.07), Vector3(0, 1.2, 0), post, holder)
+		match String(sp[1]):
+			"limit":
+				_plate(holder, 0.7, white, red, 0.08)
+				var t := Label3D.new()
+				t.text = limit
+				t.font_size = 96
+				t.pixel_size = 0.004
+				t.modulate = Color(0.05, 0.05, 0.05)
+				t.position = Vector3(0, 2.1, 0.035)
+				t.shaded = false
+				holder.add_child(t)
+			"nopark":
+				_plate(holder, 0.7, blue, red, 0.08)
+				var bar := _box(Vector3(0.08, 0.62, 0.02), Vector3(0, 2.1, 0.03), red, holder)
+				bar.rotation.z = -PI * 0.25
+			"ped":
+				_box(Vector3(0.7, 0.7, 0.04), Vector3(0, 2.1, 0), blue, holder)
+				_box(Vector3(0.5, 0.5, 0.02), Vector3(0, 2.1, 0.03), white, holder)
+				for i in 3:
+					_box(Vector3(0.36, 0.05, 0.02), Vector3(0, 1.95 + i * 0.12, 0.045), post, holder)
+			"oneway":
+				_box(Vector3(0.9, 0.36, 0.04), Vector3(0, 2.1, 0), blue, holder)
+				_box(Vector3(0.5, 0.08, 0.02), Vector3(-0.05, 2.1, 0.03), white, holder)
+				var head := _box(Vector3(0.2, 0.2, 0.02), Vector3(0.22, 2.1, 0.03), white, holder)
+				head.rotation.z = PI * 0.25
+
+## a round plate: a disc of `face` with a ring of `rim` round it
+func _plate(holder: Node3D, d: float, face: Material, rim: Material, rim_w: float) -> void:
+	for pair in [[d, rim, 0.0], [d - rim_w * 2.0, face, 0.015]]:
+		var mi := MeshInstance3D.new()
+		var c := CylinderMesh.new()
+		c.top_radius = float(pair[0]) * 0.5
+		c.bottom_radius = c.top_radius
+		c.height = 0.03
+		c.radial_segments = 20
+		mi.mesh = c
+		mi.material_override = pair[1]
+		mi.position = Vector3(0, 2.1, float(pair[2]))
+		mi.rotation.x = PI * 0.5
+		holder.add_child(mi)
+
 # --------------------------------------------------------------------------------------------- street
 func _street() -> void:
 	var half := ROAD_W * 0.5
@@ -1882,6 +1950,7 @@ func _dressing() -> void:
 			_box(Vector3(0.22, 0.9, 0.22), Vector3(x, 0.18 + 0.45, z), post)
 			_box(Vector3(0.24, 0.12, 0.24), Vector3(x, 0.18 + 0.78, z), glow)
 		z += 6.0
+	_signs()
 	if style == "coast":
 		return
 	# banners on the lamp posts (lamps stand every 24 m, see _props): a violet drop with the WF mark and the game's name
@@ -2418,7 +2487,7 @@ func enter_car(c: Node3D) -> void:
 			perf.armor = armor
 	# the Military Motor Pool's work (facility.gd): powertrain, tracks, armour, and the camouflage on the hull
 	perf = Facility.apply_drive(perf, state, id)
-	Facility.paint_camo(c, Facility.camo(state, id))
+	Facility.paint_camo(c, Facility.camo(state, id), int(state.cars[id].get("damage", 0)) if state.cars.has(id) else 0)
 	var car := StreetCar.new(c, id, perf)
 	controls.set_nitro(float(perf.get("nos", 0.0)) > 0.0)
 	car.bounds = operator.bounds
@@ -2514,6 +2583,7 @@ func _crash_damage(car: RefCounted, speed: float) -> void:
 	var dmg := int(round(clampf((speed - CRASH_SPEED) * 1.2 + 3.0, 3.0, 30.0) * Facility.damage_through(float(car.profile.get("armor", 0.0)))))
 	st.cars[id].damage = clampi(int(st.cars[id].get("damage", 0)) + dmg, 0, 100)
 	st.save()
+	Facility.paint_camo(car.node, Facility.camo(st, id), int(st.cars[id].damage))
 	crash_log.append([id, dmg])
 	controls.toast("Crash — %s %d%% damaged (repair at the garage)" % [_car_name(car.node), int(st.cars[id].damage)])
 

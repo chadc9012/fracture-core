@@ -243,7 +243,7 @@ func show_vehicle(id: String) -> void:
 		_dist = clampf(hl * 3.2, 6.0, 80.0)
 		_look_y = clampf(hl * 0.25, 0.6, 8.0)
 		if fac == "military":
-			Facility.paint_camo(_model, Facility.camo(state, id))
+			Facility.paint_camo(_model, Facility.camo(state, id), int(state.cars[id].get("damage", 0)) if state.cars.has(id) else 0)
 	else:
 		_nomodel.text = "%s\nmodel coming" % String(v.get("name", "")).to_upper()
 	_refresh()

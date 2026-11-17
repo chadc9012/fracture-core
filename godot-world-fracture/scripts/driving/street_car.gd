@@ -208,6 +208,7 @@ var _skid: MultiMeshInstance3D
 var _skid_i := 0
 var _skid_last := Vector3.INF
 var _skidding := false
+var _bonnet: CPUParticles3D
 
 func drive_fx(dt: float) -> void:
 	var c: Node3D = node
@@ -228,6 +229,9 @@ func drive_fx(dt: float) -> void:
 	var skidding := (slide or hard) and not hover
 	for s in _smoke:
 		(s as CPUParticles3D).emitting = skidding
+	# a badly damaged hull (the garage's repair state past 60) smokes from the bonnet
+	if _bonnet:
+		_bonnet.emitting = int(c.get_meta("damage", 0)) >= 60
 	if skidding:
 		_lay_skid(dt)
 	elif _skidding:
@@ -290,6 +294,24 @@ func _build_fx() -> void:
 		p.local_coords = false
 		c.add_child(p)
 		_smoke.append(p)
+	_bonnet = CPUParticles3D.new()
+	_bonnet.name = "BonnetSmoke"
+	_bonnet.mesh = smoke_q
+	_bonnet.amount = 30
+	_bonnet.lifetime = 2.2
+	_bonnet.emitting = false
+	_bonnet.direction = Vector3(0, 1, 0.2)
+	_bonnet.spread = 25.0
+	_bonnet.initial_velocity_min = 0.8
+	_bonnet.initial_velocity_max = 1.6
+	_bonnet.gravity = Vector3(0, 1.2, 0)
+	_bonnet.scale_amount_min = 0.5
+	_bonnet.scale_amount_max = 1.0
+	_bonnet.scale_amount_curve = _fade_curve(0.4, 2.6)
+	_bonnet.color_ramp = _fade_ramp(Color(0.25, 0.25, 0.27, 0.55), Color(0.4, 0.4, 0.42, 0.0))
+	_bonnet.position = Vector3(0, 0.9, -HALF_LENGTH * 0.55)
+	_bonnet.local_coords = false
+	c.add_child(_bonnet)
 	# the skid ring lives in the world, not on the car
 	_skid = MultiMeshInstance3D.new()
 	_skid.name = "SkidMarks"

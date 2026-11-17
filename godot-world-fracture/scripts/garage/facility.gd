@@ -140,19 +140,24 @@ static func camo(state, vehicle_id: String) -> Color:
 
 ## lay the camouflage over a hull's own paint (a multiply over every mesh, so markings and tyres stay dark); a clear
 ## colour takes it off
-static func paint_camo(hull: Node, c: Color) -> void:
-	if c.a <= 0.0 and not hull.has_meta("camo"):
+## `damage` (0-100, the garage's repair state) dirties the paint: scuffed and soot-dark as it climbs (asset catalog
+## "vehicle damage"); street_car.gd adds the bonnet smoke past 60. Both ride the one multiply overlay with the camo.
+static func paint_camo(hull: Node, c: Color, damage := 0) -> void:
+	if c.a <= 0.0 and damage <= 0 and not hull.has_meta("camo"):
 		return     # nothing on it, and it may wear other overlays (burns) we'd wipe
 	var m: StandardMaterial3D = null
-	if c.a > 0.0:
+	if c.a > 0.0 or damage > 0:
 		hull.set_meta("camo", true)
 	else:
 		hull.remove_meta("camo")
-	if c.a > 0.0:
+	if c.a > 0.0 or damage > 0:
 		m = StandardMaterial3D.new()
 		m.blend_mode = BaseMaterial3D.BLEND_MODE_MUL
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.albedo_color = Color.WHITE.lerp(c, 0.7).lightened(0.15)
+		var tint := Color.WHITE.lerp(c, 0.7).lightened(0.15) if c.a > 0.0 else Color.WHITE
+		var k := clampf(damage / 100.0, 0.0, 1.0)
+		m.albedo_color = tint.lerp(Color(0.42, 0.38, 0.34), k * 0.75)
+	hull.set_meta("damage", damage)
 	for mi in hull.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).material_overlay = m
 	if hull is MeshInstance3D:
