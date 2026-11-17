@@ -737,3 +737,227 @@ static func fracture_set(r: Node) -> void:
 				FractureSet.crystals(world, c, 26.0, int(14 * n) + 5, CYAN, rng, ground)
 			"sr-deep":
 				FractureSet.crystals(world, c, 30.0, int(8 * n) + 3, Color(0.3, 0.5, 1.0), rng, ground)
+
+# ---------------------------------------------------------------- the natural floor (asset catalog "Natural environments")
+## Ground dressing under the trees and along the water, scattered where the land cover says, like the trees: fallen
+## logs, mushroom clusters and moss patches in the forests, wildflowers in the meadows and grass, reeds on the
+## marsh and the water's edge, coral in the coast maps' shallows, glacier blocks on the ice. One MultiMesh a kind,
+## drawn within FLOOR_M (the glaciers to the horizon), capped by FLOOR_CAP a kind. Procedural meshes, a few hundred
+## triangles each; the wildflowers and reeds are crossed cards.
+const FLOOR_M := 260.0
+const FLOOR_CAP := 700
+
+static func log_mesh() -> Mesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var lie := Basis(Vector3.BACK, PI * 0.5)   # along x
+	_cyl(st, 0.3, 0.42, 5.5, 8, Transform3D(lie, Vector3(0, 0.34, 0)))
+	_cyl(st, 0.1, 0.2, 1.8, 5, Transform3D(Basis(Vector3.BACK, 0.4) * Basis(Vector3.RIGHT, 0.5), Vector3(1.6, 0.9, 0.3)))
+	_blob(st, 0.5, Transform3D(Basis().scaled(Vector3(0.6, 0.5, 1.0)), Vector3(-2.75, 0.3, 0)), 5)
+	st.generate_normals()
+	return st.commit()
+
+static func mushroom_mesh() -> Mesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for m in [[0.0, 0.0, 0.34, 0.22], [0.28, 0.1, 0.22, 0.15], [-0.22, 0.18, 0.18, 0.12], [0.1, -0.26, 0.26, 0.17]]:
+		var p := Vector3(m[0], 0, m[1])
+		var h: float = m[2]
+		var cap: float = m[3]
+		_cyl(st, 0.05, 0.07, h, 5, Transform3D(Basis(), p + Vector3(0, h * 0.5, 0)))
+		_blob(st, cap, Transform3D(Basis().scaled(Vector3(1.0, 0.45, 1.0)), p + Vector3(0, h, 0)), 6)
+	st.generate_normals()
+	return st.commit()
+
+static func moss_mesh() -> Mesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for b in [[0.0, 0.0, 1.6], [1.1, 0.5, 1.0], [-0.9, -0.6, 1.2]]:
+		_blob(st, b[2], Transform3D(Basis().scaled(Vector3(1.0, 0.08, 0.8)), Vector3(b[0], 0.02, b[1])), 7)
+	st.generate_normals()
+	return st.commit()
+
+static func glacier_mesh() -> Mesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for b in [[0.0, 0.0, 9.0, 1.0, 5.0], [6.0, 2.0, 6.0, 0.7, 4.0], [-5.0, -3.0, 7.0, 0.85, 3.5]]:
+		_blob(st, b[2], Transform3D(Basis(Vector3.UP, b[4] * 0.3).scaled(Vector3(1.0, b[3] * 0.55, 0.75)), Vector3(b[0], b[2] * 0.2, b[1])), 5)
+	st.generate_normals()
+	return st.commit()
+
+static func coral_mesh() -> Mesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 31
+	for k in 7:
+		var a := k * TAU / 7.0
+		var d := 0.3 + rng.randf() * 0.5
+		var h := 0.6 + rng.randf() * 0.9
+		var lean := Basis(Vector3(cos(a), 0, -sin(a)), 0.25 + rng.randf() * 0.3)
+		var base := Vector3(sin(a) * d, 0, cos(a) * d)
+		_cyl(st, 0.05, 0.12, h, 5, Transform3D(lean, base + lean * Vector3(0, h * 0.5, 0)))
+		_blob(st, 0.16 + rng.randf() * 0.1, Transform3D(Basis(), base + lean * Vector3(0, h, 0)), 5)
+	_blob(st, 0.7, Transform3D(Basis().scaled(Vector3(1.0, 0.35, 1.0)), Vector3(0, 0.1, 0)), 6)
+	st.generate_normals()
+	return st.commit()
+
+## crossed cards for the flowers and the reeds (UV over the card; the materials colour them)
+static func cards_mesh(w: float, h: float, n: int) -> Mesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in n:
+		var b := Basis(Vector3.UP, k * PI / n)
+		var r := b * Vector3(w * 0.5, 0, 0)
+		var pts := [Vector3(-r.x, 0, -r.z), Vector3(r.x, 0, r.z), Vector3(r.x, h, r.z), Vector3(-r.x, h, -r.z)]
+		for tri in [[0, 1, 2], [0, 2, 3]]:
+			for i in tri:
+				st.set_normal(Vector3.UP)
+				st.set_uv(Vector2(1.0 if i in [1, 2] else 0.0, 0.0 if i in [2, 3] else 1.0))
+				st.add_vertex(pts[i])
+	return st.commit()
+
+static func floor(r: Node, clear: PackedByteArray) -> void:
+	var id: String = r.map_id
+	var img: Image = Data.image("maps/%s.data.pngb" % id)
+	if img == null:
+		return
+	img = img.duplicate()
+	img.convert(Image.FORMAT_RGB8)
+	var w := img.get_width()
+	var bytes := img.get_data()
+	var covers: Array = Data.styles.get("covers", [])
+	var ci := func(name: String) -> int: return covers.find(name)
+	var forest := [ci.call("forest"), ci.call("denseForest")]
+	var meadow := [ci.call("meadow"), ci.call("grass")]
+	var marsh := [ci.call("marsh")]
+	var ice := [ci.call("ice"), ci.call("snow")]
+	var coast := id in ["azure-isles", "shattered-reefs", "thalassia", "goldenreach"]
+	var wild := forest + meadow + marsh + [ci.call("scrub"), ci.call("crop"), ci.call("sand"), ci.call("mud")]   # reeds never on a city's paving
+	var span: float = r._span
+	var water: float = r._water
+	var mpp := span / w
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(id + ":floor")
+	var logs: Array[Transform3D] = []
+	var shrooms: Array[Transform3D] = []
+	var moss: Array[Transform3D] = []
+	var flowers: Array[Transform3D] = []
+	var reeds: Array[Transform3D] = []
+	var corals: Array[Transform3D] = []
+	var glaciers: Array[Transform3D] = []
+	var stride := maxi(2, int(w / 220.0))
+	for j in range(0, w, stride):
+		for i in range(0, w, stride):
+			var cv := bytes[(j * w + i) * 3]
+			var roll := rng.randf()
+			var x := -span / 2.0 + (i + rng.randf() * stride) * mpp
+			var z := -span / 2.0 + (j + rng.randf() * stride) * mpp
+			if clear[r._cell(x, z)] == 1:
+				continue
+			var y: float = r._h(x, z)
+			var yaw := Basis(Vector3.UP, rng.randf() * TAU)
+			if cv in forest and y > water + 0.5:
+				if roll < 0.035 and logs.size() < FLOOR_CAP:
+					logs.append(Transform3D(yaw.scaled(Vector3.ONE * (0.7 + rng.randf() * 0.6)), Vector3(x, y, z)))
+				elif roll < 0.09 and shrooms.size() < FLOOR_CAP:
+					shrooms.append(Transform3D(yaw.scaled(Vector3.ONE * (0.35 + rng.randf() * 0.45)), Vector3(x, y, z)))
+				elif roll < 0.16 and moss.size() < FLOOR_CAP:
+					moss.append(Transform3D(yaw.scaled(Vector3.ONE * (0.8 + rng.randf() * 0.8)), Vector3(x, y, z)))
+			elif cv in meadow and y > water + 0.5:
+				if roll < 0.12 and flowers.size() < FLOOR_CAP:
+					flowers.append(Transform3D(yaw.scaled(Vector3.ONE * (0.7 + rng.randf() * 0.6)), Vector3(x, y, z)))
+			elif cv in wild and (cv in marsh or absf(y - water) < 0.9) and y > water - 0.4 and not coast:
+				if roll < 0.3 and reeds.size() < FLOOR_CAP:
+					reeds.append(Transform3D(yaw.scaled(Vector3.ONE * (0.8 + rng.randf() * 0.6)), Vector3(x, maxf(y, water - 0.2), z)))
+			elif coast and y < water - 0.4 and y > water - 3.5:
+				if roll < 0.25 and corals.size() < FLOOR_CAP:
+					corals.append(Transform3D(yaw.scaled(Vector3.ONE * (0.8 + rng.randf() * 1.2)), Vector3(x, y, z)))
+			if cv in ice and y > water + 0.5 and roll < 0.004 and glaciers.size() < 60 and r._space_claim(x, z, 12.0):
+				glaciers.append(Transform3D(yaw.scaled(Vector3.ONE * (0.8 + rng.randf() * 1.0)), Vector3(x, y - 1.0, z)))
+	var bark := StandardMaterial3D.new()
+	bark.albedo_color = Color(0.3, 0.22, 0.15)
+	bark.roughness = 1.0
+	var cap := StandardMaterial3D.new()
+	cap.albedo_color = Color(0.55, 0.4, 0.28)
+	cap.roughness = 0.8
+	var green := StandardMaterial3D.new()
+	green.albedo_color = Color(0.22, 0.34, 0.15)
+	green.roughness = 1.0
+	var bloom := StandardMaterial3D.new()
+	bloom.albedo_color = Color(0.95, 0.6, 0.75)
+	bloom.cull_mode = BaseMaterial3D.CULL_DISABLED
+	bloom.vertex_color_use_as_albedo = false
+	bloom.albedo_texture = _petal_tex()
+	bloom.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	bloom.alpha_scissor_threshold = 0.5
+	var reed := StandardMaterial3D.new()
+	reed.albedo_color = Color(0.45, 0.5, 0.25)
+	reed.cull_mode = BaseMaterial3D.CULL_DISABLED
+	reed.albedo_texture = _reed_tex()
+	reed.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	reed.alpha_scissor_threshold = 0.5
+	var coral := StandardMaterial3D.new()
+	coral.albedo_color = Color(0.95, 0.45, 0.4)
+	coral.roughness = 0.7
+	var icemat := StandardMaterial3D.new()
+	icemat.albedo_color = Color(0.8, 0.9, 1.0)
+	icemat.roughness = 0.25
+	icemat.metallic_specular = 0.9
+	if not logs.is_empty():
+		r._multimesh(log_mesh(), logs, bark, FLOOR_M)
+	if not shrooms.is_empty():
+		r._multimesh(mushroom_mesh(), shrooms, cap, FLOOR_M * 0.5, false)
+	if not moss.is_empty():
+		r._multimesh(moss_mesh(), moss, green, FLOOR_M * 0.6, false)
+	if not flowers.is_empty():
+		r._multimesh(cards_mesh(0.9, 0.5, 3), flowers, bloom, FLOOR_M * 0.5, false)
+	if not reeds.is_empty():
+		r._multimesh(cards_mesh(1.3, 1.9, 3), reeds, reed, FLOOR_M, false)
+	if not corals.is_empty():
+		r._multimesh(coral_mesh(), corals, coral, FLOOR_M * 0.7, false)
+	if not glaciers.is_empty():
+		r._multimesh(glacier_mesh(), glaciers, icemat, 2400.0)
+
+static var _petal: ImageTexture
+static var _reeds: ImageTexture
+## a card of scattered petals over stems (alpha cut), drawn once
+static func _petal_tex() -> Texture2D:
+	if _petal:
+		return _petal
+	var im := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	im.fill(Color(0, 0, 0, 0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	for k in 14:
+		var cx := rng.randi_range(6, 57)
+		var cy := rng.randi_range(4, 30)
+		var col: Color = [Color(1.0, 0.85, 0.3), Color(0.95, 0.5, 0.7), Color(0.9, 0.95, 1.0), Color(0.6, 0.5, 1.0)][k % 4]
+		for dy in range(-3, 4):
+			for dx in range(-3, 4):
+				if dx * dx + dy * dy <= 9:
+					im.set_pixel(clampi(cx + dx, 0, 63), clampi(cy + dy, 0, 63), col)
+		for yy in range(cy + 3, 64):
+			im.set_pixel(cx, yy, Color(0.3, 0.5, 0.2))
+	_petal = ImageTexture.create_from_image(im)
+	return _petal
+
+## tall thin stems with a seed head, alpha cut
+static func _reed_tex() -> Texture2D:
+	if _reeds:
+		return _reeds
+	var im := Image.create(64, 128, false, Image.FORMAT_RGBA8)
+	im.fill(Color(0, 0, 0, 0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 6
+	for k in 9:
+		var x := rng.randi_range(4, 59)
+		var top := rng.randi_range(4, 40)
+		var lean := rng.randf_range(-0.12, 0.12)
+		for yy in range(top, 128):
+			var xx := clampi(int(x + (yy - 128) * lean), 0, 63)
+			im.set_pixel(xx, yy, Color(0.5, 0.55, 0.3).darkened(float(yy) / 400.0))
+			if yy < top + 14:
+				im.set_pixel(clampi(xx + 1, 0, 63), yy, Color(0.55, 0.4, 0.25))
+	_reeds = ImageTexture.create_from_image(im)
+	return _reeds

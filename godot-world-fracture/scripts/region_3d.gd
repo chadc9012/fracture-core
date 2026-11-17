@@ -490,6 +490,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_build_trees()
 	_build_slope_rock()
 	Flora.rocks(self, _clearings())
+	Flora.floor(self, _clearings())
 	_build_floating()
 	_build_ruins()
 	if id == "thalassia":
