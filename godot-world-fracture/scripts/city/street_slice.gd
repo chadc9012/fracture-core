@@ -1326,6 +1326,8 @@ func _lod(path: String, full: Node3D, holder: Node3D) -> void:
 		l.visibility_range_begin = LOD_M
 		l.visibility_range_begin_margin = 6.0
 		l.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		if Phone.tier() != "high":
+			l.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF   # a far building's shadow is not worth its pass on a phone
 	for f in fm:
 		var fi := f as MeshInstance3D
 		fi.visibility_range_end = LOD_M
