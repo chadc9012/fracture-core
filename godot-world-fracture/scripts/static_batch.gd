@@ -311,10 +311,17 @@ static func _collect(n: Node, root: Node, out: Array[MeshInstance3D]) -> void:
 		_collect(c, root, out)
 
 ## what a material draws, as a key: two materials with the same key look the same
+## on the phone tiers near-identical untextured looks merge (colour to 16 levels a channel, roughness and metallic
+## to tenths, emission energy to halves): the Nexus hub had 122 distinct looks, most of them dark greys a few
+## counts apart, each its own batch per cell
 static func _look(m: Material) -> String:
 	if m is StandardMaterial3D:
 		var s := m as StandardMaterial3D
 		var tex := func(t: Texture2D) -> int: return t.get_rid().get_id() if t else 0
-		return "S%s|%.3f|%.3f|%d|%s|%.3f|%d|%d|%d|%d|%d|%d|%s|%s|%d|%d" % [s.albedo_color.to_html(), s.roughness, s.metallic, int(s.emission_enabled), s.emission.to_html(), s.emission_energy_multiplier,
+		var coarse := Phone.tier() != "high" and s.albedo_texture == null
+		var q := func(c: Color) -> String:
+			return "%d,%d,%d,%d" % [int(c.r * 15.0 + 0.5), int(c.g * 15.0 + 0.5), int(c.b * 15.0 + 0.5), int(c.a * 15.0 + 0.5)] if coarse else c.to_html()
+		var qr := func(x: float, step: float) -> float: return snappedf(x, step) if coarse else x
+		return "S%s|%.3f|%.3f|%d|%s|%.3f|%d|%d|%d|%d|%d|%d|%s|%s|%d|%d" % [q.call(s.albedo_color), qr.call(s.roughness, 0.1), qr.call(s.metallic, 0.1), int(s.emission_enabled), q.call(s.emission), qr.call(s.emission_energy_multiplier, 0.5),
 			s.transparency, s.shading_mode, s.cull_mode, tex.call(s.albedo_texture), tex.call(s.normal_texture), tex.call(s.roughness_texture), str(s.uv1_scale), str(s.uv1_offset), int(s.uv1_triplanar), int(s.vertex_color_use_as_albedo)]
 	return "M%d" % m.get_instance_id()
