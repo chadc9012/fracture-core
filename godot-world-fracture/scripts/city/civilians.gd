@@ -100,7 +100,27 @@ func _spawn(side: float, z: float, dir: float) -> Walker:
 	w.mover.obstacles = _boxes
 	w.mover.position = Vector3(side * walk_x + _rng.randf_range(-1.5, 1.5), 0.18, z)
 	w.mover.cam_yaw = 0.0
-	w.mover.build(random_look())
+	var lk := random_look()
+	# what they carry (asset catalog "Everyday civilian life"): about half carry something
+	var roll := _rng.randf()
+	var carry := ""
+	if roll < 0.14:
+		carry = "bag"
+	elif roll < 0.26:
+		carry = "phone"
+	elif roll < 0.34:
+		carry = "coffee"
+	elif roll < 0.40:
+		carry = "package"
+	elif roll < 0.44:
+		carry = "stroller"
+	elif roll < 0.47:
+		carry = "umbrella"
+	if carry != "":
+		var wear: Array = lk.get("wear", []).duplicate()
+		wear.append(carry)
+		lk.wear = wear
+	w.mover.build(lk)
 	walkers.append(w)
 	return w
 

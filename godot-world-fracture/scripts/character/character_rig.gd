@@ -441,6 +441,9 @@ const WEAR := [
 	{ "id": "backpack", "label": "Backpack", "blurb": "A slim tactical pack between the shoulders." },
 	{ "id": "rings", "label": "Rings", "blurb": "Two rings on the right hand." },
 ]
+## carried things (asset catalog "Everyday civilian life"): civilians.gd rolls these into a walker's `wear` so the
+## crowd carries shopping bags, phones, coffee, parcels, umbrellas and pushes strollers; not in the creator's menu
+const CARRY := ["bag", "phone", "coffee", "package", "umbrella", "stroller"]
 var _wear_nodes: Array[Node] = []
 
 static func wear_ids() -> Array[String]:
@@ -561,6 +564,167 @@ func _wear() -> void:
 						strap2.rotation.x = -0.5
 						strap2.material_override = cloth
 						h4.add_child(strap2)
+			"bag":
+				# a paper shopping bag hanging from the left hand
+				var hb := _on_bone("LeftHand", Vector3(0.0, -0.3, 0.02))
+				if hb:
+					var paper := _mat([Color(0.85, 0.78, 0.65), Color(0.2, 0.2, 0.22), Color(0.6, 0.2, 0.25)][randi() % 3], 0.9, 0.0)
+					var bag := MeshInstance3D.new()
+					var bb := BoxMesh.new()
+					bb.size = Vector3(0.3, 0.34, 0.13)
+					bag.mesh = bb
+					bag.material_override = paper
+					hb.add_child(bag)
+					for sx in [-0.08, 0.08]:
+						var handle := MeshInstance3D.new()
+						var hm := BoxMesh.new()
+						hm.size = Vector3(0.012, 0.14, 0.012)
+						handle.mesh = hm
+						handle.position = Vector3(sx, 0.23, 0.0)
+						handle.material_override = cloth
+						hb.add_child(handle)
+			"phone":
+				var hp := _on_bone("RightHand", Vector3(-0.02, -0.06, 0.03))
+				if hp:
+					var ph := MeshInstance3D.new()
+					var pm2 := BoxMesh.new()
+					pm2.size = Vector3(0.07, 0.15, 0.008)
+					ph.mesh = pm2
+					ph.rotation.x = 0.4
+					ph.material_override = _mat(Color(0.05, 0.05, 0.06), 0.2, 0.3)
+					hp.add_child(ph)
+					var scr := MeshInstance3D.new()
+					var sm := BoxMesh.new()
+					sm.size = Vector3(0.062, 0.135, 0.002)
+					scr.mesh = sm
+					scr.position = Vector3(0, 0, 0.005)
+					scr.rotation.x = 0.4
+					var sl := _mat(Color(0.5, 0.75, 1.0), 0.1, 0.0)
+					sl.emission_enabled = true
+					sl.emission = Color(0.5, 0.75, 1.0)
+					sl.emission_energy_multiplier = 1.5
+					scr.material_override = sl
+					hp.add_child(scr)
+			"coffee":
+				var hc := _on_bone("RightHand", Vector3(-0.02, -0.08, 0.02))
+				if hc:
+					var cup := MeshInstance3D.new()
+					var cm := CylinderMesh.new()
+					cm.top_radius = 0.042
+					cm.bottom_radius = 0.034
+					cm.height = 0.13
+					cm.radial_segments = 10
+					cup.mesh = cm
+					cup.material_override = _mat(Color(0.92, 0.9, 0.86), 0.7, 0.0)
+					hc.add_child(cup)
+					var lid := MeshInstance3D.new()
+					var lm3 := CylinderMesh.new()
+					lm3.top_radius = 0.044
+					lm3.bottom_radius = 0.044
+					lm3.height = 0.012
+					lm3.radial_segments = 10
+					lid.mesh = lm3
+					lid.position = Vector3(0, 0.07, 0)
+					lid.material_override = _mat(Color(0.15, 0.15, 0.16), 0.5, 0.0)
+					hc.add_child(lid)
+			"package":
+				# a parcel carried against the chest
+				var hk := _on_bone("Spine2", Vector3(0, -0.02, 0.26))
+				if hk:
+					var box := MeshInstance3D.new()
+					var bx := BoxMesh.new()
+					bx.size = Vector3(0.42, 0.28, 0.3)
+					box.mesh = bx
+					box.material_override = _mat(Color(0.7, 0.55, 0.38), 0.9, 0.0)
+					hk.add_child(box)
+					var tape := MeshInstance3D.new()
+					var tp := BoxMesh.new()
+					tp.size = Vector3(0.06, 0.285, 0.305)
+					tape.mesh = tp
+					tape.material_override = _mat(Color(0.5, 0.42, 0.3), 0.9, 0.0)
+					hk.add_child(tape)
+			"umbrella":
+				# held over the head: a pole from the right hand up to a canopy above the crown
+				var hu := _on_bone("Head", Vector3(0.12, 0.42, 0.0))
+				if hu:
+					var canopy := MeshInstance3D.new()
+					var cone := CylinderMesh.new()
+					cone.top_radius = 0.0
+					cone.bottom_radius = 0.55
+					cone.height = 0.2
+					cone.radial_segments = 8
+					cone.cap_bottom = false
+					canopy.mesh = cone
+					var um := _mat([Color(0.1, 0.1, 0.12), Color(0.7, 0.15, 0.2), Color(0.2, 0.3, 0.7)][randi() % 3], 0.7, 0.0)
+					um.cull_mode = BaseMaterial3D.CULL_DISABLED
+					canopy.material_override = um
+					hu.add_child(canopy)
+					var pole := MeshInstance3D.new()
+					var pl := CylinderMesh.new()
+					pl.top_radius = 0.008
+					pl.bottom_radius = 0.008
+					pl.height = 0.95
+					pl.radial_segments = 6
+					pole.mesh = pl
+					pole.position = Vector3(0, -0.5, 0)
+					pole.material_override = steel
+					hu.add_child(pole)
+			"stroller":
+				# pushed ahead of the hips: a frame on four wheels with a hood
+				var hs := _on_bone("Hips", Vector3(0, -0.45, 0.8))
+				if hs:
+					var frame := _mat(Color(0.2, 0.2, 0.22), 0.5, 0.6)
+					var seat := _mat([Color(0.3, 0.35, 0.5), Color(0.5, 0.25, 0.3), Color(0.25, 0.25, 0.28)][randi() % 3], 0.8, 0.0)
+					var body := MeshInstance3D.new()
+					var bm2 := BoxMesh.new()
+					bm2.size = Vector3(0.4, 0.24, 0.52)
+					body.mesh = bm2
+					body.position = Vector3(0, 0.3, 0)
+					body.material_override = seat
+					hs.add_child(body)
+					var hood := MeshInstance3D.new()
+					var hm2 := BoxMesh.new()
+					hm2.size = Vector3(0.42, 0.2, 0.24)
+					hood.mesh = hm2
+					hood.position = Vector3(0, 0.52, 0.12)
+					hood.material_override = seat
+					hs.add_child(hood)
+					for wx in [-0.2, 0.2]:
+						for wz in [-0.25, 0.25]:
+							var wheel := MeshInstance3D.new()
+							var wm := CylinderMesh.new()
+							wm.top_radius = 0.09
+							wm.bottom_radius = 0.09
+							wm.height = 0.03
+							wm.radial_segments = 10
+							wheel.mesh = wm
+							wheel.rotation.z = PI * 0.5
+							wheel.position = Vector3(wx, 0.09, wz)
+							wheel.material_override = frame
+							hs.add_child(wheel)
+					for hx in [-0.2, 0.2]:
+						var bar := MeshInstance3D.new()
+						var brm := CylinderMesh.new()
+						brm.top_radius = 0.012
+						brm.bottom_radius = 0.012
+						brm.height = 0.7
+						brm.radial_segments = 6
+						bar.mesh = brm
+						bar.position = Vector3(hx, 0.55, -0.45)
+						bar.rotation.x = -0.6
+						bar.material_override = frame
+						hs.add_child(bar)
+					var grip := MeshInstance3D.new()
+					var gm := CylinderMesh.new()
+					gm.top_radius = 0.014
+					gm.bottom_radius = 0.014
+					gm.height = 0.44
+					gm.radial_segments = 6
+					grip.mesh = gm
+					grip.rotation.z = PI * 0.5
+					grip.position = Vector3(0, 0.86, -0.65)
+					grip.material_override = frame
+					hs.add_child(grip)
 			"rings":
 				for off in [Vector3(-0.09, -0.005, 0.0), Vector3(-0.09, -0.005, 0.02)]:
 					var h5 := _on_bone("RightHand", off)
