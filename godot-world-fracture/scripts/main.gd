@@ -702,6 +702,20 @@ func _shoot(path: String, opts: Array) -> void:
 				street.controls.sprint = String(o).contains("run")
 				if String(o).contains("jump"):
 					street.controls._jump = true
+			# slicewalk:armed:grapple  faces the west facade from the walk, fires the grapple at it and shoots mid-pull
+			if String(o).contains("grapple"):
+				street.controls.scripted = true
+				street.controls.move = Vector2.ZERO
+				street.operator.position = Vector3(2.0, 0.18, -20.0)
+				street.operator.cam_yaw = -PI * 0.5
+				street.operator.cam_pitch = -0.08   # a touch up: the facade, not the kerb
+				street._look_pts = []   # the chase camera, not the look-dev one
+				for i in 30:
+					await get_tree().process_frame
+				street.controls._grapple = true
+				for i in 14:
+					await get_tree().process_frame
+				print("grapple: anchored ", street.operator.grapple_anchor, " at ", street.operator.position.round(), " pulling ", street.operator.grappling())
 			# slicewalk:doors stands at the Killbox terminal with its ENTER prompt up
 			if String(o).contains("walk:doors"):
 				street.operator.position = Vector3(-10.0, 0.18, -40.6)

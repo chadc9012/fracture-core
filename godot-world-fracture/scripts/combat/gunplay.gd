@@ -364,6 +364,7 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		_drop_mag()
 	_place_holsters()
 	_step_grenades(dt, cam)
+	_step_grapple(cam)
 	for i in n:
 		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
 		_muzzle_flash(cam)
@@ -507,6 +508,63 @@ func _step_grenades(dt: float, cam: Camera3D) -> void:
 	grenades.step(dt, cam, throw, cyc)
 	if c:
 		c.show_grenade(grenades.hud() if grenades_on and not holstered else {})
+
+## the grapple (operator_player.gd grapple_to): the GRAPPLE button / G anchors it on the first box within
+## GRAPPLE_RANGE along the crosshair (never on a trooper) and reels the operator there; the cable is drawn from the
+## hand while it pulls
+const GRAPPLE_RANGE := 34.0
+var _cable: MeshInstance3D
+
+func _step_grapple(cam: Camera3D) -> void:
+	var c: Node = controls
+	if c == null and is_inside_tree():
+		c = get_tree().get_first_node_in_group("touch_controls")
+	if c and c.has_method("take_grapple") and c.take_grapple() and player and player.has_method("grapple_to"):
+		var anchor := _grapple_anchor(cam)
+		if anchor == Vector3.INF or not player.grapple_to(anchor):
+			if c.has_method("toast"):
+				c.toast("No anchor in reach" if anchor == Vector3.INF else "")
+	if player and player.has_method("grappling") and player.grappling():
+		if _cable == null:
+			_cable = MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.03, 0.03, 1.0)
+			_cable.mesh = bm
+			var m := StandardMaterial3D.new()
+			m.albedo_color = Color(0.9, 0.95, 1.0)
+			m.emission_enabled = true
+			m.emission = Color(0.5, 0.8, 1.0)
+			m.emission_energy_multiplier = 2.0
+			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			_cable.material_override = m
+			_cable.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(_cable)
+		var from: Vector3 = player.global_position + Vector3(0, 1.3, 0)
+		var to: Vector3 = player.grapple_anchor
+		var len := from.distance_to(to)
+		_cable.visible = len > 0.1
+		if len > 0.1:
+			_cable.global_position = (from + to) * 0.5
+			_cable.look_at(to, Vector3.UP if absf((to - from).normalized().y) < 0.99 else Vector3.RIGHT)
+			_cable.scale = Vector3(1, 1, len)
+	elif _cable:
+		_cable.visible = false
+
+## the first box face the crosshair ray meets within range, past the operator; INF when nothing is in reach
+func _grapple_anchor(cam: Camera3D) -> Vector3:
+	var from := cam.global_position
+	var dir := -cam.global_transform.basis.z
+	var near := from.distance_to(player.eye()) + 0.4 if player else 1.5
+	var best := GRAPPLE_RANGE + near
+	var hit := Vector3.INF
+	for b in obstacles:
+		var p: Variant = b.intersects_ray(from, dir)
+		if p != null:
+			var dd := from.distance_to(p)
+			if dd > near and dd < best:
+				best = dd
+				hit = p
+	return hit
 
 ## grenade damage on a Target (grenades.gd): the same hit / killed path as a bolt, so tallies, kills and drops follow
 func grenade_hit(t: Target, dmg: float, at: Vector3) -> void:

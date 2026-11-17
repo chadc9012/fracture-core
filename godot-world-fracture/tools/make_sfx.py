@@ -245,6 +245,8 @@ SOUNDS = {
     "explosion": lambda: finish(explosion(), drive=2.0),
     "step": lambda: finish(step(), peak=0.7, drive=1.2),
     "land": lambda: finish(land(), peak=0.75),
+    # the grapple: a cable whip and a rising reel
+    "grapple": lambda: finish(mix(0.6, (0, bp(noise(0.12), 1500, 7000) * env(0.12, 0.002, 0.05), 0.9), (0.05, sweep(0.5, 180, 720, 0.4) * 0.6, 0.7)), peak=0.8),
     "hit": lambda: finish(hit(), peak=0.8),
     "headshot": lambda: finish(hit(0.3, ping=0.6), peak=0.85),
     "reload": lambda: finish(reload(), peak=0.75, drive=1.2),

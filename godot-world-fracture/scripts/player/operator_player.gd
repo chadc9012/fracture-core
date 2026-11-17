@@ -56,6 +56,56 @@ const CAM_SIDE := 0.45       # over the right shoulder
 var _clip := ""
 ## seconds the combat stance holds after a shot (gunplay.gd sets it); standing still plays the combat clip meanwhile
 var combat_hold := 0.0
+## the grapple (asset catalog "Equipment & gear", owner's Destiny / Ready Player One brief): gunplay anchors it on a
+## box within range and the mover is reeled there at GRAPPLE_V, over the ground and gravity, until it arrives,
+## the line runs out, or something blocks it; the momentum carries on from the release
+const GRAPPLE_V := 17.0
+const GRAPPLE_S := 2.2
+var grapple_anchor := Vector3.INF
+var grapple_t := 0.0
+var grapple_cool := 0.0
+
+func grappling() -> bool:
+	return grapple_anchor != Vector3.INF
+
+## start reeling toward `anchor` (a point on a box face); false while on cooldown
+func grapple_to(anchor: Vector3) -> bool:
+	if grapple_cool > 0.0 or grappling():
+		return false
+	grapple_anchor = anchor
+	grapple_t = 0.0
+	grounded = false
+	if cam:
+		Sound.sfx("grapple", -6.0)
+	return true
+
+func _release_grapple() -> void:
+	grapple_anchor = Vector3.INF
+	grapple_cool = 1.0
+	# the swing's momentum: the flat speed stays (capped), a little lift so the landing is a hop, not a drop
+	var flat := Vector3(velocity.x, 0, velocity.z).limit_length(RUN * 1.3)
+	velocity = Vector3(flat.x, maxf(velocity.y * 0.5, 2.5), flat.z)
+	y_vel = velocity.y
+
+func _step_grapple(dt: float) -> void:
+	grapple_t += dt
+	var to := grapple_anchor - (position + Vector3(0, 1.2, 0))
+	var dist := to.length()
+	if dist < 1.6 or grapple_t > GRAPPLE_S:
+		_release_grapple()
+		return
+	var v := to.normalized() * GRAPPLE_V
+	var nx := position.x + v.x * dt
+	var nz := position.z + v.z * dt
+	var ny := maxf(position.y + v.y * dt, (ground_at.call(nx, nz) as float))
+	var p := _slide(Vector2(nx, nz), Vector2(position.x, position.z), ny)
+	var moved := Vector2(p.x - position.x, p.y - position.z).length()
+	velocity = v
+	position = Vector3(p.x, ny, p.y)
+	y_vel = v.y
+	heading = lerp_angle(heading, atan2(to.x, to.z), minf(1.0, TURN * dt))
+	if grapple_t > 0.25 and moved < GRAPPLE_V * dt * 0.2 and absf(v.y) < 2.0:
+		_release_grapple()   # stuck on something before the anchor
 
 ## out in the city the operator is in their own clothes, urban streetwear (owner, Nov 10: "regular civilian clothing urban
 ## style"); the armour is for the fights (raids, PvP, Killbox, bosses, Mission 01 after the Fracture)
@@ -99,6 +149,14 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	elif mag > 0.02:
 		var want_heading := atan2(want.x, want.z)
 		heading = lerp_angle(heading, want_heading, minf(1.0, TURN * dt))
+	grapple_cool = maxf(0.0, grapple_cool - dt)
+	if grappling():
+		_step_grapple(dt)
+		if rig:
+			rig.rotation.y = heading
+		_animate(GRAPPLE_V, true)
+		_place_camera(dt)
+		return
 	# vertical
 	var gy := ground_at.call(position.x, position.z) as float
 	var was_grounded := grounded

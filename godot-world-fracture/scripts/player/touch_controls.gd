@@ -25,7 +25,9 @@ var _next := false
 ## Operator grenades (grenades.gd via gunplay): a throw and a cycle press, consumed by gunplay; the HUD line
 var _grenade := false
 var _cycle_grenade := false
+var _grapple := false
 var _grenade_button: Button
+var _grapple_button: Button
 var _cycle_button: Button
 var grenade_label: Label
 var ammo: Label
@@ -204,6 +206,14 @@ func _ready() -> void:
 		bind(gb, func(): _grenade = true)
 		add_child(gb)
 		_grenade_button = gb
+		var gr := _button("GRAPPLE")
+		gr.custom_minimum_size = Vector2(120, 56)
+		gr.add_theme_font_size_override("font_size", 16)
+		gr.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		gr.position = Vector2(-250, -300)
+		bind(gr, func(): _grapple = true)
+		add_child(gr)
+		_grapple_button = gr
 		var cy := _button("⟳")
 		cy.custom_minimum_size = Vector2(56, 64)
 		cy.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -407,7 +417,7 @@ func set_mode(m: String) -> void:
 		_lit(_gas_button, false)
 	if _stick_label:
 		_stick_label.text = "STEER" if drive else ("FLY" if fly else "MOVE")
-	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button]:
+	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button, _grapple_button]:
 		if b:
 			b.visible = not drive and not fly and weapons_out and not simple()
 	var armed_drive := drive and armed_vehicle
@@ -466,6 +476,11 @@ func take_reload() -> bool:
 	var r := _reload
 	_reload = false
 	return r
+
+func take_grapple() -> bool:
+	var g := _grapple
+	_grapple = false
+	return g
 
 func take_grenade() -> bool:
 	var g := _grenade
@@ -606,6 +621,9 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_K) and not _k_was:
 		_cycle_grenade = true
 	_k_was = Input.is_key_pressed(KEY_K)
+	if Input.is_key_pressed(KEY_G) and not _g_was:
+		_grapple = true
+	_g_was = Input.is_key_pressed(KEY_G)
 	if Input.is_key_pressed(KEY_E) and not _e_was:
 		_enter = true
 	_e_was = Input.is_key_pressed(KEY_E)
@@ -613,6 +631,7 @@ func _process(_dt: float) -> void:
 		_missiles = true
 	_f_was = Input.is_key_pressed(KEY_F)
 var _e_was := false
+var _g_was := false
 var _j_was := false
 var _k_was := false
 var _r_was := false
