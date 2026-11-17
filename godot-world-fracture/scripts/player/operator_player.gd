@@ -249,6 +249,7 @@ func _clear_camera(pivot: Vector3, want: Vector3) -> Vector3:
 		return want
 	var lo := Vector3(minf(pivot.x, want.x), minf(pivot.y, want.y), minf(pivot.z, want.z)) - Vector3.ONE * 0.25
 	var hi := Vector3(maxf(pivot.x, want.x), maxf(pivot.y, want.y), maxf(pivot.z, want.z)) + Vector3.ONE * 0.25
+	var lift := 0.0
 	for box in obstacles:
 		# only boxes the camera line's own bounds touch (a cheap reject for the ~1,000 on the street)
 		if box.end.x < lo.x or box.position.x > hi.x or box.end.z < lo.z or box.position.z > hi.z or box.end.y < lo.y or box.position.y > hi.y:
@@ -258,5 +259,13 @@ func _clear_camera(pivot: Vector3, want: Vector3) -> Vector3:
 			continue
 		var hit: Variant = g.intersects_segment(pivot, want)
 		if hit != null:
+			# a low box (a parked car, a planter, a bollard) lifts the camera over itself instead of pulling it in:
+			# the chase camera used to snap in against every car beside the one you drive
+			if g.end.y < pivot.y + 1.8 and g.end.y + 0.45 - want.y < 2.2:
+				lift = maxf(lift, g.end.y + 0.45 - want.y)
+				continue
 			best = minf(best, maxf(0.15, (pivot.distance_to(hit) - 0.3) / len))
-	return pivot.lerp(want, best)
+	var out := pivot.lerp(want, best)
+	if lift > 0.0 and best >= 1.0:
+		out.y += lift
+	return out
