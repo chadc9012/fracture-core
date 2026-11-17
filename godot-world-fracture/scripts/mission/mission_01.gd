@@ -1659,6 +1659,7 @@ func _input(e: InputEvent) -> void:
 				KEY_R: op.reload()
 				KEY_Q: op.blast()
 				KEY_SPACE: op.dash()
+				KEY_G: op.grapple()
 				KEY_F: op.melee()
 				KEY_ESCAPE: _release_mouse()
 	elif e is InputEventMouseButton:
@@ -1882,7 +1883,7 @@ func _build_hud() -> void:
 	_btns.append(use)
 	use.name = "USE"
 	if touch:
-		var pad := [["FIRE", Vector2(-150, -230), Vector2(110, 110)], ["BLAST", Vector2(-290, -190), Vector2(84, 84)], ["DASH", Vector2(-150, -330), Vector2(84, 70)], ["MELEE", Vector2(-270, -290), Vector2(84, 70)], ["RELOAD", Vector2(-380, -120), Vector2(90, 54)], ["RUN", Vector2(-40, -330), Vector2(0, 0)]]
+		var pad := [["FIRE", Vector2(-150, -230), Vector2(110, 110)], ["BLAST", Vector2(-290, -190), Vector2(84, 84)], ["DASH", Vector2(-150, -330), Vector2(84, 70)], ["MELEE", Vector2(-270, -290), Vector2(84, 70)], ["GRAPPLE", Vector2(-150, -410), Vector2(84, 70)], ["RELOAD", Vector2(-380, -120), Vector2(90, 54)], ["RUN", Vector2(-40, -330), Vector2(0, 0)]]
 		for p: Array in pad:
 			if p[0] == "RUN":
 				continue
@@ -1898,6 +1899,7 @@ func _build_hud() -> void:
 				"BLAST": TouchPad.bind(b, func() -> void: op.blast())
 				"DASH": TouchPad.bind(b, func() -> void: op.dash())
 				"MELEE": TouchPad.bind(b, func() -> void: op.melee())
+				"GRAPPLE": TouchPad.bind(b, func() -> void: op.grapple())
 				"RELOAD": TouchPad.bind(b, func() -> void: op.reload())
 	_location_text()
 

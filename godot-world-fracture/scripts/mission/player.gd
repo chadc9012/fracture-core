@@ -266,6 +266,10 @@ func _physics_process(delta: float) -> void:
 	if wish.length() > 1.0:
 		wish = wish.normalized()
 	var speed := RUN if run and not fire_held else WALK
+	grapple_cd = maxf(0.0, grapple_cd - delta)
+	if grappling():
+		_step_grapple(delta)
+		return
 	if _charge_t > 0.0:
 		_charge_t -= delta
 		if _charge_t <= 0.0:
@@ -414,6 +418,70 @@ func _blast_release() -> void:
 	Sound.sfx("shield_break", -2.0)
 	Sound.sfx("explosion_2", -6.0)
 	blasted.emit(at, BLAST_RADIUS)
+
+## the grapple (the on-foot stack's operator_player.gd has the same move): a physics ray from the camera finds a wall
+## or ledge within GRAPPLE_RANGE and the body is reeled there over gravity; released short of it with the momentum
+const GRAPPLE_RANGE := 34.0
+const GRAPPLE_V := 17.0
+var _grapple_anchor := Vector3.INF
+var _grapple_t := 0.0
+var grapple_cd := 0.0
+var _cable: MeshInstance3D
+
+func grappling() -> bool:
+	return _grapple_anchor != Vector3.INF
+
+func grapple() -> bool:
+	if powers < 2 or grapple_cd > 0.0 or grappling() or cam == null or frozen:
+		return false
+	var from := cam.global_position
+	var dir := -cam.global_transform.basis.z
+	var q := PhysicsRayQueryParameters3D.create(from, from + dir * (GRAPPLE_RANGE + from.distance_to(global_position)))
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty() or (hit.collider is CharacterBody3D):
+		return false
+	_grapple_anchor = hit.position
+	_grapple_t = 0.0
+	Sound.sfx("grapple", -6.0)
+	return true
+
+func _step_grapple(delta: float) -> void:
+	_grapple_t += delta
+	var to: Vector3 = _grapple_anchor - (global_position + Vector3(0, 1.2, 0))
+	if to.length() < 1.6 or _grapple_t > 2.2 or (_grapple_t > 0.25 and get_slide_collision_count() > 0 and velocity.length() < 2.0):
+		_grapple_anchor = Vector3.INF
+		grapple_cd = 1.0
+		var flat := Vector3(velocity.x, 0, velocity.z).limit_length(RUN * 1.3)
+		velocity = Vector3(flat.x, maxf(velocity.y * 0.5, 2.5), flat.z)
+		if _cable:
+			_cable.visible = false
+		return
+	velocity = to.normalized() * GRAPPLE_V
+	move_and_slide()
+	rig.rotation.y = lerp_angle(rig.rotation.y, atan2(to.x, to.z), minf(1.0, 12.0 * delta))
+	_play("run")
+	if _cable == null:
+		_cable = MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.03, 0.03, 1.0)
+		_cable.mesh = bm
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = Color(0.9, 0.95, 1.0)
+		m.emission_enabled = true
+		m.emission = Color(0.5, 0.8, 1.0)
+		m.emission_energy_multiplier = 2.0
+		_cable.material_override = m
+		_cable.top_level = true
+		add_child(_cable)
+	var a := global_position + Vector3(0, 1.3, 0)
+	var len := a.distance_to(_grapple_anchor)
+	_cable.visible = len > 0.1
+	if len > 0.1:
+		_cable.global_position = (a + _grapple_anchor) * 0.5
+		_cable.look_at(_grapple_anchor, Vector3.UP if absf((_grapple_anchor - a).normalized().y) < 0.99 else Vector3.RIGHT)
+		_cable.scale = Vector3(1, 1, len)
 
 func dash() -> bool:
 	if powers < 2 or dash_cd > 0.0:
