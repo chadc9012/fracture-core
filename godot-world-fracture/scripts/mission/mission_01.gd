@@ -1146,6 +1146,11 @@ func _go_room(rm: String, at: Vector3, yaw: float, fade := true) -> void:
 		await _fade_out()
 	room = rm
 	_set_world(false)
+	# Mara stays freed: a game loaded after the rescue had her back in the lounge, standing where the operator came in
+	# (she stood inside them; owner's video, Nov 17)
+	var trapped: Node3D = _npcs.get("mara_trapped")
+	if trapped and story.rescued:
+		trapped.visible = false
 	if rm == "hall" and story.phase == "ALARM" and not _hall_said:
 		_hall_said = true
 		_say(Story.HALL_LINES.duplicate())
@@ -1929,8 +1934,21 @@ func _fit_hud() -> void:
 		return
 	var w := get_viewport_rect().size.x
 	var sw := minf(760.0, w - 24.0)
-	# upright, the line sits above the minimap (bottom left, 170 tall) rather than over it
-	_place(_sub_box, Control.PRESET_CENTER_BOTTOM, -sw * 0.5, -160 if w >= 900.0 else -232, sw, 0)
+	# upright, the line sits above the minimap (bottom left, 170 tall) rather than over it; on the phone with the combat
+	# pad up it sits above the pad and grows upward (DASH and MELEE covered the lines in the street fight; owner's
+	# video, Nov 17)
+	_pad_layout = touch and op != null and op.powers >= 1
+	if _pad_layout:
+		_place(_sub_box, Control.PRESET_CENTER_BOTTOM, -sw * 0.5, -345, sw, 0)
+		_sub_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	else:
+		_place(_sub_box, Control.PRESET_CENTER_BOTTOM, -sw * 0.5, -160 if w >= 900.0 else -232, sw, 0)
+		_sub_box.grow_vertical = Control.GROW_DIRECTION_END
+	# the magazine count: on the phone up by the compass, not under the FIRE button
+	if touch:
+		_place(_ammo, Control.PRESET_TOP_RIGHT, -260, 64, 230, 44)
+	else:
+		_place(_ammo, Control.PRESET_BOTTOM_RIGHT, -260, -110, 230, 44)
 	_sub_text.custom_minimum_size = Vector2(sw - 30.0, 0)
 	var aw := minf(590.0, w - 48.0)
 	_place(_abil, Control.PRESET_BOTTOM_RIGHT, -aw - 30.0, -126 if touch else -62, aw, 24)
@@ -1993,7 +2011,7 @@ func _build_hud() -> void:
 	_place(_location, Control.PRESET_BOTTOM_LEFT, 30, -34, 360, 24)
 	# ammo and abilities, bottom right
 	_ammo = _hud_label("", 34, Color(1, 1, 1), hud)
-	_place(_ammo, Control.PRESET_BOTTOM_RIGHT, -260, -170 if touch else -110, 230, 44)
+	_place(_ammo, Control.PRESET_BOTTOM_RIGHT, -260, -110, 230, 44)
 	_ammo.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_abil = _hud_label("", 15, Color(0.75, 0.9, 1.0), hud)
 	_place(_abil, Control.PRESET_BOTTOM_RIGHT, -620, -126 if touch else -62, 590, 24)
@@ -2098,7 +2116,7 @@ func _build_hud() -> void:
 	_btns.append(use)
 	use.name = "USE"
 	if touch:
-		var pad := [["FIRE", Vector2(-150, -230), Vector2(110, 110)], ["BLAST", Vector2(-290, -190), Vector2(84, 84)], ["DASH", Vector2(-150, -330), Vector2(84, 70)], ["MELEE", Vector2(-270, -290), Vector2(84, 70)], ["RELOAD", Vector2(-380, -120), Vector2(90, 54)], ["RUN", Vector2(-40, -330), Vector2(0, 0)]]
+		var pad := [["FIRE", Vector2(-150, -230), Vector2(110, 110)], ["BLAST", Vector2(-290, -190), Vector2(84, 84)], ["DASH", Vector2(-150, -330), Vector2(84, 70)], ["MELEE", Vector2(-270, -290), Vector2(84, 70)], ["RELOAD", Vector2(-150, -108), Vector2(110, 50)], ["RUN", Vector2(-40, -330), Vector2(0, 0)]]
 		for p: Array in pad:
 			if p[0] == "RUN":
 				continue
@@ -2128,6 +2146,7 @@ func _update_hud() -> void:
 	_update_hud_rest()
 
 var _tracker_sig := ""
+var _pad_layout := false   # the phone's subtitles lifted over the combat pad (_fit_hud)
 func _rebuild_tracker() -> void:
 	for c in _obj_box.get_children():
 		c.free()
@@ -2137,6 +2156,8 @@ func _rebuild_tracker() -> void:
 	_hud_label("◈", 18, Color(1.0, 0.82, 0.3), head)
 	_hud_label("M1: The Fracture", 19, Color(1.0, 0.82, 0.3), head)
 	for t: Dictionary in story.tracker():
+		if String(t.label) == "":
+			continue
 		var r := HBoxContainer.new()
 		r.add_theme_constant_override("separation", 8)
 		_obj_box.add_child(r)
@@ -2164,6 +2185,10 @@ func _update_hud_rest() -> void:
 	if armed and not touch:
 		ab.append("LMB fire · F melee · R reload")
 	_abil.text = "   ".join(ab)
+	# the keys are the desktop's: on the phone the pad's own buttons are the abilities ("SPACE DASH READY" under them)
+	_abil.visible = not touch
+	if touch and (op.powers >= 1) != _pad_layout:
+		_fit_hud()
 	_hp_bar.value = op.hp
 	_hp_bar.visible = story.phase in ["DAZED", "SURGE", "ANCHOR", "CLEAR"] or op.hp < 100.0
 	# prompt

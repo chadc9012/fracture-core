@@ -105,9 +105,11 @@ void fragment() {
 	// (head space: y up from the Head bone, the jaw and the collar both just above it). Low and out at the sides and the
 	// back, and not skin or dark hair: grey metal and red trim. Only behind the ears (in front of them the beard and jaw
 	// shadow read as the same dark brown: the bed close-up had holes in the beard), under the skull at the back, and the
-	// grey strap of the comms headset along the jaw (grey, not brown: the beard stays)
+	// grey strap of the comms headset along the jaw (grey, not brown: the beard stays); and the collar's grey band round
+	// the back of the head under the hairline (low saturation; the hair is browner), the flecks out past the ears and the
+	// red trim behind the jaw (seen from behind at the news and beside the jaw in bed; Nov 17)
 	float cr = length(vec2(p.x, p.z + 0.01));
-	if (civ_clip > 0.5 && ((p.y < 0.0 && cr > 0.07) || (p.z < 0.045 && p.y < 0.032 && cr > 0.074) || (p.z < -0.02 && p.y < 0.025) || (p.y < 0.012 && c.r > 2.0 * c.g && sat > 0.6) || (p.y < 0.035 && abs(p.x) > 0.035 && cr > 0.05 && sat < 0.22 && l < 0.12 && k < 0.15) || (p.y < 0.075 && abs(p.x) > 0.05 && cr > 0.06 && sat < 0.14 && l < 0.1 && k < 0.1) || (p.y < 0.06 && abs(p.x) > 0.055 && cr > 0.072 && sat < 0.5 && l < 0.12 && k < 0.1) || (p.y < 0.065 && p.z < 0.07 && abs(p.x) > 0.055 && cr > 0.066 && sat < 0.26 && k < 0.12) || (p.y < 0.02 && p.z < 0.05 && cr > 0.06 && k < 0.2) || (p.z < 0.0 && p.y < 0.09 && cr > 0.06 && ((k < 0.3 && (l > 0.05 || sat > 0.55)) || (c.r > 2.0 * c.g && sat > 0.6))))) { discard; }
+	if (civ_clip > 0.5 && ((p.y < 0.0 && cr > 0.07) || (p.z < 0.045 && p.y < 0.032 && cr > 0.074) || (p.z < -0.02 && p.y < 0.025) || (p.y < 0.012 && c.r > 2.0 * c.g && sat > 0.6) || (p.y < 0.035 && abs(p.x) > 0.035 && cr > 0.05 && sat < 0.22 && l < 0.12 && k < 0.15) || (p.y < 0.075 && abs(p.x) > 0.05 && cr > 0.06 && sat < 0.14 && l < 0.1 && k < 0.1) || (p.y < 0.06 && abs(p.x) > 0.055 && cr > 0.072 && sat < 0.5 && l < 0.12 && k < 0.1) || (p.y < 0.065 && p.z < 0.07 && abs(p.x) > 0.055 && cr > 0.066 && sat < 0.26 && k < 0.12) || (p.y < 0.02 && p.z < 0.05 && cr > 0.06 && k < 0.2) || (p.z < 0.0 && p.y < 0.09 && cr > 0.06 && ((k < 0.3 && (l > 0.05 || sat > 0.55)) || (c.r > 2.0 * c.g && sat > 0.6))) || (p.z < -0.015 && p.y < 0.047 && sat < 0.4) || (abs(p.x) > 0.04 && p.z < 0.02 && p.y < 0.025 && l < 0.012) || (abs(p.x) > 0.045 && p.z < 0.0 && p.y < 0.04 && cr > 0.05 && k < 0.2) || (abs(p.x) > 0.072 && p.y < 0.08 && k < 0.1) || (p.z < 0.02 && p.y < 0.09 && c.r > 2.0 * c.g && sat > 0.6))) { discard; }
 	if (skin_lum > 0.0 && skin.r + skin.g + skin.b > 0.0) {
 		col = mix(c, skin * clamp(l / skin_lum, 0.0, 2.2), k);
 	}

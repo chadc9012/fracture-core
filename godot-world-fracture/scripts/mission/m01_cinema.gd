@@ -257,20 +257,25 @@ static func sleeper(m: Node) -> Node3D:
 	# under the quilt only the head shows: the body's skinned mesh is hidden, so no collar, drawstring or hand pokes up
 	# through the cover (the quilt's shape keeps the body; Nov 17)
 	for mi in rig.find_children("*", "MeshInstance3D", true, false):
-		if (mi as MeshInstance3D).skin != null and mi != rig.head_mesh:
+		if ((mi as MeshInstance3D).skin != null and mi != rig.head_mesh) or mi.name == "NeckTube":
 			(mi as MeshInstance3D).visible = false
 	# on the back, head to the headboard (−z), face to the ceiling
 	rig.rotation = Vector3(-PI * 0.5, 0, 0)
-	rig.position = c + Vector3(-6.4, 0.8, -1.7)   # on the mattress, not in it (it sank under the sheet; Nov 17)
+	# the head on a pillow of its own just in front of the bed's cushions, on top of the duvet (the bed model's duvet is
+	# 0.73–0.81 high from z −3.0 to the foot at −1.5; behind the cushions the head was boxed in and the wide shot showed
+	# an empty bed; owner's video, Nov 17)
+	rig.position = c + Vector3(-6.4, 0.85, -1.4)
 	# a quilt over them to the chest, draped: the bed's own grey, high over the body and down over both sides and the
 	# foot (a flattened purple capsule floated over the bed as an oval; owner's video, Nov 17). The bed has its pillows.
 	var duvet := MeshInstance3D.new()
-	duvet.mesh = quilt(1.9, 1.95, 0.87, 0.18, 0.03)
-	var qm: Material = Materials.surface("fabric_pattern_07", Color(0.46, 0.47, 0.5), 0.7).duplicate()
+	# a body-shaped mound over the bed's own duvet: its sides sink into the duvet, so it reads as the same cover lifted
+	# by someone under it, not a grey slab over the bed (a full-width quilt stood a wall in front of the face; Nov 17)
+	duvet.mesh = quilt(1.25, 1.42, 0.74, 0.24, 0.05)
+	var qm: Material = Materials.surface("fabric_pattern_07", Color(0.5, 0.49, 0.47), 0.85).duplicate()
 	if qm is BaseMaterial3D:
 		(qm as BaseMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
 	duvet.material_override = qm
-	duvet.position = c + Vector3(-6.4, 0.0, -3.145)   # up to the shoulders, the hem just under the chin
+	duvet.position = c + Vector3(-6.4, 0.0, -2.93)   # the hem rolled up under the chin, over the neck
 	holder.add_child(duvet)
 	# a soft white pillow under the head (the bed's own cushions stand upright round it, and the head lay on the bare
 	# sheet between them; Nov 17)
@@ -279,12 +284,12 @@ static func sleeper(m: Node) -> Node3D:
 	pm.radius = 0.5
 	pm.height = 1.0
 	pillow.mesh = pm
-	pillow.scale = Vector3(0.62, 0.16, 0.4)
-	pillow.material_override = Materials.surface("fabric_pattern_07", Color(0.9, 0.9, 0.92), 0.7)
-	pillow.position = c + Vector3(-6.4, 0.74, -3.36)
+	pillow.scale = Vector3(0.66, 0.15, 0.38)
+	pillow.material_override = Materials.surface("fabric_pattern_07", Color(0.86, 0.86, 0.87), 0.85)
+	pillow.position = c + Vector3(-6.4, 0.8, -2.97)
 	holder.add_child(pillow)
 	holder.visible = false
-	holder.set_meta("head", c + Vector3(-6.4, 0.86, -3.25))
+	holder.set_meta("head", c + Vector3(-6.4, 0.92, -2.88))
 	return holder
 
 ## a draped quilt as one mesh, its head edge at z = 0 running to +z: `w` wide across a mattress whose top is `top` high,
@@ -346,7 +351,7 @@ static func _head(m: Node) -> Vector3:
 ## 1 + 2: the city at sunrise, then the apartment
 static func opening(m: Node) -> Array:
 	var c: Vector3 = m.APT
-	var sleep_head: Vector3 = c + Vector3(-6.4, 0.86, -3.25)
+	var sleep_head: Vector3 = c + Vector3(-6.4, 0.92, -2.88)
 	return [
 		{ "dur": 9.0, "fade_in": 2.0, "music": "dawn", "music_db": -4.0,
 			"pos": [Vector3(3.0, 26.0, 78.0), Vector3(1.0, 15.0, 40.0)], "look": [Vector3(-2.0, 10.0, -80.0), Vector3(-4.0, 5.0, -50.0)], "fov": [44.0, 50.0],
@@ -364,8 +369,9 @@ static func opening(m: Node) -> Array:
 			"title": ["APARTMENT 12-04", "NEXUS CITY RESIDENCES"], "title_at": 2.2, "title_for": 4.0,
 			"lines": ["M01X_RADIO_02"], "line_at": 1.6 },
 		# over the pillow: the alarm keeps on; then black
-		# from above the face, down between the pillows (from the side the bed's cushions filled the frame; Nov 17)
-		{ "dur": 4.0, "pos": [sleep_head + Vector3(0.25, 1.4, 0.35), sleep_head + Vector3(0.05, 1.1, 0.12)], "look": [sleep_head + Vector3(0, 0, 0.08), sleep_head], "fov": 38.0,
+		# from the foot of the bed down over the quilt to the face on the pillow, easing in (straight down from above the
+		# quilt filled half the frame; Nov 17)
+		{ "dur": 4.0, "pos": [sleep_head + Vector3(0.3, 0.95, 0.75), sleep_head + Vector3(0.1, 0.7, 0.45)], "look": [sleep_head + Vector3(0, 0, -0.02), sleep_head], "fov": 38.0,
 			"sfx": [[0.4, "phone_alarm", -4.0]], "fade_out": 0.7 },
 		# up: standing by the bed, a look out at the morning
 		{ "dur": 4.5, "fade_in": 0.7,
@@ -487,13 +493,16 @@ static func first_power(m: Node, sw: Dictionary) -> Array:
 			"lines": ["M01_012", "M02_001"], "line_at": 0.4 },
 		{ "dur": 3.5, "pos": [func() -> Vector3: return _head(m) + Vector3(-0.8, -0.1, -1.4), func() -> Vector3: return _head(m) + Vector3(-0.6, -0.1, -1.1)], "look": func() -> Vector3: return _head(m), "fov": 38.0,
 			"lines": ["M02_002", "M02_003"], "line_at": 0.3, "sfx": [[2.0, "rumble", -6.0]], "shake": 0.4, "shake_at": 2.0 },
-		{ "dur": 4.0, "music": "nova", "music_db": -9.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.7, -0.2, 1.4), func() -> Vector3: return _head(m) + Vector3(0.5, -0.3, 1.0)],
-			"look": c + Vector3(0, 1.0, -12.0), "fov": 42.0,
+		# over the shoulder, high and wide of it, the operator on the left and the jammed door on the right (low behind
+		# the back the hoodie filled the phone's narrow frame black; owner's video, Nov 17)
+		{ "dur": 4.0, "music": "nova", "music_db": -9.0, "pos": [func() -> Vector3: return _head(m) + Vector3(1.1, 0.25, 1.9), func() -> Vector3: return _head(m) + Vector3(0.95, 0.2, 1.6)],
+			"look": c + Vector3(-0.6, 1.0, -12.0), "fov": 50.0,
 			"lines": ["M01_013", "M02_004"], "line_at": 0.3, "on": [[3.0, hands]] },
 		# the power gathering: chest and hands, from far enough out to read as a person (at 0.7 m the hoodie filled the
-		# frame; owner's video, Nov 17)
-		{ "dur": 3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.45, -0.45, -1.7), func() -> Vector3: return _head(m) + Vector3(0.35, -0.5, -1.45)],
-			"look": func() -> Vector3: return _head(m) + Vector3(0, -0.45, 0), "fov": 40.0,
+		# frame; at 1.5 m and chest high the phone's narrow frame still showed only the hoodie, and the wall at the jammed
+		# door is too close to back off: from above the head, down to the hands, wider; owner's videos, Nov 17)
+		{ "dur": 3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.55, 0.4, -1.75), func() -> Vector3: return _head(m) + Vector3(0.45, 0.35, -1.55)],
+			"look": func() -> Vector3: return _head(m) + Vector3(0, -0.55, 0), "fov": 58.0,
 			"lines": ["M02_005"], "line_at": 0.2, "sfx": [[0.4, "surge", -4.0]] },
 		{ "dur": 4.5, "music": "power", "music_db": -3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.9, -1.1, 2.0), func() -> Vector3: return _head(m) + Vector3(1.2, -0.9, 2.6)],
 			"look": c + Vector3(0, 1.2, -12.0), "fov": [40.0, 50.0],
