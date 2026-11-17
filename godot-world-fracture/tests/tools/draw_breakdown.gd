@@ -10,7 +10,7 @@ func _run() -> void:
 		await process_frame
 	if main.creator:
 		main.creator.confirmed.emit(main.creator.look)
-	main._open_street(true, "nexus", true)
+	main._open_street(true, "neon" if OS.get_cmdline_user_args().has("neon") else "nexus", true)
 	for i in 30:
 		await process_frame
 	var c := {}

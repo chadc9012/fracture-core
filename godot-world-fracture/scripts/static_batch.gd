@@ -17,6 +17,7 @@ const Phone := preload("res://scripts/phone.gd")
 const CELL := 48.0
 const COPY_CELL := 130.0      # repeated models batch over wider cells: a cell of a tile has too few copies of each
 const MIN_COPIES := 3
+const RANGED_CELL := 40.0     # ranged primitives merge in cells this wide, so a cell's fade is within ~20 m of each piece's
 const FLAT := 0.35            # merged pieces lower than this (lane paint, kerbs, puddles) cast no shadow
 
 ## the merge cell by tier: a phone takes fewer, bigger merged meshes (fewer draws) over finer culling
@@ -47,16 +48,19 @@ static func batch(root: Node3D, cell := -1.0) -> Dictionary:
 		var xf := inv * mi.global_transform
 		var at := Vector2i(floori(xf.origin.x / cell), floori(xf.origin.z / cell))
 		var at2 := Vector2i(floori(xf.origin.x / COPY_CELL), floori(xf.origin.z / COPY_CELL))
-		if mi.mesh is PrimitiveMesh and mi.visibility_range_end > 0.0:
-			continue   # a ranged primitive keeps its own fade
 		if mi.mesh is PrimitiveMesh:
+			# a ranged primitive (lamp parts, dressing that fades past ~120 m) merges with its range-mates in a
+			# smaller cell, and the merged piece carries the range: hundreds of one-draw posts were kept apart for
+			# their own fade (484 single draws on the Neon street, Nov 16)
+			var ranged := mi.visibility_range_end > 0.0
+			var ra := Vector2i(floori(xf.origin.x / RANGED_CELL), floori(xf.origin.z / RANGED_CELL)) if ranged else at
 			for s in mi.mesh.get_surface_count():
 				var mat := mi.get_active_material(s)
 				if mat == null:
 					continue
-				var key := "%s|%d|%d|%d" % [_look(mat), at.x, at.y, int(mi.cast_shadow)]
+				var key := "%s|%d|%d|%d|%d|%d" % [_look(mat), ra.x, ra.y, int(mi.cast_shadow), int(mi.visibility_range_end), int(mi.visibility_range_begin)]
 				if not prims.has(key):
-					prims[key] = { "mat": mat, "cast": mi.cast_shadow, "list": [] }
+					prims[key] = { "mat": mat, "cast": mi.cast_shadow, "list": [], "mi0": mi }
 				prims[key].list.append([_lean(mi.mesh, lean), s, xf])
 			removed.append(mi)
 		elif int(by_mesh.get(mi.mesh.get_rid(), 0)) >= MIN_COPIES:
@@ -67,7 +71,7 @@ static func batch(root: Node3D, cell := -1.0) -> Dictionary:
 				var o := mi.get_surface_override_material(s)
 				over += ":" + (_look(o) if o else "")
 			var mo := mi.material_override
-			var key2 := "%d|%s|%s|%d|%d|%d|%d" % [mi.mesh.get_rid().get_id(), over, _look(mo) if mo else "", at2.x, at2.y, int(mi.cast_shadow), int(mi.visibility_range_end)]
+			var key2 := "%d|%s|%s|%d|%d|%d|%d|%d" % [mi.mesh.get_rid().get_id(), over, _look(mo) if mo else "", at2.x, at2.y, int(mi.cast_shadow), int(mi.visibility_range_end), int(mi.visibility_range_begin)]
 			if not copies.has(key2):
 				copies[key2] = { "mi0": mi, "list": [] }
 			copies[key2].list.append(xf)
@@ -91,6 +95,13 @@ static func batch(root: Node3D, cell := -1.0) -> Dictionary:
 		# paint, kerbs and puddles throw no shadow worth a second draw in every cascade
 		if out.mesh.get_aabb().size.y < FLAT:
 			out.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var mi0r: MeshInstance3D = g.mi0
+		if mi0r.visibility_range_end > 0.0 or mi0r.visibility_range_begin > 0.0:
+			out.visibility_range_end = mi0r.visibility_range_end
+			out.visibility_range_end_margin = mi0r.visibility_range_end_margin
+			out.visibility_range_begin = mi0r.visibility_range_begin
+			out.visibility_range_begin_margin = mi0r.visibility_range_begin_margin
+			out.visibility_range_fade_mode = mi0r.visibility_range_fade_mode
 		out.name = "batch_%d" % merged_nodes
 		root.add_child(out)
 		merged_nodes += 1
@@ -132,6 +143,11 @@ static func batch(root: Node3D, cell := -1.0) -> Dictionary:
 		var size := mi0.get_aabb().size * mi0.global_transform.basis.get_scale()
 		if maxf(size.x, maxf(size.y, size.z)) < Phone.shadowless_below():
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if mi0.visibility_range_begin > 0.0:
+			# a distance LOD (street_slice.gd _lod): it starts where the full model stops
+			mmi.visibility_range_begin = mi0.visibility_range_begin
+			mmi.visibility_range_begin_margin = mi0.visibility_range_begin_margin
+			mmi.visibility_range_fade_mode = mi0.visibility_range_fade_mode
 		if mi0.visibility_range_end > 0.0:
 			mmi.visibility_range_end = minf(mi0.visibility_range_end, Phone.dressing_range()) if mi0.visibility_range_end <= 140.0 else mi0.visibility_range_end
 			mmi.visibility_range_end_margin = mi0.visibility_range_end_margin

@@ -727,7 +727,8 @@ void fragment() {
 	c = mix(c, vec3(1.0, 0.1, 0.1) * (0.5 + 0.5 * sin(TIME * 8.0)), alarm);
 	// the signal lost: snow and rolling bars
 	// interleaved-gradient noise: the sin() hash fell apart at phone shader precision into big grey blocks (Nov 16)
-	vec2 px = floor(uv * vec2(160.0, 90.0)) + vec2(mod(floor(TIME * 24.0), 64.0) * 5.588, 0.0);
+	// by screen pixel (pairs), so a close shot of the TV is fine grain, not the screen's 160 x 90 cells as big squares
+	vec2 px = floor(FRAGCOORD.xy * 0.5) + vec2(mod(floor(TIME * 24.0), 64.0) * 5.588, 0.0);
 	float sn = fract(52.9829189 * fract(dot(px, vec2(0.06711056, 0.00583715))));
 	c = mix(c, vec3(sn) * (0.7 + 0.3 * step(0.5, fract(uv.y * 3.0 + TIME * 1.7))), noise * (1.0 - alarm));
 	ALBEDO = c * 1.4;
@@ -775,7 +776,7 @@ func _hallway() -> void:
 
 func _lounge() -> void:
 	var c := LOUNGE
-	_shell(c, 16.0, 12.0, 3.4, Materials.pbr("marble_01", Color(0.42, 0.38, 0.46), 3.0, 0.3), Materials.pbr("painted_plaster_wall", Color(0.3, 0.27, 0.34), 3.0), flat(Color(0.08, 0.07, 0.1), 0.8), "n")
+	_shell(c, 16.0, 12.0, 3.4, Materials.pbr("marble_01", Color(0.5, 0.46, 0.54), 3.0, 0.3), Materials.pbr("painted_plaster_wall", Color(0.44, 0.4, 0.48), 3.0), flat(Color(0.08, 0.07, 0.1), 0.8), "n")
 	_box(Vector3(15.0, 0.05, 0.1), c + Vector3(0, 3.3, -5.7), flat(PURPLE, 0.3, 0.0, 4.0))
 	# the screen and theatre seats
 	_box(Vector3(6.0, 2.6, 0.08), c + Vector3(-3.0, 1.9, 5.85), _news_mat())
@@ -792,6 +793,15 @@ func _lounge() -> void:
 	_solid(Vector3(3.0, 0.45, 1.0), c + Vector3(2.0, 0.23, 3.8), Materials.surface("fabric_pattern_07", Color(0.25, 0.24, 0.3), 0.5))
 	_plant(c + Vector3(-7.0, 0, -5.0), 1.6)
 	_lamp(c + Vector3(0, 2.9, 0), Color(0.9, 0.75, 1.0), 1.0, 12.0)
+	# one lamp lit a 16 x 12 m room, and in the alarm (every light red) the lounge went nearly black (owner's video,
+	# Nov 16): lamps in the corners, and amber emergency strips along the floor that stay on through the alarm
+	for q: Vector3 in [Vector3(-5.5, 2.8, -3.5), Vector3(5.5, 2.8, -3.5), Vector3(-5.5, 2.8, 3.5), Vector3(5.5, 2.8, 3.5)]:
+		_lamp(c + q, Color(0.95, 0.8, 1.0), 0.6, 8.0)
+	var strip := flat(Color(1.0, 0.62, 0.2), 0.4, 0.0, 3.0)
+	for zz: float in [-5.9, 5.9]:
+		_box(Vector3(15.6, 0.04, 0.06), c + Vector3(0, 0.06, zz), strip)
+	for xx: float in [-7.9, 7.9]:
+		_box(Vector3(0.06, 0.04, 11.6), c + Vector3(xx, 0.06, 0), strip)
 	# debris from the ceiling by the far stairs, sparks
 	for k in 6:
 		var d := _solid(Vector3(randf_range(0.6, 1.4), randf_range(0.2, 0.5), randf_range(0.6, 1.4)), c + Vector3(6.0 + randf_range(-1, 1), 0.2, -4.0 + randf_range(-1, 1)), Materials.pbr("brushed_concrete", Color(0.6, 0.6, 0.62), 1.0))
@@ -822,9 +832,30 @@ func _lobby() -> void:
 		tm.rings = 48
 		t.mesh = tm
 		t.position = c + Vector3(0, 5.6 + (ring - 2.4) * 0.5, 0)
-		t.material_override = flat(Color(1.0, 0.86, 0.6), 0.3, 0.0, 6.0)
+		# (at 6 the rings burnt out to white through the glow; Nov 16)
+		t.material_override = flat(Color(1.0, 0.86, 0.6), 0.3, 0.0, 2.2)
 		world.add_child(t)
 	_lamp(c + Vector3(0, 5.0, 0), Color(1.0, 0.86, 0.66), 2.6, 18.0, true)
+	# the walls dressed: a walnut wainscot with a gold rail, and walnut pilasters every few metres with marble panels
+	# between them up high (the plaster walls stood bare and made the hall look empty; owner's video, Nov 16)
+	var walnut := Materials.pbr("brown_planks_03", Color(0.62, 0.48, 0.4), 1.2, 0.45)
+	var panel := Materials.pbr("marble_tiles", Color(0.9, 0.88, 0.86), 1.5, 0.3)
+	var rail := flat(GOLD, 0.25, 1.0)
+	for wall: Array in [[Vector3(0, 0, 8.93), 26.0, true], [Vector3(-12.93, 0, 0), 18.0, false]]:
+		var at: Vector3 = c + (wall[0] as Vector3)
+		var along: float = wall[1]
+		var on_z: bool = wall[2]
+		var sz := Vector3(along, 1.3, 0.06) if on_z else Vector3(0.06, 1.3, along)
+		_box(sz, at + Vector3(0, 0.65, 0), walnut)
+		_box(Vector3(along, 0.05, 0.1) if on_z else Vector3(0.1, 0.05, along), at + Vector3(0, 1.32, 0), rail)
+		var n := int(along / 4.2)
+		for k in n + 1:
+			var o := -along * 0.5 + along * float(k) / float(n)
+			var off := Vector3(o, 0, 0) if on_z else Vector3(0, 0, o)
+			_box(Vector3(0.5, 5.6, 0.12) if on_z else Vector3(0.12, 5.6, 0.5), at + off + Vector3(0, 4.15, 0), walnut)
+			if k < n:
+				var mid := off + (Vector3(along / float(n) * 0.5, 0, 0) if on_z else Vector3(0, 0, along / float(n) * 0.5))
+				_box(Vector3(along / float(n) - 1.1, 3.6, 0.05) if on_z else Vector3(0.05, 3.6, along / float(n) - 1.1), at + mid + Vector3(0, 3.9, 0), panel)
 	_lamp(c + Vector3(-8, 4.5, 5), Color(1.0, 0.82, 0.62), 1.2, 10.0)
 	_lamp(c + Vector3(8, 4.5, 5), PURPLE, 1.0, 10.0)
 	# the crest wall behind reception (north)

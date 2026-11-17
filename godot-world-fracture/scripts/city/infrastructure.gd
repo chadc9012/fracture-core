@@ -161,13 +161,18 @@ func _crossing() -> void:
 
 ## a three-lamp head facing the oncoming lane (`side` +1: the +x lane, coming down -z, looks toward +z)
 func _head(at: Vector3, side: float, x_off: float) -> Dictionary:
+	# the housing is static (batched with the block); only the lamps, whose materials swap, sit on the dynamic node
+	var hs := Node3D.new()
+	hs.position = at + Vector3(x_off, 0, 0)
+	hs.rotation.y = 0.0 if side > 0.0 else PI
+	root.add_child(hs)
+	box(Vector3(0.45, 1.25, 0.32), Vector3.ZERO, m(Color(0.08, 0.08, 0.09), 0.5, 0.4), hs)
+	box(Vector3(0.55, 1.35, 0.04), Vector3(0, 0, -0.18), m(Color(0.05, 0.05, 0.05), 0.6), hs)
 	var n := Node3D.new()
 	n.set_meta("dynamic", true)
-	n.position = at + Vector3(x_off, 0, 0)
-	n.rotation.y = 0.0 if side > 0.0 else PI
+	n.position = hs.position
+	n.rotation.y = hs.rotation.y
 	root.add_child(n)
-	box(Vector3(0.45, 1.25, 0.32), Vector3.ZERO, m(Color(0.08, 0.08, 0.09), 0.5, 0.4), n)
-	box(Vector3(0.55, 1.35, 0.04), Vector3(0, 0, -0.18), m(Color(0.05, 0.05, 0.05), 0.6), n)
 	var lamps := {}
 	var cols := { "red": Color(1.0, 0.1, 0.05), "amber": Color(1.0, 0.65, 0.05), "green": Color(0.1, 1.0, 0.35) }
 	var y := 0.38
@@ -178,12 +183,16 @@ func _head(at: Vector3, side: float, x_off: float) -> Dictionary:
 	return { "kind": "car", "lamps": lamps }
 
 func _walk_head(at: Vector3, face: float) -> Dictionary:
+	var hs := Node3D.new()
+	hs.position = at
+	hs.rotation.y = PI * 0.5 * face
+	root.add_child(hs)
+	box(Vector3(0.36, 0.5, 0.2), Vector3.ZERO, m(Color(0.08, 0.08, 0.09), 0.5, 0.4), hs)
 	var n := Node3D.new()
 	n.set_meta("dynamic", true)
 	n.position = at
-	n.rotation.y = PI * 0.5 * face
+	n.rotation.y = hs.rotation.y
 	root.add_child(n)
-	box(Vector3(0.36, 0.5, 0.2), Vector3.ZERO, m(Color(0.08, 0.08, 0.09), 0.5, 0.4), n)
 	var lamps := {
 		"walk": { "node": box(Vector3(0.24, 0.18, 0.04), Vector3(0, 0.1, 0.11), m(Color(0.1, 0.1, 0.1)), n), "on": m(Color(0.95, 0.95, 1.0), 0.4, 0.0, 4.0), "off": m(Color(0.15, 0.15, 0.16), 0.6) },
 		"stop": { "node": box(Vector3(0.24, 0.18, 0.04), Vector3(0, -0.12, 0.11), m(Color(0.1, 0.1, 0.1)), n), "on": m(Color(1.0, 0.45, 0.1), 0.4, 0.0, 4.0), "off": m(Color(0.16, 0.1, 0.06), 0.6) },

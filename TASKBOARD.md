@@ -36,12 +36,12 @@ Rows are the lock; `git fetch` before you claim.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. ~~Extraction in Godot~~ — done Nov 9 (see Done); Fracture Royale remains the one web mode without Godot rules.
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
-  4. Wildlife models (Meshy): deer, boar, wolf, bear, panther, crocodile, shark, raptor, reptile — behaviours and stand-ins are in; drop GLBs into models/animals and map them in wildlife_view.gd `_body`.
+  4. ~~Wildlife models (Meshy)~~ — all in by Nov 16 (deer, boar, wolf, bear, crocodile, shark, raptor, reptile, rabbit, songbird, fish; the horse herd, pets and city birds) but the panther: every Meshy black panther fails the texture gate, so it keeps the stand-in until one passes.
   5. Fracture creature models (Meshy): bespoke hulls for the six bosses (fights are in; swap the `model` in boss.gd BOSSES).
   - ~~Godot Killbox parity with the web clean-up~~ — done Nov 11 (see Done).
   6. City infrastructure and interiors (part 2 §1–2), ~~civilian life props (§3)~~ (done Nov 9), combat details (§5: casings, impacts, flinch, gore, destructible cover + debris done; holsters / magazines / attachments / armour damage / shields open), character appearance (§4: wear slot done Nov 10; shoes / formal clothing wait on clothing meshes).
   7. ~~Vegetation / rock gaps, natural effects, VFX~~ — done in region 3D and scripts/vfx/fx.gd (see Done).
-  8. ~~Fantasy & dimensional set (§9)~~ — builders landed Nov 9 (scripts/vfx/fracture_set.gd) and placed at the Rift Gate and the Neon core; still to place in the Shattered Expanse regions when they get their dressing pass.
+  8. ~~Fantasy & dimensional set (§9)~~ — builders landed Nov 9 (scripts/vfx/fracture_set.gd), placed at the Rift Gate and the Neon core, and in the Shattered Expanse regions Nov 16 (`Flora.fracture_set`: the Prism, Spire, Refraction Valley, Shattered Fields, Void Rifts, Crystal Mines, Echo Ruins, Ancient Vault, the Fracture, Sunken Spire, the Deep).
 
 ## Deferred past Dec 4 (lead's call, Nov 2)
 - Controller unification: Mission 01's physics player onto scripts/player (the gear, outfit and drops already carry into the mission; the interiors rely on physics bodies, so the rewrite buys nothing playable before Dec 4).

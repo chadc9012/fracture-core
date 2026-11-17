@@ -57,7 +57,11 @@ func _run() -> void:
 	world.add_child(cam)
 	cam.position = Vector3(0.0, 1.0, 9.5)
 	cam.look_at(Vector3(0.15, 0.95, 0))
-	if "close" in args:
+	if "neck" in args:
+		cam.position = Vector3(-2.75, 1.5, 0.9)
+		cam.look_at(Vector3(-2.95, 1.45, 0))
+		cam.fov = 22
+	elif "close" in args:
 		# head and shoulders of the first two (the slim frame, front and three-quarter)
 		cam.position = Vector3(-2.4, 1.45, 2.2)
 		cam.look_at(Vector3(-2.4, 1.38, 0))
