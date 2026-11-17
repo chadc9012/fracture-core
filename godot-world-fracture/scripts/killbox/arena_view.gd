@@ -260,7 +260,7 @@ func _start() -> void:
 	if match_state.kind == "extract":
 		_extract_props()
 	hud = Label.new()
-	hud.position = Vector2(16, 60)
+	hud.position = Vector2(16, 118)   # under the hull bar, the weapon line and the ammo (touch_controls.gd)
 	hud.add_theme_font_size_override("font_size", 22)
 	hud.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	hud.add_theme_constant_override("shadow_offset_x", 1)
@@ -274,7 +274,7 @@ func _start() -> void:
 	add_child(board)
 	var back := Button.new()
 	back.text = "← LEAVE"
-	back.position = Vector2(16, 16)
+	back.position = Vector2(250, 8)   # right of the hull bar: the top left is the bar, the weapon line and the ammo
 	back.pressed.connect(func(): closed.emit())
 	add_child(back)
 	controls.toast("%s · %s — %s" % [String(arena.def.name), String(match_state.mode.name), String(match_state.mode.brief)])

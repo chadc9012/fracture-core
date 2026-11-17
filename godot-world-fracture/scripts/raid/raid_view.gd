@@ -662,7 +662,7 @@ func _hud() -> void:
 	add_child(bars)
 	var back := Button.new()
 	back.text = "← LEAVE RAID"
-	back.position = Vector2(16, 16)
+	back.position = Vector2(250, 8)   # right of the hull bar: the top left is the bar, the weapon line and the ammo
 	back.pressed.connect(func(): closed.emit())
 	add_child(back)
 

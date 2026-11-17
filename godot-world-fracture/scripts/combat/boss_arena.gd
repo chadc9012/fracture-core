@@ -134,14 +134,14 @@ func _start() -> void:
 	boss.toast = func(t: String) -> void: controls.toast(t)
 	boss.killed.connect(_on_killed)
 	_bar = Label.new()
-	_bar.position = Vector2(16, 60)
+	_bar.position = Vector2(16, 118)   # under the hull bar, the weapon line and the ammo
 	_bar.add_theme_font_size_override("font_size", 18)
 	_bar.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	_bar.modulate = Color(0.95, 0.75, 1.0)
 	add_child(_bar)
 	var back := Button.new()
 	back.text = "← GLOBE"
-	back.position = Vector2(16, 16)
+	back.position = Vector2(250, 8)   # right of the hull bar: the top left is the bar, the weapon line and the ammo
 	back.pressed.connect(func(): closed.emit())
 	add_child(back)
 	controls.toast("%s — %s" % [String(boss.rules.def.name), String(boss.rules.def.blurb)])
