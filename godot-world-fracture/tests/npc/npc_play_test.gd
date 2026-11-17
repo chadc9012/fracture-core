@@ -189,7 +189,8 @@ func _run() -> void:
 	m._flown("VRD", tha)
 	await _frames(10)
 	var vrd: Control = m._from_street
-	ok(vrd != null and vrd.get("dest") == "VRD" and vrd.npcs != null, "landing in the Verdant Forest on foot")
+	# since the twelve airports (Nov 15) VRD is Verdant Field, an airport of its own: the flight lands in its terminal
+	ok(vrd != null and (vrd.get("dest") == "VRD" or vrd.get("code") == "VRD") and vrd.npcs != null, "landing in the Verdant Forest (its airport since Nov 15)")
 	if vrd and vrd.npcs:
 		ok(vrd.npcs.npcs.has("ilya") and vrd.npcs.npcs.has("mira") or not People.out_at(vrd.npcs.hour(), "VRD").any(func(o): return o.person.id == "mira"), "Warden Ilya and Scout Mira meet you there")
 		var ilya: Node3D = vrd.npcs.npcs["ilya"].mover

@@ -35,6 +35,10 @@ func _ready() -> void:
 	profile = Gear.profile_load()
 	var d: Dictionary = Air.DESTINATIONS.get(dest, Air.DESTINATIONS.THA)
 	var id := String(d.region)
+	# a destination whose region has no exported map yet (Frostveil, the Azure Isles, Goldenreach) lands on the
+	# nearest mapped land rather than on nothing: without this the region built no world and the walk out crashed
+	if Data.map(id).is_empty():
+		id = { "frostveil": "frostspire", "azure-isles": "thalassia", "goldenreach": "riverdale" }.get(id, "veridan")
 	region = Region3D.new()
 	region.set_anchors_preset(Control.PRESET_FULL_RECT)
 	region.closed.connect(func(): closed.emit())
