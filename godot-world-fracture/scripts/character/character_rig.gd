@@ -104,10 +104,10 @@ func _neck_tube(head_bone: int) -> void:
 	var nr := skeleton.get_bone_global_rest(ni)
 	var hp := skeleton.get_bone_global_rest(head_bone).origin
 	var lo := nr.origin.lerp(hp, 0.1)
-	var hi := hp + (hp - nr.origin).normalized() * 0.045
+	var hi := hp + (hp - nr.origin).normalized() * 0.02
 	var up := (hi - lo)
 	var cm := CylinderMesh.new()
-	var r := 0.052 if String(look.get("body", "male")) == "male" else 0.046
+	var r := 0.05 if String(look.get("body", "male")) == "male" else 0.04
 	if String(look.get("frame", "")) == "goliath":
 		r *= 1.12
 	cm.top_radius = r * 0.94
@@ -121,8 +121,10 @@ func _neck_tube(head_bone: int) -> void:
 	mi.name = "NeckTube"
 	mi.mesh = cm
 	var sm := StandardMaterial3D.new()
-	var tone := _scalp_tone()
-	sm.albedo_color = Color(tone.r, tone.g, tone.b).lerp(Color(tone.get_luminance(), tone.get_luminance(), tone.get_luminance()), 0.12).darkened(0.18)
+	# the face's own lit skin (the head texture's brightest quarter) a shade down for a neck in its shadow; the swatch
+	# tone came out orange beside the face
+	var tone: Color = _tex_skin if _tex_skin != null else _scalp_tone()
+	sm.albedo_color = tone.darkened(0.3)
 	sm.roughness = 0.55
 	mi.material_override = sm
 	var att := BoneAttachment3D.new()

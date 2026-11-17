@@ -254,26 +254,42 @@ static func sleeper(m: Node) -> Node3D:
 	if rig.anim and rig.anim.has_animation("idle"):
 		rig.anim.play("idle")
 		rig.anim.speed_scale = 0.35    # slow breathing
+	# under the quilt only the head shows: the body's skinned mesh is hidden, so no collar, drawstring or hand pokes up
+	# through the cover (the quilt's shape keeps the body; Nov 17)
+	for mi in rig.find_children("*", "MeshInstance3D", true, false):
+		if (mi as MeshInstance3D).skin != null and mi != rig.head_mesh:
+			(mi as MeshInstance3D).visible = false
 	# on the back, head to the headboard (−z), face to the ceiling
 	rig.rotation = Vector3(-PI * 0.5, 0, 0)
 	rig.position = c + Vector3(-6.4, 0.8, -1.7)   # on the mattress, not in it (it sank under the sheet; Nov 17)
 	# a quilt over them to the chest, draped: the bed's own grey, high over the body and down over both sides and the
 	# foot (a flattened purple capsule floated over the bed as an oval; owner's video, Nov 17). The bed has its pillows.
 	var duvet := MeshInstance3D.new()
-	duvet.mesh = quilt(1.9, 1.85, 0.84, 0.26)
+	duvet.mesh = quilt(1.9, 1.95, 0.87, 0.18, 0.03)
 	var qm: Material = Materials.surface("fabric_pattern_07", Color(0.46, 0.47, 0.5), 0.7).duplicate()
 	if qm is BaseMaterial3D:
 		(qm as BaseMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
 	duvet.material_override = qm
-	duvet.position = c + Vector3(-6.4, 0.0, -3.1)   # up to the shoulders
+	duvet.position = c + Vector3(-6.4, 0.0, -3.145)   # up to the shoulders, the hem just under the chin
 	holder.add_child(duvet)
+	# a soft white pillow under the head (the bed's own cushions stand upright round it, and the head lay on the bare
+	# sheet between them; Nov 17)
+	var pillow := MeshInstance3D.new()
+	var pm := SphereMesh.new()
+	pm.radius = 0.5
+	pm.height = 1.0
+	pillow.mesh = pm
+	pillow.scale = Vector3(0.62, 0.16, 0.4)
+	pillow.material_override = Materials.surface("fabric_pattern_07", Color(0.9, 0.9, 0.92), 0.7)
+	pillow.position = c + Vector3(-6.4, 0.74, -3.36)
+	holder.add_child(pillow)
 	holder.visible = false
-	holder.set_meta("head", c + Vector3(-6.4, 0.96, -3.35))
+	holder.set_meta("head", c + Vector3(-6.4, 0.86, -3.25))
 	return holder
 
 ## a draped quilt as one mesh, its head edge at z = 0 running to +z: `w` wide across a mattress whose top is `top` high,
 ## raised `lift` over a body lying down the middle, falling over both sides and the foot to the floor's side of the frame
-static func quilt(w: float, l: float, top: float, lift: float) -> ArrayMesh:
+static func quilt(w: float, l: float, top: float, lift: float, hem := 0.0) -> ArrayMesh:
 	var nx := 28
 	var nz := 22
 	var hang := 0.32
@@ -290,8 +306,11 @@ static func quilt(w: float, l: float, top: float, lift: float) -> ArrayMesh:
 			var a := absf(u)
 			if a <= 0.8:
 				x = u / 0.8 * w * 0.5
-				var d := x / 0.32
-				y = top + lift * exp(-d * d) * (0.35 + 0.65 * smoothstep(0.0, 0.12, v)) + 0.02 * sin(x * 9.0 + v * 5.0)
+				var d := x / 0.42
+				var zz := v * l
+				# the turned-down hem at the head edge: a soft roll across the shoulders
+				var roll := hem * exp(-pow((zz - 0.07) / 0.05, 2.0))
+				y = top + lift * exp(-d * d) * (0.55 + 0.45 * smoothstep(0.0, 0.12, v)) + roll + 0.02 * sin(x * 9.0 + v * 5.0)
 			else:
 				var k := (a - 0.8) / 0.2
 				x = signf(u) * (w * 0.5 + 0.04 * sin(k * PI * 0.5))
@@ -327,7 +346,7 @@ static func _head(m: Node) -> Vector3:
 ## 1 + 2: the city at sunrise, then the apartment
 static func opening(m: Node) -> Array:
 	var c: Vector3 = m.APT
-	var sleep_head: Vector3 = c + Vector3(-6.4, 0.96, -3.35)
+	var sleep_head: Vector3 = c + Vector3(-6.4, 0.86, -3.25)
 	return [
 		{ "dur": 9.0, "fade_in": 2.0, "music": "dawn", "music_db": -4.0,
 			"pos": [Vector3(3.0, 26.0, 78.0), Vector3(1.0, 15.0, 40.0)], "look": [Vector3(-2.0, 10.0, -80.0), Vector3(-4.0, 5.0, -50.0)], "fov": [44.0, 50.0],
@@ -346,7 +365,7 @@ static func opening(m: Node) -> Array:
 			"lines": ["M01X_RADIO_02"], "line_at": 1.6 },
 		# over the pillow: the alarm keeps on; then black
 		# from above the face, down between the pillows (from the side the bed's cushions filled the frame; Nov 17)
-		{ "dur": 4.0, "pos": [sleep_head + Vector3(0.45, 1.5, 0.95), sleep_head + Vector3(0.15, 1.2, 0.5)], "look": [sleep_head + Vector3(0, -0.05, 0.25), sleep_head], "fov": 38.0,
+		{ "dur": 4.0, "pos": [sleep_head + Vector3(0.25, 1.4, 0.35), sleep_head + Vector3(0.05, 1.1, 0.12)], "look": [sleep_head + Vector3(0, 0, 0.08), sleep_head], "fov": 38.0,
 			"sfx": [[0.4, "phone_alarm", -4.0]], "fade_out": 0.7 },
 		# up: standing by the bed, a look out at the morning
 		{ "dur": 4.5, "fade_in": 0.7,
