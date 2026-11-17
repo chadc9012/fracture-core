@@ -226,8 +226,19 @@ func _process(dt: float) -> void:
 					e.target.hp = 0.0
 			if d > match_state.radius - 8.0:
 				e.goal = _ground(centre + (p - centre).normalized() * maxf(0.0, match_state.radius - 20.0))
-			elif e.team == 0 and e.goal != null and d < match_state.radius - 12.0:
-				e.goal = null
+			else:
+				# inside: rivals hunt toward where you are (a squad that only patrolled its landing spot was never
+				# met in a 230 m circle), allies keep within a few metres of you
+				var dp := p.distance_to(me)
+				if e.team == 0 and dp > Enemies.SIGHT:
+					var a := float(e.mover.get_instance_id() % 7)
+					e.goal = _ground(me + Vector2(cos(a), sin(a)) * 18.0)
+				elif e.team == 0:
+					e.goal = null
+				elif dp > 9.0:
+					e.goal = _ground(me + (p - me).normalized() * 4.0)
+				else:
+					e.goal = null
 	if burn > 0.0:
 		controls.prompt("OUTSIDE THE CIRCLE · %d / s" % int(burn))
 	else:
