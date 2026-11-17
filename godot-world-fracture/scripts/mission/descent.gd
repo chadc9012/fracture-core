@@ -143,7 +143,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 		region.world().add_child(wildlife)
 		wildlife.setup(operator, gunplay, func(x: float, z: float) -> float: return region.ground(x, z), func(x: float, z: float) -> bool: return region.over_water(x, z), 7)
 		wildlife.water_level = region.water_level()
-		wildlife.night = float(region._style.get("night", 0.0)) > 0.5
+		wildlife.set_night(float(region._style.get("night", 0.0)) > 0.5)
 		wildlife.populate(Vector2(operator.position.x, operator.position.z))
 	enemies.operator_down.connect(func(): _respawn_t = 5.0)
 	var gear := Gear.load_save()

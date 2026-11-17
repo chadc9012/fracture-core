@@ -68,6 +68,8 @@ func populate(centre: Vector2, radius := 160.0) -> void:
 				bank = q
 				break
 		_one("CROCODILE", bank)
+		_pond = pond
+	_dressing()
 
 func _one(species: String, at: Vector2) -> void:
 	_body(rules.spawn(species, at))
@@ -198,6 +200,11 @@ func step(dt: float) -> void:
 			if ap.current_animation != clip:
 				ap.play(clip, 0.2)
 			ap.speed_scale = clampf(c.speed / (4.0 if clip == "Run" else 1.2), 0.6, 1.6) if clip != "Survey" else 1.0
+		# roosting: a bird resting by night sits up on its nest, not on the ground
+		if c.state == Wildlife.St.REST and int(p.loco) == Wildlife.Loco.BIRD and _nests.has(c.group):
+			var nest: Vector3 = _nests[c.group]
+			root.position = root.position.lerp(Vector3(nest.x, nest.y + 0.15, nest.z), 0.3)
+		_tracks(c, root, p)
 		if _targets.has(c):
 			var t: Gunplay.Target = _targets[c]
 			var sz: Vector3 = p.body * c.size
@@ -218,3 +225,157 @@ static func _node_aabb(n: Node3D) -> AABB:
 		out = b if first else out.merge(b)
 		first = false
 	return out
+
+# --------------------------------------------------------------------------- dens, nests, tracks, swarms (catalog §7)
+## Wildlife behaviour row: an earth den at every predator's home, a nest on a snag at the songbirds' and the raptor's,
+## footprints laid behind walking animals (a ring of 480 marks), a midge swarm over the pond at dusk and by night,
+## birds roosting on their nest by night (above). All procedural, a MultiMesh or a particle node each.
+const TRACK_N := 480
+var _pond := Vector2.INF
+var _nests := {}          # group -> nest position
+var _track_mm: MultiMeshInstance3D
+var _track_i := 0
+var _track_last := {}     # Critter -> last mark position
+var _swarms: Array = []
+
+func _dressing() -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	var earth := StandardMaterial3D.new()
+	earth.albedo_color = Color(0.28, 0.22, 0.16)
+	earth.roughness = 1.0
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.02, 0.015, 0.01)
+	dark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var twig := StandardMaterial3D.new()
+	twig.albedo_color = Color(0.42, 0.33, 0.2)
+	twig.roughness = 1.0
+	var done := {}
+	for c in bodies:
+		var key: String = c.group if c.group != "" else c.id
+		if done.has(key):
+			continue
+		done[key] = true
+		var p: Dictionary = Wildlife.profile(c.species)
+		var h: Vector3 = Vector3(c.home.x, float(ground_at.call(c.home.x, c.home.y)), c.home.y)
+		if c.species in ["WOLF", "BEAR", "FOX", "PANTHER"]:
+			# the den: an earth mound with a black mouth facing away from home's centre
+			var den := Node3D.new()
+			den.position = h
+			den.rotation.y = c.heading
+			parent.add_child(den)
+			var mound := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 1.0
+			sm.height = 2.0
+			sm.radial_segments = 10
+			sm.rings = 5
+			mound.mesh = sm
+			mound.scale = Vector3(2.2, 1.1, 1.8) * (1.4 if c.species == "BEAR" else 1.0)
+			mound.material_override = earth
+			den.add_child(mound)
+			var mouth := _box(Vector3(1.1, 0.8, 0.3), Vector3(0, 0.4, 1.5 * (1.4 if c.species == "BEAR" else 1.0)), dark, den)
+			mouth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		elif c.species in ["SONGBIRD", "RAPTOR"]:
+			# the nest: a ring of twigs on a dead snag (the raptor's high on a crag)
+			var tall := 7.0 if c.species == "RAPTOR" else 2.6
+			if c.species == "RAPTOR":
+				# the raptor soars round the centre; its crag stands off to one side, not on the player's spot
+				h = Vector3(c.home.x + 32.0, float(ground_at.call(c.home.x + 32.0, c.home.y - 18.0)), c.home.y - 18.0)
+			var snag := Node3D.new()
+			snag.position = h
+			parent.add_child(snag)
+			var trunk := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 0.12 if c.species == "SONGBIRD" else 0.5
+			cm.bottom_radius = 0.3 if c.species == "SONGBIRD" else 1.4
+			cm.height = tall
+			cm.radial_segments = 7
+			trunk.mesh = cm
+			trunk.position = Vector3(0, tall * 0.5, 0)
+			trunk.material_override = twig if c.species == "SONGBIRD" else earth
+			snag.add_child(trunk)
+			var ring := MeshInstance3D.new()
+			var tm := TorusMesh.new()
+			tm.inner_radius = 0.12 if c.species == "SONGBIRD" else 0.35
+			tm.outer_radius = 0.32 if c.species == "SONGBIRD" else 0.9
+			tm.rings = 10
+			tm.ring_segments = 6
+			ring.mesh = tm
+			ring.position = Vector3(0, tall + 0.08, 0)
+			ring.material_override = twig
+			snag.add_child(ring)
+			_nests[key] = h + Vector3(0, tall + 0.1, 0)
+	# the footprints
+	_track_mm = MultiMeshInstance3D.new()
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.instance_count = TRACK_N
+	mm.visible_instance_count = 0
+	var q := QuadMesh.new()
+	q.size = Vector2(0.14, 0.2)
+	q.orientation = PlaneMesh.FACE_Y
+	var tmat := StandardMaterial3D.new()
+	tmat.albedo_color = Color(0.1, 0.08, 0.05, 0.6)
+	tmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	tmat.roughness = 1.0
+	q.material = tmat
+	mm.mesh = q
+	_track_mm.multimesh = mm
+	_track_mm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_track_mm.visibility_range_end = 60.0
+	parent.add_child(_track_mm)
+	# the midges over the water
+	if _pond != Vector2.INF:
+		for k in 2:
+			var sw := CPUParticles3D.new()
+			sw.amount = 40
+			sw.lifetime = 3.0
+			sw.mesh = QuadMesh.new()
+			(sw.mesh as QuadMesh).size = Vector2(0.05, 0.05)
+			var sm2 := StandardMaterial3D.new()
+			sm2.albedo_color = Color(0.1, 0.1, 0.08)
+			sm2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			sm2.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+			(sw.mesh as QuadMesh).material = sm2
+			sw.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+			sw.emission_sphere_radius = 1.2
+			sw.direction = Vector3(0, 1, 0)
+			sw.spread = 180.0
+			sw.initial_velocity_min = 0.3
+			sw.initial_velocity_max = 0.9
+			sw.gravity = Vector3.ZERO
+			sw.damping_min = 0.2
+			sw.damping_max = 0.6
+			var at := _pond + Vector2(cos(k * 2.4), sin(k * 2.4)) * 5.0
+			sw.position = Vector3(at.x, water_level + 1.2, at.y)
+			sw.emitting = night
+			sw.visibility_range_end = 50.0
+			parent.add_child(sw)
+			_swarms.append(sw)
+
+## a footprint pair every 0.8 m behind a walking ground animal within 40 m of the player
+func _tracks(c: Wildlife.Critter, root: Node3D, p: Dictionary) -> void:
+	if _track_mm == null or int(p.loco) != Wildlife.Loco.GROUND or c.speed < 0.3 or c.down >= 0.0:
+		return
+	if _player and root.position.distance_to(_player.position) > 40.0:
+		return
+	var last: Vector3 = _track_last.get(c, Vector3.INF)
+	if last != Vector3.INF and root.position.distance_to(last) < 0.8:
+		return
+	_track_last[c] = root.position
+	var mm := _track_mm.multimesh
+	var side := 1.0 if (_track_i % 2 == 0) else -1.0
+	var w: float = float((p.body as Vector3).x) * c.size * 0.35
+	var at := root.position + root.basis.x * side * w
+	at.y = float(ground_at.call(at.x, at.z)) + 0.02
+	mm.set_instance_transform(_track_i, Transform3D(Basis(Vector3.UP, c.heading).scaled(Vector3.ONE * clampf(c.size, 0.5, 2.0)), at))
+	_track_i = (_track_i + 1) % TRACK_N
+	mm.visible_instance_count = mini(TRACK_N, mm.visible_instance_count + 1)
+
+## dusk and night bring the midges out over the pond
+func set_night(on: bool) -> void:
+	night = on
+	for sw in _swarms:
+		(sw as CPUParticles3D).emitting = on
