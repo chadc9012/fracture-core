@@ -48,6 +48,24 @@ static func face_forward(car: Node3D) -> void:
 			(ch as Node3D).rotation.y += PI
 			(ch as Node3D).position = Vector3(-(ch as Node3D).position.x, (ch as Node3D).position.y, -(ch as Node3D).position.z)
 	car.set_meta("faced", true)
+	calm_paint(car)
+
+## the Meshy paint carries a grainy normal map that sparkled as noise under the night street's many lights (a parked car
+## read as a glittering ghost; owner's video, Nov 17): bumps cut to a third, a little rougher. The materials are the
+## cached scene's own, so this runs once per material.
+static func calm_paint(car: Node) -> void:
+	for mi in car.find_children("*", "MeshInstance3D", true, false):
+		var m3 := mi as MeshInstance3D
+		if m3.mesh == null:
+			continue
+		for si in m3.mesh.get_surface_count():
+			var mat := m3.get_active_material(si) as StandardMaterial3D
+			if mat == null or mat.has_meta("calm"):
+				continue
+			mat.set_meta("calm", true)
+			if mat.normal_enabled:
+				mat.normal_scale = minf(mat.normal_scale, 0.33)
+			mat.roughness = maxf(mat.roughness, 0.45)
 
 ## the forward axis: the node's -z (drive_vehicle.gd moves along -basis.z)
 func forward() -> Vector3:

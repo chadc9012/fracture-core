@@ -256,28 +256,68 @@ static func sleeper(m: Node) -> Node3D:
 		rig.anim.speed_scale = 0.35    # slow breathing
 	# on the back, head to the headboard (−z), face to the ceiling
 	rig.rotation = Vector3(-PI * 0.5, 0, 0)
-	rig.position = c + Vector3(-6.4, 0.68, -1.7)
-	# a duvet over them to the chest, and a pillow
+	rig.position = c + Vector3(-6.4, 0.8, -1.7)   # on the mattress, not in it (it sank under the sheet; Nov 17)
+	# a quilt over them to the chest, draped: the bed's own grey, high over the body and down over both sides and the
+	# foot (a flattened purple capsule floated over the bed as an oval; owner's video, Nov 17). The bed has its pillows.
 	var duvet := MeshInstance3D.new()
-	var dm := CapsuleMesh.new()     # a soft, rounded quilt (a capsule laid along the bed, flattened)
-	dm.radius = 0.5
-	dm.height = 1.75
-	duvet.mesh = dm
-	duvet.rotation = Vector3(PI * 0.5, 0, 0)
-	duvet.scale = Vector3(2.0, 1.0, 0.32)
-	duvet.material_override = Materials.surface("velour_velvet", Color(0.35, 0.22, 0.5), 0.6)
-	duvet.position = c + Vector3(-6.4, 0.8, -2.2)
+	duvet.mesh = quilt(1.9, 1.85, 0.84, 0.26)
+	var qm: Material = Materials.surface("fabric_pattern_07", Color(0.46, 0.47, 0.5), 0.7).duplicate()
+	if qm is BaseMaterial3D:
+		(qm as BaseMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
+	duvet.material_override = qm
+	duvet.position = c + Vector3(-6.4, 0.0, -3.1)   # up to the shoulders
 	holder.add_child(duvet)
-	var pillow := MeshInstance3D.new()
-	var pm := BoxMesh.new()
-	pm.size = Vector3(0.7, 0.12, 0.45)
-	pillow.mesh = pm
-	pillow.material_override = Materials.surface("velour_velvet", Color(0.92, 0.92, 0.94), 0.6)
-	pillow.position = c + Vector3(-6.4, 0.66, -3.42)
-	holder.add_child(pillow)
 	holder.visible = false
-	holder.set_meta("head", c + Vector3(-6.4, 0.84, -3.35))
+	holder.set_meta("head", c + Vector3(-6.4, 0.96, -3.35))
 	return holder
+
+## a draped quilt as one mesh, its head edge at z = 0 running to +z: `w` wide across a mattress whose top is `top` high,
+## raised `lift` over a body lying down the middle, falling over both sides and the foot to the floor's side of the frame
+static func quilt(w: float, l: float, top: float, lift: float) -> ArrayMesh:
+	var nx := 28
+	var nz := 22
+	var hang := 0.32
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array = []
+	for j in nz + 1:
+		var row: Array = []
+		var v := float(j) / nz
+		for i in nx + 1:
+			var u := float(i) / nx * 2.0 - 1.0      # -1..1 across, the outer fifth hangs over the sides
+			var x := 0.0
+			var y := top
+			var a := absf(u)
+			if a <= 0.8:
+				x = u / 0.8 * w * 0.5
+				var d := x / 0.32
+				y = top + lift * exp(-d * d) * (0.35 + 0.65 * smoothstep(0.0, 0.12, v)) + 0.02 * sin(x * 9.0 + v * 5.0)
+			else:
+				var k := (a - 0.8) / 0.2
+				x = signf(u) * (w * 0.5 + 0.04 * sin(k * PI * 0.5))
+				y = top - hang * k
+			var z := v * l
+			# the foot: past the body the quilt falls over the end of the mattress
+			if v > 0.9:
+				var kz := (v - 0.9) / 0.1
+				z = l * 0.9 + 0.1 * l * 0.3 * sin(kz * PI * 0.5)
+				y = minf(y, top) - hang * kz
+			row.append(Vector3(x, y, z))
+		pts.append(row)
+	for j in nz:
+		for i in nx:
+			var a: Vector3 = pts[j][i]
+			var b: Vector3 = pts[j][i + 1]
+			var cc: Vector3 = pts[j + 1][i + 1]
+			var d: Vector3 = pts[j + 1][i]
+			for t: Array in [[a, cc, b], [a, d, cc]]:
+				for k in 3:
+					var p: Vector3 = t[k]
+					st.set_uv(Vector2(p.x * 1.5, p.z * 1.5))
+					st.add_vertex(p)
+	st.generate_normals()
+	var mesh := st.commit()
+	return mesh
 
 # ---------------------------------------------------------------- the shots
 
@@ -287,7 +327,7 @@ static func _head(m: Node) -> Vector3:
 ## 1 + 2: the city at sunrise, then the apartment
 static func opening(m: Node) -> Array:
 	var c: Vector3 = m.APT
-	var sleep_head: Vector3 = c + Vector3(-6.4, 0.84, -3.35)
+	var sleep_head: Vector3 = c + Vector3(-6.4, 0.96, -3.35)
 	return [
 		{ "dur": 9.0, "fade_in": 2.0, "music": "dawn", "music_db": -4.0,
 			"pos": [Vector3(3.0, 26.0, 78.0), Vector3(1.0, 15.0, 40.0)], "look": [Vector3(-2.0, 10.0, -80.0), Vector3(-4.0, 5.0, -50.0)], "fov": [44.0, 50.0],
@@ -305,7 +345,8 @@ static func opening(m: Node) -> Array:
 			"title": ["APARTMENT 12-04", "NEXUS CITY RESIDENCES"], "title_at": 2.2, "title_for": 4.0,
 			"lines": ["M01X_RADIO_02"], "line_at": 1.6 },
 		# over the pillow: the alarm keeps on; then black
-		{ "dur": 4.0, "pos": [sleep_head + Vector3(1.5, 0.9, 1.1), sleep_head + Vector3(1.0, 0.62, 0.7)], "look": [sleep_head + Vector3(0, -0.05, 0.3), sleep_head], "fov": 38.0,
+		# from above the face, down between the pillows (from the side the bed's cushions filled the frame; Nov 17)
+		{ "dur": 4.0, "pos": [sleep_head + Vector3(0.45, 1.5, 0.95), sleep_head + Vector3(0.15, 1.2, 0.5)], "look": [sleep_head + Vector3(0, -0.05, 0.25), sleep_head], "fov": 38.0,
 			"sfx": [[0.4, "phone_alarm", -4.0]], "fade_out": 0.7 },
 		# up: standing by the bed, a look out at the morning
 		{ "dur": 4.5, "fade_in": 0.7,
@@ -430,8 +471,10 @@ static func first_power(m: Node, sw: Dictionary) -> Array:
 		{ "dur": 4.0, "music": "nova", "music_db": -9.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.7, -0.2, 1.4), func() -> Vector3: return _head(m) + Vector3(0.5, -0.3, 1.0)],
 			"look": c + Vector3(0, 1.0, -12.0), "fov": 42.0,
 			"lines": ["M01_013", "M02_004"], "line_at": 0.3, "on": [[3.0, hands]] },
-		{ "dur": 3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.2, -0.75, -0.7), func() -> Vector3: return _head(m) + Vector3(0.15, -0.8, -0.55)],
-			"look": func() -> Vector3: return _head(m) + Vector3(0, -0.4, 0), "fov": 34.0,
+		# the power gathering: chest and hands, from far enough out to read as a person (at 0.7 m the hoodie filled the
+		# frame; owner's video, Nov 17)
+		{ "dur": 3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.45, -0.45, -1.7), func() -> Vector3: return _head(m) + Vector3(0.35, -0.5, -1.45)],
+			"look": func() -> Vector3: return _head(m) + Vector3(0, -0.45, 0), "fov": 40.0,
 			"lines": ["M02_005"], "line_at": 0.2, "sfx": [[0.4, "surge", -4.0]] },
 		{ "dur": 4.5, "music": "power", "music_db": -3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.9, -1.1, 2.0), func() -> Vector3: return _head(m) + Vector3(1.2, -0.9, 2.6)],
 			"look": c + Vector3(0, 1.2, -12.0), "fov": [40.0, 50.0],
@@ -456,9 +499,11 @@ static func new_world(m: Node) -> Array:
 			m.create_tween().tween_property(env, "fog_density", env.fog_density * 0.25, 6.0)
 	return [
 		{ "dur": 7.0, "music": "title", "music_db": -3.0, "fade_in": 0.6,
-			"pos": [p + Vector3(2.4, 1.6, 3.2), p + Vector3(6.0, 9.0, 14.0)], "look": [p + Vector3(0, 1.5, 0), p + Vector3(0, 12.0, -60.0)], "fov": [46.0, 54.0],
+			# from the road side of the operator up and out over the middle of the avenue, above the palm crowns (it rose
+			# through a kerb palm and a shop awning; owner's video, Nov 17)
+			"pos": [p + Vector3(-signf(p.x) * 1.4, 1.6, 3.0), Vector3(p.x * 0.15, 14.0, p.z + 14.0)], "look": [p + Vector3(0, 1.5, 0), p + Vector3(0, 12.0, -60.0)], "fov": [46.0, 54.0],
 			"lines": ["M01X_WORLD_1"], "line_at": 1.0, "on": [[0.5, clear]] },
-		{ "dur": 8.0, "pos": [p + Vector3(6.0, 9.0, 14.0), Vector3(12.0, 48.0, 90.0)], "look": [p + Vector3(0, 12.0, -60.0), Vector3(-10.0, 45.0, -420.0)], "fov": [54.0, 50.0],
+		{ "dur": 8.0, "pos": [Vector3(p.x * 0.15, 14.0, p.z + 14.0), Vector3(12.0, 48.0, 90.0)], "look": [p + Vector3(0, 12.0, -60.0), Vector3(-10.0, 45.0, -420.0)], "fov": [54.0, 50.0],
 			"lines": ["M01X_WORLD_2", "M01X_WORLD_3"], "line_at": 1.2 },
 		{ "dur": 9.0, "pos": [Vector3(12.0, 48.0, 90.0), Vector3(16.0, 58.0, 110.0)], "look": [Vector3(-10.0, 45.0, -420.0), Vector3(-10.0, 60.0, -440.0)], "fov": 50.0,
 			"title": ["WORLD FRACTURE", "CHAPTER ONE  ·  COMPLETE"], "title_at": 1.4, "title_for": 6.6, "sfx": [[1.4, "title_hit", -2.0]], "fade_out": 1.2 },

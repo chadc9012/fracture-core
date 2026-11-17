@@ -388,9 +388,8 @@ func _spawn_player() -> void:
 	gunplay.setup(operator, operator.obstacles)
 	_spawn = operator.position
 	armed = force_armed or story_armed()
-	# two practice dummies by the garage, and the block's cyber troopers (enemies.gd) further down
-	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0)]:
-		gunplay.add_dummy(spot)
+	# the block's cyber troopers (enemies.gd) further down. (Two practice dummies used to stand on the sidewalk by the
+	# garage: orange boxes on posts in the middle of the city's main avenue; owner's video, Nov 17)
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)

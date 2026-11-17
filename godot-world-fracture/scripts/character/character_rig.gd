@@ -91,6 +91,49 @@ func build(new_look: Dictionary, animate := true) -> void:
 	_attach_head(hb)
 	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
 		dress(String(look.get("outfit", "")))
+		_neck_tube(hb)
+
+## in everyday clothes the creator head's own neck is cut away with its armour collar (skin_shader civ_clip), and the
+## body's neck stops short under the jaw: from behind and in the bed close-up there was a gap between head and
+## collar, the room showing through (owner's video, Nov 17). A skin-toned neck from the Neck bone up into the skull
+## closes it whatever the frame; it follows the Neck bone, and its ends are hidden in the collar and the head.
+func _neck_tube(head_bone: int) -> void:
+	var ni := _bone(skeleton, "Neck")
+	if ni < 0 or head_bone < 0:
+		return
+	var nr := skeleton.get_bone_global_rest(ni)
+	var hp := skeleton.get_bone_global_rest(head_bone).origin
+	var lo := nr.origin.lerp(hp, 0.1)
+	var hi := hp + (hp - nr.origin).normalized() * 0.045
+	var up := (hi - lo)
+	var cm := CylinderMesh.new()
+	var r := 0.052 if String(look.get("body", "male")) == "male" else 0.046
+	if String(look.get("frame", "")) == "goliath":
+		r *= 1.12
+	cm.top_radius = r * 0.94
+	cm.bottom_radius = r
+	cm.height = up.length()
+	cm.radial_segments = 20
+	cm.rings = 2
+	cm.cap_top = false
+	cm.cap_bottom = false
+	var mi := MeshInstance3D.new()
+	mi.name = "NeckTube"
+	mi.mesh = cm
+	var sm := StandardMaterial3D.new()
+	var tone := _scalp_tone()
+	sm.albedo_color = Color(tone.r, tone.g, tone.b).lerp(Color(tone.get_luminance(), tone.get_luminance(), tone.get_luminance()), 0.12).darkened(0.18)
+	sm.roughness = 0.55
+	mi.material_override = sm
+	var att := BoneAttachment3D.new()
+	att.bone_idx = ni
+	skeleton.add_child(att)
+	att.add_child(mi)
+	# rest pose: the tube along Neck → Head, set in the Neck bone's frame
+	var y := up.normalized()
+	var x := y.cross(Vector3.FORWARD).normalized() if absf(y.dot(Vector3.FORWARD)) < 0.95 else y.cross(Vector3.RIGHT).normalized()
+	var z := x.cross(y)
+	mi.transform = nr.affine_inverse() * Transform3D(Basis(x, y, z), (lo + hi) * 0.5)
 
 ## puts the civ body in an outfit (scripts/character/outfits.gd); the bare hands take the skin tone
 func dress(outfit_id: String) -> void:

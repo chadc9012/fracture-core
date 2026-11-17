@@ -131,7 +131,7 @@ void fragment() {
 	if (part == SKIN) {
 		// bare skin (hands, the neck) the way the face is lit: a skin sheen, not the clothes' matte, and a touch less
 		// saturated (they read orange beside the face; Nov 16)
-		c = mix(vec3(dot(c, vec3(0.3, 0.59, 0.11))), c, 0.85);
+		c = mix(vec3(dot(c, vec3(0.3, 0.59, 0.11))), c, 0.72);
 		shade = 1.0;
 		rough = 0.55;
 		spec = 0.5;

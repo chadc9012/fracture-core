@@ -207,7 +207,20 @@ foot_w /= total
 # the neck runs up into the head (the creator's head sits on the Head bone and its own neck stub is short): cut at a
 # height just over the skull's base, not by weight (that left a gap under the jaw and the head floated; Nov 16)
 cut_z = float(B["Head"][0][2]) + 0.03 * H
-keep_faces = [f for f in faces if not all(Wv[i][2] > cut_z for i in f) and not all(head_w[i] > 0.97 for i in f)]
+# the head-weighted faces (the jaw and skull) go, except just over the Head bone round the neck's axis: those are the
+# top of the neck, and dropping them left a ring of nothing between the collar and the creator head's jaw (owner's
+# video, Nov 17). Further out they are MakeHuman's chin and jaw, which stood out under the beard as a brown lump
+jaw_z = float(B["Head"][0][2]) + 0.012 * H
+neck_xy = np.array(B["Head"][0][:2], float)
+neck_r = 0.036 * H
+
+
+def _round_neck(f):
+    c = Wv[list(f)].mean(axis=0)
+    return np.linalg.norm(c[:2] - neck_xy) < neck_r and c[2] <= jaw_z
+
+
+keep_faces = [f for f in faces if not all(Wv[i][2] > cut_z for i in f) and not (all(head_w[i] > 0.97 for i in f) and not _round_neck(f))]
 tris = []
 for f in keep_faces:
     for k in range(1, len(f) - 1):

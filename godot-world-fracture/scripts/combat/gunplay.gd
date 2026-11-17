@@ -76,7 +76,7 @@ var kills := 0
 ## no weapon in hand: before Mission 01's Fracture arms the operator the street is walked unarmed (owner, Nov 9)
 var holstered := false
 ## aim help: shots go to a live foe within this many degrees of the crosshair (on by default on a touch screen)
-var assist_deg := 7.0 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")) else 0.0
+var assist_deg := 7.0 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_environment("WF_TOUCH")) else 0.0
 var shots_fired := 0
 var hits_landed := 0
 

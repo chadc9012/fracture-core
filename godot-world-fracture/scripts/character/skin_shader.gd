@@ -103,9 +103,10 @@ void fragment() {
 	// in everyday clothes, what flares wider than the neck below the jaw goes: the Meshy heads keep a scrap of their
 	// armour collar (a grey ring, red and black shards) that read as a neck brace over a hoodie (owner's video, Nov 16)
 	// (head space: y up from the Head bone, the jaw and the collar both just above it). Low and out at the sides and the
-	// back, and not skin or dark hair: grey metal and red trim
+	// back, and not skin or dark hair: grey metal and red trim. Only behind the ears (in front of them the beard and jaw
+	// shadow read as the same dark brown: the bed close-up had holes in the beard), and under the skull at the back
 	float cr = length(vec2(p.x, p.z + 0.01));
-	if (civ_clip > 0.5 && ((p.y < 0.0 && cr > 0.07) || (p.z < 0.045 && p.y < 0.032 && cr > 0.074) || (p.z < 0.065 && p.y < 0.09 && cr > 0.06 && ((k < 0.3 && (l > 0.05 || sat > 0.55)) || (c.r > 2.0 * c.g && sat > 0.6))))) { discard; }
+	if (civ_clip > 0.5 && ((p.y < 0.0 && cr > 0.07) || (p.z < 0.045 && p.y < 0.032 && cr > 0.074) || (p.z < -0.02 && p.y < 0.025) || (p.z < 0.0 && p.y < 0.09 && cr > 0.06 && ((k < 0.3 && (l > 0.05 || sat > 0.55)) || (c.r > 2.0 * c.g && sat > 0.6))))) { discard; }
 	if (skin_lum > 0.0 && skin.r + skin.g + skin.b > 0.0) {
 		col = mix(c, skin * clamp(l / skin_lum, 0.0, 2.2), k);
 	}
