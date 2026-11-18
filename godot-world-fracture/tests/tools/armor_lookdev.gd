@@ -6,7 +6,6 @@ const Store := preload("res://scripts/character/character_store.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const Catalog := preload("res://scripts/character/catalog.gd")
 const ArmorLook := preload("res://scripts/gear/armor_look.gd")
-const Grade := preload("res://scripts/grade.gd")
 var frames := 0
 var out := "user://armor.png"
 
@@ -41,7 +40,9 @@ func _init() -> void:
 	e.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	e.tonemap_mode = Environment.TONE_MAPPER_AGX
 	e.adjustment_enabled = true
-	e.adjustment_color_correction = Grade.lut("day")
+	# the street's film grade (scripts/grade.gd, the GTA pass) when this build has it
+	if ResourceLoader.exists("res://scripts/grade.gd"):
+		e.adjustment_color_correction = load("res://scripts/grade.gd").lut("day")
 	env.environment = e
 	root.add_child(env)
 	var sun := DirectionalLight3D.new()
