@@ -1116,13 +1116,13 @@ func _build_rings() -> void:
 				# the districts' small domes inside it caught the district lights and blew out to white orbs (Nov 18): faint
 				# glass for them too
 				var in_thal := map_id == "thalassia"
-				mat.albedo_color = Color(0.55, 0.85, 0.95, 0.1 if city_inside else (0.12 if in_thal else 0.3))
+				mat.albedo_color = Color(0.55, 0.85, 0.95, 0.1 if city_inside else (0.12 if in_thal else 0.16))
 				mat.roughness = 0.05 if not in_thal or city_inside else 0.4
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat.metallic = 0.4
 				mat.emission_enabled = true
 				mat.emission = Color(0.3, 0.7, 1.0)
-				mat.emission_energy_multiplier = 0.12 if city_inside or in_thal else 0.3 + _style.night
+				mat.emission_energy_multiplier = 0.12 if city_inside or in_thal else 0.12 + _style.night * 0.15   # it glowed pink-white over Frostspire's crevasses at night
 			"hazard":
 				# a thin warning line on the ground at the zone's edge (it was a 4 m red glass wall: the "red dome" over
 				# Ember's Smoldering Trench, Nov 18)

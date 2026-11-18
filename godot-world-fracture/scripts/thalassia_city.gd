@@ -184,7 +184,7 @@ func _floor(c: Vector2, r: float) -> void:
 		ring.outer_radius = r * cos(lat) + 0.35
 		ring.rings = 64
 		ring.ring_segments = 6
-		_put(ring, Vector3(c.x, y + r * sin(lat), c.y), _mat("rib", Color("#9fe8ff"), 0.9, 0.6, 0.3))
+		_put(ring, Vector3(c.x, y + r * sin(lat), c.y), _mat("rib", Color("#6fb8d0"), 0.3, 0.6, 0.3))
 	var base := TorusMesh.new()
 	base.inner_radius = r - 1.0
 	base.outer_radius = r + 1.0
@@ -256,7 +256,7 @@ func _garden(at: Vector2) -> void:
 		var q2 := at + Vector2(cos(a2), sin(a2)) * d
 		var hh := _rng.randf_range(5.0, 11.0)
 		kelp.append(Transform3D(Basis.from_euler(Vector3(_rng.randf_range(-0.15, 0.15), _rng.randf() * TAU, _rng.randf_range(-0.15, 0.15))).scaled(Vector3(1, hh, 1)), Vector3(q2.x, _y(q2) + hh / 2.0, q2.y)))
-	_multi(_cyl(0.12, 0.25, 1.0, 5), kelp, _mat("kelp", Color("#3f8f4a"), 0.35, 0.0, 0.8))
+	_multi(_cyl(0.12, 0.25, 1.0, 5), kelp, _mat("kelp", Color("#2c5a34"), 0.0, 0.0, 0.85))
 
 func _entertainment(at: Vector2) -> void:
 	var body := _mat("ent_body", Color("#1c1f33"), 0.05, 0.5, 0.3)
