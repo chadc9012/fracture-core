@@ -88,10 +88,89 @@ func build(new_look: Dictionary, animate := true) -> void:
 		head_point = skeleton.get_bone_global_rest(hb).origin
 	if hero != "":
 		return    # a whole Meshy character: its own face, hair and clothes
+	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
+		_reshape()
 	_attach_head(hb)
 	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
 		dress(String(look.get("outfit", "")))
 		_neck_tube(hb)
+
+## the everyday body's proportions, set at load: each bone's piece of the body scaled across the bone (in the bone's own
+## space, x and z; y runs along it) and blended by the skin weights. The clothed bodies read as a broad, boxy hoodie on
+## stick legs (owner, Nov 18: "too bulky / wide", "stiff / stick-like", "wrong proportions", "should look like GTA"):
+## a narrower chest and waist, fuller thighs and calves in looser joggers, a touch more to the arms. WF_RESHAPE (JSON,
+## suffix → [x, z]) overrides it for look-dev
+const RESHAPE := {
+	"Hips": Vector2(0.97, 1.0), "Spine": Vector2(0.92, 0.97), "Spine1": Vector2(0.9, 0.96), "Spine2": Vector2(0.9, 0.96),
+	"Shoulder": Vector2(0.92, 0.96), "UpLeg": Vector2(1.14, 1.12), "Leg": Vector2(1.14, 1.12), "Arm": Vector2(1.04, 1.04),
+	"ForeArm": Vector2(1.04, 1.04),
+}
+static var _reshaped := {}
+
+func _reshape() -> void:
+	# the heavy frame is already full in the leg and broadest in the chest: its legs stay, its chest comes in most
+	var fr := String(look.get("frame", "cipher"))
+	var leg: float = { "nyx": 1.0, "cipher": 0.75, "goliath": 0.0 }.get(fr, 0.75)
+	var chest: float = { "nyx": 0.6, "cipher": 1.0, "goliath": 1.35 }.get(fr, 1.0)
+	var table: Dictionary = {}
+	for k: String in RESHAPE:
+		var v: Vector2 = RESHAPE[k]
+		var amt := leg if k in ["UpLeg", "Leg"] else (chest if k.begins_with("Spine") or k in ["Hips", "Shoulder"] else 1.0)
+		table[k] = Vector2.ONE.lerp(v, amt)
+	var env := OS.get_environment("WF_RESHAPE")
+	if env != "":
+		table = {}
+		var d: Dictionary = JSON.parse_string(env)
+		for k in d:
+			table[k] = Vector2(d[k][0], d[k][1])
+	for mi: MeshInstance3D in _body_meshes:
+		if mi.skin == null or mi.mesh == null:
+			continue
+		var key := "%s|%s|%s" % [mi.mesh.resource_path if mi.mesh.resource_path != "" else str(mi.mesh.get_instance_id()), fr, env]
+		if _reshaped.has(key):
+			mi.mesh = _reshaped[key]
+			continue
+		var binds: Array[Transform3D] = []
+		var scales: Array[Vector2] = []
+		for b in mi.skin.get_bind_count():
+			binds.append(mi.skin.get_bind_pose(b))
+			var nm := String(mi.skin.get_bind_name(b))
+			if nm == "" and skeleton and mi.skin.get_bind_bone(b) >= 0:
+				nm = skeleton.get_bone_name(mi.skin.get_bind_bone(b))
+			var short := nm.get_slice(":", nm.get_slice_count(":") - 1).trim_prefix("mixamorig_")
+			for side in ["Left", "Right"]:
+				short = short.trim_prefix(side)
+			scales.append(table.get(short, Vector2.ONE))
+		var out := ArrayMesh.new()
+		for si in mi.mesh.get_surface_count():
+			var arr := mi.mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+			var ws: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+			var per := bones.size() / maxi(vs.size(), 1)
+			for k in vs.size():
+				var acc := Vector3.ZERO
+				var tot := 0.0
+				for j in per:
+					var w := ws[k * per + j]
+					if w <= 0.0:
+						continue
+					var bi := bones[k * per + j]
+					var sc: Vector2 = scales[bi] if bi < scales.size() else Vector2.ONE
+					var q := binds[bi] * vs[k] if bi < binds.size() else vs[k]
+					q.x *= sc.x
+					q.z *= sc.y
+					acc += (binds[bi].affine_inverse() * q if bi < binds.size() else q) * w
+					tot += w
+				if tot > 0.0:
+					vs[k] = acc / tot
+			arr[Mesh.ARRAY_VERTEX] = vs
+			arr[Mesh.ARRAY_NORMAL] = arr[Mesh.ARRAY_NORMAL]
+			out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+			out.surface_set_material(si, mi.mesh.surface_get_material(si))
+			out.surface_set_name(si, mi.mesh.surface_get_name(si))
+		_reshaped[key] = out
+		mi.mesh = out
 
 ## in everyday clothes the creator head's own neck is cut away with its armour collar (skin_shader civ_clip), and the
 ## body's neck stops short under the jaw: from behind and in the bed close-up there was a gap between head and
