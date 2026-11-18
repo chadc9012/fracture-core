@@ -628,7 +628,10 @@ func _style_for(id: String) -> Dictionary:
 		"veridan", "riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
 		"wastelands":
-			s.merge({"top": "#5f97c8", "hor": "#e6d0a6", "fog": "#d4c09c", "fog_d": 0.0012, "sun": 1.5, "sun_col": "#fff0d0", "sun_el": 52.0, "amb": 0.6}, true)
+			# the owner's "SUNSET - THE WASTELANDS" photo: the sun on the horizon, an orange sky under streaked cloud, red
+			# earth in long shadows (it was a white noon: the ground bleached to cream, no shadow, no shape)
+			s.merge({"top": "#2e3f7a", "hor": "#f08a48", "fog": "#b8704a", "fog_d": 0.0014, "sun": 1.7, "sun_col": "#ffa45c", "sun_el": 8.0, "sun_az": 150.0,
+				"amb": 0.42, "sat": 1.05, "exp": 0.95, "planet": true, "sky": "sunset", "glow": "#ff7a30", "glow_amt": 0.35, "tint": Vector3(0.92, 0.7, 0.52)}, true)
 		"solara":
 			# its pale dune sand blew out to white under the Wastelands' noon sun: a lower, warmer sun and less exposure
 			# keep the dunes' shading and the sand's colour
@@ -804,6 +807,7 @@ func _build_ground() -> void:
 	mat.set_shader_parameter("data_tex", Data.texture("maps/%s.data.pngb" % map_id))
 	mat.set_shader_parameter("wet", _style.wet)
 	mat.set_shader_parameter("embers", float(_style.get("embers", 0.0)))
+	mat.set_shader_parameter("tint", _style.get("tint", Vector3.ONE))
 	for pair in [["i_forest", "forest"], ["i_dense", "denseForest"], ["i_marsh", "marsh"], ["i_meadow", "meadow"], ["i_grass", "grass"], ["i_scrub", "scrub"],
 			["i_desert", "desert"], ["i_dunes", "dunes"], ["i_sandstone", "sandstone"], ["i_wash", "wash"], ["i_lava", "lava"], ["i_magma", "magma"],
 			["i_urban", "urban"], ["i_paved", "paved"], ["i_town", "town"], ["i_snow", "snow"], ["i_ice", "ice"], ["i_crystal", "crystal"], ["i_rift", "rift"],

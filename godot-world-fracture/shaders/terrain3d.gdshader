@@ -12,6 +12,7 @@ uniform int i_forest; uniform int i_dense; uniform int i_marsh; uniform int i_me
 uniform int i_desert; uniform int i_dunes; uniform int i_sandstone; uniform int i_wash; uniform int i_lava; uniform int i_magma;
 uniform int i_urban; uniform int i_paved; uniform int i_town; uniform int i_snow; uniform int i_ice; uniform int i_crystal; uniform int i_rift;
 uniform int i_ash = -1; uniform int i_basalt = -1;
+uniform vec3 tint = vec3(1.0); // the region's earth (the Wastelands' red ground)
 uniform float embers = 0.0; // smouldering specks in the ash (Ember Peaks at night)
 
 varying vec2 wpos;
@@ -102,7 +103,7 @@ void fragment() {
 	} else {
 		c += vec3(16.0, 15.0, 14.0) / 255.0 * grain;
 	}
-	ALBEDO = clamp(c, 0.0, 1.0);
+	ALBEDO = clamp(c * tint, 0.0, 1.0);
 	ROUGHNESS = rough;
 	EMISSION = emit;
 }
