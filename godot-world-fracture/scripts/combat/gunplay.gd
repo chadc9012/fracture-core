@@ -275,6 +275,7 @@ func set_loadout(list: Array) -> void:
 		var g := Weapons.Gun.new(Weapons.known(String(w.frame)))
 		g.label = String(w.name)
 		g.mult = float(w.mult)
+		g.element = String(w.get("element", ""))
 		guns.append(g)
 	current = 0
 	for i in guns.size():
@@ -340,6 +341,10 @@ func aim_point(cam: Camera3D) -> Vector3:
 
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
+	# the HUD's gun picture and element pip (touch_controls.show_loadout; a no-op when nothing changed)
+	var hud := _controls()
+	if hud and hud.has_method("show_loadout"):
+		hud.show_loadout("" if holstered else gun().frame, gun().element)
 	if trigger and assist_deg > 0.0 and not holstered:
 		_pull_aim(dt, cam)
 	_point_gun(cam)
