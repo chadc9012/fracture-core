@@ -213,7 +213,7 @@ between the floor and the surface). Aircraft start on the Nexus airport apron fa
 seaport facing open water; eight rings make a course (over the roofs for aircraft, out across the water for boats) with a
 Nex / XP prize, buildings are solid (a crash and hard landings cost hull; a wreck goes back to the pad). The Leviathan
 cargo airship (AIRSHIP profile: slow, VTOL, wide turns) flies too. Phone controls in `fly` mode: stick = throttle / steer,
-UP climbs, DOWN descends. Shots: `skyways[:heli|:jet|:boat|:sub|:airship][:go]`. On the street, the hub block parks the
+UP climbs, DOWN descends. Every jet rides a tricycle undercarriage (`_build_gear`: nose leg and twin-tyre mains spanning the ride height, folded away once it climbs 8 m clear, dropped again under 40 m coming down or slowing toward landing speed, a tyre puff on touchdown; tests/flying/skyways_play.tscn). Shots: `skyways[:heli|:jet|:boat|:sub|:airship][:go][:side]` (`:side` parks the camera low off the right wing). On the street, the hub block parks the
 Goliath heavy tank (pivots on the spot, drive_physics `pivot`) and the hover-car (floats 0.9 m) across from the garage —
 ENTER them like any car; their numbers come from vehicle_handling.gd (`hull_perf`). Shot: `slicewalk:tank`.
 

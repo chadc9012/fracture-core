@@ -1055,6 +1055,8 @@ func _shoot(path: String, opts: Array) -> void:
 					skyways.craft_id = String(pair[1])
 			skyways.closed.connect(_close_skyways)
 			add_child(skyways)
+			if String(o).contains("side"):
+				skyways.look_dev = Vector3(14.0, 1.2, 6.0)   # low, off the right wing: the undercarriage
 			if String(o).contains("go"):
 				skyways.controls.scripted = true
 				skyways.controls.move = Vector2(0.0, 1.0)
@@ -1195,6 +1197,8 @@ func _shoot(path: String, opts: Array) -> void:
 	if skyways and skyways.state:
 		var sk := skyways
 		print("skyways: ", sk.craft_id, " speed ", sk.state.speed, " y ", sk.hull.position.y, " airborne ", sk.state.airborne, " at ", sk.hull.position.round(), " pad ", sk.pad.round(), " rings ", sk.next_ring, " hull ", sk.hull_hp)
+		if sk._gear:
+			print("skyways gear: k ", sk._gear_k, " visible ", sk._gear.visible, " legs ", sk._gear.get_child_count(), " first leg at ", (sk._gear.get_child(0) as Node3D).global_position.round() if sk._gear.get_child_count() > 0 else Vector3.ZERO)
 	if descent and descent.wildlife:
 		var wl: Node3D = descent.wildlife
 		var counts := {}

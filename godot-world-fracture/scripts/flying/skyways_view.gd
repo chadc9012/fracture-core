@@ -76,6 +76,12 @@ var _hud: Label
 var _boxes: Array[AABB] = []
 var _cam_yaw := 0.0
 var _prompt_t := 0.0
+var _gear: Node3D          # the jets' undercarriage (none of the Meshy jets model one): down on the pad, folded in flight
+var _gear_k := 1.0         # 1 down, 0 folded away
+var _gear_wheels: Array[Node3D] = []
+var _touch_puff: CPUParticles3D
+var _was_airborne := false
+var look_dev := Vector3.ZERO   # a fixed camera offset for the shot hook (zero: the chase camera)
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -167,6 +173,8 @@ func _start() -> void:
 	StreetCar.face_forward(hull)
 	region.world().add_child(hull)
 	_fit_hull(float(c.length))
+	if String(c.kind) == "JET":
+		_build_gear(float(c.length))
 	var sp: Vector3 = region.stand_point()
 	var water := String(profile.mode) == "WATER"
 	pad = _clear_spot(sp, water)
@@ -214,6 +222,115 @@ func _fit_hull(length: float) -> void:
 		if ch is Node3D:
 			(ch as Node3D).scale *= k
 			(ch as Node3D).position = (ch as Node3D).position * k - Vector3(0, aabb.position.y * k, 0)
+
+## the undercarriage (asset catalog "landing gear"): a nose strut and two mains under the belly — the hull rests
+## Handling.RIDE above the ground, so the struts span that gap — each with a tyre; folded into the hull once the jet
+## has climbed clear, dropped again as it comes down (_step_gear)
+func _build_gear(length: float) -> void:
+	var aabb := AABB()
+	var first := true
+	for ch in hull.find_children("*", "MeshInstance3D", true, false):
+		var mi := ch as MeshInstance3D
+		var t := Transform3D.IDENTITY
+		var pn: Node = mi
+		while pn != hull and pn is Node3D:
+			t = (pn as Node3D).transform * t
+			pn = pn.get_parent()
+		var a := t * mi.get_aabb()
+		aabb = a if first else aabb.merge(a)
+		first = false
+	if first:
+		return
+	var k := length / 17.0
+	var strut := StandardMaterial3D.new()
+	strut.albedo_color = Color(0.75, 0.76, 0.78)
+	strut.metallic = 0.8
+	strut.roughness = 0.35
+	var rubber := StandardMaterial3D.new()
+	rubber.albedo_color = Color(0.06, 0.06, 0.065)
+	rubber.roughness = 0.9
+	_gear = Node3D.new()
+	_gear.name = "gear"
+	hull.add_child(_gear)
+	_gear_wheels.clear()
+	var wr := 0.34 * k
+	var drop := Handling.RIDE - wr * 0.9     # the strut's length: belly to the tyre's axle
+	# the nose is -z (StreetCar.face_forward); the nose leg a third of the way back from it, the mains behind the middle
+	var nose_z := aabb.position.z + aabb.size.z * 0.3
+	var main_z := aabb.position.z + aabb.size.z * 0.58
+	var main_x := maxf(aabb.size.x * 0.16, 0.9 * k)
+	for leg: Vector3 in [Vector3(0, 0, nose_z), Vector3(-main_x, 0, main_z), Vector3(main_x, 0, main_z)]:
+		var l := Node3D.new()
+		l.position = Vector3(leg.x, 0.25 * k, leg.z)   # a little into the belly, never floating under it
+		_gear.add_child(l)
+		var sm := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.09 * k
+		cm.bottom_radius = 0.07 * k
+		cm.height = drop
+		cm.radial_segments = 8
+		sm.mesh = cm
+		sm.position = Vector3(0, -drop * 0.5, 0)
+		sm.material_override = strut
+		l.add_child(sm)
+		var wide: bool = leg.x != 0.0
+		for side in ([-1.0, 1.0] if wide else [0.0]):
+			var hub := Node3D.new()   # spins about the axle (x); the tyre is a cylinder laid on its side inside it
+			hub.position = Vector3(side * 0.14 * k, -drop, 0)
+			l.add_child(hub)
+			var w := MeshInstance3D.new()
+			var wm := CylinderMesh.new()
+			wm.top_radius = wr
+			wm.bottom_radius = wr
+			wm.height = 0.22 * k
+			wm.radial_segments = 14
+			w.mesh = wm
+			w.rotation.z = PI * 0.5
+			w.material_override = rubber
+			hub.add_child(w)
+			_gear_wheels.append(hub)
+	_touch_puff = CPUParticles3D.new()
+	_touch_puff.emitting = false
+	_touch_puff.one_shot = true
+	_touch_puff.explosiveness = 1.0
+	_touch_puff.amount = 24
+	_touch_puff.lifetime = 1.1
+	_touch_puff.mesh = QuadMesh.new()
+	(_touch_puff.mesh as QuadMesh).size = Vector2(0.9, 0.9) * k
+	_touch_puff.direction = Vector3(0, 1, 0)
+	_touch_puff.spread = 70.0
+	_touch_puff.initial_velocity_min = 1.5
+	_touch_puff.initial_velocity_max = 4.0
+	_touch_puff.gravity = Vector3(0, 0.6, 0)
+	_touch_puff.scale_amount_min = 1.0
+	_touch_puff.scale_amount_max = 2.4
+	_touch_puff.color = Color(0.85, 0.83, 0.8, 0.5)
+	var pm := StandardMaterial3D.new()
+	pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	pm.vertex_color_use_as_albedo = true
+	pm.albedo_color = Color(1, 1, 1, 0.35)
+	_touch_puff.mesh.surface_set_material(0, pm)
+	_touch_puff.position = Vector3(0, 0.1, main_z)
+	hull.add_child(_touch_puff)
+
+## the gear folds once the jet is 8 m clear and climbing, drops when it sinks under 40 m or slows toward landing speed;
+## the tyres spin with ground speed; the touchdown kicks up a puff
+func _step_gear(dt: float, alt: float) -> void:
+	if _gear == null:
+		return
+	var down := not state.airborne or alt < 8.0 or (alt < 40.0 and state.vy < 0.0) or absf(state.speed) < float(profile.takeoff) * 0.9
+	_gear_k = move_toward(_gear_k, 1.0 if down else 0.0, dt * 0.9)
+	_gear.scale.y = maxf(_gear_k, 0.02)
+	_gear.visible = _gear_k > 0.03
+	if not state.airborne and absf(state.speed) > 0.5:
+		for w in _gear_wheels:
+			w.rotation.x += state.speed * dt / 0.34
+	if _was_airborne and not state.airborne and _touch_puff:
+		_touch_puff.restart()
+		_touch_puff.emitting = true
+	_was_airborne = state.airborne
 
 ## the yaw (forward = -z rotated) whose run of 200 m ahead has the most water (boats) or the fewest buildings (aircraft)
 func _open_heading(from: Vector3, water: bool) -> float:
@@ -407,10 +524,16 @@ func _process(dt: float) -> void:
 	if cam_pos.y > hull.position.y + cd.y + 10.0:
 		# the ground behind rises into the camera: pull in toward the craft instead of looking from the hillside
 		cam_pos = hull.position + back * cd.x * 0.4 + Vector3(0, cd.y, 0)
-	cam.position = cam.position.lerp(cam_pos, minf(1.0, 6.0 * dt))
-	cam.look_at(hull.position + Vector3(0, 1.5, 0) + fwd * 6.0, Vector3.UP)
+	if look_dev != Vector3.ZERO:
+		# a look-dev camera (main.gd shot hook skyways:…:side): a fixed offset from the hull, looking at its middle
+		cam.position = hull.position + look_dev
+		cam.look_at(hull.position + Vector3(0, 0.8, 0), Vector3.UP)
+	else:
+		cam.position = cam.position.lerp(cam_pos, minf(1.0, 6.0 * dt))
+		cam.look_at(hull.position + Vector3(0, 1.5, 0) + fwd * 6.0, Vector3.UP)
 	controls.show_hull(hull_hp, 0.0, 0.0)
 	var alt: float = hull.position.y - (region.water_level() if String(profile.mode) == "WATER" else region.ground(px, pz))
+	_step_gear(dt, alt)
 	var k := clampf(absf(state.speed) / maxf(top_speed, 1.0), 0.0, 1.0)
 	Sound.loop_set("craft", 0.8 + k * 0.7, -12.0 + k * 6.0)
 	Sound.loop_set("wind", 1.0 + k * 0.4, -26.0 + k * 14.0)
