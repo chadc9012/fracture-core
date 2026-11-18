@@ -406,6 +406,8 @@ func _title_action(action: String) -> void:
 			_open_profile()
 		"triumphs":
 			_open_triumphs()
+		"journal":
+			_open_journal()
 		"cloud":
 			_close_title()
 			_open_cloud()
@@ -429,6 +431,17 @@ func _open_profile() -> void:
 		profile_view.queue_free()
 		profile_view = null)
 	_overlays.add_child(profile_view)
+
+## Cyberpunk's Journal over whatever is open (scripts/progress/journal_view.gd)
+var journal_view: Control
+func _open_journal() -> void:
+	if journal_view:
+		return
+	journal_view = load("res://scripts/progress/journal_view.gd").new()
+	journal_view.closed.connect(func():
+		journal_view.queue_free()
+		journal_view = null)
+	_overlays.add_child(journal_view)
 
 ## Destiny's Triumphs and Collections over whatever is open (scripts/progress/triumphs_view.gd)
 var triumphs_view: Control
@@ -1075,6 +1088,8 @@ func _shoot(path: String, opts: Array) -> void:
 		# triumphs | collections  the Triumphs screen on that tab
 		if String(o) == "triumphs" or String(o) == "collections":
 			_open_triumphs(String(o))
+		if String(o) == "journal":
+			_open_journal()
 		# creator[:<tab>]  the operator creator on a tab (body by default)
 		if String(o).begins_with("creator"):
 			_open_creator()
