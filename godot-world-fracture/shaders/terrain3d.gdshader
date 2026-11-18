@@ -59,11 +59,11 @@ void fragment() {
 		float breathe = 0.85 + 0.15 * sin(TIME * 1.3 + vnoise(w * 0.02) * 6.0);
 		// magma (the crater, the pools) is mostly molten with crust rafts floating on it — it was solid white-hot and
 		// blew out the whole crater (Nov 18, against the owner's volcano photo: dark rock, orange-red seams)
-		float hot = cover == i_magma ? mix(0.35, 1.0, smoothstep(0.5, 0.9, seam)) * breathe
+		float hot = cover == i_magma ? mix(0.15, 0.85, smoothstep(0.55, 0.95, seam)) * breathe
 			: max(smoothstep(0.8, 0.97, seam), smoothstep(0.86, 0.99, v)) * breathe;
 		vec3 crust = vec3(0.07, 0.05, 0.05) * (0.8 + 0.4 * vnoise(fl * 3.0));
 		c = mix(crust, vec3(0.95, 0.38, 0.1), hot);
-		emit = mix(vec3(0.75, 0.12, 0.02), vec3(1.0, 0.38, 0.08), hot * hot) * hot * 2.2;
+		emit = mix(vec3(0.75, 0.12, 0.02), vec3(1.0, 0.34, 0.06), hot * hot) * hot * (cover == i_magma ? 1.5 : 2.2);
 	} else if (cover == i_ash || cover == i_basalt) {
 		// volcanic ground: cinder grain, darker cooled-flow plates with cracks between, a few embers still glowing
 		float plate = vnoise(w * 0.09 + vnoise(w * 0.02) * 3.0);

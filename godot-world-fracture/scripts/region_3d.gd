@@ -615,7 +615,7 @@ func _style_for(id: String) -> Dictionary:
 			# storm over black basalt — slate-blue cloud, cold light from the storm, the lava the only warm thing in the land
 			# (it was an orange noon haze, every surface the same rust, the crater blown out to white)
 			s.merge({"top": "#0c1120", "hor": "#3a3448", "fog": "#272433", "fog_d": 0.0019, "sun": 0.42, "sun_col": "#a9b8e0", "sun_el": 32.0,
-				"amb": 0.32, "amb_col": "#414a6a", "night": 0.8, "sat": 1.0, "exp": 1.25, "planet": false, "sky": "storm",
+				"amb": 0.55, "amb_col": "#4a5276", "night": 0.8, "sat": 1.0, "exp": 1.25, "planet": false, "sky": "storm",
 				"glow": "#ff4a14", "glow_amt": 0.35, "embers": 1.0}, true)
 		"frostspire":
 			# the owner's "NIGHT / MOON - FROSTSPIRE MOUNTAINS" photos: a big moon over the peaks, deep blue night, the snow
