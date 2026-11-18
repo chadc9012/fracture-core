@@ -88,9 +88,28 @@ static func tree_lods(kind: String, height: float) -> Array:
 	var cards := glb_mesh("res://models/foliage/%s-cards.glb" % kind, height)
 	if full == null or cards == null:
 		return []
+	_matte_cards(cards)
 	return [[full, Phone.tree_detail_range()], [cards, 900.0]]
 
 const Phone := preload("res://scripts/phone.gd")
+
+## the leaf cards seen from above read as grey-white frost over the Verdant Forest (their crown quad faces the sun and
+## took a full specular sheen): matte, no specular, and a touch deeper green so the far forest matches the near trees
+## (Verdant pass, Nov 18). Done once per cached mesh.
+static func _matte_cards(mesh: Mesh) -> void:
+	if mesh.has_meta("matte"):
+		return
+	mesh.set_meta("matte", true)
+	for i in mesh.get_surface_count():
+		var m := mesh.surface_get_material(i) as BaseMaterial3D
+		if m == null:
+			continue
+		var d := m.duplicate() as BaseMaterial3D
+		d.roughness = 1.0
+		d.metallic = 0.0
+		d.metallic_specular = 0.0
+		d.albedo_color = d.albedo_color * Color(0.8, 0.9, 0.74)
+		mesh.surface_set_material(i, d)
 
 static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 	var mix := mix_for(r.map_id)

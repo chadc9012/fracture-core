@@ -32,13 +32,15 @@ void fragment() {
 	int cover = int(round(texture(data_tex, UV + j * texel * 1.6).r * 255.0));
 	vec3 c = pal[clamp(cover, 0, 31)];
 	vec2 w = wpos;
-	float grain = hash2(floor(w * 3.0)) - 0.5;
+	// smooth grain (two octaves of value noise): the hashed 33 cm cells it replaced read as pixel squares up close
+	// (Verdant Forest pass, Nov 18)
+	float grain = vnoise(w * 2.3) * 0.6 + vnoise(w * 7.1 + 5.3) * 0.4 - 0.5;
 	float rough = 0.92;
 	vec3 emit = vec3(0.0);
 	if (cover == i_forest || cover == i_dense || cover == i_marsh) {
 		float crown = vnoise(w * 0.8);
 		c += vec3(0.7, 1.0, 0.5) * ((crown - 0.5) * 40.0 + grain * 10.0) / 255.0;
-		if (crown < 0.3) c *= 0.72;
+		c *= mix(0.74, 1.0, smoothstep(0.18, 0.42, crown));   // soft shade under the crowns, not hard-edged blots
 	} else if (cover == i_meadow || cover == i_grass || cover == i_scrub) {
 		c += (vec3(22.0, 24.0, 10.0) * (vnoise(w * 0.06) - 0.5) + vec3(14.0, 14.0, 8.0) * grain) / 255.0;
 	} else if (cover == i_desert || cover == i_dunes || cover == i_sandstone || cover == i_wash) {

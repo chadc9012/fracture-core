@@ -74,7 +74,7 @@ func _ready() -> void:
 	_setup_world(String(q0.get("world", REGION)), String(q0.get("start", "crash-site")))
 	add_child(controls)
 	_objective = Label.new()
-	_objective.position = Vector2(16, 60)
+	_objective.position = Vector2(16, 122)   # under touch_controls' hull / weapon / ammo / grenade lines (HUD rule, Nov 16)
 	_objective.add_theme_font_size_override("font_size", 16)
 	_objective.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	_objective.add_theme_constant_override("shadow_offset_x", 1)
@@ -83,7 +83,7 @@ func _ready() -> void:
 	add_child(_objective)
 	var back := Button.new()
 	back.text = "← GLOBE"
-	back.position = Vector2(16, 16)
+	back.position = Vector2(250, 8)   # right of the hull bar
 	back.pressed.connect(func(): _save(); closed.emit())
 	add_child(back)
 	cutscene = Cutscene.new()
