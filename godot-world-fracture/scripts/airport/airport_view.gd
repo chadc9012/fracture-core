@@ -59,7 +59,7 @@ const HANGAR_X := [86.0, 122.0, 158.0]         # bay centres; each 30 m wide (x)
 const RUNWAY_Z := -140.0
 ## each airport's look (airport.gd AIRPORTS style): sky, land, apron, walls, roof, accents, trees, what stands round it
 const LOOKS := {
-	"nexus": { "top": Color(0.22, 0.45, 0.82), "hor": Color(0.72, 0.82, 0.92), "fog": Color(0.75, 0.82, 0.9), "fogd": 0.0006,
+	"nexus": { "top": Color(0.16, 0.38, 0.82), "hor": Color(0.62, 0.76, 0.92), "fog": Color(0.7, 0.78, 0.9), "fogd": 0.00035, "sun": 2.5,
 		"land": Color(0.36, 0.5, 0.3), "apron": Color(0.62, 0.64, 0.67), "wall": Color(0.88, 0.89, 0.92), "roof": Color(0.92, 0.93, 0.95),
 		"a1": Color(0.25, 0.6, 1.0), "a2": Color(1.0, 0.82, 0.35), "tree": "palm", "skyline": "nexus", "airline": "NEXUSAIR", "feature": "palms", "extras": [] },
 	"neon": { "top": Color(0.03, 0.02, 0.08), "hor": Color(0.28, 0.1, 0.32), "fog": Color(0.25, 0.12, 0.3), "fogd": 0.0011,
@@ -160,6 +160,7 @@ var _snow: CPUParticles3D
 var _flash: DirectionalLight3D     # the Shattered Expanse's lightning
 var _aurora: Node3D                # Aurora Gate's ribbons (they sway)
 var _flash_t := 4.0
+var dressing: RefCounted   # airport_dressing.gd
 var _look: Array = []            # [from, to] for a fixed look-dev camera (main.gd --shot airport:...)
 
 func _ready() -> void:
@@ -206,6 +207,9 @@ func _ready() -> void:
 	_cargo_terminal()
 	_skyline()
 	_extras()
+	# the owner's airport boards, detail by detail (airport_dressing.gd, Nov 18)
+	dressing = load("res://scripts/airport/airport_dressing.gd").new()
+	dressing.dress(self)
 	_people()
 	# big cells: the airport is one open plain seen whole from the apron, so per-material batches across ~200 m cut the
 	# draw calls far more than finer culling would save (Nov 11: ~700 → see README on the phone tier)
@@ -1135,14 +1139,15 @@ func _terminal() -> void:
 	for c in [Vector3(-48.5, 0, 26.5), Vector3(48.5, 0, 26.5), Vector3(-48.5, 0, -30.5), Vector3(48.5, 0, -30.5)]:
 		_box(Vector3(3.2, WALL_H + 1.5, 3.2), c + Vector3(0, (WALL_H + 1.5) * 0.5, 0), wall, null, true)
 		_box(Vector3(3.3, 0.25, 3.3), c + Vector3(0, WALL_H + 1.4, 0), _glow(accent, 2.5))
-	# the name over the doors
+	# the name over the doors (an airport with a portal wears it on the portal's face: airport_dressing.gd)
 	var a: Dictionary = Air.AIRPORTS[code]
-	# under the canopy, over the doors
-	_box(Vector3(40, 4.4, 0.8), Vector3(0, 10.6, 26.7), _mat(Color(0.06, 0.07, 0.1), 0.3, 0.7))
-	_text(String(a.city).to_upper(), Vector3(0, 11.5, 27.2), 280, accent.lerp(Color.WHITE, 0.55))
-	_text("%s (%s)" % [String(a.name).trim_prefix(String(a.city) + " ").to_upper(), Air.tag(code)], Vector3(0, 9.6, 27.2), 140, Color(0.92, 0.95, 1.0))
-	_box(Vector3(40, 0.2, 0.3), Vector3(0, 8.3, 27.1), _glow(accent, 3.0))
-	_box(Vector3(40, 0.2, 0.3), Vector3(0, 12.9, 27.1), _glow(accent, 3.0))
+	if not load("res://scripts/airport/airport_dressing.gd").has_portal(String(a.style)):
+		# under the canopy, over the doors
+		_box(Vector3(40, 4.4, 0.8), Vector3(0, 10.6, 26.7), _mat(Color(0.06, 0.07, 0.1), 0.3, 0.7))
+		_text(String(a.city).to_upper(), Vector3(0, 11.5, 27.2), 280, accent.lerp(Color.WHITE, 0.55))
+		_text("%s (%s)" % [String(a.name).trim_prefix(String(a.city) + " ").to_upper(), Air.tag(code)], Vector3(0, 9.6, 27.2), 140, Color(0.92, 0.95, 1.0))
+		_box(Vector3(40, 0.2, 0.3), Vector3(0, 8.3, 27.1), _glow(accent, 3.0))
+		_box(Vector3(40, 0.2, 0.3), Vector3(0, 12.9, 27.1), _glow(accent, 3.0))
 	_text("DEPARTURES ↑  ·  ARRIVALS", Vector3(0, 5.6, 26.5), 90, accent2)
 	# the control tower on the grass west of the apron (Nov 18 clean-up: it stood in the middle of the apron, between
 	# the hangars and the gates), on its two-storey base block
@@ -1292,10 +1297,11 @@ func _roof(frame: Material) -> void:
 # --------------------------------------------------------------------------------------------- the forecourt
 func _forecourt() -> void:
 	# walls closing the forecourt off from the airstrip (the way airside is through security)
+	# (the forecourt's sides and back are hedges since Nov 18 — airport_dressing.gd — over these same lines)
 	for side in [-1.0, 1.0]:
-		_box(Vector3(0.4, 3.0, 54), Vector3(side * 60.0, 1.5, 53), _mat(Color(0.3, 0.32, 0.36), 0.5, 0.5), null, true)
+		obstacles.append(AABB(Vector3(side * 60.0 - 0.2, 0, 26.0), Vector3(0.4, 3.0, 54.0)))
 		_box(Vector3(152, 3.0, 0.4), Vector3(side * 124.0, 1.5, 26.0), _mat(Color(0.32, 0.34, 0.36), 0.6, 0.6), null, true)
-	_box(Vector3(120, 3.0, 0.4), Vector3(0, 1.5, 80), _mat(Color(0.3, 0.32, 0.36), 0.5, 0.5), null, true)
+	obstacles.append(AABB(Vector3(-60.0, 0, 79.8), Vector3(120.0, 3.0, 0.4)))
 	# the globe fountain: a round basin, jets, the holographic globe over it
 	var fc := Vector3(-30, 0, 36)
 	_cyl(6.5, 0.8, fc + Vector3(0, 0.4, 0), _mat(Color(0.7, 0.72, 0.76), 0.3, 0.4), null, -1, 32)
@@ -1371,7 +1377,8 @@ func _checkin() -> void:
 			l.position.x = 11.4
 		_board_labels.append(l)
 	_box(Vector3(24.4, 0.15, 0.4), Vector3(0, 12.9, SECURITY_Z), _glow(accent, 3.0))
-	_feature(Vector3(-6, 0, 15.5))
+	if not String(look.get("feature", "")) in ["palms", "hologram"] or not code in ["NXC", "NEC"]:
+		_feature(Vector3(-6, 0, 15.5))     # Nexus and Neon have the LED column there (airport_dressing.gd)
 	# seating in the hall
 	for k in 4:
 		_bench(Vector3(-10.0 + (k % 2) * 20.0 - 6.0, 0, 12.0 + float(k / 2) * 7.0), 0.0)
@@ -1639,9 +1646,31 @@ func _hangars() -> void:
 		for side in [-1.0, 1.0]:
 			_box(Vector3(0.5, 10, 30), Vector3(cx + side * 14.0, 5, 1), shell, null, true)
 		_box(Vector3(28.5, 10, 0.5), Vector3(cx, 5, 16), shell, null, true)
-		var roof := _cyl(15.0, 30.0, Vector3(cx, 10, 1), shell, null, -1, 24)
-		roof.rotation.x = PI * 0.5
-		roof.scale = Vector3(1.0, 1.0, 0.35)
+		# the barrel roof: the upper half of a flattened barrel, sitting on the walls (a whole squashed cylinder dipped
+		# 5 m into the bay, a dark lid over the hangar from inside; Nov 18)
+		var rs := SurfaceTool.new()
+		rs.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for j in 20:
+			var t0 := PI * float(j) / 20.0
+			var t1 := PI * float(j + 1) / 20.0
+			var a0 := Vector3(cx + 15.0 * cos(t0), 10.0 + 5.25 * sin(t0), -14.0)
+			var a1 := Vector3(cx + 15.0 * cos(t1), 10.0 + 5.25 * sin(t1), -14.0)
+			var b0 := Vector3(a0.x, a0.y, 16.0)
+			var b1 := Vector3(a1.x, a1.y, 16.0)
+			for q in [a0, a1, b1, a0, b1, b0]:
+				rs.set_uv(Vector2(q.x / 4.0, q.z / 4.0))
+				rs.add_vertex(q)
+			# the gable ends
+			for zz in [-14.0, 16.0]:
+				for q in [Vector3(cx, 10.0, zz), Vector3(a0.x, a0.y, zz), Vector3(a1.x, a1.y, zz)]:
+					rs.add_vertex(q)
+		rs.generate_normals()
+		var roof := MeshInstance3D.new()
+		roof.mesh = rs.commit()
+		var rm: Material = shell.duplicate()
+		(rm as BaseMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
+		roof.material_override = rm
+		static_root.add_child(roof)
 		_box(Vector3(28.5, 2.0, 0.6), Vector3(cx, 11.0, -14.2), _mat(Color(0.06, 0.07, 0.1), 0.3, 0.6))
 		_text("PRIVATE HANGAR %s" % bay, Vector3(cx, 11.0, -14.6), 120, accent2, PI)
 		_box(Vector3(28.5, 0.15, 0.3), Vector3(cx, 10.0, -14.55), _glow(accent, 3.0))
