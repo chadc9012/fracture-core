@@ -175,7 +175,7 @@ func _caption() -> String:
 	elif region and String(region.map_id) != "":
 		where = String(Data.map(String(region.map_id)).get("name", region.map_id))
 		var a := _area_name()
-		if a != "":
+		if a != "" and a != where:
 			where = "%s · %s" % [a, where]
 	if world_mode and world_pos.is_valid():
 		var g: Vector3 = world_pos.call()

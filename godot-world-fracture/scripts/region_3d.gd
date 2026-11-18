@@ -606,24 +606,37 @@ func _style_for(id: String) -> Dictionary:
 		"neon-city":
 			# the owner's Neon boards (Nov 15, NFS night): the moonlit navy sky over a magenta horizon glow, navy light on
 			# the walls (not a violet wash), warm windows and sodium streets with the neon as the accent (Nov 18 pass)
-			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#1c1638", "fog_d": 0.0022, "sun": 0.35, "sun_col": "#9fb2ff", "sun_el": 34.0, "amb": 0.6, "amb_col": "#3a4070", "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.1, "moon_sky": true, "exp": 1.3}, true)
+			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#1c1638", "fog_d": 0.0022, "sun": 0.18, "sun_col": "#b4bce6", "sun_el": 34.0, "amb": 0.45, "amb_col": "#343a62", "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.1, "moon_sky": true, "exp": 1.3}, true)
 		"nexus":
 			# still night, but moonlit enough to read the island, parks and streets (it was near-black outside the towers)
 			s.merge({"top": "#0d1a30", "hor": "#3a5278", "fog": "#24324a", "fog_d": 0.0016, "sun": 0.28, "sun_col": "#a9bfff", "sun_el": 34.0, "amb": 0.6, "night": 1.0, "neon": 0.55, "wet": 0.9, "sat": 1.0}, true)
 		"ember":
-			s.merge({"top": "#2c140e", "hor": "#c05628", "fog": "#6a2e1e", "fog_d": 0.0022, "sun": 0.85, "sun_col": "#ffb27a", "sun_el": 18.0, "amb": 0.5}, true)
+			# the owner's "STORM - EMBER PEAKS" photo (docs/reference/world-photos/storm-ember.jpg, volcano.jpg): a night
+			# storm over black basalt — slate-blue cloud, cold light from the storm, the lava the only warm thing in the land
+			# (it was an orange noon haze, every surface the same rust, the crater blown out to white)
+			s.merge({"top": "#0c1120", "hor": "#3a3448", "fog": "#272433", "fog_d": 0.0019, "sun": 0.42, "sun_col": "#a9b8e0", "sun_el": 32.0,
+				"amb": 0.55, "amb_col": "#4a5276", "night": 0.8, "sat": 1.0, "exp": 1.25, "planet": false, "sky": "storm",
+				"glow": "#ff4a14", "glow_amt": 0.35, "embers": 1.0}, true)
 		"frostspire":
-			s.merge({"top": "#7c97b4", "hor": "#e8eef4", "fog": "#d4dee6", "fog_d": 0.0024, "sun": 1.0, "sun_col": "#eef4ff", "sun_el": 22.0, "amb": 0.7}, true)
+			# the owner's "NIGHT / MOON - FROSTSPIRE MOUNTAINS" photos: a big moon over the peaks, deep blue night, the snow
+			# lit blue-white, the dark rock showing on the steep faces, the settlements' lights warm in the valleys (it was
+			# a white-out: white sky, white fog, white ground, no shape)
+			s.merge({"top": "#050b22", "hor": "#2a4a86", "fog": "#1e3260", "fog_d": 0.0016, "sun": 0.85, "sun_col": "#b8ccff", "sun_el": 24.0, "sun_az": 120.0,
+				"amb": 0.38, "amb_col": "#3e5590", "night": 0.75, "sat": 1.05, "exp": 1.1, "planet": false, "sky": "moon", "glow": "#3d5ea8", "glow_amt": 0.25}, true)
 		"swamps":
 			s.merge({"top": "#4c5b55", "hor": "#93a08a", "fog": "#6f7c66", "fog_d": 0.0042, "sun": 0.7, "sun_col": "#e8f0d0", "sun_el": 26.0, "amb": 0.6}, true)
 		"veridan", "riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
 		"wastelands":
-			s.merge({"top": "#5f97c8", "hor": "#e6d0a6", "fog": "#d4c09c", "fog_d": 0.0012, "sun": 1.5, "sun_col": "#fff0d0", "sun_el": 52.0, "amb": 0.6}, true)
+			# the owner's "SUNSET - THE WASTELANDS" photo: the sun on the horizon, an orange sky under streaked cloud, red
+			# earth in long shadows (it was a white noon: the ground bleached to cream, no shadow, no shape)
+			s.merge({"top": "#2e3f7a", "hor": "#f08a48", "fog": "#b8704a", "fog_d": 0.0014, "sun": 1.7, "sun_col": "#ffa45c", "sun_el": 8.0, "sun_az": 150.0,
+				"amb": 0.42, "sat": 1.05, "exp": 0.95, "planet": true, "sky": "sunset", "glow": "#ff7a30", "glow_amt": 0.35, "tint": Vector3(0.92, 0.7, 0.52)}, true)
 		"solara":
-			# its pale dune sand blew out to white under the Wastelands' noon sun: a lower, warmer sun and less exposure
-			# keep the dunes' shading and the sand's colour
-			s.merge({"top": "#4f8cc4", "hor": "#e9c99a", "fog": "#d8b98e", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95}, true)
+			# the owner's "DAY - SOLARA" photo (Nov 18): a deep blue sky with white cloud over golden sand (it read as pale
+			# cream). A lower, warmer sun and less exposure keep the dunes' shading (the noon sun blew them out to white)
+			s.merge({"top": "#2c6cc0", "hor": "#bcd6ec", "fog": "#d9c6a2", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95,
+				"sky": "day", "tint": Vector3(1.0, 0.84, 0.64)}, true)
 		"storm":
 			# the board's floating islands: a violet storm dusk, warm low sun through the clouds, the crystals glowing
 			s.merge({"top": "#252a58", "hor": "#a585c0", "fog": "#6a6390", "fog_d": 0.0026, "sun": 1.0, "sun_col": "#ffc79a", "sun_el": 14.0, "amb": 0.65, "sat": 1.1}, true)
@@ -668,7 +681,13 @@ func _build_env() -> void:
 		sm.ground_horizon_color = Color(_style.hor).darkened(0.2)
 		sm.ground_bottom_color = Color(_style.fog).darkened(0.5)
 		sm.sun_angle_max = 8.0
-		if not _style.get("moon_sky", false):
+		if _style.has("sky"):
+			# the owner's world photos: a cloud deck, the sun's or the moon's disc, a glow on the horizon (region_sky.gd)
+			var to_light := Basis.from_euler(Vector3(deg_to_rad(-float(_style.sun_el)), deg_to_rad(-float(_style.get("sun_az", 35.0))), 0.0)).z
+			sky.sky_material = preload("res://scripts/region_sky.gd").make(String(_style.sky), _style, to_light)
+			sky.radiance_size = Sky.RADIANCE_SIZE_64
+			_env.sky = sky
+		elif not _style.get("moon_sky", false):
 			sky.sky_material = sm
 			_env.sky = sky
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if not _style.under else Environment.AMBIENT_SOURCE_COLOR
@@ -695,7 +714,7 @@ func _build_env() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.light_color = Color(_style.sun_col)
 	sun.light_energy = _style.sun
-	sun.rotation_degrees = Vector3(-float(_style.sun_el), -35.0, 0)
+	sun.rotation_degrees = Vector3(-float(_style.sun_el), -float(_style.get("sun_az", 35.0)), 0)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 320.0
 	Phone.fit_sun(sun, 160.0)
@@ -788,9 +807,12 @@ func _build_ground() -> void:
 	mat.set_shader_parameter("bounds", Vector4(b.x0, b.z0, b.span, 0))
 	mat.set_shader_parameter("data_tex", Data.texture("maps/%s.data.pngb" % map_id))
 	mat.set_shader_parameter("wet", _style.wet)
+	mat.set_shader_parameter("embers", float(_style.get("embers", 0.0)))
+	mat.set_shader_parameter("tint", _style.get("tint", Vector3.ONE))
 	for pair in [["i_forest", "forest"], ["i_dense", "denseForest"], ["i_marsh", "marsh"], ["i_meadow", "meadow"], ["i_grass", "grass"], ["i_scrub", "scrub"],
 			["i_desert", "desert"], ["i_dunes", "dunes"], ["i_sandstone", "sandstone"], ["i_wash", "wash"], ["i_lava", "lava"], ["i_magma", "magma"],
-			["i_urban", "urban"], ["i_paved", "paved"], ["i_town", "town"], ["i_snow", "snow"], ["i_ice", "ice"], ["i_crystal", "crystal"], ["i_rift", "rift"]]:
+			["i_urban", "urban"], ["i_paved", "paved"], ["i_town", "town"], ["i_snow", "snow"], ["i_ice", "ice"], ["i_crystal", "crystal"], ["i_rift", "rift"],
+			["i_ash", "ash"], ["i_basalt", "basalt"]]:
 		mat.set_shader_parameter(pair[0], covers.find(pair[1]))
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
@@ -1084,16 +1106,18 @@ func _build_rings() -> void:
 				mat.emission = Color(0.3, 0.7, 1.0)
 				mat.emission_energy_multiplier = 0.12 if city_inside else 0.3 + _style.night
 			"hazard":
-				var c := CylinderMesh.new()
-				c.top_radius = rad
-				c.bottom_radius = rad
-				c.height = 4.0
-				mi.mesh = c
-				y += 2.0
-				mat.albedo_color = Color(0.85, 0.1, 0.1, 0.18)
+				# a thin warning line on the ground at the zone's edge (it was a 4 m red glass wall: the "red dome" over
+				# Ember's Smoldering Trench, Nov 18)
+				var t := TorusMesh.new()
+				t.inner_radius = rad - 0.45
+				t.outer_radius = rad
+				t.rings = 96
+				mi.mesh = t
+				y += 0.3
+				mat.albedo_color = Color(1.0, 0.32, 0.12, 0.55)
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-				mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			"arena", "fence", "ring":
 				var t := TorusMesh.new()
 				t.inner_radius = rad - (1.2 if r[3] == "arena" else 0.35)

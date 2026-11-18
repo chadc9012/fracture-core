@@ -59,7 +59,7 @@ const HANGAR_X := [86.0, 122.0, 158.0]         # bay centres; each 30 m wide (x)
 const RUNWAY_Z := -140.0
 ## each airport's look (airport.gd AIRPORTS style): sky, land, apron, walls, roof, accents, trees, what stands round it
 const LOOKS := {
-	"nexus": { "top": Color(0.16, 0.38, 0.82), "hor": Color(0.62, 0.76, 0.92), "fog": Color(0.7, 0.78, 0.9), "fogd": 0.00035, "sun": 2.5,
+	"nexus": { "top": Color(0.16, 0.38, 0.82), "hor": Color(0.62, 0.76, 0.92), "fog": Color(0.7, 0.78, 0.9), "fogd": 0.00035, "sun": 2.1,
 		"land": Color(0.36, 0.5, 0.3), "apron": Color(0.62, 0.64, 0.67), "wall": Color(0.88, 0.89, 0.92), "roof": Color(0.92, 0.93, 0.95),
 		"a1": Color(0.25, 0.6, 1.0), "a2": Color(1.0, 0.82, 0.35), "tree": "palm", "skyline": "nexus", "airline": "NEXUSAIR", "feature": "palms", "extras": [] },
 	"neon": { "top": Color(0.03, 0.02, 0.08), "hor": Color(0.28, 0.1, 0.32), "fog": Color(0.25, 0.12, 0.3), "fogd": 0.0011,
@@ -68,7 +68,7 @@ const LOOKS := {
 	# oceanfront runways, a seaplane pier, white resorts (owner: "luxury terminals, seaplanes, resort transportation")
 	"tropical": { "top": Color(0.12, 0.45, 0.9), "hor": Color(0.62, 0.86, 0.95), "fog": Color(0.7, 0.88, 0.95), "fogd": 0.00025,
 		"land": Color(0.78, 0.66, 0.45), "apron": Color(0.8, 0.8, 0.78), "wall": Color(0.97, 0.97, 0.95), "roof": Color(0.98, 0.98, 0.97),
-		"a1": Color(0.1, 0.8, 0.78), "a2": Color(1.0, 0.55, 0.35), "tree": "palm", "skyline": "", "airline": "AZURE AIR", "roof_shape": "tent", "walls": "plaster", "frame": Color(0.95, 0.96, 0.97), "glass": Color(0.5, 0.9, 0.9), "hangar": Color(0.95, 0.95, 0.93), "floor": ["floor_tiles_06", Color(0.96, 0.92, 0.84)], "ceil": Color(0.92, 0.86, 0.74), "feature": "palms", "extras": ["ocean", "seaplanes", "resorts"] },
+		"a1": Color(0.1, 0.8, 0.78), "a2": Color(1.0, 0.55, 0.35), "tree": "palm", "skyline": "", "airline": "AZURE AIR", "roof_shape": "tent", "walls": "plaster", "frame": Color(0.95, 0.96, 0.97), "glass": Color(0.5, 0.9, 0.9), "hangar": Color(0.95, 0.95, 0.93), "floor": ["marble_01", Color(0.96, 0.93, 0.86)], "ceil": Color(0.92, 0.86, 0.74), "feature": "palms", "extras": ["ocean", "seaplanes", "resorts"] },
 	# glaciers and snow peaks, heated (bare) runways, rescue orange (owner: "blizzards, difficult landings, rescue missions")
 	"arctic": { "top": Color(0.45, 0.55, 0.68), "hor": Color(0.86, 0.89, 0.93), "fog": Color(0.86, 0.89, 0.93), "fogd": 0.0012,
 		"land": Color(0.95, 0.97, 1.0), "apron": Color(0.66, 0.69, 0.73), "wall": Color(0.8, 0.84, 0.9), "roof": Color(0.95, 0.97, 1.0),
@@ -76,11 +76,11 @@ const LOOKS := {
 	# sandstone and gold, solar roofs, dunes and mesas (owner: "sandstone architecture, solar roofs, desert airstrips")
 	"desert": { "top": Color(0.2, 0.45, 0.85), "hor": Color(0.92, 0.76, 0.55), "fog": Color(0.92, 0.8, 0.62), "fogd": 0.00035,
 		"land": Color(0.78, 0.56, 0.32), "apron": Color(0.74, 0.68, 0.6), "wall": Color(0.88, 0.7, 0.5), "roof": Color(0.1, 0.14, 0.28),
-		"a1": Color(1.0, 0.72, 0.25), "a2": Color(0.3, 0.75, 1.0), "tree": "palm", "skyline": "", "airline": "SOLARA AIR", "roof_shape": "terraces", "walls": "sandstone", "frame": Color(0.72, 0.55, 0.35), "glass": Color(0.9, 0.75, 0.5), "hangar": Color(0.86, 0.72, 0.52), "floor": ["floor_tiles_06", Color(0.9, 0.74, 0.55)], "ceil": Color(0.95, 0.85, 0.68), "feature": "fountain", "extras": ["dunes", "solar"] },
+		"a1": Color(1.0, 0.72, 0.25), "a2": Color(0.3, 0.75, 1.0), "tree": "palm", "skyline": "", "airline": "SOLARA AIR", "roof_shape": "terraces", "walls": "sandstone", "frame": Color(0.72, 0.55, 0.35), "glass": Color(0.9, 0.75, 0.5), "hangar": Color(0.86, 0.72, 0.52), "floor": ["marble_01", Color(0.93, 0.83, 0.68)], "ceil": Color(0.95, 0.85, 0.68), "feature": "fountain", "extras": ["dunes", "solar"] },
 	# the coast by the Verdant Forest: seaplanes, and the submarine dock down to underwater Thalassia
 	"coastal": { "top": Color(0.18, 0.4, 0.62), "hor": Color(0.6, 0.76, 0.82), "fog": Color(0.62, 0.76, 0.8), "fogd": 0.0006,
 		"land": Color(0.32, 0.46, 0.3), "apron": Color(0.6, 0.63, 0.65), "wall": Color(0.75, 0.86, 0.9), "roof": Color(0.85, 0.92, 0.95),
-		"a1": Color(0.15, 0.75, 0.95), "a2": Color(0.95, 0.9, 0.55), "tree": "broadleaf", "skyline": "", "airline": "THALASSIA AIR", "roof_shape": "gull", "walls": "timber", "frame": Color(0.88, 0.9, 0.9), "glass": Color(0.55, 0.8, 0.9), "hangar": Color(0.7, 0.78, 0.82), "floor": ["wood_floor", Color(0.9, 0.85, 0.78)], "ceil": Color(0.88, 0.93, 0.95), "feature": "aquarium", "extras": ["ocean", "seaplanes", "subdock"] },
+		"a1": Color(0.15, 0.75, 0.95), "a2": Color(0.95, 0.9, 0.55), "tree": "broadleaf", "skyline": "", "airline": "THALASSIA AIR", "roof_shape": "gull", "walls": "timber", "frame": Color(0.88, 0.9, 0.9), "glass": Color(0.55, 0.8, 0.9), "hangar": Color(0.7, 0.78, 0.82), "floor": ["marble_01", Color(0.9, 0.94, 0.97)], "ceil": Color(0.88, 0.93, 0.95), "feature": "aquarium", "extras": ["ocean", "seaplanes", "subdock"] },
 	# black basalt, lava, a smoking volcano, heavy cargo (owner: "volcanic landscape, heavy cargo aircraft, mining, military")
 	"volcanic": { "top": Color(0.16, 0.11, 0.11), "hor": Color(0.55, 0.26, 0.16), "fog": Color(0.32, 0.2, 0.16), "fogd": 0.0014,
 		"land": Color(0.13, 0.12, 0.12), "apron": Color(0.42, 0.4, 0.38), "wall": Color(0.32, 0.32, 0.34), "roof": Color(0.3, 0.29, 0.28),
@@ -92,11 +92,11 @@ const LOOKS := {
 	# the owner's network board (Nov 15): Eldergrove's eco airfield under a green arched roof in the forest
 	"forest": { "top": Color(0.22, 0.46, 0.78), "hor": Color(0.7, 0.82, 0.86), "fog": Color(0.66, 0.78, 0.76), "fogd": 0.0005,
 		"land": Color(0.26, 0.42, 0.22), "apron": Color(0.58, 0.6, 0.6), "wall": Color(0.62, 0.48, 0.34), "roof": Color(0.3, 0.5, 0.28),
-		"a1": Color(0.45, 0.9, 0.4), "a2": Color(1.0, 0.8, 0.4), "tree": "conifer", "skyline": "", "airline": "ELDERGROVE AIR", "walls": "timber", "frame": Color(0.42, 0.32, 0.22), "glass": Color(0.6, 0.85, 0.7), "hangar": Color(0.5, 0.56, 0.48), "floor": ["wood_floor", Color(0.86, 0.78, 0.66)], "ceil": Color(0.78, 0.66, 0.5), "feature": "palms", "extras": ["mountains", "woods"], "rock": Color(0.3, 0.42, 0.3), "caps": false },
+		"a1": Color(0.45, 0.9, 0.4), "a2": Color(1.0, 0.8, 0.4), "tree": "conifer", "skyline": "", "airline": "ELDERGROVE AIR", "walls": "timber", "frame": Color(0.42, 0.32, 0.22), "glass": Color(0.6, 0.85, 0.7), "hangar": Color(0.5, 0.56, 0.48), "floor": ["marble_01", Color(0.86, 0.83, 0.78)], "ceil": Color(0.78, 0.66, 0.5), "feature": "palms", "extras": ["mountains", "woods"], "rock": Color(0.3, 0.42, 0.3), "caps": false },
 	# Verdant Forest: the central region's hub, broadleaf canopy and lakes, a sweeping gull roof
 	"verdant": { "top": Color(0.2, 0.44, 0.8), "hor": Color(0.72, 0.84, 0.88), "fog": Color(0.68, 0.8, 0.78), "fogd": 0.0007,
 		"land": Color(0.3, 0.48, 0.24), "apron": Color(0.6, 0.62, 0.63), "wall": Color(0.85, 0.88, 0.84), "roof": Color(0.88, 0.9, 0.86),
-		"a1": Color(0.3, 0.85, 0.55), "a2": Color(1.0, 0.85, 0.45), "tree": "broadleaf", "skyline": "", "airline": "VERDANT AIR", "roof_shape": "gull", "walls": "timber", "frame": Color(0.85, 0.88, 0.84), "glass": Color(0.55, 0.85, 0.75), "hangar": Color(0.72, 0.76, 0.7), "floor": ["wood_floor", Color(0.9, 0.84, 0.74)], "ceil": Color(0.86, 0.9, 0.82), "feature": "palms", "extras": ["mountains", "woods"], "rock": Color(0.28, 0.4, 0.26), "caps": false },
+		"a1": Color(0.3, 0.85, 0.55), "a2": Color(1.0, 0.85, 0.45), "tree": "broadleaf", "skyline": "", "airline": "VERDANT AIR", "roof_shape": "gull", "walls": "timber", "frame": Color(0.85, 0.88, 0.84), "glass": Color(0.55, 0.85, 0.75), "hangar": Color(0.72, 0.76, 0.7), "floor": ["marble_01", Color(0.9, 0.88, 0.82)], "ceil": Color(0.86, 0.9, 0.82), "feature": "palms", "extras": ["mountains", "woods"], "rock": Color(0.28, 0.4, 0.26), "caps": false },
 	# Skyhaven: the high-altitude gateway on the floating isles: thin blue air, islands and ruins drifting round the strip
 	"skyhaven": { "top": Color(0.1, 0.32, 0.85), "hor": Color(0.62, 0.8, 0.98), "fog": Color(0.75, 0.86, 0.98), "fogd": 0.0003,
 		"land": Color(0.36, 0.56, 0.3), "apron": Color(0.7, 0.72, 0.76), "wall": Color(0.92, 0.94, 0.98), "roof": Color(0.95, 0.96, 0.99),
@@ -108,7 +108,7 @@ const LOOKS := {
 	# Horizon Gate: the strategic west gate at sunset, a trade and logistics hub on the badlands
 	"horizon": { "top": Color(0.2, 0.26, 0.5), "hor": Color(1.0, 0.6, 0.32), "fog": Color(0.9, 0.62, 0.42), "fogd": 0.0005,
 		"land": Color(0.6, 0.42, 0.28), "apron": Color(0.62, 0.58, 0.54), "wall": Color(0.82, 0.7, 0.56), "roof": Color(0.3, 0.32, 0.38),
-		"a1": Color(1.0, 0.62, 0.25), "a2": Color(0.4, 0.75, 1.0), "tree": "", "skyline": "", "airline": "HORIZON AIR", "sun": 1.2, "roof_shape": "vault", "walls": "sandstone", "frame": Color(0.62, 0.48, 0.34), "glass": Color(1.0, 0.75, 0.5), "hangar": Color(0.66, 0.58, 0.5), "floor": ["floor_tiles_06", Color(0.86, 0.74, 0.6)], "ceil": Color(0.9, 0.8, 0.66), "feature": "fountain", "extras": ["mountains", "cargo"], "rock": Color(0.55, 0.36, 0.24), "caps": false },
+		"a1": Color(1.0, 0.62, 0.25), "a2": Color(0.4, 0.75, 1.0), "tree": "", "skyline": "", "airline": "HORIZON AIR", "sun": 1.2, "roof_shape": "vault", "walls": "sandstone", "frame": Color(0.62, 0.48, 0.34), "glass": Color(1.0, 0.75, 0.5), "hangar": Color(0.66, 0.58, 0.5), "floor": ["marble_01", Color(0.9, 0.8, 0.68)], "ceil": Color(0.9, 0.8, 0.66), "feature": "fountain", "extras": ["mountains", "cargo"], "rock": Color(0.55, 0.36, 0.24), "caps": false },
 }
 ## the flight: take-off, then the cruise over the clouds, then `flew` (seconds)
 const TAKEOFF_S := 8.0
@@ -1133,18 +1133,40 @@ func _ground() -> void:
 	pm.size = Vector2(5000, 5000)
 	land.mesh = pm
 	land.position = Vector3(0, -0.25, -300)
-	land.material_override = Materials.surface("rubber_tiles" if look.tree == "palm" and code in ["NXC", "NEC"] else "brushed_concrete", look.land, 12.0, 1.0)
+	land.material_override = Materials.surface("brushed_concrete", look.land, 30.0, 1.0)     # (Nexus had rubber tiles: a grid over its grass)
 	land.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(land)
 	# the airstrip's concrete, everything outside the building
 	# the airside concrete: apron, gates and hangar fronts (the runway and taxiway are asphalt over the land)
 	_box(Vector3(440, 0.2, 210), Vector3(15, -0.1, -79), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.3), 6.0))
 	_box(Vector3(130, 0.2, 60), Vector3(0, -0.1, 50), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.18), 6.0))
-	# the terminal's floor
-	var fl: Array = look.get("floor", ["marble_tiles", Color(0.92, 0.92, 0.94) if not night else Color(0.55, 0.5, 0.65)])
-	_box(Vector3(96, 0.12, 56), Vector3(0, 0.0, -2), Materials.pbr(String(fl[0]), fl[1], 3.0, 0.5))
-	# the forecourt plaza and the road
-	_box(Vector3(120, 0.12, 18), Vector3(0, 0.0, 35), Materials.pbr("floor_tiles_06", Color(0.8, 0.8, 0.82) if not night else Color(0.6, 0.52, 0.75), 2.5))
+	# the terminal's floor (Nov 18, the owner: "clean up the airport building floors"): polished large-format stone as
+	# the boards show — the stone's grain over 8 m, a low sheen, the slabs' joints every 4 m in a faint line; a carpet in
+	# each gate lounge, a mat inside the doors, a ring of inlay round the hall's centrepiece
+	var fl: Array = look.get("floor", ["marble_01", Color(0.93, 0.93, 0.95) if not night else Color(0.55, 0.5, 0.65)])
+	var stone_floor: BaseMaterial3D = Materials.pbr(String(fl[0]), fl[1], 8.0, 0.35)
+	_box(Vector3(96, 0.12, 56), Vector3(0, 0.0, -2), stone_floor)
+	var joint := _mat((fl[1] as Color).darkened(0.16), 0.4)
+	for x in range(-44, 45, 4):
+		_box(Vector3(0.035, 0.012, 56), Vector3(x, 0.066, -2), joint)
+	for z in range(-28, 25, 4):
+		_box(Vector3(96, 0.012, 0.035), Vector3(0, 0.066, z), joint)
+	var carpet := Materials.pbr("fabric_pattern_07", accent.darkened(0.72).lerp(Color(0.12, 0.13, 0.17), 0.5), 1.5, 1.0, -1.0, Color(0, 0, 0), false)
+	for x in [-24.0, 8.0, 40.0]:
+		_box(Vector3(28.0, 0.02, 7.0), Vector3(x - 8.0, 0.072, -21.5), carpet)
+	_box(Vector3(16.0, 0.02, 3.0), Vector3(0, 0.072, 24.0), _mat(Color(0.12, 0.12, 0.13), 0.95))
+	_cyl(7.6, 0.02, Vector3(-6, 0.072, 15.5), _mat(accent.darkened(0.35), 0.3, 0.4), null, 7.6, 48)
+	_cyl(7.2, 0.025, Vector3(-6, 0.074, 15.5), stone_floor, null, 7.2, 48)
+	# the forecourt plaza: big pale concrete slabs with granite bands at their edges and along the kerb
+	var slab := Materials.surface("concrete_floor", Color(0.66, 0.65, 0.63) if not night else Color(0.36, 0.34, 0.44), 6.0, 0.8)
+	_box(Vector3(120, 0.12, 18), Vector3(0, 0.0, 35), slab)
+	var granite := _mat(Color(0.42, 0.43, 0.45) if not night else Color(0.2, 0.19, 0.25), 0.55)
+	for x in range(-60, 61, 6):
+		_box(Vector3(0.05, 0.012, 18), Vector3(x, 0.066, 35), joint)
+	for z in [29.0, 35.0, 41.0]:
+		_box(Vector3(120, 0.012, 0.05), Vector3(0, 0.066, z), joint)
+	_box(Vector3(120, 0.14, 0.6), Vector3(0, 0.0, 43.7), granite)     # the kerb
+	_box(Vector3(120, 0.02, 1.2), Vector3(0, 0.07, 27.0), granite)     # the band along the facade
 	_box(Vector3(260, 0.1, 14), Vector3(0, 0.02, 51), Materials.pbr("asphalt_02", Color(0.5, 0.5, 0.52) if not night else Color(0.22, 0.2, 0.26), 6.0, 0.6))
 	for x in range(-120, 121, 12):
 		_box(Vector3(5, 0.04, 0.25), Vector3(x, 0.09, 51), _mat(Color(0.95, 0.95, 0.9)))
@@ -1725,7 +1747,7 @@ func _hangars() -> void:
 		_text("PRIVATE HANGAR %s" % bay, Vector3(cx, 11.0, -14.6), 120, accent2, PI)
 		_box(Vector3(28.5, 0.15, 0.3), Vector3(cx, 10.0, -14.55), _glow(accent, 3.0))
 		# inside: floor paint, work benches, the target range at the back
-		_box(Vector3(27, 0.03, 28), Vector3(cx, 0.06, 1), _mat(Color(0.32, 0.34, 0.38) if not night else Color(0.16, 0.15, 0.2), 0.3, 0.3))
+		_box(Vector3(27, 0.03, 28), Vector3(cx, 0.06, 1), _mat(Color(0.5, 0.53, 0.56) if not night else Color(0.2, 0.2, 0.26), 0.18, 0.15))     # epoxy, light grey (it read as a black pit)
 		_box(Vector3(26, 0.04, 0.3), Vector3(cx, 0.09, 10.5), _mat(Color(1.0, 0.35, 0.2), 0.5))
 		_box(Vector3(1.0, 1.0, 6.0), Vector3(cx - 12.5, 0.5, 4.0), _mat(Color(0.25, 0.25, 0.3), 0.5, 0.5), null, true)
 		var lamp := OmniLight3D.new()
