@@ -303,6 +303,21 @@ func _reshape() -> void:
 ## body's neck stops short under the jaw: from behind and in the bed close-up there was a gap between head and
 ## collar, the room showing through (owner's video, Nov 17). A skin-toned neck from the Neck bone up into the skull
 ## closes it whatever the frame; it follows the Neck bone, and its ends are hidden in the collar and the head.
+const NECK_SHADER := """
+shader_type spatial;
+uniform vec3 top : source_color;
+uniform vec3 bot : source_color;
+varying float h;
+void vertex() { h = UV.y; }
+void fragment() {
+	float rim = 1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	ALBEDO = mix(top, bot, smoothstep(0.15, 1.0, h)) * (1.0 - 0.35 * rim * rim);
+	ROUGHNESS = 0.6;
+	SPECULAR = 0.35;
+}
+"""
+static var _neck_shader: Shader
+
 func _neck_tube(head_bone: int) -> void:
 	var ni := _bone(skeleton, "Neck")
 	if ni < 0 or head_bone < 0:
@@ -317,7 +332,7 @@ func _neck_tube(head_bone: int) -> void:
 	if String(look.get("frame", "")) == "goliath":
 		r *= 1.12
 	if real_body:
-		r *= 1.12   # the real people's necks are fuller; a thin tube showed as a pale block behind the collar
+		r *= 1.22   # a real man's neck under a real jaw: a thin tube read as a stalk (Nov 18)
 	cm.top_radius = r * 0.94
 	cm.bottom_radius = r
 	cm.height = up.length()
@@ -328,12 +343,19 @@ func _neck_tube(head_bone: int) -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = "NeckTube"
 	mi.mesh = cm
-	var sm := StandardMaterial3D.new()
-	# the face's own lit skin (the head texture's brightest quarter) a shade down for a neck in its shadow; the swatch
-	# tone came out orange beside the face
+	# the face's own lit skin (the head texture's brightest quarter), a shade down under the jaw and darker still into
+	# the collar, its sides turning away into shadow so it reads round: a flat colour read as a pasted-on block from
+	# behind (owner, Nov 18: "the head-to-neck connection should be seamless")
 	var tone: Color = _tex_skin if _tex_skin != null else _scalp_tone()
-	sm.albedo_color = tone.darkened(0.42 if real_body else 0.3)
-	sm.roughness = 0.55
+	var sm := ShaderMaterial.new()
+	if _neck_shader == null:
+		_neck_shader = Shader.new()
+		_neck_shader.code = NECK_SHADER
+	sm.shader = _neck_shader
+	var top := tone.darkened(0.16 if real_body else 0.3)
+	sm.set_shader_parameter("top", Vector3(top.r, top.g, top.b))
+	var bot := tone.darkened(0.42)
+	sm.set_shader_parameter("bot", Vector3(bot.r, bot.g, bot.b))
 	mi.material_override = sm
 	var att := BoneAttachment3D.new()
 	att.bone_idx = ni

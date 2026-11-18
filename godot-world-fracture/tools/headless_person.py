@@ -24,7 +24,8 @@ for o in list(bpy.data.objects):
 neck = arm.data.bones["mixamorig:Neck"]
 n0 = arm.matrix_world @ neck.head_local
 n1 = arm.matrix_world @ neck.tail_local
-cut_z = n1.z - 0.012   # the whole neck up to the skull: the face's jaw comes down over its top (cut lower, a gap showed under the chin; Nov 18)
+cut_z = n0.z + (n1.z - n0.z) * 0.4 if not os.environ.get('KEEP_NECK') else n1.z - 0.012   # just above the collar: the rest of the neck is the rig's neck tube, shaded from the face's skin (the person's own
+# neck, mostly their old head's, showed in jagged shards under the new jaw; Nov 18)
 head_g = body.vertex_groups.get("mixamorig:Head")
 top_g = body.vertex_groups.get("mixamorig:HeadTop_End")
 gi = {g.index for g in (head_g, top_g) if g}
