@@ -661,7 +661,8 @@ func _style_for(id: String) -> Dictionary:
 		"azure-isles":
 			# the owner's "OCEAN" photo: a deep blue sky with white cloud, a bright sun, turquoise water
 			s.merge({"top": "#1d68cc", "hor": "#bfe2f4", "fog": "#a8d8ea", "fog_d": 0.0006, "sun": 1.45, "sun_col": "#fff6e2", "sun_el": 48.0, "sun_az": 150.0,
-				"amb": 0.62, "sat": 1.12, "exp": 0.8, "sky": "day"}, true)
+				"amb": 0.5, "sat": 1.15, "exp": 0.6, "sky": "day",
+				"tint": Vector3(0.96, 0.9, 0.78)}, true)   # the beaches blew out to white (Nov 18)
 		"frostveil":
 			# a low polar sun across the ice under thin high cloud, blue shadows (it read as white haze)
 			s.merge({"top": "#3a64a0", "hor": "#d8e6f2", "fog": "#b8cade", "fog_d": 0.0016, "sun": 1.15, "sun_col": "#ffe0c4", "sun_el": 11.0, "sun_az": 150.0,
