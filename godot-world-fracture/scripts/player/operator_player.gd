@@ -242,10 +242,12 @@ func _slide(to: Vector2, from: Vector2, y: float) -> Vector2:
 				p = Vector2(cx, cz) + d / dist * RADIUS
 	return p
 
+## what plays when the body stands still: "idle", or a job idle (work_idle.gd) set by whoever drives the mover
+var idle_clip := "idle"
 func _animate(speed: float, sprint: bool) -> void:
 	if not rig or not rig.anim:
 		return
-	var clip := "idle"
+	var clip := idle_clip if rig.anim.has_animation(idle_clip) else "idle"
 	if speed > 3.2:
 		clip = "run"
 	elif speed > 0.3:

@@ -63,6 +63,18 @@ func _run() -> void:
 	ok(not n.npcs.has("ravi") and not n.npcs.has("tony"), "…and the night people are home")
 	var rosa: Node3D = n.npcs["rosa"].mover
 	ok(rosa.rig != null, "Rosa wears a built body")
+	ok(rosa.rig and rosa.rig.anim and rosa.rig.anim.has_animation("work_counter") and rosa.rig.anim.has_animation("sit") and rosa.rig.anim.has_animation("busk"), "her body carries the job idles (work_idle.gd)")
+	# at her place she works the counter: the mover's idle clip, and the clip the rig plays once she stands there
+	# (her goal pulled to where she is, so she has "arrived"; put back after)
+	var goal0: Vector3 = n.npcs["rosa"].goal
+	n.npcs["rosa"].goal = rosa.position
+	for i in 4:
+		n._step_one(n.npcs["rosa"], 0.05)
+	ok(rosa.idle_clip == "work_counter" and String(rosa.rig.anim.current_animation) == "work_counter", "at the café Rosa works the counter (%s / %s)" % [rosa.idle_clip, rosa.rig.anim.current_animation])
+	n.npcs["rosa"].goal = goal0
+	var WorkIdle = load("res://scripts/character/work_idle.gd")
+	ok(WorkIdle.clip_for("work", "mechanic") == "work_tool" and WorkIdle.clip_for("sit", "retired teacher") == "sit" and WorkIdle.clip_for("play", "street musician") == "busk" and WorkIdle.clip_for("wait", "traveller") == "wait" and WorkIdle.clip_for("patrol", "police officer") == "idle", "the job picks the clip: a mechanic works a tool, sitters sit, the musician busks, waiters wait")
+	ok(n.npcs["dana"].mover.idle_clip == "idle", "Officer Kim on the beat stands plain between beat ends")
 	# walk up to Rosa
 	st.operator.position = rosa.position + Vector3(1.2, 0, 0)
 	await _frames(3)
