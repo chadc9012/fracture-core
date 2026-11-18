@@ -944,6 +944,8 @@ func _build_buildings() -> void:
 			var roof := [Vector3(last_corners[0].x, top, last_corners[0].y), Vector3(last_corners[1].x, top, last_corners[1].y), Vector3(last_corners[2].x, top, last_corners[2].y), Vector3(last_corners[3].x, top, last_corners[3].y)]
 			for t in [[0, 1, 2], [0, 2, 3]]:
 				_tri(st, [roof[t[0]], roof[t[1]], roof[t[2]]], [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], Vector3.UP, Color(wall.darkened(0.1), 1.0), seed)
+		if tiers == 1 and hgt < 40.0 and use != "dome":
+			_dress_building(st, p, yaw, hx, hz, base, top, use, wall, seed, _pitched(use, hgt, hx, hz))
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	var mat := ShaderMaterial.new()
@@ -986,6 +988,52 @@ func _build_buildings() -> void:
 		smi.material_override = smat
 		smi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_world.add_child(smi)
+
+## the low buildings' trim (region pass, Nov 18: Riverdale and the swamp boardwalks were bare boxes): a darker plinth
+## round the foot, a cornice under a flat roof, a chimney on most pitched houses, and a front door on the long side
+## with an awning over shops. Plain-coloured (alpha 1: the shader draws no windows on them), in the one merged mesh.
+func _dress_building(st: SurfaceTool, p: Vector2, yaw: float, hx: float, hz: float, base: float, top: float, use: String, wall: Color, seed: float, pitched: bool) -> void:
+	var ground := base + 0.6
+	_detail_box(st, p, yaw, Vector2.ZERO, hx + 0.12, hz + 0.12, base, ground + 0.7, wall.darkened(0.38), seed)
+	if not pitched:
+		_detail_box(st, p, yaw, Vector2.ZERO, hx + 0.32, hz + 0.32, top - 0.5, top + 0.06, wall.lightened(0.12), seed)
+	elif (use == "house" or use == "apartment") and seed > 0.3:
+		var cx := (hx if hx >= hz else 0.0) * 0.55 * (1.0 if seed > 0.6 else -1.0)
+		var cz := (hz if hz > hx else 0.0) * 0.55 * (1.0 if seed > 0.6 else -1.0)
+		_detail_box(st, p, yaw, Vector2(cx, cz), 0.3, 0.3, top - 0.5, top + minf(hx, hz) * 0.5 + 0.9, Color("#6a4434"), seed)
+	# the door on the long side's middle (local -z when the x side is longer)
+	var along_x := hx >= hz
+	var face := Vector2(0.0, -hz) if along_x else Vector2(-hx, 0.0)
+	var dhalf := Vector2(0.6, 0.06) if along_x else Vector2(0.06, 0.6)
+	_detail_box(st, p, yaw, face, dhalf.x, dhalf.y, ground, ground + 2.3, Color("#2a211b"), seed)
+	if use == "store" or use == "entertainment" or use == "mall":
+		const AWN := [Color("#7a2e2a"), Color("#2e4a6a"), Color("#3f5a34"), Color("#8a6a2a")]
+		var out := face + (Vector2(0.0, -0.7) if along_x else Vector2(-0.7, 0.0))
+		var ahalf := Vector2(minf(hx * 0.7, 3.5), 0.7) if along_x else Vector2(0.7, minf(hz * 0.7, 3.5))
+		_detail_box(st, p, yaw, out, ahalf.x, ahalf.y, ground + 2.6, ground + 2.85, AWN[int(seed * 31.0) % AWN.size()], seed)
+
+## a box of trim at a building's local offset (rotated with it), five faces (no floor)
+func _detail_box(st: SurfaceTool, p: Vector2, yaw: float, off: Vector2, hx: float, hz: float, y0: float, y1: float, col: Color, seed: float) -> void:
+	var c := cos(yaw)
+	var s := sin(yaw)
+	var pts: Array[Vector2] = []
+	for uv in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		var lx: float = off.x + uv.x * hx
+		var lz: float = off.y + uv.y * hz
+		pts.append(Vector2(p.x + lx * c + lz * s, p.y - lx * s + lz * c))
+	var ctr := (pts[0] + pts[2]) * 0.5
+	var z := [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
+	for f in 4:
+		var a: Vector2 = pts[f]
+		var b: Vector2 = pts[(f + 1) % 4]
+		var q := [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y)]
+		var mid := (a + b) * 0.5 - ctr
+		var n := Vector3(mid.x, 0.0, mid.y).normalized()
+		_tri(st, [q[0], q[1], q[2]], z, n, Color(col, 1.0), seed)
+		_tri(st, [q[0], q[2], q[3]], z, n, Color(col, 1.0), seed)
+	var t := [Vector3(pts[0].x, y1, pts[0].y), Vector3(pts[1].x, y1, pts[1].y), Vector3(pts[2].x, y1, pts[2].y), Vector3(pts[3].x, y1, pts[3].y)]
+	_tri(st, [t[0], t[1], t[2]], z, Vector3.UP, Color(col, 1.0), seed)
+	_tri(st, [t[0], t[2], t[3]], z, Vector3.UP, Color(col, 1.0), seed)
 
 ## one triangle facing `n` (Godot's front faces wind clockwise as seen from the front), with its normal, colour and uvs
 func _tri(st: SurfaceTool, v: Array, uv: Array, n: Vector3, col: Color, seed: float) -> void:
@@ -1211,6 +1259,7 @@ func _build_trees() -> void:
 	var crystal := covers.find("crystal")
 	var rift := covers.find("rift")
 	var tears: Array[Vector3] = []
+	_tree_pts.clear()
 	var stride := maxi(2, int(w / 300.0))
 	var clear := _clearings()
 	var trees: Array[Transform3D] = []
@@ -1228,6 +1277,8 @@ func _build_trees() -> void:
 				continue
 			if chance.has(cv) and roll < chance[cv] and trees.size() < TREE_CAP:
 				var y := _h(lx, lz)
+				if y >= _water + 0.5:
+					_tree_pts.append(Vector2(lx, lz))
 				if y < _water + 0.5:
 					continue
 				var s := 0.75 + fposmod(roll * 13.7, 1.0) * 0.7
@@ -2034,6 +2085,7 @@ func _off_map(lx: float, lz: float) -> bool:
 ## labels are hidden and only the sky, the sea and its floor remain, so the craft's frame can be re-centred on it freely
 var _open_sea := false
 var _land: Array = []
+var _tree_pts := PackedVector2Array()   # where the trees stand (some may have been dealt out to a species), for Street View
 var _gps: Control
 func set_open_sea(on: bool) -> void:
 	_open_sea = on
@@ -2070,12 +2122,29 @@ func local_point(x: float, z: float) -> Vector2:
 
 ## stand a few metres off a place (it is often a building) on open ground, facing it
 func _stand_near(at: Vector2) -> void:
+	# the most open spot round it (14-30 m off, 16 bearings): the first one clear by 7 m, else the clearest — the first
+	# free point used to drop you in a 2 m gap between two buildings (the Swamps' boardwalks, Nov 18)
 	var best := Vector2(at.x + 12.0, at.y + 12.0)
-	for k in 16:
-		var a := k * TAU / 16.0
-		var q := at + Vector2(cos(a), sin(a)) * 14.0
-		if not _in_building(q):
-			best = q
+	var best_clear := -1.0
+	var boxes := building_boxes()
+	for rad: float in [14.0, 22.0, 30.0]:
+		for k in 16:
+			var a := k * TAU / 16.0
+			var q := at + Vector2(cos(a), sin(a)) * rad
+			if absf(q.x) > _span * 0.5 - 4.0 or absf(q.y) > _span * 0.5 - 4.0 or _in_building(q):
+				continue
+			var clear := 99.0
+			for tp in _tree_pts:
+				if absf(tp.x - q.x) < 8.0 and absf(tp.y - q.y) < 8.0:
+					clear = minf(clear, tp.distance_to(q) - 1.2)   # a trunk and its low crown
+			for bx in boxes:
+				var dx := maxf(maxf(bx.position.x - q.x, q.x - bx.end.x), 0.0)
+				var dz := maxf(maxf(bx.position.z - q.y, q.y - bx.end.z), 0.0)
+				clear = minf(clear, Vector2(dx, dz).length())
+			if clear > best_clear:
+				best_clear = clear
+				best = q
+		if best_clear >= 7.0:
 			break
 	_eye = Vector3(best.x, _ground(best.x, best.y) + EYE, best.y)
 	_look_yaw = atan2(_eye.x - at.x, _eye.z - at.y)
