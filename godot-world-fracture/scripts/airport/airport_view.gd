@@ -904,7 +904,7 @@ func _refresh_board() -> void:
 # --------------------------------------------------------------------------------------------- HUD
 func _head() -> void:
 	var row := HBoxContainer.new()
-	row.position = Vector2(16, 16)
+	row.position = Vector2(16, 88)     # under the hull bar, the weapon line and the ammo (touch_controls.gd): it sat on them
 	row.add_theme_constant_override("separation", 8)
 	add_child(row)
 	var back := Button.new()
@@ -1084,7 +1084,7 @@ func _ground() -> void:
 	world.add_child(land)
 	# the airstrip's concrete, everything outside the building
 	# the airside concrete: apron, gates and hangar fronts (the runway and taxiway are asphalt over the land)
-	_box(Vector3(440, 0.2, 210), Vector3(15, -0.1, -79), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.18), 6.0))
+	_box(Vector3(440, 0.2, 210), Vector3(15, -0.1, -79), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.3), 6.0))
 	_box(Vector3(130, 0.2, 60), Vector3(0, -0.1, 50), Materials.surface("brushed_concrete", (look.apron as Color).darkened(0.18), 6.0))
 	# the terminal's floor
 	var fl: Array = look.get("floor", ["marble_tiles", Color(0.92, 0.92, 0.94) if not night else Color(0.55, 0.5, 0.65)])
@@ -1144,8 +1144,13 @@ func _terminal() -> void:
 	_box(Vector3(40, 0.2, 0.3), Vector3(0, 8.3, 27.1), _glow(accent, 3.0))
 	_box(Vector3(40, 0.2, 0.3), Vector3(0, 12.9, 27.1), _glow(accent, 3.0))
 	_text("DEPARTURES ↑  ·  ARRIVALS", Vector3(0, 5.6, 26.5), 90, accent2)
-	# the control tower on the airside, west
-	var tx := Vector3(-110, 0, -40)
+	# the control tower on the grass west of the apron (Nov 18 clean-up: it stood in the middle of the apron, between
+	# the hangars and the gates), on its two-storey base block
+	var tx := Vector3(-236, 0, -24)
+	_box(Vector3(18, 7, 12), tx + Vector3(0, 3.5, 0), _mat((look.wall as Color).darkened(0.08), 0.6), null, true)
+	_box(Vector3(18.2, 0.5, 12.2), tx + Vector3(0, 7.2, 0), frame)
+	_box(Vector3(14, 2.2, 0.2), tx + Vector3(0, 4.2, 6.05), _glass(accent.lerp(Color.WHITE, 0.4)))
+	obstacles.append(AABB(tx - Vector3(9, 0, 6), Vector3(18, 60, 12)))
 	_cyl(4.5, 52, tx + Vector3(0, 26, 0), frame, null, 3.2)
 	_cyl(8.5, 5.0, tx + Vector3(0, 54.5, 0), _glass(accent.lerp(Color.WHITE, 0.3)), null, 9.5)
 	_cyl(9.6, 0.6, tx + Vector3(0, 51.8, 0), _glow(accent, 3.0))
@@ -1485,8 +1490,6 @@ func _gates() -> void:
 		_bench(Vector3(-36.0 + k * 14.4, 0, -14.0), 0.0)
 		_bench(Vector3(-36.0 + k * 14.4, 0, -19.0), PI)
 
-## an airliner, procedural (no airliner model in the fleet yet): white fuselage, swept wings, two engines, tail in the
-## airline's colour; nose toward -z, ~40 m long, wheels at y 0
 ## the owner's airport fleet board (Nov 15), made in Meshy with their own liveries (tools/vehicle_set.py): narrow-bodies for
 ## short hops, wide-bodies for long-haul; an airline always flies the same type, and parked planes vary
 var _liner_n := 0
@@ -1495,7 +1498,7 @@ const LINERS_WIDE := ["a380-world-fracture", "b777-veyron", "a350-horizon", "b78
 
 func _airliner(tail: Color, name: String, wide := false) -> Node3D:
 	# a board airliner when it's there (its own livery, nose turned to the old model's -z), else the authored one
-	# (scripts/build-airliner.py; `wide` is the ~62 m long-haul) repainted in the airline's colour, else the shapes below
+	# (scripts/build-airliner.py; `wide` is the ~62 m long-haul) repainted in the airline's colour
 	var pool: Array = LINERS_WIDE if wide else LINERS_NARROW
 	var pick := String(pool[(absi(hash(name)) + _liner_n) % pool.size()])
 	_liner_n += 1
@@ -1529,57 +1532,7 @@ func _airliner(tail: Color, name: String, wide := false) -> Node3D:
 			l.double_sided = false
 			wrap.add_child(l)
 		return wrap
-	var p := Node3D.new()
-	var body := _mat(Color(0.95, 0.96, 0.98), 0.3, 0.2)
-	var dark := _mat(Color(0.1, 0.12, 0.16), 0.2, 0.4)
-	var tailm: StandardMaterial3D = _glow(tail, 0.9 if night else 0.25).duplicate()
-	tailm.albedo_color = tail
-	var fus := MeshInstance3D.new()
-	var cap := CapsuleMesh.new()
-	cap.radius = 2.3
-	cap.height = 40.0
-	cap.radial_segments = 20
-	cap.rings = 6
-	fus.mesh = cap
-	fus.material_override = body
-	fus.rotation.x = PI * 0.5
-	fus.position = Vector3(0, 4.2, 0)
-	p.add_child(fus)
-	_box(Vector3(4.66, 0.5, 30), Vector3(0, 4.9, 0), dark, p)                # the window band
-	_box(Vector3(4.7, 0.25, 32), Vector3(0, 3.7, 0), tailm, p)              # cheat line
-	for side in [-1.0, 1.0]:
-		var w := Node3D.new()
-		w.position = Vector3(side * 2.0, 3.2, 1.5)
-		w.rotation.y = side * deg_to_rad(-28.0)
-		p.add_child(w)
-		_box(Vector3(17.0, 0.45, 5.0), Vector3(side * 8.5, 0, 0), body, w)
-		_box(Vector3(0.4, 1.4, 1.2), Vector3(side * 17.0, 0.6, 1.0), tailm, w)     # winglet
-		_cyl(1.25, 4.2, Vector3(side * 6.5, -1.4, -1.5), body, w).rotation.x = PI * 0.5
-		_cyl(1.0, 0.1, Vector3(side * 6.5, -1.4, -3.65), dark, w).rotation.x = PI * 0.5
-		var hs := Node3D.new()
-		hs.position = Vector3(side * 1.2, 5.0, 17.0)
-		hs.rotation.y = side * deg_to_rad(-30.0)
-		p.add_child(hs)
-		_box(Vector3(6.0, 0.3, 2.6), Vector3(side * 3.0, 0, 0), body, hs)
-		_cyl(0.25, 3.2, Vector3(side * 2.0, 1.6, 2.0), dark, p)                # main gear
-	var fin := Node3D.new()
-	fin.position = Vector3(0, 6.2, 17.5)
-	fin.rotation.x = deg_to_rad(-35.0)
-	p.add_child(fin)
-	_box(Vector3(0.45, 8.0, 4.5), Vector3(0, 3.6, 0), tailm, fin)
-	_cyl(0.22, 2.4, Vector3(0, 1.2, -15.5), dark, p)                            # nose gear
-	_box(Vector3(2.6, 0.7, 0.2), Vector3(0, 5.6, -19.6), dark, p)              # cockpit glass
-	for side in [-1.0, 1.0]:
-		var l := Label3D.new()
-		l.text = name
-		l.font_size = 140
-		l.pixel_size = 0.01
-		l.modulate = tail.darkened(0.15)
-		l.position = Vector3(side * 2.36, 4.5, -4.0)
-		l.rotation.y = side * PI * 0.5
-		l.double_sided = false
-		p.add_child(l)
-	return p
+	return Node3D.new()     # no model: an empty stand (the owner, Nov 15: never a stand-in built from shapes)
 
 # --------------------------------------------------------------------------------------------- the airstrip
 func _airstrip() -> void:
@@ -1599,7 +1552,20 @@ func _airstrip() -> void:
 	_box(Vector3(500, 0.05, 24), Vector3(40, 0.05, -100), asphalt)
 	_box(Vector3(500, 0.03, 0.4), Vector3(40, 0.09, -100), yellow)
 	for i in Air.GATES.size():
-		_box(Vector3(0.4, 0.03, 30), Vector3(-34.0 + i * 16.0, 0.09, -73), yellow)
+		# the lead-in on the parked plane's centre line (_gates: px = gate x + 4), its stop bar at the nose
+		var lx := -36.0 + i * 16.0
+		_box(Vector3(0.4, 0.03, 52), Vector3(lx, 0.09, -74), yellow)
+		_box(Vector3(3.0, 0.03, 0.5), Vector3(lx, 0.09, -49.5), yellow)
+	# the taxiway's links onto the runway at both ends and the middle
+	for x in [-200.0, 40.0, 280.0]:
+		_box(Vector3(26, 0.05, 20), Vector3(x, 0.045, -116), asphalt)
+		_box(Vector3(0.4, 0.03, 20), Vector3(x, 0.09, -116), yellow)
+	# the apron's slab joints: thin dark seams every 24 m (a handful of long strips, one material)
+	var seam := _mat((look.apron as Color).darkened(0.42), 0.9)
+	for zz in range(-172, 20, 24):
+		_box(Vector3(440, 0.02, 0.14), Vector3(15, 0.012, zz), seam)
+	for xx in range(-200, 236, 24):
+		_box(Vector3(0.14, 0.02, 64), Vector3(xx, 0.012, -54), seam)
 	# edge lights (glowing studs; no real lights)
 	var stud := _glow(Color(0.35, 0.65, 1.0) if night else Color(1.0, 1.0, 0.95), 3.0 if night else 1.0)
 	var green := _glow(Color(0.3, 1.0, 0.45), 2.6)
@@ -1824,10 +1790,10 @@ func _skyline() -> void:
 		if not m:
 			continue
 		var x := -560.0 + k * (80.0 if Phone.tier() == "high" else 140.0) + rng.randf_range(-20, 20)
-		m.position = Vector3(x, 0, -480.0 - rng.randf_range(0, 200))
+		m.position = Vector3(x, 0, -720.0 - rng.randf_range(0, 260))
 		m.rotation.y = rng.randf_range(0, TAU)
-		var s := rng.randf_range(2.2, 3.4)
-		m.scale = Vector3(s, s * rng.randf_range(1.0, 1.6), s)
+		var s := rng.randf_range(2.6, 3.4)
+		m.scale = Vector3(s, s, s)     # its own proportions (the stretched ones read as boxes, Nov 18)
 		static_root.add_child(m)
 		# stand it on the ground whatever the model's origin
 		var low := INF
@@ -1921,7 +1887,7 @@ func _extras() -> void:
 			_cyl(base * 0.42, h * 0.42, at + Vector3(0, h * 0.79, 0), snowcap, null, 0.0, 9).rotation.y = rng.randf() * TAU
 		for k in 40:   # pines in the snow beyond the fences
 			var at := Vector3(rng.randf_range(-420, 420), 0, rng.randf_range(-440, 200))
-			if absf(at.z - RUNWAY_Z) < 45.0 or (at.z > -120.0 and at.z < 30.0 and at.x > -140.0 and at.x < 230.0) or (absf(at.x) < 70.0 and at.z > 20.0):
+			if absf(at.z - RUNWAY_Z) < 45.0 or (at.z > -120.0 and at.z < 30.0 and at.x > -262.0 and at.x < 230.0) or (absf(at.x) < 70.0 and at.z > 20.0):
 				continue
 			_palm(at, k)
 	if "snow" in ex:
@@ -2108,7 +2074,7 @@ func _extras() -> void:
 	if "woods" in ex:   # the forest round the field, beyond the fences
 		for k in 70:
 			var at := Vector3(rng.randf_range(-440, 440), 0, rng.randf_range(-460, 220))
-			if absf(at.z - RUNWAY_Z) < 45.0 or (at.z > -120.0 and at.z < 30.0 and at.x > -140.0 and at.x < 230.0) or (absf(at.x) < 70.0 and at.z > 20.0):
+			if absf(at.z - RUNWAY_Z) < 45.0 or (at.z > -120.0 and at.z < 30.0 and at.x > -262.0 and at.x < 230.0) or (absf(at.x) < 70.0 and at.z > 20.0):
 				continue
 			_palm(at, k + 31)
 	if "isles" in ex:   # Skyhaven's floating islands: grassy tops on hanging rock, drifting round the strip
