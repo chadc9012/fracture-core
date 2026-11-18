@@ -577,7 +577,7 @@ func _slide_shifters(dt: float) -> void:
 ## the tally line for an id (made on first sight: bots get a callsign from their id)
 func _line(id: String, team: int) -> Dictionary:
 	if not _tally.has(id):
-		var nm := "You" if id == "player" else CALLSIGNS[(_tally.size() * 7 + id.hash()) % CALLSIGNS.size()]
+		var nm: String = "You" if id == "player" else String(CALLSIGNS[absi(_tally.size() * 7 + id.hash()) % CALLSIGNS.size()])
 		_tally[id] = { "name": nm, "team": team, "k": 0, "d": 0, "you": id == "player" }
 	return _tally[id]
 
