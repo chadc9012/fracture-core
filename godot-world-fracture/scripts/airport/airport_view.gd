@@ -1706,11 +1706,11 @@ func _airstrip() -> void:
 		_box(Vector3(1.9, 0.3, 2.9), at + Vector3(0, 0.15, 0), _mat(Color(0.08, 0.08, 0.08), 0.8))
 	# the long-haul wide-body on a remote stand west of the gates
 	var wb := _airliner(accent, String(look.airline), true)
-	wb.position = Vector3(-172, 0, -64)
+	wb.position = Vector3(-172, 0, -78)     # (14 m further out since the west wing stands at z -44 .. -30)
 	wb.rotation.y = -PI * 0.5     # nose to +x
 	static_root.add_child(wb)
-	obstacles.append(AABB(Vector3(-204, 0, -68), Vector3(64, 9, 8)))       # fuselage
-	obstacles.append(AABB(Vector3(-182, 0, -92), Vector3(18, 5, 56)))      # wings and engines
+	obstacles.append(AABB(Vector3(-204, 0, -82), Vector3(64, 9, 8)))       # fuselage
+	obstacles.append(AABB(Vector3(-182, 0, -106), Vector3(18, 5, 56)))     # wings and engines
 	# apron floodlight masts: a lit head on each (glow only) and a real light on a few
 	var mast := _mat(Color(0.45, 0.46, 0.5), 0.4, 0.8)
 	var head := _glow(Color(1.0, 0.95, 0.85) if not night else Color(0.85, 0.75, 1.0), 4.0)
