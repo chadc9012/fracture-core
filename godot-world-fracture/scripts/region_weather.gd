@@ -6,7 +6,7 @@ extends Node3D
 ## `set_winter`.
 
 const SNOW_ALWAYS := ["frostveil", "frostspire"]
-const LIGHTNING := ["storm", "swamps"]
+const LIGHTNING := ["storm", "swamps", "ember"]   # Ember Peaks: the owner's "STORM - EMBER PEAKS" photo
 ## look-dev: strike at once and keep the bolt lit (the `bolt` shot option)
 static var hold := false
 
