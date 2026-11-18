@@ -62,10 +62,20 @@ static func swatch(key: String, id: String) -> Variant:
 	var hex: String = s.get("hex", "")
 	return Color(hex) if hex != "" else null
 
-static func body_path(frame: String, body: String, civ := false) -> String:
+const REAL_BODIES := true
+
+static func is_real_body(path: String) -> bool:
+	return path.get_file().begins_with("real-")
+
+static func body_path(frame: String, body: String, civ := false, real_ok := true) -> String:
 	# in regular clothes (the creator, home in Mission 01): the same build dressed in a sweater, jeans and trainers
 	# (scripts/build-operator-civilian.py); a robot has no other clothes
 	if civ and body != "robot":
+		# a real person in real clothes from the neck down (tools/headless_person.py, from the city's Meshy people):
+		# the painted-on clothes read as a bodysuit (owner, Nov 18)
+		var real := "res://models/operators/bodies/real-%s.glb" % body
+		if REAL_BODIES and real_ok and ResourceLoader.exists(real):
+			return real
 		return "res://models/operators/bodies/civ-%s-%s.glb" % [frame, body]
 	return "res://models/operators/bodies/%s-%s.glb" % [frame, body]
 

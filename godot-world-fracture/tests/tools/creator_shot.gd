@@ -1,6 +1,6 @@
 extends SceneTree
 ## Look-dev: the operator creator as the player first sees it, with a chosen body, saved as a screenshot.
-##   godot --path . --script res://tests/tools/creator_shot.gd -- out.png [male|female] [nyx|cipher|goliath] [yaw_deg]
+##   godot --path . --script res://tests/tools/creator_shot.gd -- out.png [male|female] [nyx|cipher|goliath] [yaw_deg] [face_index]
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -11,6 +11,7 @@ func _run() -> void:
 	var body := args[1] if args.size() > 1 else "male"
 	var frame := args[2] if args.size() > 2 else "goliath"
 	var yaw := float(args[3]) if args.size() > 3 else 0.0
+	var face_i := int(args[4]) if args.size() > 4 else 0
 	var main: Node = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(main)
 	await process_frame
@@ -20,7 +21,8 @@ func _run() -> void:
 		await process_frame
 	var c = main.creator
 	var CS = load("res://scripts/character/character_store.gd")
-	c.look = CS.clean({"frame": frame, "body": body}, true)
+	var faces: Array = load("res://scripts/character/catalog.gd").faces(body)
+	c.look = CS.clean({"frame": frame, "body": body, "face": faces[face_i % faces.size()].id}, true)
 	c._rebuild()
 	for i in 20:
 		await process_frame

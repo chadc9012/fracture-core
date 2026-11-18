@@ -1021,6 +1021,7 @@ func _npc(id: String, face: String, body: String, frame: String, at: Vector3, ya
 	if outfit != "":
 		# a neighbour at home in the morning: their own clothes, not an operator's armour
 		lk.civ = true
+		lk.npc = true   # the city's people keep the painted bodies (the real one is the operator's)
 		lk.outfit = outfit
 	rig.build(lk)
 	rig.position = at

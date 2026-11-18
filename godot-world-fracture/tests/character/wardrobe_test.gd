@@ -81,7 +81,7 @@ func _init() -> void:
 			wanted[pc] = true
 	for f: String in ["nyx", "cipher", "goliath"]:
 		for b: String in ["male", "female"]:
-			var inst: Node = (load(Catalog.body_path(f, b, true)) as PackedScene).instantiate()
+			var inst: Node = (load(Catalog.body_path(f, b, true, false)) as PackedScene).instantiate()   # the painted bodies that wear outfits
 			var names := inst.find_children("Piece_*", "MeshInstance3D", true, false).map(func(n: Node) -> String: return String(n.name).substr(6))
 			var all := true
 			for pc: String in wanted:

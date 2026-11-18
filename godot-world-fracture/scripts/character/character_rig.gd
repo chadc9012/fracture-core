@@ -16,6 +16,8 @@ var skeleton: Skeleton3D
 var head_mesh: MeshInstance3D
 var hair_mesh: MeshInstance3D
 var _body_meshes: Array = []
+## a real person's body (its own clothes in its own texture): no painted outfit, no reshape
+var real_body := false
 var anim: AnimationPlayer
 ## where the head sits on this body (body skeleton space), for framing a camera
 var head_point := Vector3(0, 1.6, 0)
@@ -65,7 +67,11 @@ func build(new_look: Dictionary, animate := true) -> void:
 	for c in get_children():
 		c.free()
 	var hero := Catalog.hero_model(look)
-	var ps: PackedScene = load(hero if hero != "" else Catalog.body_path(look.frame, look.body, bool(look.get("civ", false))))
+	# the real body wears its own clothes: it is the everyday look in the operator's own clothes; a bought outfit (and a
+	# fitting-room trial, and the city's people dressed by outfit) keeps the painted body that can wear any outfit
+	var outfit := String(look.get("outfit", ""))
+	var own_clothes := outfit == "" or outfit == Outfits.default_for(String(look.get("body", "male")))
+	var ps: PackedScene = load(hero if hero != "" else Catalog.body_path(look.frame, look.body, bool(look.get("civ", false)), own_clothes and not bool(look.get("npc", false))))
 	body_root = ps.instantiate()
 	add_child(body_root)
 	skeleton = _find(body_root, "Skeleton3D")
@@ -88,12 +94,119 @@ func build(new_look: Dictionary, animate := true) -> void:
 		head_point = skeleton.get_bone_global_rest(hb).origin
 	if hero != "":
 		return    # a whole Meshy character: its own face, hair and clothes
-	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
+	real_body = Catalog.is_real_body(ps.resource_path)
+	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot" and not real_body:
 		_reshape()
 	_attach_head(hb)
 	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
-		dress(String(look.get("outfit", "")))
-		_neck_tube(hb)
+		if not real_body:
+			dress(String(look.get("outfit", "")))
+			_neck_tube(hb)
+		else:
+			_tint_real_skin()
+
+## a real body's own skin (neck, arms, hands, legs) turned to the face's tone: the person it came from has their own,
+## and a pale face on dark hands, or the reverse, read as two people. Skin texels (the same test the face uses) are
+## scaled from the body's own lit skin tone to the face's, keeping their shading; the clothes are left as they are
+const REAL_SKIN_SHADER := """
+shader_type spatial;
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap;
+uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap;
+uniform bool has_normal = false;
+uniform vec3 from_tone = vec3(0.5, 0.35, 0.28);
+uniform vec3 to_tone = vec3(0.5, 0.35, 0.28);
+void fragment() {
+	vec3 c = texture(albedo_tex, UV).rgb;
+	float mx = max(c.r, max(c.g, c.b));
+	float mn = min(c.r, min(c.g, c.b));
+	float sat = (mx - mn) / (mx + 1e-4);
+	float l = dot(c, vec3(0.3, 0.59, 0.11));
+	float k = smoothstep(0.015, 0.05, c.r - c.b) * smoothstep(0.1, 0.2, sat) * (1.0 - smoothstep(0.8, 0.9, sat)) * smoothstep(0.012, 0.035, l) * step(c.b, c.g + 0.04);
+	vec3 ratio = to_tone / max(from_tone, vec3(0.01));
+	ALBEDO = mix(c, clamp(c * ratio, 0.0, 1.0), k);
+	ROUGHNESS = mix(0.8, 0.55, k);
+	SPECULAR = mix(0.3, 0.5, k);
+	if (has_normal) { NORMAL_MAP = texture(normal_tex, UV).rgb; }
+}
+"""
+static var _real_shader: Shader
+
+func _tint_real_skin() -> void:
+	if _tex_skin == null:
+		return
+	if _real_shader == null:
+		_real_shader = Shader.new()
+		_real_shader.code = REAL_SKIN_SHADER
+	for mi: MeshInstance3D in _body_meshes:
+		if not is_instance_valid(mi) or mi.mesh == null:
+			continue
+		for si in mi.mesh.get_surface_count():
+			var std := mi.mesh.surface_get_material(si) as StandardMaterial3D
+			if std == null or std.albedo_texture == null:
+				continue
+			var own: Variant = _limb_skin(mi, si, std)
+			if own == null:
+				continue
+			var sm := ShaderMaterial.new()
+			sm.shader = _real_shader
+			sm.set_shader_parameter("albedo_tex", std.albedo_texture)
+			if std.normal_enabled and std.normal_texture:
+				sm.set_shader_parameter("normal_tex", std.normal_texture)
+				sm.set_shader_parameter("has_normal", true)
+			var o := (own as Color).srgb_to_linear()   # the shader works on linear colour
+			sm.set_shader_parameter("from_tone", Vector3(o.r, o.g, o.b))
+			var t := (_tex_skin as Color).srgb_to_linear()
+			sm.set_shader_parameter("to_tone", Vector3(t.r, t.g, t.b))
+			mi.set_surface_override_material(si, sm)
+
+## the body's own skin tone where it is surely skin — the hands and forearms (the whole texture's skin-coloured texels
+## took in the jeans' torn threads and the trainers): the brightest quarter of the skin-coloured texels under those
+## vertices, the same measure the face's tone is taken with
+func _limb_skin(mi: MeshInstance3D, si: int, std: StandardMaterial3D) -> Variant:
+	var img := std.albedo_texture.get_image()
+	if img == null:
+		return null
+	if img.is_compressed():
+		img = img.duplicate()
+		if img.decompress() != OK:
+			return null
+	var arr := mi.mesh.surface_get_arrays(si)
+	var uv: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+	var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+	var ws: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+	if uv.is_empty() or bones.is_empty():
+		return null
+	var per := bones.size() / uv.size()
+	var limb := {}
+	for b in mi.skin.get_bind_count():
+		var nm := String(mi.skin.get_bind_name(b))
+		if nm == "" and mi.skin.get_bind_bone(b) >= 0:
+			nm = skeleton.get_bone_name(mi.skin.get_bind_bone(b))
+		if nm.ends_with("Hand") or nm.ends_with("ForeArm"):
+			limb[b] = true
+	var px: Array[Color] = []
+	var W := img.get_width()
+	var H := img.get_height()
+	for k in range(0, uv.size(), 3):
+		var w := 0.0
+		for j in per:
+			if limb.has(bones[k * per + j]):
+				w += ws[k * per + j]
+		if w < 0.6:
+			continue
+		var c := img.get_pixel(clampi(int(uv[k].x * W), 0, W - 1), clampi(int(uv[k].y * H), 0, H - 1))
+		var mx := maxf(c.r, maxf(c.g, c.b))
+		var sat := (mx - minf(c.r, minf(c.g, c.b))) / (mx + 1e-4)
+		if c.r - c.b > 0.02 and sat > 0.12 and sat < 0.85 and c.b <= c.g + 0.04:
+			px.append(c)
+	if px.size() < 20:
+		return null
+	px.sort_custom(func(a: Color, b: Color) -> bool: return a.get_luminance() > b.get_luminance())
+	var n := maxi(1, px.size() / 4)
+	var sum := Color(0, 0, 0)
+	for i in n:
+		sum += px[i]
+	return Color(sum.r / n, sum.g / n, sum.b / n)
 
 ## the everyday body's proportions, set at load: each bone's piece of the body scaled across the bone (in the bone's own
 ## space, x and z; y runs along it) and blended by the skin weights. The clothed bodies read as a broad, boxy hoodie on
