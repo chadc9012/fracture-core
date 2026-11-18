@@ -1002,3 +1002,60 @@ func _acquired(what: String) -> void:
 	tw.tween_interval(4.0)
 	tw.tween_property(card, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(card.queue_free)
+
+# ---------------------------------------------------------------------------------------------- new mission
+var _mission_card: Control
+
+## Destiny's "New mission" card (owner Nov 18): a gold kicker with the chapter's code, the title in wide caps between
+## two rules, the chapter's opening line under it; holds a few seconds and fades. The story calls it as a chapter begins.
+func mission_card(kicker: String, title: String, line := "") -> void:
+	if _mission_card:
+		_mission_card.queue_free()
+	var b := VBoxContainer.new()
+	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	b.offset_top = 300   # clear of the toast strip (190) and the crosshair
+	b.offset_left = -360
+	b.offset_right = 360
+	b.alignment = BoxContainer.ALIGNMENT_BEGIN
+	b.add_theme_constant_override("separation", 8)
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(b)
+	_mission_card = b
+	var k := _banner_label(kicker.to_upper(), 600, 5, 14, UiTheme.GOLD)
+	k.custom_minimum_size.x = 720
+	b.add_child(k)
+	var top := ColorRect.new()
+	top.color = Color(1, 1, 1, 0.5)
+	top.custom_minimum_size = Vector2(0, 2)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(top)
+	var t := _banner_label(title.to_upper(), 700, 8, 40, UiTheme.INK)
+	t.custom_minimum_size.x = 720
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.add_child(t)
+	var bottom := ColorRect.new()
+	bottom.color = Color(1, 1, 1, 0.5)
+	bottom.custom_minimum_size = Vector2(0, 2)
+	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(bottom)
+	if line != "":
+		var l := _banner_label(line, 400, 0, 17, Color(0.93, 0.94, 0.95, 0.85))
+		l.custom_minimum_size.x = 720
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_child(l)
+	# the rules draw in from the middle
+	for r in [top, bottom]:
+		(r as ColorRect).size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		(r as ColorRect).custom_minimum_size.x = 0.0
+	b.modulate.a = 0.0
+	var tw := b.create_tween()
+	tw.tween_property(b, "modulate:a", 1.0, 0.35)
+	tw.parallel().tween_method(func(w: float):
+		top.custom_minimum_size.x = w
+		bottom.custom_minimum_size.x = w, 0.0, 520.0, 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(4.2)
+	tw.tween_property(b, "modulate:a", 0.0, 0.8)
+	tw.tween_callback(func():
+		if _mission_card == b:
+			_mission_card = null
+		b.queue_free())

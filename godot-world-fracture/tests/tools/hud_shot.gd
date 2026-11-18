@@ -55,11 +55,13 @@ func _process(_dt: float) -> bool:
 		c.toast("Daily goal complete  ·  +250 XP  ·  +120 Nex")
 		c.prompt("Enter Neon Drift")
 		c.hit_marker("head")
+		if OS.get_cmdline_user_args().has("mission"):
+			c.mission_card("New mission  ·  FD-03", "Broken Signal", "The signal isn't natural. Something built it, and it wants you to find the source.")
 		if OS.get_cmdline_user_args().has("level"):
 			c.toast("LEVEL 13 — +2 power, +4 hull")
 			c.toast("LOOT · Void Sceptre (183 power)")
 			c.toast("LOOT · Warden Hood (151 power)")
-	if frames == 20:
+	if frames == (60 if OS.get_cmdline_user_args().has("mission") else 20):
 		get_root().get_texture().get_image().save_png(out)
 		print("saved ", out)
 		return true

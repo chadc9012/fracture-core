@@ -233,7 +233,8 @@ func _begin(id: String) -> void:
 		return
 	if String(quest.world) != world_id:
 		_travel(String(quest.world), String(quest.start))
-	controls.toast("%s · %s" % [String(quest.id).to_upper(), quest.title])
+	# Destiny's new-mission card (touch_controls.mission_card): the chapter's code, its title and its opening line
+	controls.mission_card("New mission  ·  %s" % String(quest.id).to_upper(), String(quest.title), String(quest.get("line", "")))
 	if id == "fd-02":
 		# Mara's crash-site line, recorded (audio/voices)
 		Sound.voice("mara-crash-site")
