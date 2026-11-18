@@ -145,6 +145,7 @@ func _ready() -> void:
 	board.add_theme_constant_override("shadow_offset_x", 1)
 	board.add_theme_constant_override("shadow_offset_y", 1)
 	add_child(board)
+	_build_gps()
 	var back := Button.new()
 	back.text = "← LEAVE"
 	back.position = Vector2(16, 16)
@@ -519,6 +520,34 @@ func _grid() -> void:
 	var me2 := race.add("You", true)
 	me2["node"] = player.node
 	cam_yaw = player.yaw()
+
+## the GPS (owner, Nov 18): the track ahead and the rivals on it, under the standings board
+var gps: Control
+func _build_gps() -> void:
+	gps = preload("res://scripts/nav/gps.gd").new()
+	gps.cam = cam
+	gps.target = player.node if player else null
+	if player:
+		player.node.set_meta("gps_no_heading", true)
+	gps.offset = Vector2(-gps.DIAM - 14.0, 170.0)
+	gps.ranges = [150.0, 350.0, 900.0]
+	gps.land_bg = true
+	gps.area = String(track.def.get("name", track_id)).to_upper()
+	var last := Vector3.INF
+	var first := Vector3.INF
+	for p in track.pts:
+		if first == Vector3.INF:
+			first = p
+		if last != Vector3.INF and last.distance_to(p) < 12.0:
+			continue
+		if last != Vector3.INF:
+			gps.lines.append({ "a": Vector2(last.x, last.z), "b": Vector2(p.x, p.z), "w": track.width, "color": Color(0.5, 0.55, 0.62, 0.95) })
+		last = p
+	if not track.street() and not track.pack() and last != Vector3.INF and first != Vector3.INF:
+		gps.lines.append({ "a": Vector2(last.x, last.z), "b": Vector2(first.x, first.z), "w": track.width, "color": Color(0.5, 0.55, 0.62, 0.95) })
+	for r in rivals:
+		gps.marks.append({ "node": r.sc.node, "p": Vector2.ZERO, "color": Color(1.0, 0.45, 0.35), "pin": true })
+	add_child(gps)
 
 # --------------------------------------------------------------------------------------------- players (online)
 func _room_name() -> String:

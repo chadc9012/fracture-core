@@ -130,6 +130,13 @@ func _ready() -> void:
 	svc.add_child(_pad_city)
 	_pad_street = _pad([["▲", Vector2(0, -1)], ["▼", Vector2(0, 1)]], false)
 	svc.add_child(_pad_street)
+	# the GPS in Street View (owner, Nov 18); a mission or Skyways over the region (PLAY) puts up its own
+	_gps = preload("res://scripts/nav/gps.gd").new()
+	_gps.region = self
+	_gps.ranges = [80.0, 180.0, 400.0]
+	_gps.offset = Vector2(-_gps.DIAM - 72.0, 70.0)
+	_gps.visible = false
+	add_child(_gps)
 	var zb := VBoxContainer.new()
 	zb.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	zb.position = Vector2(-62, 12)
@@ -514,6 +521,11 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_world.add_child(_weather)
 	_weather.setup(id, _env, current_season() == 3 and id not in NO_WINTER)
 	_weather.follow(_cam)
+	_open_sea = false
+	_land.clear()
+	for ch in _world.get_children():
+		if ch != _sea and ch != _skirt and ch != _cam and ch != _weather and not (ch is WorldEnvironment) and not (ch is Light3D):
+			_land.append(ch)
 	var p := Vector2(_ox, _oz) if at == null else Vector2(at.x, at.y)
 	_target = Vector3(p.x - _ox, 0, p.y - _oz)
 	_target.y = _h(_target.x, _target.z)
@@ -592,7 +604,9 @@ func _style_for(id: String) -> Dictionary:
 		"amb": 0.55, "night": 0.0, "neon": 0.0, "wet": 0.0, "sat": 0.86, "planet": true, "under": false}
 	match id:
 		"neon-city":
-			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#2a1240", "fog_d": 0.0026, "sun": 0.12, "sun_col": "#8fa6ff", "sun_el": 30.0, "amb": 0.35, "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.15}, true)
+			# the owner's Neon boards (Nov 15, NFS night): the moonlit navy sky over a magenta horizon glow, navy light on
+			# the walls (not a violet wash), warm windows and sodium streets with the neon as the accent (Nov 18 pass)
+			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#1c1638", "fog_d": 0.0022, "sun": 0.18, "sun_col": "#b4bce6", "sun_el": 34.0, "amb": 0.45, "amb_col": "#343a62", "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.1, "moon_sky": true, "exp": 1.3}, true)
 		"nexus":
 			# still night, but moonlit enough to read the island, parks and streets (it was near-black outside the towers)
 			s.merge({"top": "#0d1a30", "hor": "#3a5278", "fog": "#24324a", "fog_d": 0.0016, "sun": 0.28, "sun_col": "#a9bfff", "sun_el": 34.0, "amb": 0.6, "night": 1.0, "neon": 0.55, "wet": 0.9, "sat": 1.0}, true)
@@ -643,20 +657,26 @@ func _build_env() -> void:
 	else:
 		_env.background_mode = Environment.BG_SKY
 		var sky := Sky.new()
+		if _style.get("moon_sky", false):
+			# the street's night sky (night_fx.gd): navy overhead, the city's glow on the horizon, clouds, the moon
+			sky.sky_material = preload("res://scripts/city/night_fx.gd").sky()
+			sky.radiance_size = Sky.RADIANCE_SIZE_64
+			_env.sky = sky
 		var sm := ProceduralSkyMaterial.new()
 		sm.sky_top_color = Color(_style.top)
 		sm.sky_horizon_color = Color(_style.hor)
 		sm.ground_horizon_color = Color(_style.hor).darkened(0.2)
 		sm.ground_bottom_color = Color(_style.fog).darkened(0.5)
 		sm.sun_angle_max = 8.0
-		sky.sky_material = sm
-		_env.sky = sky
+		if not _style.get("moon_sky", false):
+			sky.sky_material = sm
+			_env.sky = sky
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if not _style.under else Environment.AMBIENT_SOURCE_COLOR
 	_env.ambient_light_color = Color(_style.fog)
 	_env.ambient_light_energy = _style.amb + _style.night * 0.5
 	if _style.night > 0.5:
 		_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		_env.ambient_light_color = Color(_style.hor).lightened(0.25)
+		_env.ambient_light_color = Color(_style.get("amb_col", Color(_style.hor).lightened(0.25)))
 	_env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	_env.tonemap_exposure = float(_style.get("exp", 0.85 if _style.night < 0.5 else 1.15))
 	_env.fog_enabled = true
@@ -1784,11 +1804,19 @@ func _build_lamps() -> void:
 	sm.rings = 4
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(1.0, 0.82, 0.55) if _style.neon < 0.5 else Color(0.75, 0.9, 1.0)
+	# sodium heads in every city: the Neon boards light their streets amber too, with the neon on the buildings
+	mat.albedo_color = Color(1.0, 0.72, 0.4) if _style.neon > 0.5 else Color(1.0, 0.82, 0.55)
 	mat.emission_enabled = true
 	mat.emission = mat.albedo_color
 	mat.emission_energy_multiplier = 4.0
 	_multimesh(sm, xf, mat)
+	# and the pool each one throws on the wet street under it (night_fx.gd's additive pools, one multimesh): the
+	# boards' amber-lit roads, which the heads alone left dark (Nov 18 Neon pass)
+	if map_id in ["neon-city", "nexus"]:
+		var pools: Array = []
+		for t in xf:
+			pools.append([t.origin - Vector3(0, 5.95, 0), mat.albedo_color, 7.0])
+		preload("res://scripts/city/night_fx.gd")._pools(_world, pools, 1.3)
 
 var _labels: Array = []
 var _declutter_t := 0.0
@@ -1904,6 +1932,8 @@ func set_mode(md: Mode) -> void:
 		_jump.visible = mode != Mode.PLAY
 	_pad_city.visible = mode == Mode.CITY
 	_pad_street.visible = mode == Mode.STREET
+	if _gps:
+		_gps.visible = mode == Mode.STREET
 	_fit_labels()
 	if _barks:
 		_barks.visible = mode == Mode.STREET
@@ -1945,19 +1975,53 @@ func set_eye(x: float, z: float, yaw: float) -> void:
 	_apply_cam()
 func stand_point() -> Vector3:
 	return Vector3(_eye.x, _ground(_eye.x, _eye.z), _eye.z)
-## walkable height at a local point (operator_player.gd ground_at)
+## walkable height at a local point (operator_player.gd ground_at). Off the map (where Skyways aircraft fly on, Nov 18)
+## it is the open sea, not the map's edge heights stretched out to the horizon.
 func ground(lx: float, lz: float) -> float:
+	if _off_map(lx, lz):
+		return _water + 0.4
 	return _ground(lx, lz)
 ## the terrain height alone (below the water where the sea is) and the sea level, for boats and subs
 func terrain(lx: float, lz: float) -> float:
+	if _off_map(lx, lz):
+		return _water - 18.0
 	return _h(lx, lz)
 func water_level() -> float:
 	return _water
 func over_water(lx: float, lz: float) -> bool:
+	if _off_map(lx, lz):
+		return true
 	return _h(lx, lz) < _water - 0.3
+
+## out past the map's square (or anywhere, while the land is hidden for open-sea flight)
+func _off_map(lx: float, lz: float) -> bool:
+	if _open_sea:
+		return true
+	var half := _span * 0.5 + 1.0
+	return absf(lx) > half or absf(lz) > half
+
+## open-sea flight (skyways_view.gd world flight, Nov 18): between continents the region's land, buildings, trees and
+## labels are hidden and only the sky, the sea and its floor remain, so the craft's frame can be re-centred on it freely
+var _open_sea := false
+var _land: Array = []
+var _gps: Control
+func set_open_sea(on: bool) -> void:
+	_open_sea = on
+	for n in _land:
+		if is_instance_valid(n) and n is Node3D:
+			(n as Node3D).visible = not on
+	if _barks:
+		_barks.visible = false if on else _barks.visible
+func is_open_sea() -> bool:
+	return _open_sea
+## a local point back to the map's own (world) coordinates
+func map_point(lx: float, lz: float) -> Vector2:
+	return Vector2(lx + _ox, lz + _oz)
 ## the buildings as world boxes (local space, metres from the region centre), for the on-foot movers to slide around
 func building_boxes() -> Array[AABB]:
 	var out: Array[AABB] = []
+	if _open_sea:
+		return out
 	for bd in m.buildings:
 		var p := _loc(bd[0], bd[1])
 		var hx := float(bd[2])

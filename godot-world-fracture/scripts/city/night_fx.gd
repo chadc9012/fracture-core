@@ -303,7 +303,9 @@ static func grade(env: Environment, sun: DirectionalLight3D, sky: Sky, neon_city
 	# the exposure all up — still night, but a night you can see the road in
 	sun.light_energy = 1.2
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.24, 0.26, 0.48) if not neon_city else Color(0.3, 0.2, 0.5)
+	# Neon City (Nov 18 pass): navy rather than violet — the boards' walls are dark neutral under the moon, the colour
+	# comes from the signs, the windows and the lamps; the violet ambient tinted every surface the same purple
+	env.ambient_light_color = Color(0.24, 0.26, 0.48) if not neon_city else Color(0.23, 0.23, 0.45)
 	env.ambient_light_energy = 2.9
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_exposure = 2.5
@@ -325,4 +327,7 @@ static func grade(env: Environment, sun: DirectionalLight3D, sky: Sky, neon_city
 	env.adjustment_enabled = true
 	env.adjustment_brightness = 1.0
 	env.adjustment_contrast = 1.12
-	env.adjustment_saturation = 1.4
+	env.adjustment_saturation = 1.4 if not neon_city else 1.28
+	if neon_city:
+		# the boards' moon hangs over the avenue, up the street from where you start (camera looks -z)
+		(sky.sky_material as ShaderMaterial).set_shader_parameter("moon_dir", Vector3(0.1, 0.36, -0.93))

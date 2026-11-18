@@ -66,6 +66,7 @@ func _ready() -> void:
 	operator.build()
 	operator.attach_camera(region.camera())
 	region.camera().current = true
+	preload("res://scripts/nav/gps.gd").attach(self, region, operator)   # the GPS (owner, Nov 18)
 	gunplay = Gunplay.new()
 	region.world().add_child(gunplay)
 	gunplay.setup(operator, operator.obstacles)

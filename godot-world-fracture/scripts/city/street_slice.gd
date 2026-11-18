@@ -49,6 +49,44 @@ const DOORS := [
 	{ "id": "metro", "label": "METRO · CENTRAL LINE", "x": 1.0, "z": -118.0, "color": Color(0.3, 0.75, 1.0), "kind": "metro", "style": "any" },
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
+const Gps := preload("res://scripts/nav/gps.gd")
+var gps: Control
+
+## the GPS on the avenue (owner, Nov 18): the avenue and its crossings, the district courts off it (Nexus), and every
+## door on the strip with its name
+func _build_gps(span: Vector2) -> void:
+	gps = Gps.new()
+	gps.cam = cam
+	gps.target = operator
+	operator.set_meta("gps_no_heading", true)
+	gps.area = "%s · AVENUE" % String(STYLE_NAMES.get(style, "THE CITY"))
+	gps.ranges = [60.0, 140.0, 320.0]
+	gps.land_bg = true
+	gps.offset = Vector2(-gps.DIAM - 14.0, 100.0)   # under the menu button and the online line
+	var road := Color(0.36, 0.4, 0.46, 0.95)
+	var walk_c := Color(0.22, 0.25, 0.3, 0.95)
+	var x0 := ROAD_W * 0.5 + WALK_W * 0.5
+	gps.lines.append({ "a": Vector2(-x0, span.x), "b": Vector2(-x0, span.y), "w": WALK_W, "color": walk_c })
+	gps.lines.append({ "a": Vector2(x0, span.x), "b": Vector2(x0, span.y), "w": WALK_W, "color": walk_c })
+	gps.lines.append({ "a": Vector2(0, span.x), "b": Vector2(0, span.y), "w": ROAD_W, "color": road })
+	var k0 := int(ceil(span.x / LENGTH))
+	var k1 := int(floor(span.y / LENGTH))
+	for k in range(k0, k1 + 1):
+		var cz := k * LENGTH + Infra.CROSS_LZ
+		gps.lines.append({ "a": Vector2(-60, cz), "b": Vector2(60, cz), "w": 6.0, "color": Color(0.85, 0.88, 0.92, 0.5) })
+		if style == "nexus" and Nexus.COURTS.has(k):
+			for sd in [-1.0, 1.0]:
+				var mz := k * LENGTH
+				gps.lines.append({ "a": Vector2(sd * Nexus.FACADE, mz), "b": Vector2(sd * Nexus.MOUTH_OUT, mz), "w": 10.0, "color": walk_c })
+				gps.lines.append({ "a": Vector2(sd * (Nexus.MOUTH_OUT + Nexus.COURT_OUT) * 0.5, mz - Nexus.COURT_HALF), "b": Vector2(sd * (Nexus.MOUTH_OUT + Nexus.COURT_OUT) * 0.5, mz + Nexus.COURT_HALF), "w": Nexus.COURT_OUT - Nexus.MOUTH_OUT, "color": Color(0.2, 0.26, 0.3, 0.9) })
+				var nm := String(Nexus.NAMES.get(String(Nexus.COURTS[k][0 if sd < 0.0 else 1]), ""))
+				gps.marks.append({ "p": Vector2(sd * (Nexus.MOUTH_OUT + Nexus.COURT_OUT) * 0.5, mz), "color": Color(0.75, 0.85, 1.0, 0.9), "label": nm.capitalize().substr(0, 18), "near": 120.0 })
+	for d in DOORS:
+		if String(d.get("style", "nexus")) != "any" and String(d.get("style", "nexus")) != style:
+			continue
+		var c: Color = d.color
+		gps.marks.append({ "p": Vector2(float(d.x) * (ROAD_W * 0.5 + WALK_W), float(d.z)), "color": c, "label": String(d.label).capitalize().substr(0, 18), "near": 40.0 })
+	add_child(gps)
 const Infra := preload("res://scripts/city/infrastructure.gd")
 ## the crossings' signal heads on loaded blocks and the construction crane tops (infrastructure.gd runs them)
 var signals: Array = []
@@ -391,6 +429,7 @@ func _spawn_player() -> void:
 	world.add_child(gunplay)
 	gunplay.setup(operator, operator.obstacles)
 	_spawn = operator.position
+	_build_gps(span)
 	armed = force_armed or story_armed()
 	# two practice dummies by the garage, and the block's cyber troopers (enemies.gd) further down
 	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0)]:
@@ -749,6 +788,8 @@ func _process(dt: float) -> void:
 			if _respawn_timer <= 0.0:
 				operator.position = _spawn
 				operator.velocity = Vector3.ZERO
+	if gps:
+		gps.target = driving_car.node if driving_car else operator
 	if district:
 		var focus: Vector3 = driving_car.node.position if driving_car else operator.position
 		var ch: Dictionary = district.update(focus.z)
@@ -1504,7 +1545,9 @@ func _props() -> void:
 		var i := 0
 		while z < LENGTH * 0.5 - 6.0:
 			var edge := side * (half + 1.3)
-			if i % 2 == 0 or style != "nexus":
+			# palms and lamp posts take turns on Nexus and Neon (the Neon boards light the avenue with sodium lamps between
+			# the palms; Neon had palms only, so its street had no lamp light at all — Nov 18 pass); the coast is all palms
+			if i % 2 == 0 or style == "coast":
 				_tree_feet.append(Vector3(edge, 0.18, z))
 				if style == "coast" and ResourceLoader.exists(MODELS + "../foliage/palm-a.glb"):
 					# the web build's three authored palms on the resort strip
@@ -2031,6 +2074,11 @@ func _dressing() -> void:
 	var beam_x := -(half - 3.0)
 	_box(Vector3(2.2, 0.8, LENGTH), Vector3(beam_x, 13.0, 0), steel)
 	_box(Vector3(2.4, 0.08, LENGTH), Vector3(beam_x, 13.44, 0), _neon_mat(cyan, 2.5))
+	if style == "neon":
+		# the boards' elevated line wears a purple neon underline down both sides (Nov 18 Neon pass)
+		var underline := _neon_mat(Color(0.66, 0.22, 1.0), 3.5)
+		for sx: float in [-1.15, 1.15]:
+			_box(Vector3(0.1, 0.14, LENGTH), Vector3(beam_x + sx, 12.62, 0), underline)
 	var zp := -LENGTH * 0.5 + 15.0
 	while zp < LENGTH * 0.5:
 		_box(Vector3(1.2, 12.6, 1.2), Vector3(beam_x, 6.3, zp), steel)

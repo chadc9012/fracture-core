@@ -63,8 +63,15 @@ void fragment() {
 		emit = vec3(0.6, 0.2, 1.0) * k * 1.6;
 	} else if (cover == i_urban || cover == i_paved || cover == i_town) {
 		c += vec3(10.0) / 255.0 * grain;
-		rough = mix(0.85, 0.18, wet);
-		c *= mix(1.0, 0.55, wet);
+		// paving slabs 4 m square with darker joints, and at night in the rain puddles in patches: glossy where the water
+		// stands, matt between (a uniform mirror read as a blue sheet in Neon City's Street View — Nov 18)
+		vec2 slab = fract(w / 4.0);
+		float joint = 1.0 - step(0.035, min(min(slab.x, 1.0 - slab.x), min(slab.y, 1.0 - slab.y)));
+		c *= 1.0 - joint * 0.25;
+		c *= mix(0.92, 1.08, hash2(floor(w / 4.0)));
+		float puddle = smoothstep(0.5, 0.68, vnoise(w * 0.07 + 3.1) * 0.7 + vnoise(w * 0.31) * 0.3);
+		rough = mix(0.85, mix(0.62, 0.06, puddle), wet);
+		c *= mix(1.0, mix(0.62, 0.38, puddle), wet);
 	} else if (cover == i_snow || cover == i_ice) {
 		rough = 0.55;
 		c += vec3(6.0) / 255.0 * grain;
