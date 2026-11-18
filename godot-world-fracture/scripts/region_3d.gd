@@ -606,7 +606,7 @@ func _style_for(id: String) -> Dictionary:
 		"neon-city":
 			# the owner's Neon boards (Nov 15, NFS night): the moonlit navy sky over a magenta horizon glow, navy light on
 			# the walls (not a violet wash), warm windows and sodium streets with the neon as the accent (Nov 18 pass)
-			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#1c1638", "fog_d": 0.0022, "sun": 0.35, "sun_col": "#9fb2ff", "sun_el": 34.0, "amb": 0.6, "amb_col": "#3a4070", "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.1, "moon_sky": true, "exp": 1.3}, true)
+			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#1c1638", "fog_d": 0.0022, "sun": 0.18, "sun_col": "#b4bce6", "sun_el": 34.0, "amb": 0.45, "amb_col": "#343a62", "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.1, "moon_sky": true, "exp": 1.3}, true)
 		"nexus":
 			# still night, but moonlit enough to read the island, parks and streets (it was near-black outside the towers)
 			s.merge({"top": "#0d1a30", "hor": "#3a5278", "fog": "#24324a", "fog_d": 0.0016, "sun": 0.28, "sun_col": "#a9bfff", "sun_el": 34.0, "amb": 0.6, "night": 1.0, "neon": 0.55, "wet": 0.9, "sat": 1.0}, true)
