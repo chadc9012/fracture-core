@@ -29,6 +29,11 @@ var _reload := false
 var _next := false
 ## Operator grenades (grenades.gd via gunplay): a throw and a cycle press, consumed by gunplay; the HUD line
 var _grenade := false
+var _super := false
+var _v_was := false
+var _super_button: Button
+var _super_meter: Control
+var _super_hud := {}
 var _cycle_grenade := false
 var _grapple := false
 var _grenade_button: Button
@@ -227,6 +232,15 @@ func _ready() -> void:
 		bind(cy, func(): _cycle_grenade = true)
 		add_child(cy)
 		_cycle_button = cy
+		# the super: a round button above GRAPPLE wearing the meter round its edge (Destiny's super icon)
+		var sp := _button("SUPER")
+		sp.custom_minimum_size = Vector2(120, 56)
+		sp.add_theme_font_size_override("font_size", 13)
+		sp.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		sp.position = Vector2(-250, -372)
+		bind(sp, func(): _super = true)
+		add_child(sp)
+		_super_button = sp
 	_hud()
 	if not touch_ui and not scripted:
 		toast.call_deferred("Click to aim with the mouse · Esc frees the cursor")
@@ -552,7 +566,7 @@ func set_mode(m: String) -> void:
 		_lit(_gas_button, false)
 	if _stick_label:
 		_stick_label.text = "STEER" if drive else ("FLY" if fly else "MOVE")
-	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button, _grapple_button]:
+	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button, _grapple_button, _super_button]:
 		if b:
 			b.visible = not drive and not fly and weapons_out and not simple()
 	var armed_drive := drive and armed_vehicle
@@ -616,6 +630,46 @@ func take_grapple() -> bool:
 	var g := _grapple
 	_grapple = false
 	return g
+
+func take_super() -> bool:
+	var s := _super
+	_super = false
+	return s
+
+## Destiny's super meter: a thin gold bar under the hull (full: it glows and says SUPER READY · V / on the button); while
+## the Golden Gun is live the bar shows the shots left. {} hides it
+func show_super(h: Dictionary) -> void:
+	_super_hud = h
+	if not _super_meter:
+		_super_meter = Control.new()
+		_super_meter.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_super_meter.position = Vector2(20, 31)
+		_super_meter.size = Vector2(HULL_W, 14)
+		_super_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_super_meter.draw.connect(func():
+			if _super_hud.is_empty():
+				return
+			var f := float(_super_hud.charge)
+			var col: Color = _super_hud.color
+			var ready := f >= 1.0
+			_super_meter.draw_rect(Rect2(0, 0, HULL_W, 3), Color(0, 0, 0, 0.45))
+			var a := 0.65 + 0.35 * sin(Time.get_ticks_msec() / 160.0) if ready else 0.9
+			_super_meter.draw_rect(Rect2(0, 0, HULL_W * clampf(f, 0.0, 1.0), 3), Color(col.r, col.g, col.b, a))
+			if bool(_super_hud.active):
+				var font := UiTheme.font(700, 2)
+				_super_meter.draw_string(font, Vector2(HULL_W + 8, 8), "%s  ×%d" % [String(_super_hud.name), int(_super_hud.shots)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col)
+			elif ready and not touch_ui:
+				_super_meter.draw_string(UiTheme.font(700, 2), Vector2(HULL_W + 8, 8), "SUPER READY  ·  V", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col))
+		add_child(_super_meter)
+	_super_meter.visible = mode == "foot" and not h.is_empty()
+	_super_meter.queue_redraw()
+	if _super_button:
+		if h.is_empty():
+			_super_button.visible = false
+		else:
+			var full := float(h.charge) >= 1.0
+			_super_button.text = (String(h.name).get_slice(" ", 0) + " ◆") if full else "SUPER %d%%" % int(float(h.charge) * 100.0)
+			_super_button.modulate = Color(1.3, 1.15, 0.8) if full else Color(1, 1, 1, 0.85)
 
 func take_grenade() -> bool:
 	var g := _grenade
@@ -780,6 +834,9 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_J) and not _j_was:
 		_grenade = true
 	_j_was = Input.is_key_pressed(KEY_J)
+	if Input.is_key_pressed(KEY_V) and not _v_was:
+		_super = true
+	_v_was = Input.is_key_pressed(KEY_V)
 	if Input.is_key_pressed(KEY_K) and not _k_was:
 		_cycle_grenade = true
 	_k_was = Input.is_key_pressed(KEY_K)

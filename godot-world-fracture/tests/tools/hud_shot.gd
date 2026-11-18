@@ -55,6 +55,10 @@ func _process(_dt: float) -> bool:
 		c.toast("Daily goal complete  ·  +250 XP  ·  +120 Nex")
 		c.prompt("Enter Neon Drift")
 		c.hit_marker("head")
+		if OS.get_cmdline_user_args().has("super"):
+			c.show_super({ "name": "NOVA BOMB", "class": "WARLOCK", "charge": 1.0, "active": false, "shots": 0, "color": Color(0.72, 0.45, 1.0) })
+		else:
+			c.show_super({ "name": "NOVA BOMB", "class": "WARLOCK", "charge": 0.62, "active": false, "shots": 0, "color": Color(0.72, 0.45, 1.0) })
 		if OS.get_cmdline_user_args().has("mission"):
 			c.mission_card("New mission  ·  FD-03", "Broken Signal", "The signal isn't natural. Something built it, and it wants you to find the source.")
 		if OS.get_cmdline_user_args().has("level"):

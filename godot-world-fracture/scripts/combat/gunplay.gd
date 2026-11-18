@@ -65,6 +65,8 @@ var grenades: Node3D
 var roster: Node = null
 ## off while unarmed (holstered) or in a view that wants no grenades
 var grenades_on := true
+## the super (scripts/combat/super_ability.gd): V / SUPER when the meter is full
+var super_ability: Node3D
 ## the on-foot input (touch_controls.gd); unset, the scene's one is found by its group
 var controls: Node = null
 var obstacles: Array[AABB] = []
@@ -113,6 +115,9 @@ func setup(p: Node3D, boxes: Array[AABB]) -> void:
 	grenades = Grenades.new()
 	add_child(grenades)
 	grenades.setup(self)
+	super_ability = load("res://scripts/combat/super_ability.gd").new()
+	add_child(super_ability)
+	super_ability.setup(self)
 	hit.connect(_hit_feedback)
 	killed.connect(func(t: Target) -> void:
 		if not (t.has_meta("cover_box") or t.has_meta("prop")):
@@ -468,6 +473,8 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 		# cover has no head, counts no kill and scavenges nothing; it stays down once broken
 		var head := not cover and end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
 		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult * (MARK_MULT if hit_t.mark > 0.0 else 1.0)
+		if super_ability:
+			dmg *= super_ability.shot_mult()   # the Golden Gun's empowered shots
 		var res: Dictionary = hit_t.take(dmg, gun().frame == "FUSION")
 		if float(res.shield) > 0.0:
 			_shield_flash(hit_t, bool(res.broke))
@@ -513,6 +520,11 @@ func _step_grenades(dt: float, cam: Camera3D) -> void:
 	grenades.step(dt, cam, throw, cyc)
 	if c:
 		c.show_grenade(grenades.hud() if grenades_on and not holstered else {})
+	if super_ability:
+		var cast_now: bool = c != null and c.has_method("take_super") and c.take_super() and grenades_on and not holstered
+		super_ability.step(dt, cam, cast_now)
+		if c and c.has_method("show_super"):
+			c.show_super(super_ability.hud() if grenades_on and not holstered else {})
 
 ## the grapple (operator_player.gd grapple_to): the GRAPPLE button / G anchors it on the first box within
 ## GRAPPLE_RANGE along the crosshair (never on a trooper) and reels the operator there; the cable is drawn from the
