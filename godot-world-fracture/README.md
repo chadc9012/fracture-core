@@ -615,7 +615,7 @@ gate lounge with six gates and jet bridges, the apron door, the apron, taxiway a
 private hangars. **Weapons are stowed landside, in the terminal, the shops and the lounge; they come out on the
 airstrip (apron / runway) and inside a hangar you lease**, and only once the story has armed the operator (Mission 01's
 Surge). A leased hangar opens its door, keeps the aircraft you buy (helicopter / jet / airship) and has a target range;
-YOUR AIRCRAFT → FLY takes one out over that city in Skyways (`skyways_view.gd region_id`). BOARD at your ticket's gate
+YOUR AIRCRAFT → FLY takes one out over that city in Skyways (`skyways_view.gd region_id`). BOARD at your ticket's gate Past the private hangars stand the MAINTENANCE HANGAR (repairs for the aircraft you keep here, `Air.REPAIR_PER_PT` Nex a point of condition — the hull you take off with and bring back; a wreck comes back to the pad at 35 %) and the FUEL bowser (`Air.FUEL_PER_PT` a point of tank; a full tank is `Air.TANK_MINUTES` wide open and an empty one gives no thrust, so you glide it down). Both live in the profile under air.condition / air.fuel and only apply to flights out of your hangar (`from_hangar`); the hub's loaner craft are free of upkeep.
 plays the take-off and main.gd opens the destination: the other airport's arrivals hall (leaving it puts you on that
 city's street) or the region on foot (`arrival_view.gd`, with a FLIGHTS desk home). Region airports (Nov 9, the owner's network, first three): Azure Isles International (AZI: island, lagoon, runway ends on
 piers, seaplane terminal, resorts), Frostveil International (FRV: snow, falling snow, glaciers and peaks, pines, rescue

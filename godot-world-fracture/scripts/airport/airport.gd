@@ -267,3 +267,53 @@ static func paint(profile: Dictionary, at: String, craft: String, name: String) 
 
 static func paint_of(profile: Dictionary, craft: String) -> String:
 	return String(air(profile).get("paint", {}).get(craft, "factory"))
+
+# --------------------------------------------------------------------------------------------- upkeep
+## the owner's airport board (Nov 15): the maintenance hangar and refuelling as places. Every owned aircraft carries a
+## condition (0-100: the hull Skyways takes off with, and brings back) and a tank (0-100: burnt by the throttle in
+## flight; an empty tank means no thrust, so you glide it down). Both live under air.condition / air.fuel by craft id.
+const REPAIR_PER_PT := 12     # Nex per point of condition at the maintenance hangar
+const FUEL_PER_PT := 3        # Nex per point of tank at the bowser
+const TANK_MINUTES := 9.0     # a full tank at full throttle
+static func condition(profile: Dictionary, craft: String) -> int:
+	return clampi(int(air(profile).get("condition", {}).get(craft, 100)), 0, 100)
+static func fuel(profile: Dictionary, craft: String) -> int:
+	return clampi(int(air(profile).get("fuel", {}).get(craft, 100)), 0, 100)
+static func set_condition(profile: Dictionary, craft: String, v: int) -> void:
+	var a := air(profile)
+	var d: Dictionary = a.get("condition", {})
+	d[craft] = clampi(v, 0, 100)
+	a["condition"] = d
+static func set_fuel(profile: Dictionary, craft: String, v: int) -> void:
+	var a := air(profile)
+	var d: Dictionary = a.get("fuel", {})
+	d[craft] = clampi(v, 0, 100)
+	a["fuel"] = d
+static func repair_price(profile: Dictionary, craft: String) -> int:
+	return (100 - condition(profile, craft)) * REPAIR_PER_PT
+static func refuel_price(profile: Dictionary, craft: String) -> int:
+	return (100 - fuel(profile, craft)) * FUEL_PER_PT
+## the maintenance hangar puts an aircraft you keep here back to 100; the line for the panel
+static func repair(profile: Dictionary, at: String, craft: String) -> String:
+	if craft not in aircraft_at(profile, at):
+		return "That aircraft isn't in your hangar here"
+	var price := repair_price(profile, craft)
+	if price <= 0:
+		return "%s is airworthy — nothing to repair" % String(AIRCRAFT[craft].name)
+	if int(profile.get("nex", 0)) < price:
+		return "Needs %d Nex (you have %d)" % [price, int(profile.get("nex", 0))]
+	profile.nex = int(profile.nex) - price
+	set_condition(profile, craft, 100)
+	return "%s repaired to 100%% · -%d Nex" % [String(AIRCRAFT[craft].name), price]
+## the bowser fills an aircraft you keep here
+static func refuel(profile: Dictionary, at: String, craft: String) -> String:
+	if craft not in aircraft_at(profile, at):
+		return "That aircraft isn't in your hangar here"
+	var price := refuel_price(profile, craft)
+	if price <= 0:
+		return "%s is full" % String(AIRCRAFT[craft].name)
+	if int(profile.get("nex", 0)) < price:
+		return "Needs %d Nex (you have %d)" % [price, int(profile.get("nex", 0))]
+	profile.nex = int(profile.nex) - price
+	set_fuel(profile, craft, 100)
+	return "%s fuelled · -%d Nex" % [String(AIRCRAFT[craft].name), price]

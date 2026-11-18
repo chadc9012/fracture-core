@@ -5,6 +5,8 @@ extends Node
 
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 const Handling := preload("res://scripts/driving/vehicle_handling.gd")
+const Air := preload("res://scripts/airport/airport.gd")
+const Gear := preload("res://scripts/gear/gear_store.gd")
 
 var ok := true
 
@@ -13,6 +15,8 @@ func check(name: String, cond: bool) -> void:
 	ok = ok and cond
 
 func _ready() -> void:
+	for f in ["user://profile.json"]:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(f))
 	var v := SkywaysView.new()
 	v.craft_id = "vanguard-jet"
 	add_child(v)
@@ -53,5 +57,38 @@ func _ready() -> void:
 			puffs += 1
 	alt = v.hull.position.y - v.region.ground(v.hull.position.x, v.hull.position.z)
 	check("coming down (%.0f m, %.0f m/s) the gear is back down by %.0f s" % [alt, v.state.speed, t], v._gear_k >= 0.95 and v._gear.visible)
+	# a hangar aircraft: it takes off with its saved condition and tank, burns fuel with the throttle, brings both back
+	v.queue_free()
+	await get_tree().process_frame
+	var pr := Gear.profile_load()
+	Air.set_condition(pr, "vanguard-jet", 70)
+	Air.set_fuel(pr, "vanguard-jet", 30)
+	Gear.profile_save(pr)
+	v = SkywaysView.new()
+	v.craft_id = "vanguard-jet"
+	v.from_hangar = true
+	add_child(v)
+	for i in 3:
+		await get_tree().process_frame
+	check("a hangar jet takes off with its condition as hull (%d%%) and its tank (%d%%)" % [int(v.hull_hp * 100), int(v.fuel)], is_equal_approx(v.hull_hp, 0.7) and is_equal_approx(v.fuel, 30.0))
+	v.controls.scripted = true
+	v.controls.move = Vector2(0.0, 1.0)
+	v.controls._brake_held = true
+	for i in 400:   # 20 s wide open
+		v._process(0.05)
+	var burnt := 30.0 - v.fuel
+	check("the throttle burns the tank (%.1f%% in 20 s)" % burnt, burnt > 2.0 and burnt < 6.0 and v._hud.text.contains("FUEL"))
+	v.fuel = 0.4
+	for i in 60:
+		v._process(0.05)
+	var sp0: float = absf(v.state.speed)
+	for i in 100:
+		v._process(0.05)
+	check("empty, there is no thrust: the jet slows (%.0f → %.0f m/s) and the warning shows" % [sp0, absf(v.state.speed)], v.fuel <= 0.0 and absf(v.state.speed) < sp0 and v._fuel_warned)
+	v.hull_hp = 0.55
+	v.queue_free()
+	await get_tree().process_frame
+	pr = Gear.profile_load()
+	check("closing the flight writes the hull and the tank back (%d%%, %d%%)" % [Air.condition(pr, "vanguard-jet"), Air.fuel(pr, "vanguard-jet")], Air.condition(pr, "vanguard-jet") == 55 and Air.fuel(pr, "vanguard-jet") == 0)
 	print("skyways play: ", "0 failed" if ok else "FAILED")
 	get_tree().quit(0 if ok else 1)
