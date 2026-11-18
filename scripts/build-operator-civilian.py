@@ -120,6 +120,20 @@ def from_arrays(name, v, f):
     bm_.from_mesh(me)
     bmesh.ops.remove_doubles(bm_, verts=bm_.verts, dist=height * 1e-5)
     bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces)
+    # on an open surface (the head is cut off at the neck) recalc_face_normals can settle on inward: the game then
+    # showed the inside of the chest from behind with the hoodie's print on the back, the clothes' front being the
+    # rest normal (Nov 18). Outward is away from the body's vertical axis through the chest; turn all of it if most
+    # of the torso faces in
+    if bm_.faces:
+        zs = sorted(v.co.z for v in bm_.verts)
+        z0, z1 = zs[int(len(zs) * 0.55)], zs[int(len(zs) * 0.8)]
+        band = [f for f in bm_.faces if z0 < f.calc_center_median().z < z1]
+        cx = sum(f.calc_center_median().x for f in band) / max(1, len(band))
+        cy = sum(f.calc_center_median().y for f in band) / max(1, len(band))
+        inward = sum(1 for f in band if (f.calc_center_median().x - cx) * f.normal.x + (f.calc_center_median().y - cy) * f.normal.y < 0)
+        print("faces in", name, inward, "of", len(band))
+        if inward > len(band) * 0.5:
+            bmesh.ops.reverse_faces(bm_, faces=list(bm_.faces))
     bm_.to_mesh(me)
     bm_.free()
     return ob
@@ -383,6 +397,20 @@ def mesh_obj(name, verts, faces):
     bm_ = bmesh.new()
     bm_.from_mesh(me)
     bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces)
+    # on an open surface (the head is cut off at the neck) recalc_face_normals can settle on inward: the game then
+    # showed the inside of the chest from behind with the hoodie's print on the back, the clothes' front being the
+    # rest normal (Nov 18). Outward is away from the body's vertical axis through the chest; turn all of it if most
+    # of the torso faces in
+    if bm_.faces:
+        zs = sorted(v.co.z for v in bm_.verts)
+        z0, z1 = zs[int(len(zs) * 0.55)], zs[int(len(zs) * 0.8)]
+        band = [f for f in bm_.faces if z0 < f.calc_center_median().z < z1]
+        cx = sum(f.calc_center_median().x for f in band) / max(1, len(band))
+        cy = sum(f.calc_center_median().y for f in band) / max(1, len(band))
+        inward = sum(1 for f in band if (f.calc_center_median().x - cx) * f.normal.x + (f.calc_center_median().y - cy) * f.normal.y < 0)
+        print("faces in", name, inward, "of", len(band))
+        if inward > len(band) * 0.5:
+            bmesh.ops.reverse_faces(bm_, faces=list(bm_.faces))
     bm_.to_mesh(me)
     bm_.free()
     for p_ in me.polygons:

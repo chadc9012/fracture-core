@@ -325,7 +325,8 @@ func _neck_tube(head_bone: int) -> void:
 	var nr := skeleton.get_bone_global_rest(ni)
 	var hp := skeleton.get_bone_global_rest(head_bone).origin
 	var lo := nr.origin.lerp(hp, 0.1)
-	var hi := hp + (hp - nr.origin).normalized() * 0.02
+	# up into the skull past the jaw: from behind, the inside of the face's lower edge showed as a dark band above it
+	var hi := hp + (hp - nr.origin).normalized() * (0.05 if real_body else 0.02)
 	var up := (hi - lo)
 	var cm := CylinderMesh.new()
 	var r := 0.05 if String(look.get("body", "male")) == "male" else 0.04
