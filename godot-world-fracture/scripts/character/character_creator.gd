@@ -27,6 +27,7 @@ var tab := "BODY"
 ## first run: no BACK, only CONFIRM
 var onboarding := false
 var rig: Node3D
+var _env: Environment
 var cam: Camera3D
 var _svc: SubViewportContainer
 var _panel: PanelContainer
@@ -172,83 +173,121 @@ func _fit() -> void:
 func _stage(vp: SubViewport) -> void:
 	var world := Node3D.new()
 	vp.add_child(world)
+	# a photo studio, not a stage set (owner's reference render, Nov 18): a dark seamless backdrop curving into the
+	# floor, a soft warm key from the front left, a cool low fill, white rims from behind to cut the silhouette out of
+	# the dark, and a pool of light on the backdrop behind the body. The old set's saturated cyan and pink rims and its
+	# flat blue wall and floor washed out the clothes and hid the body's shape
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("#06131f")
+	env.background_color = Color("#0b0e12")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("#3a5670")
-	env.ambient_light_energy = 0.55
+	env.ambient_light_color = Color("#5a6573")
+	env.ambient_light_energy = 0.22
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.1
 	env.glow_enabled = true
-	env.glow_intensity = 0.6
-	env.glow_bloom = 0.05
+	env.glow_intensity = 0.35
+	env.glow_bloom = 0.02
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.08
+	env.adjustment_saturation = 1.05
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
+	_env = env   # also the camera's own: the stage shares the game's world, whose environment won (a flat navy)
 	var key := DirectionalLight3D.new()
-	key.light_color = Color("#ffe6cc")
+	key.light_color = Color("#fff0e0")
 	key.light_energy = 1.6
 	key.shadow_enabled = true
-	key.rotation = Vector3(deg_to_rad(-32), deg_to_rad(28), 0)
+	key.shadow_blur = 2.0
+	key.rotation = Vector3(deg_to_rad(-30), deg_to_rad(-35), 0)
 	world.add_child(key)
 	var fill := OmniLight3D.new()
-	fill.light_color = Color("#9fc8ff")
-	fill.light_energy = 0.9
-	fill.omni_range = 6.0
-	fill.position = Vector3(-1.6, 1.5, 1.6)
+	fill.light_color = Color("#c9dcff")
+	fill.light_energy = 0.45
+	fill.omni_range = 7.0
+	fill.position = Vector3(2.2, 1.0, 2.4)
 	world.add_child(fill)
 	for sx: float in [-1.0, 1.0]:
 		var rim := OmniLight3D.new()
-		rim.light_color = Color("#36d6ff") if sx < 0 else Color("#ff5fa8")
-		rim.light_energy = 2.2
-		rim.omni_range = 4.0
-		rim.position = Vector3(sx * 1.3, 1.9, -1.4)
+		rim.light_color = Color("#eef3ff")
+		rim.light_energy = 1.8
+		rim.omni_range = 1.9
+		rim.position = Vector3(sx * 0.9, 1.7, -0.9)
 		world.add_child(rim)
-	# a plinth with a glowing ring
+	var pool := OmniLight3D.new()   # the light on the backdrop behind the body
+	pool.light_color = Color("#9fb4cc")
+	pool.light_energy = 0.7
+	pool.omni_range = 2.0
+	pool.position = Vector3(0, 1.1, -2.6)
+	world.add_child(pool)
+	# a low plinth with a soft ring (the game's own touch, quieter: it lit the trainers white)
 	var plinth := MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
 	cyl.top_radius = 0.75
 	cyl.bottom_radius = 0.8
-	cyl.height = 0.08
+	cyl.height = 0.06
 	plinth.mesh = cyl
 	var pm := StandardMaterial3D.new()
-	pm.albedo_color = Color("#101820")
-	pm.metallic = 0.7
-	pm.roughness = 0.3
+	pm.albedo_color = Color("#14181d")
+	pm.metallic = 0.3
+	pm.roughness = 0.35
 	plinth.material_override = pm
-	plinth.position.y = -0.04
+	plinth.position.y = -0.03
 	world.add_child(plinth)
 	var ring := MeshInstance3D.new()
 	var tor := TorusMesh.new()
-	tor.inner_radius = 0.74
-	tor.outer_radius = 0.77
+	tor.inner_radius = 0.745
+	tor.outer_radius = 0.765
 	ring.mesh = tor
 	var rm := StandardMaterial3D.new()
 	rm.albedo_color = Color("#8ce9ff")
 	rm.emission_enabled = true
 	rm.emission = Color("#5fd8ff")
-	rm.emission_energy_multiplier = 3.0
+	rm.emission_energy_multiplier = 1.2
 	ring.material_override = rm
-	ring.position.y = 0.0
 	world.add_child(ring)
-	# a back wall with faint grid glow
-	var wall := MeshInstance3D.new()
-	var pl := PlaneMesh.new()
-	pl.size = Vector2(12, 6)
-	wall.mesh = pl
-	wall.rotation.x = PI / 2
-	wall.position = Vector3(0, 3, -3)
-	var wm := StandardMaterial3D.new()
-	wm.albedo_color = Color("#0a1824")
-	wm.roughness = 0.9
-	wall.material_override = wm
-	world.add_child(wall)
+	# the seamless backdrop: a floor running back into a wall up a smooth curve, glossy enough to hold a soft reflection
+	var cyc := MeshInstance3D.new()
+	cyc.mesh = _cyclorama(14.0, 3.2, 1.6, 7.0)
+	var cm := StandardMaterial3D.new()
+	cm.albedo_color = Color("#07090c")
+	cm.roughness = 0.5
+	cm.metallic_specular = 0.6
+	cm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	cyc.material_override = cm
+	world.add_child(cyc)
 	rig = Rig.new()
 	world.add_child(rig)
 	cam = Camera3D.new()
 	cam.fov = 32
+	cam.environment = _env
 	cam.current = true
 	world.add_child(cam)
+
+## a floor from z = +depth back to a wall at z = −back, joined by a quarter circle of radius r, w wide, h tall
+static func _cyclorama(w: float, back: float, r: float, depth: float) -> ArrayMesh:
+	var prof: Array[Vector2] = []   # (z, y) from the front of the floor to the top of the wall
+	prof.append(Vector2(depth, 0.0))
+	prof.append(Vector2(-back + r, 0.0))
+	for k in range(1, 12):
+		var a := PI * 0.5 * k / 12.0
+		prof.append(Vector2(-back + r - sin(a) * r, r - cos(a) * r))
+	prof.append(Vector2(-back, r))
+	prof.append(Vector2(-back, 6.0))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in prof.size() - 1:
+		var p0 := prof[i]
+		var p1 := prof[i + 1]
+		var a0 := Vector3(-w * 0.5, p0.y, p0.x)
+		var b0 := Vector3(w * 0.5, p0.y, p0.x)
+		var a1 := Vector3(-w * 0.5, p1.y, p1.x)
+		var b1 := Vector3(w * 0.5, p1.y, p1.x)
+		for v in [a0, b0, b1, a0, b1, a1]:
+			st.add_vertex(v)
+	st.generate_normals()
+	return st.commit()
 
 func _frame_camera() -> void:
 	var face := tab in FACE_TABS
