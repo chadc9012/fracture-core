@@ -63,20 +63,16 @@ var state: Handling.State
 var top_speed := 62.0
 var pad := Vector3.ZERO
 var hull_hp := 1.0
-## how far past the map aircraft may fly, in map spans from the centre (region_3d.gd's skirt reaches 4 spans out), and
-## how far inside that edge the craft starts banking home
-const AIR_SPANS := 3.6
-const EDGE_TURN := 160.0
-var _edge_warned := false
 
 ## the region is lit for night (its style), where the craft's fill light is turned up
 func region_night() -> bool:
 	return region != null and region.is_night()
 
-## the half-width of where this craft may go: the region for boats and subs, the open airspace for aircraft
+## the half-width of where a boat or sub may go (the region's water); aircraft have no limit (owner, Nov 18: the
+## airspace edge "removed completely") — the region's sea and ground skirt travel with them instead
 func airspace_half() -> float:
 	if String(profile.mode) == "AIR":
-		return region.span() * AIR_SPANS - 40.0
+		return INF
 	return region.span() * 0.5 - 10.0
 ## how much of a crash / a hard landing the hull takes (Airframe Finish / Landing Gear at the Aviation Hangar)
 var hull_take := 1.0
@@ -188,7 +184,7 @@ func _start() -> void:
 	region.show_region(region_id, start, Region3D.Mode.PLAY)
 	cam = region.camera()
 	cam.current = true
-	cam.far = 4000.0
+	cam.far = 16000.0   # far enough that the sea runs into the haze, not into a dark band at 4 km
 	_boxes = region.building_boxes()
 	# the hull
 	hull = (load(model_of(craft_id)) as PackedScene).instantiate() as Node3D
@@ -543,22 +539,14 @@ func _process(dt: float) -> void:
 		if hull_hp <= 0.0:
 			_reset("The craft is wrecked — back on the pad")
 			return
-	# the edge: boats and subs keep to the region's water; aircraft get open airspace out over the land / sea skirt
-	# region_3d.gd lays around the map (owner, Nov 18: jets hit an invisible wall at the 480 m map edge within seconds).
-	# Near the airspace edge the craft banks itself back toward the city instead of sticking to the limit.
-	var half: float = airspace_half()
-	if String(profile.mode) == "AIR" and state.airborne:
-		var out := maxf(absf(want.x), absf(want.z)) - (half - EDGE_TURN)
-		if out > 0.0:
-			var home := atan2(want.x, want.z)   # the yaw that points the nose (-sin, -cos) back at the centre
-			state.yaw = lerp_angle(state.yaw, home, minf(1.0, (0.6 + out / EDGE_TURN * 1.6) * dt))
-			if not _edge_warned:
-				_edge_warned = true
-				controls.toast("Edge of the airspace — turning back")
-		elif maxf(absf(want.x), absf(want.z)) < half - EDGE_TURN * 2.0:
-			_edge_warned = false
-	want.x = clampf(want.x, -half, half)
-	want.z = clampf(want.z, -half, half)
+	# the edge: boats and subs keep to the region's water; aircraft fly on without any limit, and the region's sea and
+	# ground skirt follow them so the horizon never shows an edge (owner, Nov 18: invisible wall, then "removed completely")
+	if String(profile.mode) == "AIR":
+		region.follow_horizon(want.x, want.z)
+	else:
+		var half: float = airspace_half()
+		want.x = clampf(want.x, -half, half)
+		want.z = clampf(want.z, -half, half)
 	hull.position = want
 	hull.rotation = Vector3(state.pitch, state.yaw, state.roll)
 	# rings

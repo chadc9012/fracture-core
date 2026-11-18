@@ -53,22 +53,22 @@ func _fly(id: String) -> void:
 		v._process(0.05)
 		top = maxf(top, _alt(v))
 	check("%s: climbed to %.0f m at %.0f m/s" % [name, top, absf(v.state.speed)], top > 8.0)
-	# level off and cruise 60 s straight out: the craft leaves the map's 480 m, flies on over the open airspace, and banks
-	# itself back from the airspace edge instead of sticking to a wall
+	# level off and cruise 60 s straight out: no limit (owner, Nov 18: "removed completely") — the craft keeps its heading
+	# the whole way, and the sea under it keeps up so there is no edge to see
 	v.controls._brake_held = false
-	var half: float = v.airspace_half()
+	var yaw0: float = v.state.yaw
 	var far := 0.0
-	var at_wall := 0
+	var turned := 0.0
 	for i in 1200:
 		v._process(0.05)
-		var r: float = maxf(absf(v.hull.position.x), absf(v.hull.position.z))
-		far = maxf(far, r)
-		if r > half - 1.0:
-			at_wall += 1
-	var dist := Vector2(v.hull.position.x - start.x, v.hull.position.z - start.z).length()
-	print("     after cruise at (%.0f, %.0f), alt %.0f m; furthest %.0f m out of %.0f; %d frames on the limit" % [v.hull.position.x, v.hull.position.z, _alt(v), far, half, at_wall])
+		far = maxf(far, maxf(absf(v.hull.position.x), absf(v.hull.position.z)))
+		turned = maxf(turned, absf(angle_difference(yaw0, v.state.yaw)))
+	var sea: Node3D = v.region._sea
+	var sea_gap := Vector2(sea.position.x - v.hull.position.x, sea.position.z - v.hull.position.z).length() if sea else 0.0
+	print("     after cruise at (%.0f, %.0f), alt %.0f m; furthest %.0f m out (the old limit was %.0f)" % [v.hull.position.x, v.hull.position.z, _alt(v), far, v.region.span() * 3.6 - 40.0])
 	check("%s: flew out past the map (%.0f m from the centre, map edge %.0f m), hull %d%%" % [name, far, v.region.span() * 0.5, int(v.hull_hp * 100)], far > v.region.span() * 0.5 + 100.0 and v.hull_hp > 0.0)
-	check("%s: turned back before the airspace limit (%d frames pinned)" % [name, at_wall], at_wall < 20)
+	check("%s: nothing turned it back (heading moved %.1f deg)" % [name, rad_to_deg(turned)], turned < deg_to_rad(2.0))
+	check("%s: the sea is under it out there (%.0f m off)" % [name, sea_gap], sea_gap < 64.0)
 	# come down: ease the throttle, hold DOWN, until it touches the ground
 	v.controls.move = Vector2(0.0, 0.2)
 	v.controls._sprint_held = true

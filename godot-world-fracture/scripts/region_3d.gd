@@ -784,20 +784,21 @@ func _build_ground() -> void:
 	var pm := PlaneMesh.new()
 	# open sea (the Storm Islands are seen from low down) runs much further so its edge sinks into the haze
 	var sea := 40.0 if not m.get("floating", []).is_empty() else 24.0   # 24 spans: the Skyways airspace (3.6 spans out) never sees the edge
-	pm.size = Vector2(_span * sea, _span * sea)
+	pm.size = Vector2.ONE * maxf(_span * sea, 40000.0)   # at least 40 km: it travels with Skyways aircraft
 	skirt.mesh = pm
 	skirt.position = Vector3(0, _water - 18.0, 0)
 	var sk := StandardMaterial3D.new()
 	sk.albedo_color = Color(_style.fog).darkened(0.55)
 	skirt.material_override = sk
 	_world.add_child(skirt)
+	_skirt = skirt
 
 func _build_water() -> void:
 	var mi := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	# open sea (the Storm Islands are seen from low down) runs much further so its edge sinks into the haze
 	var sea := 40.0 if not m.get("floating", []).is_empty() else 24.0   # 24 spans: the Skyways airspace (3.6 spans out) never sees the edge
-	pm.size = Vector2(_span * sea, _span * sea)
+	pm.size = Vector2.ONE * maxf(_span * sea, 40000.0)   # at least 40 km: it travels with Skyways aircraft
 	pm.subdivide_width = 4
 	pm.subdivide_depth = 4
 	mi.mesh = pm
@@ -819,6 +820,7 @@ func _build_water() -> void:
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_world.add_child(mi)
+	_sea = mi
 
 func _build_buildings() -> void:
 	if m.buildings.is_empty():
@@ -1924,6 +1926,17 @@ func is_night() -> bool:
 	return float(_style.get("night", 0.0)) > 0.5
 func span() -> float:
 	return _span
+## the open sea and the ground skirt re-centred under a point (Skyways aircraft fly without a limit): the sea's shader
+## works in world space, so moving its plane never slides the waves. Snapped to 64 m steps.
+var _sea: Node3D
+var _skirt: Node3D
+func follow_horizon(lx: float, lz: float) -> void:
+	var x := snappedf(lx, 64.0)
+	var z := snappedf(lz, 64.0)
+	for n in [_sea, _skirt]:
+		if n:
+			n.position.x = x
+			n.position.z = z
 ## where Street View would stand: open ground near the place the region opened at
 ## the street-mode eye moved to a point, looking along a yaw (the shot hook eye:…)
 func set_eye(x: float, z: float, yaw: float) -> void:
