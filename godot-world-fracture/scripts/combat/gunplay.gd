@@ -68,6 +68,12 @@ var grenades_on := true
 ## the super (scripts/combat/super_ability.gd): V / SUPER when the meter is full
 var super_ability: Node3D
 var _wheel_sig := ""
+## Valorant's kill callouts: kills inside STREAK_S of each other build a streak (DOUBLE / TRIPLE / QUAD / RAMPAGE); a kill
+## whose last hit was to the head is a HEADSHOT. touch_controls.medal shows them.
+const STREAK_S := 4.0
+var _streak := 0
+var _streak_t := 0.0
+var _head_on := {}
 ## the on-foot input (touch_controls.gd); unset, the scene's one is found by its group
 var controls: Node = null
 var obstacles: Array[AABB] = []
@@ -106,6 +112,26 @@ func scavenge() -> void:
 func gun() -> Weapons.Gun:
 	return guns[current]
 
+func _callout(t: Target) -> void:
+	if t.has_meta("cover_box") or t.has_meta("prop"):
+		return
+	_streak = _streak + 1 if _streak_t > 0.0 else 1
+	_streak_t = STREAK_S
+	var head: bool = _head_on.get(t, false)
+	_head_on.erase(t)
+	var c: Node = controls
+	if c == null and is_inside_tree():
+		c = get_tree().get_first_node_in_group("touch_controls")
+	if not c or not c.has_method("medal"):
+		return
+	var names := { 2: "DOUBLE KILL", 3: "TRIPLE KILL", 4: "QUAD KILL" }
+	if _streak >= 5:
+		c.medal("RAMPAGE", "%d IN A ROW" % _streak, Color(1.0, 0.42, 0.3))
+	elif names.has(_streak):
+		c.medal(String(names[_streak]), "HEADSHOT" if head else "", Color(1.0, 0.82, 0.35))
+	elif head:
+		c.medal("HEADSHOT", "", Color(1.0, 0.36, 0.36))
+
 func setup(p: Node3D, boxes: Array[AABB]) -> void:
 	player = p
 	obstacles = boxes
@@ -120,6 +146,8 @@ func setup(p: Node3D, boxes: Array[AABB]) -> void:
 	add_child(super_ability)
 	super_ability.setup(self)
 	hit.connect(_hit_feedback)
+	hit.connect(func(t: Target, _d: float, head: bool) -> void: _head_on[t] = head)
+	killed.connect(_callout)
 	killed.connect(func(t: Target) -> void:
 		if not (t.has_meta("cover_box") or t.has_meta("prop")):
 			_marker("kill")
@@ -347,6 +375,8 @@ func aim_point(cam: Camera3D) -> Vector3:
 
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
+	if _streak_t > 0.0:
+		_streak_t -= dt
 	# the HUD's gun picture and element pip (touch_controls.show_loadout; a no-op when nothing changed)
 	var hud := _controls()
 	if hud and hud.has_method("show_loadout"):

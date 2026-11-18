@@ -64,5 +64,17 @@ func _init() -> void:
 	s.cast(cam)
 	ok(not ahead.alive(), "NOVA BOMB lands ahead along the crosshair")
 	ok(behind.alive(), "and not behind")
+	# kill callouts: two kills in a row make a streak
+	var c := Control.new()
+	c.set_script(load("res://scripts/player/touch_controls.gd"))
+	c.scripted = true
+	get_root().add_child(c)
+	g.controls = c
+	g._streak_t = 0.0
+	var k1 = _target(g, Vector3(0, 0, -2), 1.0)
+	var k2 = _target(g, Vector3(0, 0, -2), 1.0)
+	g.grenade_hit(k1, 10.0, Vector3.ZERO)
+	g.grenade_hit(k2, 10.0, Vector3.ZERO)
+	ok(g._streak == 2 and c._medal != null, "two quick kills call out a DOUBLE KILL")
 	print("super test: %s" % ("true" if fails == 0 else "false (%d failed)" % fails))
 	quit(0 if fails == 0 else 1)

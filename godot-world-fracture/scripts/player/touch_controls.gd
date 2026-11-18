@@ -1258,3 +1258,54 @@ func _draw_wheel() -> void:
 	var mf := UiTheme.font(600, 2)
 	var mw := mf.get_string_size(mid_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 	_wheel.draw_string(mf, Vector2(-mw * 0.5, 4), mid_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, UiTheme.INK_DIM)
+
+# ---------------------------------------------------------------------------------------------- kill medals
+var _medal: Control
+
+## Valorant's kill callout under the crosshair: a word in wide caps with a thin rule either side and a line under it;
+## pops in, holds a moment, fades. A new one replaces the last.
+func medal(word: String, line := "", col := Color(1.0, 0.82, 0.35)) -> void:
+	if _medal:
+		_medal.queue_free()
+	var v := VBoxContainer.new()
+	v.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	v.offset_left = -220
+	v.offset_right = 220
+	v.offset_top = 70
+	v.add_theme_constant_override("separation", 0)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(v)
+	_medal = v
+	var h := HBoxContainer.new()
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.add_theme_constant_override("separation", 12)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(h)
+	for i in 3:
+		if i == 1:
+			var w := _banner_label(word, 700, 6, 22, col)
+			w.custom_minimum_size.x = 0
+			h.add_child(w)
+		else:
+			var r := ColorRect.new()
+			r.color = Color(col.r, col.g, col.b, 0.7)
+			r.custom_minimum_size = Vector2(40, 2)
+			r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			h.add_child(r)
+	if line != "":
+		var l := _banner_label(line, 600, 4, 12, Color(0.93, 0.94, 0.95, 0.85))
+		l.custom_minimum_size.x = 440
+		v.add_child(l)
+	v.pivot_offset = Vector2(220, 14)
+	v.scale = Vector2(1.35, 1.35)
+	v.modulate.a = 0.0
+	var tw := v.create_tween()
+	tw.tween_property(v, "modulate:a", 1.0, 0.08)
+	tw.parallel().tween_property(v, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.1)
+	tw.tween_property(v, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(func():
+		if _medal == v:
+			_medal = null
+		v.queue_free())
