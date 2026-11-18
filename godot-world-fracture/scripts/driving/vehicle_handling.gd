@@ -32,7 +32,11 @@ const BY_ID := {
 }
 
 ## the fleet's speed / handling multipliers (vehicles.ts) for the hulls this view flies and sails
-const FLEET_SPEED := { "rift-helicopter": 1.12, "vanguard-jet": 1.8, "scrap-patrol-boat": 0.85, "hydro-sub-skiff": 0.7, "goliath-tank": 0.6, "hover-car": 1.1, "leviathan": 1.0 }
+const FLEET_SPEED := { "rift-helicopter": 1.12, "vanguard-jet": 1.8, "scrap-patrol-boat": 0.85, "hydro-sub-skiff": 0.7, "goliath-tank": 0.6, "hover-car": 1.1, "leviathan": 1.0,
+	# the roster boards (Nov 15): until Nov 18 these all flew at the airship's 62 m/s
+	"skyhawk": 1.4, "thunderbolt-a7": 1.5, "riftwing": 1.6, "solara-falcon": 1.65, "void-skimmer": 1.9,
+	"nimbus-cargo": 1.2, "starliner-shuttle": 1.35, "valkyrie-vtol": 1.05, "horizon-dropship": 0.95,
+	"corsair-speedboat": 1.0, "leviathan-yacht": 0.7, "abyssal-carrier": 0.6, "deepfin-explorer": 0.75 }
 
 static func profile(kind: String) -> Dictionary:
 	return HANDLING.get(kind, HANDLING.OFFROAD)
