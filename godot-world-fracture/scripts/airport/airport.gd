@@ -81,6 +81,10 @@ const AIRCRAFT := {
 	"solara-falcon": { "name": "Solara Falcon", "price": 20000, "model": "craft/solara-falcon.glb" },
 	"thunderbolt-a7": { "name": "Thunderbolt A-7", "price": 22000, "model": "craft/thunderbolt-a7.glb" },
 	"void-skimmer": { "name": "Void-Skimmer Prototype", "price": 30000 },
+	# flown in Skyways since Nov 15 but not sold, so the Aviation Hangar couldn't service them (Nov 18)
+	"horizon-dropship": { "name": "Horizon Dropship", "price": 16000, "model": "craft/horizon-dropship.glb" },
+	"nimbus-cargo": { "name": "Nimbus Cargo", "price": 26000, "model": "craft/nimbus-cargo.glb" },
+	"starliner-shuttle": { "name": "Starliner Shuttle", "price": 35000, "model": "craft/starliner-shuttle.glb" },
 }
 ## where weapons may be out: the airstrip (apron, taxiways, runway) and inside a hangar you own; never landside, in the
 ## terminal, the shops or the gate lounges

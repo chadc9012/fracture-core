@@ -8,6 +8,7 @@ extends Node3D
 ## officer on shift comes over once it's high enough (a warning first, then a fine).
 ## street_slice.gd owns it: setup(), step(dt), near(pos), talk(id), gunfire(pos); `busy` while a conversation is open.
 
+const WorkIdle := preload("res://scripts/character/work_idle.gd")
 const People := preload("res://scripts/npc/people.gd")
 const Memory := preload("res://scripts/npc/memory.gd")
 const Talk := preload("res://scripts/npc/talk.gd")
@@ -233,6 +234,8 @@ func _step_one(n: Npc, dt: float) -> void:
 	if n.scare > 0.0:
 		to = Vector2(m.position.x - operator.position.x, m.position.z - operator.position.z).normalized() * 10.0
 	var walking := to.length() > 0.6
+	# standing at their place they do the job (work_idle.gd); on the move, or between beat ends, the plain stand
+	m.idle_clip = WorkIdle.clip_for(n.activity, String(n.p.get("job", ""))) if (not walking and not n.leaving and n.scare <= 0.0 and n.activity not in ["patrol", "route"]) else "idle"
 	if not walking and not n.leaving:
 		if n.activity in ["patrol", "route"]:
 			n.wait += dt

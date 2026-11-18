@@ -9,6 +9,7 @@ const SkinShader := preload("res://scripts/character/skin_shader.gd")
 const Outfits := preload("res://scripts/character/outfits.gd")
 const HairBuilder := preload("res://scripts/character/hair_builder.gd")
 const StandIdle := preload("res://scripts/character/stand_idle.gd")
+const WorkIdle := preload("res://scripts/character/work_idle.gd")
 
 var look: Dictionary = {}
 var body_root: Node3D
@@ -77,6 +78,7 @@ func build(new_look: Dictionary, animate := true) -> void:
 				mi.set_surface_override_material(si, _two_sided(mi.get_active_material(si)))
 	if anim and skeleton and anim.has_animation("idle"):
 		StandIdle.install(anim, skeleton)
+		WorkIdle.install(anim, skeleton)
 	if anim and animate and anim.has_animation("idle"):
 		anim.get_animation("idle").loop_mode = Animation.LOOP_LINEAR
 		anim.play("idle")

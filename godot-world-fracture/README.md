@@ -656,7 +656,7 @@ personality × affinity × time of day, introductions, work talk, rumours, callb
 lines) and `npc_street.gd` (puts whoever is out on the avenue — at work, sitting, busking, waiting at a stop, a courier's
 route, the police beat — with name tags, TALK, errands carried between people for Nex, gunfire scaring them, an
 officer walking over when notoriety is high: a warning, then a 150 Nex fine). They're built through the same
-OperatorPlayer looks as everyone, so the realistic bodies, faces and outfits show on them. Neon City has its own fifteen
+OperatorPlayer looks as everyone, so the realistic bodies, faces and outfits show on them. Standing at their place they do the job (`scripts/character/work_idle.gd`, Nov 18): five clips built from the rest pose the way stand_idle.gd builds the stand — `work_counter` (hands up on the counter, wiping), `work_tool` (bent over the job, the right arm pumping), `sit`, `busk` (the guitar across the body, strumming) and `wait` (a phone to the ear); `WorkIdle.clip_for(activity, job)` picks one and `operator_player.idle_clip` plays it in place of "idle" when the mover stands still (walking blends out of it as usual). Lineup: `OUT=x.png godot … res://tests/tools/_job_lineup.tscn`. Neon City has its own fifteen
 (`NEON`, `NEON_PLACES`: a street racer, the casino door and pit boss, a promoter, the night market's tech stall and noodle
 stall, two officers, a hacker, a mechanic, a courier, an arcade attendant, a street preacher — mostly out at night). Tier 3
 are the dialogue draft's own people speaking its lines (`tier: 3`, talk.gd `CANON`, ★ on the tag): Captain Vale on the
