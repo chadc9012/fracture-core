@@ -656,7 +656,8 @@ func _style_for(id: String) -> Dictionary:
 		"goldenreach":
 			# the owner's flower-field photo: late-afternoon gold, the sun low and warm behind haze, a blue sky with cloud
 			s.merge({"top": "#3f7cc8", "hor": "#f2d9ae", "fog": "#d8c49e", "fog_d": 0.0012, "sun": 1.4, "sun_col": "#ffd49a", "sun_el": 20.0, "sun_az": 150.0,
-				"amb": 0.5, "sat": 1.1, "exp": 0.8, "sky": "day", "glow": "#ffc070", "glow_amt": 0.25}, true)
+				"amb": 0.5, "sat": 1.1, "exp": 0.66, "sky": "day", "glow": "#ffc070", "glow_amt": 0.25,
+				"tint": Vector3(0.88, 0.9, 0.7)}, true)
 		"azure-isles":
 			# the owner's "OCEAN" photo: a deep blue sky with white cloud, a bright sun, turquoise water
 			s.merge({"top": "#1d68cc", "hor": "#bfe2f4", "fog": "#a8d8ea", "fog_d": 0.0006, "sun": 1.45, "sun_col": "#fff6e2", "sun_el": 48.0, "sun_az": 150.0,
@@ -664,7 +665,8 @@ func _style_for(id: String) -> Dictionary:
 		"frostveil":
 			# a low polar sun across the ice under thin high cloud, blue shadows (it read as white haze)
 			s.merge({"top": "#3a64a0", "hor": "#d8e6f2", "fog": "#b8cade", "fog_d": 0.0016, "sun": 1.15, "sun_col": "#ffe0c4", "sun_el": 11.0, "sun_az": 150.0,
-				"amb": 0.55, "exp": 0.68, "sat": 1.05, "sky": "day", "sky_set": {"cover": 0.22, "cloud_scale": 0.7}, "glow": "#ffd2b0", "glow_amt": 0.2}, true)
+				"amb": 0.45, "exp": 0.56, "sat": 1.05, "sky": "day", "sky_set": {"cover": 0.22, "cloud_scale": 0.7}, "glow": "#ffd2b0", "glow_amt": 0.2,
+				"tint": Vector3(0.84, 0.9, 1.0)}, true)
 		"shattered-reefs":
 			# the owner's "OCEAN" photo, as Azure Isles
 			s.merge({"top": "#2370c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 45.0, "sun_az": 150.0,
@@ -1111,13 +1113,16 @@ func _build_rings() -> void:
 				mi.mesh = s
 				# Thalassia's dome has a city inside it now: keep the glass faint so the city shows through
 				var city_inside := map_id == "thalassia" and rad > 40.0
-				mat.albedo_color = Color(0.55, 0.85, 0.95, 0.1 if city_inside else 0.3)
+				# the districts' small domes inside it caught the district lights and blew out to white orbs (Nov 18): faint
+				# glass for them too
+				var in_thal := map_id == "thalassia"
+				mat.albedo_color = Color(0.55, 0.85, 0.95, 0.1 if city_inside else (0.12 if in_thal else 0.3))
+				mat.roughness = 0.05 if not in_thal or city_inside else 0.4
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat.metallic = 0.4
-				mat.roughness = 0.05
 				mat.emission_enabled = true
 				mat.emission = Color(0.3, 0.7, 1.0)
-				mat.emission_energy_multiplier = 0.12 if city_inside else 0.3 + _style.night
+				mat.emission_energy_multiplier = 0.12 if city_inside or in_thal else 0.3 + _style.night
 			"hazard":
 				# a thin warning line on the ground at the zone's edge (it was a 4 m red glass wall: the "red dome" over
 				# Ember's Smoldering Trench, Nov 18)
