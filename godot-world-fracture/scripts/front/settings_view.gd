@@ -83,6 +83,8 @@ func _ready() -> void:
 	_row("Simple phone HUD", _toggle(bool(s.simple_hud), func(on: bool): Store.set_value("simple_hud", on)),
 		"move, look, fire, enter")
 
+	_bindings()
+
 	_section("AUDIO")
 	for k in ["master", "music", "sfx", "voices"]:
 		_row({ "master": "Master volume", "music": "Music", "sfx": "Effects", "voices": "Voices" }[k],
@@ -197,3 +199,51 @@ func _apply_audio(key: String, v: float) -> void:
 	var i := AudioServer.get_bus_index(bus)
 	if i >= 0:
 		AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.001)))
+
+## Destiny's key mapping: each action with its key (and its PlayStation button once the pad code is in the build,
+## scripts/player/gamepad.gd), drawn as keycaps. What touch_controls.gd reads today; not rebindable yet.
+const BINDINGS := [
+	["Move", ["W", "A", "S", "D"], "L STICK"],
+	["Look", ["MOUSE"], "R STICK"],
+	["Fire", ["LMB"], "R2"],
+	["Jump  ·  brake  ·  climb", ["SPACE"], "✕"],
+	["Sprint  ·  nitrous  ·  descend", ["SHIFT"], "L3"],
+	["Reload", ["R"], "□"],
+	["Next weapon", ["Q", "WHEEL"], "R1"],
+	["Throw grenade", ["J"], "L1"],
+	["Switch grenade", ["K"], "D-PAD →"],
+	["Grapple", ["G"], ""],
+	["Enter  ·  exit  ·  interact", ["E"], "△"],
+	["Missiles (armed vehicle)", ["F", "RMB"], ""],
+	["Free the cursor", ["ESC"], ""],
+]
+
+func _bindings() -> void:
+	_section("KEY BINDINGS")
+	var pad := ResourceLoader.exists("res://scripts/player/gamepad.gd")
+	for b in BINDINGS:
+		var keys := HBoxContainer.new()
+		keys.add_theme_constant_override("separation", 6)
+		for k in b[1]:
+			keys.add_child(_keycap(String(k)))
+		if pad:
+			var gap := Control.new()
+			gap.custom_minimum_size = Vector2(18, 0)
+			keys.add_child(gap)
+			var p := _keycap(String(b[2]) if String(b[2]) != "" else "—")
+			p.custom_minimum_size.x = 92
+			keys.add_child(p)
+		_row(String(b[0]), keys)
+	if not pad:
+		_column.add_child(_note("PlayStation controller bindings appear here once the controller support branch is merged."))
+
+func _keycap(t: String) -> Label:
+	var l := Label.new()
+	l.text = t
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.custom_minimum_size = Vector2(maxf(38.0, 14.0 + 10.0 * t.length()), 34)
+	l.add_theme_font_override("font", UiTheme.font(700, 1))
+	l.add_theme_font_size_override("font_size", 15)
+	l.add_theme_stylebox_override("normal", UiTheme.box(Color(1, 1, 1, 0.06), Color(1, 1, 1, 0.35), 1, Vector4(6, 2, 6, 2)))
+	return l
