@@ -72,6 +72,17 @@ static func _marking(m: Dictionary) -> String:
 	return ""
 
 ## hair_mode: 0 keep the cut head's hair, 1 bald (scalp hair to skin), 2 recolour/cut it for a built style
+## the eyes in head space (x either side, y, half width) and the lids' half height, for eyes_shut
+const EYE := Vector3(0.0215, 0.083, 0.0105)
+const EYE_H := 0.0075
+
+static func _eye() -> Vector4:
+	var e := OS.get_environment("WF_EYE")   # look-dev: "x,y,w,h"
+	if e != "":
+		var a := e.split(",")
+		return Vector4(a[0].to_float(), a[1].to_float(), a[2].to_float(), a[3].to_float())
+	return Vector4(EYE.x, EYE.y, EYE.z, EYE_H)
+
 static func code(hair_mode: int, beard: String, marks: Array, has_normal: bool) -> String:
 	var sk: Dictionary = Catalog.data().get("skull", {"centre": [0, 0.09, -0.005], "radii": [0.085, 0.11, 0.1]})
 	# both faces: the generated heads carry triangles wound the wrong way, which culling cut out as holes (owner, Nov 11)
@@ -81,6 +92,7 @@ static func code(hair_mode: int, beard: String, marks: Array, has_normal: bool) 
 		s += "uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;\n"
 	s += "uniform vec3 skin = vec3(0.0); uniform float skin_lum = 0.2; uniform vec3 hair = vec3(0.07); uniform vec3 bald = vec3(0.4, 0.3, 0.25);\n"
 	s += "uniform vec3 beard_tone = vec3(0.01); uniform float roughness_v = 0.62; uniform float civ_clip = 0.0;\n"
+	s += "uniform float eyes_shut = 0.0;\n"
 	s += "varying vec3 rest;\n"
 	s += "vec3 wf_map(vec3 v) { return normalize((v - %s) / %s) * 0.1; }\n" % [_v3(sk.centre), _v3(sk.radii)]
 	s += """float wf_line(vec3 q, vec3 a, vec3 b, float w) {
@@ -109,7 +121,7 @@ void fragment() {
 	// the back of the head under the hairline (low saturation; the hair is browner), the flecks out past the ears and the
 	// red trim behind the jaw (seen from behind at the news and beside the jaw in bed; Nov 17)
 	float cr = length(vec2(p.x, p.z + 0.01));
-	if (civ_clip > 0.5 && ((p.y < 0.0 && cr > 0.07) || (p.z < 0.045 && p.y < 0.032 && cr > 0.074) || (p.z < -0.02 && p.y < 0.025) || (p.y < 0.012 && c.r > 2.0 * c.g && sat > 0.6) || (p.y < 0.035 && abs(p.x) > 0.035 && cr > 0.05 && sat < 0.22 && l < 0.12 && k < 0.15) || (p.y < 0.075 && abs(p.x) > 0.05 && cr > 0.06 && sat < 0.14 && l < 0.1 && k < 0.1) || (p.y < 0.06 && abs(p.x) > 0.055 && cr > 0.072 && sat < 0.5 && l < 0.12 && k < 0.1) || (p.y < 0.065 && p.z < 0.07 && abs(p.x) > 0.055 && cr > 0.066 && sat < 0.26 && k < 0.12) || (p.y < 0.02 && p.z < 0.05 && cr > 0.06 && k < 0.2) || (p.z < 0.0 && p.y < 0.09 && cr > 0.06 && ((k < 0.3 && (l > 0.05 || sat > 0.55)) || (c.r > 2.0 * c.g && sat > 0.6))) || (p.z < -0.015 && p.y < 0.047 && sat < 0.4) || (abs(p.x) > 0.04 && p.z < 0.02 && p.y < 0.025 && l < 0.012) || (abs(p.x) > 0.045 && p.z < 0.0 && p.y < 0.04 && cr > 0.05 && k < 0.2) || (abs(p.x) > 0.072 && p.y < 0.08 && k < 0.1) || (p.z < 0.02 && p.y < 0.09 && c.r > 2.0 * c.g && sat > 0.6))) { discard; }
+	if (civ_clip > 0.5 && ((p.y < 0.0 && cr > 0.07) || (p.z < 0.045 && p.y < 0.032 && cr > 0.074) || (p.z < -0.02 && p.y < 0.025) || (p.y < 0.012 && c.r > 2.0 * c.g && sat > 0.6) || (p.y < 0.035 && abs(p.x) > 0.035 && cr > 0.05 && sat < 0.22 && l < 0.12 && k < 0.15) || (p.y < 0.075 && abs(p.x) > 0.05 && cr > 0.06 && sat < 0.14 && l < 0.1 && k < 0.1) || (p.y < 0.06 && abs(p.x) > 0.055 && cr > 0.072 && sat < 0.5 && l < 0.12 && k < 0.1) || (p.y < 0.065 && p.z < 0.07 && abs(p.x) > 0.055 && cr > 0.066 && sat < 0.26 && k < 0.12) || (p.y < 0.02 && p.z < 0.05 && cr > 0.06 && k < 0.2) || (p.z < 0.0 && p.y < 0.09 && cr > 0.06 && ((k < 0.3 && (l > 0.05 || sat > 0.55)) || (c.r > 2.0 * c.g && sat > 0.6))) || (p.z < -0.015 && p.y < 0.047 && sat < 0.4) || (abs(p.x) > 0.04 && p.z < 0.02 && p.y < 0.025 && l < 0.012) || (abs(p.x) > 0.045 && p.z < 0.0 && p.y < 0.04 && cr > 0.05 && k < 0.2) || (abs(p.x) > 0.072 && p.y < 0.08 && k < 0.1) || (abs(p.x) > 0.082 && p.y < 0.105 && k < 0.1) || (p.z < 0.02 && p.y < 0.09 && c.r > 2.0 * c.g && sat > 0.6))) { discard; }
 	if (skin_lum > 0.0 && skin.r + skin.g + skin.b > 0.0) {
 		col = mix(c, skin * clamp(l / skin_lum, 0.0, 2.2), k);
 	}
@@ -140,6 +152,19 @@ void fragment() {
 		var m := Catalog.find("markings", id)
 		if not m.is_empty():
 			s += _marking(m)
+	# asleep (the bed in the opening): the heads have no eyelids to close, so lids are painted over the eyes in the
+	# skin's tone with a dark line of lashes along their lower edge (owner's bed examples, Nov 18)
+	s += """	if (eyes_shut > 0.5 && p.z > 0.035) {
+		vec2 e = vec2((abs(p.x) - EX) / EW, (p.y - EY) / EH);
+		float d = dot(e, e);
+		if (d < 1.0) {
+			vec3 lid = skin.r + skin.g + skin.b > 0.0 ? skin * 1.3 : vec3(0.55, 0.4, 0.31);
+			lid *= 0.93 + 0.07 * e.y;
+			lid = mix(lid, lid * 0.35, smoothstep(-0.55, -0.75, e.y) * (1.0 - smoothstep(0.55, 0.95, abs(e.x))));
+			col = mix(col, lid, 1.0 - smoothstep(0.6, 1.0, d));
+		}
+	}
+""".replace("EX", "%.4f" % _eye().x).replace("EY", "%.4f" % _eye().y).replace("EW", "%.4f" % _eye().z).replace("EH", "%.4f" % _eye().w)
 	s += "\tALBEDO = col;\n\tROUGHNESS = roughness_v;\n\tEMISSION = vec3(0.15, 0.85, 1.0) * glow * 1.6;\n"
 	if has_normal:
 		s += "\tNORMAL_MAP = texture(normal_tex, UV).rgb;\n"
