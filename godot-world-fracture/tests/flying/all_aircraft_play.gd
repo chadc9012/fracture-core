@@ -5,6 +5,7 @@ extends Node
 ## Run: godot --headless --path . res://tests/flying/all_aircraft_play.tscn   (ONLY=<id> for one)
 
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
+const Geo := preload("res://scripts/nav/world_geo.gd")
 
 var fails := 0
 
@@ -56,18 +57,23 @@ func _fly(id: String) -> void:
 	# level off and cruise 60 s straight out: no limit (owner, Nov 18: "removed completely") — the craft keeps its heading
 	# the whole way, and the sea under it keeps up so there is no edge to see
 	v.controls._brake_held = false
-	var yaw0: float = v.state.yaw
+	# straight means on one great circle of the planet (the craft's local yaw changes with the region frames, Nov 18):
+	# the halfway point lies on the line from start to end
+	var g0: Vector3 = v.globe_pos()
+	var gm := Vector3.ZERO
 	var far := 0.0
-	var turned := 0.0
 	for i in 1200:
 		v._process(0.05)
-		far = maxf(far, maxf(absf(v.hull.position.x), absf(v.hull.position.z)))
-		turned = maxf(turned, absf(angle_difference(yaw0, v.state.yaw)))
+		if i == 600:
+			gm = v.globe_pos()
+		far = maxf(far, Geo.dist(v.globe_pos(), Geo.site("nexus").v))
+	var g1: Vector3 = v.globe_pos()
+	var bend := Geo.dist(g0, gm) + Geo.dist(gm, g1) - Geo.dist(g0, g1)
 	var sea: Node3D = v.region._sea
 	var sea_gap := Vector2(sea.position.x - v.hull.position.x, sea.position.z - v.hull.position.z).length() if sea else 0.0
-	print("     after cruise at (%.0f, %.0f), alt %.0f m; furthest %.0f m out (the old limit was %.0f)" % [v.hull.position.x, v.hull.position.z, _alt(v), far, v.region.span() * 3.6 - 40.0])
+	print("     after cruise over %s, alt %.0f m; furthest %.0f m from Nexus City (the old limit was %.0f)" % [v.place_name(), _alt(v), far, v.region.span() * 3.6 - 40.0])
 	check("%s: flew out past the map (%.0f m from the centre, map edge %.0f m), hull %d%%" % [name, far, v.region.span() * 0.5, int(v.hull_hp * 100)], far > v.region.span() * 0.5 + 100.0 and v.hull_hp > 0.0)
-	check("%s: nothing turned it back (heading moved %.1f deg)" % [name, rad_to_deg(turned)], turned < deg_to_rad(2.0))
+	check("%s: nothing turned it back: one straight great circle (%.0f m off line over %.1f km)" % [name, bend, Geo.dist(g0, g1) / 1000.0], bend < 30.0)
 	check("%s: the sea is under it out there (%.0f m off)" % [name, sea_gap], sea_gap < 64.0)
 	# come down: ease the throttle, hold DOWN, until it touches the ground
 	v.controls.move = Vector2(0.0, 0.2)

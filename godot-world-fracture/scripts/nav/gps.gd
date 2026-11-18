@@ -286,6 +286,7 @@ func _draw_dial() -> void:
 			var lt := String(mk.label)
 			var lw := ThemeDB.fallback_font.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 			var lpos := dp + Vector2(6, 4) if dp.x < c.x + 10.0 else dp + Vector2(-6 - lw, 4)
+			lpos.x = clampf(lpos.x, 2.0, DIAM - lw - 2.0)
 			_dial.draw_string_outline(ThemeDB.fallback_font, lpos, lt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 4, Color(0, 0, 0, 0.8))
 			_dial.draw_string(ThemeDB.fallback_font, lpos, lt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, col)
 	# the waypoint, pinned to the rim when it is further than the dial shows
