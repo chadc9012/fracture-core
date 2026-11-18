@@ -866,7 +866,9 @@ static func landmark_fx(r: Node) -> void:
 			var f := Fx.energy_field(minf(reach, 80.0), Color(0.35, 0.75, 1.0) if cat == "research" else Color(1.0, 0.6, 0.25))
 			f.position = Vector3(at.x, gy - 1.0, at.y)
 			r._world.add_child(f)
-		elif id in HOLO_CITIES and cat in HOLO_CATS and holos < 16:
+		elif id in HOLO_CITIES and id != "thalassia" and cat in HOLO_CATS and holos < 16:
+			# (not under Thalassia's dome: its districts carry their own lights, and the globes on their beams read as
+			# white orbs over the pale deck — Nov 18 region pass)
 			# on the tallest roof within 25 m, or standing in the open
 			var top := gy
 			for bd in r.m.buildings:

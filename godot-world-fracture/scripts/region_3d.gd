@@ -656,7 +656,7 @@ func _style_for(id: String) -> Dictionary:
 		"goldenreach":
 			# the owner's flower-field photo: late-afternoon gold, the sun low and warm behind haze, a blue sky with cloud
 			s.merge({"top": "#3f7cc8", "hor": "#f2d9ae", "fog": "#d8c49e", "fog_d": 0.0012, "sun": 1.4, "sun_col": "#ffd49a", "sun_el": 20.0, "sun_az": 150.0,
-				"amb": 0.5, "sat": 1.1, "exp": 0.66, "sky": "day", "glow": "#ffc070", "glow_amt": 0.25,
+				"amb": 0.45, "sat": 1.15, "exp": 0.56, "sky": "day", "glow": "#ffc070", "glow_amt": 0.25,
 				"tint": Vector3(0.88, 0.9, 0.7)}, true)
 		"azure-isles":
 			# the owner's "OCEAN" photo: a deep blue sky with white cloud, a bright sun, turquoise water
@@ -665,7 +665,7 @@ func _style_for(id: String) -> Dictionary:
 		"frostveil":
 			# a low polar sun across the ice under thin high cloud, blue shadows (it read as white haze)
 			s.merge({"top": "#3a64a0", "hor": "#d8e6f2", "fog": "#b8cade", "fog_d": 0.0016, "sun": 1.15, "sun_col": "#ffe0c4", "sun_el": 11.0, "sun_az": 150.0,
-				"amb": 0.45, "exp": 0.56, "sat": 1.05, "sky": "day", "sky_set": {"cover": 0.22, "cloud_scale": 0.7}, "glow": "#ffd2b0", "glow_amt": 0.2,
+				"amb": 0.4, "exp": 0.48, "sat": 1.1, "sky": "day", "sky_set": {"cover": 0.22, "cloud_scale": 0.7}, "glow": "#ffd2b0", "glow_amt": 0.2,
 				"tint": Vector3(0.84, 0.9, 1.0)}, true)
 		"shattered-reefs":
 			# the owner's "OCEAN" photo, as Azure Isles
