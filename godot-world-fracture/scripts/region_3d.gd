@@ -77,6 +77,8 @@ var _pitch := 38.0
 var _dist := 220.0
 # street
 var _eye := Vector3.ZERO
+var root_spots: Array[Vector3] = []   # the trunks given root flares (Flora.roots)
+var sea_caves: Array[Vector3] = []    # the coast maps' underwater cave mouths (Flora.rocks)
 var _look_yaw := 0.0
 var _look_pitch := 0.0
 var _walk := 0.0
@@ -1200,6 +1202,7 @@ func _build_trees() -> void:
 		else:
 			# the region's species mix (oak, cherry, baobab, bamboo, alien flora); the conifers take what is left
 			var pines := Flora.plant(self, trees)
+			Flora.roots(self, trees)
 			if not pines.is_empty():
 				# the Meshy pine near, its leaf cards beyond (Flora.tree_lods; the 1k / 340-triangle remeshes read as
 				# grey shards, so the far trees are the pine's own rendered silhouette on crossed cards)
@@ -1913,6 +1916,11 @@ func camera() -> Camera3D:
 func span() -> float:
 	return _span
 ## where Street View would stand: open ground near the place the region opened at
+## the street-mode eye moved to a point, looking along a yaw (the shot hook eye:…)
+func set_eye(x: float, z: float, yaw: float) -> void:
+	_eye = Vector3(x, _ground(x, z) + EYE, z)
+	_look_yaw = yaw
+	_apply_cam()
 func stand_point() -> Vector3:
 	return Vector3(_eye.x, _ground(_eye.x, _eye.z), _eye.z)
 ## walkable height at a local point (operator_player.gd ground_at)

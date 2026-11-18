@@ -136,6 +136,47 @@ static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 				r._multimesh(parts[1], list, alien_material(true), 700.0, false)
 	return pines
 
+## root flares at the forest's trunks (asset catalog "tree roots"): every third tree above the water gets a collar
+## of five buttress roots running out over the ground from its base, drawn to ROOT_M (the trunks past that are cards)
+const ROOT_M := 60.0
+const ROOT_CAP := 2400
+static func roots(r: Node, trees: Array[Transform3D]) -> void:
+	var water: float = r._water
+	var xf: Array[Transform3D] = []
+	for i in range(0, trees.size(), 3):
+		if xf.size() >= ROOT_CAP:
+			break
+		var t := trees[i]
+		if t.origin.y < water + 0.3:
+			continue
+		var s := t.basis.x.length()
+		# the trunk sits 0.2 m under the ground (region_3d plants it so); the flare rides at the surface
+		xf.append(Transform3D(Basis(Vector3.UP, atan2(t.basis.x.z, t.basis.x.x)).scaled(Vector3.ONE * s), t.origin + Vector3(0, 0.2, 0)))
+	if xf.is_empty():
+		return
+	r.root_spots.clear()
+	for t in xf:
+		r.root_spots.append(t.origin)   # where the roots are (the look-dev hook eye:root, tests)
+	var bark := StandardMaterial3D.new()
+	bark.albedo_color = Color(0.3, 0.23, 0.16)
+	bark.roughness = 1.0
+	r._multimesh(root_mesh(), xf, bark, ROOT_M, false)
+
+static func root_mesh() -> Mesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_cyl(st, 0.42, 0.62, 0.5, 7, Transform3D(Basis(), Vector3(0, 0.2, 0)))   # the collar round the trunk's foot
+	for k in 5:
+		var a := TAU * float(k) / 5.0 + 0.4
+		var len := 1.5 + 0.5 * float(k % 2)
+		# a tapered root lying out from the collar, nosing down into the ground at its tip
+		var dir := Vector3(cos(a), -0.22, sin(a)).normalized()
+		var mid := Vector3(cos(a), 0, sin(a)) * (0.45 + len * 0.5) + Vector3(0, 0.22 - len * 0.1, 0)
+		var basis := Basis.looking_at(dir, Vector3.UP) * Basis(Vector3.RIGHT, PI * 0.5)   # the cylinder's y along dir
+		_cyl(st, 0.07, 0.2, len, 5, Transform3D(basis, mid))
+	st.generate_normals()
+	return st.commit()
+
 static func _rescale(list: Array[Transform3D], k: float) -> Array[Transform3D]:
 	var out: Array[Transform3D] = []
 	for t in list:
@@ -480,6 +521,36 @@ static func rocks(r: Node, clear: PackedByteArray) -> void:
 			dark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			dark.cull_mode = BaseMaterial3D.CULL_DISABLED
 			r._multimesh(hollow_mesh(), xf2, dark, 1400.0, false)
+	if id in ["azure-isles", "shattered-reefs", "thalassia", "goldenreach"]:
+		# underwater caves (asset catalog): cave mouths in the drop-offs below the shallows, facing up the slope
+		# toward the shore, their hoods sunk into the deep side; reef-coloured, drawn through the water
+		var sea: Array[Transform3D] = []
+		for i in 3000:
+			if sea.size() >= 6:
+				break
+			var x := (rng.randf() - 0.5) * span * 0.9
+			var z := (rng.randf() - 0.5) * span * 0.9
+			var y: float = r._h(x, z)
+			if y > water - 2.5 or y < water - 30.0:
+				continue
+			var gx: float = r._h(x + 4.0, z) - r._h(x - 4.0, z)
+			var gz: float = r._h(x, z + 4.0) - r._h(x, z - 4.0)
+			var g := Vector2(gx, gz) / 8.0
+			if g.length() < 0.18 or g.length() > 2.0:
+				continue
+			if not r._space_claim(x, z, 9.0):
+				continue
+			var yaw := atan2(g.x, g.y)
+			sea.append(Transform3D(Basis(Vector3.UP, yaw + PI), Vector3(x, y - 0.6, z)))
+		for t in sea:
+			r.sea_caves.append(t.origin)
+		if not sea.is_empty():
+			r._multimesh(cave_mesh(), sea, rock_material(Color(0.36, 0.42, 0.4)), 900.0)
+			var deep := StandardMaterial3D.new()
+			deep.albedo_color = Color(0.01, 0.02, 0.03)
+			deep.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			deep.cull_mode = BaseMaterial3D.CULL_DISABLED
+			r._multimesh(hollow_mesh(), sea, deep, 900.0, false)
 	if id in ["frostveil", "frostspire"]:
 		var spires: Array[Transform3D] = []
 		for i in 4000:
