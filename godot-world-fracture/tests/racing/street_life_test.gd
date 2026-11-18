@@ -153,7 +153,7 @@ func _run() -> void:
 	car.node.position = Vector3(0, 0, 60.0)
 	await frames(3)
 	ok(life.offer == "neon-backstreet", "driving into a meet offers its race")
-	ok(life.take_offer() and life.state == "countdown" and life.rivals.size() == 2, "ENTER puts you on the grid with the rivals")
+	ok(life.take_offer() and life.state == "countdown" and life.rivals.is_empty() and life.players_in.is_empty(), "offline, ENTER puts you on the grid against the clock — no AI racers")
 	for i in 900:
 		await process_frame
 		if life.state == "racing":
@@ -163,7 +163,6 @@ func _run() -> void:
 	ok(life.units.size() >= 1, "a police unit comes up")
 	# drive the line for a while
 	var start_along: float = life.along
-	var rival_start: float = life.rivals[0].along
 	var t0 := Time.get_ticks_msec()
 	var race_t0: float = life.time
 	while life.time - race_t0 < 8.0 and Time.get_ticks_msec() - t0 < 120000:
@@ -174,8 +173,7 @@ func _run() -> void:
 		st.controls.move = Vector2(-clampf(err * 2.5, -1.0, 1.0), 1.0)
 		await process_frame
 	ok(life.along > start_along + 40.0, "you make way down the line (%.0f m)" % (life.along - start_along))
-	ok(float(life.rivals[0].along) > rival_start + 40.0, "the rivals race it (%.0f m)" % (float(life.rivals[0].along) - rival_start))
-	ok(life.position_now() >= 1 and life.position_now() <= 3 and life.hud.text.contains("GATE"), "the HUD shows place and gates")
+	ok(life.hud.text.contains("GATE") and life.hud.text.contains("pace"), "the HUD shows gates, the clock and the meet's pace")
 	# skip to the last stretch and cross the line
 	var dz: float = life.route.length - 22.0
 	var f: Vector3 = life.route.dir_at(dz)
@@ -221,7 +219,7 @@ func _run() -> void:
 			break
 	ok(not life.heat.active() and life.career.escapes == 1 and life.career.rep > rep2, "out of their sight: escaped, +rep")
 	await frames(320)
-	ok(life.state == "" and life.rivals.is_empty(), "after the finish the rivals leave")
+	ok(life.state == "" and life.players_in.is_empty(), "after the finish the race clears")
 
 	# ---- Nexus: a sanctioned race closes the road and draws no police
 	main._close_street()
@@ -247,11 +245,36 @@ func _run() -> void:
 			break
 	await frames(60)
 	ok(life.state == "racing" and not life.heat.active() and life.units.is_empty(), "and the police stay away")
-	ok(life._cleared.size() > 0, "the turnarounds are cleared of parked cars (%d)" % life._cleared.size())
+	ok(life._cleared.size() > 0 or absf(float(life.route.ends[0]) - 60.0) > 700.0, "the turnarounds are cleared of parked cars as they load (%d now; the Cup turns %d m out since the avenue grew)" % [life._cleared.size(), int(absf(float(life.route.ends[0])))])
 	car.speed = 0.0
 	st.exit_car()
 	await frames(2)
 	ok(life.state == "" and not st.traffic.closed and life._cleared.is_empty(), "leaving the car forfeits it and the road reopens")
+	# ---- a race between players (online play): the others' progress and finishes come in as room messages
+	st.enter_car(car_node)
+	car = st.driving_car
+	car.node.position = Vector3(0, 0, 60.0)
+	life.begin("nexus-avenue-cup", {}, "p2-1", ["p2", "me"], ["Rival Player", "You"])
+	ok(life.players_in.size() == 1 and String(life.players_in[0].name) == "Rival Player" and life.rid == "p2-1", "a players' race: the other entrant is a player, not a bot")
+	ok(life._grid_t.origin.distance_to(life.route.grid(1).origin) < 0.1, "you take your own grid slot (second)")
+	life.state = "racing"
+	life._on_net("race_pos", { "rid": "p2-1", "a": life.along + 300.0 }, "p2")
+	ok(life.position_now() == 2, "their progress puts them ahead (P%d)" % life.position_now())
+	life._on_net("race_pos", { "rid": "other", "a": 99999.0 }, "p2")
+	ok(float(life.players_in[0].along) < 99000.0, "another race's messages are ignored")
+	life._on_net("race_fin", { "rid": "p2-1", "t": 100.0 }, "p2")
+	ok(life.finishers == ["Rival Player"] and float(life.players_in[0].finished_at) >= 0.0, "their finish counts in the order")
+	life.abandon("")
+	ok(life.state == "" and life.rid == "" and life.players_in.is_empty(), "a forfeit leaves the race")
+	# an invite from another player at a meet
+	life._on_net("race_open", { "rid": "p3-1", "ev_id": "nexus-tournament", "name": "Kara", "secs": 20.0 }, "p3")
+	ok(life.invites.has("p3-1"), "another player's open race is listed")
+	car.node.position = Vector3(0, 0, 20.0)
+	await frames(3)
+	ok(life.offer == "join:p3-1" and life._offer_text().contains("KARA"), "at its meet the offer is to join theirs (%s)" % life._offer_text())
+	car.speed = 0.0
+	st.exit_car()
+	await frames(2)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	_done()
 

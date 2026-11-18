@@ -150,8 +150,49 @@ func _beats(ids: Array, look: Vector3, deg0: float) -> Array:
 
 ## the chapter's closing lines play before the chain moves on (the mid lines of a boss chapter at its stagger would
 ## need the boss view's hooks; they play before the close)
+## the story's races (Nov 18, the owner: "the main story missions … feel too short"): a race chapter's start is where
+## the grid is; reaching it puts you on a long track (race_view.gd) against the chapter's field, and only a win clears
+## it — lose and the start waits for another go. The chapter's `track` picks the course; `race_km` caps a long one-lap
+## course to the story's distance (race.gd `finish_frac`).
+const STORY_RACES := {
+	"neon": { "track": "neon-ring-express", "laps": 1, "race_km": 24.0 },
+	"solara": { "track": "glass-flats-rally", "laps": 1, "race_km": 30.0 },
+	"nexus": { "track": "nexus-grand-prix", "laps": 2, "race_km": 0.0 },
+}
+var race_view: Control
+var _raced := ""
+
+func _start_story_race() -> void:
+	var sr: Dictionary = STORY_RACES.get(String(_quest_def(String(quest.id)).get("track", "neon")), STORY_RACES.neon)
+	race_view = load("res://scripts/racing/race_view.gd").new()
+	race_view.track_id = String(sr.track)
+	race_view.laps = int(sr.laps)
+	race_view.race_km = float(sr.race_km)
+	race_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	race_view.closed.connect(_story_race_done)
+	add_child(race_view)
+
+func _story_race_done() -> void:
+	var won: bool = race_view.race != null and not race_view.race.player().is_empty() and race_view.race.player().finished_at >= 0.0 and race_view.race.position_of(race_view.race.player()) == 1
+	race_view.queue_free()
+	race_view = null
+	if won:
+		_raced = String(quest.id)
+		_complete()
+	else:
+		controls_toast("Not a win — the grid is waiting when you're ready")
+		_set_waypoint(_on_ground(operator.position + _dir * 25.0), true)
+
+func controls_toast(t: String) -> void:
+	if controls:
+		controls.toast(t)
+
 func _complete() -> void:
 	var id := String(quest.id)
+	if String(quest.get("kind_real", "")) == "race" and _raced != id:
+		if race_view == null:
+			_start_story_race()
+		return
 	if _closing != id and cutscene:
 		var def := _quest_def(id)
 		var ids: Array = []

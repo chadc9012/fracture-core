@@ -54,7 +54,22 @@ var state := ""                  # "", "countdown", "racing", "done"
 var countdown := 0.0
 var time := 0.0
 var along := 0.0
-var rivals: Array = []           # [{sc, name, along, skill, finished_at, stuck, offset, box}]
+var rivals: Array = []           # [{sc, name, along, skill, finished_at, stuck, offset, box}] — AI; empty since Nov 18
+## the other players in this race (online play, Nov 18): [{id, name, along, finished_at}] — their cars are drawn by
+## online_world.gd from their own position updates; here only how far along they are and when they finished
+var players_in: Array = []
+## a race's id between players (host id + a count), "" for a race on your own
+var rid := ""
+## the lobby you're hosting at a meet: {rid, ev_id, joined: [ids], left: s}
+var lobby := {}
+## races other players opened in this city: rid -> {host, name, ev_id, at, left}
+var invites := {}
+## a player's challenge to you, or yours waiting on them: {rid, from, name, ev, left}
+var pchallenge := {}
+const LOBBY_WAIT := 25.0
+const POS_EVERY := 0.25
+var _pos_t := 0.0
+var _race_n := 0
 var finishers: Array = []
 var finished_at := -1.0
 var place := 0
@@ -97,6 +112,8 @@ func setup(s: Control) -> void:
 	career = Career.load_or_fresh()
 	_markers()
 	_ui()
+	if slice.get("online"):
+		slice.online.message.connect(_on_net)
 
 func _exit_tree() -> void:
 	Sound.loop_stop("siren")
@@ -186,7 +203,16 @@ func _offer_text() -> String:
 	if offer == "":
 		return ""
 	if offer == "challenge":
-		return "%s WANTS TO RACE · ENTER" % String(_challenge.rivals[0]).to_upper()
+		return "RACE %s · ENTER" % String(_challenge.name).to_upper()
+	if offer == "challenged":
+		return "%s CHALLENGES YOU · ENTER" % String(pchallenge.name).to_upper()
+	if offer == "lobby":
+		return "%s · %d player%s in · ENTER TO GO (%ds)" % [String(Career.event(String(lobby.ev_id)).name).to_upper(), lobby.joined.size() + 1, "" if lobby.joined.is_empty() else "s", int(ceil(float(lobby.left)))]
+	if offer.begins_with("join:"):
+		var iv: Dictionary = invites.get(offer.substr(5), {})
+		return "JOIN %s'S %s · ENTER" % [String(iv.get("name", "")).to_upper(), String(Career.event(String(iv.get("ev_id", ""))).get("name", "RACE")).to_upper()]
+	if offer == "joined":
+		return "IN %s'S RACE · waiting for the start" % String(lobby.get("host_name", "")).to_upper()
 	var e := Career.event(offer)
 	if career.unlocked(offer):
 		return "RACE %s · ENTER" % String(e.name).to_upper()
@@ -194,44 +220,72 @@ func _offer_text() -> String:
 
 func _step_offers(dt: float, car: RefCounted) -> void:
 	var want := ""
-	if car and not heat.active():
+	for k in invites.keys():
+		invites[k].left = float(invites[k].left) - dt
+		if float(invites[k].left) <= 0.0:
+			invites.erase(k)
+	if not pchallenge.is_empty():
+		pchallenge.left = float(pchallenge.left) - dt
+		if float(pchallenge.left) <= 0.0:
+			pchallenge = {}
+	if not lobby.is_empty():
+		if bool(lobby.get("guest", false)):
+			want = "joined"
+			lobby.left = float(lobby.left) - dt
+			if float(lobby.left) <= -15.0:
+				lobby = {}
+		else:
+			lobby.left = float(lobby.left) - dt
+			want = "lobby"
+			if float(lobby.left) <= 0.0 or car == null:
+				_go_lobby()
+				return
+	elif car and not heat.active():
 		var p: Vector3 = car.node.position
 		for mk in markers:
 			if Vector2(p.x - (mk.pos as Vector3).x, p.z - (mk.pos as Vector3).z).length() < MEET_R:
 				want = String(mk.id)
+				# another player's race open at this meet: join it rather than start your own
+				for k in invites:
+					if String(invites[k].ev_id) == want:
+						want = "join:" + String(k)
+		if want == "" and not pchallenge.is_empty():
+			want = "challenged"
 		if want == "":
 			if _offer_left > 0.0:
 				_offer_left -= dt
 				want = "challenge" if _offer_left > 0.0 else ""
-			elif absf(car.speed) > 10.0:
+			elif absf(car.speed) > 8.0 and slice.get("online"):
+				# another player driving alongside: race them (players only, Nov 18 — no AI callers-out)
 				_challenge_t += dt
-				if _challenge_t >= CHALLENGE_EVERY:
+				if _challenge_t >= 1.0:
 					_challenge_t = 0.0
-					make_challenge(car)
-					if not _challenge.is_empty():
-						_offer_left = 8.0
-						want = "challenge"
-						Sound.sfx("click", -4.0)
-	if want != offer:
+					var near: Array = slice.online.drivers_near(p, 35.0)
+					if not near.is_empty():
+						make_challenge(car, String(near[0][0]), String(near[0][1]))
+						if not _challenge.is_empty():
+							_offer_left = 6.0
+							want = "challenge"
+	if want != offer or want == "lobby":
 		offer = want
 		slice.controls.prompt(_offer_text())
 
-## a racer cruising alongside calls you out: a sprint from here, the way you're going, ~700 m
-func make_challenge(car: RefCounted) -> void:
+## another player driving alongside: a sprint from here, the way you're going, ~1.2 km
+func make_challenge(car: RefCounted, who_id := "", who_name := "") -> void:
 	var span: Vector2 = slice.district.span() if slice.district else Vector2(-900, 900)
 	var z0: float = car.node.position.z
 	var dz := signf(car.forward().z)
 	if dz == 0.0:
 		dz = -1.0
-	var z1 := clampf(z0 + dz * 700.0, span.x + 40.0, span.y - 40.0)
+	var z1 := clampf(z0 + dz * 1200.0, span.x + 40.0, span.y - 40.0)
 	if absf(z1 - z0) < 300.0:
-		z1 = clampf(z0 - dz * 700.0, span.x + 40.0, span.y - 40.0)
+		z1 = clampf(z0 - dz * 1200.0, span.x + 40.0, span.y - 40.0)
 	if absf(z1 - z0) < 300.0:
 		_challenge = {}
 		return
-	var who: String = CHALLENGERS[_rng.randi() % CHALLENGERS.size()]
-	_challenge = { "name": "%s's Challenge" % who, "city": String(slice.style), "at": z0, "tier": 0, "legal": false, "heat": 1,
-		"kind": "sprint", "z0": z0, "z1": z1, "rivals": [who], "skill": 0.82 + 0.03 * career.tier(),
+	var who: String = who_name if who_name != "" else "Rival"
+	_challenge = { "name": who, "with": who_id, "city": String(slice.style), "at": z0, "tier": 0, "legal": false, "heat": 1,
+		"kind": "sprint", "z0": z0, "z1": z1, "rivals": [], "skill": 0.82 + 0.03 * career.tier(),
 		"prize": [500 + 150 * career.tier(), 120], "rep": [90, 30] }
 
 ## a road car: no tanks, no hover-cars on the street circuits
@@ -248,7 +302,32 @@ func take_offer() -> bool:
 		var c := _challenge
 		_challenge = {}
 		_offer_left = 0.0
-		begin("", c)
+		_race_n += 1
+		var r := "%s-%d" % [_me(), _race_n]
+		pchallenge = { "rid": r, "from": _me(), "name": String(c.name), "ev": c, "left": 12.0, "mine": true }
+		slice.online.send("challenge", { "to": String(c.with), "rid": r, "name": _my_name(), "ev": c })
+		slice.controls.toast("Challenge sent to %s" % String(c.name))
+		return true
+	if offer == "challenged":
+		if not ok_car(slice.driving_car):
+			return false
+		slice.online.send("challenge_ok", { "to": String(pchallenge.from), "rid": String(pchallenge.rid) })
+		slice.controls.toast("You took %s's challenge — wait for the start" % String(pchallenge.name))
+		pchallenge = {}
+		return true
+	if offer == "lobby":
+		_go_lobby()
+		return true
+	if offer == "joined":
+		return true
+	if offer.begins_with("join:"):
+		if not ok_car(slice.driving_car):
+			slice.controls.toast("Street races are for road cars — bring one from the kerb or the garage")
+			return true
+		var r2 := offer.substr(5)
+		var iv: Dictionary = invites.get(r2, {})
+		slice.online.send("race_join", { "to": String(iv.host), "rid": r2 })
+		lobby = { "rid": r2, "ev_id": String(iv.ev_id), "guest": true, "host_name": String(iv.name), "left": float(iv.left), "joined": [] }
 		return true
 	if not ok_car(slice.driving_car):
 		slice.controls.toast("Street races are for road cars — bring one from the kerb or the garage")
@@ -258,15 +337,101 @@ func take_offer() -> bool:
 		slice.controls.toast(_offer_text())
 		Sound.sfx("buzzer", -8.0)
 		return true
+	# online: open the race to the city's players and wait at the meet; offline: run it against the clock
+	if slice.get("online") and slice.online.net.online():
+		_race_n += 1
+		lobby = { "rid": "%s-%d" % [_me(), _race_n], "ev_id": offer, "joined": [], "left": LOBBY_WAIT }
+		slice.online.send("race_open", { "rid": String(lobby.rid), "ev_id": offer, "name": _my_name(), "secs": LOBBY_WAIT })
+		slice.controls.toast("%s open to every player in the city — ENTER to go now" % String(Career.event(offer).name).to_upper())
+		return true
 	begin(offer)
 	return true
 
+func _me() -> String:
+	return String(slice.online.net.id) if slice.get("online") else "me"
+
+func _my_name() -> String:
+	return String(slice.online.net.display) if slice.get("online") else "You"
+
+## the host starts the race: everyone who joined gets the go with the running order of the grid
+func _go_lobby() -> void:
+	if lobby.is_empty() or bool(lobby.get("guest", false)):
+		return
+	var entrants: Array = [_me()] + lobby.joined
+	var l := lobby
+	lobby = {}
+	slice.online.send("race_close", { "rid": String(l.rid) })
+	if slice.driving_car == null:
+		return
+	slice.online.send("race_go", { "rid": String(l.rid), "ev_id": String(l.ev_id), "entrants": entrants, "names": entrants.map(func(i): return _my_name() if i == _me() else slice.online.name_of(String(i))) })
+	begin(String(l.ev_id), {}, String(l.rid), entrants)
+
+## the room's street-race messages (online_world.gd)
+func _on_net(event: String, d: Dictionary, from: String) -> void:
+	match event:
+		"race_open":
+			if String(d.get("ev_id", "")) != "" and Career.event(String(d.ev_id)).get("city", "") == String(slice.style):
+				invites[String(d.rid)] = { "host": from, "name": String(d.get("name", "Player")), "ev_id": String(d.ev_id), "left": float(d.get("secs", LOBBY_WAIT)) }
+				if state == "":
+					slice.controls.toast("%s opened %s at its meet — drive there and ENTER to join" % [String(d.get("name", "A player")), String(Career.event(String(d.ev_id)).name).to_upper()])
+		"race_close":
+			invites.erase(String(d.get("rid", "")))
+		"race_join":
+			if String(d.get("to", "")) == _me() and not lobby.is_empty() and String(lobby.rid) == String(d.get("rid", "")) and not (from in lobby.joined) and lobby.joined.size() < 7:
+				lobby.joined.append(from)
+				Sound.sfx("click", -4.0)
+		"race_go":
+			var who: Array = d.get("entrants", [])
+			if _me() in who and state == "" and slice.driving_car != null:
+				lobby = {}
+				var custom: Dictionary = d.get("ev", {})
+				begin(String(d.get("ev_id", "")), custom, String(d.rid), who, d.get("names", []))
+		"race_pos":
+			if String(d.get("rid", "")) == rid:
+				for pl in players_in:
+					if String(pl.id) == from:
+						pl.along = float(d.get("a", 0.0))
+		"race_fin":
+			if String(d.get("rid", "")) == rid:
+				for pl in players_in:
+					if String(pl.id) == from and float(pl.finished_at) < 0.0:
+						pl.finished_at = time
+						finishers.append(String(pl.name))
+		"race_quit":
+			if String(d.get("rid", "")) == rid:
+				players_in = players_in.filter(func(pl): return String(pl.id) != from)
+		"challenge":
+			if String(d.get("to", "")) == _me() and state == "" and lobby.is_empty():
+				pchallenge = { "rid": String(d.rid), "from": from, "name": String(d.get("name", "Player")), "ev": d.get("ev", {}), "left": 10.0 }
+				Sound.sfx("click", -4.0)
+		"challenge_ok":
+			if String(d.get("to", "")) == _me() and not pchallenge.is_empty() and bool(pchallenge.get("mine", false)) and String(pchallenge.rid) == String(d.get("rid", "")):
+				var c: Dictionary = pchallenge.ev
+				var r := String(pchallenge.rid)
+				pchallenge = {}
+				if slice.driving_car != null and state == "":
+					var who2: Array = [_me(), from]
+					slice.online.send("race_go", { "rid": r, "ev_id": "", "ev": c, "entrants": who2, "names": [_my_name(), slice.online.name_of(from)] })
+					begin("", c, r, who2)
+
 # --------------------------------------------------------------------------------------------- the race
-func begin(id: String, custom := {}) -> void:
+## a race: `entrants` (player ids, in grid order, you among them) for a race between players; none for a race on your
+## own against the clock. No AI racers (the owner, Nov 18: bots are PvP's mode, not the races')
+func begin(id: String, custom := {}, race_id := "", entrants: Array = [], names: Array = []) -> void:
 	var car: RefCounted = slice.driving_car
 	if car == null:
 		return
 	ev_id = id
+	rid = race_id
+	players_in = []
+	var my_slot := 0
+	for i in entrants.size():
+		var pid := String(entrants[i])
+		if pid == _me():
+			my_slot = i
+			continue
+		var nm: String = String(names[i]) if i < names.size() else (slice.online.name_of(pid) if slice.get("online") else "Player")
+		players_in.append({ "id": pid, "name": nm, "along": Route.START - 8.0, "finished_at": -1.0 })
 	ev = custom if not custom.is_empty() else Career.event(id)
 	route = route_for(ev)
 	state = "countdown"
@@ -281,10 +446,7 @@ func begin(id: String, custom := {}) -> void:
 	_hits_seen = car.hits
 	offer = ""
 	slice.controls.prompt("")
-	var names: Array = [] if String(ev.kind) == "drift" else ev.rivals
-	for i in names.size():
-		rivals.append(_spawn_rival(i, String(names[i])))
-	_grid_t = route.grid(names.size())
+	_grid_t = route.grid(my_slot)
 	_place(car, _grid_t)
 	along = Route.START - 8.0
 	gates = []
@@ -305,7 +467,8 @@ func begin(id: String, custom := {}) -> void:
 		slice.traffic.clear_zone(_grid_t.origin.z, 70.0)
 	refresh_markers()
 	Sound.sfx("confirm", -4.0)
-	slice.controls.toast("%s · %s" % [String(ev.name).to_upper(), "sanctioned, the road is closed" if bool(ev.legal) else "underground — watch for the police"])
+	var vs := ("vs %s" % ", ".join(players_in.map(func(pl): return String(pl.name)))) if not players_in.is_empty() else ("against the clock" if String(ev.kind) != "drift" else "")
+	slice.controls.toast("%s · %s · %s" % [String(ev.name).to_upper(), vs, "sanctioned, the road is closed" if bool(ev.legal) else "underground — watch for the police"])
 
 func _place(sc: RefCounted, t: Transform3D) -> void:
 	var f := -t.basis.z
@@ -451,18 +614,38 @@ func _step_race(dt: float, car: RefCounted) -> void:
 	if String(ev.kind) == "drift":
 		_drift(dt, car)
 	_drive_rivals(dt)
+	if rid != "" and slice.get("online"):
+		_pos_t -= dt
+		if _pos_t <= 0.0:
+			_pos_t = POS_EVERY
+			slice.online.send("race_pos", { "rid": rid, "a": snappedf(along, 0.1) })
 	if finished_at < 0.0 and gate_i >= gates.size():
 		finished_at = time
 		finishers.append("You")
+		if rid != "" and slice.get("online"):
+			slice.online.send("race_fin", { "rid": rid, "t": snappedf(time, 0.01) })
 		_finish()
 
 ## where you are in the running order now
 func position_now() -> int:
 	var p := 1
-	for r in rivals:
+	for r in rivals + players_in:
 		if float(r.finished_at) >= 0.0 or (finished_at < 0.0 and float(r.along) > along):
 			p += 1
 	return p if finished_at < 0.0 else place
+
+## a race on your own: the clock against the meet's pace — what its field would have run (the event's skill on the
+## street's racing pace), first inside it, then +6% and +12% for the places
+func par_time() -> float:
+	return route.race_length() / (RIVAL_PERF.max_speed * 0.62 * float(ev.get("skill", 0.85)))
+
+func _clock_place() -> int:
+	var par := par_time()
+	var p := 1
+	for k in [1.0, 1.06, 1.12]:
+		if time > par * k:
+			p += 1
+	return mini(p, (ev.prize as Array).size())
 
 ## the rivals drive through each other (a pile-up of the crew on the grid ended races): each steps with the others'
 ## boxes out of the list; you, the traffic and the police still collide with them
@@ -617,6 +800,8 @@ func _finish() -> void:
 		for t in ev.targets:
 			if float(t) > drift_score:
 				place += 1
+	elif players_in.is_empty():
+		place = _clock_place()
 	else:
 		place = finishers.find("You") + 1
 	var got: Dictionary = career.finish(ev_id, place, ev if ev_id == "" else {})
@@ -629,6 +814,8 @@ func _finish() -> void:
 	var line := "%s · %s" % [ORDINAL[mini(place - 1, ORDINAL.size() - 1)], String(ev.name).to_upper()]
 	if String(ev.kind) == "drift":
 		line += "\n%d drift points" % int(drift_score)
+	elif players_in.is_empty():
+		line += "\n%s · the meet's pace %s" % [fmt(time), fmt(par_time())]
 	line += "\n+%d Nex · +%d REP" % [int(got.nex), int(got.rep)]
 	if String(got.tier_up) != "":
 		line += "\nYOU'RE NOW %s — %s" % [String(got.tier_up), String(Career.TIERS[career.tier()].line).to_lower()]
@@ -642,6 +829,8 @@ func _finish() -> void:
 func abandon(why: String) -> void:
 	if state == "":
 		return
+	if rid != "" and slice.get("online"):
+		slice.online.send("race_quit", { "rid": rid })
 	if why != "":
 		show_result(why, Color(1.0, 0.55, 0.4))
 	_end_race()
@@ -660,6 +849,8 @@ func _end_race() -> void:
 	state = ""
 	ev = {}
 	ev_id = ""
+	rid = ""
+	players_in = []
 	refresh_markers()
 
 ## the slice calls this when the operator gets out
@@ -919,7 +1110,10 @@ func _update_hud(dt: float) -> void:
 			lines.append("DRIFT %d   %s" % [int(drift_score), ("+%d ×%.1f" % [int(_chain_pts), multiplier()]) if _chain_pts > 0.0 else ""])
 			lines.append("to beat: %d · %d · %d   GATE %d/%d" % [int(ev.targets[0]), int(ev.targets[1]), int(ev.targets[2]), gate_i, gates.size()])
 		else:
-			lines.append("P%d / %d   GATE %d / %d   %s" % [position_now(), rivals.size() + 1, gate_i, gates.size(), fmt(time)])
+			if players_in.is_empty():
+				lines.append("GATE %d / %d   %s   pace %s" % [gate_i, gates.size(), fmt(time), fmt(par_time())])
+			else:
+				lines.append("P%d / %d   GATE %d / %d   %s" % [position_now(), players_in.size() + 1, gate_i, gates.size(), fmt(time)])
 			lines.append("%.1f km to go" % (maxf(0.0, route.length - along) / 1000.0))
 	hud.text = "\n".join(lines)
 	heat_row.visible = heat.active()

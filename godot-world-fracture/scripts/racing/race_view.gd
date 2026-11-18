@@ -32,6 +32,8 @@ const STREET_NAMES := ["Ghost", "Vex", "Nightjar"]
 var track_id := "nexus-speedway"
 ## the lobby's lap pick (0: the track's own); Track Pack tracks offer the board's range
 var laps := 0
+## the story's distance on a long one-lap course (campaign.gd STORY_RACES): the race ends this many km in; 0 = full laps
+var race_km := 0.0
 var venue: Node3D
 var _cp: Array = []
 var vehicle_id := "tuner"
@@ -483,6 +485,8 @@ func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 
 func _grid() -> void:
 	race = Race.new(track, laps if laps > 0 else int(track.def.laps))
+	if race_km > 0.0 and race.laps_to_go == 1 and race_km * 1000.0 < track.length * 0.88:
+		race.finish_frac = clampf(race_km * 1000.0 / track.length, 0.15, 0.88)
 	var v := Catalog.vehicle(vehicle_id)
 	var file := String(v.get("model", FLEET + "tuner.glb")).get_file() if not v.is_empty() else "tuner.glb"
 	# rivals take the front rows, you start last
@@ -592,6 +596,8 @@ func _process(dt: float) -> void:
 			if float(a) <= d_now + 1.0:
 				cp += 1
 		var left: float = maxf(0.0, (race.laps_to_go - int(me.laps)) * track.length - d_now)
+		if race.finish_frac < 1.0:
+			left = maxf(0.0, race.finish_frac * track.length - d_now)
 		hud.text += "   CP %d / %d   %.1f km to go" % [cp, _cp.size(), left / 1000.0]
 	var lines: Array = []
 	var i := 1

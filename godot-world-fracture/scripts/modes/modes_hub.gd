@@ -411,7 +411,6 @@ func _races() -> void:
 		var sub := "%s · %d laps · %.1f km" % ["Street circuit, night" if street else "Racing venue, day", int(tr.def.laps), tr.length / 1000.0]
 		var body := "Neon City's blocks at night: barriers, right-angle corners, the market jog. Win: %d Nex." % int(tr.def.prize[0]) if street else "Stands, pit lane and start lights; an oval with a back-straight chicane. Win: %d Nex." % int(tr.def.prize[0])
 		row.add_child(_tile("race-" + tid, String(tr.def.name).to_upper(), sub, body, Color(0.3, 0.9, 1.0), func(): _launch_race(tid), true, 28))
-	row.add_child(_tile("race-open-world", "OPEN WORLD", "Race other players across the cities", "Point-to-point races through Nexus and Neon City traffic. Comes with online play.", Color(0.4, 0.5, 0.6), func(): pass, false, 28))
 	v.add_child(_track_pack())
 	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "Motorcycle · soon", "Off-road / mud · soon", "Air races · soon"], Color(0.3, 0.9, 1.0)))
 

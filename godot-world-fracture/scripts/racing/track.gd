@@ -10,20 +10,20 @@ const TRACKS := {
 	"nexus-speedway": {
 		# a grand-prix circuit (owner, Nov 11: "make the racing longer"; was a 569 m oval): a 420 m main straight along -z at
 		# x = 0, a hairpin onto the long back straight, the sweeping west side, the infield esses, the north loop and the
-		# fast final bends back onto the straight. ~2.1 km a lap, five laps. Metres.
+		# fast final bends back onto the straight. ~3.6 km a lap since Nov 18 (×1.7, the owner: "make the racing tracks longer"), five laps. Metres.
 		"name": "Nexus Speedway", "width": 14.0, "laps": 5, "prize": [1600, 850, 420, 160],
-		"points": [[0, 0, 180], [0, 0, -240], [-14, 0, -286], [-60, 0, -305], [-150, 0, -305], [-240, 0, -298], [-300, 0, -270], [-330, 0, -215], [-340, 0, -150], [-345, 0, -60], [-330, 0, -15], [-290, 0, 10], [-250, 0, -10], [-210, 0, -40], [-170, 0, -30], [-150, 0, 5], [-150, 0, 90], [-168, 0, 150], [-215, 0, 185], [-290, 0, 205], [-330, 0, 250], [-320, 0, 300], [-270, 0, 330], [-150, 0, 335], [-60, 0, 320], [-18, 0, 280], [0, 0, 230]],
+		"points": [[0, 0, 306], [0, 0, -408], [-24, 0, -486], [-102, 0, -518], [-255, 0, -518], [-408, 0, -507], [-510, 0, -459], [-561, 0, -366], [-578, 0, -255], [-586, 0, -102], [-561, 0, -26], [-493, 0, 17], [-425, 0, -17], [-357, 0, -68], [-289, 0, -51], [-255, 0, 8], [-255, 0, 153], [-286, 0, 255], [-366, 0, 314], [-493, 0, 348], [-561, 0, 425], [-544, 0, 510], [-459, 0, 561], [-255, 0, 570], [-102, 0, 544], [-31, 0, 476], [0, 0, 391]],
 		"start": 0.0,
-		"pit": { "x": 20.0, "z0": -60.0, "z1": 60.0 },
-		"stands": [{ "x": 30.0, "z0": -120.0, "z1": 120.0, "yaw": 0.0 }, { "x": -380.0, "z0": -200.0, "z1": -80.0, "yaw": 0.0 }],
+		"pit": { "x": 20.0, "z0": -100.0, "z1": 100.0 },
+		"stands": [{ "x": 30.0, "z0": -200.0, "z1": 200.0, "yaw": 0.0 }, { "x": -621.0, "z0": -340.0, "z1": -136.0, "yaw": 0.0 }],
 	},
 	# a night street circuit through Neon City's blocks: the avenue is the main straight, right-angle corners round the
 	# blocks, a jog through the market grid; concrete barriers instead of kerbs and grass (race_view builds it as a city)
 	"neon-circuit": {
-		# ~1.9 km a lap through a dozen blocks (Nov 11, was 779 m): the 500 m avenue, the south blocks, the market jog west,
+		# ~3.2 km a lap through a dozen blocks (Nov 18 ×1.7; Nov 11 1.9 km, was 779 m): the 500 m avenue, the south blocks, the market jog west,
 		# the long west boulevard, the north blocks and back onto the avenue. Four laps.
 		"name": "Neon Night Circuit", "kind": "street", "width": 13.0, "laps": 4, "prize": [2000, 1100, 500, 200],
-		"points": [[0, 0, 250], [0, 0, -250], [-10, 0, -282], [-40, 0, -292], [-180, 0, -292], [-210, 0, -282], [-220, 0, -252], [-220, 0, -150], [-232, 0, -122], [-260, 0, -112], [-330, 0, -112], [-358, 0, -100], [-370, 0, -72], [-370, 0, 90], [-358, 0, 118], [-330, 0, 130], [-230, 0, 130], [-202, 0, 140], [-190, 0, 168], [-190, 0, 290], [-178, 0, 318], [-150, 0, 330], [-40, 0, 330], [-10, 0, 320], [0, 0, 290]],
+		"points": [[0, 0, 425], [0, 0, -425], [-17, 0, -479], [-68, 0, -496], [-306, 0, -496], [-357, 0, -479], [-374, 0, -428], [-374, 0, -255], [-394, 0, -207], [-442, 0, -190], [-561, 0, -190], [-609, 0, -170], [-629, 0, -122], [-629, 0, 153], [-609, 0, 201], [-561, 0, 221], [-391, 0, 221], [-343, 0, 238], [-323, 0, 286], [-323, 0, 493], [-303, 0, 541], [-255, 0, 561], [-68, 0, 561], [-17, 0, 544], [0, 0, 493]],
 		"start": 0.0,
 	},
 }

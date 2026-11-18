@@ -21,41 +21,41 @@ const TIERS := [
 ## the races found on each city's avenue. `at`: where the meet stands (z on the avenue, the hub block is -130..130);
 ## kind "sprint" (z0 -> z1), "loop" (z_hi..z_lo, `laps`) or "drift" (a loop scored on slides against `targets`);
 ## `tier`: the ladder rung it needs; `heat`: the pursuit level an illegal race starts at; prize and rep by place.
-## Lengths are the avenue's (it runs ~1.8 km); the owner's full-scale Track Pack 01 tracks are venues of their own
+## Lengths are the avenue's (it runs ~3.4 km since Nov 18, the owner: "make the racing tracks longer"); the owner's full-scale Track Pack 01 tracks are venues of their own
 ## (track_pack.gd, in Game Modes → Races), so the avenue races carry their own names.
 const EVENTS := {
 	"neon-backstreet": { "name": "Backstreet Dash", "city": "neon", "at": 60.0, "tier": 0, "legal": false, "heat": 1,
-		"kind": "sprint", "z0": 60.0, "z1": -840.0, "rivals": ["Vex", "Kilo"], "skill": 0.8,
+		"kind": "sprint", "z0": 60.0, "z1": -1640.0, "rivals": ["Vex", "Kilo"], "skill": 0.8,
 		"prize": [700, 350, 150], "rep": [120, 70, 40] },
 	"neon-midnight": { "name": "Midnight Avenue Run", "city": "neon", "at": 20.0, "tier": 1, "legal": false, "heat": 1,
-		"kind": "loop", "z_hi": 840.0, "z_lo": -840.0, "laps": 1, "rivals": ["Vex", "Nightjar", "Kilo"], "skill": 0.86,
+		"kind": "loop", "z_hi": 1640.0, "z_lo": -1640.0, "laps": 1, "rivals": ["Vex", "Nightjar", "Kilo"], "skill": 0.86,
 		"prize": [1500, 800, 400, 150], "rep": [260, 150, 90, 40] },
 	"neon-drift": { "name": "Neon Drift Battle", "city": "neon", "at": -20.0, "tier": 2, "legal": false, "heat": 1,
-		"kind": "drift", "z_hi": 320.0, "z_lo": -320.0, "laps": 2, "targets": [9000, 6000, 3500], "rivals": ["Ryu", "Sable", "Kilo"],
+		"kind": "drift", "z_hi": 620.0, "z_lo": -620.0, "laps": 2, "targets": [9000, 6000, 3500], "rivals": ["Ryu", "Sable", "Kilo"],
 		"prize": [1800, 900, 400, 150], "rep": [320, 180, 100, 40] },
 	"neon-ring": { "name": "Neon Avenue Ring", "city": "neon", "at": -60.0, "tier": 3, "legal": false, "heat": 2,
-		"kind": "loop", "z_hi": 860.0, "z_lo": -860.0, "laps": 3, "rivals": ["Nightjar", "Vex", "Sable"], "skill": 0.92,
+		"kind": "loop", "z_hi": 1660.0, "z_lo": -1660.0, "laps": 3, "rivals": ["Nightjar", "Vex", "Sable"], "skill": 0.92,
 		"prize": [5000, 2500, 1200, 400], "rep": [650, 380, 220, 90] },
 	"neon-ghost": { "name": "Ghost's Crown", "city": "neon", "at": -110.0, "tier": 4, "legal": false, "heat": 3,
-		"kind": "loop", "z_hi": 860.0, "z_lo": -860.0, "laps": 3, "rivals": ["Ghost", "Nightjar", "Vex"], "skill": 0.97,
+		"kind": "loop", "z_hi": 1660.0, "z_lo": -1660.0, "laps": 3, "rivals": ["Ghost", "Nightjar", "Vex"], "skill": 0.97,
 		"prize": [12000, 5000, 2000, 600], "rep": [2400, 900, 400, 150], "boss": "Ghost" },
 	"nexus-avenue-cup": { "name": "Avenue Cup", "city": "nexus", "at": 60.0, "tier": 0, "legal": true,
-		"kind": "loop", "z_hi": 420.0, "z_lo": -420.0, "laps": 2, "rivals": ["K. Voss", "Mara Lin", "D. Okafor"], "skill": 0.82,
+		"kind": "loop", "z_hi": 1220.0, "z_lo": -1220.0, "laps": 2, "rivals": ["K. Voss", "Mara Lin", "D. Okafor"], "skill": 0.82,
 		"prize": [600, 300, 150, 60], "rep": [100, 60, 40, 20] },
 	"nexus-tournament": { "name": "Nexus City Tournament", "city": "nexus", "at": 20.0, "tier": 2, "legal": true,
-		"kind": "loop", "z_hi": 860.0, "z_lo": -860.0, "laps": 2, "rivals": ["K. Voss", "Mara Lin", "D. Okafor"], "skill": 0.9,
+		"kind": "loop", "z_hi": 1660.0, "z_lo": -1660.0, "laps": 2, "rivals": ["K. Voss", "Mara Lin", "D. Okafor"], "skill": 0.9,
 		"prize": [3000, 1500, 700, 250], "rep": [380, 220, 130, 50] },
 	"nexus-outlaw": { "name": "Outlaw Avenue Run", "city": "nexus", "at": -20.0, "tier": 3, "legal": false, "heat": 2,
-		"kind": "loop", "z_hi": 860.0, "z_lo": -860.0, "laps": 2, "rivals": ["Rook", "Sable", "Kilo"], "skill": 0.92,
+		"kind": "loop", "z_hi": 1660.0, "z_lo": -1660.0, "laps": 2, "rivals": ["Rook", "Sable", "Kilo"], "skill": 0.92,
 		"prize": [4500, 2200, 1000, 350], "rep": [600, 350, 200, 80] },
 	"nexus-grand-prix": { "name": "Nexus Supercar Championship", "city": "nexus", "at": -60.0, "tier": 4, "legal": true,
-		"kind": "loop", "z_hi": 860.0, "z_lo": -860.0, "laps": 4, "rivals": ["K. Voss", "Mara Lin", "D. Okafor"], "skill": 0.96,
+		"kind": "loop", "z_hi": 1660.0, "z_lo": -1660.0, "laps": 4, "rivals": ["K. Voss", "Mara Lin", "D. Okafor"], "skill": 0.96,
 		"prize": [10000, 5000, 2500, 800], "rep": [1500, 800, 450, 150] },
 	"coast-boardwalk": { "name": "Boardwalk Sprint", "city": "coast", "at": 60.0, "tier": 0, "legal": false, "heat": 1,
-		"kind": "sprint", "z0": 60.0, "z1": 840.0, "rivals": ["Marlin", "Juno"], "skill": 0.8,
+		"kind": "sprint", "z0": 60.0, "z1": 1640.0, "rivals": ["Marlin", "Juno"], "skill": 0.8,
 		"prize": [650, 320, 140], "rep": [110, 65, 35] },
 	"coast-rush": { "name": "Coastline Rush", "city": "coast", "at": 20.0, "tier": 1, "legal": true,
-		"kind": "loop", "z_hi": 840.0, "z_lo": -840.0, "laps": 2, "rivals": ["Marlin", "Juno", "Reef"], "skill": 0.86,
+		"kind": "loop", "z_hi": 1640.0, "z_lo": -1640.0, "laps": 2, "rivals": ["Marlin", "Juno", "Reef"], "skill": 0.86,
 		"prize": [1600, 800, 400, 150], "rep": [240, 140, 80, 30] },
 }
 

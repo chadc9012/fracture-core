@@ -12,6 +12,8 @@ var time := 0.0
 var started := false
 var finished := false
 var results: Array = []
+## a long one-lap course run to part of its length (the story's races): the last lap finishes at this fraction
+var finish_frac := 1.0
 
 func _init(t: Track, laps := 3) -> void:
 	track = t
@@ -51,6 +53,12 @@ func tick(dt: float, positions: Array) -> void:
 			if e.laps >= laps_to_go:
 				e.finished_at = time
 				results.append(e)
+		if finish_frac < 1.0 and e.laps == laps_to_go - 1 and e.armed and f >= finish_frac and f < 0.9 and e.finished_at < 0.0:
+			e.laps = laps_to_go
+			e.last_lap = time - e.lap_start
+			e.best_lap = e.last_lap if e.best_lap <= 0.0 else minf(e.best_lap, e.last_lap)
+			e.finished_at = time
+			results.append(e)
 		e.last_frac = f
 		e.frac = f
 	var done := true

@@ -106,7 +106,11 @@ var _missiles_left := 4
 const CANNON_RELOAD := 1.7
 const MISSILE_RELOAD := 7.0
 const StreetLife = preload("res://scripts/racing/street_life.gd")
+const OnlineWorld = preload("res://scripts/net/online_world.gd")
+const Online = preload("res://scripts/net/online.gd")
 var life: Node
+## the other players in this city (online_world.gd), when online play is on
+var online: Node
 ## district streaming (district.gd): the authored slice is tile 0 and stays; the blocks either way along the avenue are
 ## built when Active, kept as boxes when Simulated, parked when Frozen. Each tile's meshes hang under one root node at
 ## z = k * TILE, so the builders below work in tile-local coordinates (`_tile_root` set while a tile is being built).
@@ -366,7 +370,7 @@ func _spawn_player() -> void:
 	world.add_child(operator)
 	var half := ROAD_W * 0.5
 	var x0 := half + WALK_W
-	district = District.new(-3, 3)
+	district = District.new(-6, 6)     # ~3.4 km of avenue (Nov 18: longer street races)
 	var span: Vector2 = district.span()
 	# out to the garage's forecourt and the lots' backs (infrastructure.gd); the facade line keeps you off the rest
 	var reach := x0 + Infra.LOT_D + 0.5
@@ -486,6 +490,11 @@ func _after_enemies() -> void:
 		npcs.setup(operator, controls, self, operator.obstacles, operator.bounds, operator.ground_at, 11.5, Vector2(-128.0, 128.0), style)
 	_apply_district(first_plan)
 	# street racing life (street_life.gd): the city's race meets on the avenue, challenges, the police
+	# other players (online_world.gd): before the street life, which races them
+	if Online.live():
+		online = OnlineWorld.new()
+		add_child(online)
+		online.setup(self)
 	life = StreetLife.new()
 	add_child(life)
 	life.setup(self)
@@ -763,6 +772,8 @@ func _process(dt: float) -> void:
 		traffic.step(minf(dt, 0.05))
 	if heavy:
 		heavy.step(minf(dt, 0.05))
+	if online:
+		online.step(minf(dt, 0.05))
 	if driving_car:
 		_drive(minf(dt, 0.05))
 		if life:

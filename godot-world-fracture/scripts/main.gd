@@ -105,6 +105,7 @@ func _ready() -> void:
 	op_button.pressed.connect(_open_creator)
 	# cloud save (scripts/cloud): sign-in and sync from the globe; a sync runs on launch and whenever a view closes
 	cloud = CloudSave.new()
+	cloud.add_to_group("cloud")    # online.gd takes your account id from it
 	add_child(cloud)
 	var cloud_button := Data.button("CLOUD", true)
 	cloud_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)

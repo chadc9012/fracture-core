@@ -6,7 +6,7 @@ const Race = preload("res://scripts/racing/race.gd")
 func _init() -> void:
 	var t := Track.new("nexus-speedway")
 	var ok := true
-	var r1: bool = t.length > 1500.0 and t.length < 3500.0 and t.at(0.0).distance_to(t.at(t.length)) < 0.5 and t.progress(t.at(10.0)) > 0.0 and t.progress(t.at(10.0)) < 0.05
+	var r1: bool = t.length > 3000.0 and t.length < 5000.0 and t.at(0.0).distance_to(t.at(t.length)) < 0.5 and t.progress(t.at(10.0)) > 0.0 and t.progress(t.at(10.0)) < 0.05
 	print("a closed lap with progress: ", r1, " length ", t.length)
 	ok = ok and r1
 	var r2: bool = not t.off_track(t.at(100.0)) and t.off_track(t.at(100.0) + Vector3(20, 0, 0)) and t.curvature_ahead(t.at(5.0), 20.0) < 0.3
@@ -20,7 +20,7 @@ func _init() -> void:
 	var d_me := -8.0
 	var d_r := -8.0
 	var steps := 0
-	while not race.finished and steps < 20000:
+	while not race.finished and steps < 60000:
 		d_me += 20.0 / 60.0
 		d_r += 26.0 / 60.0
 		race.tick(1.0 / 60.0, [t.at(d_me), t.at(d_r)])
