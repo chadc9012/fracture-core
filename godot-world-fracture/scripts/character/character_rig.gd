@@ -98,12 +98,13 @@ func build(new_look: Dictionary, animate := true) -> void:
 ## the everyday body's proportions, set at load: each bone's piece of the body scaled across the bone (in the bone's own
 ## space, x and z; y runs along it) and blended by the skin weights. The clothed bodies read as a broad, boxy hoodie on
 ## stick legs (owner, Nov 18: "too bulky / wide", "stiff / stick-like", "wrong proportions", "should look like GTA"):
-## a narrower chest and waist, fuller thighs and calves in looser joggers, a touch more to the arms. WF_RESHAPE (JSON,
+## a narrower chest and waist, less padding over the shoulders and upper arms, fuller thighs and calves in looser
+## joggers. WF_RESHAPE (JSON,
 ## suffix → [x, z]) overrides it for look-dev
 const RESHAPE := {
 	"Hips": Vector2(0.97, 1.0), "Spine": Vector2(0.92, 0.97), "Spine1": Vector2(0.9, 0.96), "Spine2": Vector2(0.9, 0.96),
-	"Shoulder": Vector2(0.92, 0.96), "UpLeg": Vector2(1.14, 1.12), "Leg": Vector2(1.14, 1.12), "Arm": Vector2(1.04, 1.04),
-	"ForeArm": Vector2(1.04, 1.04),
+	"Shoulder": Vector2(0.85, 0.9), "UpLeg": Vector2(1.14, 1.12), "Leg": Vector2(1.14, 1.12), "Arm": Vector2(0.93, 0.94),
+	"ForeArm": Vector2(0.97, 0.97),
 }
 static var _reshaped := {}
 
@@ -273,6 +274,11 @@ func _attach_head(body_head: int) -> void:
 		return
 	var hi := _bone(hsk, "Head")
 	var ti := _bone(hsk, "HeadTop_End")
+	# in everyday clothes the head sits a little lower and fuller on the shoulders: on the long civ neck it read small
+	# and perched (owner, Nov 18: "wrong proportions"). Hair, the head's gear and its worn pieces move with it
+	var civ := bool(look.get("civ", false)) and String(look.get("body", "")) != "robot"
+	_head_scale = HEAD_SCALE if civ else 1.0
+	_head_drop = Vector3(0, -HEAD_DROP, 0) if civ else Vector3.ZERO
 	var head_rest := hsk.get_bone_global_rest(hi)
 	var unit := 1.0
 	if ti >= 0:
@@ -308,6 +314,8 @@ func _attach_head(body_head: int) -> void:
 				var dp := FaceMorphs.displacement(look.morphs, p)
 				p += dp
 				vs[k] = vs[k] + dp * unit
+			if _head_scale != 1.0 or _head_drop != Vector3.ZERO:
+				vs[k] = head_rest.origin + (vs[k] - head_rest.origin) * _head_scale + _head_drop
 			custom[k * 4] = p.x
 			custom[k * 4 + 1] = p.y
 			custom[k * 4 + 2] = p.z
@@ -334,7 +342,7 @@ func _attach_head(body_head: int) -> void:
 	att.bone_idx = body_head
 	skeleton.add_child(att)
 	var holder := Node3D.new()
-	holder.transform = head_rest.affine_inverse() * Transform3D(Basis.from_scale(Vector3.ONE * unit), head_rest.origin - cal * unit)
+	holder.transform = head_rest.affine_inverse() * Transform3D(Basis.from_scale(Vector3.ONE * unit * _head_scale), head_rest.origin + _head_drop - cal * unit * _head_scale)
 	att.add_child(holder)
 	var hb := HairBuilder.new()
 	hb.fit_skull(head_pts)
@@ -462,6 +470,10 @@ func _head_material(m: Material, robot: bool) -> Material:
 	return mat
 
 var _tex_skin: Variant = null
+const HEAD_SCALE := 1.06
+const HEAD_DROP := 0.018
+var _head_scale := 1.0
+var _head_drop := Vector3.ZERO
 ## the head texture's own skin colour (its mean over skin-like texels), or null when the image can't be read
 static func _sample_skin(m: Material) -> Variant:
 	var std := m as StandardMaterial3D
@@ -721,6 +733,8 @@ func _on_bone(suffix: String, off: Vector3) -> Node3D:
 	var idx := _bone(skeleton, suffix)
 	if idx < 0:
 		return null
+	if suffix == "Head":
+		off = off * _head_scale + _head_drop
 	var att := BoneAttachment3D.new()
 	att.bone_idx = idx
 	skeleton.add_child(att)
