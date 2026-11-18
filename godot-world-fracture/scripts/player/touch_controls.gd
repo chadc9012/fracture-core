@@ -175,6 +175,7 @@ func _ready() -> void:
 		_sprint_button = run
 		var ent := _button("ENTER")
 		ent.custom_minimum_size = Vector2(150, 64)
+		ent.clip_text = false   # the prompt grows to fit ("TALK · MECHANIC")
 		ent.set_anchors_preset(Control.PRESET_CENTER)
 		ent.position = Vector2(-75, 120)
 		ent.visible = false
@@ -290,6 +291,8 @@ func _hud() -> void:
 	weapon_name.add_theme_color_override("font_color", UiTheme.INK)
 	weapon_name.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	weapon_name.add_theme_constant_override("shadow_offset_y", 1)
+	weapon_name.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+	weapon_name.add_theme_constant_override("outline_size", 6)
 	weapon_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(weapon_name)
 	# a tap on the weapon's name (or the magazine) swaps weapons: the simple HUD has no SWAP button
@@ -311,6 +314,8 @@ func _hud() -> void:
 	ammo.add_theme_color_override("font_color", UiTheme.INK)
 	ammo.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	ammo.add_theme_constant_override("shadow_offset_y", 1)
+	ammo.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+	ammo.add_theme_constant_override("outline_size", 6)
 	ammo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(ammo)
 	# hit: Destiny reddens the screen's edges, not the whole picture (a shader vignette; `color.a` is how hard)
@@ -620,6 +625,8 @@ func show_grenade(h: Dictionary) -> void:
 		grenade_label.position = Vector2(20, 100)
 		grenade_label.add_theme_font_override("font", UiTheme.font(600, 1))
 		grenade_label.add_theme_font_size_override("font_size", 13)
+		grenade_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+		grenade_label.add_theme_constant_override("outline_size", 5)
 		grenade_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		grenade_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(grenade_label)
