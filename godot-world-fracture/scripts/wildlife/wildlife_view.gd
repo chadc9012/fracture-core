@@ -35,9 +35,9 @@ func setup(player: Node3D, g: Node3D, ground: Callable, wet: Callable, seed := 7
 ## `keep_clear` is the mission's own ground — waypoints, relays, POIs — no home, den, nest or crag within KEEP_M of it
 const KEEP_M := 14.0
 var _keep: Array[Vector2] = []
-func _clear_of(p: Vector2) -> bool:
+func _clear_of(p: Vector2, margin := 0.0) -> bool:
 	for k in _keep:
-		if k.distance_to(p) < KEEP_M:
+		if k.distance_to(p) < KEEP_M + margin:
 			return false
 	return true
 
@@ -50,7 +50,13 @@ func populate(centre: Vector2, radius := 160.0, keep_clear: Array[Vector2] = [])
 			var a := r.randf() * TAU
 			var d := r.randf_range(dist_lo, dist_hi)
 			var p := centre + Vector2(cos(a), sin(a)) * d
-			if bool(is_wet.call(p.x, p.y)) == want_wet and _clear_of(p):
+			# a group's members spread up to 6 m each way round the spot (8.5 m on the diagonal), so the spot itself keeps that much further off
+			if bool(is_wet.call(p.x, p.y)) == want_wet and _clear_of(p, 9.0):
+				return p
+		for k in 12:   # no such ground: the nearest ring, at the first angle that is at least off the mission's spots
+			var a := TAU * k / 12.0
+			var p := centre + Vector2(cos(a), sin(a)) * dist_lo
+			if _clear_of(p, 9.0):
 				return p
 		return centre + Vector2(dist_lo, 0)
 	for i in 2:
