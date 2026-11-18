@@ -638,24 +638,36 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#2c6cc0", "hor": "#bcd6ec", "fog": "#d9c6a2", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95,
 				"sky": "day", "tint": Vector3(1.0, 0.84, 0.64)}, true)
 		"storm":
-			# the board's floating islands: a violet storm dusk, warm low sun through the clouds, the crystals glowing
-			s.merge({"top": "#252a58", "hor": "#a585c0", "fog": "#6a6390", "fog_d": 0.0026, "sun": 1.0, "sun_col": "#ffc79a", "sun_el": 14.0, "amb": 0.65, "sat": 1.1}, true)
+			# the board's floating islands under a storm at dusk: a heavy cloud deck, the low sun breaking warm along the
+			# horizon, the crystals glowing (Nov 18 pass: the region_sky storm deck with a warm horizon, lightning on)
+			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 10.0, "sun_az": 150.0,
+				"amb": 0.6, "sat": 1.1, "exp": 1.0, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
 		"crystal-badlands":
-			s.merge({"top": "#241c4a", "hor": "#d39a7c", "fog": "#6a5676", "fog_d": 0.0014, "sun": 1.0, "sun_col": "#ffc6a0", "sun_el": 22.0, "amb": 0.85, "night": 0.3}, true)
+			# the owner's "MOONLIGHT - FRACTURE ZONE" photo: a full moon over dark rock spires, deep blue night, the crystals
+			# and rift seams glowing cyan and violet (it was a flat pink-orange dusk)
+			s.merge({"top": "#040a24", "hor": "#24407e", "fog": "#16224a", "fog_d": 0.0015, "sun": 0.8, "sun_col": "#aec4ff", "sun_el": 28.0, "sun_az": 140.0,
+				"amb": 0.4, "amb_col": "#36508c", "night": 0.75, "sat": 1.1, "exp": 1.15, "planet": false, "sky": "moon", "glow": "#5a3cff", "glow_amt": 0.3}, true)
 		"old-harrow":
-			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on
-			s.merge({"top": "#2f3f6a", "hor": "#f0a468", "fog": "#a88468", "fog_d": 0.0016, "sun": 0.95, "sun_col": "#ffb27a", "sun_el": 9.0, "amb": 0.55, "night": 0.4, "sat": 1.05}, true)
+			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on (Nov 18: the
+			# region_sky sunset deck, streaked cloud lit from below)
+			s.merge({"top": "#2a3866", "hor": "#f0a468", "fog": "#a88468", "fog_d": 0.0016, "sun": 1.1, "sun_col": "#ffb27a", "sun_el": 9.0, "sun_az": 150.0,
+				"amb": 0.5, "night": 0.4, "sat": 1.05, "exp": 0.95, "sky": "sunset", "glow": "#ff8a44", "glow_amt": 0.3}, true)
 		"goldenreach":
-			# late-afternoon gold over the fields
-			s.merge({"top": "#5e8fc4", "hor": "#f0d6a8", "fog": "#d8c49e", "fog_d": 0.0010, "sun": 1.35, "sun_col": "#ffd9a0", "sun_el": 24.0, "amb": 0.55, "sat": 1.05}, true)
+			# the owner's flower-field photo: late-afternoon gold, the sun low and warm behind haze, a blue sky with cloud
+			s.merge({"top": "#3f7cc8", "hor": "#f2d9ae", "fog": "#d8c49e", "fog_d": 0.0012, "sun": 1.4, "sun_col": "#ffd49a", "sun_el": 20.0, "sun_az": 150.0,
+				"amb": 0.5, "sat": 1.1, "exp": 0.8, "sky": "day", "glow": "#ffc070", "glow_amt": 0.25}, true)
 		"azure-isles":
-			# high tropical sun, a deep blue sky, turquoise water
-			s.merge({"top": "#1f6fd0", "hor": "#bfe6f4", "fog": "#a8d8ea", "fog_d": 0.0006, "sun": 1.45, "sun_col": "#fff8e6", "sun_el": 60.0, "amb": 0.7, "sat": 1.1, "exp": 0.85}, true)
+			# the owner's "OCEAN" photo: a deep blue sky with white cloud, a bright sun, turquoise water
+			s.merge({"top": "#1d68cc", "hor": "#bfe2f4", "fog": "#a8d8ea", "fog_d": 0.0006, "sun": 1.45, "sun_col": "#fff6e2", "sun_el": 48.0, "sun_az": 150.0,
+				"amb": 0.62, "sat": 1.12, "exp": 0.8, "sky": "day"}, true)
 		"frostveil":
-			# a low polar sun across the ice, blue shadows, a little ground haze
-			s.merge({"top": "#5d7fa8", "hor": "#e6eef6", "fog": "#d6e2ee", "fog_d": 0.0020, "sun": 1.05, "sun_col": "#ffe8d2", "sun_el": 12.0, "amb": 0.75, "exp": 0.75}, true)
+			# a low polar sun across the ice under thin high cloud, blue shadows (it read as white haze)
+			s.merge({"top": "#3a64a0", "hor": "#d8e6f2", "fog": "#b8cade", "fog_d": 0.0016, "sun": 1.15, "sun_col": "#ffe0c4", "sun_el": 11.0, "sun_az": 150.0,
+				"amb": 0.55, "exp": 0.68, "sat": 1.05, "sky": "day", "sky_set": {"cover": 0.22, "cloud_scale": 0.7}, "glow": "#ffd2b0", "glow_amt": 0.2}, true)
 		"shattered-reefs":
-			s.merge({"top": "#2b78c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 55.0, "amb": 0.65, "sat": 0.95}, true)
+			# the owner's "OCEAN" photo, as Azure Isles
+			s.merge({"top": "#2370c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 45.0, "sun_az": 150.0,
+				"amb": 0.6, "sat": 1.05, "exp": 0.8, "sky": "day"}, true)
 		"thalassia":
 			# the city inside the dome carries its own lights: a dimmer, bluer deep so they read (it was blown out to white)
 			s.merge({"fog": "#06465e", "fog_d": 0.009, "sun": 0.45, "sun_col": "#a8e6ff", "sun_el": 70.0, "amb": 0.35, "planet": false, "under": true, "night": 0.6, "exp": 0.8}, true)
