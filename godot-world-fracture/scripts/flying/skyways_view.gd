@@ -82,6 +82,13 @@ var _gear_wheels: Array[Node3D] = []
 var _touch_puff: CPUParticles3D
 var _was_airborne := false
 var look_dev := Vector3.ZERO   # a fixed camera offset for the shot hook (zero: the chase camera)
+## an aircraft out of your own hangar (airport_view _fly_craft): it takes off with its saved condition and tank
+## (airport.gd upkeep), burns fuel with the throttle and brings both back to the profile when you land or wreck it
+var from_hangar := false
+var fuel := 100.0
+var _fuel_warned := false
+var _upkeep_saved := false
+const Air := preload("res://scripts/airport/airport.gd")
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -175,6 +182,10 @@ func _start() -> void:
 	_fit_hull(float(c.length))
 	if String(c.kind) == "JET":
 		_build_gear(float(c.length))
+	if from_hangar:
+		var pr := Gear.profile_load()
+		hull_hp = maxf(0.2, Air.condition(pr, craft_id) / 100.0)
+		fuel = float(Air.fuel(pr, craft_id))
 	var sp: Vector3 = region.stand_point()
 	var water := String(profile.mode) == "WATER"
 	pad = _clear_spot(sp, water)
@@ -435,6 +446,7 @@ func _mark_next() -> void:
 func _try_exit() -> void:
 	var ex := Handling.can_exit(profile, state, region.over_water(hull.position.x, hull.position.z) and String(profile.mode) != "WATER")
 	if bool(ex.ok) or finished:
+		_save_upkeep()
 		closed.emit()
 	else:
 		controls.toast(String(ex.reason))
@@ -448,6 +460,18 @@ func _process(dt: float) -> void:
 		"throttle": maxf(0.0, mv.y), "brake": maxf(0.0, -mv.y), "steer": -mv.x,
 		"ascend": controls.ascend(), "descend": controls.descend(), "handbrake": false, "boost": false,
 	}
+	if from_hangar:
+		# the tank: the throttle burns it (a full one lasts Air.TANK_MINUTES wide open); empty, there is no thrust
+		fuel = maxf(0.0, fuel - float(input.throttle) * dt * 100.0 / (Air.TANK_MINUTES * 60.0))
+		if fuel <= 0.0:
+			input.throttle = 0.0
+			input.ascend = 0.0 if String(profile.mode) == "AIR" and state.airborne else input.ascend
+			if not _fuel_warned:
+				_fuel_warned = true
+				controls.toast("Out of fuel — glide it down")
+		elif fuel < 15.0 and not _fuel_warned:
+			_fuel_warned = true
+			controls.toast("Fuel low (%d%%) — the bowser is by the hangars" % int(fuel))
 	var px := hull.position.x
 	var pz := hull.position.z
 	var env := {
@@ -537,13 +561,23 @@ func _process(dt: float) -> void:
 	var k := clampf(absf(state.speed) / maxf(top_speed, 1.0), 0.0, 1.0)
 	Sound.loop_set("craft", 0.8 + k * 0.7, -12.0 + k * 6.0)
 	Sound.loop_set("wind", 1.0 + k * 0.4, -26.0 + k * 14.0)
-	_hud.text = "%s\nSPD %3d m/s   ALT %4d m   HULL %d%%\nrings %d / %d   %d:%02d" % [String(CRAFT[craft_id].name), int(absf(state.speed)), int(maxf(0.0, alt)), int(hull_hp * 100), next_ring, rings.size(), int(clock / 60.0), int(fmod(clock, 60.0))]
+	_hud.text = "%s\nSPD %3d m/s   ALT %4d m   HULL %d%%%s\nrings %d / %d   %d:%02d" % [String(CRAFT[craft_id].name), int(absf(state.speed)), int(maxf(0.0, alt)), int(hull_hp * 100), ("   FUEL %d%%" % int(ceil(fuel))) if from_hangar else "", next_ring, rings.size(), int(clock / 60.0), int(fmod(clock, 60.0))]
+
+## the hangar aircraft's condition and tank go back to the profile (once: on the exit, a wreck, or the view closing)
+func _save_upkeep() -> void:
+	if not from_hangar or _upkeep_saved:
+		return
+	_upkeep_saved = true
+	var pr := Gear.profile_load()
+	Air.set_condition(pr, craft_id, int(round(hull_hp * 100.0)))
+	Air.set_fuel(pr, craft_id, int(floor(fuel)))
+	Gear.profile_save(pr)
 
 func _reset(why: String) -> void:
 	state = Handling.State.new()
 	state.y = pad.y + (0.6 if String(profile.mode) == "WATER" else Handling.RIDE)
 	hull.position = Vector3(pad.x, state.y, pad.z)
-	hull_hp = 1.0
+	hull_hp = 0.35 if from_hangar else 1.0   # your own aircraft comes back to the pad patched, not new (the hangar repairs it)
 	controls.toast(why)
 
 func _finish() -> void:
@@ -560,5 +594,6 @@ func _finish() -> void:
 		controls.toast(String(l))
 
 func _exit_tree() -> void:
+	_save_upkeep()
 	Sound.loop_stop("craft")
 	Sound.loop_stop("wind")

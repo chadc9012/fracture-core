@@ -202,6 +202,7 @@ func _ready() -> void:
 	_travellers()
 	_airstrip()
 	_hangars()
+	_maintenance()
 	_cargo_terminal()
 	_skyline()
 	_extras()
@@ -451,6 +452,10 @@ func _use(id: String) -> void:
 		_hangar_panel(id.substr(7))
 	elif id.begins_with("craft:"):
 		_aircraft_panel()
+	elif id == "maint":
+		_maint_panel()
+	elif id == "fuel":
+		_fuel_panel()
 	elif id == "vip-in":
 		if Air.vip(profile, code):
 			operator.position = Vector3(VIP.position.x + 17.0, 0, VIP.position.y + 10.0)
@@ -673,6 +678,7 @@ func _fly_craft(craft: String) -> void:
 	var v: Control = SkywaysView.new()
 	v.craft_id = craft
 	v.region_id = String(Air.AIRPORTS[code].region)
+	v.from_hangar = true
 	_overlay_open(v)
 
 func _overlay_open(v: Control) -> void:
@@ -1693,6 +1699,91 @@ func _hangars() -> void:
 		obstacles.append(AABB())
 		_spot("hangar:" + bay, "HANGAR %s" % bay, Vector3(cx + 9.0, 0, -17.0), 3.4)
 		_spot("craft:" + bay, "YOUR AIRCRAFT", Vector3(cx - 10.0, 0, 4.0), 2.8)
+
+## the owner's airport board: the maintenance hangar (every aircraft kept here repaired to 100 for Nex by the point of
+## condition it lost, airport.gd repair) past the private hangars, and the fuel bowser on the apron between them
+## (refuel: Nex by the point of tank). Both are places with a spot; the panels list what you keep at this airport.
+const MAINT_X := 206.0
+func _maintenance() -> void:
+	var shell := Materials.surface("metal_plate", look.get("hangar", Color(0.78, 0.8, 0.84) if not night else Color(0.26, 0.26, 0.34)), 3.0, 0.7, 0.75)
+	var cx := MAINT_X
+	# a wider, open-fronted shed: the sides, the back and a flat roof on a frame, no door — a jet sits nose-in on jacks
+	for side in [-1.0, 1.0]:
+		_box(Vector3(0.5, 12, 34), Vector3(cx + side * 20.0, 6, 1), shell, null, true)
+	_box(Vector3(40.5, 12, 0.5), Vector3(cx, 6, 18), shell, null, true)
+	_box(Vector3(41, 0.6, 35), Vector3(cx, 12.3, 1), _mat(Color(0.25, 0.26, 0.28), 0.5, 0.6))
+	_box(Vector3(40.5, 2.2, 0.6), Vector3(cx, 11.2, -16.2), _mat(Color(0.06, 0.07, 0.1), 0.3, 0.6))
+	_text("MAINTENANCE HANGAR", Vector3(cx, 11.2, -16.6), 120, accent2, PI)
+	_box(Vector3(40.5, 0.15, 0.3), Vector3(cx, 10.1, -16.55), _glow(accent, 3.0))
+	_box(Vector3(39, 0.03, 33), Vector3(cx, 0.06, 1), _mat(Color(0.3, 0.32, 0.36) if not night else Color(0.15, 0.14, 0.19), 0.3, 0.3))
+	_box(Vector3(38, 0.04, 0.3), Vector3(cx, 0.09, -8.0), _mat(Color(1.0, 0.35, 0.2), 0.5))
+	# the jet on its jacks, a cowling off beside it on a stand
+	var jet := _craft_model("vanguard-jet", 17.0)
+	if jet:
+		jet.position = Vector3(cx, 1.4, 4.0)
+		jet.rotation.y = PI
+		world.add_child(jet)
+	var steel := _mat(Color(0.75, 0.76, 0.78), 0.35, 0.8)
+	for j in [Vector3(cx - 3.0, 0, 0.0), Vector3(cx + 3.0, 0, 0.0), Vector3(cx, 0, 10.0)]:
+		_cyl(0.25, 1.4, j + Vector3(0, 0.7, 0), steel)
+		_box(Vector3(1.4, 0.12, 1.4), j + Vector3(0, 0.06, 0), _mat(Color(0.9, 0.75, 0.15), 0.5, 0.2))
+	_cyl(1.1, 2.2, Vector3(cx - 15.0, 1.1, 10.0), _mat(Color(0.35, 0.36, 0.4), 0.4, 0.7), null, 1.1, 12).rotation.x = PI * 0.5
+	obstacles.append(AABB(Vector3(cx - 16.5, 0, 8.5), Vector3(3.0, 2.3, 3.0)))
+	# tool chests, a scissor lift and gas bottles along the walls
+	for k in 4:
+		_box(Vector3(1.6, 1.1, 0.7), Vector3(cx - 18.0, 0.55, -12.0 + k * 3.0), _mat(Color(0.75, 0.12, 0.1), 0.4, 0.5), null, true)
+		_box(Vector3(1.6, 0.04, 0.7), Vector3(cx - 18.0, 1.12, -12.0 + k * 3.0), _mat(Color(0.2, 0.2, 0.22), 0.3, 0.6))
+	_box(Vector3(2.4, 0.5, 1.4), Vector3(cx + 16.0, 0.25, -10.0), _mat(Color(0.95, 0.6, 0.1), 0.5, 0.3), null, true)
+	_box(Vector3(2.2, 2.0, 1.2), Vector3(cx + 16.0, 1.5, -10.0), steel)
+	for k in 3:
+		_cyl(0.2, 1.5, Vector3(cx + 17.5, 0.75, 2.0 + k * 0.6), _mat([Color(0.2, 0.45, 0.2), Color(0.2, 0.3, 0.7), Color(0.6, 0.6, 0.62)][k], 0.3, 0.6), null, -1.0, 8)
+	obstacles.append(AABB(Vector3(cx + 17.0, 0, 1.5), Vector3(1.0, 1.6, 2.4)))
+	var lamp := OmniLight3D.new()
+	lamp.position = Vector3(cx, 9.5, 1)
+	lamp.omni_range = 24.0
+	lamp.light_energy = 1.3
+	lamp.light_color = Color(0.95, 0.97, 1.0)
+	world.add_child(lamp)
+	_spot("maint", "MAINTENANCE · REPAIRS", Vector3(cx - 8.0, 0, -12.0), 3.4)
+	# the bowser between the last private hangar and the shed: a fuel truck, the hydrant island and its sign
+	var bx := (float(HANGAR_X[2]) + 14.0 + cx - 20.0) * 0.5
+	var bz := -24.0
+	_box(Vector3(2.5, 2.4, 7.0), Vector3(bx, 1.5, bz), _mat(Color(0.9, 0.78, 0.2), 0.45, 0.3), null, true)
+	_cyl(1.25, 6.0, Vector3(bx, 2.0, bz + 0.5), _mat(Color(0.85, 0.86, 0.88), 0.3, 0.85), null, 1.25, 14).rotation.x = PI * 0.5
+	_box(Vector3(2.5, 2.2, 2.2), Vector3(bx, 1.4, bz - 4.4), _mat(Color(0.2, 0.22, 0.26), 0.4, 0.4), null, true)
+	for w in [[-1.0, -3.5], [1.0, -3.5], [-1.0, 2.0], [1.0, 2.0]]:
+		_cyl(0.5, 0.4, Vector3(bx + float(w[0]) * 1.3, 0.5, bz + float(w[1])), _mat(Color(0.06, 0.06, 0.07), 0.8), null, -1.0, 10).rotation.z = PI * 0.5
+	_box(Vector3(3.0, 1.2, 1.2), Vector3(bx + 4.0, 0.6, bz + 2.0), _mat(Color(0.3, 0.32, 0.36), 0.5, 0.6), null, true)   # the hydrant cabinet
+	_box(Vector3(0.3, 2.6, 0.3), Vector3(bx + 4.0, 1.3, bz + 3.2), steel)
+	_box(Vector3(2.6, 0.9, 0.12), Vector3(bx + 4.0, 3.0, bz + 3.2), _mat(Color(0.05, 0.06, 0.1), 0.3, 0.6))
+	_text("FUEL", Vector3(bx + 4.0, 3.0, bz + 3.1), 80, Color(1.0, 0.8, 0.25), PI)
+	_spot("fuel", "FUEL BOWSER · REFUEL", Vector3(bx + 4.0, 0, bz + 5.5), 3.0)
+
+func _maint_panel() -> void:
+	var box := _panel_open("MAINTENANCE HANGAR · %s" % Air.tag(code), accent2)
+	var have := Air.aircraft_at(profile, code)
+	if have.is_empty():
+		_line(box, "Repairs for the aircraft you keep at this airport. Lease a hangar and buy one, and bring it in after a hard flight.")
+		return
+	_line(box, "Condition is the hull you take off with and bring back; a repair is %d Nex a point." % Air.REPAIR_PER_PT, 13)
+	for craft in have:
+		var cond := Air.condition(profile, craft)
+		var price := Air.repair_price(profile, craft)
+		_row_button(box, "REPAIR · %s · %d%%%s" % [String(Air.AIRCRAFT[craft].name), cond, "" if price <= 0 else " · %d Nex" % price], Color(0.5, 1.0, 0.7) if price > 0 else Color(0.6, 0.65, 0.7), func():
+			_redo(_maint_panel, Air.repair(profile, code, craft)), price > 0)
+
+func _fuel_panel() -> void:
+	var box := _panel_open("FUEL BOWSER · %s" % Air.tag(code), accent2)
+	var have := Air.aircraft_at(profile, code)
+	if have.is_empty():
+		_line(box, "Jet-A for the aircraft you keep at this airport, %d Nex a point of tank." % Air.FUEL_PER_PT)
+		return
+	_line(box, "A full tank is %.0f minutes wide open; empty, there is no thrust. %d Nex a point." % [Air.TANK_MINUTES, Air.FUEL_PER_PT], 13)
+	for craft in have:
+		var f := Air.fuel(profile, craft)
+		var price := Air.refuel_price(profile, craft)
+		_row_button(box, "REFUEL · %s · %d%%%s" % [String(Air.AIRCRAFT[craft].name), f, "" if price <= 0 else " · %d Nex" % price], Color(1.0, 0.85, 0.4) if price > 0 else Color(0.6, 0.65, 0.7), func():
+			_redo(_fuel_panel, Air.refuel(profile, code, craft)), price > 0)
 
 func _craft_model(id: String, length: float) -> Node3D:
 	var root := Node3D.new()
