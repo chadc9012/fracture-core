@@ -307,11 +307,25 @@ const NECK_SHADER := """
 shader_type spatial;
 uniform vec3 top : source_color;
 uniform vec3 bot : source_color;
+uniform vec3 hair : source_color;
+uniform float half_h = 0.05;
+uniform float rad = 0.05;
 varying float h;
-void vertex() { h = UV.y; }
+varying vec3 lp;
+void vertex() { h = UV.y; lp = VERTEX; }
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void fragment() {
 	float rim = 1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-	ALBEDO = mix(top, bot, smoothstep(0.15, 1.0, h)) * (1.0 - 0.35 * rim * rim);
+	vec3 c = mix(top, bot, smoothstep(0.15, 1.0, h));
+	// the nape: at the back (local +z) the hairline comes down onto the neck in a soft, ragged fade of short hair,
+	// so the scan's hair doesn't stop in a hard line over a bare tube (owner's target render, Nov 18)
+	float back = smoothstep(-0.2, 0.75, lp.z / rad);
+	float fromtop = (half_h - lp.y) / (2.0 * half_h);
+	float line = 0.5 + 0.1 * sin(atan(lp.x, lp.z) * 5.0) + 0.08 * hash(floor(UV * vec2(180.0, 70.0)));
+	float hairy = back * (1.0 - smoothstep(line - 0.35, line, fromtop));
+	float stub = 0.65 + 0.35 * hash(floor(UV * vec2(260.0, 120.0)));
+	c = mix(c, hair * stub, clamp(hairy, 0.0, 1.0) * 0.92);
+	ALBEDO = c * (1.0 - 0.35 * rim * rim);
 	ROUGHNESS = 0.6;
 	SPECULAR = 0.35;
 }
@@ -357,6 +371,12 @@ func _neck_tube(head_bone: int) -> void:
 	sm.set_shader_parameter("top", Vector3(top.r, top.g, top.b))
 	var bot := tone.darkened(0.42)
 	sm.set_shader_parameter("bot", Vector3(bot.r, bot.g, bot.b))
+	var hc: Variant = Catalog.swatch("hairColors", look.hairColor)
+	var hcol: Color = hc if hc != null else Color("#120f0e")
+	var bald := String(look.get("hair", "")) in ["", "none", "bald", "shaved"]
+	sm.set_shader_parameter("hair", Vector3(hcol.r, hcol.g, hcol.b) if not bald else Vector3(top.r, top.g, top.b))
+	sm.set_shader_parameter("half_h", up.length() * 0.5)
+	sm.set_shader_parameter("rad", r)
 	mi.material_override = sm
 	var att := BoneAttachment3D.new()
 	att.bone_idx = ni
@@ -452,7 +472,7 @@ static func _drop_flecks(idx: PackedInt32Array, hp: PackedFloat32Array) -> Packe
 		var face_part := m.z > 0.04 and absf(m.x) < 0.055 and m.y > 0.0
 		if count[r] < 120 and m.y < 0.11 and not face_part:
 			continue
-		# below the ears and out past the neck, behind the jaw line: the scraps of the cut collar and headset are stuck to
+		# behind the ears (not the ears), and low beside the jaw: the scraps of the cut collar and headset are stuck to
 		# the head's surface (it is all one piece), seen as dark specks beside the jaw and ears; the throat there is the
 		# neck tube
 		var pa := Vector3(hp[idx[t] * 4], hp[idx[t] * 4 + 1], hp[idx[t] * 4 + 2])
@@ -460,7 +480,7 @@ static func _drop_flecks(idx: PackedInt32Array, hp: PackedFloat32Array) -> Packe
 		var pc := Vector3(hp[idx[t + 2] * 4], hp[idx[t + 2] * 4 + 1], hp[idx[t + 2] * 4 + 2])
 		var cen := (pa + pb + pc) / 3.0
 		var crr := Vector2(cen.x, cen.z + 0.01).length()
-		if cen.y < 0.1 and crr > 0.06 and not (cen.z > 0.03 and absf(cen.x) < 0.07):
+		if (cen.y < 0.1 and crr > 0.06 and cen.z < -0.01 and absf(cen.x) < 0.085) or (cen.y < 0.045 and crr > 0.06 and not (cen.z > 0.03 and absf(cen.x) < 0.07)):
 			continue
 		out.append(idx[t])
 		out.append(idx[t + 1])
