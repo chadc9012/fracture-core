@@ -1080,6 +1080,15 @@ func _environment() -> void:
 		sky.sun_angle_max = 25.0
 	var s := Sky.new()
 	s.sky_material = sky
+	# by day, the boards' sky (Nov 18, "does this look like my reference images"): a deep blue with a deck of white cumulus
+	# lit gold from a late-afternoon sun (region_sky.gd, the regions' painted sky), not the pale procedural gradient
+	var sun_rot := Vector3(-32, -28, 0) if not night else Vector3(-40, -130, 0)     # the sun over the forecourt's left shoulder, lighting the front as the boards do
+	if not night:
+		var sb := Basis.from_euler(sun_rot * PI / 180.0)
+		var to_sun := sb.z
+		var day := { "top": (look.top as Color).darkened(0.08).to_html(), "hor": (look.hor as Color).lerp(Color(1.0, 0.9, 0.78), 0.35).to_html(),
+			"fog": (look.fog as Color).to_html(), "sun_col": "#fff1d6", "sky_set": { "cover": float(look.get("clouds", 0.5)), "cloud_lit": Color(1.0, 0.97, 0.92), "cloud_dark": Color(0.62, 0.68, 0.78), "cloud_scale": 1.1 } }
+		s.sky_material = load("res://scripts/region_sky.gd").make("day", day, to_sun)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	env.sky = s
@@ -1088,7 +1097,10 @@ func _environment() -> void:
 	env.ambient_light_energy = 0.75 if night else 0.85
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.tonemap_exposure = 1.0 if night else 1.05
+	env.tonemap_exposure = 1.0 if night else 0.92
+	env.adjustment_enabled = not night
+	env.adjustment_saturation = 1.18
+	env.adjustment_contrast = 1.06
 	env.glow_enabled = true
 	env.glow_intensity = 0.9 if night else 0.4
 	env.glow_bloom = 0.1 if night else 0.02
@@ -1096,13 +1108,14 @@ func _environment() -> void:
 	env.fog_enabled = true
 	env.fog_light_color = look.fog
 	env.fog_density = look.fogd
+	env.fog_sky_affect = 0.12     # the haze sits on the land; at the default 1.0 the whole sky was the fog's colour (the boards' blue was a flat pale grey)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-50, 145, 0) if not night else Vector3(-40, -130, 0)
-	sun.light_energy = float(look.get("sun", 2.2)) if not night else 0.35
-	sun.light_color = Color(1.0, 0.92, 0.8) if not night else Color(0.65, 0.6, 1.0)
+	sun.rotation_degrees = sun_rot
+	sun.light_energy = float(look.get("sun", 2.2)) * 0.9 if not night else 0.35
+	sun.light_color = Color(1.0, 0.86, 0.68) if not night else Color(0.65, 0.6, 1.0)     # late afternoon gold
 	sun.shadow_enabled = not night
 	sun.directional_shadow_max_distance = 120.0
 	Phone.fit_sun(sun)
@@ -1351,18 +1364,40 @@ func _roof(frame: Material) -> void:
 	var ceil := MeshInstance3D.new()
 	ceil.mesh = cs.commit()
 	var ceil_col: Color = look.get("ceil", Color(0.94, 0.95, 0.97) if not night else Color(0.3, 0.2, 0.42))
-	var cm2: StandardMaterial3D = _mat(ceil_col, 0.7, 0.1).duplicate()
+	# warm slats overhead as the boards' halls have (the plain white lid glared): the timber's grain tinted by the look
+	var cm2: BaseMaterial3D = (Materials.pbr("brown_planks_03", ceil_col.lerp(Color(0.95, 0.85, 0.7), 0.4), 2.5, 0.8) as BaseMaterial3D).duplicate() if not night else _mat(ceil_col, 0.7, 0.1).duplicate()
 	cm2.emission_enabled = true
-	cm2.emission = ceil_col.lightened(0.05) if not night else Color(0.4, 0.22, 0.6)
-	cm2.emission_energy_multiplier = 0.55 if not night else 0.4
+	cm2.emission = ceil_col.lerp(Color(1.0, 0.85, 0.65), 0.5) if not night else Color(0.4, 0.22, 0.6)
+	cm2.emission_energy_multiplier = 0.28 if not night else 0.4
 	cm2.cull_mode = BaseMaterial3D.CULL_DISABLED
 	ceil.material_override = cm2
 	ceil.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(ceil)
 	# light strips along the ceiling and the neon edge of the canopy
-	for k in 6:
-		var z := 20.0 - k * 9.0
-		_box(Vector3(80, 0.12, 0.7), Vector3(0, _roof_y(z) - 0.5, z), _glow(Color(1.0, 0.97, 0.9) if not night else accent.lerp(Color.WHITE, 0.4), 1.6))
+	for k in 11:
+		var z := 22.0 - k * 5.0
+		_box(Vector3(86, 0.08, 0.25), Vector3(0, _roof_y(z) - 0.5, z), _glow(Color(1.0, 0.88, 0.7) if not night else accent.lerp(Color.WHITE, 0.4), 2.4))
+	# downlights: a grid of small warm discs in the ceiling (one MultiMesh)
+	var dl := MultiMesh.new()
+	dl.transform_format = MultiMesh.TRANSFORM_3D
+	var dm := CylinderMesh.new()
+	dm.top_radius = 0.22
+	dm.bottom_radius = 0.22
+	dm.height = 0.05
+	dm.radial_segments = 10
+	dl.mesh = dm
+	var spots: Array = []
+	for x in range(-42, 43, 6):
+		for z in range(-27, 24, 5):
+			spots.append(Vector3(x + 3.0 * ((z / 5) % 2), _roof_y(float(z) + 2.5) - 0.48, float(z) + 2.5))
+	dl.instance_count = spots.size()
+	for i in spots.size():
+		dl.set_instance_transform(i, Transform3D(Basis(), spots[i]))
+	var dmi := MultiMeshInstance3D.new()
+	dmi.multimesh = dl
+	dmi.material_override = _glow(Color(1.0, 0.9, 0.75), 3.0)
+	dmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(dmi)
 	_box(Vector3(104, 0.3, 0.3), Vector3(0, WALL_H + 0.45, 31.0), _glow(accent, 4.0))
 	_box(Vector3(104, 0.3, 0.3), Vector3(0, WALL_H + 0.45, -34.0), _glow(accent2, 3.0))
 
@@ -1908,11 +1943,13 @@ func _skyline() -> void:
 func _people() -> void:
 	var n := Phone.crowd()
 	# landside hall, the forecourt and the gate lounge
-	var specs := [[-2.0, 24.0, 10.0, 8.0, 41], [-28.0, -6.0, 14.0, 10.0, 43], [28.0, 42.0, 20.0, 14.0, 47]]
+	# the boards' halls are busy: the check-in floor and the gate lounges filled too (Nov 18)
+	var specs := [[-2.0, 24.0, 10.0, 8.0, 41, 1.0], [-28.0, -6.0, 14.0, 10.0, 43, 1.0], [28.0, 42.0, 20.0, 14.0, 47, 1.0],
+		[6.0, 22.0, -19.0, 7.0, 53, 0.8], [-24.0, -16.0, 0.0, 70.0, 59, 0.9]]     # [z from, z to, x centre, x width, seed, share]
 	for s in specs:
 		var c: MultiMeshInstance3D = Crowd.new()
 		world.add_child(c)
-		c.setup(int(36 * n), float(s[0]), float(s[1]), float(s[2]), float(s[3]), int(s[4]))
+		c.setup(int(48 * n * float(s[5])), float(s[0]), float(s[1]), float(s[2]), float(s[3]), int(s[4]))
 		_crowds.append(c)
 
 # --------------------------------------------------------------------------------------------- what stands round a region's airport

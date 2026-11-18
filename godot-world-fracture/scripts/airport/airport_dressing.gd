@@ -50,6 +50,7 @@ func dress(view: Control) -> void:
 	if style in ["nexus", "neon", "desert", "coastal", "arctic", "forest"]:
 		_parking()
 	_signs()
+	_mezzanine()
 	_checkin()
 	_security()
 	if style in ["nexus", "neon"]:
@@ -436,6 +437,31 @@ func _signs() -> void:
 		v._text(String(rows[i]), sg + Vector3(0.25, 6.1 - i * 0.6, 0.15), 36, yel)
 		v._text(String(rows[i]), sg + Vector3(0.25, 6.1 - i * 0.6, -0.15), 36, yel, PI)
 
+## the upper level the boards' halls have: a gallery along each side wall at 6.5 m on a lit slab, a glass balustrade, and
+## its row of shopfronts glowing warm behind (seen from the hall; nobody walks up there)
+func _mezzanine() -> void:
+	var slab: Material = v._mat(Color(0.9, 0.9, 0.92) if not v.night else Color(0.32, 0.28, 0.38), 0.4, 0.2)
+	var glass: Material = v._glass(Color(0.75, 0.88, 1.0))
+	var frame: Material = v._mat(Color(0.12, 0.12, 0.14), 0.35, 0.6)
+	var warm := [Color(1.0, 0.8, 0.55), Color(0.95, 0.9, 0.8), Color(1.0, 0.7, 0.45), Color(0.85, 0.9, 1.0)]
+	var names := ["DUTY FREE", "CAFÉ", "BOOKS", "TECH", "FASHION", "LOUNGE BAR"]
+	for side in [-1.0, 1.0]:
+		var x_wall: float = side * 47.8
+		var x_edge: float = side * 41.8
+		var x_mid: float = (x_wall + x_edge) * 0.5
+		v._box(Vector3(6.0, 0.5, 44.0), Vector3(x_mid, 6.5, -2.0), slab)
+		v._box(Vector3(0.12, 0.1, 44.0), Vector3(x_edge, 6.2, -2.0), v._glow(Color(1.0, 0.88, 0.7), 2.4))
+		v._box(Vector3(0.06, 1.1, 44.0), Vector3(x_edge, 7.3, -2.0), glass)
+		v._box(Vector3(0.12, 0.08, 44.0), Vector3(x_edge, 7.88, -2.0), frame)
+		for k in 6:
+			var z := 16.0 - k * 7.0
+			var c: Color = warm[(k + (1 if side > 0 else 0)) % warm.size()]
+			v._box(Vector3(0.1, 3.0, 6.2), Vector3(x_wall + side * -0.02, 8.3, z), frame)
+			v._box(Vector3(0.06, 2.6, 5.6), Vector3(x_wall - side * 0.06, 8.2, z), v._glow(c, 0.9))
+			v._text(String(names[(k + (3 if side > 0 else 0)) % names.size()]), Vector3(x_wall - side * 0.12, 9.55, z), 46, Color(0.08, 0.08, 0.1), -side * PI * 0.5)
+		for k in 4:
+			v._box(Vector3(0.5, 6.25, 0.5), Vector3(x_edge + side * 0.4, 3.12, 17.0 - k * 13.0), frame, null, true)
+
 ## check-in: a screen over every desk position, the header with the mark, a row of self check-in kiosks, belted lanes
 func _checkin() -> void:
 	var dark: Material = v._mat(Color(0.06, 0.07, 0.1), 0.3, 0.5)
@@ -448,9 +474,16 @@ func _checkin() -> void:
 			v._box(Vector3(0.04, 0.45, 0.8), Vector3(-32.84, 1.75, pz), screen)
 			v._box(Vector3(0.12, 0.7, 1.1), Vector3(-35.25, 4.3, pz), dark)
 			v._box(Vector3(0.04, 0.6, 1.0), Vector3(-35.15, 4.3, pz), screen)
-		# belts between the queue posts
-		for k in 3:
-			v._box(Vector3(0.04, 0.08, 2.5), Vector3(-28.5, 0.92, z - 2.7 + k * 2.6), v._mat(v.accent.darkened(0.3), 0.5))
+		# the queue: chrome posts in two lines with blue belts between them (seen, not walls)
+		var post: Material = v._mat(Color(0.8, 0.82, 0.85), 0.2, 0.9)
+		var belt: Material = v._mat(Color(0.1, 0.3, 0.85), 0.5)
+		for line in [-27.4, -25.9]:
+			for k in 6:
+				var pz := z - 5.5 + k * 2.2
+				v._cyl(0.05, 0.95, Vector3(line, 0.48, pz), post, null, -1, 6)
+				v._cyl(0.16, 0.04, Vector3(line, 0.02, pz), post, null, -1, 10)
+				if k < 5:
+					v._box(Vector3(0.03, 0.06, 2.2), Vector3(line, 0.9, pz + 1.1), belt)
 	v._box(Vector3(0.3, 1.6, 12.0), Vector3(-35.3, 7.0, 9.5), dark)
 	v._text("✈  CHECK-IN", Vector3(-35.1, 7.0, 9.5), 120, Color(0.95, 0.97, 1.0), PI * 0.5)
 	# the kiosks: slim white pillars with a lit screen, facing the hall
@@ -551,8 +584,13 @@ func _gate_seats() -> void:
 			break
 		for k in 2:
 			v._bench(Vector3(x - 2.0 + k * 4.0, 0, -22.6), PI)
-		var pl: MeshInstance3D = v._cyl(0.7, 0.9, Vector3(x + 4.6, 0.45, -22.6), v._mat(Color(0.85, 0.86, 0.9), 0.3, 0.4), null, 0.6, 12)
-		v._cyl(0.55, 0.9, Vector3(x + 4.6, 1.3, -22.6), v._mat(Color(0.2, 0.42, 0.2), 0.9), null, 0.15, 8)
+		# a white pot with a young tree (the city planter model's leaves broke into speckles at this size)
+		v._cyl(0.6, 0.9, Vector3(x + 4.6, 0.45, -22.6), v._mat(Color(0.92, 0.93, 0.95), 0.3, 0.2), null, 0.5, 16)
+		var tr: Node3D = v._model("res://models/foliage/broadleaf.glb")
+		if tr:
+			tr.position = Vector3(x + 4.6, 0.85, -22.6)
+			tr.scale = Vector3.ONE * 0.2
+			v.static_root.add_child(tr)
 		v.obstacles.append(AABB(Vector3(x + 3.9, 0, -23.3), Vector3(1.4, 1.0, 1.4)))
 
 ## the VIP lounge: a marble reception desk, the logo wall behind it, lamps, sofas
