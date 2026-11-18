@@ -77,9 +77,13 @@ void fragment() {
 		emit = vec3(1.0, 0.3, 0.06) * step(0.9975, sp) * embers * (0.6 + 0.4 * sin(TIME * 2.0 + sp * 40.0))
 			+ vec3(0.9, 0.2, 0.04) * crack * smoothstep(0.62, 0.8, vnoise(w * 0.013)) * embers * 0.5;
 	} else if (cover == i_crystal) {
+		// crystal fields are dark glassy rock with the glow in thin veins and scattered shards (the owner's "MOONLIGHT -
+		// FRACTURE ZONE" photo; the old flat purple with bright speckle read as a painted floor)
+		float vein = 1.0 - smoothstep(0.0, 0.035, abs(vnoise(w * 0.07 + vnoise(w * 0.02) * 2.5) - 0.5));
 		float sp = vnoise(w * 1.3);
-		emit = vec3(0.55, 0.35, 1.0) * smoothstep(0.7, 0.95, sp) * 1.2;
-		rough = 0.35;
+		c = vec3(0.07, 0.07, 0.13) * (0.8 + 0.5 * vnoise(w * 0.4));
+		emit = mix(vec3(0.25, 0.75, 1.0), vec3(0.6, 0.3, 1.0), vnoise(w * 0.01)) * (vein * 1.6 + smoothstep(0.86, 0.97, sp) * 0.9);
+		rough = 0.25;
 	} else if (cover == i_rift) {
 		float k = 1.0 - abs(vnoise(w * 0.25 + TIME * 0.05) * 2.0 - 1.0);
 		emit = vec3(0.6, 0.2, 1.0) * k * 1.6;

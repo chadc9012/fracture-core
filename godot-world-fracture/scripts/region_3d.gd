@@ -646,7 +646,8 @@ func _style_for(id: String) -> Dictionary:
 			# the owner's "MOONLIGHT - FRACTURE ZONE" photo: a full moon over dark rock spires, deep blue night, the crystals
 			# and rift seams glowing cyan and violet (it was a flat pink-orange dusk)
 			s.merge({"top": "#040a24", "hor": "#24407e", "fog": "#16224a", "fog_d": 0.0015, "sun": 0.8, "sun_col": "#aec4ff", "sun_el": 28.0, "sun_az": 140.0,
-				"amb": 0.4, "amb_col": "#36508c", "night": 0.75, "sat": 1.1, "exp": 1.15, "planet": false, "sky": "moon", "glow": "#5a3cff", "glow_amt": 0.3}, true)
+				"amb": 0.4, "amb_col": "#36508c", "night": 0.75, "sat": 1.1, "exp": 1.15, "planet": false, "sky": "moon", "glow": "#5a3cff", "glow_amt": 0.3,
+				"tint": Vector3(0.5, 0.52, 0.68)}, true)
 		"old-harrow":
 			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on (Nov 18: the
 			# region_sky sunset deck, streaked cloud lit from below)
