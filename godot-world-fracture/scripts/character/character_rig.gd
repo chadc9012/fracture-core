@@ -413,6 +413,60 @@ static func _fit_skin(skin: Skin, sk: Skeleton3D) -> Skin:
 		out.set_bind_pose(i, skin.get_bind_pose(head_i))
 	return out
 
+## the head scans' leftover scraps (the cut collar and headset): small loose pieces low on the head, out past the jaw
+## and ears and behind them, which no colour rule caught — specks beside the ears and shreds at the back of the neck
+## (owner, Nov 18). Pieces are found by shared positions in head space; the eyes, teeth and lashes (small pieces too)
+## sit high and at the front, and are kept
+static func _drop_flecks(idx: PackedInt32Array, hp: PackedFloat32Array) -> PackedInt32Array:
+	var n := hp.size() / 4
+	var key := {}
+	var parent := PackedInt32Array()
+	parent.resize(n)
+	for i in n:
+		var k := Vector3i(roundi(hp[i * 4] * 4000.0), roundi(hp[i * 4 + 1] * 4000.0), roundi(hp[i * 4 + 2] * 4000.0))
+		parent[i] = key.get(k, i)
+		if not key.has(k):
+			key[k] = i
+	var find := func(a: int) -> int:
+		while parent[a] != a:
+			parent[a] = parent[parent[a]]
+			a = parent[a]
+		return a
+	for t in range(0, idx.size(), 3):
+		var a: int = find.call(idx[t])
+		for j in [1, 2]:
+			var b: int = find.call(idx[t + j])
+			if a != b:
+				parent[b] = a
+	var count := {}
+	var sum := {}
+	for t in range(0, idx.size(), 3):
+		var r: int = find.call(idx[t])
+		count[r] = count.get(r, 0) + 1
+		var c := Vector3(hp[idx[t] * 4], hp[idx[t] * 4 + 1], hp[idx[t] * 4 + 2])
+		sum[r] = sum.get(r, Vector3.ZERO) + c
+	var out := PackedInt32Array()
+	for t in range(0, idx.size(), 3):
+		var r: int = find.call(idx[t])
+		var m: Vector3 = sum[r] / float(count[r])
+		var face_part := m.z > 0.04 and absf(m.x) < 0.055 and m.y > 0.0
+		if count[r] < 120 and m.y < 0.11 and not face_part:
+			continue
+		# below the ears and out past the neck, behind the jaw line: the scraps of the cut collar and headset are stuck to
+		# the head's surface (it is all one piece), seen as dark specks beside the jaw and ears; the throat there is the
+		# neck tube
+		var pa := Vector3(hp[idx[t] * 4], hp[idx[t] * 4 + 1], hp[idx[t] * 4 + 2])
+		var pb := Vector3(hp[idx[t + 1] * 4], hp[idx[t + 1] * 4 + 1], hp[idx[t + 1] * 4 + 2])
+		var pc := Vector3(hp[idx[t + 2] * 4], hp[idx[t + 2] * 4 + 1], hp[idx[t + 2] * 4 + 2])
+		var cen := (pa + pb + pc) / 3.0
+		var crr := Vector2(cen.x, cen.z + 0.01).length()
+		if cen.y < 0.1 and crr > 0.06 and not (cen.z > 0.03 and absf(cen.x) < 0.07):
+			continue
+		out.append(idx[t])
+		out.append(idx[t + 1])
+		out.append(idx[t + 2])
+	return out
+
 func _attach_head(body_head: int) -> void:
 	var hs: PackedScene = load(Catalog.head_path(look.head))
 	if not hs:
@@ -472,6 +526,8 @@ func _attach_head(body_head: int) -> void:
 			custom[k * 4 + 2] = p.z
 			head_pts.append(p)
 		arr[Mesh.ARRAY_VERTEX] = vs
+		if bool(look.get("civ", false)) and not robot and arr[Mesh.ARRAY_INDEX] != null:
+			arr[Mesh.ARRAY_INDEX] = _drop_flecks(arr[Mesh.ARRAY_INDEX], custom)
 		if sculpt:
 			arr[Mesh.ARRAY_NORMAL] = _normals(vs, arr[Mesh.ARRAY_INDEX], arr[Mesh.ARRAY_NORMAL])
 		arr[Mesh.ARRAY_CUSTOM0] = custom

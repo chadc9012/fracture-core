@@ -54,6 +54,11 @@ func _run() -> void:
 					r.anim.seek(float(cs[1]) if cs.size() > 1 else 0.3, true)
 					r.anim.pause()
 			r.rotation_degrees.y = yaw
+			var hide := OS.get_environment("WF_HIDE")   # look-dev: hide meshes whose name contains this
+			if hide != "":
+				for mi in r.find_children("*", "MeshInstance3D", true, false):
+					if hide in String(mi.name) or (hide == "HEAD" and mi == r.head_mesh):
+						mi.visible = false
 			x += 1.2
 		x += 0.3
 	var cam := Camera3D.new()
