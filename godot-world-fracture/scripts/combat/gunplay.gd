@@ -67,6 +67,7 @@ var roster: Node = null
 var grenades_on := true
 ## the super (scripts/combat/super_ability.gd): V / SUPER when the meter is full
 var super_ability: Node3D
+var _wheel_sig := ""
 ## the on-foot input (touch_controls.gd); unset, the scene's one is found by its group
 var controls: Node = null
 var obstacles: Array[AABB] = []
@@ -520,6 +521,19 @@ func _step_grenades(dt: float, cam: Camera3D) -> void:
 	grenades.step(dt, cam, throw, cyc)
 	if c:
 		c.show_grenade(grenades.hud() if grenades_on and not holstered else {})
+	# the weapon wheel (touch_controls: hold Q / hold SWAP): the HUD gets the guns, a pick comes back
+	if c and c.has_method("set_wheel"):
+		var sig := "%d:%d:%s" % [guns.size(), current, str(holstered)]
+		if sig != _wheel_sig:
+			_wheel_sig = sig
+			var list: Array = []
+			for g in guns:
+				list.append({ "frame": g.frame, "label": g.label if g.label != "" else String(g.frame), "element": g.element })
+			c.set_wheel(list if not holstered else [], current)
+		var pk: int = c.take_wheel_pick()
+		if pk >= 0 and pk < guns.size() and pk != current:
+			current = pk
+			_show_current()
 	if super_ability:
 		var cast_now: bool = c != null and c.has_method("take_super") and c.take_super() and grenades_on and not holstered
 		super_ability.step(dt, cam, cast_now)

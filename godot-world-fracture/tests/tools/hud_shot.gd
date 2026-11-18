@@ -55,6 +55,10 @@ func _process(_dt: float) -> bool:
 		c.toast("Daily goal complete  ·  +250 XP  ·  +120 Nex")
 		c.prompt("Enter Neon Drift")
 		c.hit_marker("head")
+		if OS.get_cmdline_user_args().has("wheel"):
+			c.set_wheel([{ "frame": "AUTO", "label": "Sentinel Auto", "element": "" }, { "frame": "SMG", "label": "Neon SMG", "element": "ARC" }, { "frame": "SNIPER", "label": "Silent Horizon", "element": "PLASMA" }, { "frame": "SHOTGUN", "label": "Breach Hammer", "element": "" }, { "frame": "FUSION", "label": "Void Sceptre", "element": "VOID" }], 0)
+			c._open_wheel()
+			c._wheel_aim = Vector2(120, -60)
 		if OS.get_cmdline_user_args().has("super"):
 			c.show_super({ "name": "NOVA BOMB", "class": "WARLOCK", "charge": 1.0, "active": false, "shots": 0, "color": Color(0.72, 0.45, 1.0) })
 		else:

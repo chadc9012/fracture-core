@@ -206,7 +206,18 @@ func _ready() -> void:
 		nx.custom_minimum_size = Vector2(104, 56)
 		nx.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		nx.position = Vector2(-120, -365)
-		bind(nx, func(): _next = true)
+		# a tap swaps; held, the weapon wheel opens and the finger's drag points at a gun (Cyberpunk / Apex circle menu)
+		bind(nx, func():
+			_swap_held = true
+			_wheel_hold = 0.0
+			_wheel_aim = Vector2.ZERO,
+			func():
+				_swap_held = false
+				if _wheel_open():
+					_close_wheel(true)
+				else:
+					_next = true,
+			func(rel: Vector2): _wheel_aim += rel)
 		add_child(nx)
 		_swap_button = nx
 		var gb := _button("GRENADE")
@@ -800,6 +811,15 @@ func take_look() -> Vector2:
 	return d
 
 func _process(_dt: float) -> void:
+	# holding SWAP on the phone opens the weapon wheel; the drag aims it
+	if _swap_held:
+		_wheel_hold += _dt
+		if _wheel_hold >= WHEEL_HOLD and not _wheel_open():
+			_open_wheel()
+	if _wheel_open():
+		_wheel_aim = _wheel_aim.limit_length(220.0)
+		_wheel.queue_redraw()
+		look_delta = Vector2.ZERO
 	if _hit_t > 0.0:
 		_hit_t -= _dt
 		if _hitmark:
@@ -828,9 +848,21 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_R) and not _r_was:
 		_reload = true
 	_r_was = Input.is_key_pressed(KEY_R)
-	if Input.is_key_pressed(KEY_Q) and not _q_was:
-		_next = true
-	_q_was = Input.is_key_pressed(KEY_Q)
+	# Q: a tap swaps to the next gun; held, it opens the weapon wheel and letting go equips what the mouse points at
+	var q := Input.is_key_pressed(KEY_Q)
+	if q and not _q_was:
+		_wheel_hold = 0.0
+		_wheel_aim = Vector2.ZERO
+	if q:
+		_wheel_hold += get_process_delta_time()
+		if _wheel_hold >= WHEEL_HOLD and not _wheel_open():
+			_open_wheel()
+	if not q and _q_was:
+		if _wheel_open():
+			_close_wheel(true)
+		else:
+			_next = true
+	_q_was = q
 	if Input.is_key_pressed(KEY_J) and not _j_was:
 		_grenade = true
 	_j_was = Input.is_key_pressed(KEY_J)
@@ -879,7 +911,12 @@ func _input(event: InputEvent) -> void:
 		_capture(false)
 		return
 	if event is InputEventMouseMotion:
-		look_delta += (event as InputEventMouseMotion).relative
+		if _wheel_open():
+			_wheel_aim += (event as InputEventMouseMotion).relative
+			_wheel_aim = _wheel_aim.limit_length(220.0)
+			_wheel.queue_redraw()
+		else:
+			look_delta += (event as InputEventMouseMotion).relative
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
@@ -1119,3 +1156,105 @@ func mission_card(kicker: String, title: String, line := "") -> void:
 		if _mission_card == b:
 			_mission_card = null
 		b.queue_free())
+
+# ---------------------------------------------------------------------------------------------- weapon wheel
+## Cyberpunk 2077's / Apex Legends' circle menu (owner Nov 18, interfaceingame.com): the carried guns round a ring, each
+## with its picture; the mouse (or the finger held on SWAP) points at one, letting go equips it. gunplay feeds the list
+## (set_wheel) and takes the pick (take_wheel_pick).
+const WHEEL_HOLD := 0.28
+const WHEEL_R := 190.0
+var _wheel_guns: Array = []
+var _wheel_current := 0
+var _wheel_pick := -1
+var _wheel_hold := 0.0
+var _wheel_aim := Vector2.ZERO
+var _swap_held := false
+var _wheel: Control
+
+func set_wheel(list: Array, current: int) -> void:
+	_wheel_guns = list
+	_wheel_current = current
+
+func take_wheel_pick() -> int:
+	var p := _wheel_pick
+	_wheel_pick = -1
+	return p
+
+func _wheel_open() -> bool:
+	return _wheel != null and _wheel.visible
+
+## the slice the aim points at (-1 near the middle)
+func _wheel_slot() -> int:
+	var n := _wheel_guns.size()
+	if n == 0 or _wheel_aim.length() < 24.0:
+		return -1
+	var a := fposmod(_wheel_aim.angle() + PI * 0.5 + PI / n, TAU)
+	return int(a / (TAU / n)) % n
+
+func _open_wheel() -> void:
+	if _wheel_guns.size() < 2 or mode != "foot":
+		return
+	if not _wheel:
+		_wheel = Control.new()
+		_wheel.set_anchors_preset(Control.PRESET_CENTER)
+		_wheel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_wheel.draw.connect(_draw_wheel)
+		_wheel.z_index = 10
+		add_child(_wheel)
+	_wheel.visible = true
+	if crosshair:
+		crosshair.visible = false
+	_wheel.queue_redraw()
+
+func _close_wheel(pick: bool) -> void:
+	if not _wheel:
+		return
+	var s := _wheel_slot()
+	if pick and s >= 0:
+		_wheel_pick = s
+	_wheel.visible = false
+	if crosshair:
+		crosshair.visible = mode == "foot" and weapons_out
+
+func _draw_wheel() -> void:
+	var n := _wheel_guns.size()
+	if n == 0:
+		return
+	var sel := _wheel_slot()
+	_wheel.draw_circle(Vector2.ZERO, WHEEL_R + 70.0, Color(0.01, 0.015, 0.03, 0.82))
+	_wheel.draw_arc(Vector2.ZERO, WHEEL_R + 70.0, 0.0, TAU, 96, Color(1, 1, 1, 0.18), 1.5, true)
+	_wheel.draw_arc(Vector2.ZERO, 56.0, 0.0, TAU, 64, Color(1, 1, 1, 0.25), 1.5, true)
+	var step := TAU / n
+	for i in n:
+		var mid := -PI * 0.5 + i * step
+		var on := i == sel
+		# the slice: an arc band, lit when pointed at
+		var band := Color(1, 1, 1, 0.16) if on else Color(1, 1, 1, 0.05)
+		_wheel.draw_arc(Vector2.ZERO, WHEEL_R, mid - step * 0.45, mid + step * 0.45, 32, band, 120.0, true)
+		_wheel.draw_arc(Vector2.ZERO, WHEEL_R + 60.0, mid - step * 0.45, mid + step * 0.45, 32, UiTheme.GOLD if on else (UiTheme.INK if i == _wheel_current else Color(1, 1, 1, 0.3)), 3.0 if on else 1.5, true)
+		var g: Dictionary = _wheel_guns[i]
+		var c := Vector2(cos(mid), sin(mid)) * WHEEL_R
+		var tex: Texture2D = null
+		var f := String(g.frame)
+		if not _icons.has(f):
+			var path := "res://ui/icons/weapon-%s.png" % f
+			_icons[f] = null
+			if ResourceLoader.exists(path):
+				var full: Texture2D = load(path)
+				var at := AtlasTexture.new()
+				at.atlas = full
+				var w := float(full.get_width())
+				at.region = Rect2(0, w * 0.25, w, w * 0.5)
+				_icons[f] = at
+		tex = _icons[f]
+		if tex:
+			_wheel.draw_texture_rect(tex, Rect2(c - Vector2(66, 33) + Vector2(0, -8), Vector2(132, 66)), false, Color(1, 1, 1, 1.0 if on else 0.75))
+		var font := UiTheme.font(700, 1)
+		var label := String(g.label).to_upper()
+		var w2 := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+		_wheel.draw_string(font, c + Vector2(-w2 * 0.5, 40), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiTheme.GOLD if on else UiTheme.INK)
+	# the middle: what letting go will equip
+	var mid_text := "LET GO TO EQUIP" if sel >= 0 else "POINT AT A WEAPON"
+	var mf := UiTheme.font(600, 2)
+	var mw := mf.get_string_size(mid_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+	_wheel.draw_string(mf, Vector2(-mw * 0.5, 4), mid_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, UiTheme.INK_DIM)
