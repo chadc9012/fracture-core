@@ -41,3 +41,7 @@ mesh_lod/lod_change/threshold_pixels=2.0
 scaling_3d/scale=1.0
 textures/default_filters/anisotropic_filtering_level.mobile=2
 environment/defaults/default_clear_color=Color(0.012, 0.027, 0.059, 1)
+
+[gui]
+
+theme/custom="res://ui/theme.tres"
