@@ -21,6 +21,7 @@ const Sound := preload("res://scripts/audio/sound.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const Progression := preload("res://scripts/progress/progression.gd")
 const Nexus := preload("res://scripts/city/nexus_districts.gd")
+const RankCard := preload("res://scripts/ui/rank_card.gd")
 const FLEET := "res://models/fleet/"
 const RIVAL_FILES := ["concept-gt.glb", "street-racer-lod.glb", "muscle-car-lod.glb"]
 const POLICE_FILE := "security-suv.glb"
@@ -816,10 +817,11 @@ func _finish() -> void:
 		line += "\n%d drift points" % int(drift_score)
 	elif players_in.is_empty():
 		line += "\n%s · the meet's pace %s" % [fmt(time), fmt(par_time())]
-	line += "\n+%d Nex · +%d REP" % [int(got.nex), int(got.rep)]
-	if String(got.tier_up) != "":
-		line += "\nYOU'RE NOW %s — %s" % [String(got.tier_up), String(Career.TIERS[career.tier()].line).to_lower()]
+	line += "\n+%d Nex" % int(got.nex)
 	show_result(line, Color(1.0, 0.85, 0.3) if place == 1 else Color(1, 1, 1))
+	# the rep as Destiny's reputation card: the ring fills from where you were, RANK UP when you crossed a rung
+	if int(got.rep) > 0:
+		slice.add_child(RankCard.make("STREET REPUTATION", Career.TIERS, career.rep - int(got.rep), career.rep))
 	Sound.sfx("capture" if place == 1 else "confirm", -2.0)
 	state = "done"
 	_done_t = 4.0
