@@ -241,6 +241,18 @@ static func buy_aircraft(profile: Dictionary, at: String, craft: String) -> Stri
 	a.aircraft[at] = list
 	return "%s delivered to hangar %s · -%d Nex" % [String(AIRCRAFT[craft].name), hangar_bay(profile, at), price]
 
+## an aircraft flown from one airport and left at another (Skyways world flight): it moves to that airport's list, parked
+## on the apron there; flying it out again needs a hangar of yours at that airport, as for any aircraft
+static func relocate_aircraft(profile: Dictionary, from: String, to: String, craft: String) -> void:
+	var a := air(profile)
+	var src: Array = Array(a.aircraft.get(from, []))
+	src.erase(craft)
+	a.aircraft[from] = src
+	var dst: Array = Array(a.aircraft.get(to, []))
+	if craft not in dst:
+		dst.append(craft)
+	a.aircraft[to] = dst
+
 # --------------------------------------------------------------------------------------------- weapons
 ## may weapons be out in `zone` ("landside", "terminal", "shops", "lounge", "apron", "runway", "hangar:<bay>")?
 static func weapons_allowed(profile: Dictionary, at: String, zone: String) -> bool:

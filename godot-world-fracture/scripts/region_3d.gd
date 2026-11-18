@@ -130,6 +130,13 @@ func _ready() -> void:
 	svc.add_child(_pad_city)
 	_pad_street = _pad([["▲", Vector2(0, -1)], ["▼", Vector2(0, 1)]], false)
 	svc.add_child(_pad_street)
+	# the GPS in Street View (owner, Nov 18); a mission or Skyways over the region (PLAY) puts up its own
+	_gps = preload("res://scripts/nav/gps.gd").new()
+	_gps.region = self
+	_gps.ranges = [80.0, 180.0, 400.0]
+	_gps.offset = Vector2(-_gps.DIAM - 72.0, 70.0)
+	_gps.visible = false
+	add_child(_gps)
 	var zb := VBoxContainer.new()
 	zb.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	zb.position = Vector2(-62, 12)
@@ -514,6 +521,11 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_world.add_child(_weather)
 	_weather.setup(id, _env, current_season() == 3 and id not in NO_WINTER)
 	_weather.follow(_cam)
+	_open_sea = false
+	_land.clear()
+	for ch in _world.get_children():
+		if ch != _sea and ch != _skirt and ch != _cam and ch != _weather and not (ch is WorldEnvironment) and not (ch is Light3D):
+			_land.append(ch)
 	var p := Vector2(_ox, _oz) if at == null else Vector2(at.x, at.y)
 	_target = Vector3(p.x - _ox, 0, p.y - _oz)
 	_target.y = _h(_target.x, _target.z)
@@ -1904,6 +1916,8 @@ func set_mode(md: Mode) -> void:
 		_jump.visible = mode != Mode.PLAY
 	_pad_city.visible = mode == Mode.CITY
 	_pad_street.visible = mode == Mode.STREET
+	if _gps:
+		_gps.visible = mode == Mode.STREET
 	_fit_labels()
 	if _barks:
 		_barks.visible = mode == Mode.STREET
@@ -1945,19 +1959,53 @@ func set_eye(x: float, z: float, yaw: float) -> void:
 	_apply_cam()
 func stand_point() -> Vector3:
 	return Vector3(_eye.x, _ground(_eye.x, _eye.z), _eye.z)
-## walkable height at a local point (operator_player.gd ground_at)
+## walkable height at a local point (operator_player.gd ground_at). Off the map (where Skyways aircraft fly on, Nov 18)
+## it is the open sea, not the map's edge heights stretched out to the horizon.
 func ground(lx: float, lz: float) -> float:
+	if _off_map(lx, lz):
+		return _water + 0.4
 	return _ground(lx, lz)
 ## the terrain height alone (below the water where the sea is) and the sea level, for boats and subs
 func terrain(lx: float, lz: float) -> float:
+	if _off_map(lx, lz):
+		return _water - 18.0
 	return _h(lx, lz)
 func water_level() -> float:
 	return _water
 func over_water(lx: float, lz: float) -> bool:
+	if _off_map(lx, lz):
+		return true
 	return _h(lx, lz) < _water - 0.3
+
+## out past the map's square (or anywhere, while the land is hidden for open-sea flight)
+func _off_map(lx: float, lz: float) -> bool:
+	if _open_sea:
+		return true
+	var half := _span * 0.5 + 1.0
+	return absf(lx) > half or absf(lz) > half
+
+## open-sea flight (skyways_view.gd world flight, Nov 18): between continents the region's land, buildings, trees and
+## labels are hidden and only the sky, the sea and its floor remain, so the craft's frame can be re-centred on it freely
+var _open_sea := false
+var _land: Array = []
+var _gps: Control
+func set_open_sea(on: bool) -> void:
+	_open_sea = on
+	for n in _land:
+		if is_instance_valid(n) and n is Node3D:
+			(n as Node3D).visible = not on
+	if _barks:
+		_barks.visible = false if on else _barks.visible
+func is_open_sea() -> bool:
+	return _open_sea
+## a local point back to the map's own (world) coordinates
+func map_point(lx: float, lz: float) -> Vector2:
+	return Vector2(lx + _ox, lz + _oz)
 ## the buildings as world boxes (local space, metres from the region centre), for the on-foot movers to slide around
 func building_boxes() -> Array[AABB]:
 	var out: Array[AABB] = []
+	if _open_sea:
+		return out
 	for bd in m.buildings:
 		var p := _loc(bd[0], bd[1])
 		var hx := float(bd[2])

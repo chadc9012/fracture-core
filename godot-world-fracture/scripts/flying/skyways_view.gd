@@ -10,6 +10,8 @@ const Sound := preload("res://scripts/audio/sound.gd")
 ## steer, UP climbs (jets need takeoff speed first), DOWN descends; EXIT ends the flight when landed.
 
 signal closed
+## a hangar aircraft set down and left in another region that has an airport (world flight): that airport's code
+signal arrived(code: String)
 
 const Phone := preload("res://scripts/phone.gd")
 const Region3D := preload("res://scripts/region_3d.gd")
@@ -19,6 +21,8 @@ const StreetCar := preload("res://scripts/driving/street_car.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const Facility := preload("res://scripts/garage/facility.gd")
 const GarageState := preload("res://scripts/garage/garage_state.gd")
+const Geo := preload("res://scripts/nav/world_geo.gd")
+const Gps := preload("res://scripts/nav/gps.gd")
 const REGION := "nexus"
 const FLEET := "res://models/fleet/"
 ## the craft on offer: hull file, handling kind, display name, where it starts (poi), fleet speed multiplier
@@ -100,6 +104,21 @@ var fuel := 100.0
 var _fuel_warned := false
 var _upkeep_saved := false
 const Air := preload("res://scripts/airport/airport.gd")
+
+# ------------------------------------------------------------------ world flight (owner, Nov 18: "fly around the world")
+## Aircraft fly off their region and on round the planet (world_geo.gd puts every region map on the globe). The view
+## works in one region's frame at a time (its anchor: a point on the sphere); flying into another region's reach
+## (ARRIVE) builds that region under you and carries your place and heading into its frame; well clear of every region
+## (LEAVE) the land is hidden and the frame follows you across the open sea, re-centred every RECENTRE metres.
+const ARRIVE := 2600.0
+const LEAVE := 4200.0
+const RECENTRE := 2500.0
+var start_region := ""
+var _anchor := Vector3.ZERO     # the current frame's anchor on the unit sphere (Vector3.ZERO: no world flight)
+var _site: Dictionary = {}      # the region map built under you ({} over the open sea)
+var _world_t := 0.0
+var touring := false            # left the starting region: the ring course is gone, the HUD shows where you are
+var gps: Control
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -237,6 +256,17 @@ func _start() -> void:
 	back.position = Vector2(16, 16)
 	back.pressed.connect(_try_exit)
 	add_child(back)
+	start_region = region_id
+	_site = Geo.site(region_id)
+	_anchor = _site.v if not _site.is_empty() else Vector3.ZERO
+	gps = Gps.new()
+	gps.region = region
+	gps.target = hull
+	gps.world_mode = String(profile.mode) == "AIR"
+	gps.ranges = [600.0, 1500.0, 4000.0] if gps.world_mode else [150.0, 350.0, 900.0]
+	gps.world_pos = func() -> Vector3: return globe_pos()
+	gps.place_name = func() -> String: return place_name()
+	add_child(gps)
 	controls.toast("%s · %s" % [String(c.name), "hold UP to lift off" if String(c.kind) in ["HELI", "AIRSHIP"] else ("throttle up the runway, then UP" if String(c.kind) == "JET" else "throttle out of the harbour")])
 
 ## the authored hulls come at odd sizes: scale to a real length along the nose axis, resting on the origin
@@ -472,11 +502,133 @@ func _mark_next() -> void:
 
 func _try_exit() -> void:
 	var ex := Handling.can_exit(profile, state, region.over_water(hull.position.x, hull.position.z) and String(profile.mode) != "WATER")
+	if bool(ex.ok) and touring and String(profile.mode) == "AIR" and (_site.is_empty() or region.over_water(hull.position.x, hull.position.z)):
+		ex = { "ok": false, "reason": "Out at sea — set it down on land to get out" }
+	if bool(ex.ok) and from_hangar and region_id != start_region:
+		# your own aircraft, landed in another region: it parks at that region's airport and you walk into its terminal
+		var code := arrival_code(region_id)
+		if code == "":
+			controls.toast("No airfield in %s to leave it at — fly on to an airport" % place_name())
+			return
+		_save_upkeep()
+		arrived.emit(code)
+		return
 	if bool(ex.ok) or finished:
 		_save_upkeep()
 		closed.emit()
 	else:
 		controls.toast(String(ex.reason))
+
+## the airport of a region (airport.gd AIRPORTS), or ""
+static func arrival_code(map_id: String) -> String:
+	for code in Air.AIRPORTS:
+		if String(Air.AIRPORTS[code].region) == map_id:
+			return String(code)
+	return ""
+
+## where the craft is on the planet (a unit vector), or Vector3.ZERO when this region isn't on the globe
+func globe_pos() -> Vector3:
+	if _anchor == Vector3.ZERO or hull == null:
+		return Vector3.ZERO
+	return Geo.to_globe(_anchor, hull.position.x, hull.position.z)
+
+## the region under you, or the open sea
+func place_name() -> String:
+	if _site.is_empty():
+		return "Open sea"
+	return String(_site.name)
+
+## once every half second while flying: arrive at the nearest region when it is in reach, give up the land when every
+## region is far behind, and keep the open-sea frame centred on the craft
+func _world_tick() -> void:
+	if _anchor == Vector3.ZERO or String(profile.mode) != "AIR":
+		return
+	var p := globe_pos()
+	var best: Dictionary = {}
+	var bd := INF
+	for s in Geo.sites():
+		var d := Geo.dist(p, s.v)
+		if d < bd:
+			bd = d
+			best = s
+	var here := Geo.dist(p, _site.v) if not _site.is_empty() else INF
+	if not best.is_empty() and best != _site and bd < ARRIVE and bd < here - 300.0:
+		_enter_site(best)
+	elif not _site.is_empty() and here > LEAVE:
+		_leave_land()
+	elif _site.is_empty() and Vector2(hull.position.x, hull.position.z).length() > RECENTRE:
+		_reanchor(p)
+
+## builds the region `s` under the craft and carries its place, height above the sea and heading into that frame
+func _enter_site(s: Dictionary) -> void:
+	var rf := Geo.reframe(_anchor, s.v, hull.position.x, hull.position.z, state.yaw)
+	var turn: float = angle_difference(state.yaw, float(rf[1]))
+	var above_sea: float = hull.position.y - region.water_level()
+	var cam_off := cam.position - hull.position if cam else Vector3.ZERO
+	_drop_course()
+	region.world().remove_child(hull)
+	region_id = String(s.map)
+	_site = s
+	_anchor = s.v
+	controls.toast("Entering %s airspace" % String(s.name))
+	region.show_region(region_id, null, Region3D.Mode.PLAY)
+	cam = region.camera()
+	cam.current = true
+	cam.far = 16000.0
+	region.world().add_child(hull)
+	_boxes = region.building_boxes()
+	var l: Vector2 = rf[0]
+	var y: float = region.water_level() + above_sea
+	y = maxf(y, region.ground(l.x, l.y) + Handling.RIDE)
+	for b in _boxes:
+		if b.has_point(Vector3(l.x, b.position.y + 1.0, l.y)):
+			y = maxf(y, b.end.y + 4.0)
+	state.y = y
+	state.yaw = float(rf[1])
+	_cam_yaw += turn
+	hull.position = Vector3(l.x, y, l.y)
+	hull.rotation = Vector3(state.pitch, state.yaw, state.roll)
+	cam.position = hull.position + cam_off.rotated(Vector3.UP, turn)
+	region.follow_horizon(l.x, l.y)
+	var sp: Vector3 = region.stand_point()
+	pad = _clear_spot(sp, false)
+	if gps:
+		gps.region = region
+		gps.refresh_map()
+
+## every region far behind: hide the land and fly on over the open sea in a frame that follows the craft
+func _leave_land() -> void:
+	_drop_course()
+	_site = {}
+	region.set_open_sea(true)
+	_boxes = []
+	controls.toast("Open sea · %s" % Geo.lat_lon_text(Geo.vec_to_lat_lon(globe_pos())))
+	_reanchor(globe_pos())
+	if gps:
+		gps.refresh_map()
+
+## re-centres the open-sea frame on the craft: only the sea is drawn, so moving everything back to the origin is unseen
+func _reanchor(p: Vector3) -> void:
+	var rf := Geo.reframe(_anchor, p, hull.position.x, hull.position.z, state.yaw)
+	var turn: float = angle_difference(state.yaw, float(rf[1]))
+	var l: Vector2 = rf[0]
+	var shift := Vector3(l.x - hull.position.x, 0.0, l.y - hull.position.z)
+	var cam_off := cam.position - hull.position
+	_anchor = p
+	hull.position += shift
+	state.yaw = float(rf[1])
+	_cam_yaw += turn
+	hull.rotation = Vector3(state.pitch, state.yaw, state.roll)
+	cam.position = hull.position + cam_off.rotated(Vector3.UP, turn)
+	region.follow_horizon(hull.position.x, hull.position.z)
+
+## leaving the starting region ends the ring course (its rings belong to that region's frame)
+func _drop_course() -> void:
+	touring = true
+	for r in rings:
+		if is_instance_valid(r.node):
+			r.node.queue_free()
+	rings.clear()
 
 func _process(dt: float) -> void:
 	if not state:
@@ -543,6 +695,12 @@ func _process(dt: float) -> void:
 	# ground skirt follow them so the horizon never shows an edge (owner, Nov 18: invisible wall, then "removed completely")
 	if String(profile.mode) == "AIR":
 		region.follow_horizon(want.x, want.z)
+		_world_t += dt
+		if _world_t > 0.5:
+			_world_t = 0.0
+			hull.position = want
+			_world_tick()
+			want = hull.position
 	else:
 		var half: float = airspace_half()
 		want.x = clampf(want.x, -half, half)
@@ -550,7 +708,7 @@ func _process(dt: float) -> void:
 	hull.position = want
 	hull.rotation = Vector3(state.pitch, state.yaw, state.roll)
 	# rings
-	if not finished:
+	if not finished and not rings.is_empty():
 		if state.airborne or String(profile.mode) == "WATER":
 			clock += dt
 		var r: Dictionary = rings[next_ring]
@@ -592,7 +750,10 @@ func _process(dt: float) -> void:
 	var k := clampf(absf(state.speed) / maxf(top_speed, 1.0), 0.0, 1.0)
 	Sound.loop_set("craft", 0.8 + k * 0.7, -12.0 + k * 6.0)
 	Sound.loop_set("wind", 1.0 + k * 0.4, -26.0 + k * 14.0)
-	_hud.text = "%s\nSPD %3d m/s   ALT %4d m   HULL %d%%%s\nrings %d / %d   %d:%02d" % [String(CRAFT[craft_id].name), int(absf(state.speed)), int(maxf(0.0, alt)), int(hull_hp * 100), ("   FUEL %d%%" % int(ceil(fuel))) if from_hangar else "", next_ring, rings.size(), int(clock / 60.0), int(fmod(clock, 60.0))]
+	var line3 := "rings %d / %d   %d:%02d" % [next_ring, rings.size(), int(clock / 60.0), int(fmod(clock, 60.0))]
+	if touring:
+		line3 = "%s   HDG %03d %s" % [place_name().to_upper(), int(rad_to_deg(Geo.yaw_to_heading(state.yaw))), Geo.compass(Geo.yaw_to_heading(state.yaw))]
+	_hud.text = "%s\nSPD %3d m/s   ALT %4d m   HULL %d%%%s\n%s" % [String(CRAFT[craft_id].name), int(absf(state.speed)), int(maxf(0.0, alt)), int(hull_hp * 100), ("   FUEL %d%%" % int(ceil(fuel))) if from_hangar else "", line3]
 
 ## the hangar aircraft's condition and tank go back to the profile (once: on the exit, a wreck, or the view closing)
 func _save_upkeep() -> void:
