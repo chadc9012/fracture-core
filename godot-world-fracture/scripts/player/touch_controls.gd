@@ -448,6 +448,9 @@ func toast(text: String) -> void:
 	if text.begins_with("LOOT · "):
 		_acquired(text.substr(7))
 		return
+	if text.begins_with("TRIUMPH · "):
+		_acquired(text.substr(10), "TRIUMPH", UiTheme.GOLD)
+		return
 	if _toast and _toast_t > 0.0 and _toast.text != "":
 		if _toast.text == text or _toast_queue.has(text):
 			return
@@ -948,7 +951,7 @@ func _banner_label(t: String, weight: int, spacing: int, px: int, col: Color) ->
 	return l
 
 ## "Void Sceptre (183 power)" as a Destiny pickup card down the left: a coloured edge, ACQUIRED, the name, the power
-func _acquired(what: String) -> void:
+func _acquired(what: String, caption := "ACQUIRED", edge := Color(0, 0, 0, 0)) -> void:
 	if not _acquired_col:
 		_acquired_col = VBoxContainer.new()
 		_acquired_col.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
@@ -966,14 +969,14 @@ func _acquired(what: String) -> void:
 	var card := PanelContainer.new()
 	var sb := UiTheme.box(Color(0.03, 0.04, 0.055, 0.78), Color(0, 0, 0, 0), 0, Vector4(12, 7, 16, 8))
 	sb.border_width_left = 3
-	sb.border_color = UiTheme.rarity_color("epic")
+	sb.border_color = UiTheme.rarity_color("epic") if edge.a == 0.0 else edge
 	card.add_theme_stylebox_override("panel", sb)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	card.add_child(col)
 	var cap := Label.new()
-	cap.text = "ACQUIRED"
+	cap.text = caption
 	cap.add_theme_font_override("font", UiTheme.font(600, 3))
 	cap.add_theme_font_size_override("font_size", 10)
 	cap.add_theme_color_override("font_color", UiTheme.INK_DIM)

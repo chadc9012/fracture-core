@@ -404,6 +404,8 @@ func _title_action(action: String) -> void:
 			_open_settings()
 		"operator":
 			_open_profile()
+		"triumphs":
+			_open_triumphs()
 		"cloud":
 			_close_title()
 			_open_cloud()
@@ -427,6 +429,18 @@ func _open_profile() -> void:
 		profile_view.queue_free()
 		profile_view = null)
 	_overlays.add_child(profile_view)
+
+## Destiny's Triumphs and Collections over whatever is open (scripts/progress/triumphs_view.gd)
+var triumphs_view: Control
+func _open_triumphs(t := "triumphs") -> void:
+	if triumphs_view:
+		return
+	triumphs_view = load("res://scripts/progress/triumphs_view.gd").new()
+	triumphs_view.tab = t
+	triumphs_view.closed.connect(func():
+		triumphs_view.queue_free()
+		triumphs_view = null)
+	_overlays.add_child(triumphs_view)
 
 func _close_street() -> void:
 	if street:
@@ -1058,6 +1072,9 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_settings()
 		if String(o) == "operator":
 			_open_profile()
+		# triumphs | collections  the Triumphs screen on that tab
+		if String(o) == "triumphs" or String(o) == "collections":
+			_open_triumphs(String(o))
 		# creator[:<tab>]  the operator creator on a tab (body by default)
 		if String(o).begins_with("creator"):
 			_open_creator()

@@ -171,6 +171,8 @@ func _build_menu() -> VBoxContainer:
 				open_goals += 1
 		v.add_child(_button("OPERATOR", "operator", false, "%s  ·  %d GOAL%s TODAY" % [Progression.line(p), open_goals, "" if open_goals == 1 else "S"]))
 		v.add_child(_button("GAME MODES", "modes", false, "PVP  ·  RAIDS  ·  RACES"))
+		var Tri = load("res://scripts/progress/triumphs.gd")
+		v.add_child(_button("TRIUMPHS", "triumphs", false, "SCORE %d  ·  COLLECTIONS" % Tri.score(p)))
 		v.add_child(_button("WORLD MAP", "globe", false, "THE GLOBE AND ITS DESTINATIONS"))
 		v.add_child(_button("NEW OPERATOR", "new"))
 	else:

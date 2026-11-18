@@ -73,6 +73,10 @@ static func event(p: Dictionary, kind: String, n := 1, now_unix: int = -1) -> Ar
 	var d: Dictionary = p.daily
 	var prog: Dictionary = d.progress
 	prog[kind] = int(prog.get(kind, 0)) + n
+	# the lifetime count for Triumphs (scripts/progress/triumphs.gd), kept beside the day's
+	var life: Dictionary = p.get("lifetime", {})
+	life[kind] = int(life.get(kind, 0)) + n
+	p.lifetime = life
 	return _claim(p, now_unix)
 
 static func _claim(p: Dictionary, now_unix: int) -> Array:
@@ -109,7 +113,11 @@ static func grant(p: Dictionary, source: String, nex: int, xp: int, note := "", 
 		lines.append("DAILY GOAL · %s — +%d Nex, +%d XP" % [String(g.label), int(g.nex), int(g.xp)])
 	if after > before:
 		lines.append("LEVEL %d — +%d power, +%d hull" % [after, 2 * (after - before), int(HULL_PER_LEVEL * (after - before))])
-	return { "nex": nex, "xp": xp, "level": after, "leveled": after > before, "lines": lines, "goals": goals }
+	# triumphs met since the last payment (kills and the like count between payments; checked here, toasted as cards)
+	var won: Array = load("res://scripts/progress/triumphs.gd").check(p)
+	for t in won:
+		lines.append("TRIUMPH · %s" % String(t.title))
+	return { "nex": nex, "xp": xp, "level": after, "leveled": after > before, "lines": lines, "goals": goals, "triumphs": won }
 
 ## one line for a HUD or the title: "LV 4 · 1,250 NEX"
 static func line(p: Dictionary) -> String:
