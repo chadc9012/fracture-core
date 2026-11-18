@@ -134,6 +134,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 	operator.build()
 	operator.attach_camera(region.camera())
 	region.camera().current = true
+	_gps = preload("res://scripts/nav/gps.gd").attach(self, region, operator)   # the GPS (owner, Nov 18)
 	gunplay = Gunplay.new()
 	region.world().add_child(gunplay)
 	gunplay.setup(operator, operator.obstacles)
@@ -190,7 +191,11 @@ func _site(dist: float) -> Vector3:
 		d += 10.0
 	return best
 
+var _gps: Control
 func _teardown_world() -> void:
+	if _gps:
+		_gps.queue_free()
+		_gps = null
 	if region:
 		region.queue_free()
 		region = null

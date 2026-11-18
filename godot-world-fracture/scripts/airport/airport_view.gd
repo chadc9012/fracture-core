@@ -233,6 +233,7 @@ func _ready() -> void:
 	gunplay = Gunplay.new()
 	world.add_child(gunplay)
 	gunplay.setup(operator, obstacles)
+	_build_gps()
 	gunplay.set_loadout(Gear.loadout(gear))
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	for bay in Air.BAYS:   # the target range at the back of each hangar (only usable where weapons are allowed)
@@ -257,6 +258,7 @@ func _ready() -> void:
 # --------------------------------------------------------------------------------------------- the frame
 func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
+	_process_gps()
 	_step_taxi(dt)
 	if _snow and operator:
 		_snow.global_position = operator.global_position + Vector3(0, 14, 0)
@@ -676,6 +678,33 @@ func _open_shop(id: String) -> void:
 		OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", "")))))
 	_overlay_open(v)
 
+## the GPS (owner, Nov 18): the terminal, the apron with the private hangars and the maintenance shed, the runway, and
+## the zone you are in under it
+var gps: Control
+func _build_gps() -> void:
+	gps = preload("res://scripts/nav/gps.gd").new()
+	gps.cam = cam
+	gps.target = operator
+	operator.set_meta("gps_no_heading", true)
+	gps.ranges = [60.0, 140.0, 320.0]
+	gps.land_bg = true
+	var pave := Color(0.3, 0.33, 0.37, 0.95)
+	gps.lines.append({ "a": Vector2(-200, 50), "b": Vector2(220, 50), "w": 40.0, "color": Color(0.2, 0.22, 0.26, 0.9) })   # the forecourt road
+	gps.lines.append({ "a": Vector2(-180, -60), "b": Vector2(200, -60), "w": 120.0, "color": Color(0.24, 0.27, 0.3, 0.95) })   # the apron
+	gps.lines.append({ "a": Vector2(-450, RUNWAY_Z), "b": Vector2(450, RUNWAY_Z), "w": 46.0, "color": Color(0.38, 0.4, 0.44, 0.95) })
+	gps.lines.append({ "a": Vector2(HALL.position.x, HALL.get_center().y), "b": Vector2(HALL.end.x, HALL.get_center().y), "w": HALL.size.y, "color": pave })
+	for i in HANGAR_X.size():
+		var hx: float = HANGAR_X[i]
+		gps.lines.append({ "a": Vector2(hx, -14), "b": Vector2(hx, 16), "w": 30.0, "color": Color(0.32, 0.36, 0.42, 0.95) })
+		gps.marks.append({ "p": Vector2(hx, 0), "color": Color(1.0, 0.85, 0.4) if Air.hangar_bay(profile, code) == String(Air.BAYS[i]) else Color(0.6, 0.75, 0.9), "label": "Hangar " + String(Air.BAYS[i]), "near": 80.0 })
+	gps.marks.append({ "p": Vector2(0, 26), "color": Color(0.55, 0.9, 1.0), "label": "Terminal", "near": 90.0 })
+	gps.marks.append({ "p": Vector2(0, SECURITY_Z), "color": Color(0.9, 0.9, 0.9), "label": "Security", "near": 40.0 })
+	add_child(gps)
+
+func _process_gps() -> void:
+	if gps and operator:
+		gps.area = "%s · %s" % [Air.tag(code), _zone_name(_zone_at(operator.position))]
+
 func _fly_craft(craft: String) -> void:
 	_panel_close()
 	var SkywaysView := load("res://scripts/flying/skyways_view.gd")
@@ -684,15 +713,30 @@ func _fly_craft(craft: String) -> void:
 	v.region_id = String(Air.AIRPORTS[code].region)
 	v.from_hangar = true
 	_overlay_open(v)
+	# world flight (Nov 18): set down at another airport and got out — the aircraft parks there and you walk into
+	# that airport's terminal (main.gd opens it as an arrival, as after an airline flight)
+	# the flight wrote the aircraft's hull and tank into the saved profile: read it back before anything saves this one
+	v.closed.connect(func(): profile = Gear.profile_load())
+	v.arrived.connect(func(to: String):
+		profile = Gear.profile_load()
+		Air.air(profile)
+		Air.relocate_aircraft(profile, code, to, craft)
+		_save()
+		Sound.loops_stop()
+		flew.emit(to))
 
 func _overlay_open(v: Control) -> void:
 	_overlay = v
 	controls.visible = false
+	if gps:
+		gps.visible = false
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	v.closed.connect(func():
 		_overlay.queue_free()
 		_overlay = null
 		controls.visible = true
+		if gps:
+			gps.visible = true
 		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		Sound.loops_stop()
 		Sound.ambience(Sound.bed_for(String(Air.AIRPORTS[code].region)), -14.0))
@@ -708,6 +752,8 @@ func _board(to: String) -> void:
 	_panel_close()
 	controls.visible = false
 	_hud.visible = false
+	if gps:
+		gps.visible = false
 	var plane := _airliner(accent, String(look.airline), Air.fare(to) >= 260)   # long-haul fares fly the wide-body
 	plane.position = Vector3(-260, 0, RUNWAY_Z)
 	plane.rotation.y = -PI * 0.5      # nose to +x
@@ -742,6 +788,8 @@ const LAND_S := 9.0
 func _land_begin() -> void:
 	controls.visible = false
 	_hud.visible = false
+	if gps:
+		gps.visible = false
 	var plane := _airliner(accent, String(look.airline), Air.fare(code) >= 260)
 	plane.rotation.y = -PI * 0.5      # nose to +x
 	world.add_child(plane)
@@ -817,6 +865,8 @@ func _step_landing(dt: float) -> void:
 	_fade_to(0.0)
 	controls.visible = true
 	_hud.visible = true
+	if gps:
+		gps.visible = true
 	operator.attach_camera(cam)
 	controls.toast("Welcome to %s." % String(Air.AIRPORTS[code].city))
 
