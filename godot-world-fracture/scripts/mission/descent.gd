@@ -1,4 +1,5 @@
 extends Control
+const Tracker := preload("res://scripts/ui/tracker.gd")
 const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## The Fracture Descent after Mission 01 — Act 1 (schedule step 11): fd-02 to fd-04 in the Verdant Forest (clear the patrols,
@@ -56,7 +57,7 @@ var quest: Dictionary = {}
 var waypoint := Vector3.ZERO
 var beacon: Node3D
 var waypoint_node: Node3D
-var _objective: Label
+var _objective: Tracker
 var _spawn_t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _spawn_origin := Vector3.ZERO
@@ -73,17 +74,13 @@ func _ready() -> void:
 	var q0 := _quest_def(progress.current)
 	_setup_world(String(q0.get("world", REGION)), String(q0.get("start", "crash-site")))
 	add_child(controls)
-	_objective = Label.new()
-	_objective.position = Vector2(16, 60)
-	_objective.add_theme_font_size_override("font_size", 16)
-	_objective.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-	_objective.add_theme_constant_override("shadow_offset_x", 1)
-	_objective.add_theme_constant_override("shadow_offset_y", 1)
-	_objective.modulate = Color(0.95, 0.85, 0.5)
+	# the tracked step, Destiny-style (scripts/ui/tracker.gd), under the HUD's weapon and grenade lines
+	_objective = Tracker.new()
+	_objective.position = Vector2(20, 128)
 	add_child(_objective)
 	var back := Button.new()
 	back.text = "← GLOBE"
-	back.position = Vector2(16, 16)
+	back.position = Vector2(250, 8)   # right of the hull bar (HUD layout rule)
 	back.pressed.connect(func(): _save(); closed.emit())
 	add_child(back)
 	cutscene = Cutscene.new()

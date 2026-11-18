@@ -3,6 +3,7 @@ extends SceneTree
 ## dusk gradient), armed, hit, a toast and a prompt up.
 ##   WF_TOUCH=1 xvfb-run -a godot --path . --rendering-driver opengl3 --resolution 1600x738 --script res://tests/tools/hud_shot.gd -- out.png [backdrop.png] [down] [level]
 const TouchControls := preload("res://scripts/player/touch_controls.gd")
+const Tracker := preload("res://scripts/ui/tracker.gd")
 var frames := 0
 var out := "user://hud.png"
 var c: Control
@@ -38,6 +39,10 @@ func _init() -> void:
 	c = TouchControls.new()
 	c.scripted = true
 	root.add_child(c)
+	var t := Tracker.new()
+	t.position = Vector2(20, 128)
+	t.text = "Signal in the Canopy\nBreak the relay guards · 2 / 3"
+	root.add_child(t)
 
 func _process(_dt: float) -> bool:
 	frames += 1
