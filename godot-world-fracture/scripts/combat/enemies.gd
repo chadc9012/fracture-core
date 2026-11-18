@@ -532,6 +532,7 @@ func burn(damage: float) -> void:
 		return
 	hull -= damage
 	hurt = maxf(hurt, 0.6)
+	since_hit = 0.0   # the fracture counts as a hit: no hull regeneration while it burns you (royale_play caught the regen outrunning it)
 	if hull <= 0.0:
 		hull = 0.0
 		down = 5.0
