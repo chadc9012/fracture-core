@@ -12,6 +12,7 @@ at load like on every other body.
 import bpy, bmesh, os
 
 SRC, OUT = os.environ["BAKE_ARGS"].split()[:2]
+HAIR_LINE = os.environ.get("HAIR_LINE", "") == "1"   # the person had long hair down over their shoulders
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=SRC)
 arm = [o for o in bpy.data.objects if o.type == "ARMATURE"][0]
@@ -23,10 +24,11 @@ for o in list(bpy.data.objects):
 neck = arm.data.bones["mixamorig:Neck"]
 n0 = arm.matrix_world @ neck.head_local
 n1 = arm.matrix_world @ neck.tail_local
-cut_z = n0.z + (n1.z - n0.z) * 0.8   # just under the jaw: the body's own neck meets the face's
+cut_z = n1.z - 0.012   # the whole neck up to the skull: the face's jaw comes down over its top (cut lower, a gap showed under the chin; Nov 18)
 head_g = body.vertex_groups.get("mixamorig:Head")
 top_g = body.vertex_groups.get("mixamorig:HeadTop_End")
 gi = {g.index for g in (head_g, top_g) if g}
+neck_i = body.vertex_groups["mixamorig:Neck"].index
 
 bm = bmesh.new()
 bm.from_mesh(body.data)
@@ -36,7 +38,16 @@ gone = []
 for v in bm.verts:
     p = mw @ v.co
     hw = sum(w for g, w in v[dl].items() if g in gi) if dl else 0.0
-    if p.z > cut_z or hw > 0.5:
+    nw = v[dl].get(neck_i, 0.0) if dl else 0.0
+    # long hair falls on the shoulders: what the head and neck move together, above the base of the neck and out
+    # beside or behind it, goes too (the woman's hair stood in black spikes on her jacket)
+    side = (p.xy - n0.xy).length
+    hair = (hw + nw) > 0.55 and p.z > n0.z - 0.06 and (side > 0.075 or p.y > n0.y + 0.04)
+    if HAIR_LINE:
+        # hair fused into the jacket over the shoulders and down the back: everything standing above a line falling
+        # from the base of the neck out over the shoulders, behind the front of the neck
+        hair = hair or (p.y > n0.y - 0.035 and p.z > n0.z - 0.012 - 0.55 * abs(p.x - n0.x))
+    if p.z > cut_z or (hw > 0.5 and p.z > n0.z + (n1.z - n0.z) * 0.85) or hair:
         gone.append(v)
 print("cut at", round(cut_z, 3), "removing", len(gone), "of", len(bm.verts))
 bmesh.ops.delete(bm, geom=gone, context="VERTS")

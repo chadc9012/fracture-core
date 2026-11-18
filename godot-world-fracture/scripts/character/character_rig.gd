@@ -95,15 +95,16 @@ func build(new_look: Dictionary, animate := true) -> void:
 	if hero != "":
 		return    # a whole Meshy character: its own face, hair and clothes
 	real_body = Catalog.is_real_body(ps.resource_path)
-	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot" and not real_body:
+	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
 		_reshape()
 	_attach_head(hb)
 	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
 		if not real_body:
 			dress(String(look.get("outfit", "")))
-			_neck_tube(hb)
 		else:
 			_tint_real_skin()
+		# the throat between the face's jaw and the collar (the real bodies' own necks are mostly the head they had)
+		_neck_tube(hb)
 
 ## a real body's own skin (neck, arms, hands, legs) turned to the face's tone: the person it came from has their own,
 ## and a pale face on dark hands, or the reverse, read as two people. Skin texels (the same test the face uses) are
@@ -219,6 +220,11 @@ const RESHAPE := {
 	"Shoulder": Vector2(0.85, 0.9), "UpLeg": Vector2(1.14, 1.12), "Leg": Vector2(1.14, 1.12), "Arm": Vector2(0.93, 0.94),
 	"ForeArm": Vector2(0.97, 0.97),
 }
+## how much of the build each part takes on a real body (1: all of it)
+const REAL_BUILD := {
+	"Hips": 1.0, "Spine": 1.2, "Spine1": 1.1, "Spine2": 0.9, "Shoulder": 0.5, "Arm": 1.0, "ForeArm": 0.8,
+	"UpLeg": 1.0, "Leg": 0.8,
+}
 static var _reshaped := {}
 
 func _reshape() -> void:
@@ -227,10 +233,17 @@ func _reshape() -> void:
 	var leg: float = { "nyx": 1.0, "cipher": 0.75, "goliath": 0.0 }.get(fr, 0.75)
 	var chest: float = { "nyx": 0.6, "cipher": 1.0, "goliath": 1.35 }.get(fr, 1.0)
 	var table: Dictionary = {}
-	for k: String in RESHAPE:
-		var v: Vector2 = RESHAPE[k]
-		var amt := leg if k in ["UpLeg", "Leg"] else (chest if k.begins_with("Spine") or k in ["Hips", "Shoulder"] else 1.0)
-		table[k] = Vector2.ONE.lerp(v, amt)
+	if real_body:
+		# a real person's build is right as it is; the build picked in the creator thins or fills it out (it showed
+		# the same body whatever was picked; owner, Nov 18)
+		var g: float = { "nyx": 0.84, "cipher": 1.0, "goliath": 1.26 }.get(fr, 1.0)
+		for k: String in REAL_BUILD:
+			table[k] = Vector2.ONE * (1.0 + (g - 1.0) * float(REAL_BUILD[k]))
+	else:
+		for k: String in RESHAPE:
+			var v: Vector2 = RESHAPE[k]
+			var amt := leg if k in ["UpLeg", "Leg"] else (chest if k.begins_with("Spine") or k in ["Hips", "Shoulder"] else 1.0)
+			table[k] = Vector2.ONE.lerp(v, amt)
 	var env := OS.get_environment("WF_RESHAPE")
 	if env != "":
 		table = {}
@@ -303,6 +316,8 @@ func _neck_tube(head_bone: int) -> void:
 	var r := 0.05 if String(look.get("body", "male")) == "male" else 0.04
 	if String(look.get("frame", "")) == "goliath":
 		r *= 1.12
+	if real_body:
+		r *= 1.12   # the real people's necks are fuller; a thin tube showed as a pale block behind the collar
 	cm.top_radius = r * 0.94
 	cm.bottom_radius = r
 	cm.height = up.length()
@@ -317,7 +332,7 @@ func _neck_tube(head_bone: int) -> void:
 	# the face's own lit skin (the head texture's brightest quarter) a shade down for a neck in its shadow; the swatch
 	# tone came out orange beside the face
 	var tone: Color = _tex_skin if _tex_skin != null else _scalp_tone()
-	sm.albedo_color = tone.darkened(0.3)
+	sm.albedo_color = tone.darkened(0.42 if real_body else 0.3)
 	sm.roughness = 0.55
 	mi.material_override = sm
 	var att := BoneAttachment3D.new()
