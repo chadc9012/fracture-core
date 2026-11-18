@@ -440,6 +440,14 @@ const MIN_TOAST := 2.2
 var _toast_queue: Array[String] = []
 
 func toast(text: String) -> void:
+	# Destiny's two special notices (Progression.grant's lines; the views toast every line): a level-up gets the big
+	# centred banner, a drop gets an "acquired" card down the left side
+	if text.begins_with("LEVEL ") and text.find(" — ") > 0:
+		_level_up(text)
+		return
+	if text.begins_with("LOOT · "):
+		_acquired(text.substr(7))
+		return
 	if _toast and _toast_t > 0.0 and _toast.text != "":
 		if _toast.text == text or _toast_queue.has(text):
 			return
@@ -876,3 +884,121 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and _mouse_look:
 		look_delta += (event as InputEventMouseMotion).relative
 		accept_event()
+
+# --------------------------------------------------------------------------------------- level up / acquired
+var _level_banner: Control
+var _acquired_col: VBoxContainer
+
+## "LEVEL 7 — +2 power, +4 hull" as Destiny's level-up: gold rules opening out, LEVEL UP, the number, what it gave
+func _level_up(text: String) -> void:
+	var parts := text.split(" — ", true, 1)
+	var num := parts[0].substr(6).strip_edges()
+	var gave := parts[1].replace(", ", "   ·   ").to_upper() if parts.size() > 1 else ""
+	if _level_banner:
+		_level_banner.queue_free()
+	var b := Control.new()
+	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	b.offset_top = 270   # under the toast strip (offset 190)
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(b)
+	_level_banner = b
+	var rule_l := ColorRect.new()
+	var rule_r := ColorRect.new()
+	for r in [rule_l, rule_r]:
+		r.color = UiTheme.GOLD
+		r.size = Vector2(0, 2)
+		r.position = Vector2(0, 24)
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(r)
+	var cap := _banner_label("LEVEL UP", 600, 6, 15, UiTheme.GOLD)
+	cap.position = Vector2(-150, 12)
+	b.add_child(cap)
+	var big := _banner_label(num, 700, 0, 64, UiTheme.INK)
+	big.position = Vector2(-150, 34)
+	b.add_child(big)
+	var sub := _banner_label(gave, 600, 2, 13, UiTheme.INK_DIM)
+	sub.position = Vector2(-150, 112)
+	b.add_child(sub)
+	b.modulate.a = 0.0
+	var tw := b.create_tween()
+	tw.tween_property(b, "modulate:a", 1.0, 0.25)
+	tw.parallel().tween_method(func(w: float):
+		rule_l.size.x = w
+		rule_l.position.x = -84.0 - w
+		rule_r.size.x = w
+		rule_r.position.x = 84.0, 0.0, 170.0, 0.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(3.2)
+	tw.tween_property(b, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(func():
+		if _level_banner == b:
+			_level_banner = null
+		b.queue_free())
+
+func _banner_label(t: String, weight: int, spacing: int, px: int, col: Color) -> Label:
+	var l := Label.new()
+	l.text = t
+	l.custom_minimum_size = Vector2(300, 0)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_override("font", UiTheme.font(weight, spacing))
+	l.add_theme_font_size_override("font_size", px)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.5))
+	l.add_theme_constant_override("outline_size", 6)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+## "Void Sceptre (183 power)" as a Destiny pickup card down the left: a coloured edge, ACQUIRED, the name, the power
+func _acquired(what: String) -> void:
+	if not _acquired_col:
+		_acquired_col = VBoxContainer.new()
+		_acquired_col.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+		_acquired_col.offset_left = 20
+		_acquired_col.offset_top = -40
+		_acquired_col.add_theme_constant_override("separation", 6)
+		_acquired_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_acquired_col)
+	var power := ""
+	var name := what
+	var at := what.rfind(" (")
+	if at > 0 and what.ends_with(" power)"):
+		name = what.substr(0, at)
+		power = what.substr(at + 2, what.length() - at - 8)
+	var card := PanelContainer.new()
+	var sb := UiTheme.box(Color(0.03, 0.04, 0.055, 0.78), Color(0, 0, 0, 0), 0, Vector4(12, 7, 16, 8))
+	sb.border_width_left = 3
+	sb.border_color = UiTheme.rarity_color("epic")
+	card.add_theme_stylebox_override("panel", sb)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	card.add_child(col)
+	var cap := Label.new()
+	cap.text = "ACQUIRED"
+	cap.add_theme_font_override("font", UiTheme.font(600, 3))
+	cap.add_theme_font_size_override("font_size", 10)
+	cap.add_theme_color_override("font_color", UiTheme.INK_DIM)
+	col.add_child(cap)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	col.add_child(row)
+	var nm := Label.new()
+	nm.text = name.to_upper()
+	nm.add_theme_font_override("font", UiTheme.font(700, 1))
+	nm.add_theme_font_size_override("font_size", 15)
+	row.add_child(nm)
+	if power != "":
+		var pw := Label.new()
+		pw.text = "◆ " + power
+		pw.add_theme_font_override("font", UiTheme.font(600, 0))
+		pw.add_theme_font_size_override("font_size", 14)
+		pw.add_theme_color_override("font_color", UiTheme.GOLD)
+		row.add_child(pw)
+	_acquired_col.add_child(card)
+	while _acquired_col.get_child_count() > 4:
+		_acquired_col.get_child(0).free()
+	card.modulate.a = 0.0
+	var tw := card.create_tween()
+	tw.tween_property(card, "modulate:a", 1.0, 0.2)
+	tw.tween_interval(4.0)
+	tw.tween_property(card, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(card.queue_free)

@@ -1,7 +1,7 @@
 extends SceneTree
 ## Look-dev for the on-foot HUD (touch_controls.gd) without loading a world: the overlay over a backdrop picture (or a
 ## dusk gradient), armed, hit, a toast and a prompt up.
-##   WF_TOUCH=1 xvfb-run -a godot --path . --rendering-driver opengl3 --resolution 1600x738 --script res://tests/tools/hud_shot.gd -- out.png [backdrop.png] [down]
+##   WF_TOUCH=1 xvfb-run -a godot --path . --rendering-driver opengl3 --resolution 1600x738 --script res://tests/tools/hud_shot.gd -- out.png [backdrop.png] [down] [level]
 const TouchControls := preload("res://scripts/player/touch_controls.gd")
 var frames := 0
 var out := "user://hud.png"
@@ -50,6 +50,10 @@ func _process(_dt: float) -> bool:
 		c.toast("Daily goal complete  ·  +250 XP  ·  +120 Nex")
 		c.prompt("Enter Neon Drift")
 		c.hit_marker("head")
+		if OS.get_cmdline_user_args().has("level"):
+			c.toast("LEVEL 13 — +2 power, +4 hull")
+			c.toast("LOOT · Void Sceptre (183 power)")
+			c.toast("LOOT · Warden Hood (151 power)")
 	if frames == 20:
 		get_root().get_texture().get_image().save_png(out)
 		print("saved ", out)
