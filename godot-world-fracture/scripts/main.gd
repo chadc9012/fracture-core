@@ -1188,16 +1188,16 @@ func _shoot(path: String, opts: Array) -> void:
 		if String(o).begins_with("eye:") and region_3d:
 			for i in 3:
 				await get_tree().process_frame
-			if String(o) in ["eye:root", "eye:cave"]:
+			if String(o) in ["eye:root", "eye:cave", "eye:corrupt"]:
 				# eye:cave stands 12 m off the nearest underwater cave mouth (on the surface, looking down through the water)
-				var spots: Array[Vector3] = region_3d.root_spots if String(o) == "eye:root" else region_3d.sea_caves
+				var spots: Array[Vector3] = region_3d.root_spots if String(o) == "eye:root" else (region_3d.sea_caves if String(o) == "eye:cave" else region_3d.corrupt_spots)
 				var best := Vector3.INF
 				var e: Vector3 = region_3d._eye
 				for sp in spots:
 					if sp.distance_to(e) < best.distance_to(e):
 						best = sp
 				if best != Vector3.INF:
-					var away := Vector3(e.x - best.x, 0, e.z - best.z).normalized() * (4.0 if String(o) == "eye:root" else 12.0)
+					var away := Vector3(e.x - best.x, 0, e.z - best.z).normalized() * (4.0 if String(o) == "eye:root" else (9.0 if String(o) == "eye:corrupt" else 12.0))
 					region_3d.set_eye(best.x + away.x, best.z + away.z, atan2(away.x, away.z))
 					if String(o) == "eye:cave":
 						region_3d._look_pitch = -35.0

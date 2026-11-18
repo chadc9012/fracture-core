@@ -136,6 +136,124 @@ static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 				r._multimesh(parts[1], list, alien_material(true), 700.0, false)
 	return pines
 
+## corrupted vegetation (asset catalog, fantasy & dimensional): in the Shattered Expanse every fourth tree, and
+## anywhere a tree stands within 45 m of a rift tear, the forest has turned — a blackened, twisted trunk, bare
+## branches, violet crystal growths breaking out of the bark and a glow in the splits. Returns the trees left green.
+const CORRUPT_M := 45.0
+static func corrupted(r: Node, trees: Array[Transform3D], tears: Array[Vector3]) -> Array[Transform3D]:
+	var id: String = r.map_id
+	var expanse := id in ["crystal-badlands", "shattered-reefs"]
+	if not expanse and tears.is_empty():
+		return trees
+	var green: Array[Transform3D] = []
+	var turned: Array[Transform3D] = []
+	var k := 0
+	for t in trees:
+		k += 1
+		var near := false
+		if not expanse or k % 4 != 0:
+			for p in tears:
+				if Vector2(p.x - t.origin.x, p.z - t.origin.z).length() < CORRUPT_M:
+					near = true
+					break
+		if (expanse and k % 4 == 0) or near:
+			turned.append(t)
+		else:
+			green.append(t)
+	if expanse:
+		# the badlands grow no forest: the fracture itself raises these — a ring round every rift tear, and a
+		# scattering over the crystal fields
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(id + ":corrupt")
+		var drop := func(x: float, z: float) -> void:
+			var y: float = r._h(x, z)
+			if y < r._water + 0.5 or not r._space_claim(x, z, 1.3):
+				return
+			var sc := 0.7 + rng.randf() * 0.6
+			turned.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc * (0.8 + rng.randf() * 0.5), sc)), Vector3(x, y - 0.2, z)))
+		for p in tears:
+			for n in 5:
+				var a := rng.randf() * TAU
+				var d := 7.0 + rng.randf() * 14.0
+				drop.call(p.x + cos(a) * d, p.z + sin(a) * d)
+		var img: Image = Data.image("maps/%s.data.pngb" % id)
+		if img != null:
+			img = img.duplicate()
+			img.convert(Image.FORMAT_RGB8)
+			var w := img.get_width()
+			var bytes := img.get_data()
+			var crystal: int = Data.styles.get("covers", []).find("crystal")
+			var span: float = r._span
+			var mpp := span / w
+			var stride := maxi(2, int(w / 200.0))
+			var clear: PackedByteArray = r._clearings()
+			for j in range(0, w, stride):
+				for i in range(0, w, stride):
+					if turned.size() >= 420:
+						break
+					if bytes[(j * w + i) * 3] != crystal or rng.randf() > 0.028:
+						continue
+					var x := -span / 2.0 + (i + rng.randf() * stride) * mpp
+					var z := -span / 2.0 + (j + rng.randf() * stride) * mpp
+					if clear[r._cell(x, z)] == 1:
+						continue
+					drop.call(x, z)
+	r.corrupt_spots.clear()
+	for t in turned:
+		r.corrupt_spots.append(t.origin)
+	if turned.is_empty():
+		return green
+	var bark := StandardMaterial3D.new()
+	bark.albedo_color = Color(0.09, 0.07, 0.1)
+	bark.roughness = 0.95
+	var vein := StandardMaterial3D.new()
+	vein.albedo_color = Color(0.5, 0.2, 0.9)
+	vein.emission_enabled = true
+	vein.emission = Color(0.55, 0.25, 1.0)
+	vein.emission_energy_multiplier = 1.6
+	var parts := corrupted_meshes()
+	r._multimesh(parts[0], turned, bark, 700.0)
+	r._multimesh(parts[1], turned, vein, 700.0, false)
+	return green
+
+## [the dead trunk and branches, the crystal growths] at the conifer's scale (13 m tall at scale 1)
+static func corrupted_meshes() -> Array:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# the trunk: three leaning lengths, each twisted on from the last
+	var top := Vector3(0, 0, 0)
+	var lean := Basis()
+	for i in 3:
+		var h := 3.6 - i * 0.5
+		lean = lean * Basis(Vector3(1, 0, 0.6).normalized(), 0.16 + 0.05 * i) * Basis(Vector3.UP, 0.9)
+		var mid := top + lean * Vector3(0, h * 0.5, 0)
+		_cyl(st, 0.26 - i * 0.07, 0.42 - i * 0.08, h, 6, Transform3D(lean, mid))
+		top = top + lean * Vector3(0, h, 0)
+	# bare branches reaching out and up, snapped short
+	for b in [[2.4, 0.0, 1.0, 2.2], [4.2, 2.1, -0.8, 2.6], [5.8, 4.4, 0.9, 1.9], [7.4, 1.0, 0.6, 2.4], [8.6, 3.3, -0.3, 1.7]]:
+		var a: float = b[1]
+		var dir := Vector3(cos(a), float(b[2]), sin(a)).normalized()
+		var basis := Basis.looking_at(dir, Vector3.UP) * Basis(Vector3.RIGHT, PI * 0.5)
+		_cyl(st, 0.03, 0.11, float(b[3]), 4, Transform3D(basis, Vector3(0, float(b[0]), 0) + dir * float(b[3]) * 0.5))
+	st.generate_normals()
+	var trunk := st.commit()
+	var cs := SurfaceTool.new()
+	cs.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# crystal growths: slim cones bursting out of the bark at three heights
+	for c in [[1.6, 0.4, 1.1], [3.9, 2.6, 1.5], [6.1, 4.9, 0.9], [2.8, 3.9, 0.7]]:
+		var a: float = c[1]
+		var dir := Vector3(cos(a), 0.55, sin(a)).normalized()
+		var basis := Basis.looking_at(dir, Vector3.UP) * Basis(Vector3.RIGHT, PI * 0.5)
+		var cone := CylinderMesh.new()
+		cone.top_radius = 0.0
+		cone.bottom_radius = 0.16 * float(c[2])
+		cone.height = 1.2 * float(c[2])
+		cone.radial_segments = 5
+		cone.rings = 0
+		cs.append_from(cone, 0, Transform3D(basis, Vector3(0, float(c[0]), 0) + dir * (0.3 + 0.5 * float(c[2]))))
+	cs.generate_normals()
+	return [trunk, cs.commit()]
+
 ## root flares at the forest's trunks (asset catalog "tree roots"): every third tree above the water gets a collar
 ## of five buttress roots running out over the ground from its base, drawn to ROOT_M (the trunks past that are cards)
 const ROOT_M := 60.0

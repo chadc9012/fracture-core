@@ -79,6 +79,7 @@ var _dist := 220.0
 var _eye := Vector3.ZERO
 var root_spots: Array[Vector3] = []   # the trunks given root flares (Flora.roots)
 var sea_caves: Array[Vector3] = []    # the coast maps' underwater cave mouths (Flora.rocks)
+var corrupt_spots: Array[Vector3] = []   # trees turned by the fracture (Flora.corrupted)
 var _look_yaw := 0.0
 var _look_pitch := 0.0
 var _walk := 0.0
@@ -1190,8 +1191,10 @@ func _build_trees() -> void:
 				if not _space_claim(lx, lz, 0.35 * s2):
 					continue
 				shards.append(Transform3D(Basis.from_euler(Vector3((roll - 0.06) * 3.0, roll * 40.0, (0.06 - roll) * 2.0)).scaled(Vector3(s2 * 0.5, s2 * 1.6, s2 * 0.5)), Vector3(lx, _h(lx, lz), lz)))
+	var cold := map_id in ["frostspire", "frostveil"]
+	# the fracture's corruption takes its share first (the Shattered Expanse, the ground round every rift tear)
+	trees = Flora.corrupted(self, trees, tears)
 	if not trees.is_empty():
-		var cold := map_id in ["frostspire", "frostveil"]
 		if map_id == "azure-isles" and _palms(trees):
 			# the two thirds the palms leave: bamboo clumps among them (and no conifers on the isles)
 			var rest: Array[Transform3D] = []

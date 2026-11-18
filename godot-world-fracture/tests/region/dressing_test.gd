@@ -18,7 +18,7 @@ func _run() -> void:
 		await process_frame
 	if main.creator:
 		main.creator.confirmed.emit(main.creator.look)
-	for id in ["veridan", "shattered-reefs", "thalassia"]:
+	for id in ["veridan", "shattered-reefs", "thalassia", "crystal-badlands"]:
 		main._open_map(id)
 		main._open_3d(id, null, false)
 		for i in 3:
@@ -31,6 +31,9 @@ func _run() -> void:
 				dry = dry and p.y > r._water
 			check("every root flare stands above the water", dry)
 			check("no sea caves inland", r.sea_caves.is_empty())
+			check("the forest is green: nothing corrupted away from the fracture", r.corrupt_spots.is_empty())
+		elif id == "crystal-badlands":
+			check("the badlands' crystal fields grow corrupted trees (%d)" % r.corrupt_spots.size(), r.corrupt_spots.size() >= 60)
 		elif id == "thalassia":
 			# Thalassia's ground lies wholly above its water line (the drowned city is the map's story, not its heights)
 			check("thalassia, with no sea floor to cut, has no cave mouths", r.sea_caves.is_empty())
@@ -40,6 +43,7 @@ func _run() -> void:
 			for p in r.sea_caves:
 				under = under and p.y < r._water - 2.0
 			check("%s: every cave mouth lies under the water" % id, under)
+			check("%s: a quarter of the reef's trees are corrupted (%d)" % [id, r.corrupt_spots.size()], r.corrupt_spots.size() >= 40)
 		main._close_3d()
 		main._close_map()
 		await process_frame

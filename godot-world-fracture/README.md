@@ -278,7 +278,7 @@ resort strip, Azure Marina and Shipyard, the Turquoise Lagoon, a lighthouse cay;
 Cave). On the globe they open from Verdant Forest, The Shattered Reefs and Frost Spire. **Seasons**: the region 3D view's
 header steps SPRING / SUMMER / AUTUMN / WINTER (it starts on the real calendar's season): the growing covers and every tree
 recolour live — blossom and fresh green, gold and rust, snow on the ground and bare crowns where winter comes (not in the
-tropics, deserts, volcano, ice or the deep). Shots: `map:<id> 3d`, `season:0..3`; on foot `map:<id> street:<poi>` with `eye:x,z,yaw` to stand anywhere, `eye:root` (4 m off the nearest root-flared trunk) or `eye:cave` (over the nearest underwater cave mouth, looking down).
+tropics, deserts, volcano, ice or the deep). Shots: `map:<id> 3d`, `season:0..3`; on foot `map:<id> street:<poi>` with `eye:x,z,yaw` to stand anywhere, `eye:root` (4 m off the nearest root-flared trunk), `eye:cave` (over the nearest underwater cave mouth, looking down) or `eye:corrupt` (9 m off the nearest fracture-corrupted tree).
 
 **The Town and Floating Islands regions, deepened** (owner, Nov 8 22:12: "start"): **Old Harrow** (`board-lands.ts`,
 off Verdant Forest on the globe — Riverdale stays as it is because the live world plays there) is the board's town region:
