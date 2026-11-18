@@ -49,6 +49,8 @@ void fragment() {
 	} else if (cover == i_desert || cover == i_dunes || cover == i_sandstone || cover == i_wash) {
 		float rip = sin(w.x * 0.5 + w.y * 0.3 + vnoise(w * 0.03) * 8.0);
 		c += (vec3(8.0, 6.0, 4.0) * rip + vec3(12.0, 10.0, 8.0) * grain) / 255.0;
+		// wind-blown sand: broad lighter and darker drifts so the dunes read under a high sun
+		c *= 0.88 + 0.22 * vnoise(w * 0.012 + vnoise(w * 0.004) * 2.0);
 	} else if (cover == i_lava || cover == i_magma) {
 		// a lava flow: cooled crust plates drifting downstream, molten seams glowing between them, the seams breathing
 		vec2 fl = w * 0.14 + vec2(TIME * 0.025, TIME * 0.04);

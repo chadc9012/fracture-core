@@ -635,7 +635,9 @@ func _style_for(id: String) -> Dictionary:
 		"solara":
 			# its pale dune sand blew out to white under the Wastelands' noon sun: a lower, warmer sun and less exposure
 			# keep the dunes' shading and the sand's colour
-			s.merge({"top": "#4f8cc4", "hor": "#e9c99a", "fog": "#d8b98e", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95}, true)
+			s.merge({"top": "#4f8cc4", "hor": "#e9c99a", "fog": "#d8b98e", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95,
+				# Nov 18, the owner's "DAY - SOLARA" photo: a deep blue sky with white cloud, golden sand (it read as pale cream)
+				"top": "#2c6cc0", "hor": "#bcd6ec", "fog": "#d9c6a2", "sky": "day", "tint": Vector3(1.0, 0.84, 0.64)}, true)
 		"storm":
 			# the board's floating islands: a violet storm dusk, warm low sun through the clouds, the crystals glowing
 			s.merge({"top": "#252a58", "hor": "#a585c0", "fog": "#6a6390", "fog_d": 0.0026, "sun": 1.0, "sun_col": "#ffc79a", "sun_el": 14.0, "amb": 0.65, "sat": 1.1}, true)
