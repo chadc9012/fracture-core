@@ -34,6 +34,16 @@ var track_id := "nexus-speedway"
 var laps := 0
 ## the story's distance on a long one-lap course (campaign.gd STORY_RACES): the race ends this many km in; 0 = full laps
 var race_km := 0.0
+## a race between players (Nov 18, online play; Game Modes → Races): no AI rivals — the players in the track's room
+## line up when one of them presses START; alone, you race the track's pace. Off (the story's races): the three AI rivals.
+var online := false
+var net: Node
+var room: RefCounted
+var lobby: Control
+var remotes := {}            # id -> {entry, node, to, yaw, fresh, file}
+var _send_t := 0.0
+var _who: Label
+const PACE := { "street": 33.0, "venue": 40.0, "pack": 44.0 }
 var venue: Node3D
 var _cp: Array = []
 var vehicle_id := "tuner"
@@ -489,15 +499,193 @@ func _grid() -> void:
 		race.finish_frac = clampf(race_km * 1000.0 / track.length, 0.15, 0.88)
 	var v := Catalog.vehicle(vehicle_id)
 	var file := String(v.get("model", FLEET + "tuner.glb")).get_file() if not v.is_empty() else "tuner.glb"
+	if online:
+		# the players' grid is set at the start (_go); until then you wait on the line in slot 0
+		player = _spawn_car(file, track.grid(0), vehicle_id)
+		var me := race.add("You", true)
+		me["node"] = player.node
+		cam_yaw = player.yaw()
+		countdown = INF
+		_lobby()
+		return
 	# rivals take the front rows, you start last
 	for i in 3:
 		var sc := _spawn_car(RIVAL_FILES[i], track.grid(i), "")
 		var names: Array = track.def.get("rivals", STREET_NAMES if track.street() else RIVAL_NAMES)
 		var e := race.add(String(names[i]))
+		e["node"] = sc.node
 		rivals.append({ "sc": sc, "entry": e, "skill": 0.86 + i * 0.05 })
 	player = _spawn_car(file, track.grid(3), vehicle_id)
-	race.add("You", true)
+	var me2 := race.add("You", true)
+	me2["node"] = player.node
 	cam_yaw = player.yaw()
+
+# --------------------------------------------------------------------------------------------- players (online)
+func _room_name() -> String:
+	return "circuit:%s:%d:%d" % [track_id, race.laps_to_go, int(race_km)]
+
+func _lobby() -> void:
+	var Online := load("res://scripts/net/online.gd")
+	if net == null and Online.live():
+		net = Online.shared(get_tree())
+	if net:
+		room = net.room(_room_name())
+		if room:
+			room.track({ "name": net.display, "car": String(player.node.scene_file_path) })
+			room.message.connect(_on_net)
+			room.left.connect(_remote_gone)
+	lobby = PanelContainer.new()
+	lobby.set_anchors_preset(Control.PRESET_CENTER)
+	lobby.position = Vector2(-190, -120)
+	lobby.custom_minimum_size = Vector2(380, 0)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	lobby.add_child(v)
+	var t := Label.new()
+	_who = t
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.add_theme_font_size_override("font_size", 18)
+	v.add_child(t)
+	var go := Button.new()
+	go.text = "START RACE"
+	go.custom_minimum_size = Vector2(0, 52)
+	go.pressed.connect(start_online)
+	v.add_child(go)
+	var back := Button.new()
+	back.text = "LEAVE"
+	back.custom_minimum_size = Vector2(0, 44)
+	back.pressed.connect(func(): closed.emit())
+	v.add_child(back)
+	add_child.call_deferred(lobby)
+	_lobby_text()
+
+func _lobby_text() -> void:
+	if lobby == null:
+		return
+	var names: Array = ["You"]
+	if room:
+		for k in room.members:
+			names.append(String(room.members[k].get("name", "Player")))
+	var status: String = net.status(room) if net else "OFFLINE"
+	_who.text = "%s\n%d lap%s · %s\n%s\n%s" % [String(track.def.name).to_upper(), race.laps_to_go, "" if race.laps_to_go == 1 else "s", status,
+		" · ".join(names), "Players here race together when anyone presses START." if names.size() > 1 else "Nobody else on the line yet — start alone to race the track's pace."]
+
+## START: everyone on the line goes, in the order they're listed (your id first if you pressed it)
+func start_online() -> void:
+	var roster: Array = [net.id if net else "me"]
+	if room:
+		var others: Array = room.members.keys()
+		others.sort()
+		roster.append_array(others)
+		room.send("go", { "roster": roster })
+	_go(roster)
+
+func _go(roster: Array) -> void:
+	if lobby:
+		lobby.queue_free()
+		lobby = null
+	var me_id: String = net.id if net else "me"
+	for i in roster.size():
+		var id := String(roster[i])
+		if id == me_id:
+			player.node.transform = track.grid(i)
+			player.speed = 0.0
+			cam_yaw = player.yaw()
+			continue
+		_remote(id).node.transform = track.grid(i)
+	countdown = 3.5
+
+func _remote(id: String) -> Dictionary:
+	if remotes.has(id):
+		return remotes[id]
+	var meta: Dictionary = room.members.get(id, {}) if room else {}
+	var file := String(meta.get("car", ""))
+	var path := file if file.begins_with("res://") and ResourceLoader.exists(file) else FLEET + "street-racer-lod.glb"
+	var node := (load(path) as PackedScene).instantiate() as Node3D
+	StreetCar.face_forward(node)
+	node.set_meta("dynamic", true)
+	world.add_child(node)
+	var e := race.add(String(meta.get("name", "Player")))
+	e["node"] = node
+	e["remote"] = id
+	var tag := Label3D.new()
+	tag.text = String(meta.get("name", "Player"))
+	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	tag.fixed_size = true
+	tag.pixel_size = 0.0022
+	tag.font_size = 22
+	tag.outline_size = 6
+	tag.position.y = 2.2
+	tag.modulate = Color(0.55, 1.0, 0.75)
+	node.add_child(tag)
+	remotes[id] = { "entry": e, "node": node, "to": Vector3.ZERO, "yaw": 0.0, "fresh": true }
+	return remotes[id]
+
+func _remote_gone(id: String) -> void:
+	var r: Dictionary = remotes.get(id, {})
+	if r.is_empty():
+		return
+	if float(r.entry.finished_at) < 0.0:
+		r.entry.name = String(r.entry.name) + " (left)"
+		r.entry.laps = -1
+	(r.node as Node3D).visible = false
+	_lobby_text()
+
+func _on_net(event: String, d: Dictionary, from: String) -> void:
+	match event:
+		"go":
+			if lobby != null and countdown == INF:
+				_go(d.get("roster", []))
+		"pos":
+			if countdown == INF:
+				_lobby_text()
+				return
+			var r := _remote(from)
+			var p: Array = d.get("p", [0, 0, 0])
+			r.to = Vector3(float(p[0]), float(p[1]), float(p[2]))
+			r.yaw = float(d.get("y", 0.0))
+		"fin":
+			var r2 := _remote(from)
+			if float(r2.entry.finished_at) < 0.0:
+				r2.entry.finished_at = float(d.get("t", race.time))
+				r2.entry.laps = race.laps_to_go
+				race.results.append(r2.entry)
+
+func _step_remotes(dt: float) -> void:
+	if room == null:
+		return
+	_send_t -= dt
+	if _send_t <= 0.0 and net.online():
+		_send_t = 0.1
+		var n: Node3D = player.node
+		room.send("pos", { "p": [snappedf(n.position.x, 0.01), snappedf(n.position.y, 0.01), snappedf(n.position.z, 0.01)], "y": snappedf(n.rotation.y, 0.001) })
+	for id in remotes:
+		var r: Dictionary = remotes[id]
+		var node: Node3D = r.node
+		if bool(r.fresh) or node.position.distance_to(r.to) > 30.0:
+			if r.to != Vector3.ZERO:
+				node.position = r.to
+				r.fresh = false
+		else:
+			node.position = node.position.lerp(r.to, minf(1.0, dt * 10.0))
+			node.rotation.y = lerp_angle(node.rotation.y, float(r.yaw), minf(1.0, dt * 10.0))
+
+## alone on the line: the track's pace sets your place (inside it, +6%, +12%)
+func _pace_place() -> int:
+	var kind := "pack" if track.pack() else ("street" if track.street() else "venue")
+	var dist: float = track.length * (race.laps_to_go if race.finish_frac >= 1.0 else race.finish_frac)
+	var par: float = dist / float(PACE[kind])
+	var me: Dictionary = race.player()
+	var p := 1
+	for k in [1.0, 1.06, 1.12]:
+		if float(me.finished_at) > par * k:
+			p += 1
+	return p
+
+func pace_time() -> float:
+	var kind := "pack" if track.pack() else ("street" if track.street() else "venue")
+	return track.length * (race.laps_to_go if race.finish_frac >= 1.0 else race.finish_frac) / float(PACE[kind])
 
 var _engine_on := false
 var _lit_was := 0
@@ -514,6 +702,12 @@ func _process(dt: float) -> void:
 		_engine_on = true
 		Sound.loop("race_engine", "engine", -10.0, 0.6)
 	Sound.loop_set("race_engine", 0.6 + clampf(absf(player.speed) / maxf(float(player.profile.max_speed), 1.0), 0.0, 1.0) * 1.3, -10.0 + clampf(absf(player.speed) / 30.0, 0.0, 1.0) * 5.0)
+	if online:
+		_step_remotes(dt)
+	if countdown == INF:
+		hud.text = "WAITING ON THE LINE"
+		_place_camera(dt)
+		return
 	if countdown > 0.0:
 		countdown -= dt
 		var lit := clampi(int(ceil((3.5 - countdown) / 0.7)), 0, 5)
@@ -583,11 +777,14 @@ func _process(dt: float) -> void:
 			thr = -0.2
 		_step_car(sc, dt, thr, clampf(err * 2.5, -1.0, 1.0), 0.0)
 	# the race
-	var positions: Array = [rivals[0].sc.node.position, rivals[1].sc.node.position, rivals[2].sc.node.position, player.node.position]
+	var positions: Array = race.entries.map(func(e): return (e.node as Node3D).position)
+	var was_done: bool = float(race.player().finished_at) >= 0.0
 	race.tick(dt, positions)
 	var me: Dictionary = race.player()
+	if room and not was_done and float(me.finished_at) >= 0.0:
+		room.send("fin", { "t": snappedf(float(me.finished_at), 0.01) })
 	var place := race.position_of(me)
-	hud.text = "P%d / 4   LAP %d / %d   %s\n%d km/h%s" % [place, mini(me.laps + 1, race.laps_to_go), race.laps_to_go, _fmt(race.time - me.lap_start), int(absf(player.speed) * 3.6), ("   best " + _fmt(me.best_lap)) if me.best_lap > 0.0 else ""]
+	hud.text = "P%d / %d   LAP %d / %d   %s\n%d km/h%s" % [place, race.entries.size(), mini(me.laps + 1, race.laps_to_go), race.laps_to_go, _fmt(race.time - me.lap_start), int(absf(player.speed) * 3.6), ("   best " + _fmt(me.best_lap)) if me.best_lap > 0.0 else ""]
 	if track.pack():
 		# the owner's checkpoints passed this lap, and the distance left in the race
 		var d_now: float = float(me.frac) * track.length if me.armed or float(me.frac) < 0.5 else 0.0
@@ -662,7 +859,10 @@ func _finish() -> void:
 		rec.best[vehicle_id] = me.best_lap
 	rec.laps[vehicle_id] = int(rec.laps.get(vehicle_id, 0)) + me.laps
 	rec.save_records()
-	var prize := race.prize()
+	var solo := online and race.entries.size() == 1
+	var place_won: int = _pace_place() if solo else race.position_of(me)
+	var table: Array = track.def.prize
+	var prize: int = int(table[mini(place_won - 1, table.size() - 1)]) if solo else race.prize()
 	var profile := { "xp": 0, "nex": 0, "level": 1 }
 	var f := FileAccess.open(PROFILE, FileAccess.READ)
 	if f:
@@ -681,7 +881,7 @@ func _finish() -> void:
 	var v := VBoxContainer.new()
 	finish_panel.add_child(v)
 	var t := Label.new()
-	t.text = "P%d · %s\nbest lap %s\n+%d Nex   +150 XP" % [race.position_of(me), String(track.def.name), _fmt(me.best_lap), prize]
+	t.text = "P%d · %s\n%s\n+%d Nex   +150 XP" % [place_won, String(track.def.name), ("%s · the track's pace %s" % [_fmt(float(me.finished_at)), _fmt(pace_time())]) if solo else "best lap " + _fmt(me.best_lap), prize]
 	t.add_theme_font_size_override("font_size", 22)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)

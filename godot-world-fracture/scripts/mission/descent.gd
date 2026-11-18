@@ -54,6 +54,7 @@ var _wave_t := 0.0
 var _seen := {}           # cutscenes shown this session, by key
 var quest: Dictionary = {}
 var waypoint := Vector3.ZERO
+var beacon: Node3D
 var waypoint_node: Node3D
 var _objective: Label
 var _spawn_t := 0.0
@@ -118,6 +119,10 @@ func _setup_world(world: String, start_poi: String) -> void:
 		if poi.id == start_poi:
 			start = Vector2(poi.x, poi.z)
 	region.show_region(world, start, Region3D.Mode.PLAY)
+	# the map's waypoint, if it's on this region (waypoint_beacon.gd)
+	beacon = load("res://scripts/nav/waypoint_beacon.gd").new()
+	region.world().add_child(beacon)
+	beacon.setup(region, controls, world)
 	operator = Player.new()
 	region.world().add_child(operator)
 	var half: float = region.span() * 0.5 - 20.0
@@ -420,6 +425,8 @@ func _process(dt: float) -> void:
 			operator.position = _respawn_point()
 			operator.velocity = Vector3.ZERO
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	if beacon:
+		beacon.step(dt, operator)
 	if controls.take_next():
 		gunplay.next_weapon()
 	gunplay.step(dt, region.camera(), controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())

@@ -29,6 +29,8 @@ var npcs: Node3D        # the people who meet you here (people.gd REGIONS: the V
 var _near := ""
 var _shots := 0
 var _panel: Control
+var beacon: Node3D     # the map's waypoint (waypoint_beacon.gd)
+var map_id := ""
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -48,8 +50,12 @@ func _ready() -> void:
 		if String(poi.id).contains("airport") or String(poi.get("kind", "")).to_lower() == "airport":
 			start = Vector2(float(poi.x), float(poi.z))
 	region.show_region(id, start, Region3D.Mode.PLAY)
+	map_id = id
 	controls = TouchControls.new()
 	add_child(controls)
+	beacon = load("res://scripts/nav/waypoint_beacon.gd").new()
+	region.world().add_child(beacon)
+	beacon.setup(region, controls, id)
 	operator = Player.new()
 	region.world().add_child(operator)
 	var half: float = region.span() * 0.5 - 20.0
@@ -111,6 +117,8 @@ func _process(dt: float) -> void:
 			_shots = gunplay.shots_fired
 			npcs.gunfire(operator.position)
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	if beacon:
+		beacon.step(dt, operator)
 	if npcs:
 		var who: String = npcs.near(operator.position)
 		if who != _near:

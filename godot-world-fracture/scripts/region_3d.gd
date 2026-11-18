@@ -1914,6 +1914,9 @@ func set_mode(md: Mode) -> void:
 # ---------------- play (the Fracture Descent missions walk the regions with the on-foot operator) ----------------
 func world() -> Node3D:
 	return _world
+## the map coordinates of this view's local origin (local = map − origin): the waypoint and the map's YOU use map ones
+func origin() -> Vector2:
+	return Vector2(_ox, _oz)
 func camera() -> Camera3D:
 	return _cam
 func span() -> float:

@@ -20,10 +20,11 @@ const TRACKS := {
 	# a night street circuit through Neon City's blocks: the avenue is the main straight, right-angle corners round the
 	# blocks, a jog through the market grid; concrete barriers instead of kerbs and grass (race_view builds it as a city)
 	"neon-circuit": {
-		# ~3.2 km a lap through a dozen blocks (Nov 18 ×1.7; Nov 11 1.9 km, was 779 m): the 500 m avenue, the south blocks, the market jog west,
-		# the long west boulevard, the north blocks and back onto the avenue. Four laps.
-		"name": "Neon Night Circuit", "kind": "street", "width": 13.0, "laps": 4, "prize": [2000, 1100, 500, 200],
-		"points": [[0, 0, 425], [0, 0, -425], [-17, 0, -479], [-68, 0, -496], [-306, 0, -496], [-357, 0, -479], [-374, 0, -428], [-374, 0, -255], [-394, 0, -207], [-442, 0, -190], [-561, 0, -190], [-609, 0, -170], [-629, 0, -122], [-629, 0, 153], [-609, 0, 201], [-561, 0, 221], [-391, 0, 221], [-343, 0, 238], [-323, 0, 286], [-323, 0, 493], [-303, 0, 541], [-255, 0, 561], [-68, 0, 561], [-17, 0, 544], [0, 0, 493]],
+		# ~1.9 km a lap through a dozen blocks (Nov 11, was 779 m): the 500 m avenue, the south blocks, the market jog west,
+		# the long west boulevard, the north blocks and back onto the avenue. Six laps since Nov 18 (the owner: "make the
+		# racing tracks longer"; its blocks are laid to this line, so it runs more laps rather than a bigger lap).
+		"name": "Neon Night Circuit", "kind": "street", "width": 13.0, "laps": 6, "prize": [2000, 1100, 500, 200],
+		"points": [[0, 0, 250], [0, 0, -250], [-10, 0, -282], [-40, 0, -292], [-180, 0, -292], [-210, 0, -282], [-220, 0, -252], [-220, 0, -150], [-232, 0, -122], [-260, 0, -112], [-330, 0, -112], [-358, 0, -100], [-370, 0, -72], [-370, 0, 90], [-358, 0, 118], [-330, 0, 130], [-230, 0, 130], [-202, 0, 140], [-190, 0, 168], [-190, 0, 290], [-178, 0, 318], [-150, 0, 330], [-40, 0, 330], [-10, 0, 320], [0, 0, 290]],
 		"start": 0.0,
 	},
 }

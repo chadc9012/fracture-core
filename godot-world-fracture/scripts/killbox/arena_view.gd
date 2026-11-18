@@ -40,6 +40,11 @@ const LOOKS := {
 ## "" opens the arena picker first; a shot sets it before the view is added
 var arena_id := ""
 var mode_id := "clash"
+## an online match between players (online_pvp.gd): no bots on either side. Off: VS BOTS, the bot teams as before
+var online := false
+var net_pvp: Node
+## the online identity to use (tests give each view its own); the shared one when unset
+var net: Node
 var arena: Arena
 var match_state: Match
 var world: Node3D
@@ -235,7 +240,12 @@ func _start() -> void:
 	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	var size: int = int(match_state.mode.get("teamSize", 6))
-	if match_state.kind == "ffa":
+	if online:
+		# players only: your side from the room (online_pvp.gd), nobody else spawned here
+		net_pvp = load("res://scripts/net/online_pvp.gd").new()
+		add_child(net_pvp)
+		net_pvp.setup(self, net)
+	elif match_state.kind == "ffa":
 		# everyone for themselves: each bot its own team, half from each side's spawns
 		var n: int = int(match_state.mode.get("players", 12)) - 1
 		for i in n:
@@ -595,6 +605,13 @@ func _respawn_bot(e: RefCounted) -> void:
 	en.timer = 4.0
 
 func _on_operator_down() -> void:
+	if online:
+		if net_pvp:
+			net_pvp.my_down()
+		match_state.score(0)
+		match_state.player_died()
+		_respawn_t = 4.0
+		return
 	if match_state.kind == "ffa":
 		# the rival who shot you last takes the point
 		var killer := ""
@@ -759,7 +776,7 @@ func _process(dt: float) -> void:
 			for o in enemies.enemies:
 				if o.team == 0 and o.target.alive():
 					threats.append(o.mover.position)
-			operator.position = arena.spawn("us", threats)
+			operator.position = arena.spawn(net_pvp.spawn_side() if net_pvp else "us", threats)
 			operator.velocity = Vector3.ZERO
 	# the fall
 	if operator.position.y < arena.kill_plane() and enemies.down <= 0.0:
@@ -786,6 +803,8 @@ func _process(dt: float) -> void:
 	if running != _blackout:
 		_set_event(running)
 	_slide_shifters(dt)
+	if net_pvp:
+		net_pvp.step(dt)
 	var g = gunplay.gun()
 	controls.weapon_name.text = g.display_name()
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
@@ -811,6 +830,8 @@ func _hud_line() -> String:
 func _board_text() -> String:
 	var m := match_state
 	var head := "%s · first to %d" % [String(m.mode.name), m.target()]
+	if net_pvp:
+		return "%s\n%s\nyou: %d kills · %d deaths" % [head, "\n".join(net_pvp.board_lines()), m.player_kills, m.player_deaths]
 	if m.kind == "ffa":
 		var rows: Array = []
 		for k in m.board:

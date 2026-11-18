@@ -8,8 +8,10 @@ extends Control
 ##   Raids   Raid 01 · The Hollow Star (scripts/raid/raid_view.gd) with a bot fireteam, from the gate or the checkpoint
 ##   Races   Nexus Speedway and the Neon Night Circuit (scripts/racing/race_view.gd) against bot racers
 ##
-## Everything runs against bots for now; online play comes later (the owner's call, Nov 8). The views are hosted here, so
-## LEAVE in a mode comes back to its lobby.
+## Online play (Nov 18, the owner: "make the bots in the pvp a game mode not available in other modes"): PvP plays
+## ONLINE against other players or VS BOTS — its own mode, the only one with bot opponents; Races are between the players
+## on the line (alone, the track's pace); Raids keep their AI fireteam until online fireteams land. The views are hosted
+## here, so LEAVE in a mode comes back to its lobby.
 
 signal closed
 
@@ -28,8 +30,8 @@ const MODES := [
 	  "blurb": "Six a side on the rooftops of Neon City. Every elimination scores; first to 75.", "tags": ["Team Deathmatch", "Multi-level", "Dynamic events"] },
 	{ "id": "raids", "name": "RAIDS", "plate": "RAID 01", "accent": Color(0.7, 0.45, 1.0), "sub": "Six-player fireteams · 3.8 km down",
 	  "blurb": "The Hollow Star: hold the Broken Gate, then break Astravore before the machine overloads.", "tags": ["Fireteam of 6", "Checkpoints", "Exotic drops"] },
-	{ "id": "races", "name": "RACES", "plate": "CIRCUITS", "accent": Color(0.3, 0.9, 1.0), "sub": "Venues · street circuits",
-	  "blurb": "Your garage build against three rivals: the Speedway by day, Neon City's streets by night.", "tags": ["Your garage car", "Live positions", "Prize Nex"] },
+	{ "id": "races", "name": "RACES", "plate": "CIRCUITS", "accent": Color(0.3, 0.9, 1.0), "sub": "Venues · street circuits · online",
+	  "blurb": "Your garage build against the players on the line: the Speedway by day, Neon City's streets by night, the long tracks.", "tags": ["Your garage car", "Other players", "Prize Nex"] },
 ]
 
 var page: Control
@@ -291,14 +293,14 @@ func _page() -> VBoxContainer:
 func show_hub() -> void:
 	_mode = ""
 	var v := _page()
-	v.add_child(_header("GAME MODES", "PVP   /   RAIDS   /   RACES   ·   VS BOTS NOW, ONLINE PLAY LATER", func(): closed.emit()))
+	v.add_child(_header("GAME MODES", "PVP   /   RAIDS   /   RACES   ·   ONLINE", func(): closed.emit()))
 	var row := _row()
 	v.add_child(row)
 	for md in MODES:
 		var id: String = md.id
 		var t := _tile(id, String(md.name), String(md.sub), String(md.blurb), md.accent, func(): open_mode(id), true, 40)
 		row.add_child(t)
-	v.add_child(_strip("EVERY MODE", ["✓ Your operator, guns and gear", "✓ Nex and XP into your profile", "✓ Bots fill every slot"]))
+	v.add_child(_strip("EVERY MODE", ["✓ Your operator, guns and gear", "✓ Nex and XP into your profile", "✓ Online with other players", "Bots: PvP's VS BOTS mode only"]))
 
 func open_mode(id: String) -> void:
 	_mode = id
@@ -313,9 +315,21 @@ func open_mode(id: String) -> void:
 # --------------------------------------------------------------------------------------------- PvP
 const PVP_SOON := [["neon-yard", "NEON YARD", "Industrial container yard"], ["glass-spire", "GLASS SPIRE", "Vertical combat tower"], ["riverfront", "RIVERFRONT", "Urban waterfront arena"], ["void-rift", "VOID RIFT", "Fracture anomaly zone"]]
 
+## ONLINE (players, no bots) or VS BOTS (the bot squads: the only mode with bots in it)
+var pvp_bots := false
+
 func _pvp() -> void:
 	var v := _page()
-	v.add_child(_header("PVP · KILLBOX", "COMPETITIVE ARENAS   /   TEAM BATTLES   /   CLASH VS BOT SQUADS", show_hub))
+	v.add_child(_header("PVP · KILLBOX", ("VS BOTS   /   BOT SQUADS ON EVERY SIDE   /   OFFLINE PRACTICE") if pvp_bots else ("ONLINE   /   OTHER PLAYERS   /   NO BOTS"), show_hub))
+	var sw := HBoxContainer.new()
+	sw.add_theme_constant_override("separation", 10)
+	for opt in [[false, "ONLINE · PLAYERS"], [true, "VS BOTS"]]:
+		var b := Data.button(String(opt[1]), pvp_bots == bool(opt[0]))
+		b.custom_minimum_size = Vector2(200, 44)
+		var want: bool = opt[0]
+		b.pressed.connect(func(): pvp_bots = want; open_mode("pvp"))
+		sw.add_child(b)
+	v.add_child(sw)
 	var grid := GridContainer.new()
 	grid.columns = 2 if _upright() else 4
 	grid.add_theme_constant_override("h_separation", 12)
@@ -330,21 +344,25 @@ func _pvp() -> void:
 	for id in Arena.arena_ids():
 		var a := Arena.new(String(id))
 		var aid := String(id)
-		var t := _tile("pvp-" + aid, String(a.def.name).to_upper(), String(a.def.get("tag", "Clash · 6 v 6")), "", Color(1.0, 0.3, 0.7), func(): _launch_arena(aid), true, 22)
+		var t := _tile("pvp-" + aid, String(a.def.name).to_upper(), String(a.def.get("tag", "Clash · 6 v 6")) if pvp_bots else "Clash · online, players only", "", Color(1.0, 0.3, 0.7), func(): _launch_arena(aid), true, 22)
 		t.custom_minimum_size = Vector2(0, 150)
 		grid.add_child(t)
-	var royale := _tile("pvp-royale", "FRACTURE ROYALE", "60-player survival · the Verdant Forest", "", Color(0.75, 0.3, 1.0), func(): _host(RoyaleView.new()), true, 22)
-	royale.custom_minimum_size = Vector2(0, 150)
-	grid.add_child(royale)
+	if pvp_bots:
+		var royale := _tile("pvp-royale", "FRACTURE ROYALE", "60-player survival · the Verdant Forest · bots", "", Color(0.75, 0.3, 1.0), func(): _host(RoyaleView.new()), true, 22)
+		royale.custom_minimum_size = Vector2(0, 150)
+		grid.add_child(royale)
 	for s in PVP_SOON:
 		var t2 := _tile("pvp-" + String(s[0]), String(s[1]), String(s[2]) + " · coming", "", Color(0.4, 0.5, 0.6), func(): pass, false, 22)
 		t2.custom_minimum_size = Vector2(0, 150)
 		grid.add_child(t2)
-	v.add_child(_strip("PVP MODES", ["✓ Team Deathmatch (Clash)", "Domination · soon", "Control · soon", "Kill Confirmed · soon", "Free for All · soon", "✓ Fracture Royale", "Ranked · with online"], Color(1.0, 0.3, 0.7)))
+	v.add_child(_strip("PVP MODES", (["✓ Clash vs bot squads", "✓ Every arena's modes", "✓ Fracture Royale"] if pvp_bots else ["✓ Clash online · players", "Sides fill by who's in", "Ranked · soon"]), Color(1.0, 0.3, 0.7)))
 
 func _launch_arena(id: String) -> void:
 	var av := ArenaView.new()
 	av.arena_id = id
+	if not pvp_bots:
+		av.online = true
+		av.mode_id = "clash"
 	_host(av)
 
 # --------------------------------------------------------------------------------------------- Raids
@@ -401,7 +419,7 @@ func _launch_raid(at: String) -> void:
 # --------------------------------------------------------------------------------------------- Races
 func _races() -> void:
 	var v := _page()
-	v.add_child(_header("RACES", "VENUES   /   STREET CIRCUITS   /   YOUR GARAGE CAR VS THREE RIVALS", show_hub))
+	v.add_child(_header("RACES", "VENUES   /   STREET CIRCUITS   /   ONLINE · YOUR GARAGE CAR VS THE PLAYERS ON THE LINE", show_hub))
 	var row := _row()
 	v.add_child(row)
 	for id in Track.TRACKS.keys():
@@ -409,7 +427,7 @@ func _races() -> void:
 		var tid := String(id)
 		var street := tr.street()
 		var sub := "%s · %d laps · %.1f km" % ["Street circuit, night" if street else "Racing venue, day", int(tr.def.laps), tr.length / 1000.0]
-		var body := "Neon City's blocks at night: barriers, right-angle corners, the market jog. Win: %d Nex." % int(tr.def.prize[0]) if street else "Stands, pit lane and start lights; an oval with a back-straight chicane. Win: %d Nex." % int(tr.def.prize[0])
+		var body := "Neon City's blocks at night: barriers, right-angle corners, the market jog. Win: %d Nex." % int(tr.def.prize[0]) if street else "Stands, pit lane and start lights; a grand-prix lap with a hairpin and esses. Win: %d Nex." % int(tr.def.prize[0])
 		row.add_child(_tile("race-" + tid, String(tr.def.name).to_upper(), sub, body, Color(0.3, 0.9, 1.0), func(): _launch_race(tid), true, 28))
 	v.add_child(_track_pack())
 	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "Motorcycle · soon", "Off-road / mud · soon", "Air races · soon"], Color(0.3, 0.9, 1.0)))
@@ -458,10 +476,14 @@ func pack_laps(d: Dictionary) -> int:
 	var r: Array = d.get("lap_range", [int(d.get("laps", 1)), int(d.get("laps", 1))])
 	return [1, int(r[0]), int(r[1])][lap_mode]
 
+## the lobby's races are between players (race_view.gd `online`): no AI rivals outside the story
+var races_online := true
+
 func _launch_race(id: String, laps := 0) -> void:
 	var rv := RaceView.new()
 	rv.track_id = id
 	rv.laps = laps
+	rv.online = races_online
 	_host(rv)
 
 # --------------------------------------------------------------------------------------------- hosting a mode

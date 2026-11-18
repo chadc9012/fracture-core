@@ -294,6 +294,18 @@ func _draw_overlay() -> void:
 			if prev != null and vis and i % 2 == 0:
 				_overlay.draw_line(prev, s, col, 2.0, true)
 			prev = s if vis else null
+		# a plane flying the route (Nov 18, "airplane lines on map"): out and back, nose along the arc
+		var tt := pingpong(Time.get_ticks_msec() * 0.00004 + float(Data.planet.routes.find(r)) * 0.23, 1.0)
+		var p1 := A.slerp(B, tt) * (1.01 + sin(PI * tt) * arc * 0.09)
+		var p2 := A.slerp(B, clampf(tt + 0.01, 0.0, 1.0)) * (1.01 + sin(PI * clampf(tt + 0.01, 0.0, 1.0)) * arc * 0.09)
+		if not _occluded(p1):
+			var s1 := _cam.unproject_position(p1)
+			var s2 := _cam.unproject_position(p2)
+			var back := fmod(Time.get_ticks_msec() * 0.00004 + float(Data.planet.routes.find(r)) * 0.23, 2.0) > 1.0
+			var ang := (s2 - s1).angle() + (PI if back else 0.0)
+			_overlay.draw_set_transform(s1, ang + PI / 2.0, Vector2.ONE)
+			_overlay.draw_string(get_theme_default_font(), Vector2(-7, 6), "✈", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.85, 0.95, 1.0))
+			_overlay.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 ## is a point behind the planet as the camera sees it (the line of sight meets the sphere first)?
 func _occluded(p: Vector3) -> bool:
