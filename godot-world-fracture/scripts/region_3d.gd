@@ -604,7 +604,9 @@ func _style_for(id: String) -> Dictionary:
 		"amb": 0.55, "night": 0.0, "neon": 0.0, "wet": 0.0, "sat": 0.86, "planet": true, "under": false}
 	match id:
 		"neon-city":
-			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#2a1240", "fog_d": 0.0026, "sun": 0.12, "sun_col": "#8fa6ff", "sun_el": 30.0, "amb": 0.35, "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.15}, true)
+			# the owner's Neon boards (Nov 15, NFS night): the moonlit navy sky over a magenta horizon glow, navy light on
+			# the walls (not a violet wash), warm windows and sodium streets with the neon as the accent (Nov 18 pass)
+			s.merge({"top": "#07061a", "hor": "#3b1356", "fog": "#1c1638", "fog_d": 0.0022, "sun": 0.35, "sun_col": "#9fb2ff", "sun_el": 34.0, "amb": 0.6, "amb_col": "#3a4070", "night": 1.0, "neon": 1.0, "wet": 1.0, "sat": 1.1, "moon_sky": true, "exp": 1.3}, true)
 		"nexus":
 			# still night, but moonlit enough to read the island, parks and streets (it was near-black outside the towers)
 			s.merge({"top": "#0d1a30", "hor": "#3a5278", "fog": "#24324a", "fog_d": 0.0016, "sun": 0.28, "sun_col": "#a9bfff", "sun_el": 34.0, "amb": 0.6, "night": 1.0, "neon": 0.55, "wet": 0.9, "sat": 1.0}, true)
@@ -655,20 +657,26 @@ func _build_env() -> void:
 	else:
 		_env.background_mode = Environment.BG_SKY
 		var sky := Sky.new()
+		if _style.get("moon_sky", false):
+			# the street's night sky (night_fx.gd): navy overhead, the city's glow on the horizon, clouds, the moon
+			sky.sky_material = preload("res://scripts/city/night_fx.gd").sky()
+			sky.radiance_size = Sky.RADIANCE_SIZE_64
+			_env.sky = sky
 		var sm := ProceduralSkyMaterial.new()
 		sm.sky_top_color = Color(_style.top)
 		sm.sky_horizon_color = Color(_style.hor)
 		sm.ground_horizon_color = Color(_style.hor).darkened(0.2)
 		sm.ground_bottom_color = Color(_style.fog).darkened(0.5)
 		sm.sun_angle_max = 8.0
-		sky.sky_material = sm
-		_env.sky = sky
+		if not _style.get("moon_sky", false):
+			sky.sky_material = sm
+			_env.sky = sky
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if not _style.under else Environment.AMBIENT_SOURCE_COLOR
 	_env.ambient_light_color = Color(_style.fog)
 	_env.ambient_light_energy = _style.amb + _style.night * 0.5
 	if _style.night > 0.5:
 		_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		_env.ambient_light_color = Color(_style.hor).lightened(0.25)
+		_env.ambient_light_color = Color(_style.get("amb_col", Color(_style.hor).lightened(0.25)))
 	_env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	_env.tonemap_exposure = float(_style.get("exp", 0.85 if _style.night < 0.5 else 1.15))
 	_env.fog_enabled = true
@@ -1796,11 +1804,19 @@ func _build_lamps() -> void:
 	sm.rings = 4
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(1.0, 0.82, 0.55) if _style.neon < 0.5 else Color(0.75, 0.9, 1.0)
+	# sodium heads in every city: the Neon boards light their streets amber too, with the neon on the buildings
+	mat.albedo_color = Color(1.0, 0.72, 0.4) if _style.neon > 0.5 else Color(1.0, 0.82, 0.55)
 	mat.emission_enabled = true
 	mat.emission = mat.albedo_color
 	mat.emission_energy_multiplier = 4.0
 	_multimesh(sm, xf, mat)
+	# and the pool each one throws on the wet street under it (night_fx.gd's additive pools, one multimesh): the
+	# boards' amber-lit roads, which the heads alone left dark (Nov 18 Neon pass)
+	if map_id in ["neon-city", "nexus"]:
+		var pools: Array = []
+		for t in xf:
+			pools.append([t.origin - Vector3(0, 5.95, 0), mat.albedo_color, 7.0])
+		preload("res://scripts/city/night_fx.gd")._pools(_world, pools, 1.3)
 
 var _labels: Array = []
 var _declutter_t := 0.0

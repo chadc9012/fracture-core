@@ -835,7 +835,8 @@ static func landmark_fx(r: Node) -> void:
 			po.position = Vector3(pp.x, minf(r._h(pp.x, pp.y), r._h(pp.x + 5.0, pp.y)) - 0.3, pp.y)
 			po.rotation.y = atan2(at.x - pp.x, at.y - pp.y)
 			r._world.add_child(po)
-		elif cat == "research" or pid in FIELD_POIS:
+		elif (cat == "research" or pid in FIELD_POIS) and not id in HOLO_CITIES:
+			# (never in a city: Neon City's base-02 is a garage, and an 80 m dome over its middle hid the downtown)
 			# the dome covers the station's buildings: the farthest one within 70 m, plus a margin
 			var reach := 22.0
 			for bd in r.m.buildings:

@@ -45,8 +45,12 @@ void fragment() {
 			float reveal = min(min(f.x - 0.18, 0.82 - f.x), min(f.y - 0.3, 0.82 - f.y));
 			c *= mix(1.0, smoothstep(0.0, 0.065, reveal) * 0.28 + 0.72, facade_detail);
 			float lit = step(1.0 - mix(0.0, 0.38, night), r) * (1.0 - blind * 0.75);
-			vec3 warm = vec3(1.0, 0.72, 0.42), cool = r > 0.8 ? vec3(1.0, 0.25, 0.75) : vec3(0.25, 0.85, 1.0);
-			EMISSION = mix(warm, cool, neon) * lit * window_light_strength * night;
+			// warm rooms and cool-white offices everywhere; Neon City adds a share of cyan / magenta panes (the boards'
+			// towers are mostly warm and white windows with the neon as the accent, not all neon)
+			vec3 warm = tint > 0.62 ? vec3(0.85, 0.9, 1.0) : vec3(1.0, 0.72, 0.42);
+			vec3 cool = r > 0.8 ? vec3(1.0, 0.25, 0.75) : vec3(0.25, 0.85, 1.0);
+			float neon_pane = step(1.0 - neon * 0.3, hash2(cell + seed * 71.0));
+			EMISSION = mix(warm, cool, neon_pane) * lit * window_light_strength * night;
 			ROUGHNESS = 0.12;
 			METALLIC = 0.3;
 		} else {
