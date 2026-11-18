@@ -16,8 +16,10 @@ const Rig := preload("res://scripts/character/character_rig.gd")
 const FaceMorphs := preload("res://scripts/character/face_morphs.gd")
 # the creator makes the person: body, face, skin, hair, facial hair and markings, shown in regular clothes. Armour and gear
 # are not chosen here (owner, Nov 10: "operators creator shouldn't have a armor option"); the build picked here is the
-# one the armour is fitted to in the game
-const TABS := ["BODY", "FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS", "OUTFIT"]
+# one the armour is fitted to in the game. Clothes aren't chosen here either, and the robot (it reads as a suit of
+# armour) isn't offered: "Armor and clothing option should only be in game features not in on boarding" (owner,
+# Nov 18) — outfits are bought and worn in the city (scripts/city/clothing_store.gd, the wardrobe)
+const TABS := ["BODY", "FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS"]
 const FACE_TABS := ["FACE", "SCULPT", "SKIN", "HAIR", "BEARD & MARKS"]
 
 var look: Dictionary = {}
@@ -367,7 +369,7 @@ func _fill() -> void:
 		"BODY":
 			_section("GENDER")
 			var g := _grid(3)
-			for b: String in ["male", "female", "robot"]:
+			for b: String in ["male", "female"]:
 				_choice(g, b.to_upper(), look.body == b, func() -> void:
 					look = Store.clean({"frame": look.frame, "body": b, "name": look.get("name", ""), "face": Catalog.faces(b)[0].id if Catalog.faces(b).size() else ""}, true)
 					_changed(true))
@@ -379,29 +381,6 @@ func _fill() -> void:
 					look.frame = fid
 					look.head = look.head if not robot else Catalog.default_head(fid, "robot")
 					_changed(true), String(bl[1]))
-		"OUTFIT":
-			# the clothes they wear in the city (not armour): scripts/character/outfits.gd
-			_section("OUTFIT")
-			var go := _grid(2)
-			for it: Dictionary in Wardrobe.ITEMS:
-				if it.kind != "outfit":
-					continue
-				var oid: String = it.id
-				if Wardrobe.owns(look, oid):
-					_choice(go, Wardrobe.item_name(it), String(look.get("outfit", "")) == oid, func() -> void:
-						look.outfit = oid
-						_changed(true))
-				else:
-					# sold in the city's clothing stores (scripts/city/clothing_store.gd)
-					var b := _choice(go, "🔒 %s" % Wardrobe.item_name(it), false, func() -> void: pass,
-						"%d Nex at %s" % [int(it.price), String(Wardrobe.STORES[String(it.stores[0])].name)])
-					b.disabled = true
-			var hint := Label.new()
-			hint.text = "More outfits, headwear, eyewear and jewellery at Nova Threads and Lumen Luxe in the Galleria, and Block Supply on the avenue."
-			hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			hint.add_theme_font_size_override("font_size", 12)
-			hint.modulate = Color(0.7, 0.85, 0.95)
-			go.get_parent().add_child(hint)
 		"FACE":
 			if robot:
 				_section("HEAD")
