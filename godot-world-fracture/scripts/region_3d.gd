@@ -624,7 +624,12 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#050b22", "hor": "#2a4a86", "fog": "#1e3260", "fog_d": 0.0016, "sun": 0.85, "sun_col": "#b8ccff", "sun_el": 24.0, "sun_az": 120.0,
 				"amb": 0.38, "amb_col": "#3e5590", "night": 0.75, "sat": 1.05, "exp": 1.1, "planet": false, "sky": "moon", "glow": "#3d5ea8", "glow_amt": 0.25}, true)
 		"swamps":
-			s.merge({"top": "#4c5b55", "hor": "#93a08a", "fog": "#6f7c66", "fog_d": 0.0042, "sun": 0.7, "sun_col": "#e8f0d0", "sun_el": 26.0, "amb": 0.6}, true)
+			# the Shrouded Swamps (owner's world board: bioluminescent wetlands, mangroves, the sunken temple, a High Risk
+			# Fracture Zone): a misty green twilight under the moon, standing water through the marsh, glowing fungi and
+			# fireflies in the trees (Nov 18 pass; it was a flat grey-green noon over what read as a dry pine forest)
+			s.merge({"top": "#0f2024", "hor": "#4a6e5a", "fog": "#34493f", "fog_d": 0.003, "sun": 0.95, "sun_col": "#c4dccf", "sun_el": 26.0, "sun_az": 60.0,
+				"amb": 1.0, "amb_col": "#4a6c62", "night": 0.7, "sat": 1.0, "exp": 1.45, "planet": false, "sky": "moon", "glow": "#3f8a6a", "glow_amt": 0.3,
+				"bog": 1.0}, true)
 		"veridan", "riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
 		"wastelands":
@@ -807,6 +812,7 @@ func _build_ground() -> void:
 	mat.set_shader_parameter("bounds", Vector4(b.x0, b.z0, b.span, 0))
 	mat.set_shader_parameter("data_tex", Data.texture("maps/%s.data.pngb" % map_id))
 	mat.set_shader_parameter("wet", _style.wet)
+	mat.set_shader_parameter("bog", float(_style.get("bog", 0.0)))
 	mat.set_shader_parameter("embers", float(_style.get("embers", 0.0)))
 	mat.set_shader_parameter("tint", _style.get("tint", Vector3.ONE))
 	for pair in [["i_forest", "forest"], ["i_dense", "denseForest"], ["i_marsh", "marsh"], ["i_meadow", "meadow"], ["i_grass", "grass"], ["i_scrub", "scrub"],

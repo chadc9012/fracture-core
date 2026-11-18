@@ -953,6 +953,20 @@ static func fracture_set(r: Node) -> void:
 ## marsh and the water's edge, coral in the coast maps' shallows, glacier blocks on the ice. One MultiMesh a kind,
 ## drawn within FLOOR_M (the glaciers to the horizon), capped by FLOOR_CAP a kind. Procedural meshes, a few hundred
 ## triangles each; the wildflowers and reeds are crossed cards.
+## a soft round dot (fireflies): white centre fading out, made once
+static var _dot: ImageTexture
+static func _glow_dot() -> Texture2D:
+	if _dot:
+		return _dot
+	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	for y in 32:
+		for x in 32:
+			var d := Vector2(x - 15.5, y - 15.5).length() / 16.0
+			var a := clampf(1.0 - d, 0.0, 1.0)
+			img.set_pixel(x, y, Color(1, 1, 1, a * a))
+	_dot = ImageTexture.create_from_image(img)
+	return _dot
+
 const FLOOR_M := 260.0
 const FLOOR_CAP := 700
 
@@ -1055,6 +1069,8 @@ static func floor(r: Node, clear: PackedByteArray) -> void:
 	var reeds: Array[Transform3D] = []
 	var corals: Array[Transform3D] = []
 	var glaciers: Array[Transform3D] = []
+	var flies: Array[Transform3D] = []
+	var bog := id == "swamps"   # the Shrouded Swamps glow: fireflies in the trees and over the water, the fungi lit
 	var stride := maxi(2, int(w / 220.0))
 	for j in range(0, w, stride):
 		for i in range(0, w, stride):
@@ -1082,6 +1098,8 @@ static func floor(r: Node, clear: PackedByteArray) -> void:
 			elif coast and y < water - 0.4 and y > water - 3.5:
 				if roll < 0.25 and corals.size() < FLOOR_CAP:
 					corals.append(Transform3D(yaw.scaled(Vector3.ONE * (0.8 + rng.randf() * 1.2)), Vector3(x, y, z)))
+			if bog and (cv in forest or cv in marsh) and rng.randf() < 0.07 and flies.size() < FLOOR_CAP:
+				flies.append(Transform3D(Basis().scaled(Vector3.ONE * (0.6 + rng.randf() * 0.8)), Vector3(x, maxf(y, water) + 0.6 + rng.randf() * 2.4, z)))
 			if cv in ice and y > water + 0.5 and roll < 0.004 and glaciers.size() < 60 and r._space_claim(x, z, 12.0):
 				glaciers.append(Transform3D(yaw.scaled(Vector3.ONE * (0.8 + rng.randf() * 1.0)), Vector3(x, y - 1.0, z)))
 	var bark := StandardMaterial3D.new()
@@ -1115,8 +1133,26 @@ static func floor(r: Node, clear: PackedByteArray) -> void:
 	icemat.metallic_specular = 0.9
 	if not logs.is_empty():
 		r._multimesh(log_mesh(), logs, bark, FLOOR_M)
+	if bog:
+		# bioluminescent caps (the board's glowing wetlands)
+		cap.albedo_color = Color(0.25, 0.75, 0.7)
+		cap.emission_enabled = true
+		cap.emission = Color(0.2, 0.95, 0.8)
+		cap.emission_energy_multiplier = 1.8
 	if not shrooms.is_empty():
 		r._multimesh(mushroom_mesh(), shrooms, cap, FLOOR_M * 0.5, false)
+	if not flies.is_empty():
+		var fly := StandardMaterial3D.new()
+		fly.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fly.albedo_color = Color(0.75, 1.0, 0.45)
+		fly.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		fly.billboard_keep_scale = true
+		fly.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		fly.albedo_texture = _glow_dot()
+		fly.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		var q := QuadMesh.new()
+		q.size = Vector2(0.22, 0.22)
+		r._multimesh(q, flies, fly, FLOOR_M * 0.6, false)
 	if not moss.is_empty():
 		r._multimesh(moss_mesh(), moss, green, FLOOR_M * 0.6, false)
 	if not flowers.is_empty():
