@@ -783,7 +783,7 @@ func _build_ground() -> void:
 	var skirt := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	# open sea (the Storm Islands are seen from low down) runs much further so its edge sinks into the haze
-	var sea := 40.0 if not m.get("floating", []).is_empty() else 8.0
+	var sea := 40.0 if not m.get("floating", []).is_empty() else 24.0   # 24 spans: the Skyways airspace (3.6 spans out) never sees the edge
 	pm.size = Vector2(_span * sea, _span * sea)
 	skirt.mesh = pm
 	skirt.position = Vector3(0, _water - 18.0, 0)
@@ -796,7 +796,7 @@ func _build_water() -> void:
 	var mi := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
 	# open sea (the Storm Islands are seen from low down) runs much further so its edge sinks into the haze
-	var sea := 40.0 if not m.get("floating", []).is_empty() else 8.0
+	var sea := 40.0 if not m.get("floating", []).is_empty() else 24.0   # 24 spans: the Skyways airspace (3.6 spans out) never sees the edge
 	pm.size = Vector2(_span * sea, _span * sea)
 	pm.subdivide_width = 4
 	pm.subdivide_depth = 4
@@ -1916,6 +1916,9 @@ func world() -> Node3D:
 	return _world
 func camera() -> Camera3D:
 	return _cam
+## the region is drawn at night (its style)
+func is_night() -> bool:
+	return float(_style.get("night", 0.0)) > 0.5
 func span() -> float:
 	return _span
 ## where Street View would stand: open ground near the place the region opened at

@@ -63,6 +63,21 @@ var state: Handling.State
 var top_speed := 62.0
 var pad := Vector3.ZERO
 var hull_hp := 1.0
+## how far past the map aircraft may fly, in map spans from the centre (region_3d.gd's skirt reaches 4 spans out), and
+## how far inside that edge the craft starts banking home
+const AIR_SPANS := 3.6
+const EDGE_TURN := 160.0
+var _edge_warned := false
+
+## the region is lit for night (its style), where the craft's fill light is turned up
+func region_night() -> bool:
+	return region != null and region.is_night()
+
+## the half-width of where this craft may go: the region for boats and subs, the open airspace for aircraft
+func airspace_half() -> float:
+	if String(profile.mode) == "AIR":
+		return region.span() * AIR_SPANS - 40.0
+	return region.span() * 0.5 - 10.0
 ## how much of a crash / a hard landing the hull takes (Airframe Finish / Landing Gear at the Aviation Hangar)
 var hull_take := 1.0
 var land_take := 1.0
@@ -182,6 +197,22 @@ func _start() -> void:
 	_fit_hull(float(c.length))
 	if String(c.kind) == "JET":
 		_build_gear(float(c.length))
+	# a soft fill over the craft (Nov 18 flight test: at night over the dark sea the Rift-Jumper read as a black shape)
+	# and a red / green pair of navigation lights at the wingtips
+	var fill := OmniLight3D.new()
+	fill.light_color = Color(0.85, 0.9, 1.0)
+	fill.light_energy = 1.4 if region_night() else 0.5
+	fill.omni_range = float(c.length) * 1.6
+	fill.shadow_enabled = false
+	fill.position = Vector3(0, float(c.length) * 0.45, float(c.length) * 0.3)
+	hull.add_child(fill)
+	for side in [-1.0, 1.0]:
+		var nav := OmniLight3D.new()
+		nav.light_color = Color(1.0, 0.1, 0.1) if side < 0.0 else Color(0.1, 1.0, 0.3)
+		nav.light_energy = 2.0
+		nav.omni_range = 3.0
+		nav.position = Vector3(side * float(c.length) * 0.35, 0.3, 0.0)
+		hull.add_child(nav)
 	if from_hangar:
 		var pr := Gear.profile_load()
 		hull_hp = maxf(0.2, Air.condition(pr, craft_id) / 100.0)
@@ -512,8 +543,20 @@ func _process(dt: float) -> void:
 		if hull_hp <= 0.0:
 			_reset("The craft is wrecked — back on the pad")
 			return
-	# the edge of the region
-	var half: float = region.span() * 0.5 - 10.0
+	# the edge: boats and subs keep to the region's water; aircraft get open airspace out over the land / sea skirt
+	# region_3d.gd lays around the map (owner, Nov 18: jets hit an invisible wall at the 480 m map edge within seconds).
+	# Near the airspace edge the craft banks itself back toward the city instead of sticking to the limit.
+	var half: float = airspace_half()
+	if String(profile.mode) == "AIR" and state.airborne:
+		var out := maxf(absf(want.x), absf(want.z)) - (half - EDGE_TURN)
+		if out > 0.0:
+			var home := atan2(want.x, want.z)   # the yaw that points the nose (-sin, -cos) back at the centre
+			state.yaw = lerp_angle(state.yaw, home, minf(1.0, (0.6 + out / EDGE_TURN * 1.6) * dt))
+			if not _edge_warned:
+				_edge_warned = true
+				controls.toast("Edge of the airspace — turning back")
+		elif maxf(absf(want.x), absf(want.z)) < half - EDGE_TURN * 2.0:
+			_edge_warned = false
 	want.x = clampf(want.x, -half, half)
 	want.z = clampf(want.z, -half, half)
 	hull.position = want

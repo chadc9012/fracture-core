@@ -52,22 +52,37 @@ func _fly(id: String) -> void:
 	for i in 200:
 		v._process(0.05)
 		top = maxf(top, _alt(v))
-	var hp_after_climb: float = v.hull_hp
 	check("%s: climbed to %.0f m at %.0f m/s" % [name, top, absf(v.state.speed)], top > 8.0)
-	# level off and cruise 15 s
+	# level off and cruise 60 s straight out: the craft leaves the map's 480 m, flies on over the open airspace, and banks
+	# itself back from the airspace edge instead of sticking to a wall
 	v.controls._brake_held = false
-	for i in 300:
+	var half: float = v.airspace_half()
+	var far := 0.0
+	var at_wall := 0
+	for i in 1200:
 		v._process(0.05)
+		var r: float = maxf(absf(v.hull.position.x), absf(v.hull.position.z))
+		far = maxf(far, r)
+		if r > half - 1.0:
+			at_wall += 1
 	var dist := Vector2(v.hull.position.x - start.x, v.hull.position.z - start.z).length()
-	print("     after cruise at (%.0f, %.0f), alt %.0f m" % [v.hull.position.x, v.hull.position.z, _alt(v)])
-	check("%s: flew %.0f m from the pad, hull %d%%" % [name, dist, int(v.hull_hp * 100)], dist > 60.0 and v.hull_hp > 0.0)
+	print("     after cruise at (%.0f, %.0f), alt %.0f m; furthest %.0f m out of %.0f; %d frames on the limit" % [v.hull.position.x, v.hull.position.z, _alt(v), far, half, at_wall])
+	check("%s: flew out past the map (%.0f m from the centre, map edge %.0f m), hull %d%%" % [name, far, v.region.span() * 0.5, int(v.hull_hp * 100)], far > v.region.span() * 0.5 + 100.0 and v.hull_hp > 0.0)
+	check("%s: turned back before the airspace limit (%d frames pinned)" % [name, at_wall], at_wall < 20)
 	# come down: ease the throttle, hold DOWN, until it touches the ground
 	v.controls.move = Vector2(0.0, 0.2)
 	v.controls._sprint_held = true
 	t = 0.0
+	var hard := false
+	var vy := 0.0
+	var touch := 0.0
 	while v.state.airborne and t < 180.0:
+		vy = v.state.vy
+		touch = v.state.speed
 		v._process(0.05)
 		t += 0.05
-	check("%s: back on the ground after %.0f s (hull %d%%, climb hull %d%%)" % [name, t, int(v.hull_hp * 100), int(hp_after_climb * 100)], not v.state.airborne)
+		hard = hard or v.state.hard_landing
+	check("%s: back on the ground after %.0f s" % [name, t], not v.state.airborne)
+	check("%s: a soft landing holding DOWN (touchdown %.1f m/s down, %.0f m/s along)" % [name, -vy, absf(touch)], not hard)
 	v.queue_free()
 	await get_tree().process_frame

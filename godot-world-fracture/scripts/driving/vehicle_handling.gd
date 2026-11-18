@@ -57,6 +57,14 @@ class State:
 
 ## `input`: throttle 0..1, brake 0..1, steer -1..1, ascend 0..1, descend 0..1, handbrake, boost
 ## `env`: grip 0..1, slope, floor (ground or sea floor height), water (surface height), over_water
+## the landing flare: under FLARE_HEIGHT metres a descent eases to FLARE_SINK m/s at the ground (+0.3 m/s per metre up)
+const FLARE_HEIGHT := 30.0
+const FLARE_SINK := 2.0
+## jets: under this height with DOWN held and the throttle back, flaps and airbrake slow them to a landing speed
+const APPROACH_HEIGHT := 150.0
+## helicopters and airships: under this height with DOWN held and the throttle back, they flare toward a hover
+const HOVER_HEIGHT := 60.0
+
 static func step(p: Dictionary, st: State, input: Dictionary, env: Dictionary, top_speed: float, dt: float) -> void:
 	var mode := String(p.mode)
 	var ground: float = 1.0 if mode != "GROUND" else float(env.get("grip", 1.0))
@@ -123,6 +131,17 @@ static func step(p: Dictionary, st: State, input: Dictionary, env: Dictionary, t
 				st.vy = float(p.climb) * 0.4
 		else:
 			var want := (ascend - descend) * float(p.climb)
+			# the landing flare (owner, Nov 18: every landing came in "hard"): close to the ground a held DOWN eases
+			# from the full sink rate to a touchdown rate, so coming straight down settles instead of slamming in
+			var alt_above := st.y - floor_ride
+			if want < 0.0 and alt_above < FLARE_HEIGHT:
+				want = maxf(want, -(FLARE_SINK + alt_above * 0.3))
+			# on approach (DOWN held, throttle back) the craft bleeds off to a landing speed so it touches down under the
+			# hard-landing speed: jets with flaps and airbrake from APPROACH_HEIGHT, helicopters and airships flaring into
+			# a hover from HOVER_HEIGHT
+			var jet := float(p.takeoff) > 0.0
+			if want < 0.0 and throttle < 0.5 and alt_above < (APPROACH_HEIGHT if jet else HOVER_HEIGHT):
+				st.speed = move_toward(st.speed, float(p.takeoff) + 6.0 if jet else 4.0, (28.0 if jet else 14.0) * dt)
 			var sink: float = -8.0 if float(p.takeoff) > 0.0 and st.speed < float(p.takeoff) * 0.7 else 0.0
 			st.vy += (want + sink - st.vy) * (1.0 - exp(-2.5 * dt))
 			st.y += st.vy * dt
