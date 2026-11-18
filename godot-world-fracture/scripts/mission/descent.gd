@@ -144,7 +144,6 @@ func _setup_world(world: String, start_poi: String) -> void:
 		wildlife.setup(operator, gunplay, func(x: float, z: float) -> float: return region.ground(x, z), func(x: float, z: float) -> bool: return region.over_water(x, z), 7)
 		wildlife.water_level = region.water_level()
 		wildlife.set_night(float(region._style.get("night", 0.0)) > 0.5)
-		wildlife.populate(Vector2(operator.position.x, operator.position.z))
 	enemies.operator_down.connect(func(): _respawn_t = 5.0)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
@@ -158,6 +157,15 @@ func _setup_world(world: String, start_poi: String) -> void:
 	for i in 3:
 		_relays.append(_on_ground(_spawn_origin + _dir * (90.0 + i * 110.0) + Vector3(0, 0, (i - 1) * 40.0)))
 	_edge = _on_ground(_spawn_origin + _dir * minf(520.0, half - 40.0))
+	if wildlife:
+		# the forest's dens, nests and crag keep off the mission's ground: the relays, the far edge and every POI
+		var keep: Array[Vector2] = []
+		for p in _relays:
+			keep.append(Vector2(p.x, p.z))
+		keep.append(Vector2(_edge.x, _edge.z))
+		for poi in Data.map(world).get("pois", []):
+			keep.append(region.local_point(float(poi.x), float(poi.z)))
+		wildlife.populate(Vector2(operator.position.x, operator.position.z), 160.0, keep)
 	_guards.clear()
 	_terminal = null
 	boss = null

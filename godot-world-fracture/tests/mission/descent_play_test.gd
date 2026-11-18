@@ -198,6 +198,15 @@ func _ready() -> void:
 	ok(d.progress.current == "fd-05" and d.world_id == "swamps", "fd-04 cleared: the chain crosses into the Shrouded Swamps (%s in %s)" % [d.progress.current, d.world_id])
 	ok(int(Gear.profile_load().nex) >= nex0 + 470, "paid the forest's three quests (+%d Nex)" % (int(Gear.profile_load().nex) - nex0))
 	ok(d.operator != null and d.region != null and d.enemies != null and d.wildlife != null, "the swamps have an operator, troopers and wildlife")
+	# the forest's dens, nests and crag keep off the relays and the far edge (wildlife_view.gd populate keep_clear)
+	var near := 0
+	var keep: Array = d._relays.duplicate()
+	keep.append(d._edge)
+	for c in d.wildlife.bodies:
+		for k in keep:
+			if Vector2(c.home.x - k.x, c.home.y - k.z).length() < d.wildlife.KEEP_M - 0.01:
+				near += 1
+	ok(d.wildlife._keep.size() >= 4 and near == 0, "no den, nest or home within %.0f m of a relay or the edge (%d too close)" % [d.wildlife.KEEP_M, near])
 	ok(d.cutscene.playing, "fd-05 opens on a cutscene")
 	d.cutscene._end()
 	# fd-05: the fog (90 s, skipped forward) then the relay's three guards

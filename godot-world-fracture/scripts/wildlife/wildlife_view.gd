@@ -32,7 +32,17 @@ func setup(player: Node3D, g: Node3D, ground: Callable, wet: Callable, seed := 7
 
 ## the forest population round a centre: deer herds, boar, rabbits, a fox, a wolf pack, a bear, a panther, a raptor,
 ## songbirds, and by any water a crocodile, fish and a shark
-func populate(centre: Vector2, radius := 160.0) -> void:
+## `keep_clear` is the mission's own ground — waypoints, relays, POIs — no home, den, nest or crag within KEEP_M of it
+const KEEP_M := 14.0
+var _keep: Array[Vector2] = []
+func _clear_of(p: Vector2) -> bool:
+	for k in _keep:
+		if k.distance_to(p) < KEEP_M:
+			return false
+	return true
+
+func populate(centre: Vector2, radius := 160.0, keep_clear: Array[Vector2] = []) -> void:
+	_keep = keep_clear
 	var r := RandomNumberGenerator.new()
 	r.seed = 21
 	var spot := func(dist_lo: float, dist_hi: float, want_wet: bool) -> Vector2:
@@ -40,7 +50,7 @@ func populate(centre: Vector2, radius := 160.0) -> void:
 			var a := r.randf() * TAU
 			var d := r.randf_range(dist_lo, dist_hi)
 			var p := centre + Vector2(cos(a), sin(a)) * d
-			if bool(is_wet.call(p.x, p.y)) == want_wet:
+			if bool(is_wet.call(p.x, p.y)) == want_wet and _clear_of(p):
 				return p
 		return centre + Vector2(dist_lo, 0)
 	for i in 2:
@@ -281,8 +291,15 @@ func _dressing() -> void:
 			# the nest: a ring of twigs on a dead snag (the raptor's high on a crag)
 			var tall := 7.0 if c.species == "RAPTOR" else 2.6
 			if c.species == "RAPTOR":
-				# the raptor soars round the centre; its crag stands off to one side, not on the player's spot
-				h = Vector3(c.home.x + 32.0, float(ground_at.call(c.home.x + 32.0, c.home.y - 18.0)), c.home.y - 18.0)
+				# the raptor soars round the centre; its crag stands off to one side, not on the player's spot (and
+				# round the other side when that side is a waypoint's)
+				var crag := Vector2(c.home.x + 32.0, c.home.y - 18.0)
+				for k in 8:
+					if _clear_of(crag):
+						break
+					var a := TAU * (k + 1) / 8.0
+					crag = Vector2(c.home.x + cos(a) * 37.0, c.home.y + sin(a) * 37.0)
+				h = Vector3(crag.x, float(ground_at.call(crag.x, crag.y)), crag.y)
 			var snag := Node3D.new()
 			snag.position = h
 			parent.add_child(snag)
