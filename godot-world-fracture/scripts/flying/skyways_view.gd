@@ -571,7 +571,9 @@ func _enter_site(s: Dictionary) -> void:
 	_site = s
 	_anchor = s.v
 	controls.toast("Entering %s airspace" % String(s.name))
-	region.show_region(region_id, null, Region3D.Mode.PLAY)
+	# built over a few frames while you fly on (the ground, sea and sky first): no freeze on arrival
+	hull.set_meta("not_land", true)
+	region.show_region(region_id, null, Region3D.Mode.PLAY, true)
 	cam = region.camera()
 	cam.current = true
 	cam.far = 16000.0
@@ -590,8 +592,14 @@ func _enter_site(s: Dictionary) -> void:
 	hull.rotation = Vector3(state.pitch, state.yaw, state.roll)
 	cam.position = hull.position + cam_off.rotated(Vector3.UP, turn)
 	region.follow_horizon(l.x, l.y)
-	var sp: Vector3 = region.stand_point()
-	pad = _clear_spot(sp, false)
+	var settle := func() -> void:
+		if is_instance_valid(self) and region.map_id == String(s.map):
+			pad = _clear_spot(region.stand_point(), false)
+			_boxes = region.building_boxes()
+	if region.building:
+		region.built.connect(settle, CONNECT_ONE_SHOT)
+	else:
+		settle.call()
 	if gps:
 		gps.region = region
 		gps.refresh_map()
