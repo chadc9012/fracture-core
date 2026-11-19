@@ -46,7 +46,7 @@ func _run() -> void:
 				secs = float(a2.substr(6))
 		var t := 0.0
 		while t < secs:
-			st.controls.move = Vector2(0.0, 1.0)
+			st.controls.move = Vector2(float(OS.get_environment("WF_STEER")) if OS.get_environment("WF_STEER") != "" else 0.0, 1.0)
 			await physics_frame
 			t += get_root().get_physics_process_delta_time()
 		st.controls.move = Vector2.ZERO
