@@ -74,6 +74,9 @@ func _run() -> void:
 		controls = sk.controls
 		controls.scripted = true
 		subject = func() -> Vector3: return sk.hull.global_position
+	var start: Vector3 = subject.call()
+	var travel := 0.0
+	var prev := start
 	var t := 0.0
 	var frames := 0
 	var inside := 0
@@ -93,6 +96,9 @@ func _run() -> void:
 		await physics_frame
 		t += root.get_physics_process_delta_time()
 		frames += 1
+		var now: Vector3 = subject.call()
+		travel += now.distance_to(prev)
+		prev = now
 		var p := cam.global_position
 		var bi := _inside(p, boxes)
 		var g: float = ground.call(p.x, p.z)
@@ -115,12 +121,12 @@ func _run() -> void:
 					break
 		if bad != "":
 			worst.append("%.1fs %s cam %s" % [t, bad, str(p.snapped(Vector3.ONE * 0.1))])
-			if t - last_shot > 1.5 and shots < 6:
+			if DisplayServer.get_name() != "headless" and t - last_shot > 1.5 and shots < 6:
 				last_shot = t
 				shots += 1
 				await RenderingServer.frame_post_draw
 				root.get_texture().get_image().save_png("%s/%s_%02d.png" % [out, mode.replace(":", "_"), shots])
-	print("CAM_AUDIT %s frames %d inside %d under %d blocked %d" % [mode, frames, inside, under, blocked])
+	print("CAM_AUDIT %s frames %d inside %d under %d blocked %d · travelled %.0f m, ended %.0f m from the start, %d boxes" % [mode, frames, inside, under, blocked, travel, prev.distance_to(start), boxes.size()])
 	for w in worst.slice(0, 12):
 		print("CAM_AUDIT   ", w)
 	quit()
