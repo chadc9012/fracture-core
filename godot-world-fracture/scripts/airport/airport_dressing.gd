@@ -51,6 +51,7 @@ func dress(view: Control) -> void:
 	if style in ["nexus", "neon", "desert", "coastal", "arctic", "forest"]:
 		_parking()
 	_signs()
+	_hall_glow()
 	_mezzanine()
 	_checkin()
 	_security()
@@ -534,6 +535,25 @@ func _signs() -> void:
 		v._box(Vector3(0.36, 0.36, 0.05), sg + Vector3(-1.45, 6.1 - i * 0.6, 0.14), v._glow(yel, 1.4))
 		v._text(String(rows[i]), sg + Vector3(0.25, 6.1 - i * 0.6, 0.15), 36, yel)
 		v._text(String(rows[i]), sg + Vector3(0.25, 6.1 - i * 0.6, -0.15), 36, yel, PI)
+
+## the hall's own warm light: four real lights under the roof (no shadows), a warm line along the foot of each wall, and
+## glowing columns' collars — so the hall reads lit from within, as on the boards
+func _hall_glow() -> void:
+	if v.night:
+		return
+	for at in [Vector3(-24, 9.0, 12), Vector3(18, 9.0, 12), Vector3(-24, 9.0, -16), Vector3(18, 9.0, -16)]:
+		var o := OmniLight3D.new()
+		o.position = at
+		o.light_color = Color(1.0, 0.82, 0.6)
+		o.light_energy = 1.1
+		o.omni_range = 26.0
+		o.omni_attenuation = 1.2
+		o.shadow_enabled = false
+		v.world.add_child(o)
+	var warm: Material = v._glow(Color(1.0, 0.8, 0.55), 1.8)
+	for side in [-1.0, 1.0]:
+		v._box(Vector3(0.12, 0.1, 54.0), Vector3(side * 47.6, 0.12, -2.0), warm)
+	v._box(Vector3(94.0, 0.1, 0.12), Vector3(0, 0.12, -29.6), warm)
 
 ## the upper level the boards' halls have: a gallery along each side wall at 6.5 m on a lit slab, a glass balustrade, and
 ## its row of shopfronts glowing warm behind (seen from the hall; nobody walks up there)
