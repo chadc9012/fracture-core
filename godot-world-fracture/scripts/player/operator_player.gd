@@ -225,6 +225,9 @@ func _place_camera(dt: float) -> void:
 		want = pivot + Vector3(back.x, 0.0, back.z).normalized() * 1.4 + Vector3(0, 1.1, 0)
 	var k := 1.0 if dt >= 1.0 else 1.0 - exp(-14.0 * dt)
 	cam.position = cam.position.lerp(want, k)
+	# the eased camera can cut through a box on its way to a cleared spot (a car swinging past, the chase camera
+	# swinging round as the car turns): it went inside parked cars and walls for a frame or two (owner's video, Nov 18)
+	cam.position = _clear_camera(pivot, cam.position)
 	cam.look_at(pivot + side * 0.6 + Vector3(0, 0.1, 0))
 	if shake > 0.001:
 		# a fast rumble plus a jolt, both fading with the shake (squared, so a big hit kicks and a small one tickles)

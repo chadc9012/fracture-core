@@ -1,7 +1,7 @@
 extends SceneTree
 ## Look-dev: the operator's three frames (nyx slim, cipher athletic, goliath heavy) side by side, in the civilian clothes
 ## and in the armour, front and three-quarter, under soft studio light.
-##   godot --path . --script res://tests/tools/operator_lineup.gd -- out.png [male|female] [civ|armour] [clip:seconds]
+##   godot --path . --script res://tests/tools/operator_lineup.gd -- out.png [male|female] [civ|armour] [clip:seconds] [close|neck] [yaws:a,b]
 
 const Rig := preload("res://scripts/character/character_rig.gd")
 const Store := preload("res://scripts/character/character_store.gd")
@@ -37,7 +37,11 @@ func _run() -> void:
 	world.add_child(fill)
 	var x := -3.0
 	for frame: String in ["nyx", "cipher", "goliath"]:
-		for yaw: float in [0.0, 40.0]:
+		var yaws: Array = [0.0, 40.0]
+		for a in args:
+			if a.begins_with("yaws:"):
+				yaws = Array(a.substr(5).split(",")).map(func(v: String) -> float: return float(v))
+		for yaw: float in yaws:
 			var r := Rig.new()
 			world.add_child(r)
 			var look := Store.clean({"frame": frame, "body": body, "face": "m-veteran" if body == "male" else ""}, true)
@@ -50,6 +54,11 @@ func _run() -> void:
 					r.anim.seek(float(cs[1]) if cs.size() > 1 else 0.3, true)
 					r.anim.pause()
 			r.rotation_degrees.y = yaw
+			var hide := OS.get_environment("WF_HIDE")   # look-dev: hide meshes whose name contains this
+			if hide != "":
+				for mi in r.find_children("*", "MeshInstance3D", true, false):
+					if hide in String(mi.name) or (hide == "HEAD" and mi == r.head_mesh):
+						mi.visible = false
 			x += 1.2
 		x += 0.3
 	var cam := Camera3D.new()

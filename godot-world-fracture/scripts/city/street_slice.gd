@@ -388,9 +388,8 @@ func _spawn_player() -> void:
 	gunplay.setup(operator, operator.obstacles)
 	_spawn = operator.position
 	armed = force_armed or story_armed()
-	# two practice dummies by the garage, and the block's cyber troopers (enemies.gd) further down
-	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0)]:
-		gunplay.add_dummy(spot)
+	# the block's cyber troopers (enemies.gd) further down. (Two practice dummies used to stand on the sidewalk by the
+	# garage: orange boxes on posts in the middle of the city's main avenue; owner's video, Nov 17)
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
@@ -767,6 +766,8 @@ func _process(dt: float) -> void:
 		_drive(minf(dt, 0.05))
 		if life:
 			life.step(minf(dt, 0.05))
+		if gunplay:
+			gunplay.fade(minf(dt, 0.05))   # the enemies' tracers fade while you drive
 		return
 	if life:
 		life.step(minf(dt, 0.05))
@@ -2453,8 +2454,7 @@ func enter_car(c: Node3D) -> void:
 		Sound.radio_on(saved)
 	_radio_button.visible = true
 	if controls.touch_ui and controls._enter_button:
-		controls._enter_button.text = "EXIT"
-		controls._enter_button.visible = true
+		controls.prompt("EXIT")   # sized to its text (a long prompt before left a screen-wide EXIT)
 
 func exit_car() -> void:
 	if life:

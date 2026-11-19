@@ -778,6 +778,8 @@ func _process(dt: float) -> void:
 		if controls.take_next():
 			gunplay.next_weapon()
 		gunplay.step(dt, cam, controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())
+	else:
+		gunplay.fade(dt)   # the bots' last tracers go out after the buzzer
 	# the fracture event
 	var f: Dictionary = arena.def.fracture
 	var t := match_state.clock

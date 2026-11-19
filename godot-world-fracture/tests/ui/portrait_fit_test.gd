@@ -70,6 +70,8 @@ func _all(n: Node) -> Array:
 	return out
 
 func _run() -> void:
+	# as the phone: the touch buttons on screen too (GAS sat off the top left in a car; Nov 17)
+	OS.set_environment("WF_TOUCH", "1")
 	root.size = Vector2i(int(W), int(H))
 	root.content_scale_size = Vector2i(int(W), int(H))
 	for f in ["user://mission01.json"]:

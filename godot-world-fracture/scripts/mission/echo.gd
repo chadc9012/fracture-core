@@ -7,8 +7,12 @@ const Sound := preload("res://scripts/audio/sound.gd")
 signal died(echo: Node3D)
 
 const Figure := preload("res://scripts/city/casino_interior.gd")
-const MODEL := "res://models/city/echo.glb"
+# the Meshy echo skinned to the city people's Mixamo rig with their idle/walk/run clips (tools/rig_echo.py): it stood in
+# a T and slid at you before (owner, Nov 18)
+const MODEL := "res://models/city/echo_rigged.glb"
 var _body: Node3D
+var _anim: AnimationPlayer
+var _clip := ""
 var _holder: Node3D
 var _ov: ShaderMaterial
 
@@ -126,6 +130,12 @@ func _ready() -> void:
 		_body.position = Vector3(-(aabb.position.x + aabb.size.x * 0.5) * k, -aabb.position.y * k, -(aabb.position.z + aabb.size.z * 0.5) * k)
 		add_child(holder)
 		_holder = holder
+		_anim = _body.find_children("*", "AnimationPlayer", true, false).pop_front() as AnimationPlayer
+		if _anim:
+			for nm in ["idle", "walk", "run"]:
+				if _anim.has_animation(nm):
+					_anim.get_animation(nm).loop_mode = Animation.LOOP_LINEAR
+			_play("idle")
 	else:
 		var mi := MeshInstance3D.new()
 		mi.mesh = Figure.figure(0 if not elite else 1)
@@ -203,6 +213,12 @@ func _physics_process(delta: float) -> void:
 	_knock = _knock.move_toward(Vector3.ZERO, 30.0 * delta)
 	velocity = Vector3(v.x, velocity.y - 22.0 * delta if not is_on_floor() else -0.5, v.z)
 	move_and_slide()
+	# the run matched to the pace (the clip covers about 3.4 m/s), a stand when it has reached you and swings
+	var pace := Vector2(velocity.x, velocity.z).length()
+	if pace > 0.5:
+		_play("run", clampf(pace / (3.4 * (1.75 if elite else 1.0)), 0.6, 2.2))
+	else:
+		_play("idle")
 	if dist > 0.1:
 		rotation.y = lerp_angle(rotation.y, atan2(dir.x, dir.z), minf(1.0, 8.0 * delta))
 
@@ -227,3 +243,11 @@ func take_damage(d: float) -> void:
 
 func knock(v: Vector3) -> void:
 	_knock = v * (0.3 if elite else 1.0)
+
+func _play(clip: String, speed := 1.0) -> void:
+	if _anim == null or not _anim.has_animation(clip):
+		return
+	_anim.speed_scale = speed
+	if clip != _clip:
+		_clip = clip
+		_anim.play(clip, 0.2)

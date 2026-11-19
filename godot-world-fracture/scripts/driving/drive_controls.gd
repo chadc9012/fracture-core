@@ -11,7 +11,7 @@ func _ready() -> void:
 		button.text = spec[0]
 		button.custom_minimum_size = Vector2(70, 54)
 		add_child(button)
-		if DisplayServer.is_touchscreen_available() or OS.has_feature("mobile"):
+		if DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_environment("WF_TOUCH"):
 			# any finger: steering and GO held together (a Button alone only hears the first finger)
 			preload("res://scripts/player/touch_controls.gd").bind(button, _set_flag.bind(spec[1], true), _set_flag.bind(spec[1], false))
 		else:

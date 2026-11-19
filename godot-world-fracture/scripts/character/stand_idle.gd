@@ -80,7 +80,7 @@ static func _moves(sk: Skeleton3D, i: int) -> Callable:
 		var dir := (c - g.origin).normalized()
 		var side := signf(dir.x)
 		var from := atan2(absf(dir.x), -dir.y)          # the rest angle out from straight down
-		var lower := maxf(from - deg_to_rad(9.0), 0.0)  # leave the arm ~9 degrees out from the side
+		var lower := maxf(from - deg_to_rad(6.0), 0.0)  # leave the arm ~6 degrees out from the side (9 read stiff, arms held out; Nov 18)
 		var ph := 0.0 if side > 0.0 else 0.6
 		return func(t: float) -> Quaternion:
 			var sway := deg_to_rad(1.2) * sin(t * w + ph)

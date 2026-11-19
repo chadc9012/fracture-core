@@ -76,7 +76,7 @@ var kills := 0
 ## no weapon in hand: before Mission 01's Fracture arms the operator the street is walked unarmed (owner, Nov 9)
 var holstered := false
 ## aim help: shots go to a live foe within this many degrees of the crosshair (on by default on a touch screen)
-var assist_deg := 7.0 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")) else 0.0
+var assist_deg := 7.0 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_environment("WF_TOUCH")) else 0.0
 var shots_fired := 0
 var hits_landed := 0
 
@@ -370,7 +370,12 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		for k in Weapons.pellets(gun().frame):
 			_fire_one(cam, moving_speed)
 		_eject(cam)
-	# tracers and the flash fade
+	fade(dt)
+
+## tracers, casings, magazines and debris run out their lives, the flash goes out. Called by step, and on its own by a
+## view while the operator is in a car: the enemies still fire (their tracers come through gunplay.tracer), and with
+## step not running none of them ever went — the street filled with hundreds of standing cyan lines (Nov 18)
+func fade(dt: float) -> void:
 	var keep: Array = []
 	for tr in _tracers:
 		tr.t -= dt

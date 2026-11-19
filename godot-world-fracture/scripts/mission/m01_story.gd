@@ -51,6 +51,8 @@ const BREACH_NUDGE := {
 }
 const OBJECTIVE := {
 	"ALARM": "Get down the emergency stairs",
+	# out of the doors, while the street's cinematic plays (no line here left the tracker an empty box; Nov 17)
+	"CINE": "Get clear of the building",
 	"DAZED": "Get clear of the building",
 	"SURGE": "Survive the breach",
 	"ANCHOR": "Stop the anchor",
