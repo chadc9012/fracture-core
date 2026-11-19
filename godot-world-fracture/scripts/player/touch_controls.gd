@@ -1411,3 +1411,53 @@ func celebrate(word: String, title: String, line := "") -> void:
 	tw.tween_interval(2.4)
 	tw.tween_property(root, "modulate:a", 0.0, 0.6)
 	tw.tween_callback(root.queue_free)
+
+# ---------------------------------------------------------------------------------------------- kill feed
+## the arena shooters' kill feed (owner Nov 18, interfaceingame.com: Halo Infinite, Overwatch 2, Apex Legends, The
+## Finals): down the right side, newest at the bottom, "KILLER  ▸  VICTIM" in each side's colour (✛ for a headshot),
+## your own lines on a lit strip; five at most, each fades after a few seconds
+const FEED_ALLY := Color(0.45, 0.78, 1.0)
+const FEED_RIVAL := Color(1.0, 0.42, 0.42)
+var _feed: VBoxContainer
+
+func feed(killer: String, victim: String, killer_ally: bool, victim_ally: bool, head := false, you := false) -> void:
+	if not _feed:
+		_feed = VBoxContainer.new()
+		_feed.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		_feed.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		_feed.offset_left = -360
+		_feed.offset_right = -16
+		_feed.offset_top = 300
+		_feed.alignment = BoxContainer.ALIGNMENT_END
+		_feed.add_theme_constant_override("separation", 4)
+		_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_feed)
+	var row := PanelContainer.new()
+	row.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var sb := UiTheme.box(Color(1, 1, 1, 0.16) if you else Color(0.02, 0.025, 0.04, 0.6), Color(0, 0, 0, 0), 0, Vector4(10, 3, 10, 3))
+	if you:
+		sb.border_width_right = 3
+		sb.border_color = UiTheme.GOLD
+	row.add_theme_stylebox_override("panel", sb)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(h)
+	for part in [[killer, FEED_ALLY if killer_ally else FEED_RIVAL], ["✛" if head else "▸", UiTheme.INK if head else UiTheme.INK_DIM], [victim, FEED_ALLY if victim_ally else FEED_RIVAL]]:
+		var l := Label.new()
+		l.text = String(part[0]).to_upper()
+		l.add_theme_font_override("font", UiTheme.font(700, 1))
+		l.add_theme_font_size_override("font_size", 13)
+		l.add_theme_color_override("font_color", part[1])
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(l)
+	_feed.add_child(row)
+	while _feed.get_child_count() > 5:
+		_feed.get_child(0).free()
+	row.modulate.a = 0.0
+	var tw := row.create_tween()
+	tw.tween_property(row, "modulate:a", 1.0, 0.15)
+	tw.tween_interval(4.5)
+	tw.tween_property(row, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(row.queue_free)

@@ -574,6 +574,15 @@ func _slide_shifters(dt: float) -> void:
 		mi.position.y = move_toward(mi.position.y, want, 2.5 * dt)
 
 # --------------------------------------------------------------------------------------------- the match
+## a kill on the HUD's feed (touch_controls.feed): names and sides from the tally; in FFA everyone else is a rival
+func _feed_line(killer_id: String, victim_id: String) -> void:
+	if victim_id == "" or not _tally.has(killer_id) or not _tally.has(victim_id) or not controls.has_method("feed"):
+		return
+	var ffa: bool = match_state.kind == "ffa"
+	var k: Dictionary = _tally[killer_id]
+	var v: Dictionary = _tally[victim_id]
+	controls.feed(String(k.name), String(v.name), bool(k.you) or (not ffa and int(k.team) == 1), bool(v.you) or (not ffa and int(v.team) == 1), false, bool(k.you) or bool(v.you))
+
 ## the tally line for an id (made on first sight: bots get a callsign from their id)
 func _line(id: String, team: int) -> Dictionary:
 	if not _tally.has(id):
@@ -595,6 +604,7 @@ func _on_bot_down(e: RefCounted, by_team: int, by_player: bool) -> void:
 	var who := "player" if by_player else _killer_on(by_team)
 	if who != "":
 		_line(who, 1 if who == "player" else by_team).k += 1
+		_feed_line(who, String(_bot_ids.get(en, "")))
 	if match_state.kind == "ffa":
 		# the kill goes on the killer's board line; a fall is nobody's
 		var killer := ""
@@ -638,6 +648,7 @@ func _on_operator_down() -> void:
 		for o in enemies.enemies:
 			if _bot_ids.get(o, "") == shooter:
 				_line(shooter, int(o.team)).k += 1
+		_feed_line(shooter, "player")
 	if online:
 		if net_pvp:
 			net_pvp.my_down()

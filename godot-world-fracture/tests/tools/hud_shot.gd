@@ -55,6 +55,11 @@ func _process(_dt: float) -> bool:
 		c.toast("Daily goal complete  ·  +250 XP  ·  +120 Nex")
 		c.prompt("Enter Neon Drift")
 		c.hit_marker("head")
+		if OS.get_cmdline_user_args().has("feed"):
+			c.feed("Kilo", "Iko", false, true)
+			c.feed("You", "Vex", true, false, true, true)
+			c.feed("Vance", "Juno", true, false)
+			c.feed("Hex", "You", false, true, false, true)
 		if OS.get_cmdline_user_args().has("celebrate"):
 			c.celebrate("Mission complete", "First Resonance", "◆ +600 nex   ·   +400 xp")
 		if OS.get_cmdline_user_args().has("leader"):

@@ -30,6 +30,7 @@ func _ready() -> void:
 	v._on_operator_down()
 	ok(int(v._tally.player.k) == 2 and int(v._tally.player.d) == 1, "the tally keeps your kills and deaths (%d / %d)" % [int(v._tally.player.k), int(v._tally.player.d)])
 	ok(int(v._tally[String(v._bot_ids[rival])].d) == 2, "and the bot's deaths")
+	ok(v.controls._feed != null and v.controls._feed.get_child_count() >= 3, "each kill goes up on the kill feed")
 	v.match_state.over = true
 	v.match_state.winner = "us"
 	v._finish()
