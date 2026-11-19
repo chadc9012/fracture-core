@@ -1106,6 +1106,11 @@ var _mission_card: Control
 ## Destiny's "New mission" card (owner Nov 18): a gold kicker with the chapter's code, the title in wide caps between
 ## two rules, the chapter's opening line under it; holds a few seconds and fades. The story calls it as a chapter begins.
 func mission_card(kicker: String, title: String, line := "") -> void:
+	# a celebration on screen goes first; the next chapter's card waits for it
+	var wait := (_celebrate_until - Time.get_ticks_msec()) / 1000.0
+	if wait > 0.0 and is_inside_tree():
+		get_tree().create_timer(wait).timeout.connect(func(): mission_card(kicker, title, line))
+		return
 	if _mission_card:
 		_mission_card.queue_free()
 	var b := VBoxContainer.new()
@@ -1309,3 +1314,100 @@ func medal(word: String, line := "", col := Color(1.0, 0.82, 0.35)) -> void:
 		if _medal == v:
 			_medal = null
 		v.queue_free())
+
+# ---------------------------------------------------------------------------------------------- enemy leader
+## The Division 2's named-enemy banner (owner Nov 18): ENEMY LEADER DETECTED (red) when a boss appears, ENEMY LEADER
+## DEFEATED (gold) when it falls — a strip across the top with the name in wide caps, a skull-diamond mark either side
+func leader(boss_name: String, detected := true) -> void:
+	var col := Color(1.0, 0.36, 0.32) if detected else UiTheme.GOLD
+	var root := VBoxContainer.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	root.offset_left = -330
+	root.offset_right = 330
+	root.offset_top = 300   # under the toast strip, where a fight's own banners go
+	root.add_theme_constant_override("separation", 2)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+	var head := HBoxContainer.new()
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
+	head.add_theme_constant_override("separation", 12)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(head)
+	for i in 3:
+		if i == 1:
+			var cap := _banner_label("ENEMY LEADER DETECTED" if detected else "ENEMY LEADER DEFEATED", 700, 5, 13, col)
+			cap.custom_minimum_size.x = 0
+			head.add_child(cap)
+		else:
+			var m := _banner_label("◆", 700, 0, 12, col)
+			m.custom_minimum_size.x = 0
+			head.add_child(m)
+	var bar := ColorRect.new()
+	bar.color = Color(col.r, col.g, col.b, 0.55)
+	bar.custom_minimum_size = Vector2(0, 2)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bar)
+	var nm := _banner_label(boss_name.to_upper(), 700, 6, 30, UiTheme.INK)
+	nm.custom_minimum_size.x = 660
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	root.add_child(nm)
+	root.modulate.a = 0.0
+	var tw := root.create_tween()
+	tw.tween_property(root, "modulate:a", 1.0, 0.3)
+	tw.parallel().tween_property(bar, "custom_minimum_size:x", 660.0, 0.5).from(0.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(3.0)
+	tw.tween_property(root, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(root.queue_free)
+
+# ---------------------------------------------------------------------------------------------- mission complete
+var _celebrate_until := 0
+
+## the moment a job is done (owner Nov 18, interfaceingame.com: The Division 2 "Summary", Watch Dogs: Legion
+## "Celebration"): MISSION COMPLETE / CHAPTER COMPLETE in gold wide caps, the job's name, what it paid; a burst of thin
+## rays behind it. Holds ~3 s; a mission card asked for meanwhile waits its turn.
+func celebrate(word: String, title: String, line := "") -> void:
+	_celebrate_until = Time.get_ticks_msec() + 3400
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	root.offset_top = 260
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+	var rays := Control.new()
+	rays.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var spin := [0.0]
+	rays.draw.connect(func():
+		for i in 24:
+			var a: float = float(spin[0]) + i * TAU / 24.0
+			var d := Vector2(cos(a), sin(a) * 0.45)
+			rays.draw_line(d * 90.0, d * (230.0 + 40.0 * float(i % 3)), Color(UiTheme.GOLD.r, UiTheme.GOLD.g, UiTheme.GOLD.b, 0.16), 2.0, true))
+	rays.position = Vector2(0, 52)
+	root.add_child(rays)
+	var v := VBoxContainer.new()
+	v.position = Vector2(-360, 0)
+	v.custom_minimum_size.x = 720
+	v.add_theme_constant_override("separation", 4)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(v)
+	var w := _banner_label(word.to_upper(), 700, 10, 40, UiTheme.GOLD)
+	w.custom_minimum_size.x = 720
+	v.add_child(w)
+	var t := _banner_label(title.to_upper(), 700, 4, 18, UiTheme.INK)
+	t.custom_minimum_size.x = 720
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(t)
+	if line != "":
+		var l := _banner_label(line.to_upper(), 700, 3, 15, UiTheme.INK)
+		l.custom_minimum_size.x = 720
+		v.add_child(l)
+	root.modulate.a = 0.0
+	w.pivot_offset = Vector2(360, 24)
+	w.scale = Vector2(1.3, 1.3)
+	var tw := root.create_tween()
+	tw.tween_property(root, "modulate:a", 1.0, 0.25)
+	tw.parallel().tween_property(w, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_method(func(a: float):
+		spin[0] = a
+		rays.queue_redraw(), 0.0, 0.6, 3.4)
+	tw.tween_interval(2.4)
+	tw.tween_property(root, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(root.queue_free)

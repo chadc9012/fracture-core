@@ -73,6 +73,9 @@ func _quests() -> Array:
 func _save_path() -> String:
 	return CAMPAIGN_SAVE
 
+func _complete_word() -> String:
+	return "Chapter complete"
+
 func _first_id() -> String:
 	return String(chapters[0].id) if not chapters.is_empty() else ACT_END
 

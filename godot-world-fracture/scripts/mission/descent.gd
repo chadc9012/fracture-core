@@ -86,6 +86,28 @@ func _ready() -> void:
 	cutscene = Cutscene.new()
 	add_child(cutscene)
 	_begin(progress.current)
+	_brief()
+
+## Helldivers' mission briefing over the world as the story opens (scripts/ui/briefing.gd); the story waits for DEPLOY.
+## Scripted and headless runs (the tests) deploy at once.
+const PLACES := { "veridan": ["Verdant Forest", "load-fracture", ["Corrupted wildlife", "Fracture patrols"]],
+	"swamps": ["Shrouded Swamps", "load-fracture", ["Bog mutants", "Drowned relay guards"]],
+	"neon-city": ["Neon City", "load-neon", ["Syndicate drones", "Aegis security"]],
+	"nexus": ["Nexus City", "load-nexus", ["Fracture troopers", "Syndicate enforcers"]] }
+func _brief() -> void:
+	if quest.is_empty() or (controls and controls.scripted) or DisplayServer.get_name() == "headless":
+		return
+	var place: Array = PLACES.get(String(quest.get("world", "")), [String(quest.get("world", "")).capitalize(), "load-fracture", []])
+	var objectives: Array = [String(quest.get("label", ""))]
+	if quest.has("stage2"):
+		objectives.append(String(quest.stage2))
+	var b = load("res://scripts/ui/briefing.gd").new()
+	b.data = { "code": String(quest.id), "title": String(quest.title), "place": place[0], "art": place[1],
+		"text": String(quest.get("line", "")), "objectives": objectives, "threats": place[2],
+		"reward": "◆ %d nex  ·  %d xp  ·  a chance at elite gear" % [int(quest.get("nex", 0)), int(quest.get("xp", 0))] }
+	set_process(false)
+	b.deploy.connect(func(): set_process(true))
+	add_child(b)
 
 ## the chain (the campaign runner, scripts/mission/campaign.gd, extends this with its own)
 func _quests() -> Array:
@@ -96,6 +118,10 @@ func _save_path() -> String:
 
 func _first_id() -> String:
 	return "fd-02"
+
+## what the celebration says (the campaign's chapters say CHAPTER COMPLETE)
+func _complete_word() -> String:
+	return "Mission complete"
 
 func _quest_def(id: String) -> Dictionary:
 	for q in _quests():
@@ -327,8 +353,11 @@ func _complete() -> void:
 	if not it.is_empty():
 		Gear.save(gear)
 		res.lines.append("LOOT · %s (%d power)" % [String(it.name), int(it.power)])
+	# the Division / Watch Dogs moment: the job's done, what it paid (the next chapter's card waits for it)
+	controls.celebrate(_complete_word(), String(quest.title), "◆ +%d nex   ·   +%d xp" % [int(quest.nex), int(quest.xp)])
 	for l in res.lines:
-		controls.toast(String(l))
+		if not String(l).begins_with("%s complete — " % String(quest.title)):   # the payment line is on the celebration
+			controls.toast(String(l))
 	Sound.sfx("confirm", -3.0)
 	var i := 0
 	var qs := _quests()

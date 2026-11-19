@@ -55,6 +55,10 @@ func _process(_dt: float) -> bool:
 		c.toast("Daily goal complete  ·  +250 XP  ·  +120 Nex")
 		c.prompt("Enter Neon Drift")
 		c.hit_marker("head")
+		if OS.get_cmdline_user_args().has("celebrate"):
+			c.celebrate("Mission complete", "First Resonance", "◆ +600 nex   ·   +400 xp")
+		if OS.get_cmdline_user_args().has("leader"):
+			c.leader("Vyrak, the Ashen Covenant", true)
 		if OS.get_cmdline_user_args().has("medal"):
 			c.medal("DOUBLE KILL", "HEADSHOT", Color(1.0, 0.82, 0.35))
 		if OS.get_cmdline_user_args().has("wheel"):
