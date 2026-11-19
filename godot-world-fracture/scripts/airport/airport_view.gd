@@ -255,6 +255,11 @@ func _ready() -> void:
 		_land_begin()
 	else:
 		controls.toast(String(a.name))
+	var stranded := Air.parked_note(profile, code)
+	if stranded != "":
+		get_tree().create_timer(3.5).timeout.connect(func():
+			if is_instance_valid(self) and controls:
+				controls.toast(stranded))
 	Sound.loops_stop()
 	Sound.ambience(Sound.bed_for(String(Air.AIRPORTS[code].region)), -14.0)
 
@@ -400,7 +405,7 @@ func _security_check() -> void:
 	if p.z < SECURITY_Z - 0.4 and p.z > SECURITY_Z - 3.0 and HALL.has_point(Vector2(p.x, p.z)) and not Air.can_go_airside(profile, code):
 		operator.position.z = SECURITY_Z + 0.6
 		operator.velocity = Vector3.ZERO
-		controls.toast("Security: boarding pass or hangar lease needed past this point")
+		controls.toast("Security: boarding pass or hangar lease needed past this point" + (" · your aircraft can't leave without a hangar here — buy a ticket to fly on" if Air.parked_note(profile, code) != "" else ""))
 
 func _apply_lanes() -> void:
 	var open := Air.can_go_airside(profile, code)

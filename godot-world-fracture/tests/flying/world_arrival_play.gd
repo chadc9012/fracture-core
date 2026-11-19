@@ -73,6 +73,11 @@ func _ready() -> void:
 	Air.relocate_aircraft(p2, "NXC", got[0], "skyhawk")
 	check("the Skyhawk moved from the Nexus hangar list to Neon City's", "skyhawk" in Air.aircraft_at(p2, "NEC") and not ("skyhawk" in Air.aircraft_at(p2, "NXC")))
 	check("its tank came back burnt (%d%%)" % Air.fuel(p2, "skyhawk"), Air.fuel(p2, "skyhawk") < 100)
+	# like a real airport (owner, Nov 19): no hangar of yours there, so it stays put; a ticket is the way on
+	var note := Air.parked_note(p2, "NEC")
+	check("no hangar at Neon City: it can't fly out, a ticket is the way on (%s)" % note, note.contains("can't fly out") and note.contains("ticket") and not Air.can_go_airside(p2, "NEC"))
+	Air.air(p2).hangars["NEC"] = "A"
+	check("with a hangar leased there it's yours to fly again", Air.parked_note(p2, "NEC") == "" and Air.can_go_airside(p2, "NEC"))
 	v.queue_free()
 	if had:
 		var f := FileAccess.open(Gear.PROFILE, FileAccess.WRITE)
