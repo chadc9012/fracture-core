@@ -450,7 +450,12 @@ func _build_ruins() -> void:
 	_multimesh(cm, columns, stone_mat)
 
 ## open a region in 3D, looking at `at` (world metres; the map's centre when null)
-func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -> void:
+## `staged` (world flight, Nov 18): the build is spread over frames — the ground, sea and sky first, then the
+## buildings, roads, trees, dressing and lights a frame or so apart — so a region built under a flying craft costs
+## a few short frames instead of one long freeze. The camera exists from the first frame. Emits `built` at the end.
+signal built
+var building := false
+func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, staged := false) -> void:
 	map_id = id
 	m = Data.map(id)
 	Sound.ambience(Sound.bed_for(id))
@@ -480,9 +485,20 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 		c.queue_free()
 	_world = Node3D.new()
 	_vp.add_child(_world)
+	var w := _world
+	building = true
+	_cam = Camera3D.new()
+	_cam.far = 14000.0
+	_cam.near = 0.2
+	_cam.fov = 62.0
+	_world.add_child(_cam)
 	_build_env()
 	_build_ground()
 	_build_water()
+	if staged:
+		await get_tree().process_frame
+		if _world != w:
+			return
 	_build_buildings()
 	_build_tower_rooftops_pass_17()
 	_build_civic_roofs()
@@ -491,30 +507,45 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 		_build_architecture_batch_19_43()
 	if CITY_FACADE_FINS:
 		_build_facade_fins_batch_19_43()
+	if staged:
+		await get_tree().process_frame
+		if _world != w:
+			return
 	_build_roads()
 	if CITY_ROAD_MARKINGS:
 		_build_road_markings_batch_19_43()
 	_build_rings()
 	_space = {}
 	space_rejected = 0
+	if staged:
+		await get_tree().process_frame
+		if _world != w:
+			return
 	_build_trees()
+	if staged:
+		await get_tree().process_frame
+		if _world != w:
+			return
 	_build_slope_rock()
 	Flora.rocks(self, _clearings())
+	if staged:
+		await get_tree().process_frame
+		if _world != w:
+			return
 	Flora.floor(self, _clearings())
 	_build_floating()
 	_build_ruins()
 	if id == "thalassia":
 		preload("res://scripts/thalassia_city.gd").new().build(_world, m, _loc, _h)
+	if staged:
+		await get_tree().process_frame
+		if _world != w:
+			return
 	_build_lamps()
 	Flora.landmark_fx(self)
 	Flora.fracture_set(self)
 	_build_labels()
 	_apply_season()
-	_cam = Camera3D.new()
-	_cam.far = 14000.0
-	_cam.near = 0.2
-	_cam.fov = 62.0
-	_world.add_child(_cam)
 	_weather = Weather.new()
 	_weather.ground_at = func(x: float, z: float) -> float: return maxf(_h(x, z), _water)
 	_weather.focus_at = func() -> Vector3: return _target if mode != Mode.STREET else _eye + Vector3(-sin(_look_yaw), 0, -cos(_look_yaw)) * 220.0
@@ -524,7 +555,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_open_sea = false
 	_land.clear()
 	for ch in _world.get_children():
-		if ch != _sea and ch != _skirt and ch != _cam and ch != _weather and not (ch is WorldEnvironment) and not (ch is Light3D):
+		if ch != _sea and ch != _skirt and ch != _cam and ch != _weather and not (ch is WorldEnvironment) and not (ch is Light3D) and not ch.has_meta("not_land"):
 			_land.append(ch)
 	var p := Vector2(_ox, _oz) if at == null else Vector2(at.x, at.y)
 	_target = Vector3(p.x - _ox, 0, p.y - _oz)
@@ -544,6 +575,8 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY) -
 	_eye = Vector3(_target.x, _h(_target.x, _target.z) + EYE, _target.z)
 	_fill_jump()
 	set_mode(start_mode)
+	building = false
+	built.emit()
 
 func _load_heights() -> void:
 	var hd: Dictionary = m.get("heights", {})

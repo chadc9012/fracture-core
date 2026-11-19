@@ -51,6 +51,8 @@ func _ready() -> void:
 		var t0 := Time.get_ticks_msec()
 		v._process(0.05)
 		var ms := Time.get_ticks_msec() - t0
+		if v.region.building:
+			await get_tree().process_frame   # a region going up under the craft: let its staged build go on
 		t += 0.05
 		var now: Vector3 = v.globe_pos()
 		flown += Geo.dist(last, now)
@@ -85,7 +87,7 @@ func _ready() -> void:
 		v._process(0.05)
 		t += 0.05
 	check("still flying, hull %d%%" % int(v.hull_hp * 100), v.state.airborne and v.hull_hp > 0.3)
-	print("     region builds: %s ms" % [rebuilds])
+	print("     region switch frames (the rest of each build is spread over the next frames): %s ms" % [rebuilds])
 	# land at home: ease off and hold DOWN
 	v.controls.move = Vector2(0.0, 0.2)
 	v.controls._sprint_held = true

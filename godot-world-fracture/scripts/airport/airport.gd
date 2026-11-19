@@ -253,6 +253,18 @@ static func relocate_aircraft(profile: Dictionary, from: String, to: String, cra
 		dst.append(craft)
 	a.aircraft[to] = dst
 
+## owner, Nov 19: "treat the airports like real airports — gotta buy a ticket if you don't have a hangar". Your own
+## aircraft parked at an airport where you lease no hangar can't be flown out (a hangar is where you keep and launch
+## it); you travel on with a ticket like anyone else. "" when nothing of yours is stranded here.
+static func parked_note(profile: Dictionary, at: String) -> String:
+	var here := aircraft_at(profile, at)
+	if here.is_empty() or owns_hangar(profile, at):
+		return ""
+	var names: Array[String] = []
+	for c in here:
+		names.append(String(AIRCRAFT.get(c, {}).get("name", c)))
+	return "Your %s %s parked on the apron · no hangar of yours here, so it can't fly out · lease one (%d Nex) or buy a ticket to travel on" % [", ".join(names), "is" if names.size() == 1 else "are", HANGAR_PRICE]
+
 # --------------------------------------------------------------------------------------------- weapons
 ## may weapons be out in `zone` ("landside", "terminal", "shops", "lounge", "apron", "runway", "hangar:<bay>")?
 static func weapons_allowed(profile: Dictionary, at: String, zone: String) -> bool:

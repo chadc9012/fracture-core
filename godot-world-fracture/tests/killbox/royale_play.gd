@@ -36,7 +36,9 @@ func _ready() -> void:
 	check("a second rival squad landed by 45 s (rivals %d)" % v.enemies.alive_on(0), v.enemies.enemies.size() >= 8 and not m.closing)
 	# step out past the wall: the fracture burns
 	var hull0: float = v.enemies.hull
-	var dir := (me - v.centre).normalized()
+	# toward the map's middle, where there is room past the wall (out along the landing bearing can be off the map, and the
+	# operator is held inside it)
+	var dir := (-v.centre).normalized() if v.centre.length() > 1.0 else (me - v.centre).normalized()
 	v.operator.position = Vector3(v.centre.x + dir.x * (m.radius + 30.0), v.operator.position.y, v.centre.y + dir.y * (m.radius + 30.0))
 	v.controls.fire = false
 	for i in 100:

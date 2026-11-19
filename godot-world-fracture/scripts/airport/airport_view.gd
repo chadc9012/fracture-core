@@ -161,6 +161,9 @@ var _flash: DirectionalLight3D     # the Shattered Expanse's lightning
 var _aurora: Node3D                # Aurora Gate's ribbons (they sway)
 var _flash_t := 4.0
 var dressing: RefCounted   # airport_dressing.gd
+var _env: Environment
+## 0 outdoors .. 1 under a roof: the light turns warm and lower inside (the boards' halls glow; ours glared with the sky)
+var _indoor := 0.0
 var _look: Array = []            # [from, to] for a fixed look-dev camera (main.gd --shot airport:...)
 
 func _ready() -> void:
@@ -252,6 +255,11 @@ func _ready() -> void:
 		_land_begin()
 	else:
 		controls.toast(String(a.name))
+	var stranded := Air.parked_note(profile, code)
+	if stranded != "":
+		get_tree().create_timer(3.5).timeout.connect(func():
+			if is_instance_valid(self) and controls:
+				controls.toast(stranded))
 	Sound.loops_stop()
 	Sound.ambience(Sound.bed_for(String(Air.AIRPORTS[code].region)), -14.0)
 
@@ -259,6 +267,7 @@ func _ready() -> void:
 func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
 	_process_gps()
+	_step_indoor(dt)
 	_step_taxi(dt)
 	if _snow and operator:
 		_snow.global_position = operator.global_position + Vector3(0, 14, 0)
@@ -396,7 +405,7 @@ func _security_check() -> void:
 	if p.z < SECURITY_Z - 0.4 and p.z > SECURITY_Z - 3.0 and HALL.has_point(Vector2(p.x, p.z)) and not Air.can_go_airside(profile, code):
 		operator.position.z = SECURITY_Z + 0.6
 		operator.velocity = Vector3.ZERO
-		controls.toast("Security: boarding pass or hangar lease needed past this point")
+		controls.toast("Security: boarding pass or hangar lease needed past this point" + (" · your aircraft can't leave without a hangar here — buy a ticket to fly on" if Air.parked_note(profile, code) != "" else ""))
 
 func _apply_lanes() -> void:
 	var open := Air.can_go_airside(profile, code)
@@ -700,6 +709,25 @@ func _build_gps() -> void:
 	gps.marks.append({ "p": Vector2(0, 26), "color": Color(0.55, 0.9, 1.0), "label": "Terminal", "near": 90.0 })
 	gps.marks.append({ "p": Vector2(0, SECURITY_Z), "color": Color(0.9, 0.9, 0.9), "label": "Security", "near": 40.0 })
 	add_child(gps)
+
+## indoors (the hall, the VIP lounge, a hangar): the sky's light gives way to the hall's own warm light, a little lower,
+## eased over a second as you pass the doors (Nov 18: "warm the halls")
+func _step_indoor(dt: float) -> void:
+	if _env == null or night:
+		return
+	if cam == null or not cam.is_inside_tree():
+		return
+	var p := cam.global_position     # where you see from (the third-person camera stays just behind you)
+	var inside := (absf(p.x) < 48.0 and p.z > -30.0 and p.z < 26.0) or VIP.has_point(Vector2(p.x, p.z))
+	for cx in HANGAR_X:
+		if absf(p.x - cx) < 14.0 and p.z > -14.0 and p.z < 16.0:
+			inside = true
+	_indoor = move_toward(_indoor, 1.0 if inside else 0.0, dt)
+	_env.ambient_light_sky_contribution = lerpf(1.0, 0.35, _indoor)
+	_env.ambient_light_color = Color(1.0, 0.84, 0.64)
+	_env.ambient_light_energy = lerpf(0.85, 0.62, _indoor)
+	_env.tonemap_exposure = lerpf(0.92, 0.84, _indoor)
+	_env.adjustment_brightness = lerpf(1.0, 0.97, _indoor)
 
 func _process_gps() -> void:
 	if gps and operator:
@@ -1109,6 +1137,7 @@ func _environment() -> void:
 	env.fog_light_color = look.fog
 	env.fog_density = look.fogd
 	env.fog_sky_affect = 0.12     # the haze sits on the land; at the default 1.0 the whole sky was the fog's colour (the boards' blue was a flat pale grey)
+	_env = env
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
