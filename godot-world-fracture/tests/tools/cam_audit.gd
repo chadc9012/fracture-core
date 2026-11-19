@@ -85,9 +85,19 @@ func _run() -> void:
 	var shots := 0
 	var last_shot := -10.0
 	var worst := []
+	var still := 0.0
+	var backing := 0.0
 	while t < secs:
 		var steer := sin(t * 0.9) * (1.0 if fmod(t, 9.0) < 6.0 else 0.0)
 		controls.move = Vector2(steer, 1.0)
+		# a car that stops (traffic, a kerb, a wall) backs off turning, then carries on (as the recording bot drives)
+		if not sk:
+			if backing > 0.0:
+				backing -= root.get_physics_process_delta_time()
+				controls.move = Vector2(0.9, -1.0)
+			elif still > 1.0:
+				backing = 1.4
+				still = 0.0
 		if sk:
 			# climb for a while, then dive low between the towers and hold just over the roofs
 			var phase := fmod(t, 16.0)
@@ -98,6 +108,7 @@ func _run() -> void:
 		frames += 1
 		var now: Vector3 = subject.call()
 		travel += now.distance_to(prev)
+		still = still + root.get_physics_process_delta_time() if now.distance_to(prev) < 0.4 * root.get_physics_process_delta_time() else 0.0
 		prev = now
 		var p := cam.global_position
 		var bi := _inside(p, boxes)
