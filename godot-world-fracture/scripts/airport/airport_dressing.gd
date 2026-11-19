@@ -44,12 +44,14 @@ func dress(view: Control) -> void:
 		"swoop": _arch(true)
 		"lattice": _lattice()
 		"aframe": _aframe()
+	_wings()
 	_canopy()
 	_carriageway()
 	_monument()
 	if style in ["nexus", "neon", "desert", "coastal", "arctic", "forest"]:
 		_parking()
 	_signs()
+	_mezzanine()
 	_checkin()
 	_security()
 	if style in ["nexus", "neon"]:
@@ -300,6 +302,103 @@ func _aframe() -> void:
 		v._box(Vector3(W - 7.0, 4.0, 0.25), Vector3(side * (7.0 + (W - 7.0) * 0.5), 2.0, z1), v._glass(Color(0.6, 0.85, 0.7)), null, true)
 	_lit_name(Vector3(0, 12.0, z1 + 0.3), 200)
 
+# --------------------------------------------------------------------------------------------- the wings
+## the boards' terminal runs long: a glass concourse wing west of the hall, behind the VIP lounge (z -44 .. -30; east is
+## the hangars' apron), under a barrel roof of glass on white ribs, a lit band along its eaves, and more of
+## the airline's planes at its jet bridges (HIGH / MEDIUM tiers). Seen and walked round, not walked through.
+func _wings() -> void:
+	var rib: Material = v._mat(Color(0.95, 0.96, 0.98) if not v.night else Color(0.7, 0.7, 0.78), 0.3, 0.45)
+	var glass: Material = v._glass(v.look.get("glass", Color(0.55, 0.75, 0.95)))
+	var solid: Material = v._mat((v.look.wall as Color), 0.6)
+	var z0 := -44.0
+	var z1 := -30.0
+	var H := 7.0
+	for side in [-1.0]:     # west: the east side is the hangars' apron (a wing there shut their doors)
+		var xa: float = side * 52.0
+		var xb: float = side * 196.0
+		var L := absf(xb - xa)
+		var cx: float = (xa + xb) * 0.5
+		# the walls: glass on both long sides over a stone plinth, the far end solid
+		v._box(Vector3(L, 1.0, 0.4), Vector3(cx, 0.5, z0), solid)
+		v._box(Vector3(L, H - 1.0, 0.2), Vector3(cx, 1.0 + (H - 1.0) * 0.5, z0), glass)
+		v._box(Vector3(L, H, 0.2), Vector3(cx, H * 0.5, z1), glass)
+		v._box(Vector3(0.4, H, z1 - z0), Vector3(xb, H * 0.5, (z0 + z1) * 0.5), solid)
+		v.obstacles.append(AABB(Vector3(minf(xa, xb), 0, z0), Vector3(L, H + 4.0, z1 - z0)))
+		# the barrel roof (axis along x), glass, ribs every 8 m, mullions on the long walls
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var N := 14
+		var R := (z1 - z0) * 0.5 + 0.6
+		var zc := (z0 + z1) * 0.5
+		for i in N:
+			var t0 := PI * float(i) / N
+			var t1 := PI * float(i + 1) / N
+			var a := Vector3(xa, H + R * 0.45 * sin(t0), zc + R * cos(t0))
+			var b := Vector3(xa, H + R * 0.45 * sin(t1), zc + R * cos(t1))
+			var c := Vector3(xb, b.y, b.z)
+			var d := Vector3(xb, a.y, a.z)
+			for q in [a, b, c, a, c, d]:
+				st.set_uv(Vector2(q.x / 6.0, q.z / 6.0))
+				st.add_vertex(q)
+		st.generate_normals()
+		var roof := MeshInstance3D.new()
+		roof.mesh = st.commit()
+		var rm: Material = glass.duplicate()
+		(rm as BaseMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
+		roof.material_override = rm
+		v.world.add_child(roof)
+		var x: float = xa + side * 4.0
+		while absf(x) < absf(xb) - 2.0:
+			for i in N:
+				var t0 := PI * float(i) / N
+				var t1 := PI * float(i + 1) / N
+				var a2 := Vector3(x, H + R * 0.45 * sin(t0), zc + R * cos(t0))
+				var b2 := Vector3(x, H + R * 0.45 * sin(t1), zc + R * cos(t1))
+				var seg: MeshInstance3D = v._box(Vector3(0.3, 0.3, a2.distance_to(b2) + 0.05), (a2 + b2) * 0.5, rib)
+				seg.rotation.x = -atan2(b2.y - a2.y, b2.z - a2.z)
+			v._box(Vector3(0.25, H, 0.3), Vector3(x, H * 0.5, z0 - 0.05), rib)
+			v._box(Vector3(0.25, H, 0.3), Vector3(x, H * 0.5, z1 + 0.05), rib)
+			x += side * 8.0
+		v._box(Vector3(L, 0.25, 0.3), Vector3(cx, H + 0.05, z0 - 0.1), v._glow(v.accent, 2.6))
+		v._box(Vector3(L, 0.4, 0.5), Vector3(cx, H, z1 + 0.1), rib)
+		# inside, seen through the glass: warm light and rows of seats
+		v._box(Vector3(L - 2.0, 0.08, 0.3), Vector3(cx, H - 0.4, zc), v._glow(Color(1.0, 0.88, 0.7), 2.0))
+		for k in int(L / 12.0):
+			var sx: float = xa + side * (6.0 + k * 12.0)
+			v._box(Vector3(5.0, 0.9, 0.7), Vector3(sx, 0.45, zc - 2.0), v._mat(Color(0.15, 0.16, 0.2), 0.6))
+		# gate numbers along the apron wall
+		for k in 3:
+			var gx: float = xa + side * (22.0 + k * 40.0)
+			v._box(Vector3(5.0, 1.2, 0.2), Vector3(gx, H - 1.4, z0 - 0.2), v._mat(Color(0.05, 0.05, 0.06), 0.4))
+			v._text("GATE %s%d" % ["C" if side < 0 else "D", k + 1], Vector3(gx, H - 1.4, z0 - 0.33), 70, Color(1.0, 0.85, 0.3), PI)
+	_wing_planes()
+
+## more of the airline's planes at the wings' bridges (east, clear of the hangars' aprons, and west to the remote stand)
+func _wing_planes() -> void:
+	if Phone.tier() == "low":
+		return
+	var jb: Material = v._mat(Color(0.82, 0.84, 0.87) if not v.night else Color(0.32, 0.32, 0.4), 0.4, 0.5)
+	var spots := [Vector3(-96, 0, -70), Vector3(-130, 0, -72)]
+	for i in spots.size():
+		var p: Vector3 = spots[i]
+		var plane: Node3D = v._airliner(v.accent if i % 2 == 0 else v.accent2, String(v.look.airline))
+		plane.position = p
+		plane.rotation.y = PI
+		v.static_root.add_child(plane)
+		v.obstacles.append(AABB(Vector3(p.x - 2.6, 0, p.z - 20.0), Vector3(5.2, 7.0, 40.0)))
+		v.obstacles.append(AABB(Vector3(p.x - 17.5, 0, p.z - 6.0), Vector3(35.0, 4.0, 9.0)))
+		# its bridge from the wing's apron wall to the front door
+		var from := Vector3(p.x - 4.0, 0, -44.0)
+		var door := Vector3(p.x + 2.25, 0, p.z + 14.4)
+		var span := Vector2(door.x - from.x, door.z - from.z)
+		var br := Node3D.new()
+		br.position = Vector3((from.x + door.x) * 0.5, 4.4, (from.z + door.z) * 0.5)
+		br.rotation.y = atan2(-span.x, -span.y)
+		v.static_root.add_child(br)
+		v._box(Vector3(2.7, 2.7, span.length()), Vector3.ZERO, jb, br)
+		v._box(Vector3(2.9, 0.12, span.length()), Vector3(0, 1.42, 0), v._glow(v.accent, 1.4), br)
+		v._box(Vector3(0.5, 3.0, 0.5), door + Vector3(0, 1.5, 4.0), jb)
+
 # --------------------------------------------------------------------------------------------- landside
 ## the drop-off canopy along the kerb: a thin glass roof on slender columns, a light line under its edge
 func _canopy() -> void:
@@ -436,6 +535,31 @@ func _signs() -> void:
 		v._text(String(rows[i]), sg + Vector3(0.25, 6.1 - i * 0.6, 0.15), 36, yel)
 		v._text(String(rows[i]), sg + Vector3(0.25, 6.1 - i * 0.6, -0.15), 36, yel, PI)
 
+## the upper level the boards' halls have: a gallery along each side wall at 6.5 m on a lit slab, a glass balustrade, and
+## its row of shopfronts glowing warm behind (seen from the hall; nobody walks up there)
+func _mezzanine() -> void:
+	var slab: Material = v._mat(Color(0.9, 0.9, 0.92) if not v.night else Color(0.32, 0.28, 0.38), 0.4, 0.2)
+	var glass: Material = v._glass(Color(0.75, 0.88, 1.0))
+	var frame: Material = v._mat(Color(0.12, 0.12, 0.14), 0.35, 0.6)
+	var warm := [Color(1.0, 0.8, 0.55), Color(0.95, 0.9, 0.8), Color(1.0, 0.7, 0.45), Color(0.85, 0.9, 1.0)]
+	var names := ["DUTY FREE", "CAFÉ", "BOOKS", "TECH", "FASHION", "LOUNGE BAR"]
+	for side in [-1.0, 1.0]:
+		var x_wall: float = side * 47.8
+		var x_edge: float = side * 41.8
+		var x_mid: float = (x_wall + x_edge) * 0.5
+		v._box(Vector3(6.0, 0.5, 44.0), Vector3(x_mid, 6.5, -2.0), slab)
+		v._box(Vector3(0.12, 0.1, 44.0), Vector3(x_edge, 6.2, -2.0), v._glow(Color(1.0, 0.88, 0.7), 2.4))
+		v._box(Vector3(0.06, 1.1, 44.0), Vector3(x_edge, 7.3, -2.0), glass)
+		v._box(Vector3(0.12, 0.08, 44.0), Vector3(x_edge, 7.88, -2.0), frame)
+		for k in 6:
+			var z := 16.0 - k * 7.0
+			var c: Color = warm[(k + (1 if side > 0 else 0)) % warm.size()]
+			v._box(Vector3(0.1, 3.0, 6.2), Vector3(x_wall + side * -0.02, 8.3, z), frame)
+			v._box(Vector3(0.06, 2.6, 5.6), Vector3(x_wall - side * 0.06, 8.2, z), v._glow(c, 0.9))
+			v._text(String(names[(k + (3 if side > 0 else 0)) % names.size()]), Vector3(x_wall - side * 0.12, 9.55, z), 46, Color(0.08, 0.08, 0.1), -side * PI * 0.5)
+		for k in 4:
+			v._box(Vector3(0.5, 6.25, 0.5), Vector3(x_edge + side * 0.4, 3.12, 17.0 - k * 13.0), frame, null, true)
+
 ## check-in: a screen over every desk position, the header with the mark, a row of self check-in kiosks, belted lanes
 func _checkin() -> void:
 	var dark: Material = v._mat(Color(0.06, 0.07, 0.1), 0.3, 0.5)
@@ -448,17 +572,22 @@ func _checkin() -> void:
 			v._box(Vector3(0.04, 0.45, 0.8), Vector3(-32.84, 1.75, pz), screen)
 			v._box(Vector3(0.12, 0.7, 1.1), Vector3(-35.25, 4.3, pz), dark)
 			v._box(Vector3(0.04, 0.6, 1.0), Vector3(-35.15, 4.3, pz), screen)
-		# belts between the queue posts
-		for k in 3:
-			v._box(Vector3(0.04, 0.08, 2.5), Vector3(-28.5, 0.92, z - 2.7 + k * 2.6), v._mat(v.accent.darkened(0.3), 0.5))
+		# the queue: chrome posts in two lines with blue belts between them (seen, not walls)
+		var post: Material = v._mat(Color(0.8, 0.82, 0.85), 0.2, 0.9)
+		var belt: Material = v._mat(Color(0.1, 0.3, 0.85), 0.5)
+		for line in [-27.4, -25.9]:
+			for k in 6:
+				var pz := z - 5.5 + k * 2.2
+				v._cyl(0.05, 0.95, Vector3(line, 0.48, pz), post, null, -1, 6)
+				v._cyl(0.16, 0.04, Vector3(line, 0.02, pz), post, null, -1, 10)
+				if k < 5:
+					v._box(Vector3(0.03, 0.06, 2.2), Vector3(line, 0.9, pz + 1.1), belt)
 	v._box(Vector3(0.3, 1.6, 12.0), Vector3(-35.3, 7.0, 9.5), dark)
 	v._text("✈  CHECK-IN", Vector3(-35.1, 7.0, 9.5), 120, Color(0.95, 0.97, 1.0), PI * 0.5)
 	# the kiosks: slim white pillars with a lit screen, facing the hall
 	var white: Material = v._mat(Color(0.94, 0.95, 0.97), 0.3, 0.2)
-	for k in 6:
-		var at := Vector3(-24.0, 0, 22.5 - k * 1.8)
-		if at.z < 12.0:
-			at = Vector3(-24.0 + (k - 5) * 1.8, 0, 12.0)
+	for k in 12:
+		var at := Vector3(-24.0 if k < 6 else -20.5, 0, 22.5 - (k % 6) * 1.8)
 		v._box(Vector3(0.6, 1.5, 0.5), at + Vector3(0, 0.75, 0), white, null, true)
 		var sc: MeshInstance3D = v._box(Vector3(0.52, 0.42, 0.05), at + Vector3(0.24, 1.42, 0), screen)
 		sc.rotation.y = PI * 0.5
@@ -551,8 +680,13 @@ func _gate_seats() -> void:
 			break
 		for k in 2:
 			v._bench(Vector3(x - 2.0 + k * 4.0, 0, -22.6), PI)
-		var pl: MeshInstance3D = v._cyl(0.7, 0.9, Vector3(x + 4.6, 0.45, -22.6), v._mat(Color(0.85, 0.86, 0.9), 0.3, 0.4), null, 0.6, 12)
-		v._cyl(0.55, 0.9, Vector3(x + 4.6, 1.3, -22.6), v._mat(Color(0.2, 0.42, 0.2), 0.9), null, 0.15, 8)
+		# a white pot with a young tree (the city planter model's leaves broke into speckles at this size)
+		v._cyl(0.6, 0.9, Vector3(x + 4.6, 0.45, -22.6), v._mat(Color(0.92, 0.93, 0.95), 0.3, 0.2), null, 0.5, 16)
+		var tr: Node3D = v._model("res://models/foliage/broadleaf.glb")
+		if tr:
+			tr.position = Vector3(x + 4.6, 0.85, -22.6)
+			tr.scale = Vector3.ONE * 0.2
+			v.static_root.add_child(tr)
 		v.obstacles.append(AABB(Vector3(x + 3.9, 0, -23.3), Vector3(1.4, 1.0, 1.4)))
 
 ## the VIP lounge: a marble reception desk, the logo wall behind it, lamps, sofas

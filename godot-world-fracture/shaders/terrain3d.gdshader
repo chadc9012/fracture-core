@@ -14,6 +14,7 @@ uniform int i_urban; uniform int i_paved; uniform int i_town; uniform int i_snow
 uniform int i_ash = -1; uniform int i_basalt = -1;
 uniform vec3 tint = vec3(1.0); // the region's earth (the Wastelands' red ground)
 uniform float embers = 0.0; // smouldering specks in the ash (Ember Peaks at night)
+uniform float bog = 0.0; // the Shrouded Swamps: standing water through the marsh and the drowned forest
 
 varying vec2 wpos;
 varying vec3 wnorm;
@@ -46,6 +47,13 @@ void fragment() {
 		float crown = vnoise(w * 0.8);
 		c += vec3(0.7, 1.0, 0.5) * ((crown - 0.5) * 40.0 + grain * 10.0) / 255.0;
 		c *= mix(0.74, 1.0, smoothstep(0.18, 0.42, crown));   // soft shade under the crowns, not hard-edged blots
+		if (bog > 0.5) {
+			// black tea water standing in pools between the roots (most of the marsh, a little of the drowned forest),
+			// mirror-still, with mud and moss around them
+			float pool = smoothstep(0.48, 0.6, vnoise(w * 0.045 + 7.0) * 0.65 + vnoise(w * 0.19) * 0.35 + (cover == i_marsh ? 0.12 : -0.08));
+			c = mix(c * vec3(0.8, 0.85, 0.7), vec3(0.025, 0.04, 0.03), pool);
+			rough = mix(0.95, 0.04, pool);
+		}
 	} else if (cover == i_meadow || cover == i_grass || cover == i_scrub) {
 		c += (vec3(22.0, 24.0, 10.0) * (vnoise(w * 0.06) - 0.5) + vec3(14.0, 14.0, 8.0) * grain) / 255.0;
 	} else if (cover == i_desert || cover == i_dunes || cover == i_sandstone || cover == i_wash) {
@@ -77,9 +85,13 @@ void fragment() {
 		emit = vec3(1.0, 0.3, 0.06) * step(0.9975, sp) * embers * (0.6 + 0.4 * sin(TIME * 2.0 + sp * 40.0))
 			+ vec3(0.9, 0.2, 0.04) * crack * smoothstep(0.62, 0.8, vnoise(w * 0.013)) * embers * 0.5;
 	} else if (cover == i_crystal) {
+		// crystal fields are dark glassy rock with the glow in thin veins and scattered shards (the owner's "MOONLIGHT -
+		// FRACTURE ZONE" photo; the old flat purple with bright speckle read as a painted floor)
+		float vein = 1.0 - smoothstep(0.0, 0.035, abs(vnoise(w * 0.07 + vnoise(w * 0.02) * 2.5) - 0.5));
 		float sp = vnoise(w * 1.3);
-		emit = vec3(0.55, 0.35, 1.0) * smoothstep(0.7, 0.95, sp) * 1.2;
-		rough = 0.35;
+		c = vec3(0.07, 0.07, 0.13) * (0.8 + 0.5 * vnoise(w * 0.4));
+		emit = mix(vec3(0.25, 0.75, 1.0), vec3(0.6, 0.3, 1.0), vnoise(w * 0.01)) * (vein * 1.6 + smoothstep(0.86, 0.97, sp) * 0.9);
+		rough = 0.25;
 	} else if (cover == i_rift) {
 		float k = 1.0 - abs(vnoise(w * 0.25 + TIME * 0.05) * 2.0 - 1.0);
 		emit = vec3(0.6, 0.2, 1.0) * k * 1.6;
@@ -89,8 +101,10 @@ void fragment() {
 		// stands, matt between (a uniform mirror read as a blue sheet in Neon City's Street View — Nov 18)
 		vec2 slab = fract(w / 4.0);
 		float joint = 1.0 - step(0.035, min(min(slab.x, 1.0 - slab.x), min(slab.y, 1.0 - slab.y)));
-		c *= 1.0 - joint * 0.25;
-		c *= mix(0.92, 1.08, hash2(floor(w / 4.0)));
+		c *= 1.0 - joint * 0.14;
+		c *= mix(0.95, 1.05, hash2(floor(w / 4.0)));
+		// by day, worn warm stone rather than bright concrete (Riverdale's square blew out to white — Nov 18)
+		c *= mix(vec3(0.78, 0.75, 0.7), vec3(1.0), wet);
 		float puddle = smoothstep(0.5, 0.68, vnoise(w * 0.07 + 3.1) * 0.7 + vnoise(w * 0.31) * 0.3);
 		rough = mix(0.85, mix(0.62, 0.06, puddle), wet);
 		c *= mix(1.0, mix(0.62, 0.38, puddle), wet);

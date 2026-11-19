@@ -624,7 +624,12 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#050b22", "hor": "#2a4a86", "fog": "#1e3260", "fog_d": 0.0016, "sun": 0.85, "sun_col": "#b8ccff", "sun_el": 24.0, "sun_az": 120.0,
 				"amb": 0.38, "amb_col": "#3e5590", "night": 0.75, "sat": 1.05, "exp": 1.1, "planet": false, "sky": "moon", "glow": "#3d5ea8", "glow_amt": 0.25}, true)
 		"swamps":
-			s.merge({"top": "#4c5b55", "hor": "#93a08a", "fog": "#6f7c66", "fog_d": 0.0042, "sun": 0.7, "sun_col": "#e8f0d0", "sun_el": 26.0, "amb": 0.6}, true)
+			# the Shrouded Swamps (owner's world board: bioluminescent wetlands, mangroves, the sunken temple, a High Risk
+			# Fracture Zone): a misty green twilight under the moon, standing water through the marsh, glowing fungi and
+			# fireflies in the trees (Nov 18 pass; it was a flat grey-green noon over what read as a dry pine forest)
+			s.merge({"top": "#0f2024", "hor": "#4a6e5a", "fog": "#34493f", "fog_d": 0.003, "sun": 0.95, "sun_col": "#c4dccf", "sun_el": 26.0, "sun_az": 60.0,
+				"amb": 1.0, "amb_col": "#4a6c62", "night": 0.7, "sat": 1.0, "exp": 1.45, "planet": false, "sky": "moon", "glow": "#3f8a6a", "glow_amt": 0.3,
+				"bog": 1.0}, true)
 		"veridan", "riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
 		"wastelands":
@@ -638,24 +643,40 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#2c6cc0", "hor": "#bcd6ec", "fog": "#d9c6a2", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95,
 				"sky": "day", "tint": Vector3(1.0, 0.84, 0.64)}, true)
 		"storm":
-			# the board's floating islands: a violet storm dusk, warm low sun through the clouds, the crystals glowing
-			s.merge({"top": "#252a58", "hor": "#a585c0", "fog": "#6a6390", "fog_d": 0.0026, "sun": 1.0, "sun_col": "#ffc79a", "sun_el": 14.0, "amb": 0.65, "sat": 1.1}, true)
+			# the board's floating islands under a storm at dusk: a heavy cloud deck, the low sun breaking warm along the
+			# horizon, the crystals glowing (Nov 18 pass: the region_sky storm deck with a warm horizon, lightning on)
+			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 10.0, "sun_az": 150.0,
+				"amb": 0.6, "sat": 1.1, "exp": 1.0, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
 		"crystal-badlands":
-			s.merge({"top": "#241c4a", "hor": "#d39a7c", "fog": "#6a5676", "fog_d": 0.0014, "sun": 1.0, "sun_col": "#ffc6a0", "sun_el": 22.0, "amb": 0.85, "night": 0.3}, true)
+			# the owner's "MOONLIGHT - FRACTURE ZONE" photo: a full moon over dark rock spires, deep blue night, the crystals
+			# and rift seams glowing cyan and violet (it was a flat pink-orange dusk)
+			s.merge({"top": "#040a24", "hor": "#24407e", "fog": "#16224a", "fog_d": 0.0015, "sun": 0.8, "sun_col": "#aec4ff", "sun_el": 28.0, "sun_az": 140.0,
+				"amb": 0.4, "amb_col": "#36508c", "night": 0.75, "sat": 1.1, "exp": 1.15, "planet": false, "sky": "moon", "glow": "#5a3cff", "glow_amt": 0.3,
+				"tint": Vector3(0.5, 0.52, 0.68)}, true)
 		"old-harrow":
-			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on
-			s.merge({"top": "#2f3f6a", "hor": "#f0a468", "fog": "#a88468", "fog_d": 0.0016, "sun": 0.95, "sun_col": "#ffb27a", "sun_el": 9.0, "amb": 0.55, "night": 0.4, "sat": 1.05}, true)
+			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on (Nov 18: the
+			# region_sky sunset deck, streaked cloud lit from below)
+			s.merge({"top": "#2a3866", "hor": "#f0a468", "fog": "#a88468", "fog_d": 0.0016, "sun": 1.1, "sun_col": "#ffb27a", "sun_el": 9.0, "sun_az": 150.0,
+				"amb": 0.5, "night": 0.4, "sat": 1.05, "exp": 0.95, "sky": "sunset", "glow": "#ff8a44", "glow_amt": 0.3}, true)
 		"goldenreach":
-			# late-afternoon gold over the fields
-			s.merge({"top": "#5e8fc4", "hor": "#f0d6a8", "fog": "#d8c49e", "fog_d": 0.0010, "sun": 1.35, "sun_col": "#ffd9a0", "sun_el": 24.0, "amb": 0.55, "sat": 1.05}, true)
+			# the owner's flower-field photo: late-afternoon gold, the sun low and warm behind haze, a blue sky with cloud
+			s.merge({"top": "#3f7cc8", "hor": "#f2d9ae", "fog": "#d8c49e", "fog_d": 0.0012, "sun": 1.4, "sun_col": "#ffd49a", "sun_el": 20.0, "sun_az": 150.0,
+				"amb": 0.45, "sat": 1.15, "exp": 0.56, "sky": "day", "glow": "#ffc070", "glow_amt": 0.25,
+				"tint": Vector3(0.88, 0.9, 0.7)}, true)
 		"azure-isles":
-			# high tropical sun, a deep blue sky, turquoise water
-			s.merge({"top": "#1f6fd0", "hor": "#bfe6f4", "fog": "#a8d8ea", "fog_d": 0.0006, "sun": 1.45, "sun_col": "#fff8e6", "sun_el": 60.0, "amb": 0.7, "sat": 1.1, "exp": 0.85}, true)
+			# the owner's "OCEAN" photo: a deep blue sky with white cloud, a bright sun, turquoise water
+			s.merge({"top": "#1d68cc", "hor": "#bfe2f4", "fog": "#a8d8ea", "fog_d": 0.0006, "sun": 1.45, "sun_col": "#fff6e2", "sun_el": 48.0, "sun_az": 150.0,
+				"amb": 0.5, "sat": 1.15, "exp": 0.6, "sky": "day",
+				"tint": Vector3(0.96, 0.9, 0.78)}, true)   # the beaches blew out to white (Nov 18)
 		"frostveil":
-			# a low polar sun across the ice, blue shadows, a little ground haze
-			s.merge({"top": "#5d7fa8", "hor": "#e6eef6", "fog": "#d6e2ee", "fog_d": 0.0020, "sun": 1.05, "sun_col": "#ffe8d2", "sun_el": 12.0, "amb": 0.75, "exp": 0.75}, true)
+			# a low polar sun across the ice under thin high cloud, blue shadows (it read as white haze)
+			s.merge({"top": "#3a64a0", "hor": "#d8e6f2", "fog": "#b8cade", "fog_d": 0.0016, "sun": 1.15, "sun_col": "#ffe0c4", "sun_el": 11.0, "sun_az": 150.0,
+				"amb": 0.4, "exp": 0.48, "sat": 1.1, "sky": "day", "sky_set": {"cover": 0.22, "cloud_scale": 0.7}, "glow": "#ffd2b0", "glow_amt": 0.2,
+				"tint": Vector3(0.84, 0.9, 1.0)}, true)
 		"shattered-reefs":
-			s.merge({"top": "#2b78c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 55.0, "amb": 0.65, "sat": 0.95}, true)
+			# the owner's "OCEAN" photo, as Azure Isles
+			s.merge({"top": "#2370c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 45.0, "sun_az": 150.0,
+				"amb": 0.6, "sat": 1.05, "exp": 0.8, "sky": "day"}, true)
 		"thalassia":
 			# the city inside the dome carries its own lights: a dimmer, bluer deep so they read (it was blown out to white)
 			s.merge({"fog": "#06465e", "fog_d": 0.009, "sun": 0.45, "sun_col": "#a8e6ff", "sun_el": 70.0, "amb": 0.35, "planet": false, "under": true, "night": 0.6, "exp": 0.8}, true)
@@ -807,6 +828,7 @@ func _build_ground() -> void:
 	mat.set_shader_parameter("bounds", Vector4(b.x0, b.z0, b.span, 0))
 	mat.set_shader_parameter("data_tex", Data.texture("maps/%s.data.pngb" % map_id))
 	mat.set_shader_parameter("wet", _style.wet)
+	mat.set_shader_parameter("bog", float(_style.get("bog", 0.0)))
 	mat.set_shader_parameter("embers", float(_style.get("embers", 0.0)))
 	mat.set_shader_parameter("tint", _style.get("tint", Vector3.ONE))
 	for pair in [["i_forest", "forest"], ["i_dense", "denseForest"], ["i_marsh", "marsh"], ["i_meadow", "meadow"], ["i_grass", "grass"], ["i_scrub", "scrub"],
@@ -938,6 +960,8 @@ func _build_buildings() -> void:
 			var roof := [Vector3(last_corners[0].x, top, last_corners[0].y), Vector3(last_corners[1].x, top, last_corners[1].y), Vector3(last_corners[2].x, top, last_corners[2].y), Vector3(last_corners[3].x, top, last_corners[3].y)]
 			for t in [[0, 1, 2], [0, 2, 3]]:
 				_tri(st, [roof[t[0]], roof[t[1]], roof[t[2]]], [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO], Vector3.UP, Color(wall.darkened(0.1), 1.0), seed)
+		if tiers == 1 and hgt < 40.0 and use != "dome":
+			_dress_building(st, p, yaw, hx, hz, base, top, use, wall, seed, _pitched(use, hgt, hx, hz))
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	var mat := ShaderMaterial.new()
@@ -980,6 +1004,52 @@ func _build_buildings() -> void:
 		smi.material_override = smat
 		smi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_world.add_child(smi)
+
+## the low buildings' trim (region pass, Nov 18: Riverdale and the swamp boardwalks were bare boxes): a darker plinth
+## round the foot, a cornice under a flat roof, a chimney on most pitched houses, and a front door on the long side
+## with an awning over shops. Plain-coloured (alpha 1: the shader draws no windows on them), in the one merged mesh.
+func _dress_building(st: SurfaceTool, p: Vector2, yaw: float, hx: float, hz: float, base: float, top: float, use: String, wall: Color, seed: float, pitched: bool) -> void:
+	var ground := base + 0.6
+	_detail_box(st, p, yaw, Vector2.ZERO, hx + 0.12, hz + 0.12, base, ground + 0.7, wall.darkened(0.38), seed)
+	if not pitched:
+		_detail_box(st, p, yaw, Vector2.ZERO, hx + 0.32, hz + 0.32, top - 0.5, top + 0.06, wall.lightened(0.12), seed)
+	elif (use == "house" or use == "apartment") and seed > 0.3:
+		var cx := (hx if hx >= hz else 0.0) * 0.55 * (1.0 if seed > 0.6 else -1.0)
+		var cz := (hz if hz > hx else 0.0) * 0.55 * (1.0 if seed > 0.6 else -1.0)
+		_detail_box(st, p, yaw, Vector2(cx, cz), 0.3, 0.3, top - 0.5, top + minf(hx, hz) * 0.5 + 0.9, Color("#6a4434"), seed)
+	# the door on the long side's middle (local -z when the x side is longer)
+	var along_x := hx >= hz
+	var face := Vector2(0.0, -hz) if along_x else Vector2(-hx, 0.0)
+	var dhalf := Vector2(0.6, 0.06) if along_x else Vector2(0.06, 0.6)
+	_detail_box(st, p, yaw, face, dhalf.x, dhalf.y, ground, ground + 2.3, Color("#2a211b"), seed)
+	if use == "store" or use == "entertainment" or use == "mall":
+		const AWN := [Color("#7a2e2a"), Color("#2e4a6a"), Color("#3f5a34"), Color("#8a6a2a")]
+		var out := face + (Vector2(0.0, -0.7) if along_x else Vector2(-0.7, 0.0))
+		var ahalf := Vector2(minf(hx * 0.7, 3.5), 0.7) if along_x else Vector2(0.7, minf(hz * 0.7, 3.5))
+		_detail_box(st, p, yaw, out, ahalf.x, ahalf.y, ground + 2.6, ground + 2.85, AWN[int(seed * 31.0) % AWN.size()], seed)
+
+## a box of trim at a building's local offset (rotated with it), five faces (no floor)
+func _detail_box(st: SurfaceTool, p: Vector2, yaw: float, off: Vector2, hx: float, hz: float, y0: float, y1: float, col: Color, seed: float) -> void:
+	var c := cos(yaw)
+	var s := sin(yaw)
+	var pts: Array[Vector2] = []
+	for uv in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		var lx: float = off.x + uv.x * hx
+		var lz: float = off.y + uv.y * hz
+		pts.append(Vector2(p.x + lx * c + lz * s, p.y - lx * s + lz * c))
+	var ctr := (pts[0] + pts[2]) * 0.5
+	var z := [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO]
+	for f in 4:
+		var a: Vector2 = pts[f]
+		var b: Vector2 = pts[(f + 1) % 4]
+		var q := [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y)]
+		var mid := (a + b) * 0.5 - ctr
+		var n := Vector3(mid.x, 0.0, mid.y).normalized()
+		_tri(st, [q[0], q[1], q[2]], z, n, Color(col, 1.0), seed)
+		_tri(st, [q[0], q[2], q[3]], z, n, Color(col, 1.0), seed)
+	var t := [Vector3(pts[0].x, y1, pts[0].y), Vector3(pts[1].x, y1, pts[1].y), Vector3(pts[2].x, y1, pts[2].y), Vector3(pts[3].x, y1, pts[3].y)]
+	_tri(st, [t[0], t[1], t[2]], z, Vector3.UP, Color(col, 1.0), seed)
+	_tri(st, [t[0], t[2], t[3]], z, Vector3.UP, Color(col, 1.0), seed)
 
 ## one triangle facing `n` (Godot's front faces wind clockwise as seen from the front), with its normal, colour and uvs
 func _tri(st: SurfaceTool, v: Array, uv: Array, n: Vector3, col: Color, seed: float) -> void:
@@ -1098,13 +1168,16 @@ func _build_rings() -> void:
 				mi.mesh = s
 				# Thalassia's dome has a city inside it now: keep the glass faint so the city shows through
 				var city_inside := map_id == "thalassia" and rad > 40.0
-				mat.albedo_color = Color(0.55, 0.85, 0.95, 0.1 if city_inside else 0.3)
+				# the districts' small domes inside it caught the district lights and blew out to white orbs (Nov 18): faint
+				# glass for them too
+				var in_thal := map_id == "thalassia"
+				mat.albedo_color = Color(0.55, 0.85, 0.95, 0.1 if city_inside else (0.12 if in_thal else 0.16))
+				mat.roughness = 0.05 if not in_thal or city_inside else 0.4
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat.metallic = 0.4
-				mat.roughness = 0.05
 				mat.emission_enabled = true
 				mat.emission = Color(0.3, 0.7, 1.0)
-				mat.emission_energy_multiplier = 0.12 if city_inside else 0.3 + _style.night
+				mat.emission_energy_multiplier = 0.12 if city_inside or in_thal else 0.12 + _style.night * 0.15   # it glowed pink-white over Frostspire's crevasses at night
 			"hazard":
 				# a thin warning line on the ground at the zone's edge (it was a 4 m red glass wall: the "red dome" over
 				# Ember's Smoldering Trench, Nov 18)
@@ -1205,6 +1278,7 @@ func _build_trees() -> void:
 	var crystal := covers.find("crystal")
 	var rift := covers.find("rift")
 	var tears: Array[Vector3] = []
+	_tree_pts.clear()
 	var stride := maxi(2, int(w / 300.0))
 	var clear := _clearings()
 	var trees: Array[Transform3D] = []
@@ -1222,6 +1296,8 @@ func _build_trees() -> void:
 				continue
 			if chance.has(cv) and roll < chance[cv] and trees.size() < TREE_CAP:
 				var y := _h(lx, lz)
+				if y >= _water + 0.5:
+					_tree_pts.append(Vector2(lx, lz))
 				if y < _water + 0.5:
 					continue
 				var s := 0.75 + fposmod(roll * 13.7, 1.0) * 0.7
@@ -2028,6 +2104,7 @@ func _off_map(lx: float, lz: float) -> bool:
 ## labels are hidden and only the sky, the sea and its floor remain, so the craft's frame can be re-centred on it freely
 var _open_sea := false
 var _land: Array = []
+var _tree_pts := PackedVector2Array()   # where the trees stand (some may have been dealt out to a species), for Street View
 var _gps: Control
 func set_open_sea(on: bool) -> void:
 	_open_sea = on
@@ -2064,12 +2141,29 @@ func local_point(x: float, z: float) -> Vector2:
 
 ## stand a few metres off a place (it is often a building) on open ground, facing it
 func _stand_near(at: Vector2) -> void:
+	# the most open spot round it (14-30 m off, 16 bearings): the first one clear by 7 m, else the clearest — the first
+	# free point used to drop you in a 2 m gap between two buildings (the Swamps' boardwalks, Nov 18)
 	var best := Vector2(at.x + 12.0, at.y + 12.0)
-	for k in 16:
-		var a := k * TAU / 16.0
-		var q := at + Vector2(cos(a), sin(a)) * 14.0
-		if not _in_building(q):
-			best = q
+	var best_clear := -1.0
+	var boxes := building_boxes()
+	for rad: float in [14.0, 22.0, 30.0]:
+		for k in 16:
+			var a := k * TAU / 16.0
+			var q := at + Vector2(cos(a), sin(a)) * rad
+			if absf(q.x) > _span * 0.5 - 4.0 or absf(q.y) > _span * 0.5 - 4.0 or _in_building(q):
+				continue
+			var clear := 99.0
+			for tp in _tree_pts:
+				if absf(tp.x - q.x) < 8.0 and absf(tp.y - q.y) < 8.0:
+					clear = minf(clear, tp.distance_to(q) - 1.2)   # a trunk and its low crown
+			for bx in boxes:
+				var dx := maxf(maxf(bx.position.x - q.x, q.x - bx.end.x), 0.0)
+				var dz := maxf(maxf(bx.position.z - q.y, q.y - bx.end.z), 0.0)
+				clear = minf(clear, Vector2(dx, dz).length())
+			if clear > best_clear:
+				best_clear = clear
+				best = q
+		if best_clear >= 7.0:
 			break
 	_eye = Vector3(best.x, _ground(best.x, best.y) + EYE, best.y)
 	_look_yaw = atan2(_eye.x - at.x, _eye.z - at.y)
