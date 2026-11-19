@@ -295,24 +295,23 @@ func _finish() -> void:
 	if not it.is_empty():
 		Gear.save(gear)
 		res.lines.append("LOOT · %s (%d power)" % [String(it.name), int(it.power)])
+	var loot := ""
 	for l in res.lines:
-		controls.toast(String(l))
-	_done_panel = PanelContainer.new()
-	_done_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_done_panel.position = Vector2(-170, -90)
-	var v := VBoxContainer.new()
-	_done_panel.add_child(v)
-	var t := Label.new()
-	t.text = "%s\n%s\n%d eliminations\n+%d Nex   +%d XP" % ["VICTORY ROYALE" if won else "ELIMINATED", match_state.reason, kills, nex, xp]
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.add_theme_font_size_override("font_size", 24)
-	v.add_child(t)
-	var b := Button.new()
-	b.text = "LEAVE"
-	b.custom_minimum_size = Vector2(300, 48)
-	b.pressed.connect(func(): closed.emit())
-	v.add_child(b)
-	add_child(_done_panel)
+		if String(l).begins_with("LOOT · "):
+			loot = String(l).substr(7)
+		else:
+			controls.toast(String(l))
+	# Apex's match summary: CHAMPIONS or ELIMINATED, the placement, your eliminations and what it paid
+	var place: int = match_state.placement()
+	var summary = load("res://scripts/killbox/match_summary.gd").new()
+	summary.data = { "result": "CHAMPIONS" if won else "ELIMINATED", "won": won,
+		"score": ("#1 of %d" % match_state.squads()) if won else ("#%d of %d" % [place, match_state.squads()]),
+		"sub": "Fracture Royale · the Verdant Forest", "teams": [],
+		"stats": [["PLACED", "#%d" % (1 if won else place)], ["ELIMINATIONS", str(kills)], ["PHASE", str(int(match_state.phase) + 1)], ["SURVIVED", "%d:%02d" % [int(match_state.clock) / 60, int(match_state.clock) % 60]]],
+		"nex": nex, "xp": xp, "loot": loot, "leave_text": "LEAVE" }
+	summary.leave.connect(func(): closed.emit())
+	_done_panel = summary
+	controls.add_child(summary)
 
 func _exit_tree() -> void:
 	Sound.ambience("")

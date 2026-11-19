@@ -61,6 +61,7 @@ class Gun:
 	## the worn item's name and damage multiplier (gear_store.gd loadout); the frame's own when bare
 	var label := ""
 	var mult := 1.0
+	var element := ""
 	func _init(f: String) -> void:
 		frame = f
 		mag = int(FRAMES[f].mag)

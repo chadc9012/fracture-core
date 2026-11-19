@@ -13,6 +13,10 @@ const Catalog := preload("res://scripts/character/catalog.gd")
 const Store := preload("res://scripts/character/character_store.gd")
 const Rig := preload("res://scripts/character/character_rig.gd")
 const FaceMorphs := preload("res://scripts/character/face_morphs.gd")
+## Laid out as Destiny's "Customize face" (owner Nov 18, interfaceingame.com Destiny 2): the operator on a dark stage, a
+## dark panel down the right with underlined tabs, options as hairline tiles that fill white when chosen, colour
+## swatches ringed white. Local styles (_btn / _sel): data.gd's navy look stays on the garage and the maps.
+const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 # the creator makes the person: body, face, skin, hair, facial hair and markings, shown in regular clothes. Armour and gear
 # are not chosen here (owner, Nov 10: "operators creator shouldn't have a armor option"); the build picked here is the
 # one the armour is fitted to in the game
@@ -45,7 +49,7 @@ func _ready() -> void:
 	if look.is_empty():
 		look = Store.load_look() if Store.exists() else Store.default_look()
 	var bg := ColorRect.new()
-	bg.color = Color("#04101b")
+	bg.color = Color(0.02, 0.025, 0.04)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	# the stage
@@ -62,7 +66,10 @@ func _ready() -> void:
 	_stage(vp)
 	# the panel
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Data.box(Color(0.03, 0.1, 0.16, 0.96), Data.RULE, 0))
+	var psb := UiTheme.box(Color(0.02, 0.03, 0.045, 0.94), Color(0, 0, 0, 0), 0)
+	psb.border_width_left = 1
+	psb.border_color = UiTheme.LINE_HI
+	panel.add_theme_stylebox_override("panel", psb)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	panel.offset_left = -460
 	add_child(panel)
@@ -77,17 +84,19 @@ func _ready() -> void:
 	var inner := VBoxContainer.new()
 	inner.add_theme_constant_override("separation", 10)
 	pad.add_child(inner)
-	_title = Data.label("CREATE YOUR OPERATOR" if onboarding else "OPERATOR", 22, Data.GOLD)
+	_title = Data.label("CREATE YOUR OPERATOR" if onboarding else "OPERATOR", 22, UiTheme.INK)
+	_title.theme_type_variation = &"HeaderLarge"
 	inner.add_child(_title)
-	inner.add_child(Data.label("Choose a body and a face, then make it yours.", 13, Data.MUTED))
+	inner.add_child(Data.label("Choose a body and a face, then make it yours.", 13, UiTheme.INK_DIM))
 	var tabs_flow := HFlowContainer.new()
 	tabs_flow.add_theme_constant_override("h_separation", 6)
 	tabs_flow.add_theme_constant_override("v_separation", 6)
 	inner.add_child(tabs_flow)
 	for t: String in TABS:
-		var b := Data.button(t, t == tab)
+		var b := _btn(t)
 		b.custom_minimum_size = Vector2(0, 38)
-		b.add_theme_font_size_override("font_size", 13)
+		b.add_theme_font_override("font", UiTheme.font(700, 2))
+		b.add_theme_font_size_override("font_size", 12)
 		b.pressed.connect(func() -> void: _set_tab(t))
 		tabs_flow.add_child(b)
 		_tab_buttons[t] = b
@@ -114,11 +123,12 @@ func _ready() -> void:
 	_name.text_changed.connect(func(t: String) -> void: look.name = t)
 	foot.add_child(_name)
 	if not onboarding:
-		var back := Data.button("BACK")
+		var back := _btn("BACK")
 		back.custom_minimum_size = Vector2(90, 46)
 		back.pressed.connect(func() -> void: closed.emit())
 		foot.add_child(back)
-	var ok := Data.button("CONFIRM", true)
+	var ok := _btn("CONFIRM")
+	_sel(ok, true)
 	ok.custom_minimum_size = Vector2(120, 46)
 	ok.pressed.connect(_confirm)
 	foot.add_child(ok)
@@ -270,7 +280,8 @@ func _confirm() -> void:
 # --- the panel
 
 func _section(text: String) -> void:
-	var l := Data.label(text, 14, Data.CYAN)
+	var l := Data.label(text, 12, UiTheme.INK_DIM)
+	l.theme_type_variation = &"HeaderSmall"
 	_content.add_child(l)
 
 func _grid(cols := 3) -> GridContainer:
@@ -283,13 +294,12 @@ func _grid(cols := 3) -> GridContainer:
 	return g
 
 func _choice(parent: Control, text: String, on: bool, f: Callable, tip := "") -> Button:
-	var b := Data.button(text, on)
+	var b := _btn(text)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.add_theme_font_size_override("font_size", 13)
 	b.clip_text = true
 	b.tooltip_text = tip
-	if on:
-		b.add_theme_stylebox_override("normal", Data.box(Color("#1d5370"), Data.GOLD, 7, 2))
+	_sel(b, on)
 	b.pressed.connect(f)
 	parent.add_child(b)
 	return b
@@ -302,22 +312,31 @@ func _swatches(key: String, current: String, f: Callable) -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.tooltip_text = s.label
 		var c: Color = Color(s.hex) if s.hex != "" else Color("#3a4752")
-		b.add_theme_stylebox_override("normal", Data.box(c, Data.GOLD if s.id == current else Color(0, 0, 0, 0.4), 6, 3 if s.id == current else 1))
-		b.add_theme_stylebox_override("hover", Data.box(c.lightened(0.15), Data.GOLD, 6, 2))
-		b.add_theme_stylebox_override("pressed", Data.box(c, Color.WHITE, 6, 3))
+		b.add_theme_stylebox_override("normal", Data.box(c, Color.WHITE if s.id == current else Color(1, 1, 1, 0.12), 2, 3 if s.id == current else 1))
+		b.add_theme_stylebox_override("hover", Data.box(c.lightened(0.15), Color(1, 1, 1, 0.7), 2, 2))
+		b.add_theme_stylebox_override("pressed", Data.box(c, Color.WHITE, 2, 3))
 		if s.hex == "":
 			b.text = "AUTO"
 			b.add_theme_font_size_override("font_size", 11)
 		var id: String = s.id
 		b.pressed.connect(func() -> void: f.call(id))
 		g.add_child(b)
-	var name_l := Data.label(Catalog.find(key, current).get("label", ""), 12, Data.MUTED)
+	var name_l := Data.label(Catalog.find(key, current).get("label", ""), 12, UiTheme.INK_DIM)
 	_content.add_child(name_l)
 
 func _fill() -> void:
 	for t: String in _tab_buttons:
 		var tb: Button = _tab_buttons[t]
-		tb.add_theme_stylebox_override("normal", Data.box(Color("#1d5370") if t == tab else Color("#0b2335"), Data.GOLD if t == tab else Data.RULE, 7, 2 if t == tab else 1))
+		# Destiny's tabs: plain caps, the open one white and underlined
+		var on := t == tab
+		var u := StyleBoxFlat.new()
+		u.bg_color = Color(1, 1, 1, 0.06) if on else Color(0, 0, 0, 0)
+		u.border_width_bottom = 2 if on else 0
+		u.border_color = UiTheme.INK
+		u.content_margin_left = 10
+		u.content_margin_right = 10
+		tb.add_theme_stylebox_override("normal", u)
+		tb.add_theme_color_override("font_color", UiTheme.INK if on else UiTheme.INK_FAINT)
 	for c in _content.get_children():
 		c.free()
 	var robot: bool = look.body == "robot"
@@ -381,7 +400,7 @@ func _fill() -> void:
 					_changed(true), h.blurb)
 		"SCULPT":
 			if robot:
-				_content.add_child(Data.label("Robot heads keep their plates — pick a head in FACE.", 13, Data.MUTED))
+				_content.add_child(Data.label("Robot heads keep their plates — pick a head in FACE.", 13, UiTheme.INK_DIM))
 				return
 			for m: Dictionary in Catalog.list("morphs"):
 				var row := HBoxContainer.new()
@@ -389,7 +408,7 @@ func _fill() -> void:
 				var sp := Control.new()
 				sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				row.add_child(sp)
-				row.add_child(Data.label("%s · %s" % [m.low, m.high], 11, Data.MUTED))
+				row.add_child(Data.label("%s · %s" % [m.low, m.high], 11, UiTheme.INK_DIM))
 				_content.add_child(row)
 				var s := HSlider.new()
 				s.min_value = -1.0
@@ -426,7 +445,7 @@ func _fill() -> void:
 					_changed(true))
 		"HAIR":
 			if robot:
-				_content.add_child(Data.label("Robots don't wear hair — try GEAR.", 13, Data.MUTED))
+				_content.add_child(Data.label("Robots don't wear hair — try GEAR.", 13, UiTheme.INK_DIM))
 				return
 			_section("HAIR COLOUR")
 			_swatches("hairColors", look.hairColor, func(id: String) -> void:
@@ -434,7 +453,7 @@ func _fill() -> void:
 				_changed(true))
 			_section("HAIRSTYLE")
 			if look.head in Store.WILD_HEADS:
-				_content.add_child(Data.label("This head keeps its own hair — pick another head shape in FACE for new styles.", 13, Data.MUTED))
+				_content.add_child(Data.label("This head keeps its own hair — pick another head shape in FACE for new styles.", 13, UiTheme.INK_DIM))
 				return
 			var g4 := _grid(2)
 			for h: Dictionary in Catalog.hair_for(look.body):
@@ -445,7 +464,7 @@ func _fill() -> void:
 					_changed(true), h.blurb)
 		"BEARD & MARKS":
 			if robot:
-				_content.add_child(Data.label("Robot plates take no markings.", 13, Data.MUTED))
+				_content.add_child(Data.label("Robot plates take no markings.", 13, UiTheme.INK_DIM))
 				return
 			_section("FACIAL HAIR")
 			var g5 := _grid(2)
@@ -467,3 +486,20 @@ func _fill() -> void:
 					look.marks = marks
 					_changed(true), m.blurb)
 
+
+## a theme button (ui_theme.gd: hairline frame, brighter on hover, white when pressed)
+func _btn(text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_ALL
+	return b
+
+## the chosen option fills white with dark text, as Destiny marks a selection
+func _sel(b: Button, on: bool) -> void:
+	if not on:
+		return
+	var w := UiTheme.box(Color(0.93, 0.94, 0.95), Color(0.93, 0.94, 0.95), 1, Vector4(10, 6, 10, 6))
+	b.add_theme_stylebox_override("normal", w)
+	b.add_theme_stylebox_override("hover", w)
+	b.add_theme_color_override("font_color", Color(0.05, 0.06, 0.08))
+	b.add_theme_color_override("font_hover_color", Color(0.05, 0.06, 0.08))

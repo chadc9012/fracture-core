@@ -26,6 +26,7 @@ const AirportView := preload("res://scripts/airport/airport_view.gd")
 const ArrivalView := preload("res://scripts/airport/arrival_view.gd")
 var boss_arena: Control
 const Title := preload("res://scripts/front/title.gd")
+const LoadingCard := preload("res://scripts/ui/loading_card.gd")
 const SettingsView := preload("res://scripts/front/settings_view.gd")
 const PerfHud := preload("res://scripts/front/perf_hud.gd")
 const ProfileView := preload("res://scripts/progress/profile_view.gd")
@@ -182,6 +183,17 @@ func _ready() -> void:
 	if i >= 0 and i + 1 < args.size():
 		_shoot.call_deferred(args[i + 1], args.slice(i + 2))
 
+## puts the place's loading card up, lets it be drawn, builds the place under it (`then`), and fades the card away
+func _loading(place: String, then: Callable, named := "") -> void:
+	var card := LoadingCard.new()
+	card.place = place
+	card.title_override = named
+	_overlays.add_child(card)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	then.call()
+	card.finish()
+
 ## a director shortcut into the ☰ MENU column (it closes the menu when pressed)
 func _dock_add(b: Button) -> void:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -282,11 +294,22 @@ func _street_door(id: String) -> void:
 				view.style = street.style
 	if view == null:
 		return
-	street.visible = false
-	street.set_process(false)
-	street._vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
-	street.sound_off()
-	_show_from_street(view)
+	# Destiny's loading card while the place builds (scripts/ui/loading_card.gd); interiors carry their own name
+	var place := id
+	var named := ""
+	if id == "airport" and street.style == "neon":
+		named = "Neon City International"
+	if not LoadingCard.PLACES.has(place):
+		place = "interior"
+		named = String(preload("res://scripts/city/interiors.gd").DOORS.get(id, ""))
+	_loading(place, func():
+		if not street:
+			return
+		street.visible = false
+		street.set_process(false)
+		street._vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		street.sound_off()
+		_show_from_street(view), named)
 
 ## puts a system over the hidden street; closing it brings the street back (in the city you left from, if you flew)
 func _show_from_street(view: Control) -> void:
@@ -368,7 +391,7 @@ func _title_action(action: String) -> void:
 	match action:
 		"continue":
 			_close_title()
-			_open_street(true, "nexus", true)
+			_loading("nexus", func(): _open_street(true, "nexus", true))
 		"new":
 			_close_title()
 			_open_creator(true)
@@ -381,6 +404,10 @@ func _title_action(action: String) -> void:
 			_open_settings()
 		"operator":
 			_open_profile()
+		"triumphs":
+			_open_triumphs()
+		"journal":
+			_open_journal()
 		"cloud":
 			_close_title()
 			_open_cloud()
@@ -404,6 +431,29 @@ func _open_profile() -> void:
 		profile_view.queue_free()
 		profile_view = null)
 	_overlays.add_child(profile_view)
+
+## Cyberpunk's Journal over whatever is open (scripts/progress/journal_view.gd)
+var journal_view: Control
+func _open_journal() -> void:
+	if journal_view:
+		return
+	journal_view = load("res://scripts/progress/journal_view.gd").new()
+	journal_view.closed.connect(func():
+		journal_view.queue_free()
+		journal_view = null)
+	_overlays.add_child(journal_view)
+
+## Destiny's Triumphs and Collections over whatever is open (scripts/progress/triumphs_view.gd)
+var triumphs_view: Control
+func _open_triumphs(t := "triumphs") -> void:
+	if triumphs_view:
+		return
+	triumphs_view = load("res://scripts/progress/triumphs_view.gd").new()
+	triumphs_view.tab = t
+	triumphs_view.closed.connect(func():
+		triumphs_view.queue_free()
+		triumphs_view = null)
+	_overlays.add_child(triumphs_view)
 
 func _close_street() -> void:
 	if street:
@@ -1035,6 +1085,11 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_settings()
 		if String(o) == "operator":
 			_open_profile()
+		# triumphs | collections  the Triumphs screen on that tab
+		if String(o) == "triumphs" or String(o) == "collections":
+			_open_triumphs(String(o))
+		if String(o) == "journal":
+			_open_journal()
 		# creator[:<tab>]  the operator creator on a tab (body by default)
 		if String(o).begins_with("creator"):
 			_open_creator()

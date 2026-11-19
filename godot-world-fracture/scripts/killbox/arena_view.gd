@@ -61,6 +61,9 @@ var _blackout := false
 var _respawn_t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _done_panel: Control
+## who downed whom, for the end screen's scoreboard (scripts/killbox/match_summary.gd): id -> {name, team, k, d}
+var _tally := {}
+const CALLSIGNS := ["Vance", "Iko", "Sable", "Ren", "Tamsin", "Kilo", "Vex", "Juno", "Rook", "Hex", "Nova", "Cinder", "Wraith", "Talon", "Ash", "Echo"]
 var _paid := false
 var look: Dictionary = LOOKS["neon-rooftops"]
 var _shifted := false
@@ -571,8 +574,37 @@ func _slide_shifters(dt: float) -> void:
 		mi.position.y = move_toward(mi.position.y, want, 2.5 * dt)
 
 # --------------------------------------------------------------------------------------------- the match
+## a kill on the HUD's feed (touch_controls.feed): names and sides from the tally; in FFA everyone else is a rival
+func _feed_line(killer_id: String, victim_id: String) -> void:
+	if victim_id == "" or not _tally.has(killer_id) or not _tally.has(victim_id) or not controls.has_method("feed"):
+		return
+	var ffa: bool = match_state.kind == "ffa"
+	var k: Dictionary = _tally[killer_id]
+	var v: Dictionary = _tally[victim_id]
+	controls.feed(String(k.name), String(v.name), bool(k.you) or (not ffa and int(k.team) == 1), bool(v.you) or (not ffa and int(v.team) == 1), false, bool(k.you) or bool(v.you))
+
+## the tally line for an id (made on first sight: bots get a callsign from their id)
+func _line(id: String, team: int) -> Dictionary:
+	if not _tally.has(id):
+		var nm: String = "You" if id == "player" else String(CALLSIGNS[absi(_tally.size() * 7 + id.hash()) % CALLSIGNS.size()])
+		_tally[id] = { "name": nm, "team": team, "k": 0, "d": 0, "you": id == "player" }
+	return _tally[id]
+
+## the bot of `team` most likely to have made a kill (the first standing one; the rules don't say who fired)
+func _killer_on(team: int) -> String:
+	for o in enemies.enemies:
+		if o.team == team and _bot_ids.has(o) and o.target.alive():
+			return String(_bot_ids[o])
+	return ""
+
 func _on_bot_down(e: RefCounted, by_team: int, by_player: bool) -> void:
 	var en := e as Enemies.Enemy
+	if _bot_ids.has(en):
+		_line(String(_bot_ids[en]), int(en.team)).d += 1
+	var who := "player" if by_player else _killer_on(by_team)
+	if who != "":
+		_line(who, 1 if who == "player" else by_team).k += 1
+		_feed_line(who, String(_bot_ids.get(en, "")))
 	if match_state.kind == "ffa":
 		# the kill goes on the killer's board line; a fall is nobody's
 		var killer := ""
@@ -605,6 +637,18 @@ func _respawn_bot(e: RefCounted) -> void:
 	en.timer = 4.0
 
 func _on_operator_down() -> void:
+	_line("player", 1).d += 1
+	var shooter := ""
+	for o in enemies.enemies:
+		if o.has_meta("hit_operator") and _bot_ids.has(o):
+			shooter = String(_bot_ids[o])
+	if shooter == "":
+		shooter = _killer_on(0)
+	if shooter != "":
+		for o in enemies.enemies:
+			if _bot_ids.get(o, "") == shooter:
+				_line(shooter, int(o.team)).k += 1
+		_feed_line(shooter, "player")
 	if online:
 		if net_pvp:
 			net_pvp.my_down()
@@ -867,24 +911,31 @@ func _finish() -> void:
 	if not it.is_empty():
 		Gear.save(gear)
 		res.lines.append("LOOT · %s (%d power)" % [String(it.name), int(it.power)])
+	var loot := ""
 	for l in res.lines:
-		controls.toast(String(l))
-	_done_panel = PanelContainer.new()
-	_done_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_done_panel.position = Vector2(-170, -90)
-	var v := VBoxContainer.new()
-	_done_panel.add_child(v)
-	var t := Label.new()
-	t.text = "%s\n%d – %d\n+%d Nex   +%d XP" % ["VICTORY" if won else ("DRAW" if match_state.winner == "draw" else "DEFEAT"), match_state.us, match_state.them, nex, xp]
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.add_theme_font_size_override("font_size", 24)
-	v.add_child(t)
-	var b := Button.new()
-	b.text = "LEAVE THE KILLBOX"
-	b.custom_minimum_size = Vector2(300, 48)
-	b.pressed.connect(func(): closed.emit())
-	v.add_child(b)
-	add_child(_done_panel)
+		if String(l).begins_with("LOOT · "):
+			loot = String(l).substr(7)
+		else:
+			controls.toast(String(l))
+	# Valorant's end screen: the result, the score, the MVP, the scoreboard, your numbers, the pay
+	_line("player", 1)
+	var draw: bool = match_state.winner == "draw"
+	var teams: Array = []
+	if match_state.kind == "ffa":
+		teams.append({ "name": "Everyone", "rows": _tally.values() })
+	else:
+		teams.append({ "name": "Your squad", "rows": _tally.values().filter(func(r): return int(r.team) == 1) })
+		teams.append({ "name": "Rivals", "rows": _tally.values().filter(func(r): return int(r.team) != 1) })
+	var me: Dictionary = _tally.player
+	var summary = load("res://scripts/killbox/match_summary.gd").new()
+	summary.data = { "result": "VICTORY" if won else ("DRAW" if draw else "DEFEAT"), "won": won, "draw": draw,
+		"score": "%d  –  %d" % [match_state.us, match_state.them], "sub": "%s · %s" % [String(match_state.mode.name), String(arena.def.get("name", ""))],
+		"teams": teams, "stats": [["KILLS", str(int(match_state.player_kills))], ["DEATHS", str(int(match_state.player_deaths))],
+			["K/D", "%.1f" % (float(match_state.player_kills) / maxf(float(match_state.player_deaths), 1.0))], ["SCORE", str(int(me.k) * 100)]],
+		"nex": nex, "xp": xp, "loot": loot, "leave_text": "LEAVE THE KILLBOX" }
+	summary.leave.connect(func(): closed.emit())
+	_done_panel = summary
+	controls.add_child(summary)
 
 # --------------------------------------------------------------------------------------------- Extraction
 var _core_node: Node3D
