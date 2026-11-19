@@ -83,7 +83,24 @@ func _ready() -> void:
 	var sp: Vector3 = region.stand_point()
 	var r0 := Match.START_RADIUS
 	centre = Vector2(clampf(sp.x, -half + r0, half - r0), clampf(sp.z, -half + r0, half - r0))
-	var a := _rng.randf() * TAU
+	# land in a gap between the trees: the bearing (of 24, from a random start) whose landing spot stands furthest from
+	# any trunk — a squad dropped straight into a tree put the camera inside its crown (Nov 18)
+	var a0 := _rng.randf() * TAU
+	var a := a0
+	var best := -1.0
+	var trees: PackedVector2Array = region._tree_pts
+	for k in 24:
+		var ak := a0 + k * TAU / 24.0
+		var q := centre + Vector2(cos(ak), sin(ak)) * (r0 - 12.0)
+		var near := 99.0
+		for tp in trees:
+			if absf(tp.x - q.x) < 12.0 and absf(tp.y - q.y) < 12.0:
+				near = minf(near, tp.distance_to(q))
+		if near > best:
+			best = near
+			a = ak
+		if best >= 9.0:
+			break
 	operator.position = _ground(centre + Vector2(cos(a), sin(a)) * (r0 - 12.0))
 	for i in 2:
 		var at := _ground(Vector2(operator.position.x, operator.position.z) + Vector2(cos(a + 1.3 + i * 1.6), sin(a + 1.3 + i * 1.6)) * 4.0)
