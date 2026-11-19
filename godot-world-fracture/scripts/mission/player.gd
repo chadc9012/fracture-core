@@ -140,7 +140,7 @@ func _fit_gear() -> void:
 		ammo = mag_size
 		reserve = int(f.reserve)
 	if not civilian:
-		OutfitLook.apply(rig, Gear.outfit(str(gear.get("outfit", ""))))
+		OutfitLook.apply(rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 
 func _make_rifle() -> void:
 	var sk: Skeleton3D = rig.skeleton

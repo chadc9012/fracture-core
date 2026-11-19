@@ -3,9 +3,14 @@ extends RefCounted
 ## the body's plate and undersuit take the outfit's armour and cloth colours as a tint over the body texture, the head,
 ## hair and gear untouched. Scene side of gear_store.gd's outfits.
 
-static func apply(rig: Node3D, outfit: Dictionary) -> void:
+const ArmorLook := preload("res://scripts/gear/armor_look.gd")
+
+## `gear` (the save, gear_store.gd): when given, the worn armour is drawn too (armor_look.gd)
+static func apply(rig: Node3D, outfit: Dictionary, gear := {}) -> void:
 	if not rig or not rig.body_root:
 		return
+	if not gear.is_empty():
+		ArmorLook.apply(rig, gear)
 	var tint := Color(1, 1, 1)
 	var strength := 0.0
 	if not outfit.is_empty():

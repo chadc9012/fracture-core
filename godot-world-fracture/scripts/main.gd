@@ -53,6 +53,30 @@ var region_3d: Control
 var garage: Control
 var driving: Control
 
+## menus with a controller (owner, Nov 11): the D-pad / left stick moves between buttons and ✕ presses (Godot's ui_*
+## actions). A menu opens with nothing focused, so the first pad press focuses its first button. Not while the operator
+## is in the world (touch_controls showing): there ✕ jumps and must never press a menu button.
+func _input(event: InputEvent) -> void:
+	if not (event is InputEventJoypadButton or event is InputEventJoypadMotion):
+		return
+	if event is InputEventJoypadMotion and absf((event as InputEventJoypadMotion).axis_value) < 0.5:
+		return
+	if get_viewport().gui_get_focus_owner() != null:
+		return
+	for tc in get_tree().get_nodes_in_group("touch_controls"):
+		if (tc as Control).is_visible_in_tree():
+			return
+	var best: Button = null
+	for b in find_children("*", "Button", true, false):
+		var bt := b as Button
+		if bt.is_visible_in_tree() and not bt.disabled and bt.focus_mode != Control.FOCUS_NONE:
+			# the first visible one: a screen hides the one under it while it is open
+			best = bt
+			break
+	if best:
+		best.grab_focus()
+		get_viewport().set_input_as_handled()
+
 func _ready() -> void:
 	preload("res://scripts/front/settings_store.gd").apply_orientation()   # the player's saved screen orientation
 	# the UI is laid out for a 540 px wide portrait phone; turned sideways the same rule would shrink every button to half
@@ -1176,6 +1200,20 @@ func _shoot(path: String, opts: Array) -> void:
 			preload("res://scripts/region_weather.gd").hold = true
 		if String(o) == "3d" and region_map:
 			_open_3d(region_map.map_id, null, false)
+		# 3d-at:x,z[,dist,pitch,yaw,lift] the 3D city view orbiting a map point (landmark checks: the casino, the Core Spire)
+		if String(o).begins_with("3d-at:") and region_map:
+			var a := String(o).substr(6).split(",")
+			_open_3d(region_map.map_id, Vector2(float(a[0]), float(a[1])), false)
+			if a.size() > 2:
+				region_3d._dist = float(a[2])
+			if a.size() > 3:
+				region_3d._pitch = float(a[3])
+			if a.size() > 4:
+				region_3d._yaw = float(a[4])
+			if a.size() > 5:
+				region_3d._target.y += float(a[5])
+			region_3d._apply_cam()
+			print("3d-at cam ", region_3d._cam.global_position, " target ", region_3d._target)
 		if String(o).begins_with("street:") and region_map:
 			var p: Dictionary = {}
 			for q in Data.map(region_map.map_id).pois:

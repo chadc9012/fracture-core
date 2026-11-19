@@ -137,7 +137,7 @@ func _ready() -> void:
 	gunplay.set_loadout(Gear.loadout(gear))
 	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 	enemies.hull = enemies.hull_max
-	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 	# the fireteam: five bots, each holding a pylon or a conduit between fights
 	for i in ALLY_TYPES.size():
 		var at := spawn_point + Vector3(-7.0 + i * 3.5, 0, -4.0 - (i % 2) * 2.0)

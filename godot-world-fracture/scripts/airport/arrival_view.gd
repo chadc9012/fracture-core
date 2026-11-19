@@ -77,7 +77,7 @@ func _ready() -> void:
 		npcs.setup(operator, controls, self, operator.obstacles, operator.bounds, operator.ground_at, 11.5, Vector2(-100000.0, 100000.0), dest)
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
-	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
+	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))), gear)
 	armed = StreetSlice.force_armed or StreetSlice.story_armed()
 	gunplay.set_holstered(not armed)
 	controls.set_armed(armed)
