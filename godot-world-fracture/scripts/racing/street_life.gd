@@ -22,6 +22,8 @@ const Gear := preload("res://scripts/gear/gear_store.gd")
 const Progression := preload("res://scripts/progress/progression.gd")
 const Nexus := preload("res://scripts/city/nexus_districts.gd")
 const RankCard := preload("res://scripts/ui/rank_card.gd")
+const RaceCards := preload("res://scripts/ui/race_cards.gd")
+var _countdown: Control   # NFS Heat's start lights (race_cards.gd Countdown) while the grid counts down
 const FLEET := "res://models/fleet/"
 const RIVAL_FILES := ["concept-gt.glb", "street-racer-lod.glb", "muscle-car-lod.glb"]
 const POLICE_FILE := "security-suv.glb"
@@ -437,6 +439,13 @@ func begin(id: String, custom := {}, race_id := "", entrants: Array = [], names:
 	route = route_for(ev)
 	state = "countdown"
 	countdown = 3.5
+	# NFS Heat's race intro down the left and the start lights in the middle
+	var who: Array = players_in.map(func(pl): return String(pl.name))   # other players; alone you race the pace
+	slice.add_child(RaceCards.intro(ev, route.length / 1000.0 if route else 0.0, who))
+	if _countdown and is_instance_valid(_countdown):
+		_countdown.queue_free()
+	_countdown = RaceCards.Countdown.new()
+	slice.add_child(_countdown)
 	time = 0.0
 	finishers = []
 	finished_at = -1.0
@@ -962,7 +971,7 @@ func _step_police(dt: float, car: RefCounted) -> void:
 		"escaped":
 			var got: int = career.escaped(heat.last_level)
 			career.save()
-			show_result("ESCAPED\n+%d REP" % got, Color(0.4, 1.0, 0.6))
+			slice.add_child(RaceCards.pursuit(true, "the heat is off  ·  +%d rep" % got))
 			Sound.sfx("confirm", -3.0)
 			_clear_units()
 			refresh_markers()
@@ -1037,7 +1046,7 @@ func _busted() -> void:
 	_clear_units()
 	if busy():
 		_end_race()
-	show_result("BUSTED\n−%d Nex fine · −%d REP" % [int(b.fine), int(b.rep)], Color(1.0, 0.35, 0.3))
+	slice.add_child(RaceCards.pursuit(false, "−%d nex fine  ·  −%d rep" % [int(b.fine), int(b.rep)]))
 	Sound.sfx("buzzer", -2.0)
 	refresh_markers()
 
@@ -1105,8 +1114,8 @@ func _update_hud(dt: float) -> void:
 		result.visible = _result_t > 0.0
 	var lines: Array = []
 	if state == "countdown":
-		lines.append(String(ev.name).to_upper())
-		lines.append(str(int(ceil(countdown - 0.5))) if countdown > 0.5 else "GO")
+		if _countdown and is_instance_valid(_countdown):
+			_countdown.show_count(int(ceil(countdown - 0.5)) if countdown > 0.5 else 0)
 	elif state == "racing":
 		if String(ev.kind) == "drift":
 			lines.append("DRIFT %d   %s" % [int(drift_score), ("+%d ×%.1f" % [int(_chain_pts), multiplier()]) if _chain_pts > 0.0 else ""])
