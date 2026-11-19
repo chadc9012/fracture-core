@@ -371,6 +371,22 @@ func prompt(text: String) -> void:
 	if _enter_button:
 		_enter_button.text = text
 		_enter_button.visible = text != ""
+		# centred on its text and never wider than the screen, wrapping onto a second line: a long prompt grew the button
+		# off the right edge ("OUTLAW AVENUE RUN NEEDS OUTL…"; owner's video, Nov 18)
+		var font := _enter_button.get_theme_font("font")
+		var fs := _enter_button.get_theme_font_size("font_size")
+		var vw := get_viewport_rect().size.x if is_inside_tree() else 540.0
+		var w := clampf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 40.0, 150.0, vw - 32.0)
+		_enter_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_enter_button.custom_minimum_size = Vector2(w, 64)
+		_enter_button.anchor_left = 0.5
+		_enter_button.anchor_right = 0.5
+		_enter_button.anchor_top = 0.5
+		_enter_button.anchor_bottom = 0.5
+		_enter_button.offset_left = -w * 0.5
+		_enter_button.offset_right = w * 0.5
+		_enter_button.offset_top = 120.0
+		_enter_button.offset_bottom = 184.0
 		return
 	if not _prompt_label:
 		_prompt_label = Label.new()

@@ -391,6 +391,24 @@ func _glow(c: Color, alpha := 0.9) -> StandardMaterial3D:
 	_mats[key] = m
 	return m
 
+## smoke: lit by the scene (grey in the day, dark at night) and thinning to nothing within a few metres of the camera.
+## As unshaded glow at 0.55 the puffs lit up white at night, and a camera inside the cloud saw every layer of it over
+## the whole screen: the street turned a flat, blown-out white (owner's video, Nov 18)
+func _smoke() -> StandardMaterial3D:
+	if _mats.has("smoke"):
+		return _mats["smoke"]
+	var m := StandardMaterial3D.new()
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(0.5, 0.49, 0.53, 0.32)
+	m.roughness = 1.0
+	m.metallic_specular = 0.0
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+	m.distance_fade_min_distance = 1.0
+	m.distance_fade_max_distance = 6.0
+	_mats["smoke"] = m
+	return m
+
 ## a small dark canister with a band of the grenade's colour
 func _canister(g: Dictionary) -> Node3D:
 	var root := Node3D.new()
@@ -445,7 +463,7 @@ func _zone_look(gr: Dictionary) -> void:
 				s.radius = 1.4 + rng.randf() * 0.8
 				s.height = s.radius * 1.6
 				puff.mesh = s
-				puff.material_override = _glow(Color(0.77, 0.74, 0.82), 0.55)
+				puff.material_override = _smoke()
 				var a := rng.randf() * TAU
 				var rr := rng.randf() * r * 0.8
 				puff.position = Vector3(cos(a) * rr, 0.9 + rng.randf() * 2.0, sin(a) * rr)

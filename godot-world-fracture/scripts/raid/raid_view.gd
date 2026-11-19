@@ -790,6 +790,8 @@ func _process(dt: float) -> void:
 		if controls.take_next():
 			gunplay.next_weapon()
 		gunplay.step(dt, cam, controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())
+	else:
+		gunplay.fade(dt)
 	var g = gunplay.gun()
 	controls.weapon_name.text = g.display_name()
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())

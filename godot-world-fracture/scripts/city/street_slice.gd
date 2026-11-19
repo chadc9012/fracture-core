@@ -766,6 +766,8 @@ func _process(dt: float) -> void:
 		_drive(minf(dt, 0.05))
 		if life:
 			life.step(minf(dt, 0.05))
+		if gunplay:
+			gunplay.fade(minf(dt, 0.05))   # the enemies' tracers fade while you drive
 		return
 	if life:
 		life.step(minf(dt, 0.05))
@@ -2452,8 +2454,7 @@ func enter_car(c: Node3D) -> void:
 		Sound.radio_on(saved)
 	_radio_button.visible = true
 	if controls.touch_ui and controls._enter_button:
-		controls._enter_button.text = "EXIT"
-		controls._enter_button.visible = true
+		controls.prompt("EXIT")   # sized to its text (a long prompt before left a screen-wide EXIT)
 
 func exit_car() -> void:
 	if life:

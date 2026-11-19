@@ -370,7 +370,12 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		for k in Weapons.pellets(gun().frame):
 			_fire_one(cam, moving_speed)
 		_eject(cam)
-	# tracers and the flash fade
+	fade(dt)
+
+## tracers, casings, magazines and debris run out their lives, the flash goes out. Called by step, and on its own by a
+## view while the operator is in a car: the enemies still fire (their tracers come through gunplay.tracer), and with
+## step not running none of them ever went — the street filled with hundreds of standing cyan lines (Nov 18)
+func fade(dt: float) -> void:
 	var keep: Array = []
 	for tr in _tracers:
 		tr.t -= dt

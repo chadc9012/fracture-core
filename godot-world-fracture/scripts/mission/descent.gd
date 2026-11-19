@@ -399,6 +399,8 @@ func _process(dt: float) -> void:
 		enemies.step(dt)
 		if boss:
 			boss.step(dt)
+		if gunplay:
+			gunplay.fade(dt)   # tracers fired as the scene starts go out under it
 		return
 	enemies.step(dt)
 	if boss:
