@@ -273,6 +273,15 @@ def ffmpeg(src, out, af):
     os.remove(tmp)
 
 
+def audible(path):
+    import soundfile as sf, numpy as np
+    try:
+        y, _ = sf.read(path)
+    except Exception:
+        return False
+    return len(y) > 0 and float(np.abs(y).max()) >= 0.05
+
+
 def duration(path):
     r = subprocess.run(["ffprobe", "-v", "quiet", "-show_entries", "format=duration", "-of", "csv=p=0", path],
                        capture_output=True, text=True)
@@ -319,6 +328,19 @@ def main():
                         if sp in MATCH:
                             eq_match(model_dir, model, spk, sp, wav)
                     ffmpeg(wav, out, FX[fx])
+                    # a take came out silent now and then on long runs (eleven NOVA lines, Nov 22): check every take
+                    # and voice it again from scratch until it is audible
+                    for attempt in range(3):
+                        if audible(out):
+                            break
+                        print("silent take, again:", lid + var, flush=True)
+                        os.remove(wav)
+                        piper(model_dir, model, spk, speakable(text), wav)
+                        if sp in MATCH:
+                            eq_match(model_dir, model, spk, sp, wav)
+                        ffmpeg(wav, out, FX[fx])
+                    if not audible(out):
+                        print("STILL SILENT", lid + var, flush=True)
                 print("voiced", lid + var, flush=True)
             if os.path.exists(out):
                 made.append(var)
