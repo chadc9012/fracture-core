@@ -678,8 +678,9 @@ func _style_for(id: String) -> Dictionary:
 		"storm":
 			# the board's floating islands under a storm at dusk: a heavy cloud deck, the low sun breaking warm along the
 			# horizon, the crystals glowing (Nov 18 pass: the region_sky storm deck with a warm horizon, lightning on)
-			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 10.0, "sun_az": 150.0,
-				"amb": 0.6, "sat": 1.1, "exp": 1.0, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
+			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 18.0, "sun_az": 150.0,
+				# (Nov 21, Street View: the ground and the trees were black in the shade — more violet ambient, a higher sun)
+				"amb": 1.5, "amb_col": "#7a6aa2", "sat": 1.1, "exp": 1.1, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
 		"crystal-badlands":
 			# the owner's "MOONLIGHT - FRACTURE ZONE" photo: a full moon over dark rock spires, deep blue night, the crystals
 			# and rift seams glowing cyan and violet (it was a flat pink-orange dusk)
@@ -709,7 +710,7 @@ func _style_for(id: String) -> Dictionary:
 		"shattered-reefs":
 			# the owner's "OCEAN" photo, as Azure Isles
 			s.merge({"top": "#2370c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 45.0, "sun_az": 150.0,
-				"amb": 0.6, "sat": 1.05, "exp": 0.8, "sky": "day"}, true)
+				"amb": 0.5, "sat": 1.12, "exp": 0.6, "sky": "day"}, true)   # Nov 21: the ground washed out at street level
 		"thalassia":
 			# the city inside the dome carries its own lights: a dimmer, bluer deep so they read (it was blown out to white)
 			s.merge({"fog": "#06465e", "fog_d": 0.009, "sun": 0.45, "sun_col": "#a8e6ff", "sun_el": 70.0, "amb": 0.35, "planet": false, "under": true, "night": 0.6, "exp": 0.8}, true)
@@ -747,7 +748,8 @@ func _build_env() -> void:
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if not _style.under else Environment.AMBIENT_SOURCE_COLOR
 	_env.ambient_light_color = Color(_style.fog)
 	_env.ambient_light_energy = _style.amb + _style.night * 0.5
-	if _style.night > 0.5:
+	# a style that names its ambient colour gets it by day too (the Storm Islands' dark cloud deck lit nothing: black shade)
+	if _style.night > 0.5 or _style.has("amb_col"):
 		_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 		_env.ambient_light_color = Color(_style.get("amb_col", Color(_style.hor).lightened(0.25)))
 	_env.tonemap_mode = Environment.TONE_MAPPER_ACES
@@ -1001,6 +1003,9 @@ func _build_buildings() -> void:
 	mat.shader = load("res://shaders/building3d.gdshader")
 	mat.set_shader_parameter("night", _style.night)
 	mat.set_shader_parameter("neon", _style.neon)
+	# facade styles drawn in the shader (Nov 22, no new models): a half-timbered town, scrap-built outposts
+	mat.set_shader_parameter("town", 1.0 if map_id in ["old-harrow", "goldenreach"] else 0.0)
+	mat.set_shader_parameter("rust", 1.0 if map_id in ["wastelands", "ember"] else 0.0)
 	mi.material_override = mat
 	_world.add_child(mi)
 	# Neon City's signs: strips of colour along the rooflines of the taller towers
@@ -1238,7 +1243,9 @@ func _build_rings() -> void:
 				c.height = 0.4
 				mi.mesh = c
 				y = maxf(y, _water + 0.2) + 0.2
-				mat.albedo_color = Color("#9aa0a6")
+				# weathered concrete: the pale grey deck blew out to white under the island sun (Azure Marina, Nov 21)
+				mat.albedo_color = Color("#6e7072")
+				mat.roughness = 0.95
 		mi.material_override = mat
 		mi.position = Vector3(p.x, y, p.y)
 		_world.add_child(mi)
@@ -2215,7 +2222,29 @@ func _stand_near(at: Vector2) -> void:
 			break
 	_eye = Vector3(best.x, _ground(best.x, best.y) + EYE, best.y)
 	_look_yaw = atan2(_eye.x - at.x, _eye.z - at.y)
+	# in a dense town the place can be behind a wall 3 m away (Old Harrow, Nov 22): if the view towards it is blocked
+	# within 10 m, look down the longest open line instead
+	var want := Vector2(at.x - best.x, at.y - best.y).normalized()
+	if _open_run(best, want, boxes) < 10.0:
+		var far := 0.0
+		for k in 16:
+			var d := Vector2(cos(k * TAU / 16.0), sin(k * TAU / 16.0))
+			var run := _open_run(best, d, boxes)
+			if run > far:
+				far = run
+				_look_yaw = atan2(-d.x, -d.y)
 	_look_pitch = 4.0
+
+## how far you can see from p along d before a building (up to 60 m)
+func _open_run(p: Vector2, d: Vector2, boxes: Array[AABB]) -> float:
+	var t := 2.0
+	while t < 60.0:
+		var q := p + d * t
+		for bx in boxes:
+			if q.x > bx.position.x and q.x < bx.end.x and q.y > bx.position.z and q.y < bx.end.z:
+				return t
+		t += 2.0
+	return 60.0
 
 func _in_building(q: Vector2) -> bool:
 	for bd in m.buildings:
