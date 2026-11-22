@@ -25,7 +25,13 @@ var tab := "BODY"
 var onboarding := false
 var rig: Node3D
 var cam: Camera3D
-var turn := -0.75
+const START_TURN := -0.35
+var turn := START_TURN
+var _shown_turn := START_TURN
+var _spin := 0.0
+var _pan := 0.0
+var _touches := {}
+var _pinch := 0.0
 var _drag := false
 var _dirty := false
 var _since := 0.0
@@ -60,6 +66,7 @@ func _ready() -> void:
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svc.add_child(vp)
 	_stage(vp)
+	_view_buttons(self)
 	# the panel
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", Data.box(Color(0.03, 0.1, 0.16, 0.96), Data.RULE, 0))
@@ -125,94 +132,154 @@ func _ready() -> void:
 	_rebuild()
 	_fill()
 
+## The stage is a photo studio, as GTA V's creator shows its character (owner, Nov 22: "Fix this so it can look like GTA 5"):
+## a seamless grey cyclorama, a soft warm key, a cool fill, two white rims and a hair light, a soft contact shadow under the
+## feet, and the background falling out of focus. The camera frames the whole body, the outfit or the face by tab; drag
+## turns the character, a vertical drag moves the view up and down, a pinch / the wheel / the + − buttons zoom.
 func _stage(vp: SubViewport) -> void:
 	var world := Node3D.new()
 	vp.add_child(world)
+	var hi := Phone.tier() != "low"
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("#06131f")
+	env.background_color = Color(0.11, 0.115, 0.125)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("#3a5670")
-	env.ambient_light_energy = 0.55
+	env.ambient_light_color = Color(0.62, 0.64, 0.68)
+	env.ambient_light_energy = 0.42
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.05
 	env.glow_enabled = true
-	env.glow_intensity = 0.6
-	env.glow_bloom = 0.05
+	env.glow_intensity = 0.25
+	env.glow_bloom = 0.02
+	env.ssao_enabled = hi and not Phone.on_phone()
+	env.ssao_radius = 0.6
+	env.ssao_intensity = 1.2
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.06
+	env.adjustment_saturation = 0.95
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
+	# the cyclorama: a floor that curves up into the back wall, one seamless surface, lit grey falling to dark at the top
+	var cyc := MeshInstance3D.new()
+	cyc.mesh = _cyclorama()
+	var cm := ShaderMaterial.new()
+	cm.shader = Shader.new()
+	cm.shader.code = """shader_type spatial;
+render_mode cull_disabled;
+varying vec3 wp;
+void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void fragment() {
+	float up = clamp(wp.y / 5.0, 0.0, 1.0);
+	float side = clamp(abs(wp.x) / 7.0, 0.0, 1.0);
+	vec3 c = mix(vec3(0.42, 0.43, 0.45), vec3(0.11, 0.115, 0.13), smoothstep(0.05, 0.85, up));
+	c *= 1.0 - 0.45 * side * side;
+	ALBEDO = c;
+	ROUGHNESS = 0.92;
+	SPECULAR = 0.2;
+}"""
+	cyc.material_override = cm
+	world.add_child(cyc)
+	# a soft contact shadow under the feet (the shadow map alone leaves them floating at this softness)
+	var blob := Decal.new()
+	var gt := GradientTexture2D.new()
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(1.0, 0.5)
+	var gr := Gradient.new()
+	gr.set_color(0, Color(0, 0, 0, 0.55))
+	gr.set_color(1, Color(0, 0, 0, 0.0))
+	gt.gradient = gr
+	gt.width = 128
+	gt.height = 128
+	blob.texture_albedo = gt
+	blob.size = Vector3(1.1, 0.4, 0.9)
+	blob.position = Vector3(0, 0.0, 0)
+	world.add_child(blob)
+	# key: a warm soft light high and to the left of camera
 	var key := DirectionalLight3D.new()
-	key.light_color = Color("#ffe6cc")
-	key.light_energy = 1.6
+	key.light_color = Color(1.0, 0.94, 0.86)
+	key.light_energy = 2.1
 	key.shadow_enabled = true
-	key.rotation = Vector3(deg_to_rad(-32), deg_to_rad(28), 0)
+	key.light_angular_distance = 3.0
+	key.shadow_blur = 2.0
+	key.rotation = Vector3(deg_to_rad(-38), deg_to_rad(-34), 0)
 	world.add_child(key)
+	# fill: cool and dim from the right, so the shadow side keeps detail
 	var fill := OmniLight3D.new()
-	fill.light_color = Color("#9fc8ff")
-	fill.light_energy = 0.9
-	fill.omni_range = 6.0
-	fill.position = Vector3(-1.6, 1.5, 1.6)
+	fill.light_color = Color(0.78, 0.86, 1.0)
+	fill.light_energy = 0.75
+	fill.omni_range = 8.0
+	fill.position = Vector3(2.4, 1.4, 2.2)
 	world.add_child(fill)
+	# rims: two white lights behind, outlining the shoulders and hair against the backdrop
 	for sx: float in [-1.0, 1.0]:
-		var rim := OmniLight3D.new()
-		rim.light_color = Color("#36d6ff") if sx < 0 else Color("#ff5fa8")
-		rim.light_energy = 2.2
-		rim.omni_range = 4.0
-		rim.position = Vector3(sx * 1.3, 1.9, -1.4)
+		var rim := SpotLight3D.new()
+		rim.light_color = Color(1.0, 0.98, 0.95)
+		rim.light_energy = 3.2
+		rim.spot_range = 6.0
+		rim.spot_angle = 30.0
+		rim.position = Vector3(sx * 1.6, 2.4, -1.8)
 		world.add_child(rim)
-	# a plinth with a glowing ring
-	var plinth := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.75
-	cyl.bottom_radius = 0.8
-	cyl.height = 0.08
-	plinth.mesh = cyl
-	var pm := StandardMaterial3D.new()
-	pm.albedo_color = Color("#101820")
-	pm.metallic = 0.7
-	pm.roughness = 0.3
-	plinth.material_override = pm
-	plinth.position.y = -0.04
-	world.add_child(plinth)
-	var ring := MeshInstance3D.new()
-	var tor := TorusMesh.new()
-	tor.inner_radius = 0.74
-	tor.outer_radius = 0.77
-	ring.mesh = tor
-	var rm := StandardMaterial3D.new()
-	rm.albedo_color = Color("#8ce9ff")
-	rm.emission_enabled = true
-	rm.emission = Color("#5fd8ff")
-	rm.emission_energy_multiplier = 3.0
-	ring.material_override = rm
-	ring.position.y = 0.0
-	world.add_child(ring)
-	# a back wall with faint grid glow
-	var wall := MeshInstance3D.new()
-	var pl := PlaneMesh.new()
-	pl.size = Vector2(12, 6)
-	wall.mesh = pl
-	wall.rotation.x = PI / 2
-	wall.position = Vector3(0, 3, -3)
-	var wm := StandardMaterial3D.new()
-	wm.albedo_color = Color("#0a1824")
-	wm.roughness = 0.9
-	wall.material_override = wm
-	world.add_child(wall)
+		rim.look_at(Vector3(0, 1.2, 0))
+	# a hair light from above
+	var top := SpotLight3D.new()
+	top.light_energy = 1.4
+	top.spot_range = 4.0
+	top.spot_angle = 22.0
+	top.position = Vector3(0, 3.4, -0.4)
+	world.add_child(top)
+	top.look_at(Vector3(0, 1.6, 0))
 	rig = Rig.new()
 	world.add_child(rig)
 	cam = Camera3D.new()
-	cam.fov = 32
+	cam.fov = 30
 	cam.current = true
+	if hi:
+		var ca := CameraAttributesPractical.new()
+		ca.dof_blur_far_enabled = true
+		ca.dof_blur_far_distance = 4.5
+		ca.dof_blur_far_transition = 3.0
+		ca.dof_blur_amount = 0.06
+		cam.attributes = ca
 	world.add_child(cam)
 
+## the studio's sweep: a flat floor in front that bends up into a wall behind (radius 2.5 m), 14 m wide
+func _cyclorama() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var prof: Array[Vector2] = []           # (z, y) along the sweep, front to back
+	prof.append(Vector2(8.0, 0.0))
+	prof.append(Vector2(-2.0, 0.0))
+	for k in range(1, 13):
+		var a := float(k) / 12.0 * PI * 0.5
+		prof.append(Vector2(-2.0 - sin(a) * 2.5, 2.5 - cos(a) * 2.5))
+	prof.append(Vector2(-4.5, 9.0))
+	for i in prof.size() - 1:
+		var p0: Vector2 = prof[i]
+		var p1: Vector2 = prof[i + 1]
+		var n0 := Vector3(0, p1.x - p0.x, -(p1.y - p0.y)).normalized() * -1.0
+		for q in [[-7.0, p0], [7.0, p1], [7.0, p0], [-7.0, p0], [-7.0, p1], [7.0, p1]]:
+			var pp: Vector2 = q[1]
+			st.set_normal(Vector3(0, absf(n0.y), absf(n0.z)))
+			st.add_vertex(Vector3(q[0], pp.y, pp.x))
+	return st.commit()
+
+## the view: the whole body, the outfit at three-quarters, or the face, then the player's zoom and height on top
 func _frame_camera() -> void:
 	var face := tab in FACE_TABS
 	var hp: Vector3 = rig.head_world() if rig else Vector3(0, 1.6, 0)
-	var target := hp + Vector3(0, 0.1, 0) if face else Vector3(0, rig.head_point.y * 0.55, 0)
-	_cam_target = target if _cam_target == Vector3.ZERO else _cam_target.lerp(target, 0.15)
-	var dist := (1.25 if face else 3.9) * (1.0 - _zoom * 0.5)
-	cam.position = _cam_target + Vector3(0, 0.03 if face else 0.25, dist)
+	var tall: float = rig.head_point.y if rig else 1.7
+	# full length with room above the head and for the view buttons under the feet; the outfit a little closer
+	var base_d := 1.0 if face else (3.9 if tab == "OUTFIT" else 4.5)
+	var close_d := 0.55 if face else 1.2
+	var dist := lerpf(base_d, close_d, _zoom)
+	var aim_y := hp.y + 0.04 if face else lerpf(tall * 0.5, hp.y - 0.1, _zoom * 0.7)
+	aim_y = clampf(aim_y + _pan, 0.25, hp.y + 0.15)
+	var target := Vector3(0, aim_y, 0)
+	_cam_target = target if _cam_target == Vector3.ZERO else _cam_target.lerp(target, 0.12)
+	var want := _cam_target + Vector3(0, 0.02 if face else 0.12, dist)
+	cam.position = want if cam.position == Vector3.ZERO else cam.position.lerp(want, 0.15)
 	cam.look_at(_cam_target)
 
 func _process(delta: float) -> void:
@@ -222,9 +289,9 @@ func _process(delta: float) -> void:
 		_since = 0.0
 		_rebuild()
 	if rig:
-		if not _drag:
-			turn += delta * 0.12
-		rig.rotation.y = turn
+		turn += _spin * delta * 1.6
+		_shown_turn = lerp_angle(_shown_turn, turn, minf(1.0, delta * 10.0))
+		rig.rotation.y = _shown_turn
 	_frame_camera()
 
 func _stage_input(e: InputEvent) -> void:
@@ -232,16 +299,72 @@ func _stage_input(e: InputEvent) -> void:
 		var mb := e as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			_drag = mb.pressed
-		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom = clampf(_zoom + 0.1, 0.0, 1.0)
-		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom = clampf(_zoom - 0.1, 0.0, 1.0)
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
+			_zoom = clampf(_zoom + 0.08, 0.0, 1.0)
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
+			_zoom = clampf(_zoom - 0.08, 0.0, 1.0)
+	elif e is InputEventMagnifyGesture:
+		_zoom = clampf(_zoom + ((e as InputEventMagnifyGesture).factor - 1.0) * 0.8, 0.0, 1.0)
 	elif e is InputEventScreenTouch:
-		_drag = (e as InputEventScreenTouch).pressed
-	elif e is InputEventMouseMotion and _drag:
-		turn += (e as InputEventMouseMotion).relative.x * 0.01
+		var t := e as InputEventScreenTouch
+		if t.pressed:
+			_touches[t.index] = t.position
+		else:
+			_touches.erase(t.index)
+		_pinch = 0.0
+		_drag = _touches.size() == 1
 	elif e is InputEventScreenDrag:
-		turn += (e as InputEventScreenDrag).relative.x * 0.01
+		var d := e as InputEventScreenDrag
+		_touches[d.index] = d.position
+		if _touches.size() >= 2:
+			# two fingers: pinch to zoom
+			var ks := _touches.keys()
+			var gap: float = (_touches[ks[0]] as Vector2).distance_to(_touches[ks[1]])
+			if _pinch > 0.0:
+				_zoom = clampf(_zoom + (gap - _pinch) * 0.004, 0.0, 1.0)
+			_pinch = gap
+		else:
+			_drag_by(d.relative)
+	elif e is InputEventMouseMotion and _drag:
+		_drag_by((e as InputEventMouseMotion).relative)
+
+## a drag: sideways turns the character, up and down moves the view along the body
+func _drag_by(rel: Vector2) -> void:
+	turn += rel.x * 0.012
+	_pan = clampf(_pan + rel.y * 0.003, -1.2, 0.4)
+
+func _view_button(what: String) -> void:
+	if what == "in":
+		_zoom = clampf(_zoom + 0.25, 0.0, 1.0)
+	elif what == "out":
+		_zoom = clampf(_zoom - 0.25, 0.0, 1.0)
+	else:
+		_zoom = 0.0
+		_pan = 0.0
+		turn = START_TURN
+
+## the view buttons over the stage: turn left / right, zoom in / out, and back to the tab's framing
+func _view_buttons(svc: Control) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	row.offset_top = -64
+	row.offset_bottom = -14
+	row.offset_right = -460            # over the stage, left of the panel
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	svc.add_child(row)
+	for spec in [["⟲", "turn_l"], ["⟳", "turn_r"], ["−", "out"], ["+", "in"], ["RESET", "reset"]]:
+		var b := Data.button(spec[0])
+		b.custom_minimum_size = Vector2(64 if spec[1] == "reset" else 50, 46)
+		b.add_theme_font_size_override("font_size", 20 if spec[1] != "reset" else 13)
+		var what: String = spec[1]
+		if what in ["turn_l", "turn_r"]:
+			# held to keep turning
+			b.button_down.connect(func() -> void: _spin = -1.0 if what == "turn_l" else 1.0)
+			b.button_up.connect(func() -> void: _spin = 0.0)
+		else:
+			b.pressed.connect(_view_button.bind(what))
+		row.add_child(b)
 
 func _rebuild() -> void:
 	# the person in their own clothes (urban streetwear): no armour, no helmet
@@ -255,6 +378,8 @@ func _changed(rebuild_panel := false) -> void:
 
 func _set_tab(t: String) -> void:
 	tab = t
+	_zoom = 0.0
+	_pan = 0.0
 	_fill()
 
 func show_tab(t: String) -> void:

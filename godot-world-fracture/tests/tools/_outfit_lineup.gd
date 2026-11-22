@@ -22,6 +22,10 @@ func _ready() -> void:
 		if e.size() > 2:
 			female = e[2] == "female"
 		var lk := Store.clean({"frame": e[1] if e.size() > 1 else "goliath", "body": "female" if female else "male", "face": "f-ace" if female else "m-veteran", "outfit": e[0]}, true)
+		# [EXTRA=json] merged over the look (e.g. {"hair": "authored", "beard": "clean"}): look-dev of one part at a time
+		if OS.has_environment("EXTRA"):
+			lk.merge(JSON.parse_string(OS.get_environment("EXTRA")), true)
+			lk = Store.clean(lk)
 		var m := Player.new()
 		w.add_child(m)
 		m.position = Vector3((i - (ids.size() - 1) * 0.5) * 0.95, 0, 0)
