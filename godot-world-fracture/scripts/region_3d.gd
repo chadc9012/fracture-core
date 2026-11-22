@@ -1239,7 +1239,9 @@ func _build_rings() -> void:
 				c.height = 0.4
 				mi.mesh = c
 				y = maxf(y, _water + 0.2) + 0.2
-				mat.albedo_color = Color("#9aa0a6")
+				# weathered concrete: the pale grey deck blew out to white under the island sun (Azure Marina, Nov 21)
+				mat.albedo_color = Color("#6e7072")
+				mat.roughness = 0.95
 		mi.material_override = mat
 		mi.position = Vector3(p.x, y, p.y)
 		_world.add_child(mi)
