@@ -665,10 +665,11 @@ func _style_for(id: String) -> Dictionary:
 			# the owner's "NIGHT / MOON - FROSTSPIRE MOUNTAINS" photos: a big moon over the peaks, deep blue night, the snow
 			# lit blue-white, the dark rock showing on the steep faces, the settlements' lights warm in the valleys (it was
 			# a white-out: white sky, white fog, white ground, no shape)
+			# (first render: the snow blew out to flat white — lower exposure and moon so it keeps its blue shading)
 			# Nov 22, the owner's Frostspire / Frostveil boards: polar twilight rather than full night — a deep blue zenith
 			# over a lighter horizon, the aurora green across the north, the snow lit blue-white, the Fracture spire glowing
-			s.merge({"top": "#081640", "hor": "#5a7cc4", "fog": "#36508a", "fog_d": 0.0014, "sun": 1.0, "sun_col": "#c4d6ff", "sun_el": 22.0, "sun_az": 120.0,
-				"amb": 0.5, "amb_col": "#5870b0", "night": 0.55, "sat": 1.12, "exp": 1.0, "planet": false, "sky": "moon", "glow": "#4a7ad0", "glow_amt": 0.3,
+			s.merge({"top": "#081640", "hor": "#5a7cc4", "fog": "#36508a", "fog_d": 0.0014, "sun": 0.8, "sun_col": "#b4c8ff", "sun_el": 22.0, "sun_az": 120.0,
+				"amb": 0.36, "amb_col": "#4a62a8", "night": 0.55, "sat": 1.15, "exp": 0.72, "planet": false, "sky": "moon", "glow": "#4a7ad0", "glow_amt": 0.3,
 				"aurora": 1.0}, true)
 		"swamps":
 			# the Shrouded Swamps (owner's world board: bioluminescent wetlands, mangroves, the sunken temple, a High Risk
