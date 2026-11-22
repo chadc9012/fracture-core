@@ -194,9 +194,9 @@ func _init() -> void:
 	en.shield = 0.0
 	c.block = true
 	run(0.5)
-	var before: float = en.hull
+	var before: float = en.hull + en.shield     # (a shield that came back during the wait takes its share too)
 	en._hit_operator(20.0, p.position + Vector3(0, 0, -2), true)
-	var through: float = before - en.hull
+	var through: float = before - en.hull - en.shield
 	check("BLOCK: a frontal blow mostly stopped", p.guard and through > 0.0 and through < 5.0, "through %.1f" % through)
 	c.block = false
 	run(0.3)
