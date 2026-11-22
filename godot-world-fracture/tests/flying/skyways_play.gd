@@ -100,9 +100,12 @@ func _ready() -> void:
 		await get_tree().process_frame
 	check("an air race fields three rival jets on the apron", v.race != null and v.race.rivals.size() == 3 and not v.race.launched)
 	var apron := true
+	var where := []
 	for r in v.race.rivals:
-		apron = apron and r.pos.distance_to(v.pad) > 15.0 and r.pos.distance_to(v.pad) < 90.0 and absf(r.pos.y - v.pad.y) < 3.0
-	check("the rivals wait beside the pad, on the ground", apron)
+		var d: float = Vector2(r.pos.x - v.pad.x, r.pos.z - v.pad.z).length()
+		where.append("%.0f m, dy %.1f" % [d, r.pos.y - v.pad.y])
+		apron = apron and d > 15.0 and d < 90.0 and absf(r.pos.y - (v.region.ground(r.pos.x, r.pos.z) + Handling.RIDE)) < 0.5
+	check("the rivals wait beside the pad, on the ground (%s)" % [where], apron)
 	v.race.step(0.05)
 	check("nobody moves before you lift off", not v.race.launched and v.race.rivals[0].speed == 0.0)
 	check("on the line everyone has 0 rings and you are P1 of 4 by the tie", v.race.place() == 1 and v.race.standings().size() == 4)
@@ -112,16 +115,18 @@ func _ready() -> void:
 	for i in 40:
 		v._process(0.05)
 	check("you lift off and the field launches", v.state.airborne and v.race.launched)
-	for i in 500:   # 25 s
+	for i in 160:   # 8 s (any longer wide open and the scripted jet leaves the region, which ends the course)
 		v._process(0.05)
-	var flown := 0
-	for r in v.race.rivals:
-		flown = maxi(flown, int(r.next))
+	check("the course is still on (the jet is over its region)", v.race != null and not v.rings.is_empty())
 	var high := true
+	var moving := true
 	for r in v.race.rivals:
 		high = high and r.pos.y > v.region.ground(r.pos.x, r.pos.z) + 5.0
-	check("25 s in the rivals are flying the rings (best %d of %d) above the ground" % [flown, v.rings.size()], flown >= 1 and high)
-	check("rivals ahead of you on rings place ahead", v.race.place() > 1 or v.next_ring >= flown)
+		moving = moving and float(r.speed) > 20.0 and r.pos.distance_to(v.pad) > 100.0
+	check("8 s in the rivals are up and away toward the first ring (%.0f m/s)" % float(v.race.rivals[0].speed), high and moving)
+	# a rival through a ring places ahead of you
+	v.race.rivals[1].next = 2
+	check("rivals ahead of you on rings place ahead (P%d)" % v.race.place(), v.race.place() == 2 and String(v.race.standings()[0].name) == String(v.race.rivals[1].name))
 	# the finish: you through the last ring while a rival has the lot — second place money
 	v.race.rivals[0].next = v.rings.size()
 	v.race.rivals[0].done_at = 10.0
