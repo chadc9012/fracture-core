@@ -2299,6 +2299,10 @@ func _stand_near(at: Vector2) -> void:
 				var dx := maxf(maxf(bx.position.x - q.x, q.x - bx.end.x), 0.0)
 				var dz := maxf(maxf(bx.position.z - q.y, q.y - bx.end.z), 0.0)
 				clear = minf(clear, Vector2(dx, dz).length())
+			# steep ground is where the slope rocks stand (Ember opened beside a black outcrop, Nov 22): prefer the flat
+			var rise := maxf(absf(_h(q.x + 3.0, q.y) - _h(q.x - 3.0, q.y)), absf(_h(q.x, q.y + 3.0) - _h(q.x, q.y - 3.0))) / 6.0
+			if rise > 0.45:
+				clear = minf(clear, 1.5)
 			if clear > best_clear:
 				best_clear = clear
 				best = q
@@ -2321,12 +2325,17 @@ func _stand_near(at: Vector2) -> void:
 
 ## how far you can see from p along d before a building (up to 60 m)
 func _open_run(p: Vector2, d: Vector2, boxes: Array[AABB]) -> float:
+	var eye_y := _ground(p.x, p.y) + EYE
 	var t := 2.0
 	while t < 60.0:
 		var q := p + d * t
 		for bx in boxes:
 			if q.x > bx.position.x and q.x < bx.end.x and q.y > bx.position.z and q.y < bx.end.z:
 				return t
+		# rising ground blocks the view too (Ember's Street View opened on a black slope, Nov 22): a bank that climbs
+		# above the eye's sight line
+		if _ground(q.x, q.y) > eye_y + t * 0.12:
+			return t
 		t += 2.0
 	return 60.0
 
