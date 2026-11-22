@@ -35,8 +35,12 @@ func _init() -> void:
 	print("the drone behind the wall stays on patrol: ", blind)
 	ok = ok and blind
 	# the operator aims at the scout and holds the trigger: it goes down and comes back at its spawn
-	g.aim_at(scout.target, cam)
+	# (the scout flanks now — squad tactics — so the operator tracks it, as a player would)
 	for i in 60 * 3:
+		# this camera is not on the operator's rig: point it at the scout by hand
+		var c: Vector3 = scout.target.box.get_center()
+		var cp: Vector3 = p.position + (Vector3(p.position.x, 0, p.position.z) - Vector3(c.x, 0, c.z)).normalized() * 3.0 + Vector3(0, 1.6, 0)
+		cam.transform = Transform3D(Basis.looking_at(c - cp), cp)     # (not in the tree yet in _init: no look_at)
 		g.step(1.0 / 60.0, cam, true, false, 0.0)
 		en.step(1.0 / 60.0)
 	var downed := scout.state == Enemies.State.DOWN and g.kills >= 1

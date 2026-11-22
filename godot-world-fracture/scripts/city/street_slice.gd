@@ -787,8 +787,10 @@ func _process(dt: float) -> void:
 		if _respawn_timer > 0.0:
 			_respawn_timer -= dt
 			if _respawn_timer <= 0.0:
-				operator.position = _spawn
+				operator.position = enemies.respawn_point(_spawn) if enemies else _spawn
 				operator.velocity = Vector3.ZERO
+				if enemies and enemies.checkpoint != Vector3.INF:
+					controls.toast("Back at the last checkpoint")
 	if gps:
 		gps.target = driving_car.node if driving_car else operator
 	if district:

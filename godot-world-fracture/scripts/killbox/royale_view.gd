@@ -69,6 +69,7 @@ func _ready() -> void:
 	enemies = Enemies.new()
 	region.world().add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.tactics = false     # PvP bots play like players (killbox-bots), not as a squad with fire tokens
 	enemies.operator_team = 1
 	enemies.respawn_enabled = false
 	enemies.operator_down.connect(_on_operator_down)

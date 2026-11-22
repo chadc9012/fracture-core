@@ -32,11 +32,11 @@ const Weapons := preload("res://scripts/combat/weapons.gd")
 const Clips := preload("res://scripts/character/combat_clips.gd")
 
 const TYPES := {
-	"scout": { "name": "Data Drone Scout", "frame": "cipher", "plating": "graphite", "optics": "cyan", "hull": 30.0, "range": 14.0, "speed": 0.75, "damage": 6.0, "cool": 1.4, "burst": 3, "spread": 0.05, "melee": false, "fly": 0.0, "weapon": "rifle.glb", "scale": 1.0, "poise": 40.0, "evade": 0.35, "guard": "" },
-	"elite": { "name": "Data Drone Elite", "frame": "goliath", "plating": "cobalt", "optics": "amber", "hull": 60.0, "range": 10.0, "speed": 0.55, "damage": 9.0, "cool": 1.8, "burst": 4, "spread": 0.07, "melee": false, "fly": 0.0, "weapon": "rifle-fusion.glb", "scale": 1.08, "shield": 30.0, "poise": 110.0, "evade": 0.0, "guard": "brace" },
-	"executor": { "name": "Executor", "frame": "nyx", "plating": "crimson", "optics": "red", "hull": 50.0, "range": 1.8, "speed": 1.0, "damage": 16.0, "cool": 1.1, "burst": 1, "spread": 0.0, "melee": true, "fly": 0.0, "weapon": "", "scale": 1.0, "poise": 70.0, "evade": 0.25, "guard": "block", "combo": 3 },
-	"marksman": { "name": "Grid Marksman", "frame": "cipher", "plating": "ivory", "optics": "violet", "hull": 30.0, "range": 30.0, "speed": 0.6, "damage": 28.0, "cool": 3.2, "burst": 1, "spread": 0.012, "melee": false, "fly": 0.0, "weapon": "rifle-sniper.glb", "scale": 1.0, "poise": 35.0, "evade": 0.5, "guard": "" },
-	"drone": { "name": "Surveillance Drone", "frame": "", "plating": "", "optics": "cyan", "hull": 15.0, "range": 9.0, "speed": 0.9, "damage": 3.0, "cool": 0.9, "burst": 2, "spread": 0.06, "melee": false, "fly": 4.0, "weapon": "", "scale": 1.0, "poise": 25.0, "evade": 0.0, "guard": "" },
+	"scout": { "name": "Data Drone Scout", "frame": "cipher", "plating": "graphite", "optics": "cyan", "hull": 30.0, "range": 14.0, "speed": 0.75, "damage": 6.0, "cool": 1.4, "burst": 3, "spread": 0.05, "melee": false, "fly": 0.0, "weapon": "rifle.glb", "scale": 1.0, "poise": 40.0, "evade": 0.35, "guard": "", "role": "flank", "aggro": 0.6 },
+	"elite": { "name": "Data Drone Elite", "frame": "goliath", "plating": "cobalt", "optics": "amber", "hull": 60.0, "range": 10.0, "speed": 0.55, "damage": 9.0, "cool": 1.8, "burst": 4, "spread": 0.07, "melee": false, "fly": 0.0, "weapon": "rifle-fusion.glb", "scale": 1.08, "shield": 30.0, "poise": 110.0, "evade": 0.0, "guard": "brace", "role": "assault", "aggro": 0.8 },
+	"executor": { "name": "Executor", "frame": "nyx", "plating": "crimson", "optics": "red", "hull": 50.0, "range": 1.8, "speed": 1.0, "damage": 16.0, "cool": 1.1, "burst": 1, "spread": 0.0, "melee": true, "fly": 0.0, "weapon": "", "scale": 1.0, "poise": 70.0, "evade": 0.25, "guard": "block", "combo": 3, "role": "assault", "aggro": 1.0 },
+	"marksman": { "name": "Grid Marksman", "frame": "cipher", "plating": "ivory", "optics": "violet", "hull": 30.0, "range": 30.0, "speed": 0.6, "damage": 28.0, "cool": 3.2, "burst": 1, "spread": 0.012, "melee": false, "fly": 0.0, "weapon": "rifle-sniper.glb", "scale": 1.0, "poise": 35.0, "evade": 0.5, "guard": "", "role": "cover", "aggro": 0.2 },
+	"drone": { "name": "Surveillance Drone", "frame": "", "plating": "", "optics": "cyan", "hull": 15.0, "range": 9.0, "speed": 0.9, "damage": 3.0, "cool": 0.9, "burst": 2, "spread": 0.06, "melee": false, "fly": 4.0, "weapon": "", "scale": 1.0, "poise": 25.0, "evade": 0.0, "guard": "", "role": "suppress", "aggro": 0.5 },
 }
 const SIGHT := 40.0
 const RESPAWN := 8.0
@@ -91,6 +91,14 @@ class Enemy:
 	var retreat := 0.0
 	var recent_hits := 0.0
 	var guard_cool := 0.0
+	## squad tactics (Nov 22): the role the squad gave it ("assault" pushes, "flank" swings round the side, "suppress"
+	## holds range and keeps fire on, "cover" fights from behind a box), the cover spot and the peek cycle, the flank side
+	var role := ""
+	var cover := Vector3.INF
+	var cover_side := Vector3.ZERO
+	var cover_t := 0.0
+	var peek_t := 0.0
+	var flank_side := 1.0
 
 var player: Node3D
 var gunplay: Node3D
@@ -130,6 +138,19 @@ var operator_team := 1
 var _last_hitter := {}
 ## Killbox rounds: downed bots stay down until revive_all()
 var respawn_enabled := true
+## squad tactics on: roles, cover, flanking, fire tokens (off where a view runs its own bot brains)
+var tactics := true
+## no more than this many gunners fire on the operator at once (the rest hold, reposition, or wait their turn), and one
+## melee fighter swings at a time while the others circle: a fight you can read
+const FIRE_TOKENS := 2
+const SQUAD_TICK := 1.0
+var _squad_t := 0.0
+## the last safe place the operator stood (out of a fight a few seconds, on the ground): where a death puts them back
+var checkpoint := Vector3.INF
+var _safe_t := 0.0
+## where to stand the operator up after going down: the last checkpoint, else the view's own spawn
+func respawn_point(fallback: Vector3) -> Vector3:
+	return checkpoint if checkpoint != Vector3.INF else fallback
 const TEAM_COLORS := [Color(1.0, 0.25, 0.25), Color(0.25, 0.6, 1.0), Color(1.0, 0.7, 0.2), Color(0.3, 1.0, 0.5), Color(0.85, 0.35, 1.0), Color(0.2, 0.95, 0.95), Color(1.0, 0.45, 0.75), Color(0.95, 0.95, 0.4), Color(0.6, 0.4, 0.2), Color(0.5, 0.75, 1.0), Color(1.0, 0.55, 0.3), Color(0.7, 1.0, 0.7)]
 const OPERATOR_HIT := -2
 
@@ -274,6 +295,12 @@ func step(dt: float) -> void:
 	elif since_hit > 4.0:
 		hull = minf(hull_max, hull + 12.0 * dt)
 	_wear_step(dt)
+	_checkpoint_step(dt)
+	if tactics:
+		_squad_t -= dt
+		if _squad_t <= 0.0:
+			_squad_t = SQUAD_TICK
+			_squad()
 	for e in enemies:
 		_step_enemy(e, dt)
 		e.target.box = _box(e)
@@ -399,6 +426,9 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 				# hurt: back away (and let the shield come back) before coming in again
 				move = -fwd * 0.9
 				sprint = true
+			elif tactics and foe == null and e.role != "" and e.windup <= 0.0 and _tactical_move(e, dt, dist, to_player, sees) != Vector2.INF:
+				move = e.get_meta("tac_move")
+				sprint = bool(e.get_meta("tac_sprint", false))
 			elif e.windup > 0.0:
 				# mid-swing: a short step in behind the blow
 				move = fwd * (0.35 if dist > 1.2 else 0.0)
@@ -414,7 +444,8 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 				if e.timer <= 0.0:
 					e.strafe = -e.strafe
 					e.timer = 1.5 + _rng.randf() * 2.0
-			if sees and e.cool <= 0.0 and dist <= want + 2.5 and e.windup <= 0.0 and e.retreat <= 0.0:
+			var press := 0.6 if tactics and foe == null and _pressing() and float(e.def.get("aggro", 0.5)) >= 0.5 else 1.0
+			if sees and e.cool <= 0.0 and dist <= want / press + 2.5 and e.windup <= 0.0 and e.retreat <= 0.0 and _may_attack(e, foe):
 				_attack(e, dist)
 			# an operator at arm's reach gets the rifle butt from a gunner
 			if sees and not e.def.melee and e.def.fly <= 0.0 and dist < 1.7 and e.windup <= 0.0 and e.swing_len <= 0.0 and e.cool <= 0.4:
@@ -574,6 +605,8 @@ func _attack(e: Enemy, dist: float) -> void:
 		return
 	e.burst_left = int(e.def.burst)
 	e.burst_cool = 0.0
+	if e.role == "suppress":
+		e.cool *= 0.7      # suppressing fire: more often, a little wilder (_shoot)
 
 func _muzzle(e: Enemy) -> Vector3:
 	if e.held:
@@ -589,7 +622,7 @@ func _shoot(e: Enemy) -> void:
 	var side := dir.cross(Vector3.UP).normalized()
 	var up := side.cross(dir)
 	var vel: Vector3 = player.velocity if foe == null else (foe as Enemy).mover.velocity
-	var spread: float = float(e.def.spread) * (1.6 if Vector2(vel.x, vel.z).length() > 3.0 else 1.0)
+	var spread: float = float(e.def.spread) * (1.6 if Vector2(vel.x, vel.z).length() > 3.0 else 1.0) * (1.3 if e.role == "suppress" else 1.0)
 	dir = (dir + side * _rng.randfn(0.0, spread) + up * _rng.randfn(0.0, spread)).normalized()
 	var len := from.distance_to(aim)
 	var closest := (aim - from) - dir * (aim - from).dot(dir)
@@ -951,3 +984,223 @@ func _reset_moves(e: Enemy) -> void:
 	if e.mover.rig and e.mover.rig.action:
 		e.mover.rig.action.stop(0.0)
 	e.mover.guard = false
+
+
+# --------------------------------------------------------------------------------------------- squad tactics (Nov 22)
+## the bot a bot is fighting (null: the operator, or nothing yet)
+static func _foe_of(e: Enemy) -> Variant:
+	return e.get_meta("foe") if e.has_meta("foe") else null
+
+## The owner's list: "flanking, cover, aggression and coordinated attacks". Every SQUAD_TICK the bots fighting the
+## operator are given roles (TYPES `role` is each type's own preference; the nearest gunner suppresses, the next flanks,
+## the one after takes cover, round again), a spotter calls the rest in (anyone within 25 m who has not seen the
+## operator turns to fight), cover spots are picked from the obstacle boxes, and the fire tokens are dealt.
+func _squad() -> void:
+	var squad: Array[Enemy] = []
+	for e in enemies:
+		if e.team == operator_team or not e.target.alive() or e.has_meta("puppet"):
+			continue
+		if e.state == State.ENGAGE and _foe_of(e) == null:
+			squad.append(e)
+	if squad.is_empty():
+		return
+	# the call-out: squadmates near a fighting bot join the fight
+	for o in enemies:
+		if o.team == operator_team or not o.target.alive() or o.state != State.PATROL or o.has_meta("puppet"):
+			continue
+		for e in squad:
+			if o.mover.position.distance_to(e.mover.position) < 25.0 and down <= 0.0:
+				o.state = State.ALERT
+				o.timer = ALERT_BEAT + _rng.randf() * 0.6
+				break
+	squad.sort_custom(func(a: Enemy, b: Enemy) -> bool: return a.mover.position.distance_squared_to(player.position) < b.mover.position.distance_squared_to(player.position))
+	var cycle := ["suppress", "flank", "cover"]
+	var k := 0
+	var centre := Vector3.ZERO
+	for e in squad:
+		centre += e.mover.position
+	centre /= squad.size()
+	var side_sign := 1.0
+	for e in squad:
+		var pref := String(e.def.get("role", "flank"))
+		var role := pref
+		if e.def.melee or e.def.fly > 0.0 or pref == "cover" or pref == "assault":
+			role = pref
+		elif squad.size() > 1:
+			role = cycle[k % cycle.size()]
+			k += 1
+		if role == "flank" and squad.size() < 2:
+			role = "assault"     # a lone bot has no line to flank round: it presses in
+		if role == "flank" and e.role != "flank":
+			# flankers go to alternate sides of the line from the squad to the operator, fixed when the flank starts
+			# (measured from the moving squad it would chase its own tail round the operator)
+			e.flank_side = side_sign
+			side_sign = -side_sign
+			var ref := player.position - centre
+			ref.y = 0.0
+			e.set_meta("flank_ref", ref.normalized() if ref.length() > 0.5 else Vector3(0, 0, 1))
+		if role == "cover" and (e.cover == Vector3.INF or e.cover_t <= 0.0 or e.cover.distance_to(player.position) < 4.0):
+			e.cover = _find_cover(e)
+			e.cover_t = 5.0
+		e.role = role
+		e.set_meta("squad_centre", centre)
+
+## the operator is open: reloading, low or just swapped — the aggressive bots press in to 60% of their range
+func _pressing() -> bool:
+	if down > 0.0:
+		return false
+	var g = gunplay.gun() if gunplay and gunplay.has_method("gun") and not gunplay.guns.is_empty() else null
+	return hull < hull_max * 0.35 or (g != null and (float(g.reloading) > 0.0 or float(g.get("drawing")) > 0.0))
+
+## a fire token for a gunner (no more than FIRE_TOKENS bursts on the operator at once); a melee bot waits while
+## another is mid-swing at the operator
+func _may_attack(e: Enemy, foe: Variant) -> bool:
+	if not tactics or foe != null:
+		return true
+	var firing := 0
+	var swinging := false
+	for o in enemies:
+		if o == e or o.team == operator_team or not o.target.alive() or _foe_of(o) != null:
+			continue
+		if o.burst_left > 0:
+			firing += 1
+		if o.def.melee and (o.windup > 0.0 or o.swing_len > 0.0 or o.combo_left > 0):
+			swinging = true
+	if e.def.melee:
+		if swinging:
+			e.cool = maxf(e.cool, 0.4)
+			return false
+		return true
+	# a bot in cover shoots only from the peek
+	if e.role == "cover" and e.cover != Vector3.INF and e.peek_t <= 0.0:
+		return false
+	if firing >= FIRE_TOKENS:
+		e.cool = maxf(e.cool, 0.35)
+		return false
+	return true
+
+## the move the role asks for, or Vector2.INF to fight the ordinary way (the result rides meta "tac_move")
+func _tactical_move(e: Enemy, dt: float, dist: float, to_op: Vector3, sees: bool) -> Vector2:
+	var m: Node3D = e.mover
+	var want: float = float(e.def.range)
+	if _pressing() and float(e.def.get("aggro", 0.5)) >= 0.5 and e.role in ["assault", "flank"]:
+		want *= 0.6
+	var goal := Vector3.INF
+	var run := false
+	match e.role:
+		"flank":
+			# out to the side: a point at the fighting range, square to the line from the squad to the operator
+			var line: Vector3 = e.get_meta("flank_ref") if e.has_meta("flank_ref") else -to_op.normalized()
+			var side := Vector3(-line.z, 0, line.x) * e.flank_side
+			var spot := player.position + (side - line * 0.2).normalized() * want
+			var ang := (-to_op).normalized().angle_to((spot - player.position).normalized())
+			if ang < 0.4:
+				return Vector2.INF   # round the side: fight from here
+			goal = spot
+			run = true
+		"cover":
+			if e.cover == Vector3.INF:
+				return Vector2.INF
+			e.cover_t -= dt
+			var at := e.cover
+			var d0 := at - m.position
+			d0.y = 0.0
+			if d0.length() > 0.7:
+				goal = at
+				run = d0.length() > 3.0
+			else:
+				# in cover: duck for a beat, lean out to shoot for a beat (the peek is a step to the side of the box)
+				e.peek_t -= dt
+				if e.peek_t < -1.8 - _rng.randf():
+					e.peek_t = 1.4 + _rng.randf() * 0.8
+				if e.peek_t > 0.0:
+					goal = at + e.cover_side * 1.1
+				else:
+					e.set_meta("tac_move", Vector2.ZERO)
+					e.set_meta("tac_sprint", false)
+					m.guard = false
+					return Vector2.ZERO
+		"suppress":
+			# hold well back and keep fire on (fires a little more often, a little wilder)
+			if dist < want * 1.1:
+				goal = m.position - to_op.normalized() * 2.0
+			elif dist > want * 1.6:
+				goal = player.position - to_op.normalized() * want * 1.3
+			else:
+				return Vector2.INF
+		"assault":
+			if dist > want + 1.0:
+				goal = player.position - to_op.normalized() * (want - 0.5)
+				run = true
+			else:
+				return Vector2.INF
+	if goal == Vector3.INF:
+		return Vector2.INF
+	var dg := goal - m.position
+	dg.y = 0.0
+	if dg.length() < 0.5:
+		return Vector2.INF
+	var mv := _toward(dg) * (1.0 if run else 0.7)
+	e.set_meta("tac_move", mv)
+	e.set_meta("tac_sprint", run)
+	return mv
+
+## a cover spot for `e`: the far side (from the operator) of a box at least chest high, within 14 m of the bot, at a
+## range it can fight from, whose box really blocks the line to the operator from a crouch. INF when there is none.
+func _find_cover(e: Enemy) -> Vector3:
+	var m: Node3D = e.mover
+	var best := Vector3.INF
+	var best_d := 14.0
+	var op := player.position
+	for b: AABB in player.obstacles:
+		if b.size.y < 1.0 or b.size.y > 30.0 or b.position.y < -40.0:
+			continue
+		var w := maxf(b.size.x, b.size.z)
+		if w > 14.0 or minf(b.size.x, b.size.z) < 0.4:
+			continue
+		var c := b.get_center()
+		c.y = m.position.y
+		if c.distance_to(m.position) > best_d + w * 0.5:
+			continue
+		var away := c - op
+		away.y = 0.0
+		if away.length() < 3.0:
+			continue
+		away = away.normalized()
+		# the spot behind the box, a body's width off its face on the far side
+		var half := absf(away.x) * b.size.x * 0.5 + absf(away.z) * b.size.z * 0.5
+		var spot := c + away * (half + 0.6)
+		spot.y = float(m.ground_at.call(spot.x, spot.z))
+		var dop := Vector2(spot.x - op.x, spot.z - op.z).length()
+		if dop < float(e.def.range) * 0.5 or dop > float(e.def.range) * 1.8 + 6.0:
+			continue
+		# a crouching body there is hidden from the operator by this box
+		var low := spot + Vector3(0, 0.9, 0)
+		var hit: Variant = b.intersects_segment(low, op + Vector3(0, 1.2, 0))
+		if hit == null:
+			continue
+		var d := spot.distance_to(m.position)
+		if d < best_d:
+			best_d = d
+			best = spot
+			e.cover_side = Vector3(-away.z, 0, away.x) * (1.0 if _rng.randf() < 0.5 else -1.0)
+	return best
+
+## the checkpoint: a few seconds with nothing fighting the operator, standing on the ground, and that spot is kept
+func _checkpoint_step(dt: float) -> void:
+	if not player or down > 0.0:
+		_safe_t = 0.0
+		return
+	var fighting := false
+	for e in enemies:
+		if e.team != operator_team and e.target.alive() and e.state in [State.ALERT, State.ENGAGE] and _foe_of(e) == null:
+			fighting = true
+			break
+	var grounded: bool = bool(player.get("grounded")) if "grounded" in player else true
+	if fighting or not grounded or since_hit < 4.0:
+		_safe_t = 0.0
+		return
+	_safe_t += dt
+	if _safe_t > 3.0:
+		checkpoint = player.position
+		_safe_t = -2.0       # then again every five seconds while it stays calm

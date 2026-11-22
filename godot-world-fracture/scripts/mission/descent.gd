@@ -464,7 +464,7 @@ func _process(dt: float) -> void:
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:
-			operator.position = _respawn_point()
+			operator.position = enemies.respawn_point(_respawn_point()) if enemies else _respawn_point()
 			operator.velocity = Vector3.ZERO
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if beacon:
