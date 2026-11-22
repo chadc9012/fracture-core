@@ -1,5 +1,9 @@
 extends Control
 const Settings := preload("res://scripts/front/settings_store.gd")
+const BoardHud := preload("res://scripts/player/board_hud.gd")
+## the game screen from the owner's boards (board_hud.gd): weapon card, compass + place + quest, operator plate.
+## Views set `hud.place`, `hud.set_quest(...)`, `hud.hull_max` / `hud.shield_max`; the old readouts stay as data.
+var hud: Control
 ## On-foot input for the phone and the desk, one overlay over the 3D view: a virtual stick where the thumb lands on the left
 ## half of the screen, look-drag anywhere on the right half, JUMP, SPRINT, FIRE, RELOAD and SWAP buttons (phone), WASD / arrows + Space + Shift,
 ## left mouse to fire, right-drag look, R and Q on a keyboard, J / K (GRENADE / ⟳) for the Operator's grenades; a crosshair and the magazine read-out. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
@@ -357,6 +361,15 @@ func _hud() -> void:
 	hull_fill.size = Vector2(216, 10)
 	hull_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hull_fill)
+	hud = BoardHud.new()
+	hud.source = self
+	add_child(hud)
+	move_child(hud, 1)
+	# the board's plates draw these now; the labels keep their text for the plates (and the swap tap stays)
+	hull_back.visible = false
+	hull_fill.visible = false
+	weapon_name.self_modulate.a = 0.0
+	ammo.self_modulate.a = 0.0
 	_prompt_label = Label.new()
 	_prompt_label.set_anchors_preset(Control.PRESET_CENTER)
 	_prompt_label.position = Vector2(-80, 120)
@@ -371,7 +384,7 @@ func _hud() -> void:
 	add_child(status)
 
 ## the hull read-out: `frac` 0..1, `hurt` 0..1 fades the wash, `down_left` seconds until the operator stands (0 = up)
-func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> void:
+func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0, hull_max := -1.0, shield_max := -1.0) -> void:
 	hull_fill.size.x = 216.0 * clampf(frac, 0.0, 1.0)
 	# the energy shield: a thin cyan bar over the hull's (asset catalog §5)
 	if shield >= 0.0:
@@ -386,6 +399,13 @@ func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> vo
 		_shield_fill.size.x = 216.0 * clampf(shield, 0.0, 1.0)
 		_shield_fill.visible = hull_fill.visible
 	hull_fill.color = Color(0.35, 0.95, 0.75) if frac > 0.35 else Color(0.95, 0.4, 0.3)
+	if hud:
+		hud.hull = frac
+		hud.shield = shield
+		if hull_max > 0.0:
+			hud.hull_max = hull_max
+		if shield_max > 0.0:
+			hud.shield_max = shield_max
 	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
 	status.text = ("DOWN · %d" % ceili(down_left)) if down_left > 0.0 else ""
 

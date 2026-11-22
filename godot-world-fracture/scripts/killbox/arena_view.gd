@@ -780,7 +780,7 @@ func _process(dt: float) -> void:
 	if _obj_ring:
 		_obj_ring.visible = match_state.objective_open()
 		_obj_label.visible = _obj_ring.visible
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:

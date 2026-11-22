@@ -408,6 +408,8 @@ func _fit_menu() -> void:
 func _spawn_player() -> void:
 	controls = TouchControls.new()
 	add_child(controls)
+	if controls.hud:
+		controls.hud.set("place", {"neon": "Neon City • Grand Avenue", "nexus": "Nexus City • Central Avenue", "coast": "Neon Coast • Resort Strip"}.get(style, ""))
 	operator = OperatorPlayer.new()
 	world.add_child(operator)
 	var half := ROAD_W * 0.5
@@ -789,7 +791,7 @@ func _process(dt: float) -> void:
 		return
 	if enemies:
 		enemies.step(minf(dt, 0.05))
-		controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
+		controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
 		if _respawn_timer > 0.0:
 			_respawn_timer -= dt
 			if _respawn_timer <= 0.0:
