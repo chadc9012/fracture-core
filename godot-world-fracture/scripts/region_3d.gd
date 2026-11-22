@@ -43,8 +43,8 @@ var m: Dictionary = {}
 static var season := -1
 const SEASONS := ["SPRING", "SUMMER", "AUTUMN", "WINTER"]
 ## the lands that stay as they are all year: the tropics, the deserts, the fire, the ice, the deep
-const NO_WINTER := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire", "neon-city", "nexus"]
-const EVERGREEN := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire"]
+const NO_WINTER := ["horizon-gate", "aurora-gate", "azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire", "neon-city", "nexus"]
+const EVERGREEN := ["horizon-gate", "aurora-gate", "azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire"]
 var _season_btn: Button
 var _ground_mat: ShaderMaterial
 var _base_pal := PackedVector3Array()
@@ -280,7 +280,7 @@ func _build_civic_roofs() -> void:
 
 ## Snow and lava mountains read as one smooth cone: scatter rock outcrops where the ground is steep and high
 func _build_slope_rock() -> void:
-	if map_id not in ["frostspire", "ember", "crystal-badlands", "wastelands", "frostveil"]:
+	if map_id not in ["frostspire", "ember", "crystal-badlands", "wastelands", "frostveil", "horizon-gate", "skyhaven", "aurora-gate"]:
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(map_id) + 7
@@ -318,7 +318,7 @@ func _build_slope_rock() -> void:
 	mesh.radial_segments = 6
 	mesh.rings = 3
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = {"frostspire": Color("#6d737d"), "frostveil": Color("#3a3e46"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e")}.get(map_id, Color("#555555"))
+	mat.albedo_color = {"frostspire": Color("#6d737d"), "frostveil": Color("#3a3e46"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e"), "horizon-gate": Color("#8a5236"), "skyhaven": Color("#6c665e"), "aurora-gate": Color("#4a4e58")}.get(map_id, Color("#555555"))
 	mat.roughness = 0.95
 	_multimesh(mesh, rocks, mat, 700.0, false)
 
@@ -477,6 +477,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	if id == "thalassia":
 		_flatten_city_dome()
 	_style = _style_for(id)
+	_decks.clear()
 	if _style.under:
 		# under the sea (Thalassia): no surface over the city, so "water level" sits below the seabed and everything that
 		# clamps to it (street view, docks, labels) stands on the floor instead of 30-odd metres up at the surface
@@ -493,6 +494,11 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	_cam.fov = 62.0
 	_world.add_child(_cam)
 	_build_env()
+	if float(_style.get("aurora", 0.0)) > 0.0:
+		# Aurora Gate's sky (scripts/vfx/aurora.gd, the same ribbons as its airport)
+		var arng := RandomNumberGenerator.new()
+		arng.seed = hash(id)
+		_world.add_child(load("res://scripts/vfx/aurora.gd").make(arng, Vector3(0, 300, -_span * 0.95), _span * 0.7))
 	_build_ground()
 	_build_water()
 	if staged:
@@ -707,6 +713,26 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#3a64a0", "hor": "#d8e6f2", "fog": "#b8cade", "fog_d": 0.0016, "sun": 1.15, "sun_col": "#ffe0c4", "sun_el": 11.0, "sun_az": 150.0,
 				"amb": 0.4, "exp": 0.48, "sat": 1.1, "sky": "day", "sky_set": {"cover": 0.22, "cloud_scale": 0.7}, "glow": "#ffd2b0", "glow_amt": 0.2,
 				"tint": Vector3(0.84, 0.9, 1.0)}, true)
+		"eldergrove":
+			# the 12-airport board's Eldergrove (Nov 22): an old forest in late-afternoon light — sun shafts low through
+			# the canopy, a green-gold haze down the valley, the falls' spray catching the light
+			s.merge({"top": "#4f7fae", "hor": "#d8dcc0", "fog": "#9fae92", "fog_d": 0.0021, "sun": 1.2, "sun_col": "#ffe2b0", "sun_el": 24.0, "sun_az": 140.0,
+				"amb": 0.55, "amb_col": "#5d7458", "sat": 1.12, "exp": 0.78, "sky": "day", "glow": "#ffd08a", "glow_amt": 0.2,
+				"tint": Vector3(0.72, 0.92, 0.62)}, true)
+		"skyhaven":
+			# the board's Skyhaven: bright high air over the Sea of Gales, cloud below the pinnacles' tops, a clean sun
+			s.merge({"top": "#2f6fc6", "hor": "#d6e8f6", "fog": "#c4d8ea", "fog_d": 0.0013, "sun": 1.35, "sun_col": "#fff4e0", "sun_el": 36.0, "sun_az": 140.0,
+				"amb": 0.55, "sat": 1.08, "exp": 0.66, "sky": "day", "sky_set": {"cover": 0.45, "cloud_scale": 0.9}}, true)
+		"aurora-gate":
+			# the board's Aurora Gate: a clear polar night, the aurora green over the snow, the town's windows warm, the
+			# frozen lake catching the sky
+			s.merge({"top": "#03101e", "hor": "#16486a", "fog": "#122a40", "fog_d": 0.0014, "sun": 0.7, "sun_col": "#a8e0d0", "sun_el": 22.0, "sun_az": 150.0,
+				"amb": 0.42, "amb_col": "#2f5a6a", "night": 0.8, "sat": 1.1, "exp": 1.15, "planet": false, "sky": "moon", "glow": "#2fd89a", "glow_amt": 0.35,
+				"tint": Vector3(0.78, 0.86, 0.95), "aurora": 1.0}, true)
+		"horizon-gate":
+			# the board's Horizon Gate: the sun on the horizon behind the mesas, red rock in long shadows, a violet zenith
+			s.merge({"top": "#3a2f78", "hor": "#ff9a52", "fog": "#c27a52", "fog_d": 0.0013, "sun": 1.75, "sun_col": "#ffa058", "sun_el": 7.0, "sun_az": 160.0,
+				"amb": 0.45, "sat": 0.98, "exp": 0.92, "planet": true, "sky": "sunset", "glow": "#ff8838", "glow_amt": 0.3, "tint": Vector3(0.95, 0.8, 0.66)}, true)
 		"shattered-reefs":
 			# the owner's "OCEAN" photo, as Azure Isles
 			s.merge({"top": "#2370c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 45.0, "sun_az": 150.0,
@@ -1145,6 +1171,7 @@ func _build_roads() -> void:
 			if cls == "bridge":
 				ya = maxf(ya, lerpf(deck_a, deck_b, float(i) / (line.size() - 1)) + 0.3)
 				yb = maxf(yb, lerpf(deck_a, deck_b, float(i + 1) / (line.size() - 1)) + 0.3)
+				_decks.append([a, b, ya, yb, w / 2.0])
 			elif cls == "skybridge":
 				ya = _h(a.x, a.y) + 15.0
 				yb = _h(b.x, b.y) + 15.0
@@ -1353,7 +1380,7 @@ func _build_trees() -> void:
 				if not _space_claim(lx, lz, 0.35 * s2):
 					continue
 				shards.append(Transform3D(Basis.from_euler(Vector3((roll - 0.06) * 3.0, roll * 40.0, (0.06 - roll) * 2.0)).scaled(Vector3(s2 * 0.5, s2 * 1.6, s2 * 0.5)), Vector3(lx, _h(lx, lz), lz)))
-	var cold := map_id in ["frostspire", "frostveil"]
+	var cold := map_id in ["frostspire", "frostveil", "aurora-gate"]
 	# the fracture's corruption takes its share first (the Shattered Expanse, the ground round every rift tear)
 	trees = Flora.corrupted(self, trees, tears)
 	if not trees.is_empty():
@@ -2268,7 +2295,18 @@ func _ground(lx: float, lz: float) -> float:
 	var fl := _floating_top(lx + _ox, lz + _oz)
 	if fl > -INF:
 		return fl
-	return maxf(_h(lx, lz), _water + 0.4)
+	var g := maxf(_h(lx, lz), _water + 0.4)
+	# a bridge's deck carries you over the river (or the gap between Skyhaven's pinnacles)
+	for b in _decks:
+		var a: Vector2 = b[0]
+		var e: Vector2 = b[1]
+		var ab := e - a
+		var t := clampf((Vector2(lx, lz) - a).dot(ab) / maxf(ab.length_squared(), 0.01), 0.0, 1.0)
+		if Vector2(lx, lz).distance_to(a + ab * t) <= float(b[4]):
+			g = maxf(g, lerpf(float(b[2]), float(b[3]), t) + 0.12)
+	return g
+## bridge decks you can walk: [from, to, deck y at each end, half width] in local metres (the bridge roads)
+var _decks: Array = []
 
 func _apply_cam() -> void:
 	if _cam == null:

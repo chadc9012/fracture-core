@@ -487,9 +487,13 @@ func _build_streets() -> void:
 # --------------------------------------------------------------------------------------------- the cars
 func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 	var node: Node3D
-	if ResourceLoader.exists(FLEET + file):
-		node = (load(FLEET + file) as PackedScene).instantiate() as Node3D
+	# a fleet file by name, or a full path (the showroom's cars and bikes live under models/fleet/showroom/: by their
+	# bare name they were not found, and you raced an invisible car)
+	var path := file if file.begins_with("res://") else FLEET + file
+	if ResourceLoader.exists(path):
+		node = (load(path) as PackedScene).instantiate() as Node3D
 	else:
+		push_warning("race: no model for %s (%s)" % [vehicle, path])
 		node = Node3D.new()
 	StreetCar.face_forward(node)
 	StaticBatch.compact(node)
@@ -520,13 +524,14 @@ func _grid() -> void:
 	if race_km > 0.0 and race.laps_to_go == 1 and race_km * 1000.0 < track.length * 0.88:
 		race.finish_frac = clampf(race_km * 1000.0 / track.length, 0.15, 0.88)
 	var v := Catalog.vehicle(vehicle_id)
-	var file := String(v.get("model", FLEET + "tuner.glb")).get_file() if not v.is_empty() else "tuner.glb"
+	var file := String(v.get("model", FLEET + "tuner.glb")) if not v.is_empty() else "tuner.glb"
 	if online:
 		# the players' grid is set at the start (_go); until then you wait on the line in slot 0
 		player = _spawn_car(file, track.grid(0), vehicle_id)
 		var me := race.add("You", true)
 		me["node"] = player.node
 		cam_yaw = player.yaw()
+		_mount_rider()
 		countdown = INF
 		_lobby()
 		return
@@ -541,6 +546,38 @@ func _grid() -> void:
 	var me2 := race.add("You", true)
 	me2["node"] = player.node
 	cam_yaw = player.yaw()
+	_mount_rider()
+
+## on a bike you ride in the open (street_slice does the same on the avenue): your operator astride it in a helmet,
+## work_idle.gd "ride", moved with the bike every frame (_step_rider)
+var rider: Node3D
+func _mount_rider() -> void:
+	if String(Catalog.vehicle(vehicle_id).get("cls", "")) != "bike" or player == null:
+		return
+	var Player: GDScript = load("res://scripts/player/operator_player.gd")
+	rider = Player.new()
+	rider.set_meta("dynamic", true)
+	world.add_child(rider)
+	rider.build()
+	if rider.rig:
+		var wear: Array = Array(rider.rig.look.get("wear", []))
+		if "helmet" not in wear:
+			wear.append("helmet")
+			rider.rig.look.wear = wear
+			rider.rig._wear()
+	rider.set("idle_clip", "ride")
+	_step_rider()
+
+func _step_rider() -> void:
+	if rider == null or player == null:
+		return
+	var bb: AABB = player.box()
+	var c: Node3D = player.node
+	rider.position = c.position + Vector3(0, bb.size.y * 0.48 - 0.72, 0) - player.forward() * 0.12
+	rider.set("heading", c.rotation.y + PI)
+	if rider.rig:
+		rider.rig.rotation.y = float(rider.get("heading"))
+	rider.call("_animate", 0.0, false)
 
 ## the GPS (owner, Nov 18): the track ahead and the rivals on it, under the standings board
 var gps: Control
@@ -811,6 +848,7 @@ func _process(dt: float) -> void:
 		controls.nitro_off()
 	player.nitro_fx()
 	player.drive_fx(dt)
+	_step_rider()
 	# the rivals: aim at a point ahead on the centreline, ease off for the corners, skill sets the pace
 	for r in rivals:
 		var sc: RefCounted = r.sc

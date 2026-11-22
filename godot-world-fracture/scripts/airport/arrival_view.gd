@@ -40,7 +40,7 @@ func _ready() -> void:
 	# a destination whose region has no exported map yet (Frostveil, the Azure Isles, Goldenreach) lands on the
 	# nearest mapped land rather than on nothing: without this the region built no world and the walk out crashed
 	if Data.map(id).is_empty():
-		id = { "frostveil": "frostspire", "azure-isles": "thalassia", "goldenreach": "riverdale" }.get(id, "veridan")
+		id = Air.FALLBACK_REGION.get(id, "veridan")
 	region = Region3D.new()
 	region.set_anchors_preset(Control.PRESET_FULL_RECT)
 	region.closed.connect(func(): closed.emit())

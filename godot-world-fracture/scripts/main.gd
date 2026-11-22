@@ -1,4 +1,5 @@
 extends Control
+const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## World Fracture (Godot): the Planetary Director. The globe is home; tapping a continent twice (or OPEN MAP) opens its region
 ## map, and Back returns to the globe. Android's back gesture goes back too.
@@ -800,8 +801,14 @@ func _shoot(path: String, opts: Array) -> void:
 			if String(o).contains("walk:drive"):
 				street.controls.scripted = true
 				# a frame later: the street's first frame settles the operator and the parked cars before anyone climbs in
+				# (walk:drive:bike=<id> drives a showroom bike out of the garage instead: the rider astride it in a helmet)
 				var st := street
+				var bike_id := String(o).split("bike=")[1].split(":")[0] if String(o).contains("bike=") else ""
 				get_tree().process_frame.connect(func():
+					if bike_id != "":
+						st.drive_out(bike_id)
+						st.controls.move = Vector2(-0.12, 1.0)
+						return
 					var nearest: Node3D = null
 					for c in st.parked:
 						if nearest == null or c.position.distance_to(st.operator.position) < nearest.position.distance_to(st.operator.position):
@@ -1142,7 +1149,10 @@ func _shoot(path: String, opts: Array) -> void:
 		# the lights and drives itself
 		if String(o).begins_with("race") and not String(o).begins_with("race="):
 			var rq := String(o).split(":")
-			_open_race(rq[1] if rq.size() > 1 and rq[1] != "go" else "")
+			# race:<track>[:go][:in=<vehicle id>]  in= races that car or bike (as the last one driven would)
+			if String(o).contains("in="):
+				SessionStore.save(String(o).split("in=")[1].split(":")[0], 0.0)
+			_open_race(rq[1] if rq.size() > 1 and rq[1] not in ["go"] and not rq[1].begins_with("in=") else "")
 			if String(o).contains("go"):
 				race_view.countdown = 0.05
 				race_view.controls.scripted = true
@@ -1243,6 +1253,8 @@ func _shoot(path: String, opts: Array) -> void:
 	if killbox and killbox.match_state:
 		var kb := killbox
 		print("killbox: ", kb.mode_id, " us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " zones ", kb.match_state.zones.map(func(z): return [z.id, z.owner]), " rounds ", kb.match_state.us_rounds, "-", kb.match_state.them_rounds, " board ", kb.match_state.board, " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)
+	if street and street.driving_car:
+		print("driving: ", street.driving_car.node.get_meta("vehicle", ""), " bike ", street._bike, " speed ", street.driving_car.speed, " operator at ", street.operator.position.round(), " rig visible ", street.operator.rig.visible if street.operator.rig else false, " clip ", street.operator.idle_clip)
 	if street and street.district:
 		print("district: focus ", street.district.focus_k, " counts ", street.district.counts(), " tiles built ", street.tiles.keys(), " operator z ", street.operator.position.z, " boxes ", street.operator.obstacles.size())
 	if modes and modes.view and "raid" in modes.view:
