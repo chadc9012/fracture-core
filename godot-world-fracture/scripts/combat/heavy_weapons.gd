@@ -121,6 +121,51 @@ func fire_shell(muzzle: Vector3, dir: Vector3) -> void:
 	Sound.sfx("tank_cannon", 0.0, 0.04)
 	_shake_at(muzzle, 0.55)
 
+## a shoulder weapon's round (weapons.gd `projectile`): "rocket" flies straight on its motor, "gl" arcs under gravity
+## and bursts where it lands. `dmg` / `radius` are the blast; `extra` rides along (cluster bomblets, element colour)
+func fire_launch(muzzle: Vector3, dir: Vector3, proj: Dictionary, dmg: float, extra := {}) -> void:
+	var kind := String(proj.get("kind", "rocket"))
+	var n := Node3D.new()
+	var body := MeshInstance3D.new()
+	if kind == "gl":
+		var sp := SphereMesh.new()
+		sp.radius = 0.07
+		sp.height = 0.14
+		sp.radial_segments = 10
+		sp.rings = 6
+		body.mesh = sp
+		body.material_override = _mat("gl", Color(0.3, 0.32, 0.28), 1.5)
+	else:
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = 0.06
+		cyl.bottom_radius = 0.07
+		cyl.height = 0.6
+		body.mesh = cyl
+		body.rotation.x = -PI * 0.5
+		body.material_override = _mat("rocket", Color(0.85, 0.87, 0.9), 0.0)
+	n.add_child(body)
+	var flame := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.0
+	cone.bottom_radius = 0.1
+	cone.height = 0.55
+	flame.mesh = cone
+	flame.rotation.x = PI * 0.5
+	flame.position = Vector3(0, 0, 0.55)
+	flame.material_override = _mat("flame", Color(1.0, 0.6, 0.2), 8.0, true)
+	flame.visible = kind == "rocket"
+	n.add_child(flame)
+	add_child(n)
+	n.global_position = muzzle
+	var v0 := dir.normalized() * float(proj.get("speed", 40.0))
+	_orient(n, v0)
+	_shots.append({ "node": n, "vel": v0, "kind": kind, "life": LIFE + 2.0, "trail_t": 0.0, "dmg": dmg,
+		"radius": float(proj.get("radius", 5.0)), "gravity": float(proj.get("gravity", 0.0)), "flame": flame, "extra": extra })
+	_puff(muzzle, Color(1.0, 0.9, 0.6, 0.9), 0.3, 1.2, 0.08, true, Vector3.ZERO, 5.0)
+	_puff(muzzle - dir * 0.8, Color(0.75, 0.75, 0.75, 0.55), 0.4, 1.6, 0.9, false, -dir * 3.0)
+	Sound.sfx("missile_launch" if kind == "rocket" else "heavy", -2.0, 0.06)
+	_shake_at(muzzle, 0.35)
+
 ## the missile pod: `count` rockets out of the tubes at `pods`, each a moment after the last, curling onto `target`
 ## (a Node3D or a gunplay target to follow) or else onto `aim`
 func fire_missiles(pods: Array, up_dir: Vector3, aim: Vector3, target: Variant = null) -> void:
@@ -174,6 +219,11 @@ func step(dt: float) -> void:
 		var v: Vector3 = s.vel
 		if s.kind == "shell":
 			v.y -= SHELL_DROP * dt
+		elif s.kind == "gl":
+			v.y -= float(s.gravity) * dt
+		elif s.kind == "rocket":
+			v = v.normalized() * minf(v.length() + 60.0 * dt, 90.0)
+			(s.flame as Node3D).scale = Vector3.ONE * _rng.randf_range(0.8, 1.4)
 		else:
 			# out of the tube on the kick, then the motor lights and it steers onto the target
 			s.boost = float(s.boost) + dt
@@ -205,19 +255,23 @@ func step(dt: float) -> void:
 			if s.kind == "shell":
 				s.trail_t = 0.012
 				_puff(from, Color(0.8, 0.8, 0.82, 0.35), 0.12, 0.7, 0.6, false, Vector3(0, 0.3, 0))
+			elif s.kind == "gl":
+				s.trail_t = 0.03
+				_puff(from, Color(0.7, 0.7, 0.72, 0.3), 0.06, 0.3, 0.4, false)
 			else:
 				s.trail_t = 0.018
 				_puff(from, Color(0.86, 0.86, 0.88, 0.6), 0.22, 1.4, 1.6, false, Vector3(0, 0.4, 0) + _jit(0.4))
 				if _rng.randf() < 0.35:
 					_puff(from, Color(1.0, 0.65, 0.25, 0.9), 0.15, 0.4, 0.12, true)
 		var hit: Variant = _sweep(from, to, s.get("target"))
-		if hit != null:
-			var at: Vector3 = hit
-			_explode(at, SHELL_RADIUS if s.kind == "shell" else MISSILE_RADIUS, SHELL_DMG if s.kind == "shell" else MISSILE_DMG, s.kind == "shell")
-			n.queue_free()
-			continue
-		if float(s.life) <= 0.0:
-			_explode(to, MISSILE_RADIUS * 0.8, MISSILE_DMG * 0.5, false)
+		if hit != null or float(s.life) <= 0.0:
+			var at: Vector3 = hit if hit != null else to
+			if s.has("dmg"):
+				_launch_blast(s, at)
+			elif hit != null:
+				_explode(at, SHELL_RADIUS if s.kind == "shell" else MISSILE_RADIUS, SHELL_DMG if s.kind == "shell" else MISSILE_DMG, s.kind == "shell")
+			else:
+				_explode(to, MISSILE_RADIUS * 0.8, MISSILE_DMG * 0.5, false)
 			n.queue_free()
 			continue
 		n.global_position = to
@@ -266,6 +320,23 @@ func _sweep(from: Vector3, to: Vector3, want: Variant) -> Variant:
 				best = dd3
 				any = true
 	return from + dir * best if any else null
+
+## a launched round's blast, and a cluster bomb's three bomblets round it a moment later
+func _launch_blast(s: Dictionary, at: Vector3) -> void:
+	var r := float(s.radius)
+	_explode(at, r, float(s.dmg), r >= 6.0)
+	var ex: Dictionary = s.get("extra", {})
+	if bool(ex.get("cluster", false)):
+		for i in 3:
+			var a := TAU * i / 3.0 + _rng.randf() * 0.6
+			var p := at + Vector3(cos(a), 0.0, sin(a)) * r * 0.7
+			get_tree().create_timer(0.25 + i * 0.12).timeout.connect(func() -> void:
+				if is_inside_tree():
+					_explode(p, r * 0.45, float(s.dmg) * 0.25, false))
+
+## a small burst with no round (a perk's firefly / dragonfly on a precision kill)
+func pop(at: Vector3, radius: float, dmg: float) -> void:
+	_explode(at, radius, dmg, false)
 
 # ------------------------------------------------------------------------------------------------ the blast
 func _explode(at: Vector3, radius: float, dmg: float, big: bool) -> void:

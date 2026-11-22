@@ -125,6 +125,9 @@ var guard := false
 var armed_pose := false
 ## aiming down the sights: the tighter stance
 var sights := false
+## aiming down sights, 0..1 (gunplay.gd eases it by the gun's handling): the camera tucks in over the shoulder and the
+## body slows to a walk-strafe, the way an over-the-shoulder shooter aims
+var ads_blend := 0.0
 var _air_t := 0.0
 
 func dodge(dir: Vector3, dist: float, seconds: float, inv: float) -> void:
@@ -183,7 +186,8 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	var right := Vector3(cos(cam_yaw), 0, -sin(cam_yaw))
 	var want := (fwd * move.y + right * move.x)
 	var mag := minf(want.length(), 1.0)
-	var top := (SPRINT if sprint else RUN) if mag > 0.6 else WALK
+	var top := (SPRINT if sprint and ads_blend < 0.5 else RUN) if mag > 0.6 else WALK
+	top *= lerpf(1.0, 0.55, ads_blend)
 	var target := want.normalized() * top * mag if mag > 0.02 else Vector3.ZERO
 	var rate := ACCEL if mag > 0.02 else DECEL
 	if locked > 0.0:
@@ -362,7 +366,7 @@ func _place_camera(dt: float) -> void:
 	var pitch := clampf(cam_pitch + recoil, -0.9, 0.6)
 	var back := Vector3(sin(cam_yaw) * cos(pitch), -sin(pitch), cos(cam_yaw) * cos(pitch))
 	var side := Vector3(cos(cam_yaw), 0, -sin(cam_yaw)) * CAM_SIDE
-	var want := pivot + back * cam_dist + side
+	var want := pivot + back * cam_dist * (1.0 - 0.4 * ads_blend) + side * (1.0 + 0.3 * ads_blend)
 	# keep the camera out of the walls: pull it in along the bounds, and never below the ground
 	want.x = clampf(want.x, bounds.position.x + 0.3, bounds.end.x - 0.3)
 	want.z = clampf(want.z, bounds.position.y + 0.3, bounds.end.y - 0.3)

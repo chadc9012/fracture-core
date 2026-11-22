@@ -338,8 +338,12 @@ const RELOADS := {
 }
 
 ## the reload that fits a frame (unknown frames take the rifle's)
+## the frames added Nov 22 reload like their nearest kin: the pistol works its slide like the hand cannon, the marksman
+## rifle its bolt and box like the sniper, the rocket launcher loads from behind like the heavy cannon and the grenade
+## launcher feeds shells one at a time like the shotgun
+const RELOAD_KIN := { "PISTOL": "SIDEARM", "MARKSMAN": "SNIPER", "ROCKET": "HEAVY", "GL": "SHOTGUN" }
 static func reload_for(frame: String) -> Dictionary:
-	return RELOADS.get(frame, RELOADS.AUTO)
+	return RELOADS.get(RELOAD_KIN.get(frame, frame), RELOADS.AUTO)
 
 ## a class clip, else the shared one, else {}
 static func variant(cls: String, name: String) -> Dictionary:
