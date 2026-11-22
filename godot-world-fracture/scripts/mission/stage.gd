@@ -30,12 +30,12 @@ const FOLIAGE := "res://models/foliage/"
 const BOSSES := "res://models/bosses/"
 
 ## the sets that are rooms: the operator is stood inside them and they are floored flat
-const ROOMS := ["astryan_hall", "council", "stacks", "pods", "heart", "forge", "cathedral", "underground", "station", "observatory", "ice_cave", "throne", "citadel", "dome", "farms", "tubes", "ring", "pool", "garden", "palace", "backroom", "vault", "engine", "transport", "tower", "sanctuary", "lodge", "map_room", "murals", "lab", "lab_red", "recording", "chamber", "briefing", "subway", "shaft", "archive", "memory", "hq_hall", "balcony"]
+const ROOMS := ["zero_point", "choir_hall", "witness_vault", "astryan_hall", "council", "stacks", "pods", "heart", "forge", "cathedral", "underground", "station", "observatory", "ice_cave", "throne", "citadel", "dome", "farms", "tubes", "ring", "pool", "garden", "palace", "backroom", "vault", "engine", "transport", "tower", "sanctuary", "lodge", "map_room", "murals", "lab", "lab_red", "recording", "chamber", "briefing", "subway", "shaft", "archive", "memory", "hq_hall", "balcony"]
 ## sets hung in the sky (the dimensional structure the two figures speak from)
 const SKY := ["void"]
 
 ## who speaks without a body in the scene (a radio, a broadcast, a voice in the dark): the camera holds the set
-const VOICES := ["MILITARY RADIO", "UNKNOWN VOICE", "GLOBAL BROADCAST", "ARCHIVE RECORDING", "MEMORY", "ENGINE VOICE", "COUNCILLOR"]
+const VOICES := ["MILITARY RADIO", "UNKNOWN VOICE", "GLOBAL BROADCAST", "ARCHIVE RECORDING", "MEMORY", "ENGINE VOICE", "COUNCILLOR", "CHOIR VOICE", "THE ECHO", "SEVENTH PROTOCOL"]
 ## the people of the story with a roster row (people.gd) — they wear their own look
 const ROSTER := ["VOSS", "SERAPHINE", "RAINER", "WARD", "KAEL", "COLE"]
 ## the looks of everyone else who speaks or stands in a scene: outfit, body, build, scale, and a whole-character model
@@ -55,11 +55,14 @@ const EXTRAS := {
 	"CHIEF ODA": ["npc-engineer", "female", "heavy", 1.0], "HIEROPHANT": ["npc-elder", "male", "slim", 1.0],
 	"DR. HALVARD": ["npc-hivis", "male", "heavy", 1.0], "TALLIS": ["npc-shirtless", "male", "athletic", 1.0],
 	"RAIDER": ["npc-tank-cargo", "male", "athletic", 1.0], "PHANTOM CHILD": ["npc-summer", "female", "slim", 0.6],
-	"ASTRYAN MAKER": ["npc-doctor", "female", "slim", 1.0],
+	"ASTRYAN MAKER": ["npc-doctor", "female", "slim", 1.0], "AUREN (MEMORY)": ["npc-hunter", "male", "athletic", 1.0],
+	"TUROG (MEMORY)": ["npc-leather", "male", "heavy", 1.0], "UNBOUND ELDER": ["npc-elder", "female", "slim", 1.0],
 }
 
 ## the look a speaker wears: their people.gd row when they have one, else their EXTRAS row (a civilian for anyone else)
 static func look_of(s: String) -> Dictionary:
+	if s == "VEILED SOVEREIGN":
+		s = "SERAPHINE"
 	var pid := s.to_lower().get_slice(" ", s.get_slice_count(" ") - 1)
 	if s in ROSTER:
 		var row: Dictionary = People.by_id(pid)
@@ -86,10 +89,11 @@ const FIGURES := {
 	"UNKNOWN FIGURE": ["dark-knight.glb", 3.2, Color(0.6, 0.3, 1.0)], "SECOND FIGURE": ["dark-knight.glb", 2.9, Color(0.9, 0.3, 0.5)],
 	"UNKNOWN RULER": ["dark-knight.glb", 4.2, Color(1.0, 0.75, 0.35)], "THE HARBINGER": ["aberration-boss.glb", 5.0, Color(0.7, 0.2, 1.0)],
 	"ENEMY COMMANDER": ["aberration-elite.glb", 3.4, Color(0.9, 0.3, 0.3)], "FRACTURE INFILTRATOR": ["aberration-elite.glb", 2.4, Color(0.5, 0.9, 1.0)],
-	"ARCHIVE WARDEN": ["guardian-boss.glb", 6.0, Color(1.0, 0.8, 0.45)],
+	"ARCHIVE WARDEN": ["guardian-boss.glb", 6.0, Color(1.0, 0.8, 0.45)], "VAEL TUROG": ["dark-knight.glb", 3.8, Color(0.75, 0.35, 1.0)],
+	"THE ARCHITECT": ["dark-knight.glb", 3.0, Color(0.95, 0.95, 1.0)],
 }
 ## recordings play as holograms
-const HOLO := ["SCIENTIST", "DR. CROSS", "PHANTOM CHILD", "ASTRYAN MAKER"]
+const HOLO := ["SCIENTIST", "DR. CROSS", "PHANTOM CHILD", "ASTRYAN MAKER", "AUREN (MEMORY)", "TUROG (MEMORY)", "UNBOUND ELDER"]
 
 var region: Control           # region_3d.gd (ground, world)
 var operator: Node3D
@@ -1455,6 +1459,96 @@ func _set_heart() -> void:
 	_focus = p(0, 6.0, 14.0)
 	_wide = Vector3(9, 4.0, 0)
 
+
+# --------------------------------------------------------------------------------------------- Chapter 8 sets (the Shattered Expanse)
+func _set_reef_port() -> void:
+	_set_docks()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5300
+	FractureSet.floating_ruins(_root, p(0, 12.0, 40.0), 30.0, 18, rng)
+	_wide = Vector3(7, 3.2, -4)
+
+## the broken reefs: coral-stone shelves at odd angles, crystals, ruins hanging in the air
+func _set_reef() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5301
+	for i in 6:
+		box(Vector3(4.0 + float(i % 3), 1.2, 3.0), -10.0 + float(i) * 4.0, -0.4, 12.0 + float(i % 2) * 5.0, mat(Color(0.55, 0.45, 0.5), 0.9), true, float(i * 23))
+	FractureSet.crystals(_root, p(0, 0, 14.0), 10.0, 14, Color(0.4, 0.8, 1.0), rng, func(x: float, z: float) -> float: return _ground(x, z))
+	FractureSet.floating_ruins(_root, p(0, 10.0, 22.0), 18.0, 14, rng)
+	_wide = Vector3(9, 3.4, -5)
+
+## the Zero Point: a white floor in nothing, every road meeting at a seed of light
+func _set_zero_point() -> void:
+	box(Vector3(30.0, 0.2, 30.0), 0, -0.2, 12.0, mat(Color(0.92, 0.92, 0.95), 0.4), false)
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		box(Vector3(0.12, 0.02, 14.0), cos(a) * 7.0, 0.01, 12.0 + sin(a) * 7.0, mat(Color(0.6, 0.8, 1.0), 0.4, 0.0, 2.0), false, rad_to_deg(a) - 90.0)
+	var seed := Fx.hologram("globe", Color(1.0, 1.0, 0.95), 1.6)
+	_root.add_child(seed)
+	seed.global_position = p(0, 0.2, 12.0)
+	light(0, 3.0, 12.0, Color(1.0, 1.0, 0.95), 4.0, 30.0)
+	_focus = p(0, 1.0, 12.0)
+	_wide = Vector3(9, 3.0, 0)
+
+## the Choir's hall before it was the Choir's: a ring of black benches round an organ of pipes
+func _set_choir_hall() -> void:
+	room(20.0, 22.0, 12.0, Color(0.18, 0.16, 0.2), Color(0.24, 0.22, 0.28), Color(0.7, 0.4, 1.0), 6.0)
+	for i in 9:
+		cyl(0.3, 4.0 + float(i % 4) * 1.5, -4.0 + float(i), 0, 18.0, mat(Color(0.5, 0.45, 0.55), 0.3, 0.8))
+	for i in 3:
+		box(Vector3(8.0, 0.6, 0.8), 0, 0, 6.0 + float(i) * 3.0, mat(Color(0.1, 0.1, 0.12), 0.6))
+	_focus = p(0, 4.0, 18.0)
+	_wide = Vector3(7, 3.4, 0)
+
+## the Unbound's camp: travelling tents of pale cloth, packs, a low fire, the road leading away
+func _set_exile_camp() -> void:
+	for i in 4:
+		tent(-9.0 + float(i) * 6.0, 10.0 + float(i % 2) * 3.0, 3.0, 3.0, Color(0.8, 0.78, 0.72), float(i * 12))
+	fire(0.0, 5.0, 0.6)
+	_extras(["UNBOUND ELDER", "CIVILIAN"], [Vector3(-3, 0, 7), Vector3(3, 0, 7.5)], 180.0)
+	_wide = Vector3(8, 3.0, -4)
+
+## the Witness's vault: a white room with no corners and one light
+func _set_witness_vault() -> void:
+	room(16.0, 16.0, 10.0, Color(0.95, 0.95, 0.97), Color(0.97, 0.97, 0.99), Color(1.0, 1.0, 1.0), 4.0)
+	var w := Fx.hologram("figure", Color(1.0, 1.0, 0.97), 4.0)
+	_root.add_child(w)
+	w.global_position = p(0, 0, 9.0)
+	cast["FIRST WITNESS"] = w
+	w.set_meta("height", 4.0)
+	_focus = p(0, 2.5, 9.0)
+	_wide = Vector3(5, 2.6, -1)
+
+## the spire: a needle of broken reef stone, the summit open to a violet sky
+func _set_spire() -> void:
+	box(Vector3(18.0, 0.4, 18.0), 0, -0.4, 8.0, mat(Color(0.4, 0.34, 0.4), 0.9), false)
+	for i in 6:
+		var a := TAU * float(i) / 6.0
+		box(Vector3(1.2, 5.0 + float(i % 2) * 3.0, 1.2), cos(a) * 8.0, 0, 8.0 + sin(a) * 8.0, mat(Color(0.35, 0.3, 0.38), 0.9))
+	var rift := Fx.portal(6.0, Color(0.6, 0.25, 1.0))
+	_root.add_child(rift)
+	rift.global_position = p(0, 8.0, 22.0)
+	rift.rotation.y = yaw_of(0.0)
+	light(0, 5.0, 10.0, Color(0.6, 0.3, 1.0), 3.0, 24.0)
+	_wide = Vector3(8, 3.6, -3)
+
+
+# --------------------------------------------------------------------------------------------- Chapter 9 sets
+## the central plaza: the city gathered — every faction's vehicles, banners, the crowd
+func _set_plaza() -> void:
+	vehicle("goliath-tank.glb", -10.0, 12.0, 160.0)
+	vehicle("security-suv.glb", -6.0, 16.0, 190.0)
+	vehicle("offroad-truck.glb", 7.0, 15.0, 170.0)
+	vehicle("raider-buggy.glb", 11.0, 11.0, 200.0)
+	var banners := [Color(0.15, 0.25, 0.5), Color(0.5, 0.35, 0.15), Color(0.85, 0.85, 0.95), Color(0.2, 0.45, 0.3)]
+	for i in 4:
+		cyl(0.07, 7.0, -9.0 + float(i) * 6.0, 0, 20.0, mat(Color(0.8, 0.8, 0.82), 0.3, 0.8))
+		box(Vector3(1.6, 2.4, 0.04), -8.2 + float(i) * 6.0, 4.4, 20.0, mat(banners[i], 0.9), false)
+	_extras(["SOLDIER", "SOLDIER", "CIVILIAN", "MAN", "CIVILIAN", "MEDIC", "RANGER", "TRADER"],
+		[Vector3(-8, 0, 8), Vector3(-5, 0, 9), Vector3(-2, 0, 10), Vector3(1, 0, 10), Vector3(4, 0, 9), Vector3(7, 0, 8), Vector3(-6, 0, 12), Vector3(6, 0, 12)], 180.0)
+	_wide = Vector3(10, 4.0, -5)
+
 # --------------------------------------------------------------------------------------------- the cast
 ## the speakers of the scene stand in an arc in front of the operator, facing in; the unnamed wear stand-in looks
 func _cast(speakers: Array) -> void:
@@ -1477,7 +1571,15 @@ func _cast(speakers: Array) -> void:
 			continue
 		var at: Vector3 = slots[mini(n, slots.size() - 1)]
 		n += 1
-		var body := _figure(s, at) if FIGURES.has(s) else _person(s, at)
+		var body: Node3D
+		if s == "FIRST WITNESS":
+			# the Witness: a standing figure of white light (fx.gd hologram), no body to read
+			body = Fx.hologram("figure", Color(1.0, 1.0, 0.97), 4.0)
+			_root.add_child(body)
+			body.global_position = p(at.x, 0, at.z + 4.0)
+			body.set_meta("height", 4.0)
+		else:
+			body = _figure(s, at) if FIGURES.has(s) else _person(s, at)
 		if body:
 			cast[s] = body
 	# the operator stands at the set's mark facing the cast
@@ -1686,6 +1788,17 @@ func act(name: String) -> void:
 					var tw := create_tween()
 					tw.tween_property(n, "global_position", n.global_position + Vector3(0, 7.0, 0), 3.0 + randf())
 					tw.tween_property(n, "scale", Vector3.ZERO, 0.6)
+		"nova_form":
+			# NOVA's original form: the little interface grows into the Astryans' last lighthouse
+			if _nova and is_instance_valid(_nova):
+				var tw := create_tween()
+				tw.tween_property(_nova, "scale", Vector3.ONE * 1.25, 2.5).set_trans(Tween.TRANS_SINE)
+				_holo(_nova, Color(1.0, 0.95, 0.8))
+				var l := OmniLight3D.new()
+				l.light_color = Color(1.0, 0.95, 0.8)
+				l.light_energy = 3.0
+				l.omni_range = 12.0
+				_nova.add_child(l)
 		"collapse":
 			# the hall shifts: rubble comes down
 			for i in 6:

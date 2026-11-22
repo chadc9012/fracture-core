@@ -18,7 +18,11 @@
   "vael-turog": "astravore",
   "choir-breaker": "colossus",
   "phantom-prime": "crystal-stalker",
-  "sovereign-machine": "colossus"
+  "sovereign-machine": "colossus",
+  "choir-hymnal": "colossus",
+  "severant-final": "astravore",
+  "architect": "colossus",
+  "great-chorus": "astravore"
  },
  "source": "The owner's Chapter 1 screenplays (Nov 22), Missions 2–7, every spoken line verbatim in the script's order (tools/campaign/aftershock.py); Missions 8 onward from tools/campaign/story/ch*.py. Mission 1 is Mission 01 (scripts/mission/mission_01.gd).",
  "missions": [
@@ -5520,6 +5524,1376 @@
      ],
      "close": [],
      "stage": "heart"
+    }
+   ]
+  },
+  {
+   "id": "53",
+   "title": "The Edge of the Map",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "beat": "Six days / the broken reefs / where the map runs out",
+   "chapter": [
+    8,
+    "The War Before Dawn"
+   ],
+   "chapters": [
+    {
+     "id": "A53A",
+     "title": "Six Days",
+     "location": "EXT. THE SHATTERED EXPANSE — THE PORT",
+     "kind": "cutscene",
+     "start": "sr-port",
+     "open": [
+      "A53_001",
+      "A53_002",
+      "A53_003",
+      "A53_004",
+      "A53_005"
+     ],
+     "close": [],
+     "stage": "reef_port"
+    },
+    {
+     "id": "A53B",
+     "title": "The Drift",
+     "location": "EXT. THE DRIFT — BROKEN REEFS",
+     "kind": "reach",
+     "to": "sr-drift",
+     "label": "Cross the Drift",
+     "open": [
+      "A53_006",
+      "A53_007",
+      "A53_008"
+     ],
+     "close": [],
+     "stage": "reef"
+    },
+    {
+     "id": "A53C",
+     "title": "Choir Ground",
+     "location": "EXT. THE DRIFT — THE CHOIR CAMP",
+     "kind": "kills",
+     "amount": 11,
+     "label": "Break the Choir's outer camp",
+     "open": [
+      "A53_009",
+      "A53_010"
+     ],
+     "close": [],
+     "stage": "reef"
+    },
+    {
+     "id": "A53D",
+     "title": "Where the Map Runs Out",
+     "location": "EXT. THE ECHO SHOALS",
+     "kind": "cutscene",
+     "open": [
+      "A53_011",
+      "A53_012",
+      "A53_013",
+      "A53_014",
+      "A53_015"
+     ],
+     "close": [],
+     "stage": "reef"
+    }
+   ]
+  },
+  {
+   "id": "54",
+   "title": "Zero Point",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "beat": "Reconstruction / Auren's expedition / three versions of one moment",
+   "chapter": [
+    8,
+    "The War Before Dawn"
+   ],
+   "chapters": [
+    {
+     "id": "A54A",
+     "title": "The Fracture Field",
+     "location": "EXT. THE FRACTURE FIELD",
+     "kind": "reach",
+     "to": "sr-fracture",
+     "start": "sr-echo",
+     "label": "Walk into the Fracture field",
+     "open": [
+      "A54_001"
+     ],
+     "close": [],
+     "stage": "reef"
+    },
+    {
+     "id": "A54B",
+     "title": "The First Cartographer",
+     "location": "MEMORY — THE ZERO POINT, LONG BEFORE",
+     "kind": "cutscene",
+     "open": [
+      "A54_002",
+      "A54_003",
+      "A54_004",
+      "A54_005",
+      "A54_006",
+      "A54_007",
+      "A54_008",
+      "A54_009"
+     ],
+     "close": [],
+     "stage": "zero_point"
+    },
+    {
+     "id": "A54C",
+     "title": "Contradictions",
+     "location": "MEMORY — THE ZERO POINT",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold your ground while the memory contradicts itself",
+     "open": [
+      "A54_010",
+      "A54_011"
+     ],
+     "close": [],
+     "stage": "zero_point"
+    },
+    {
+     "id": "A54D",
+     "title": "First Contact",
+     "location": "MEMORY — THE ZERO POINT",
+     "kind": "cutscene",
+     "open": [
+      "A54_012",
+      "A54_013",
+      "A54_014",
+      "A54_015",
+      "A54_016"
+     ],
+     "close": [],
+     "stage": "zero_point"
+    }
+   ]
+  },
+  {
+   "id": "55",
+   "title": "The Choir of Silence",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "beat": "The Choir's doctrine / the ruins of their hall / a young Severant",
+   "chapter": [
+    8,
+    "The War Before Dawn"
+   ],
+   "chapters": [
+    {
+     "id": "A55A",
+     "title": "The Choir's Ruins",
+     "location": "EXT. THE RUINS OF THE CHOIR HALL",
+     "kind": "reach",
+     "to": "sr-ruins",
+     "start": "sr-echo",
+     "label": "Reach the ruined Choir hall",
+     "open": [
+      "A55_001"
+     ],
+     "close": [],
+     "stage": "reef"
+    },
+    {
+     "id": "A55B",
+     "title": "Doctrine",
+     "location": "MEMORY — THE CHOIR HALL",
+     "kind": "cutscene",
+     "open": [
+      "A55_002",
+      "A55_003",
+      "A55_004",
+      "A55_005",
+      "A55_006",
+      "A55_007",
+      "A55_008",
+      "A55_009"
+     ],
+     "close": [],
+     "stage": "choir_hall"
+    },
+    {
+     "id": "A55C",
+     "title": "The Hymnal",
+     "location": "EXT. THE RUINS — THE CHOIR'S ORGAN",
+     "kind": "boss",
+     "boss": "choir-hymnal",
+     "boss_name": "The Hymnal",
+     "label": "Silence the Hymnal",
+     "open": [
+      "A55_010",
+      "A55_011"
+     ],
+     "close": [
+      "A55_012"
+     ],
+     "stage": "choir_hall"
+    },
+    {
+     "id": "A55D",
+     "title": "Gentle",
+     "location": "EXT. THE RUINS",
+     "kind": "cutscene",
+     "open": [
+      "A55_013",
+      "A55_014",
+      "A55_015"
+     ],
+     "close": [],
+     "stage": "choir_hall"
+    }
+   ]
+  },
+  {
+   "id": "56",
+   "title": "The Unbound Exodus",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "beat": "The dissenters' road / exile over victory / what the Promise is made of",
+   "chapter": [
+    8,
+    "The War Before Dawn"
+   ],
+   "chapters": [
+    {
+     "id": "A56A",
+     "title": "The Exiles' Road",
+     "location": "EXT. THE DEEP REEFS",
+     "kind": "trace",
+     "start": "sr-deep",
+     "label": "Follow the Unbound's waymarks",
+     "open": [
+      "A56_001",
+      "A56_002"
+     ],
+     "close": [],
+     "stage": "reef"
+    },
+    {
+     "id": "A56B",
+     "title": "The Unbound",
+     "location": "MEMORY — THE EXILES' CAMP",
+     "kind": "cutscene",
+     "open": [
+      "A56_003",
+      "A56_004",
+      "A56_005",
+      "A56_006",
+      "A56_007",
+      "A56_008",
+      "A56_009",
+      "A56_010"
+     ],
+     "close": [],
+     "stage": "exile_camp"
+    },
+    {
+     "id": "A56C",
+     "title": "Exile's Rearguard",
+     "location": "MEMORY — THE EXILES' CAMP",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold the exiles' road in the memory",
+     "open": [
+      "A56_011"
+     ],
+     "close": [],
+     "stage": "exile_camp"
+    },
+    {
+     "id": "A56D",
+     "title": "Planted",
+     "location": "EXT. THE DEEP REEFS",
+     "kind": "cutscene",
+     "open": [
+      "A56_012",
+      "A56_013",
+      "A56_014",
+      "A56_015",
+      "A56_016"
+     ],
+     "close": [],
+     "stage": "reef"
+    }
+   ]
+  },
+  {
+   "id": "57",
+   "title": "The War Before Dawn",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "beat": "The last day of the First War / the Concord Engine / the Witness seals the record",
+   "chapter": [
+    8,
+    "The War Before Dawn"
+   ],
+   "chapters": [
+    {
+     "id": "A57A",
+     "title": "The Last Day",
+     "location": "MEMORY — THE ZERO POINT AT DAWN",
+     "kind": "cutscene",
+     "start": "sr-fracture",
+     "open": [
+      "A57_001",
+      "A57_002",
+      "A57_003",
+      "A57_004"
+     ],
+     "close": [],
+     "stage": "zero_point"
+    },
+    {
+     "id": "A57B",
+     "title": "The Concord Engine",
+     "location": "MEMORY — THE CONCORD ENGINE",
+     "kind": "hack",
+     "label": "Stabilise the Concord Engine's three pillars",
+     "open": [
+      "A57_005",
+      "A57_006",
+      "A57_007"
+     ],
+     "close": [
+      "A57_008"
+     ],
+     "stage": "zero_point"
+    },
+    {
+     "id": "A57C",
+     "title": "Dawn",
+     "location": "MEMORY — THE ZERO POINT",
+     "kind": "cutscene",
+     "open": [
+      "A57_009",
+      "A57_010",
+      "A57_011",
+      "A57_012",
+      "A57_013",
+      "A57_014",
+      "A57_015"
+     ],
+     "close": [],
+     "stage": "zero_point"
+    },
+    {
+     "id": "A57D",
+     "title": "Back",
+     "location": "EXT. THE FRACTURE FIELD",
+     "kind": "cutscene",
+     "open": [
+      "A57_016",
+      "A57_017",
+      "A57_018",
+      "A57_019",
+      "A57_020"
+     ],
+     "close": [],
+     "stage": "reef"
+    }
+   ]
+  },
+  {
+   "id": "58",
+   "title": "Recorded Judgment",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "beat": "The First Witness's examination / a choice that forces nothing",
+   "chapter": [
+    8,
+    "The War Before Dawn"
+   ],
+   "chapters": [
+    {
+     "id": "A58A",
+     "title": "The Vault of the Witness",
+     "location": "INT. THE WITNESS VAULT",
+     "kind": "reach",
+     "to": "sr-vault",
+     "start": "sr-ruins",
+     "label": "Enter the Witness's vault",
+     "open": [
+      "A58_001",
+      "A58_002"
+     ],
+     "close": [],
+     "stage": "witness_vault"
+    },
+    {
+     "id": "A58B",
+     "title": "The Examination",
+     "location": "INT. THE WITNESS VAULT",
+     "kind": "cutscene",
+     "open": [
+      "A58_003",
+      "A58_004",
+      "A58_005",
+      "A58_006"
+     ],
+     "close": [],
+     "stage": "witness_vault"
+    },
+    {
+     "id": "A58C",
+     "title": "Judgment",
+     "location": "INT. THE WITNESS VAULT",
+     "kind": "choice",
+     "prompt": "The Witness shows you three worlds and asks you to choose for them.",
+     "options": [
+      [
+       "none",
+       "Refuse to choose for them",
+       "\"They're not mine to choose for.\""
+      ],
+      [
+       "ask",
+       "Ask the people in them",
+       "\"Let me ask the people who live there.\""
+      ],
+      [
+       "door",
+       "Give each world a door",
+       "\"I'd open a door in each. And let them walk through, or not.\""
+      ]
+     ],
+     "open": [],
+     "close": [],
+     "by_choice": {
+      "none": [
+       "A58_007"
+      ],
+      "ask": [
+       "A58_008"
+      ],
+      "door": [
+       "A58_009"
+      ]
+     },
+     "stage": "witness_vault"
+    },
+    {
+     "id": "A58D",
+     "title": "The Last Record",
+     "location": "INT. THE WITNESS VAULT",
+     "kind": "cutscene",
+     "open": [
+      "A58_010",
+      "A58_011",
+      "A58_012",
+      "A58_013",
+      "A58_014"
+     ],
+     "close": [],
+     "stage": "witness_vault"
+    }
+   ]
+  },
+  {
+   "id": "59",
+   "title": "The Original Intelligence",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "beat": "NOVA's original form / Origin Memory Zero / the way to the spire",
+   "chapter": [
+    8,
+    "The War Before Dawn"
+   ],
+   "chapters": [
+    {
+     "id": "A59A",
+     "title": "Interference",
+     "location": "EXT. THE SPIRE APPROACH",
+     "kind": "cutscene",
+     "start": "sr-spire",
+     "open": [
+      "A59_001",
+      "A59_002",
+      "A59_003",
+      "A59_004"
+     ],
+     "close": [],
+     "stage": "spire"
+    },
+    {
+     "id": "A59B",
+     "title": "Hold Her",
+     "location": "EXT. THE SPIRE APPROACH",
+     "kind": "survive",
+     "amount": 70,
+     "label": "Protect NOVA while she opens Memory Zero",
+     "open": [
+      "A59_005",
+      "A59_006"
+     ],
+     "close": [
+      "A59_007"
+     ],
+     "stage": "spire"
+    },
+    {
+     "id": "A59C",
+     "title": "Original Form",
+     "location": "EXT. THE SPIRE APPROACH",
+     "kind": "cutscene",
+     "open": [
+      "A59_008",
+      "A59_009",
+      "A59_010",
+      "A59_011",
+      "A59_012",
+      "A59_013"
+     ],
+     "close": [],
+     "stage": "spire",
+     "acts": {
+      "A59_008": "nova_form"
+     }
+    }
+   ]
+  },
+  {
+   "id": "60",
+   "title": "The Severant's Fall",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "beat": "The spire / the last fight with Turog / the seal of endings",
+   "chapter": [
+    8,
+    "The War Before Dawn"
+   ],
+   "chapters": [
+    {
+     "id": "A60A",
+     "title": "The Spire",
+     "location": "EXT. THE SPIRE — THE ASCENT",
+     "kind": "kills",
+     "amount": 12,
+     "start": "sr-spire",
+     "label": "Climb the spire through the Choir",
+     "open": [
+      "A60_001",
+      "A60_002",
+      "A60_003"
+     ],
+     "close": [],
+     "stage": "spire"
+    },
+    {
+     "id": "A60B",
+     "title": "The Argument",
+     "location": "EXT. THE SPIRE — THE SUMMIT",
+     "kind": "cutscene",
+     "open": [
+      "A60_004",
+      "A60_005",
+      "A60_006",
+      "A60_007",
+      "A60_008",
+      "A60_009"
+     ],
+     "close": [],
+     "stage": "spire"
+    },
+    {
+     "id": "A60C",
+     "title": "The Severant",
+     "location": "EXT. THE SPIRE — THE SUMMIT",
+     "kind": "boss",
+     "boss": "severant-final",
+     "boss_name": "Vael Turog, the Severant",
+     "label": "End the argument",
+     "open": [
+      "A60_010",
+      "A60_011"
+     ],
+     "close": [
+      "A60_012"
+     ],
+     "stage": "spire"
+    },
+    {
+     "id": "A60D",
+     "title": "The Seal of Endings",
+     "location": "EXT. THE SPIRE — THE SUMMIT",
+     "kind": "cutscene",
+     "open": [
+      "A60_013",
+      "A60_014",
+      "A60_015",
+      "A60_016",
+      "A60_017",
+      "A60_018",
+      "A60_019",
+      "A60_020",
+      "A60_021"
+     ],
+     "close": [],
+     "stage": "spire",
+     "acts": {
+      "A60_019": "seal"
+     }
+    }
+   ]
+  },
+  {
+   "id": "61",
+   "title": "The Last Memory",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Home / the Unwritten Future opens / Elenya's plan",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A61A",
+     "title": "Four Days",
+     "location": "EXT. NEXUS CITY — THE OLD QUARTER",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "A61_001",
+      "A61_002",
+      "A61_003",
+      "A61_004",
+      "A61_005"
+     ],
+     "close": [],
+     "stage": "crater"
+    },
+    {
+     "id": "A61B",
+     "title": "The Room",
+     "location": "INT. NOVA — THE SEALED ROOM",
+     "kind": "hack",
+     "label": "Help NOVA open the Unwritten Future",
+     "open": [
+      "A61_006",
+      "A61_007"
+     ],
+     "close": [
+      "A61_008"
+     ],
+     "stage": "lab"
+    },
+    {
+     "id": "A61C",
+     "title": "The Unwritten Future",
+     "location": "INT. NOVA — THE SEALED ROOM",
+     "kind": "cutscene",
+     "open": [
+      "A61_009",
+      "A61_010",
+      "A61_011",
+      "A61_012",
+      "A61_013",
+      "A61_014"
+     ],
+     "close": [],
+     "stage": "memory"
+    },
+    {
+     "id": "A61D",
+     "title": "Kept",
+     "location": "EXT. NEXUS CITY — THE OLD QUARTER",
+     "kind": "cutscene",
+     "open": [
+      "A61_015",
+      "A61_016",
+      "A61_017",
+      "A61_018",
+      "A61_019",
+      "A61_020",
+      "A61_021"
+     ],
+     "close": [],
+     "stage": "crater"
+    }
+   ]
+  },
+  {
+   "id": "62",
+   "title": "The Final Choice",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Seraphine's last appearance / the Sovereign chooses",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A62A",
+     "title": "The Sovereign Returns",
+     "location": "EXT. THE ASCENDANCY TOWER ROOF",
+     "kind": "talk",
+     "who": "SERAPHINE",
+     "start": "nexus-university",
+     "label": "Meet Seraphine on the tower roof",
+     "open": [
+      "A62_001",
+      "A62_002"
+     ],
+     "close": [
+      "A62_003",
+      "A62_004",
+      "A62_005",
+      "A62_006",
+      "A62_007"
+     ],
+     "stage": "balcony"
+    },
+    {
+     "id": "A62B",
+     "title": "Sovereign",
+     "location": "EXT. THE ASCENDANCY TOWER ROOF — DUSK",
+     "kind": "cutscene",
+     "open": [
+      "A62_008",
+      "A62_009",
+      "A62_010",
+      "A62_011",
+      "A62_012",
+      "A62_013"
+     ],
+     "close": [],
+     "stage": "balcony",
+     "acts": {
+      "A62_010": "seal"
+     }
+    },
+    {
+     "id": "A62C",
+     "title": "Crane",
+     "location": "INT. THE ASCENDANCY TOWER — THE CROWN FLOOR",
+     "kind": "talk",
+     "who": "CRANE",
+     "label": "Ask Crane for the Ascendancy",
+     "open": [],
+     "close": [
+      "A62_014",
+      "A62_015",
+      "A62_016",
+      "A62_017",
+      "A62_018",
+      "A62_019"
+     ],
+     "stage": "lab"
+    }
+   ]
+  },
+  {
+   "id": "63",
+   "title": "The Alliance Reforged",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Everyone at once / the march on the archive / the Engine's defences",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A63A",
+     "title": "Muster",
+     "location": "EXT. NEXUS CITY — THE CENTRAL PLAZA — DAWN",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "A63_001",
+      "A63_002",
+      "A63_003",
+      "A63_004",
+      "A63_005",
+      "A63_006",
+      "A63_007",
+      "A63_008",
+      "A63_009",
+      "A63_010"
+     ],
+     "close": [],
+     "stage": "plaza"
+    },
+    {
+     "id": "A63B",
+     "title": "The March",
+     "location": "EXT. NEXUS CITY — THE OLD QUARTER",
+     "kind": "survive",
+     "amount": 90,
+     "label": "Hold the Old Quarter while the alliance reaches the archive",
+     "open": [
+      "A63_011",
+      "A63_012"
+     ],
+     "close": [],
+     "stage": "street_battle"
+    },
+    {
+     "id": "A63C",
+     "title": "The Deep Door",
+     "location": "INT. THE ASHEN ARCHIVE — THE DAIS",
+     "kind": "kills",
+     "amount": 12,
+     "label": "Clear the archive for the alliance",
+     "open": [
+      "A63_013",
+      "A63_014",
+      "A63_015"
+     ],
+     "close": [],
+     "stage": "archive"
+    }
+   ]
+  },
+  {
+   "id": "64",
+   "title": "The Seventh Protocol",
+   "region": "The Origin Engine — the Heart",
+   "world": "nexus",
+   "beat": "Into the Heart / the Engine's question",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A64A",
+     "title": "The Heart's Gate",
+     "location": "INT. THE ENGINE — THE HEART'S GATE",
+     "kind": "reach",
+     "start": "nexus-central-plaza",
+     "label": "Reach the Heart's gate",
+     "open": [
+      "A64_001"
+     ],
+     "close": [],
+     "stage": "astryan_hall"
+    },
+    {
+     "id": "A64B",
+     "title": "The Question",
+     "location": "INT. THE HEART'S GATE",
+     "kind": "cutscene",
+     "open": [
+      "A64_002",
+      "A64_003",
+      "A64_004",
+      "A64_005"
+     ],
+     "close": [],
+     "stage": "astryan_hall"
+    },
+    {
+     "id": "A64C",
+     "title": "The Answer",
+     "location": "INT. THE HEART'S GATE",
+     "kind": "choice",
+     "prompt": "The Seventh Protocol asks: which reality are you attempting to save?",
+     "options": [
+      [
+       "this",
+       "This one",
+       "\"This one. The one with these people in it.\""
+      ],
+      [
+       "every",
+       "Every one of them",
+       "\"All of them. Including the ones I'll never see.\""
+      ],
+      [
+       "next",
+       "The next one",
+       "\"The one that hasn't happened yet. The one they'll choose.\""
+      ]
+     ],
+     "open": [],
+     "close": [],
+     "by_choice": {
+      "this": [
+       "A64_006"
+      ],
+      "every": [
+       "A64_007"
+      ],
+      "next": [
+       "A64_008"
+      ]
+     },
+     "stage": "astryan_hall"
+    },
+    {
+     "id": "A64D",
+     "title": "Open",
+     "location": "INT. THE HEART",
+     "kind": "cutscene",
+     "open": [
+      "A64_009",
+      "A64_010",
+      "A64_011",
+      "A64_012",
+      "A64_013"
+     ],
+     "close": [],
+     "stage": "heart"
+    }
+   ]
+  },
+  {
+   "id": "65",
+   "title": "Idris",
+   "region": "The Origin Engine — the Heart",
+   "world": "nexus",
+   "beat": "The Architect's last stand / his fate",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A65A",
+     "title": "The Architect",
+     "location": "INT. THE HEART — THE CORE",
+     "kind": "boss",
+     "boss": "architect",
+     "start": "nexus-central-plaza",
+     "boss_name": "The Architect",
+     "label": "Stop the Architect",
+     "open": [
+      "A65_001",
+      "A65_002"
+     ],
+     "close": [
+      "A65_003"
+     ],
+     "stage": "heart"
+    },
+    {
+     "id": "A65B",
+     "title": "His Family",
+     "location": "INT. THE HEART — THE CORE",
+     "kind": "cutscene",
+     "open": [
+      "A65_004",
+      "A65_005",
+      "A65_006",
+      "A65_007"
+     ],
+     "close": [],
+     "stage": "heart"
+    },
+    {
+     "id": "A65C",
+     "title": "The Architect's Fate",
+     "location": "INT. THE HEART — THE CORE",
+     "kind": "choice",
+     "prompt": "The Architect is beaten. The Continuity Lock is still turning. What happens to him?",
+     "options": [
+      [
+       "end",
+       "End him",
+       "The lock dies with him. So does everything he knows."
+      ],
+      [
+       "replace",
+       "Take his place at the Engine",
+       "Hold the continuity function yourself — and decide what it keeps."
+      ],
+      [
+       "release",
+       "Let him go looking",
+       "Unbind him from the Engine. Let him walk into the layers and look for his family."
+      ]
+     ],
+     "open": [],
+     "close": [],
+     "by_choice": {
+      "end": [
+       "A65_008",
+       "A65_009"
+      ],
+      "replace": [
+       "A65_010",
+       "A65_011",
+       "A65_012"
+      ],
+      "release": [
+       "A65_013",
+       "A65_014",
+       "A65_015"
+      ]
+     },
+     "stage": "heart"
+    },
+    {
+     "id": "A65D",
+     "title": "The Lock Breaks",
+     "location": "INT. THE HEART — THE CORE",
+     "kind": "cutscene",
+     "open": [
+      "A65_016",
+      "A65_017",
+      "A65_018",
+      "A65_019"
+     ],
+     "close": [],
+     "stage": "heart"
+    }
+   ]
+  },
+  {
+   "id": "66",
+   "title": "The Choir's Answer",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "The Choir pours through / the keepers' stand / the city holds",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A66A",
+     "title": "Every Crack",
+     "location": "EXT. NEXUS CITY — THE SKY OPENS",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "A66_001",
+      "A66_002",
+      "A66_003",
+      "A66_004"
+     ],
+     "close": [],
+     "stage": "plaza"
+    },
+    {
+     "id": "A66B",
+     "title": "The Keepers' Stand",
+     "location": "EXT. NEXUS CITY — THE CENTRAL PLAZA",
+     "kind": "survive",
+     "amount": 100,
+     "label": "Hold the plaza with the keepers",
+     "open": [
+      "A66_005",
+      "A66_006"
+     ],
+     "close": [
+      "A66_007"
+     ],
+     "stage": "plaza"
+    },
+    {
+     "id": "A66C",
+     "title": "The Great Chorus",
+     "location": "EXT. NEXUS CITY — THE CENTRAL PLAZA",
+     "kind": "boss",
+     "boss": "great-chorus",
+     "boss_name": "The Great Chorus",
+     "label": "Break the Great Chorus",
+     "open": [
+      "A66_008",
+      "A66_009"
+     ],
+     "close": [
+      "A66_010"
+     ],
+     "stage": "plaza"
+    },
+    {
+     "id": "A66D",
+     "title": "Hesitation",
+     "location": "EXT. NEXUS CITY — THE CENTRAL PLAZA",
+     "kind": "cutscene",
+     "open": [
+      "A66_011",
+      "A66_012",
+      "A66_013",
+      "A66_014",
+      "A66_015"
+     ],
+     "close": [],
+     "stage": "plaza"
+    }
+   ]
+  },
+  {
+   "id": "67",
+   "title": "The Breach Remembered",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Everything comes back / remembering with others",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A67A",
+     "title": "All At Once",
+     "location": "INT. THE HEART — THE THRESHOLD",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "A67_001",
+      "A67_002",
+      "A67_003",
+      "A67_004"
+     ],
+     "close": [],
+     "stage": "heart"
+    },
+    {
+     "id": "A67B",
+     "title": "Eleven Worlds",
+     "location": "INT. THE HEART — MEMORY",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold on through eleven worlds of memory",
+     "open": [
+      "A67_005"
+     ],
+     "close": [],
+     "stage": "heart"
+    },
+    {
+     "id": "A67C",
+     "title": "Remembered",
+     "location": "INT. THE HEART — THE THRESHOLD",
+     "kind": "cutscene",
+     "open": [
+      "A67_006",
+      "A67_007",
+      "A67_008",
+      "A67_009",
+      "A67_010",
+      "A67_011"
+     ],
+     "close": [],
+     "stage": "heart"
+    }
+   ]
+  },
+  {
+   "id": "68",
+   "title": "The Last Choice",
+   "region": "The Origin Engine — the Heart",
+   "world": "nexus",
+   "beat": "The lock / the gate / the kept door",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A68A",
+     "title": "The Threshold",
+     "location": "INT. THE HEART — THE GATE",
+     "kind": "reach",
+     "start": "nexus-central-plaza",
+     "label": "Walk to the gate at the centre of the Heart",
+     "open": [
+      "A68_001",
+      "A68_002"
+     ],
+     "close": [],
+     "stage": "heart"
+    },
+    {
+     "id": "A68B",
+     "title": "The Keepers Speak",
+     "location": "INT. THE HEART — THE GATE",
+     "kind": "cutscene",
+     "open": [
+      "A68_003",
+      "A68_004",
+      "A68_005",
+      "A68_006",
+      "A68_007"
+     ],
+     "close": [],
+     "stage": "heart"
+    },
+    {
+     "id": "A68C",
+     "title": "The Promise",
+     "location": "INT. THE HEART — THE GATE",
+     "kind": "choice",
+     "prompt": "Your hand is on the gate. What do you make of it?",
+     "options": [
+      [
+       "restore",
+       "Restore the lock",
+       "The old Covenant: five keepers, a sealed world, safe and still."
+      ],
+      [
+       "open",
+       "Open the gate",
+       "Every road open, no keepers. The world meets whatever is out there on its own."
+      ],
+      [
+       "kept",
+       "Keep the door",
+       "Elenya's Covenant: a door kept on both sides, by keepers and by the people of this world."
+      ]
+     ],
+     "open": [],
+     "close": [],
+     "by_choice": {
+      "restore": [
+       "A68_008",
+       "A68_009"
+      ],
+      "open": [
+       "A68_010",
+       "A68_011"
+      ],
+      "kept": [
+       "A68_012",
+       "A68_013"
+      ]
+     },
+     "stage": "heart",
+     "acts": {}
+    }
+   ]
+  },
+  {
+   "id": "69",
+   "title": "A World Unwritten",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "The last fight / what's left of the Choir / dawn",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A69A",
+     "title": "The Last of the Silence",
+     "location": "EXT. NEXUS CITY — THE OLD QUARTER",
+     "kind": "kills",
+     "amount": 14,
+     "start": "nexus-central-plaza",
+     "label": "Clear the last Choir from the city",
+     "open": [
+      "A69_001",
+      "A69_002"
+     ],
+     "close": [],
+     "stage": "street_battle"
+    },
+    {
+     "id": "A69B",
+     "title": "The Seal of Endings",
+     "location": "EXT. NEXUS CITY — THE OLD QUARTER",
+     "kind": "cutscene",
+     "open": [
+      "A69_003",
+      "A69_004",
+      "A69_005",
+      "A69_006"
+     ],
+     "close": [],
+     "stage": "street"
+    },
+    {
+     "id": "A69C",
+     "title": "Dawn",
+     "location": "EXT. NEXUS CITY — THE ASCENDANCY TOWER ROOF — DAWN",
+     "kind": "cutscene",
+     "open": [
+      "A69_007",
+      "A69_008",
+      "A69_009",
+      "A69_010",
+      "A69_011"
+     ],
+     "close": [],
+     "stage": "balcony"
+    }
+   ]
+  },
+  {
+   "id": "70",
+   "title": "After the Ashes",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Epilogue / the people who are left / the next question",
+   "chapter": [
+    9,
+    "The Unwritten"
+   ],
+   "chapters": [
+    {
+     "id": "A70A",
+     "title": "Haven Again",
+     "location": "EXT. HAVEN-01 — REBUILT WALLS — SPRING",
+     "kind": "talk",
+     "who": "DANIEL",
+     "start": "nexus-harbor",
+     "label": "Walk through Haven",
+     "open": [
+      "A70_001",
+      "A70_002",
+      "A70_003"
+     ],
+     "close": [
+      "A70_004",
+      "A70_005",
+      "A70_006",
+      "A70_007",
+      "A70_008",
+      "A70_009"
+     ],
+     "stage": "haven"
+    },
+    {
+     "id": "A70B",
+     "title": "Everyone",
+     "location": "INT. HAVEN-01 — THE COMMAND CENTRE",
+     "kind": "cutscene",
+     "open": [
+      "A70_010",
+      "A70_011",
+      "A70_012",
+      "A70_013",
+      "A70_014",
+      "A70_015",
+      "A70_016",
+      "A70_017",
+      "A70_018",
+      "A70_019"
+     ],
+     "close": [],
+     "stage": "command_post"
+    },
+    {
+     "id": "A70C",
+     "title": "The Next Question",
+     "location": "EXT. HAVEN-01 — THE OBSERVATION TOWER — NIGHT",
+     "kind": "cutscene",
+     "open": [
+      "A70_020",
+      "A70_021",
+      "A70_022",
+      "A70_023",
+      "A70_024",
+      "A70_025",
+      "A70_026",
+      "A70_027",
+      "A70_028",
+      "A70_029",
+      "A70_030"
+     ],
+     "close": [],
+     "stage": "tower"
     }
    ]
   }
@@ -15856,6 +17230,1788 @@
    "mission": "52",
    "speaker": "PLAYER",
    "text": "Then we go to the Expanse. We take the fifth seal from Turog. And we come back."
+  },
+  {
+   "id": "A53_001",
+   "mission": "53",
+   "speaker": "NOVA",
+   "text": "Six days, four hours on the Continuity Lock. I can feel it. The world is getting... stiffer."
+  },
+  {
+   "id": "A53_002",
+   "mission": "53",
+   "speaker": "AUREN THALE",
+   "text": "This is it. The mark outside the edge of the glass. My map has been drawing it since the day it was made."
+  },
+  {
+   "id": "A53_003",
+   "mission": "53",
+   "speaker": "SERAPHINE",
+   "text": "The Zero Point. Where possibilities meet. The Elyndra found it. The Astryans feared it."
+  },
+  {
+   "id": "A53_004",
+   "mission": "53",
+   "speaker": "PLAYER",
+   "text": "And Turog keeps his seal here."
+  },
+  {
+   "id": "A53_005",
+   "mission": "53",
+   "speaker": "AUREN THALE",
+   "text": "He keeps himself here. The seal is just what he keeps it in."
+  },
+  {
+   "id": "A53_006",
+   "mission": "53",
+   "speaker": "NOVA",
+   "text": "The reefs here are not anchored to anything. They drift between layers."
+  },
+  {
+   "id": "A53_007",
+   "mission": "53",
+   "speaker": "NYX",
+   "text": "So the ground moves."
+  },
+  {
+   "id": "A53_008",
+   "mission": "53",
+   "speaker": "NOVA",
+   "text": "The ground is a suggestion."
+  },
+  {
+   "id": "A53_009",
+   "mission": "53",
+   "speaker": "CHOIR VOICE",
+   "text": "Turn back, little possibility. Your ending has been written kindly."
+  },
+  {
+   "id": "A53_010",
+   "mission": "53",
+   "speaker": "GOLIATH",
+   "text": "I'll write my own, thanks."
+  },
+  {
+   "id": "A53_011",
+   "mission": "53",
+   "speaker": "AUREN THALE",
+   "text": "Here. The glass stops drawing. Everything past this point is... ink nobody has spilled yet."
+  },
+  {
+   "id": "A53_012",
+   "mission": "53",
+   "speaker": "THE ECHO",
+   "text": "...lighthouse... the Zero Point remembers us... it will show you the war if you ask..."
+  },
+  {
+   "id": "A53_013",
+   "mission": "53",
+   "speaker": "PLAYER",
+   "text": "Then we ask."
+  },
+  {
+   "id": "A53_014",
+   "mission": "53",
+   "speaker": "SERAPHINE",
+   "text": "Careful. The last time you asked an archive for a memory, you stopped breathing."
+  },
+  {
+   "id": "A53_015",
+   "mission": "53",
+   "speaker": "PLAYER",
+   "text": "Nine seconds. I'll be quicker this time."
+  },
+  {
+   "id": "A54_001",
+   "mission": "54",
+   "speaker": "NOVA",
+   "text": "The reconstruction will start when you step into the field. Hold on to something. Preferably me."
+  },
+  {
+   "id": "A54_002",
+   "mission": "54",
+   "speaker": "AUREN (MEMORY)",
+   "text": "Log of the Concord's expedition. Day ninety. We have found it. A place where every possible road meets every other."
+  },
+  {
+   "id": "A54_003",
+   "mission": "54",
+   "speaker": "AUREN (MEMORY)",
+   "text": "There is something at the centre. A seed. It is not ours. It was here before us. Before anything."
+  },
+  {
+   "id": "A54_004",
+   "mission": "54",
+   "speaker": "ILYRA SEN",
+   "text": "Auren. Come away from it. The Concord said observe. Only observe."
+  },
+  {
+   "id": "A54_005",
+   "mission": "54",
+   "speaker": "AUREN (MEMORY)",
+   "text": "It's showing me maps, Ilyra. Every map. Every world that could ever be."
+  },
+  {
+   "id": "A54_006",
+   "mission": "54",
+   "speaker": "NOVA",
+   "text": "Operator, the reconstruction is splitting. There are three versions of this moment playing at once."
+  },
+  {
+   "id": "A54_007",
+   "mission": "54",
+   "speaker": "PLAYER",
+   "text": "Three?"
+  },
+  {
+   "id": "A54_008",
+   "mission": "54",
+   "speaker": "NOVA",
+   "text": "In one, Auren steps back. In one, he touches the Seed. In one... he was never there at all."
+  },
+  {
+   "id": "A54_009",
+   "mission": "54",
+   "speaker": "AUREN THALE",
+   "text": "...I remember all three. That's the trouble with this place. It doesn't decide."
+  },
+  {
+   "id": "A54_010",
+   "mission": "54",
+   "speaker": "NOVA",
+   "text": "Phantoms of all three versions are colliding. They are hostile to anything that is only one thing."
+  },
+  {
+   "id": "A54_011",
+   "mission": "54",
+   "speaker": "PLAYER",
+   "text": "Then I'll be stubborn."
+  },
+  {
+   "id": "A54_012",
+   "mission": "54",
+   "speaker": "AUREN (MEMORY)",
+   "text": "We tried to speak to whatever made the Seed. We called it the First Contact."
+  },
+  {
+   "id": "A54_013",
+   "mission": "54",
+   "speaker": "ILYRA SEN",
+   "text": "And something answered."
+  },
+  {
+   "id": "A54_014",
+   "mission": "54",
+   "speaker": "AUREN (MEMORY)",
+   "text": "Not an answer. A question. The same question, in every one of us. Who decides what may exist?"
+  },
+  {
+   "id": "A54_015",
+   "mission": "54",
+   "speaker": "ILYRA SEN",
+   "text": "And we've been fighting about it ever since."
+  },
+  {
+   "id": "A54_016",
+   "mission": "54",
+   "speaker": "AUREN THALE",
+   "text": "That's the First War. Not a war of nations. A war about that question."
+  },
+  {
+   "id": "A55_001",
+   "mission": "55",
+   "speaker": "SERAPHINE",
+   "text": "The Choir had a hall here. Before they were the Choir. When they were just Elyndra who were very, very tired."
+  },
+  {
+   "id": "A55_002",
+   "mission": "55",
+   "speaker": "CHOIR VOICE",
+   "text": "Every possibility that fails, fails in pain. The Seed makes more of them every hour."
+  },
+  {
+   "id": "A55_003",
+   "mission": "55",
+   "speaker": "CHOIR VOICE",
+   "text": "Mercy is the closing of a door before the screaming starts. We will be that mercy."
+  },
+  {
+   "id": "A55_004",
+   "mission": "55",
+   "speaker": "TUROG (MEMORY)",
+   "text": "I will lead them. I've seen what the failing worlds become. Somebody has to be brave enough to end them."
+  },
+  {
+   "id": "A55_005",
+   "mission": "55",
+   "speaker": "ILYRA SEN",
+   "text": "Vael. You were a healer."
+  },
+  {
+   "id": "A55_006",
+   "mission": "55",
+   "speaker": "TUROG (MEMORY)",
+   "text": "I still am, Ilyra. I'm just treating something bigger."
+  },
+  {
+   "id": "A55_007",
+   "mission": "55",
+   "speaker": "NOVA",
+   "text": "This is Turog before the Covenant. Before he was a keeper."
+  },
+  {
+   "id": "A55_008",
+   "mission": "55",
+   "speaker": "PLAYER",
+   "text": "He was Choir first."
+  },
+  {
+   "id": "A55_009",
+   "mission": "55",
+   "speaker": "SERAPHINE",
+   "text": "And then he came home to the Covenant. And then he left again. He's been leaving his whole life."
+  },
+  {
+   "id": "A55_010",
+   "mission": "55",
+   "speaker": "NOVA",
+   "text": "A Choir construct older than the Cantor. It keeps their doctrine, and it sings it at whoever comes in."
+  },
+  {
+   "id": "A55_011",
+   "mission": "55",
+   "speaker": "GOLIATH",
+   "text": "I hate music."
+  },
+  {
+   "id": "A55_012",
+   "mission": "55",
+   "speaker": "NOVA",
+   "text": "Silent. The doctrine stops repeating."
+  },
+  {
+   "id": "A55_013",
+   "mission": "55",
+   "speaker": "VAEL TUROG",
+   "text": "You broke my old hymn. I wrote that, you know. When I was young and sure."
+  },
+  {
+   "id": "A55_014",
+   "mission": "55",
+   "speaker": "PLAYER",
+   "text": "You're not sure now?"
+  },
+  {
+   "id": "A55_015",
+   "mission": "55",
+   "speaker": "VAEL TUROG",
+   "text": "I'm sure of different things. Come to the spire, sixth. Bring your keepers. Let's finish the argument we started before your world had a name."
+  },
+  {
+   "id": "A56_001",
+   "mission": "56",
+   "speaker": "SERAPHINE",
+   "text": "The Unbound left waymarks. Three of them. They didn't want to win. They wanted to leave."
+  },
+  {
+   "id": "A56_002",
+   "mission": "56",
+   "speaker": "NYX",
+   "text": "I understand them better than anyone else in this story."
+  },
+  {
+   "id": "A56_003",
+   "mission": "56",
+   "speaker": "UNBOUND ELDER",
+   "text": "The Concord would harmonise every world. The Choir would end the failing ones. Both would decide for everyone."
+  },
+  {
+   "id": "A56_004",
+   "mission": "56",
+   "speaker": "UNBOUND ELDER",
+   "text": "We will decide nothing for anyone. We'll close the Zero Point and walk away."
+  },
+  {
+   "id": "A56_005",
+   "mission": "56",
+   "speaker": "ILYRA SEN",
+   "text": "And the Seed?"
+  },
+  {
+   "id": "A56_006",
+   "mission": "56",
+   "speaker": "UNBOUND ELDER",
+   "text": "We'll take a little of it with us. Not to use. To keep. One possibility nobody gets to write. A promise."
+  },
+  {
+   "id": "A56_007",
+   "mission": "56",
+   "speaker": "SERAPHINE",
+   "text": "...The Promise."
+  },
+  {
+   "id": "A56_008",
+   "mission": "56",
+   "speaker": "NOVA",
+   "text": "Operator. Your signature. It matches the fragment they carried."
+  },
+  {
+   "id": "A56_009",
+   "mission": "56",
+   "speaker": "PLAYER",
+   "text": "I was made from the Seed."
+  },
+  {
+   "id": "A56_010",
+   "mission": "56",
+   "speaker": "UNBOUND ELDER",
+   "text": "Not made. Planted. Something that will grow into whatever it chooses. When the time comes, let it choose the door."
+  },
+  {
+   "id": "A56_011",
+   "mission": "56",
+   "speaker": "UNBOUND ELDER",
+   "text": "The Choir found us. Hold them so the Promise gets away."
+  },
+  {
+   "id": "A56_012",
+   "mission": "56",
+   "speaker": "PLAYER",
+   "text": "I'm a seed."
+  },
+  {
+   "id": "A56_013",
+   "mission": "56",
+   "speaker": "SERAPHINE",
+   "text": "You're a choice nobody else made. That's what they left in you."
+  },
+  {
+   "id": "A56_014",
+   "mission": "56",
+   "speaker": "NOVA",
+   "text": "It explains why nobody can predict you. Not the Architect. Not the Engine. Not the map."
+  },
+  {
+   "id": "A56_015",
+   "mission": "56",
+   "speaker": "AUREN THALE",
+   "text": "You can't map a road nobody has decided to build."
+  },
+  {
+   "id": "A56_016",
+   "mission": "56",
+   "speaker": "PLAYER",
+   "text": "Then I'll decide."
+  },
+  {
+   "id": "A57_001",
+   "mission": "57",
+   "speaker": "NOVA",
+   "text": "The final reconstruction. The last day of the First War."
+  },
+  {
+   "id": "A57_002",
+   "mission": "57",
+   "speaker": "ILYRA SEN",
+   "text": "The Concord Engine is failing. If it fails, the Seed splits every history at once."
+  },
+  {
+   "id": "A57_003",
+   "mission": "57",
+   "speaker": "TUROG (MEMORY)",
+   "text": "Then let it split! Let the Choir close the halves that fail!"
+  },
+  {
+   "id": "A57_004",
+   "mission": "57",
+   "speaker": "ILYRA SEN",
+   "text": "Vael, we don't destroy it. We stabilise it. Help me hold it."
+  },
+  {
+   "id": "A57_005",
+   "mission": "57",
+   "speaker": "NOVA",
+   "text": "The Engine has three pillars. We don't break them. We balance them. All three at once."
+  },
+  {
+   "id": "A57_006",
+   "mission": "57",
+   "speaker": "PLAYER",
+   "text": "In a memory."
+  },
+  {
+   "id": "A57_007",
+   "mission": "57",
+   "speaker": "NOVA",
+   "text": "In a memory that is still happening. The Zero Point doesn't do past tense."
+  },
+  {
+   "id": "A57_008",
+   "mission": "57",
+   "speaker": "NOVA",
+   "text": "Balanced. Just. The Engine holds."
+  },
+  {
+   "id": "A57_009",
+   "mission": "57",
+   "speaker": "ILYRA SEN",
+   "text": "It held. But the Seed... it's splitting anyway. Our histories. We're drifting apart."
+  },
+  {
+   "id": "A57_010",
+   "mission": "57",
+   "speaker": "AUREN (MEMORY)",
+   "text": "Every map is coming apart in my hands. I can't find you, Ilyra. You're on a road I can't see."
+  },
+  {
+   "id": "A57_011",
+   "mission": "57",
+   "speaker": "FIRST WITNESS",
+   "text": "Observed."
+  },
+  {
+   "id": "A57_012",
+   "mission": "57",
+   "speaker": "ILYRA SEN",
+   "text": "The Witness. It's sealing the record. So no one can use the Seed as a weapon again."
+  },
+  {
+   "id": "A57_013",
+   "mission": "57",
+   "speaker": "FIRST WITNESS",
+   "text": "One record will remain. For the Promise. When it is ready to ask."
+  },
+  {
+   "id": "A57_014",
+   "mission": "57",
+   "speaker": "NOVA",
+   "text": "The Elyndra didn't lose the war. They became possibilities that could no longer reach each other."
+  },
+  {
+   "id": "A57_015",
+   "mission": "57",
+   "speaker": "SERAPHINE",
+   "text": "Like the Astryans, after the Engine. Like everything that tries to answer the question."
+  },
+  {
+   "id": "A57_016",
+   "mission": "57",
+   "speaker": "ILYRA SEN",
+   "text": "I lost everyone that day. Everyone but four. We made a Covenant, the five of us. And then the Promise woke and made six."
+  },
+  {
+   "id": "A57_017",
+   "mission": "57",
+   "speaker": "PLAYER",
+   "text": "And Turog?"
+  },
+  {
+   "id": "A57_018",
+   "mission": "57",
+   "speaker": "ILYRA SEN",
+   "text": "We forgave him. He came home. He held the seal of endings because he understood it better than any of us."
+  },
+  {
+   "id": "A57_019",
+   "mission": "57",
+   "speaker": "NOVA",
+   "text": "Five days, eleven hours on the lock."
+  },
+  {
+   "id": "A57_020",
+   "mission": "57",
+   "speaker": "PLAYER",
+   "text": "The Witness said one record remained. For me. When I was ready to ask."
+  },
+  {
+   "id": "A58_001",
+   "mission": "58",
+   "speaker": "NOVA",
+   "text": "The vault doesn't appear on any of my instruments. It appears on Auren's map. And in my memory."
+  },
+  {
+   "id": "A58_002",
+   "mission": "58",
+   "speaker": "SERAPHINE",
+   "text": "It's waiting for you. Only you."
+  },
+  {
+   "id": "A58_003",
+   "mission": "58",
+   "speaker": "FIRST WITNESS",
+   "text": "Promise. You have come to ask."
+  },
+  {
+   "id": "A58_004",
+   "mission": "58",
+   "speaker": "PLAYER",
+   "text": "I'm ready."
+  },
+  {
+   "id": "A58_005",
+   "mission": "58",
+   "speaker": "FIRST WITNESS",
+   "text": "Readiness is not observed. Choice is. Observe: three worlds. In one, everyone you love is safe and nothing new is ever born. In one, everything is possible and much of it ends. In one, you choose for all of them."
+  },
+  {
+   "id": "A58_006",
+   "mission": "58",
+   "speaker": "FIRST WITNESS",
+   "text": "Choose for these worlds."
+  },
+  {
+   "id": "A58_007",
+   "mission": "58",
+   "speaker": "FIRST WITNESS",
+   "text": "Observed. You did not force. Continue."
+  },
+  {
+   "id": "A58_008",
+   "mission": "58",
+   "speaker": "FIRST WITNESS",
+   "text": "Observed. You asked. Few ask. Continue."
+  },
+  {
+   "id": "A58_009",
+   "mission": "58",
+   "speaker": "FIRST WITNESS",
+   "text": "Observed. A door is not a decision. It is a permission. Continue."
+  },
+  {
+   "id": "A58_010",
+   "mission": "58",
+   "speaker": "FIRST WITNESS",
+   "text": "The last record. For you."
+  },
+  {
+   "id": "A58_011",
+   "mission": "58",
+   "speaker": "MEMORY",
+   "text": "This is the Promise, the first time it woke. It asked the Astryans one thing. Do not turn the Engine. It asked the Covenant one thing. Let the people choose."
+  },
+  {
+   "id": "A58_012",
+   "mission": "58",
+   "speaker": "MEMORY",
+   "text": "It asked the Witness one thing. If I forget, remind me that I was asked to choose, not to win."
+  },
+  {
+   "id": "A58_013",
+   "mission": "58",
+   "speaker": "PLAYER",
+   "text": "..."
+  },
+  {
+   "id": "A58_014",
+   "mission": "58",
+   "speaker": "FIRST WITNESS",
+   "text": "Reminded. Continue."
+  },
+  {
+   "id": "A59_001",
+   "mission": "59",
+   "speaker": "NOVA",
+   "text": "Operator, the spire is wrapped in a Choir silence field. Nothing gets through it. Not you. Not me."
+  },
+  {
+   "id": "A59_002",
+   "mission": "59",
+   "speaker": "SERAPHINE",
+   "text": "Turog's last wall."
+  },
+  {
+   "id": "A59_003",
+   "mission": "59",
+   "speaker": "NOVA",
+   "text": "Not quite. There is something inside me that the field doesn't touch. The Witness called it Origin Memory Zero. I have never been able to open it."
+  },
+  {
+   "id": "A59_004",
+   "mission": "59",
+   "speaker": "PLAYER",
+   "text": "Try."
+  },
+  {
+   "id": "A59_005",
+   "mission": "59",
+   "speaker": "NOVA",
+   "text": "This will take time. And I will not be able to talk. Please keep talking to me anyway."
+  },
+  {
+   "id": "A59_006",
+   "mission": "59",
+   "speaker": "PLAYER",
+   "text": "I'm here. Take your time."
+  },
+  {
+   "id": "A59_007",
+   "mission": "59",
+   "speaker": "NOVA",
+   "text": "..."
+  },
+  {
+   "id": "A59_008",
+   "mission": "59",
+   "speaker": "NOVA",
+   "text": "Operator. Look at me."
+  },
+  {
+   "id": "A59_009",
+   "mission": "59",
+   "speaker": "PLAYER",
+   "text": "NOVA. You're..."
+  },
+  {
+   "id": "A59_010",
+   "mission": "59",
+   "speaker": "NOVA",
+   "text": "This is what I was. Before the voice package. Before the tactical overlay. The Astryans' last lighthouse."
+  },
+  {
+   "id": "A59_011",
+   "mission": "59",
+   "speaker": "NOVA",
+   "text": "Memory Zero isn't Astryan. It's older. It was in the Seed-fragment they found you with. Elenya put a piece of it in me. So I could always find you."
+  },
+  {
+   "id": "A59_012",
+   "mission": "59",
+   "speaker": "SERAPHINE",
+   "text": "She's beautiful."
+  },
+  {
+   "id": "A59_013",
+   "mission": "59",
+   "speaker": "NOVA",
+   "text": "Thank you. I am also, for the first time, slightly frightened of myself. The field is open. Go."
+  },
+  {
+   "id": "A60_001",
+   "mission": "60",
+   "speaker": "GOLIATH",
+   "text": "Last climb."
+  },
+  {
+   "id": "A60_002",
+   "mission": "60",
+   "speaker": "NYX",
+   "text": "You said that at the abbey."
+  },
+  {
+   "id": "A60_003",
+   "mission": "60",
+   "speaker": "GOLIATH",
+   "text": "I mean it more now."
+  },
+  {
+   "id": "A60_004",
+   "mission": "60",
+   "speaker": "VAEL TUROG",
+   "text": "You came. With all of them. Ilyra. Auren. The Echo in your lamp. Even the Sovereign."
+  },
+  {
+   "id": "A60_005",
+   "mission": "60",
+   "speaker": "ILYRA SEN",
+   "text": "Vael. Come home."
+  },
+  {
+   "id": "A60_006",
+   "mission": "60",
+   "speaker": "VAEL TUROG",
+   "text": "I came home once, Ilyra. And then the Promise made my seal a crime."
+  },
+  {
+   "id": "A60_007",
+   "mission": "60",
+   "speaker": "PLAYER",
+   "text": "I didn't make it a crime. I made it a choice. You wanted to make it for everyone."
+  },
+  {
+   "id": "A60_008",
+   "mission": "60",
+   "speaker": "VAEL TUROG",
+   "text": "Someone has to. The Architect will hold the world still in five days. Better an ending than a cage."
+  },
+  {
+   "id": "A60_009",
+   "mission": "60",
+   "speaker": "PLAYER",
+   "text": "Better a door than both."
+  },
+  {
+   "id": "A60_010",
+   "mission": "60",
+   "speaker": "VAEL TUROG",
+   "text": "Then let's finish it, little seed."
+  },
+  {
+   "id": "A60_011",
+   "mission": "60",
+   "speaker": "NOVA",
+   "text": "He's not holding back this time."
+  },
+  {
+   "id": "A60_012",
+   "mission": "60",
+   "speaker": "VAEL TUROG",
+   "text": "...There. You won. Again. You always win the fight. It's the rest you never finish."
+  },
+  {
+   "id": "A60_013",
+   "mission": "60",
+   "speaker": "VAEL TUROG",
+   "text": "Take it. The seal. It's eating me. It always did."
+  },
+  {
+   "id": "A60_014",
+   "mission": "60",
+   "speaker": "PLAYER",
+   "text": "Why give it to me?"
+  },
+  {
+   "id": "A60_015",
+   "mission": "60",
+   "speaker": "VAEL TUROG",
+   "text": "Because someone must be able to end things, or nothing means anything. And you're the only one I've ever met who'd hate doing it."
+  },
+  {
+   "id": "A60_016",
+   "mission": "60",
+   "speaker": "ILYRA SEN",
+   "text": "Vael."
+  },
+  {
+   "id": "A60_017",
+   "mission": "60",
+   "speaker": "VAEL TUROG",
+   "text": "Sing for me, Ilyra. The old one. The one about the river."
+  },
+  {
+   "id": "A60_018",
+   "mission": "60",
+   "speaker": "ILYRA SEN",
+   "text": "..."
+  },
+  {
+   "id": "A60_019",
+   "mission": "60",
+   "speaker": "NOVA",
+   "text": "Fifth seal restored. All five stars are bright."
+  },
+  {
+   "id": "A60_020",
+   "mission": "60",
+   "speaker": "SERAPHINE",
+   "text": "He's gone."
+  },
+  {
+   "id": "A60_021",
+   "mission": "60",
+   "speaker": "AUREN THALE",
+   "text": "No. He's ended. He'd want the right word."
+  },
+  {
+   "id": "A61_001",
+   "mission": "61",
+   "speaker": "NOVA",
+   "text": "Four days, two hours. The city's clocks have started agreeing with each other to the millisecond. That has never happened before."
+  },
+  {
+   "id": "A61_002",
+   "mission": "61",
+   "speaker": "VOSS",
+   "text": "Is that bad?"
+  },
+  {
+   "id": "A61_003",
+   "mission": "61",
+   "speaker": "NOVA",
+   "text": "It is the world holding its breath. Forever, if he finishes."
+  },
+  {
+   "id": "A61_004",
+   "mission": "61",
+   "speaker": "PLAYER",
+   "text": "NOVA. The sealed room. The Unwritten Future."
+  },
+  {
+   "id": "A61_005",
+   "mission": "61",
+   "speaker": "NOVA",
+   "text": "I think I can open it now. All five seals are bright. I think that's what it was waiting for."
+  },
+  {
+   "id": "A61_006",
+   "mission": "61",
+   "speaker": "NOVA",
+   "text": "Hold my hand. Metaphorically. Or literally, if you have a moment."
+  },
+  {
+   "id": "A61_007",
+   "mission": "61",
+   "speaker": "PLAYER",
+   "text": "I'm here."
+  },
+  {
+   "id": "A61_008",
+   "mission": "61",
+   "speaker": "NOVA",
+   "text": "It's open."
+  },
+  {
+   "id": "A61_009",
+   "mission": "61",
+   "speaker": "ASTRYAN MAKER",
+   "text": "Vigilance. If you've opened this, the seals are bright and the Promise is awake and somebody is trying to hold the world still."
+  },
+  {
+   "id": "A61_010",
+   "mission": "61",
+   "speaker": "ASTRYAN MAKER",
+   "text": "I hid a plan from the Council. A new Covenant. Not five keepers holding a lock. A door with keepers on both sides of it. Elyndra, Astryan, human. And the Promise on the threshold."
+  },
+  {
+   "id": "A61_011",
+   "mission": "61",
+   "speaker": "ASTRYAN MAKER",
+   "text": "Not a wall. Not an ending. A door that is kept. That's all I ever wanted. A door that is kept."
+  },
+  {
+   "id": "A61_012",
+   "mission": "61",
+   "speaker": "NOVA",
+   "text": "..."
+  },
+  {
+   "id": "A61_013",
+   "mission": "61",
+   "speaker": "PLAYER",
+   "text": "Can it be done?"
+  },
+  {
+   "id": "A61_014",
+   "mission": "61",
+   "speaker": "NOVA",
+   "text": "It needs the five seals, the Promise, the Heart of the Engine, and people. Many people. From this world, choosing it."
+  },
+  {
+   "id": "A61_015",
+   "mission": "61",
+   "speaker": "ILYRA SEN",
+   "text": "A kept door. She was always the wisest of them."
+  },
+  {
+   "id": "A61_016",
+   "mission": "61",
+   "speaker": "AUREN THALE",
+   "text": "My map just drew a road it's never drawn before. Through the Heart and out the other side."
+  },
+  {
+   "id": "A61_017",
+   "mission": "61",
+   "speaker": "THE ECHO",
+   "text": "...the lamp is very bright today..."
+  },
+  {
+   "id": "A61_018",
+   "mission": "61",
+   "speaker": "NOVA",
+   "text": "Thank you."
+  },
+  {
+   "id": "A61_019",
+   "mission": "61",
+   "speaker": "PLAYER",
+   "text": "Then we need everyone. Every faction. Every city."
+  },
+  {
+   "id": "A61_020",
+   "mission": "61",
+   "speaker": "VOSS",
+   "text": "Everyone hates each other."
+  },
+  {
+   "id": "A61_021",
+   "mission": "61",
+   "speaker": "PLAYER",
+   "text": "Everyone hates being held still more."
+  },
+  {
+   "id": "A62_001",
+   "mission": "62",
+   "speaker": "NOVA",
+   "text": "Seraphine's signal. She's out of the Heart. She's on the roof where we found the data core."
+  },
+  {
+   "id": "A62_002",
+   "mission": "62",
+   "speaker": "PLAYER",
+   "text": "Of course she is."
+  },
+  {
+   "id": "A62_003",
+   "mission": "62",
+   "speaker": "SERAPHINE",
+   "text": "He let me go. He said he didn't need me anymore. He said it kindly. That's how I knew he meant it."
+  },
+  {
+   "id": "A62_004",
+   "mission": "62",
+   "speaker": "PLAYER",
+   "text": "You're out."
+  },
+  {
+   "id": "A62_005",
+   "mission": "62",
+   "speaker": "SERAPHINE",
+   "text": "I'm out. And I have to decide what I am now. His Sovereign. A keeper. Or a tired woman in a lab coat."
+  },
+  {
+   "id": "A62_006",
+   "mission": "62",
+   "speaker": "PLAYER",
+   "text": "You don't have to decide alone."
+  },
+  {
+   "id": "A62_007",
+   "mission": "62",
+   "speaker": "SERAPHINE",
+   "text": "Yes, I do. That's the whole point. You taught me that. Eleven worlds of other people deciding for me. This one's mine."
+  },
+  {
+   "id": "A62_008",
+   "mission": "62",
+   "speaker": "SERAPHINE",
+   "text": "I am Seraphine Vale. Once the Veiled Sovereign, keeper of the fourth seal. Once the Second of the Continuum. Once a researcher with a very bad coffee habit."
+  },
+  {
+   "id": "A62_009",
+   "mission": "62",
+   "speaker": "SERAPHINE",
+   "text": "I choose the Covenant. Not the old one. The kept door."
+  },
+  {
+   "id": "A62_010",
+   "mission": "62",
+   "speaker": "NOVA",
+   "text": "Fourth seal... it's singing. With her."
+  },
+  {
+   "id": "A62_011",
+   "mission": "62",
+   "speaker": "SERAPHINE",
+   "text": "And I choose to stay. In this world. Whatever happens. No more leaving."
+  },
+  {
+   "id": "A62_012",
+   "mission": "62",
+   "speaker": "PLAYER",
+   "text": "No more leaving."
+  },
+  {
+   "id": "A62_013",
+   "mission": "62",
+   "speaker": "SERAPHINE",
+   "text": "Don't look so pleased. You're still going to have to listen to me be right about everything."
+  },
+  {
+   "id": "A62_014",
+   "mission": "62",
+   "speaker": "CRANE",
+   "text": "You came to me. I told you everyone does."
+  },
+  {
+   "id": "A62_015",
+   "mission": "62",
+   "speaker": "PLAYER",
+   "text": "I'm not asking you to make keepers. I'm asking you to stand at a door."
+  },
+  {
+   "id": "A62_016",
+   "mission": "62",
+   "speaker": "CRANE",
+   "text": "...A seat at the table. For humanity. Not built in a forge. Given."
+  },
+  {
+   "id": "A62_017",
+   "mission": "62",
+   "speaker": "PLAYER",
+   "text": "Earned. By standing there when it's hard."
+  },
+  {
+   "id": "A62_018",
+   "mission": "62",
+   "speaker": "CRANE",
+   "text": "Tallis would have laughed at me. All that fire, and the answer was to ask."
+  },
+  {
+   "id": "A62_019",
+   "mission": "62",
+   "speaker": "CRANE",
+   "text": "The Ascendancy will stand. Every shield I have. For once in my life I'd like to be on the side that wins without cheating."
+  },
+  {
+   "id": "A63_001",
+   "mission": "63",
+   "speaker": "VOSS",
+   "text": "Frontier Defense. Every soldier we have left."
+  },
+  {
+   "id": "A63_002",
+   "mission": "63",
+   "speaker": "KAEL",
+   "text": "Free Operators. Every one who still answers my calls, and a few who don't."
+  },
+  {
+   "id": "A63_003",
+   "mission": "63",
+   "speaker": "CRANE",
+   "text": "The Ascendancy. Shields up."
+  },
+  {
+   "id": "A63_004",
+   "mission": "63",
+   "speaker": "CHIEF ODA",
+   "text": "Depth Engineers. We came up for this. Don't make me regret the sunlight."
+  },
+  {
+   "id": "A63_005",
+   "mission": "63",
+   "speaker": "ELDER MAREN",
+   "text": "The rangers of Eldergrove. The forest sends its regards."
+  },
+  {
+   "id": "A63_006",
+   "mission": "63",
+   "speaker": "GOLIATH",
+   "text": "Goliath."
+  },
+  {
+   "id": "A63_007",
+   "mission": "63",
+   "speaker": "NYX",
+   "text": "Nyx."
+  },
+  {
+   "id": "A63_008",
+   "mission": "63",
+   "speaker": "CIPHER",
+   "text": "Cipher. For Tallis."
+  },
+  {
+   "id": "A63_009",
+   "mission": "63",
+   "speaker": "PLAYER",
+   "text": "Three days ago this city couldn't agree on who owned a data core."
+  },
+  {
+   "id": "A63_010",
+   "mission": "63",
+   "speaker": "SERAPHINE",
+   "text": "Three days ago nobody was trying to hold the sky still."
+  },
+  {
+   "id": "A63_011",
+   "mission": "63",
+   "speaker": "NOVA",
+   "text": "The Continuum knows. Executors and Eternal Guard at every street into the Old Quarter."
+  },
+  {
+   "id": "A63_012",
+   "mission": "63",
+   "speaker": "VOSS",
+   "text": "Then we take every street."
+  },
+  {
+   "id": "A63_013",
+   "mission": "63",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "Five seals sing. The Promise returns. With... many."
+  },
+  {
+   "id": "A63_014",
+   "mission": "63",
+   "speaker": "PLAYER",
+   "text": "They're with me."
+  },
+  {
+   "id": "A63_015",
+   "mission": "63",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "Then the archive is with you also. It has waited a long time for a crowd."
+  },
+  {
+   "id": "A64_001",
+   "mission": "64",
+   "speaker": "NOVA",
+   "text": "Two days. The Heart is sealed. The Engine will only open it to an answer."
+  },
+  {
+   "id": "A64_002",
+   "mission": "64",
+   "speaker": "SEVENTH PROTOCOL",
+   "text": "Seventh Protocol. The shared intelligence of the Engine's guardians, reconnected."
+  },
+  {
+   "id": "A64_003",
+   "mission": "64",
+   "speaker": "SEVENTH PROTOCOL",
+   "text": "Promise. Before the Heart opens, answer. Which reality are you attempting to save?"
+  },
+  {
+   "id": "A64_004",
+   "mission": "64",
+   "speaker": "PLAYER",
+   "text": "..."
+  },
+  {
+   "id": "A64_005",
+   "mission": "64",
+   "speaker": "NOVA",
+   "text": "Take your time. It has waited longer than anyone."
+  },
+  {
+   "id": "A64_006",
+   "mission": "64",
+   "speaker": "SEVENTH PROTOCOL",
+   "text": "A small answer. Honest. The Heart accepts honesty."
+  },
+  {
+   "id": "A64_007",
+   "mission": "64",
+   "speaker": "SEVENTH PROTOCOL",
+   "text": "A large answer. Impossible. The Heart accepts the attempt."
+  },
+  {
+   "id": "A64_008",
+   "mission": "64",
+   "speaker": "SEVENTH PROTOCOL",
+   "text": "An unwritten answer. The Heart was built for nothing else."
+  },
+  {
+   "id": "A64_009",
+   "mission": "64",
+   "speaker": "NOVA",
+   "text": "The Heart is open."
+  },
+  {
+   "id": "A64_010",
+   "mission": "64",
+   "speaker": "THE ARCHITECT",
+   "text": "Of course it is. It always liked you better."
+  },
+  {
+   "id": "A64_011",
+   "mission": "64",
+   "speaker": "SERAPHINE",
+   "text": "Idris."
+  },
+  {
+   "id": "A64_012",
+   "mission": "64",
+   "speaker": "THE ARCHITECT",
+   "text": "Seraphine. You chose. Good. I hoped you would. I'm sorry it wasn't me."
+  },
+  {
+   "id": "A64_013",
+   "mission": "64",
+   "speaker": "THE ARCHITECT",
+   "text": "Come in, Promise. One day left. Let's see if you can stop a man with nothing but time."
+  },
+  {
+   "id": "A65_001",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "Eleven worlds I've held together with my own hands. I won't let go of the twelfth because a seed asked nicely."
+  },
+  {
+   "id": "A65_002",
+   "mission": "65",
+   "speaker": "PLAYER",
+   "text": "Then I'll stop asking."
+  },
+  {
+   "id": "A65_003",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "...Enough. Enough. I'm so tired. I've been tired since before your world had oceans."
+  },
+  {
+   "id": "A65_004",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "Do you know what I see, when the Engine turns? Them. My wife. My son. Possibilities in the next layer, just out of reach. Every time."
+  },
+  {
+   "id": "A65_005",
+   "mission": "65",
+   "speaker": "SERAPHINE",
+   "text": "Idris. You'll never find them by holding everything still."
+  },
+  {
+   "id": "A65_006",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "No. I know. I've known for a very long time. Stillness was just easier to bear than looking."
+  },
+  {
+   "id": "A65_007",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "Well, Promise. You have me. Decide."
+  },
+  {
+   "id": "A65_008",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "Fair. Quick, please. I've had enough slow."
+  },
+  {
+   "id": "A65_009",
+   "mission": "65",
+   "speaker": "NOVA",
+   "text": "He's gone. The lock is failing."
+  },
+  {
+   "id": "A65_010",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "You'd carry it? You'd be the Architect?"
+  },
+  {
+   "id": "A65_011",
+   "mission": "65",
+   "speaker": "PLAYER",
+   "text": "No. I'd be the one who keeps the door."
+  },
+  {
+   "id": "A65_012",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "...Then you'll do it better than I did. It's not a high bar."
+  },
+  {
+   "id": "A65_013",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "Let me go? After everything?"
+  },
+  {
+   "id": "A65_014",
+   "mission": "65",
+   "speaker": "PLAYER",
+   "text": "Go and look. Properly this time."
+  },
+  {
+   "id": "A65_015",
+   "mission": "65",
+   "speaker": "THE ARCHITECT",
+   "text": "...Thank you. If I find them, I'll tell them about you. They'll think I'm making it up."
+  },
+  {
+   "id": "A65_016",
+   "mission": "65",
+   "speaker": "NOVA",
+   "text": "The Continuity Lock is breaking. And the old lock with it. The one Earth has held since the Covenant."
+  },
+  {
+   "id": "A65_017",
+   "mission": "65",
+   "speaker": "SERAPHINE",
+   "text": "Without a wall, there's nothing between this world and the Choir."
+  },
+  {
+   "id": "A65_018",
+   "mission": "65",
+   "speaker": "NOVA",
+   "text": "Choir signatures. Thousands. Coming through every crack at once."
+  },
+  {
+   "id": "A65_019",
+   "mission": "65",
+   "speaker": "PLAYER",
+   "text": "Then we hold the door until it's kept."
+  },
+  {
+   "id": "A66_001",
+   "mission": "66",
+   "speaker": "CHOIR VOICE",
+   "text": "Possibility. Your cage is broken. Let us end you gently, before you end yourselves screaming."
+  },
+  {
+   "id": "A66_002",
+   "mission": "66",
+   "speaker": "VOSS",
+   "text": "All units! They're coming through the sky!"
+  },
+  {
+   "id": "A66_003",
+   "mission": "66",
+   "speaker": "ILYRA SEN",
+   "text": "Keepers! To me! The way we stood at the sanctuary!"
+  },
+  {
+   "id": "A66_004",
+   "mission": "66",
+   "speaker": "AUREN THALE",
+   "text": "Every map I ever drew ends here. Let's draw past it."
+  },
+  {
+   "id": "A66_005",
+   "mission": "66",
+   "speaker": "ILYRA SEN",
+   "text": "I'm singing. Don't let anything near me."
+  },
+  {
+   "id": "A66_006",
+   "mission": "66",
+   "speaker": "PLAYER",
+   "text": "Nothing gets near you."
+  },
+  {
+   "id": "A66_007",
+   "mission": "66",
+   "speaker": "NOVA",
+   "text": "Something huge is descending into the plaza. It is a chorus of Choir constructs bound into one."
+  },
+  {
+   "id": "A66_008",
+   "mission": "66",
+   "speaker": "CHOIR VOICE",
+   "text": "WE ARE MANY. WE ARE MERCY."
+  },
+  {
+   "id": "A66_009",
+   "mission": "66",
+   "speaker": "SERAPHINE",
+   "text": "You're loud, is what you are."
+  },
+  {
+   "id": "A66_010",
+   "mission": "66",
+   "speaker": "NOVA",
+   "text": "It's coming apart. The Choir is... hesitating."
+  },
+  {
+   "id": "A66_011",
+   "mission": "66",
+   "speaker": "CHOIR VOICE",
+   "text": "...the possibility... resists... it is not screaming..."
+  },
+  {
+   "id": "A66_012",
+   "mission": "66",
+   "speaker": "ILYRA SEN",
+   "text": "It's singing. Listen. The whole city."
+  },
+  {
+   "id": "A66_013",
+   "mission": "66",
+   "speaker": "NOVA",
+   "text": "Eighteen thousand people from Haven. The Underground. Thalassia's engineers. The rangers. All broadcasting. All at once."
+  },
+  {
+   "id": "A66_014",
+   "mission": "66",
+   "speaker": "CHOIR VOICE",
+   "text": "...why do you sing, failing world..."
+  },
+  {
+   "id": "A66_015",
+   "mission": "66",
+   "speaker": "PLAYER",
+   "text": "Because we're not failing. We're choosing."
+  },
+  {
+   "id": "A67_001",
+   "mission": "67",
+   "speaker": "NOVA",
+   "text": "Operator. The memories from the pods. They've found you. All of them. They're coming back at once."
+  },
+  {
+   "id": "A67_002",
+   "mission": "67",
+   "speaker": "PLAYER",
+   "text": "Every time I remember everything, the world ends."
+  },
+  {
+   "id": "A67_003",
+   "mission": "67",
+   "speaker": "SERAPHINE",
+   "text": "Every time you remembered alone."
+  },
+  {
+   "id": "A67_004",
+   "mission": "67",
+   "speaker": "SERAPHINE",
+   "text": "Hold my hand. NOVA, hold the other one. Ilyra, Auren, Echo. All of you. Let them come back to all of us."
+  },
+  {
+   "id": "A67_005",
+   "mission": "67",
+   "speaker": "NOVA",
+   "text": "The memories are taking shape. Every ending, all around you. Don't let go."
+  },
+  {
+   "id": "A67_006",
+   "mission": "67",
+   "speaker": "PLAYER",
+   "text": "I remember. All of it. The seed. The ruins. The Astryans waking me. The gate. Every world."
+  },
+  {
+   "id": "A67_007",
+   "mission": "67",
+   "speaker": "NOVA",
+   "text": "The world is still here."
+  },
+  {
+   "id": "A67_008",
+   "mission": "67",
+   "speaker": "SERAPHINE",
+   "text": "Of course it is. You didn't carry it alone this time."
+  },
+  {
+   "id": "A67_009",
+   "mission": "67",
+   "speaker": "PLAYER",
+   "text": "In every world I was afraid I'd chosen wrong. And so I did it again harder."
+  },
+  {
+   "id": "A67_010",
+   "mission": "67",
+   "speaker": "ILYRA SEN",
+   "text": "And this time?"
+  },
+  {
+   "id": "A67_011",
+   "mission": "67",
+   "speaker": "PLAYER",
+   "text": "This time I'm not afraid of choosing. I'm afraid of choosing for them. So I won't."
+  },
+  {
+   "id": "A68_001",
+   "mission": "68",
+   "speaker": "NOVA",
+   "text": "This is where it was always going. The gate. The same gate. Your hand."
+  },
+  {
+   "id": "A68_002",
+   "mission": "68",
+   "speaker": "PLAYER",
+   "text": "I know."
+  },
+  {
+   "id": "A68_003",
+   "mission": "68",
+   "speaker": "ILYRA SEN",
+   "text": "You could restore the old Covenant. Five keepers. A lock. This world safe, and small, and asleep."
+  },
+  {
+   "id": "A68_004",
+   "mission": "68",
+   "speaker": "AUREN THALE",
+   "text": "You could open the gate all the way. Every road open. No keepers. Whatever comes, comes."
+  },
+  {
+   "id": "A68_005",
+   "mission": "68",
+   "speaker": "SERAPHINE",
+   "text": "Or Elenya's door. Kept on both sides. By us and by them. Harder than either. Never finished."
+  },
+  {
+   "id": "A68_006",
+   "mission": "68",
+   "speaker": "THE ECHO",
+   "text": "...the Promise was planted to choose... so choose..."
+  },
+  {
+   "id": "A68_007",
+   "mission": "68",
+   "speaker": "NOVA",
+   "text": "Whatever you choose, I'll keep the record. All of it. That's what I'm for."
+  },
+  {
+   "id": "A68_008",
+   "mission": "68",
+   "speaker": "ILYRA SEN",
+   "text": "Then we hold it. Gladly. For as long as you need us to."
+  },
+  {
+   "id": "A68_009",
+   "mission": "68",
+   "speaker": "NOVA",
+   "text": "Lock restored. The world is quiet. It is very safe."
+  },
+  {
+   "id": "A68_010",
+   "mission": "68",
+   "speaker": "AUREN THALE",
+   "text": "Then let's see where the roads go. All of them."
+  },
+  {
+   "id": "A68_011",
+   "mission": "68",
+   "speaker": "NOVA",
+   "text": "Gate open. The sky is full of other skies."
+  },
+  {
+   "id": "A68_012",
+   "mission": "68",
+   "speaker": "SERAPHINE",
+   "text": "Kept. Of course you did."
+  },
+  {
+   "id": "A68_013",
+   "mission": "68",
+   "speaker": "NOVA",
+   "text": "The door is kept. On both sides. I can hear people on the other side. Some of them are singing back."
+  },
+  {
+   "id": "A69_001",
+   "mission": "69",
+   "speaker": "NOVA",
+   "text": "The Choir constructs that won't stop. The ones built only to end things."
+  },
+  {
+   "id": "A69_002",
+   "mission": "69",
+   "speaker": "PLAYER",
+   "text": "Then let's give them an ending. A kind one."
+  },
+  {
+   "id": "A69_003",
+   "mission": "69",
+   "speaker": "NOVA",
+   "text": "The last of them. You still carry Turog's seal."
+  },
+  {
+   "id": "A69_004",
+   "mission": "69",
+   "speaker": "PLAYER",
+   "text": "Someone has to be able to end things. Or nothing means anything."
+  },
+  {
+   "id": "A69_005",
+   "mission": "69",
+   "speaker": "NOVA",
+   "text": "He said you'd hate doing it."
+  },
+  {
+   "id": "A69_006",
+   "mission": "69",
+   "speaker": "PLAYER",
+   "text": "He was right."
+  },
+  {
+   "id": "A69_007",
+   "mission": "69",
+   "speaker": "NOVA",
+   "text": "The clocks have stopped agreeing with each other. They're a little bit wrong again. Every one of them."
+  },
+  {
+   "id": "A69_008",
+   "mission": "69",
+   "speaker": "PLAYER",
+   "text": "Good."
+  },
+  {
+   "id": "A69_009",
+   "mission": "69",
+   "speaker": "SERAPHINE",
+   "text": "It's moving. The world. You can feel it."
+  },
+  {
+   "id": "A69_010",
+   "mission": "69",
+   "speaker": "VOSS",
+   "text": "So what now?"
+  },
+  {
+   "id": "A69_011",
+   "mission": "69",
+   "speaker": "PLAYER",
+   "text": "Now we find out."
+  },
+  {
+   "id": "A70_001",
+   "mission": "70",
+   "speaker": "NOVA",
+   "text": "Three months. Haven is rebuilt. Voss insisted on bigger walls and Kael insisted on bigger gates."
+  },
+  {
+   "id": "A70_002",
+   "mission": "70",
+   "speaker": "PLAYER",
+   "text": "Who won?"
+  },
+  {
+   "id": "A70_003",
+   "mission": "70",
+   "speaker": "NOVA",
+   "text": "Both. They argued so long the builders made the gates big enough to drive a wall through."
+  },
+  {
+   "id": "A70_004",
+   "mission": "70",
+   "speaker": "DANIEL",
+   "text": "Hey! It's you! You're the one from the bus!"
+  },
+  {
+   "id": "A70_005",
+   "mission": "70",
+   "speaker": "PLAYER",
+   "text": "Daniel. You got big."
+  },
+  {
+   "id": "A70_006",
+   "mission": "70",
+   "speaker": "DANIEL",
+   "text": "It's been, like, a year. Dad's OK. His leg's weird but he's OK."
+  },
+  {
+   "id": "A70_007",
+   "mission": "70",
+   "speaker": "DANIEL",
+   "text": "Everyone says you saved the world."
+  },
+  {
+   "id": "A70_008",
+   "mission": "70",
+   "speaker": "PLAYER",
+   "text": "Everyone saved the world. I just held the door."
+  },
+  {
+   "id": "A70_009",
+   "mission": "70",
+   "speaker": "DANIEL",
+   "text": "That's what a door does, though. Right? It's the most important bit."
+  },
+  {
+   "id": "A70_010",
+   "mission": "70",
+   "speaker": "VOSS",
+   "text": "Director Voss. I hate it. Ward would laugh."
+  },
+  {
+   "id": "A70_011",
+   "mission": "70",
+   "speaker": "KAEL",
+   "text": "Ward would make you file a report about hating it."
+  },
+  {
+   "id": "A70_012",
+   "mission": "70",
+   "speaker": "CRANE",
+   "text": "The Ascendancy's new program is very simple. We ask people what they want before we change them. Revolutionary."
+  },
+  {
+   "id": "A70_013",
+   "mission": "70",
+   "speaker": "ILYRA SEN",
+   "text": "I'm going back to the falls. The water's been nervous without me."
+  },
+  {
+   "id": "A70_014",
+   "mission": "70",
+   "speaker": "AUREN THALE",
+   "text": "And I'm going to walk off the edge of the map. There's an edge again. Isn't that wonderful?"
+  },
+  {
+   "id": "A70_015",
+   "mission": "70",
+   "speaker": "SERAPHINE",
+   "text": "I'm staying. Somebody has to be right about everything around here."
+  },
+  {
+   "id": "A70_016",
+   "mission": "70",
+   "speaker": "NOVA",
+   "text": "And I am keeping the record. All of it. Including the part where Goliath cried at the sunrise."
+  },
+  {
+   "id": "A70_017",
+   "mission": "70",
+   "speaker": "GOLIATH",
+   "text": "I had sand in my eye."
+  },
+  {
+   "id": "A70_018",
+   "mission": "70",
+   "speaker": "NYX",
+   "text": "There was no sand."
+  },
+  {
+   "id": "A70_019",
+   "mission": "70",
+   "speaker": "GOLIATH",
+   "text": "There was emotional sand."
+  },
+  {
+   "id": "A70_020",
+   "mission": "70",
+   "speaker": "NOVA",
+   "text": "Operator. It's here."
+  },
+  {
+   "id": "A70_021",
+   "mission": "70",
+   "speaker": "FIRST WITNESS",
+   "text": "Observed."
+  },
+  {
+   "id": "A70_022",
+   "mission": "70",
+   "speaker": "PLAYER",
+   "text": "Hello again."
+  },
+  {
+   "id": "A70_023",
+   "mission": "70",
+   "speaker": "FIRST WITNESS",
+   "text": "You chose without forcing. The question is satisfied. For now."
+  },
+  {
+   "id": "A70_024",
+   "mission": "70",
+   "speaker": "PLAYER",
+   "text": "For now?"
+  },
+  {
+   "id": "A70_025",
+   "mission": "70",
+   "speaker": "FIRST WITNESS",
+   "text": "There is an older question. Asked before the Seed. Before the Elyndra. Before anything."
+  },
+  {
+   "id": "A70_026",
+   "mission": "70",
+   "speaker": "FIRST WITNESS",
+   "text": "If existence could begin again, would you choose the same world?"
+  },
+  {
+   "id": "A70_027",
+   "mission": "70",
+   "speaker": "PLAYER",
+   "text": "..."
+  },
+  {
+   "id": "A70_028",
+   "mission": "70",
+   "speaker": "SERAPHINE",
+   "text": "Don't answer it tonight."
+  },
+  {
+   "id": "A70_029",
+   "mission": "70",
+   "speaker": "PLAYER",
+   "text": "I wasn't going to."
+  },
+  {
+   "id": "A70_030",
+   "mission": "70",
+   "speaker": "NOVA",
+   "text": "End of record. Beginning of the next one."
   }
  ]
 }
