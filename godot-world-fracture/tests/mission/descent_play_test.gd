@@ -50,7 +50,7 @@ func _walk_to(to: Vector3, near: float, label: String) -> bool:
 	var best := INF
 	var stall := 0.0
 	var t := 0.0
-	while t < 240.0:
+	while t < 480.0:
 		var op: Node3D = d.operator
 		var off := Vector2(to.x - op.position.x, to.z - op.position.z)
 		var dist := off.length()
@@ -63,7 +63,12 @@ func _walk_to(to: Vector3, near: float, label: String) -> bool:
 		await get_tree().process_frame
 		var dt := minf(get_process_delta_time(), 0.05)
 		t += dt
-		if dist < best - 0.5:
+		if dist > best + 25.0:
+			# downed on the way and stood up again at the checkpoint (enemies.gd, Nov 22): a player walks back, so the
+			# walk starts over from there rather than counting as a stall
+			best = dist
+			stall = 0.0
+		elif dist < best - 0.5:
 			best = dist
 			stall = 0.0
 		else:
@@ -90,7 +95,7 @@ func _walk_until(to: Vector3, near: float, label: String, stop: Callable) -> boo
 	var best := INF
 	var stall := 0.0
 	var t := 0.0
-	while t < 240.0:
+	while t < 480.0:
 		if stop.call():
 			d.controls.move = Vector2.ZERO
 			return true
@@ -106,7 +111,12 @@ func _walk_until(to: Vector3, near: float, label: String, stop: Callable) -> boo
 		await get_tree().process_frame
 		var dt := minf(get_process_delta_time(), 0.05)
 		t += dt
-		if dist < best - 0.5:
+		if dist > best + 25.0:
+			# downed on the way and stood up again at the checkpoint (enemies.gd, Nov 22): a player walks back, so the
+			# walk starts over from there rather than counting as a stall
+			best = dist
+			stall = 0.0
+		elif dist < best - 0.5:
 			best = dist
 			stall = 0.0
 		else:
