@@ -386,17 +386,78 @@ void fragment() {
 	ALBEDO = base + warm * lit * (0.8 + 0.8 * h(cell + 7.7));
 }
 """)
-	var crowns := [Color(1.0, 0.3, 0.6), Color(0.3, 0.9, 1.0), Color(1.0, 0.75, 0.3), Color(0.6, 0.4, 1.0)]
-	for i in 150:
+	# the board's city all round the tower: one MultiMesh of lit towers and one of neon crowns / edge strips
+	# (two draws for the whole skyline; it used to be ~190 boxes)
+	var crowns := [Color(1.0, 0.3, 0.75), Color(0.3, 0.85, 1.0), Color(1.0, 0.75, 0.3), Color(0.62, 0.3, 1.0), Color(0.62, 0.3, 1.0)]
+	var towers: Array[Transform3D] = []
+	var neons: Array = []
+	for i in 300:
 		var a := _rng.randf() * TAU
-		var d := _rng.randf_range(120.0, 620.0)
-		var hgt := _rng.randf_range(40.0, 200.0) * (1.25 if d > 300.0 else 1.0)
-		var w := _rng.randf_range(16.0, 40.0)
+		var d := _rng.randf_range(110.0, 900.0)
+		if absf(sin(a) * d - 260.0) < 70.0 and cos(a) > 0.0:
+			continue   # the river runs east-west south of the tower
+		# far towers rise past the deck so the city rings the horizon, all below the casino (380 m, second tallest)
+		var hgt := _rng.randf_range(40.0, 210.0) if d < 400.0 else _rng.randf_range(120.0, 350.0)
+		var w := _rng.randf_range(16.0, 42.0)
+		var yaw := _rng.randf() * PI
 		var pos := Vector3(cos(a) * d, hgt * 0.5 - 20.0, sin(a) * d)
-		var mi := _box(Vector3(w, hgt, w), pos, win)
-		mi.rotation.y = _rng.randf() * PI
-		if _rng.randf() < 0.25:
-			_box(Vector3(w * 1.02, 1.2, w * 1.02), pos + Vector3(0, hgt * 0.5, 0), flat(crowns[i % crowns.size()], 0.4, 0.0, 5.0)).rotation.y = mi.rotation.y
+		var b2 := Basis(Vector3.UP, yaw)
+		towers.append(Transform3D(b2.scaled(Vector3(w, hgt, w)), pos))
+		if _rng.randf() < 0.45:
+			var col: Color = crowns[i % crowns.size()]
+			neons.append([Transform3D(b2.scaled(Vector3(w * 1.03, 1.4, w * 1.03)), pos + Vector3(0, hgt * 0.5, 0)), col])
+			if _rng.randf() < 0.5:   # a light strip down each corner, as on the board's towers
+				for c2 in 4:
+					var off := b2 * Vector3((c2 % 2) * 2 - 1, 0, (c2 / 2) * 2 - 1) * (w * 0.5)
+					neons.append([Transform3D(Basis().scaled(Vector3(0.6, hgt, 0.6)), pos + off), col])
+	var cube := BoxMesh.new()
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = cube
+	mm.instance_count = towers.size()
+	for i2 in towers.size():
+		mm.set_instance_transform(i2, towers[i2])
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.material_override = win
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(mi)
+	var nmat := _shader("""
+shader_type spatial;
+render_mode unshaded;
+void fragment() { ALBEDO = COLOR.rgb * 3.0; }
+""")
+	var nm := MultiMesh.new()
+	nm.transform_format = MultiMesh.TRANSFORM_3D
+	nm.use_colors = true
+	nm.mesh = cube
+	nm.instance_count = neons.size()
+	for i3 in neons.size():
+		nm.set_instance_transform(i3, neons[i3][0])
+		nm.set_instance_color(i3, neons[i3][1])
+	var nmi := MultiMeshInstance3D.new()
+	nmi.multimesh = nm
+	nmi.material_override = nmat
+	nmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(nmi)
+	# the river with the city's reflection and a bridge lit in violet
+	var river := MeshInstance3D.new()
+	var rp := PlaneMesh.new()
+	rp.size = Vector2(1800, 120)
+	river.mesh = rp
+	river.position = Vector3(0, -19.5, 260)
+	var wm := StandardMaterial3D.new()
+	wm.albedo_color = Color(0.02, 0.025, 0.06)
+	wm.roughness = 0.04
+	wm.metallic = 0.6
+	river.material_override = wm
+	world.add_child(river)
+	for bx: float in [-260.0, 180.0]:
+		_box(Vector3(10, 2.0, 140), Vector3(bx, -12.0, 260), flat(Color(0.08, 0.07, 0.1), 0.6))
+		_box(Vector3(10.4, 0.4, 140), Vector3(bx, -10.8, 260), flat(VIOLET, 0.3, 0.0, 6.0))
+		for tz: float in [225.0, 295.0]:
+			_box(Vector3(2.5, 40, 2.5), Vector3(bx, 6.0, tz), flat(Color(0.12, 0.1, 0.16), 0.5))
+			_box(Vector3(2.7, 1.0, 2.7), Vector3(bx, 26.0, tz), flat(VIOLET, 0.3, 0.0, 6.0))
 	# the street grid far below: lines of light
 	var road := flat(Color(1.0, 0.7, 0.35), 1.0, 0.0, 2.5)
 	for k in range(-6, 7):
@@ -1192,9 +1253,9 @@ func _palm(base: Vector3, h: float) -> void:
 # --------------------------------------------------------------------------------------------- the skydeck
 func _skydeck() -> void:
 	var y := ROOF_Y
-	_box(Vector3(60, 1.0, 64), Vector3(0, y - 0.5, 0), Materials.pbr("brushed_concrete", Color(0.42, 0.42, 0.45), 3.0, 0.8))
+	_box(Vector3(60, 1.0, 64), Vector3(0, y - 0.5, 0), flat(Color(0.05, 0.04, 0.07), 0.1, 0.3))   # polished dark stone (board)
 	for k in 16:
-		_box(Vector3(60, 0.02, 0.06), Vector3(0, y + 0.005, -32 + k * 4.0), flat(Color(0.2, 0.2, 0.22), 0.6))
+		_box(Vector3(60, 0.02, 0.06), Vector3(0, y + 0.005, -32 + k * 4.0), flat(GOLD, 0.25, 1.0, 0.4))
 	# glass edge with a cyan glow line
 	for sx: float in [-1.0, 1.0]:
 		_box(Vector3(0.05, 1.2, 64), Vector3(sx * 30, y + 0.6, 0), glass())
@@ -1213,6 +1274,55 @@ func _skydeck() -> void:
 		for sx4: float in [-1.0, 1.0]:
 			_cyl(0.8, 1.0, Vector3(sx4 * 27.5, y + 0.5, pz3), flat(GOLD, 0.25, 1.0))
 			_meshy("palm.glb", Vector3(sx4 * 27.5, y + 1.0, pz3), 0.0, 4.0)
+	# the board's cabanas down both sides: gold frames, cream drapes, a lounge and a fire table, warm light inside
+	var drape := glass(Color(1.0, 0.94, 0.85, 0.55))
+	for cz: float in [-1.0, 9.0, 19.0]:
+		for sx6: float in [-1.0, 1.0]:
+			var cx := sx6 * 22.5
+			for px3: float in [-1.6, 1.6]:
+				for pz4: float in [-1.6, 1.6]:
+					_box(Vector3(0.12, 2.8, 0.12), Vector3(cx + px3, y + 1.4, cz + pz4), flat(GOLD, 0.25, 1.0))
+			_box(Vector3(3.5, 0.18, 3.5), Vector3(cx, y + 2.85, cz), flat(Color(0.95, 0.92, 0.86), 0.6))
+			_box(Vector3(0.04, 2.6, 3.2), Vector3(cx + sx6 * 1.6, y + 1.45, cz), drape)
+			_box(Vector3(3.2, 2.6, 0.04), Vector3(cx, y + 1.45, cz - 1.6), drape)
+			_box(Vector3(2.6, 0.45, 1.0), Vector3(cx + sx6 * 0.6, y + 0.25, cz), flat(Color(0.92, 0.88, 0.8), 0.7), null, PI * 0.5)
+			_box(Vector3(0.9, 0.35, 0.9), Vector3(cx - sx6 * 0.6, y + 0.18, cz + 0.4), flat(Color(0.05, 0.04, 0.06), 0.2, 0.3))
+			_box(Vector3(0.6, 0.12, 0.3), Vector3(cx - sx6 * 0.6, y + 0.42, cz + 0.4), flat(Color(1.0, 0.55, 0.15), 0.3, 0.0, 8.0))
+			_light(Vector3(cx, y + 2.3, cz), Color(1.0, 0.72, 0.42), 1.6, 6.0)
+	# smoke jets either side of the stage front, pulsing in the stage colours
+	var smoke := _shader("""
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled;
+uniform float phase = 0.0;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+void fragment() {
+	float t = TIME * 0.9 + phase;
+	float burst = smoothstep(0.0, 0.15, fract(t * 0.25)) * (1.0 - smoothstep(0.35, 0.9, fract(t * 0.25)));
+	float body = n(vec2(UV.x * 6.0, UV.y * 4.0 - t * 2.5)) * 0.7 + n(vec2(UV.x * 13.0, UV.y * 9.0 - t * 3.5)) * 0.3;
+	float edge = sin(UV.x * 3.14159);
+	float a = body * edge * smoothstep(1.0, 0.25, UV.y) * smoothstep(0.0, 0.05, UV.y) * burst;
+	ALBEDO = mix(vec3(0.9, 0.85, 1.0), vec3(0.75, 0.4, 1.0), UV.y) * a * 0.8;
+}
+""")
+	for k7 in 4:
+		var jx: float = [-11.5, -8.5, 8.5, 11.5][k7]
+		var jet := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 1.6
+		cm.bottom_radius = 0.25
+		cm.height = 7.0
+		cm.cap_top = false
+		cm.cap_bottom = false
+		jet.mesh = cm
+		jet.position = Vector3(jx, y + 1.6 + 3.5, -18.0 + 6.6)
+		var sm := smoke.duplicate() as ShaderMaterial
+		sm.set_shader_parameter("phase", k7 * 1.3)
+		jet.material_override = sm
+		jet.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		world.add_child(jet)
+		_box(Vector3(0.6, 0.4, 0.6), Vector3(jx, y + 1.8, -18.0 + 6.6), flat(Color(0.1, 0.1, 0.12), 0.4, 0.8))
 	# the stage at the north end
 	var sz := -18.0
 	_box(Vector3(26, 1.6, 12), Vector3(0, y + 0.8, sz), Materials.pbr("metal_plate", Color(0.32, 0.32, 0.34), 1.2, 0.6, 0.8))
