@@ -20,6 +20,7 @@ const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const Enemies := preload("res://scripts/combat/enemies.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
+const CharacterStore := preload("res://scripts/character/character_store.gd")
 const PROFILE := "user://profile.json"
 const BOT_TYPES := ["scout", "elite", "marksman", "scout", "executor"]
 ## the palette per arena `look` (killbox-arenas.ts): neon trim colours, the facade and roof tones, the sign text
@@ -40,6 +41,8 @@ const LOOKS := {
 ## "" opens the arena picker first; a shot sets it before the view is added
 var arena_id := ""
 var mode_id := "clash"
+## the frame locked in on the hero select ("" keeps the saved character's)
+var hero := ""
 ## an online match between players (online_pvp.gd): no bots on either side. Off: VS BOTS, the bot teams as before
 var online := false
 var net_pvp: Node
@@ -80,7 +83,7 @@ func _ready() -> void:
 	if arena_id == "":
 		_pick()
 	else:
-		_start()
+		_select()
 
 ## the arena list before the match: name, region blurb, the fracture event
 func _pick() -> void:
@@ -156,7 +159,7 @@ func _pick_mode() -> void:
 		b.text = "%s — %s" % [String(m.name).to_upper(), String(m.tagline)]
 		b.custom_minimum_size = Vector2(0, 52)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(func(): mode_id = String(mid); _picker.queue_free(); _picker = null; _start())
+		b.pressed.connect(func(): mode_id = String(mid); _picker.queue_free(); _picker = null; _select())
 		box.add_child(b)
 		var brief := Label.new()
 		brief.text = String(m.brief)
@@ -170,6 +173,21 @@ func _pick_mode() -> void:
 	back.custom_minimum_size = Vector2(0, 48)
 	back.pressed.connect(func(): _picker.queue_free(); _picker = null; arena_id = ""; _pick())
 	box.add_child(back)
+
+## Overwatch 2's hero select before the match (scripts/killbox/hero_select.gd): the frame you lock in is the one you
+## fight in this match; skipped for tests (headless) and shots
+func _select() -> void:
+	if DisplayServer.get_name() == "headless" or hero != "":
+		_start()
+		return
+	var h = load("res://scripts/killbox/hero_select.gd").new()
+	h.arena = String(Arena.new(arena_id).def.get("name", arena_id))
+	h.mode = String(Arena.mode(mode_id).get("name", mode_id))
+	h.locked.connect(func(f: String):
+		hero = f
+		_start()
+		move_child(h, -1))
+	add_child(h)
 
 func _start() -> void:
 	_rng.seed = 31
@@ -223,7 +241,10 @@ func _start() -> void:
 	operator.position = arena.spawn("us")
 	operator.heading = PI
 	operator.civilian = false   # the armour is for the fights (streetwear in the city)
-	operator.build()
+	var lk: Dictionary = CharacterStore.load_look()
+	if hero != "":
+		lk.frame = hero
+	operator.build(CharacterStore.clean(lk))
 	operator.attach_camera(cam)
 	gunplay = Gunplay.new()
 	world.add_child(gunplay)

@@ -18,8 +18,21 @@ func _ready() -> void:
 	var v := ArenaView.new()
 	v.arena_id = "killbox-prime"
 	v.mode_id = "clash"
+	# the frame locked in on the hero select (scripts/killbox/hero_select.gd) is the one the operator fights in
+	var saved := String(load("res://scripts/character/character_store.gd").load_look().get("frame", "goliath"))
+	v.hero = "cipher" if saved != "cipher" else "nyx"
 	add_child(v)
 	await _frames(4)
+	ok(String(v.operator.rig.look.frame) == v.hero, "the operator wears the locked-in frame (%s)" % v.hero)
+	ok(v.gunplay.grenades.frame == v.hero and v.gunplay.super_ability.frame == v.hero, "and carries its grenades and super")
+	ok(String(load("res://scripts/character/character_store.gd").load_look().get("frame", "goliath")) == saved, "the saved character keeps its frame")
+	var hs = load("res://scripts/killbox/hero_select.gd").new()
+	add_child(hs)
+	var got := [""]
+	hs.locked.connect(func(f): got[0] = f)
+	hs._pick("nyx")
+	hs._lock()
+	ok(got[0] == "nyx", "the hero select locks in the picked frame")
 	var rival: RefCounted = null
 	for e in v.enemies.enemies:
 		if e.team == 0:
