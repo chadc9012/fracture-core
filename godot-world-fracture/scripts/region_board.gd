@@ -84,7 +84,8 @@ static func _solara(r: Node, rng: RandomNumberGenerator) -> void:
 
 ## a sandstone mesa: an uneven footprint, sheer sides stepping in at the beds, a flat cap; sunk into the ground so it
 ## stands on every side
-static func _mesa(r: Node, parent: Node3D, at: Vector2, rad: float, h: float, mat: Material, rng: RandomNumberGenerator) -> void:
+## returns the height of its cap (world y)
+static func _mesa(r: Node, parent: Node3D, at: Vector2, rad: float, h: float, mat: Material, rng: RandomNumberGenerator) -> float:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	const N := 22
@@ -134,6 +135,7 @@ static func _mesa(r: Node, parent: Node3D, at: Vector2, rad: float, h: float, ma
 	mi.position = Vector3(at.x, low - 1.5, at.y)
 	mi.rotation.y = rng.randf() * TAU
 	parent.add_child(mi)
+	return low - 1.5 + h
 
 ## the giant broken ring: a heavy segmented band of old metal and stone, a third of it gone, half sunk into the sand and
 ## leaning; ribs and plates along it; a violet tear of Fracture light hanging in the middle, lit
@@ -526,7 +528,7 @@ static func _flat_spot(r: Node, want: Vector2, search: float, rad: float) -> Vec
 
 static func _verdant(r: Node, rng: RandomNumberGenerator) -> void:
 	var half: float = r.span() * 0.5
-	var mossy := Flora.rock_material(Color(0.42, 0.44, 0.36))
+	var mossy := Flora.rock_material(Color(0.56, 0.56, 0.48))
 	# the elder trees: the forest's broadleaf grown to 38-52 m, standing over the canopy (the key art's giant trunks)
 	var lods := Flora.tree_lods("broadleaf", 1.0)
 	if not lods.is_empty():
@@ -549,22 +551,25 @@ static func _verdant(r: Node, rng: RandomNumberGenerator) -> void:
 		var at := _open_spot(r, want, 90.0, 40.0)
 		var root := Node3D.new()
 		var h := rng.randf_range(26.0, 38.0)
-		_mesa(r, root, at, rng.randf_range(16.0, 24.0), h, mossy, rng)
+		var mrad := rng.randf_range(16.0, 24.0)
+		var top := _mesa(r, root, at, mrad, h, mossy, rng)
 		var face := (-at).normalized()
-		var fp := at + face * 14.0
+		# on the cliff's face (the footprint swings 0.62-1.12 of the radius; the cap's lip is ~0.8)
+		var fp := at + face * (mrad * 0.86)
 		var gy: float = r._h(fp.x, fp.y)
+		var drop := maxf(top - gy, 4.0)
 		for j in 2:
 			var fall := MeshInstance3D.new()
 			var fq := QuadMesh.new()
-			fq.size = Vector2(rng.randf_range(4.0, 7.0), h + 2.0)
+			fq.size = Vector2(rng.randf_range(4.0, 7.0), drop)
 			fall.mesh = fq
 			fall.material_override = _fall_material()
 			var off := Vector2(face.y, -face.x) * (j * 6.0 - 3.0)
-			fall.position = Vector3(fp.x + off.x, gy + (h + 2.0) * 0.5 - 1.5, fp.y + off.y)
+			fall.position = Vector3(fp.x + off.x, gy + drop * 0.5, fp.y + off.y)
 			fall.rotation.y = atan2(face.x, face.y)
 			root.add_child(fall)
 		var mist := _mist(Color(0.9, 0.95, 1.0), 9.0)
-		mist.position = Vector3(fp.x, gy + 1.0, fp.y)
+		mist.position = Vector3(fp.x + face.x * 4.0, gy + 1.0, fp.y + face.y * 4.0)
 		root.add_child(mist)
 		r._world.add_child(root)
 		spot(r, "falls%d" % i, at, h)
@@ -828,16 +833,18 @@ static func _ember(r: Node, rng: RandomNumberGenerator) -> void:
 		var c := _open_spot(r, w, 80.0, 34.0)
 		var root := Node3D.new()
 		var h := rng.randf_range(22.0, 34.0)
-		_mesa(r, root, c, rng.randf_range(14.0, 20.0), h, basalt, rng)
+		var mrad := rng.randf_range(14.0, 20.0)
+		var top := _mesa(r, root, c, mrad, h, basalt, rng)
 		var face := (-c).normalized()
-		var fp := c + face * 12.5
+		var fp := c + face * (mrad * 0.86)
 		var gy: float = r._h(fp.x, fp.y)
+		var drop := maxf(top - gy, 4.0)
 		var fall := MeshInstance3D.new()
 		var fq := QuadMesh.new()
-		fq.size = Vector2(5.5, h + 2.0)
+		fq.size = Vector2(5.5, drop)
 		fall.mesh = fq
 		fall.material_override = _lava_fall_material()
-		fall.position = Vector3(fp.x, gy + (h + 2.0) * 0.5 - 1.5, fp.y)
+		fall.position = Vector3(fp.x, gy + drop * 0.5, fp.y)
 		fall.rotation.y = atan2(face.x, face.y)
 		fall.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(fall)
