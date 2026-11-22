@@ -691,8 +691,7 @@ static func _frost(r: Node, rng: RandomNumberGenerator) -> void:
 	root.name = "BoardIceSpire"
 	root.position = Vector3(at.x, gy - 1.0, at.y)
 	var ice := StandardMaterial3D.new()
-	ice.albedo_color = Color(0.55, 0.85, 1.0, 0.85)
-	ice.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ice.albedo_color = Color(0.5, 0.8, 1.0)
 	ice.metallic = 0.2
 	ice.roughness = 0.08
 	ice.emission_enabled = true

@@ -1206,6 +1206,17 @@ func _shoot(path: String, opts: Array) -> void:
 		if String(o).begins_with("eye:") and region_3d:
 			for i in 3:
 				await get_tree().process_frame
+			if String(o).begins_with("eye:look:"):
+				# eye:look:<name>[:pitch]  stays where Street View stood and turns to face a board landmark
+				var lk := String(o).split(":")
+				var lspots: Dictionary = region_3d.get_meta("board_spots", {})
+				if lspots.has(lk[2]):
+					var ls: Vector3 = lspots[lk[2]]
+					var e3: Vector3 = region_3d._eye
+					region_3d._look_yaw = atan2(-(ls.x - e3.x), -(ls.z - e3.z))
+					region_3d._look_pitch = float(lk[3]) if lk.size() > 3 else 6.0
+					region_3d._apply_cam()
+				continue
 			if String(o).begins_with("eye:board:"):
 				# eye:board:<name>[:dist]  stands in front of one of the board landmarks (region_board.gd), between it and the
 				# middle of the land, facing it (the land's edge behind it, as the owner's key art frames them)
