@@ -27,7 +27,8 @@ const DUCK_DB := -9.0
 ## the web's regional beds (audio.ts AMBIENCE_FILES), plus the street styles
 const BEDS := { "veridan": "forest-wilds", "swamps": "swamp-marsh", "thalassia": "underwater-city", "nexus": "nexus-hum", "frostspire": "frost-spire", "solara": "solara-dunes", "wastelands": "wasteland-wind", "ember": "ember-peaks",
 	"neon": "nexus-hum", "neon-city": "nexus-hum", "riverdale": "nexus-hum", "miami": "underwater-city", "coast": "underwater-city", "sky": "wasteland-wind",
-	"storm": "wasteland-wind", "crystal-badlands": "solara-dunes", "shattered-reefs": "underwater-city", "goldenreach": "forest-wilds", "old-harrow": "forest-wilds", "floating-islands": "wasteland-wind" }
+	"storm": "wasteland-wind", "crystal-badlands": "solara-dunes", "shattered-reefs": "underwater-city", "goldenreach": "forest-wilds", "old-harrow": "forest-wilds", "floating-islands": "wasteland-wind",
+	"eldergrove": "forest-wilds", "skyhaven": "wasteland-wind", "aurora-gate": "frost-spire", "horizon-gate": "wasteland-wind" }
 
 var radio := Radio.new()
 var _pool: Array[AudioStreamPlayer] = []

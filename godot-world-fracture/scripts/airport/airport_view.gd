@@ -271,12 +271,6 @@ func _process(dt: float) -> void:
 	_step_taxi(dt)
 	if _snow and operator:
 		_snow.global_position = operator.global_position + Vector3(0, 14, 0)
-	if _aurora:
-		var tt := Time.get_ticks_msec() * 0.001
-		for i in _aurora.get_child_count():
-			var q := _aurora.get_child(i) as Node3D
-			q.rotation.y = sin(tt * 0.05 + i * 1.3) * 0.4
-			q.scale.y = 1.0 + 0.12 * sin(tt * 0.3 + i)
 	if _flash:
 		_flash_t -= dt
 		if _flash_t <= 0.0:
@@ -2255,26 +2249,9 @@ func _extras() -> void:
 			var w := rng.randf_range(40, 90)
 			_cyl(w, 6.0, at, grass, null, -1.0, 10).rotation.y = rng.randf() * TAU
 			_cyl(w * 0.12, w * 0.9, at - Vector3(0, w * 0.45 + 3.0, 0), stone, null, w * 0.95, 10).rotation.y = rng.randf() * TAU
-	if "aurora" in ex:  # the aurora over the north: tall, slow ribbons of light
-		_aurora = Node3D.new()
-		_aurora.set_meta("dynamic", true)
+	if "aurora" in ex:  # the aurora over the north: tall, slow ribbons of light (scripts/vfx/aurora.gd)
+		_aurora = load("res://scripts/vfx/aurora.gd").make(rng, Vector3(0, 320, -900))
 		world.add_child(_aurora)
-		for k in 5:
-			var q := MeshInstance3D.new()
-			var qm := QuadMesh.new()
-			qm.size = Vector2(rng.randf_range(500, 900), rng.randf_range(160, 260))
-			q.mesh = qm
-			var am := StandardMaterial3D.new()
-			am.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			am.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			am.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-			am.cull_mode = BaseMaterial3D.CULL_DISABLED
-			am.albedo_texture = _aurora_tex(k)
-			am.albedo_color = Color(1, 1, 1, 0.75)
-			q.material_override = am
-			q.position = Vector3(rng.randf_range(-600, 600), rng.randf_range(260, 380), -900.0 - k * 120.0)
-			q.rotation = Vector3(0.0, rng.randf_range(-0.5, 0.5), 0.0)
-			_aurora.add_child(q)
 	if "storm" in ex:
 		_flash = DirectionalLight3D.new()
 		_flash.rotation_degrees = Vector3(-60, 30, 0)
@@ -2282,23 +2259,6 @@ func _extras() -> void:
 		_flash.light_energy = 0.0
 		_flash.shadow_enabled = false
 		world.add_child(_flash)
-
-## an aurora ribbon: green at the foot rising to violet, fading out top and bottom, in soft vertical rays
-func _aurora_tex(seed: int) -> Texture2D:
-	var img := Image.create(128, 64, false, Image.FORMAT_RGBA8)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 900 + seed
-	var rays: Array = []
-	for i in 128:
-		rays.append(0.55 + 0.45 * sin(i * 0.31 + rng.randf() * 0.6) * sin(i * 0.07 + seed))
-	for y in 64:
-		var t := 1.0 - float(y) / 63.0           # 0 at the foot, 1 at the top
-		var c := Color(0.25, 1.0, 0.55).lerp(Color(0.7, 0.35, 1.0), clampf((t - 0.35) / 0.65, 0.0, 1.0))
-		var fade := smoothstep(0.0, 0.18, t) * (1.0 - smoothstep(0.55, 1.0, t))
-		for x in 128:
-			var edge := smoothstep(0.0, 0.12, float(x) / 127.0) * smoothstep(0.0, 0.12, 1.0 - float(x) / 127.0)
-			img.set_pixel(x, y, Color(c.r, c.g, c.b, clampf(fade * edge * float(rays[x]), 0.0, 1.0)))
-	return ImageTexture.create_from_image(img)
 
 ## the check-in hall's centrepiece, one per airport (LOOKS "feature")
 func _feature(at: Vector3) -> void:

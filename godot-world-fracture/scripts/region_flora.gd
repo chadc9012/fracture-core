@@ -17,6 +17,12 @@ static func mix_for(id: String) -> Dictionary:
 			return {"oak": 0.3, "cherry": 0.08}
 		"old-harrow":
 			return {"oak": 0.5, "cherry": 0.1}
+		"eldergrove":
+			return {"oak": 0.55, "cherry": 0.06}
+		"skyhaven":
+			return {"oak": 0.4, "cherry": 0.15}
+		"horizon-gate":
+			return {"baobab": 0.6}
 		"goldenreach":
 			return {"oak": 0.65, "cherry": 0.1}
 		"swamps":
