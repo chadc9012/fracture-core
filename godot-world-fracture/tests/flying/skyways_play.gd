@@ -92,8 +92,6 @@ func _ready() -> void:
 	check("closing the flight writes the hull and the tank back (%d%%, %d%%)" % [Air.condition(pr, "vanguard-jet"), Air.fuel(pr, "vanguard-jet")], Air.condition(pr, "vanguard-jet") == 55 and Air.fuel(pr, "vanguard-jet") == 0)
 	# the air race (air_race.gd): three rival jets on the apron lift when you do and fly the rings; placings by rings
 	# then time; the purse by place
-	v.queue_free()
-	await get_tree().process_frame
 	v = SkywaysView.new()
 	v.craft_id = "vanguard-jet"
 	v.air_race = true
