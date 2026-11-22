@@ -41,3 +41,10 @@ to the hero budget (20–40k tris, docs/reference/MESHY_UPGRADE.md), auto-rig (h
 skeleton like the operator bodies, then the gate and a look-dev render. The Echo's robes and the Veiled Sovereign's
 cloak may need the cape split off as its own piece. Cost is about 30–40 credits per character plus rigging; the
 Meshy account is nearly out of credits after the Nov 15 batches, so this waits on a top-up.
+
+## Meshy inputs (Nov 21)
+
+`meshy-input/<name>.png` is the full-body hero figure cut from each board (the turnaround views on the boards are only
+~140 px wide, too small to generate from). In the Meshy agent: upload the crop, ask for a clean front-view A-pose
+concept of the same character on a neutral background (no rock, no effects, weapon separate), then image-to-3D at 4K
+PBR from that concept.
