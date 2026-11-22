@@ -103,6 +103,9 @@ func _next() -> void:
 			var dur2 := Sound.voice_path(Lines.path(id))
 			if dur2 > 0.0:
 				b.seconds = maxf(float(b.get("seconds", 0.0)), dur2 + 0.7)
+	if b.has("act") and b.act is Callable:
+		# a staged moment the line sets off (stage.gd `act`)
+		(b.act as Callable).call()
 	_place(b, 0.0)
 
 func _place(b: Dictionary, k: float) -> void:
@@ -114,6 +117,11 @@ func _place(b: Dictionary, k: float) -> void:
 		var o: Dictionary = b.orbit
 		var a := deg_to_rad(lerpf(float(o.get("deg0", 0.0)), float(o.get("deg1", 60.0)), k))
 		from = look + Vector3(cos(a), 0, sin(a)) * float(o.get("radius", 10.0)) + Vector3(0, float(o.get("height", 3.0)), 0)
+	elif b.has("from1"):
+		# a dolly from `from` to `from1` over the beat (the story's staged shots, stage.gd)
+		var f0: Vector3 = b.from
+		var f1: Vector3 = b.from1
+		from = f0.lerp(f1, k * k * (3.0 - 2.0 * k))
 	else:
 		from = b.get("from", look + Vector3(6, 3, 6))
 	_cam.global_position = from

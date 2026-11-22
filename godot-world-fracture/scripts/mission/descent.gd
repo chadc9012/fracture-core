@@ -456,7 +456,10 @@ func _process(dt: float) -> void:
 	if boss:
 		boss.echo = not authority()
 		boss.step(dt)
-		if boss.echo and _boss_to != Vector3.INF:
+		if region == null or enemies == null:
+			# the boss went down in that step and the next chapter moved the story to another world
+			return
+		if boss and boss.echo and _boss_to != Vector3.INF:
 			boss.position = boss.position.lerp(_boss_to, minf(1.0, dt * 8.0))
 	if wildlife:
 		wildlife.step(dt)

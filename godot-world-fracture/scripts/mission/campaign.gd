@@ -12,6 +12,7 @@ const Choice := preload("res://scripts/cinema/choice.gd")
 const NpcStreet := preload("res://scripts/npc/npc_street.gd")
 const People := preload("res://scripts/npc/people.gd")
 const Lines := preload("res://scripts/cinema/lines.gd")
+const Stage := preload("res://scripts/mission/stage.gd")
 const DATA := "res://data/dialogue/campaign_full.json"
 const CAMPAIGN_SAVE := "user://campaign.json"
 const PROFILE := "user://profile.json"
@@ -30,6 +31,8 @@ var chapters: Array = []          # every chapter of every mission, in order, wi
 var choice_view: Control
 var _closing := ""                # the chapter whose closing lines are playing
 var _talker: Node3D               # the named person of a talk chapter
+var stage: Node3D                 # the chapter's set and cast (stage.gd), when the chapter names a `stage`
+var _in_begin := false            # the descent's _begin plays the opening early: the campaign plays it once the boss is up
 
 static func data() -> Dictionary:
 	if _data.is_empty():
@@ -100,6 +103,7 @@ func _begin(id: String) -> void:
 		return
 	var kind := String(def.kind)
 	_talker = null
+	_in_begin = true
 	if kind in AS_REACH:
 		# the campaign's own walking kinds (talk, race, drive) ride the descent's reach loop; choice, cutscene and boss
 		# are kinds the descent's loop leaves alone and play out here
@@ -113,15 +117,20 @@ func _begin(id: String) -> void:
 		quest.kind_real = kind
 	else:
 		super(id)
+	_in_begin = false
 	# the chapter's own place: its POI on the ground, or 80 m out along the chapter's line — not the descent's far edge
 	if def.has("to") and kind != "kills":
 		_set_waypoint(_poi(String(def.to)), true)
 	elif kind in AS_REACH or kind == "reach":
 		# 80 m on from where the operator stands (not from the world's start: a mission's chapters follow each other)
 		_set_waypoint(_on_ground(operator.position + _dir * 80.0), true)
+	# the boss and the talker are up before the opening plays, so the set can frame them
+	if kind == "boss":
+		_summon_boss(String(def.get("boss", "vyrak")))
+	elif kind == "talk":
+		_place_talker(String(def.get("who", "")), waypoint)
+	_opening(id)
 	match kind:
-		"talk":
-			_place_talker(String(def.get("who", "")), waypoint)
 		"choice":
 			if not cutscene.playing:
 				_ask_choice(def)
@@ -132,8 +141,6 @@ func _begin(id: String) -> void:
 				_complete()
 			else:
 				cutscene.finished.connect(_complete, CONNECT_ONE_SHOT)
-		"boss":
-			_summon_boss(String(def.get("boss", "vyrak")))
 	_refresh()
 
 ## a POI's spot on the ground; the operator's own spot when the map has no such POI
@@ -145,13 +152,45 @@ func _poi(id: String) -> Vector3:
 
 ## every chapter opens on its lines, the camera orbiting the operator (the owner's draft, voiced)
 func _opening(id: String) -> void:
-	if _seen.has(id) or cutscene == null:
+	if _in_begin or _seen.has(id) or cutscene == null:
 		return
 	_seen[id] = true
 	var def := _quest_def(id)
-	var beats := _beats(def.get("open", []), operator.position, 20.0)
+	var beats := _scene(def, def.get("open", []), 20.0)
 	if not beats.is_empty():
 		cutscene.play(beats, region.camera())
+
+## the beats of a scene: on the chapter's set (`stage`), each line framed on whoever says it, or orbiting the operator
+## when the chapter names no set
+func _scene(def: Dictionary, ids: Array, deg0: float) -> Array:
+	if not def.has("stage") or ids.is_empty() or region == null:
+		return _beats(ids, operator.position, deg0)
+	if stage == null or not is_instance_valid(stage) or stage.region != region:
+		stage = Stage.new()
+		region.world().add_child(stage)
+		stage.setup(region, operator, operator.obstacles)
+	stage.boss = boss
+	var speakers: Array = []
+	for lid in ids:
+		var sp := Lines.speaker(String(lid))
+		if sp != "" and not speakers.has(sp):
+			speakers.append(sp)
+	var toward := _dir
+	if waypoint_node != null and waypoint_node.visible and waypoint.distance_to(operator.position) > 3.0:
+		toward = waypoint - operator.position
+	stage.play(String(def.stage), operator.position, toward, speakers, _talker)
+	var acts: Dictionary = def.get("acts", {})
+	var out: Array = []
+	var i := 0
+	for lid in ids:
+		if not Lines.has(String(lid)):
+			continue
+		var b := Cutscene.line(String(lid), null, stage.shot(String(lid), i))
+		if acts.has(String(lid)):
+			b.act = stage.act.bind(String(acts[String(lid)]))
+		out.append(b)
+		i += 1
+	return out
 
 ## beats for a run of line ids, orbiting `look` from `deg0`, each a little further round
 func _beats(ids: Array, look: Vector3, deg0: float) -> Array:
@@ -214,7 +253,7 @@ func _complete() -> void:
 		var ids: Array = []
 		ids.append_array(def.get("mid", []))
 		ids.append_array(def.get("close", []))
-		var beats := _beats(ids, operator.position, 200.0)
+		var beats := _scene(def, ids, 200.0)
 		if not beats.is_empty():
 			_closing = id
 			_set_waypoint(Vector3.ZERO, false)
@@ -286,15 +325,18 @@ func _process(dt: float) -> void:
 # --------------------------------------------------------------------------------------------- talk, choice, boss
 ## the named person of a talk chapter stands at the waypoint: a body in their look (people.gd) facing the way you come
 func _place_talker(who: String, at: Vector3) -> void:
-	var pid := who.to_lower().get_slice(" ", who.get_slice_count(" ") - 1)
-	var p: Dictionary = People.by_id(pid)
 	var body := Player.new()
 	region.world().add_child(body)
 	body.position = at
 	body.ground_at = operator.ground_at
-	body.civilian = true
-	body.build(NpcStreet.look_for(p) if not p.is_empty() else {})
-	body.look_at(Vector3(operator.position.x, at.y, operator.position.z), Vector3.UP)
+	# their people.gd look, or the story's look for them (stage.gd): never the player's own look
+	body.civilian = not Stage.is_operator(who.to_upper())
+	body.build(Stage.look_of(who.to_upper()))
+	body.scale = Vector3.ONE * Stage.scale_of(who.to_upper())
+	# the body faces its local +z: turn it to the operator (look_at would turn its back)
+	body.heading = atan2(operator.position.x - at.x, operator.position.z - at.z)
+	body.rig.rotation.y = body.heading
+	body.set_meta("who", who.to_upper())
 	_talker = body
 
 func _ask_choice(def: Dictionary) -> void:
@@ -311,7 +353,7 @@ func _ask_choice(def: Dictionary) -> void:
 		p[_choice_key(String(def.mission))] = key
 		_profile_save(p)
 		var by: Dictionary = def.get("by_choice", {})
-		var beats := _beats(by.get(key, []), operator.position, 120.0)
+		var beats := _scene(def, by.get(key, []), 120.0)
 		if beats.is_empty():
 			_complete()
 		else:
@@ -329,7 +371,9 @@ func _summon_boss(id: String) -> void:
 	boss = BossView.new()
 	region.world().add_child(boss)
 	var at := _on_ground(operator.position + Vector3(0, 0, -24.0))
-	boss.setup(String(BOSS_FOR.get(id, "vyrak")), at, operator, gunplay, enemies, operator.ground_at)
+	# the hull: BOSS_FOR, or the story data's own `bosses` table (the main story's chapter files), else the colossus
+	var hull := String(BOSS_FOR.get(id, _story().get("bosses", {}).get(id, "colossus")))
+	boss.setup(hull, at, operator, gunplay, enemies, operator.ground_at)
 	if quest.has("boss_name"):
 		# the story's name on the build's hull (the rules' def is the shared table row: a copy carries the name)
 		boss.rules.def = boss.rules.def.duplicate()

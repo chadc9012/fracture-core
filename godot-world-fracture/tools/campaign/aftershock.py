@@ -641,13 +641,61 @@ MISSIONS = [
     ]},
 ]
 
+# the set each chapter plays on (scripts/mission/stage.gd `_set_<name>`): the scene's place, its people and their shots
+STAGES = {
+    "02A": "street", "02B": "bus", "02C": "checkpoint", "02D": "checkpoint", "02E": "medical", "02F": "recording",
+    "03A": "lab", "03B": "lab", "03C": "lab_red", "03D": "recording", "03E": "chamber", "03F": "lab_red", "03G": "surface",
+    "04A": "hq", "04B": "briefing", "04C": "street_battle", "04D": "street_battle", "04E": "subway", "04F": "command_post",
+    "04G": "void", "04H": "terminal",
+    "05A": "terminal", "05B": "hq_hall", "05C": "hq_hall", "05D": "balcony", "05E": "lab", "05F": "briefing",
+    "05G": "lab_red", "05H": "hq_hall", "05I": "void",
+    "06A": "haven", "06B": "tower", "06C": "haven", "06D": "haven", "06E": "corridor", "06F": "battlefield",
+    "06G": "command_post", "06H": "broadcast",
+    "07A": "crater", "07B": "shaft", "07C": "archive", "07D": "archive", "07E": "memory", "07F": "archive", "07G": "crater",
+}
+# staged moments a line sets off (stage.gd `act`): chapter -> {spoken text: act}
+ACTS = {
+    "06E": {"Tell them we held the line.": "cole_drive"},
+    "07D": {"The seal recognizes you.": "seal"},
+    "07F": {"Structural instability detected. We must leave.": "collapse"},
+}
+
+# the boss ids campaign.gd BOSS_FOR already maps to a hull
+KNOWN_BOSSES = {"vyrak", "crownkeeper", "fracture-heart", "convergence", "fracture-commander", "subject-zero",
+                "fracture-executioner", "siege-beast", "harbinger", "archive-warden"}
+
 KINDS = {"reach", "kills", "survive", "trace", "hack", "core", "talk", "choice", "boss", "race", "drive", "cutscene"}
 
 
+def load_story():
+    """Missions 8 onward: the chapter files in tools/campaign/story/ (ch1.py: Missions 8–10, ch2.py …), each mission
+    tagged with its chapter; their sets, staged moments and boss hulls join the tables above."""
+    import glob, importlib.util, sys
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "story")
+    sys.path.insert(0, here)
+    for m in MISSIONS:
+        m.setdefault("chapter", [1, "The Aftershock"])
+    bosses = {}
+    for path in sorted(glob.glob(os.path.join(here, "ch*.py")), key=lambda p: int(os.path.basename(p)[2:-3])):
+        spec = importlib.util.spec_from_file_location(os.path.basename(path)[:-3], path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        for m in mod.MISSIONS:
+            m["chapter"] = list(mod.CHAPTER)
+            MISSIONS.append(m)
+        STAGES.update(getattr(mod, "STAGES", {}))
+        ACTS.update(getattr(mod, "ACTS", {}))
+        bosses.update(getattr(mod, "BOSSES", {}))
+    return bosses
+
+
 def main():
-    out = {"version": 1, "chapter": "Chapter 1 — The Aftershock",
+    bosses = load_story()
+    out = {"version": 1, "chapter": "World Fracture — the main story (Chapter 1 — The Aftershock onward)",
+           "bosses": bosses,
            "source": "The owner's Chapter 1 screenplays (Nov 22), Missions 2–7, every spoken line verbatim in the script's order "
-                     "(tools/campaign/aftershock.py). Mission 1 is Mission 01 (scripts/mission/mission_01.gd).",
+                     "(tools/campaign/aftershock.py); Missions 8 onward from tools/campaign/story/ch*.py. Mission 1 is "
+                     "Mission 01 (scripts/mission/mission_01.gd).",
            "missions": [], "lines": []}
     for m in MISSIONS:
         n = [0]
@@ -665,14 +713,27 @@ def main():
         mo["chapters"] = []
         for c in m["chapters"]:
             assert c["kind"] in KINDS, c["kind"]
-            co = {k: v for k, v in c.items() if k not in ("open", "close")}
+            co = {k: v for k, v in c.items() if k not in ("open", "close", "by_choice")}
             co["id"] = "A" + c["id"]
             co["open"] = ids(c["open"])
             co["close"] = ids(c["close"])
+            if "by_choice" in c:
+                co["by_choice"] = {k: ids(v) for k, v in c["by_choice"].items()}
+            if c["id"] in STAGES:
+                co["stage"] = STAGES[c["id"]]
+            if c["id"] in ACTS:
+                by_text = {l["text"]: l["id"] for l in out["lines"] if l["id"] in co["open"] + co["close"]}
+                co["acts"] = {by_text[t]: a for t, a in ACTS[c["id"]].items()}
             mo["chapters"].append(co)
         out["missions"].append(mo)
     path = os.path.join(ROOT, "data", "dialogue", "aftershock.json")
     json.dump(out, open(path, "w"), indent=1, ensure_ascii=False)
+    ids = [c["id"] for m in out["missions"] for c in m["chapters"]]
+    assert len(ids) == len(set(ids)), "duplicate chapter ids"
+    for m in out["missions"]:
+        for c in m["chapters"]:
+            if c["kind"] == "boss":
+                assert c["boss"] in bosses or c["boss"] in KNOWN_BOSSES, c["boss"]
     print("aftershock: %d missions, %d chapters, %d lines" % (len(out["missions"]), sum(len(m["chapters"]) for m in out["missions"]), len(out["lines"])))
 
 
