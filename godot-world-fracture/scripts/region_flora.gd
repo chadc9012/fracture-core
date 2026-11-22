@@ -28,10 +28,14 @@ static func mix_for(id: String) -> Dictionary:
 		"swamps":
 			return {"oak": 0.55}
 		"solara":
-			return {"baobab": 1.0}
+			# the Solmara boards: date palms through the desert, the odd baobab (Nov 22)
+			return {"palm": 0.45, "baobab": 0.55}
 		"wastelands":
 			return {"baobab": 0.45}
-		"azure-isles", "shattered-reefs":
+		"azure-isles":
+			# the Azure Isles boards: palms along every beach and up the slopes, a little bamboo (Nov 22; it was 60% pine)
+			return {"palm": 0.8, "bamboo": 0.12}
+		"shattered-reefs":
 			return {"bamboo": 0.4}
 		"crystal-badlands":
 			return {"alien": 1.0}
@@ -155,6 +159,17 @@ static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 				r._multimesh(baobab(), _rescale(list, 1.1), baobab_material())
 			"bamboo":
 				r._multimesh(bamboo(), list, bamboo_material(), 600.0)
+			"palm":
+				# the three Meshy palms (models/foliage/palm-a, -b, -c), dealt out in turn
+				var parts := [[], [], []]
+				for i in list.size():
+					parts[i % 3].append(list[i])
+				for j in 3:
+					var mesh := glb_mesh("res://models/foliage/palm-%s.glb" % ["a", "b", "c"][j], 11.0)
+					var xs: Array[Transform3D] = []
+					xs.assign(parts[j])
+					if mesh != null and not xs.is_empty():
+						r._multimesh(mesh, xs, null, 800.0)
 			"alien":
 				var parts := alien()
 				r._multimesh(parts[0], list, alien_material(false), 700.0)

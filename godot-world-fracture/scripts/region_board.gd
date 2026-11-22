@@ -1206,9 +1206,9 @@ static func _azure(r: Node, rng: RandomNumberGenerator) -> void:
 	wood.albedo_color = Color(0.48, 0.34, 0.22)
 	wood.roughness = 0.85
 	var thatch := StandardMaterial3D.new()
-	thatch.albedo_color = Color(0.72, 0.58, 0.36)
+	thatch.albedo_color = Color(0.5, 0.36, 0.2)
 	thatch.roughness = 1.0
-	var plen := 70.0
+	var plen := 110.0
 	var deck := MeshInstance3D.new()
 	var dm := BoxMesh.new()
 	dm.size = Vector3(3.0, 0.4, plen)
@@ -1221,7 +1221,7 @@ static func _azure(r: Node, rng: RandomNumberGenerator) -> void:
 	var side := Vector2(out.y, -out.x)
 	for i in 6:
 		for sgn in [-1.0, 1.0]:
-			var p: Vector2 = start + out * (14.0 + i * 11.0) + side * sgn * 8.0
+			var p: Vector2 = start + out * (40.0 + i * 12.0) + side * sgn * 8.0
 			var hut := Node3D.new()
 			hut.position = Vector3(p.x, w, p.y)
 			hut.rotation.y = atan2(out.x, out.y)
@@ -1256,7 +1256,7 @@ static func _azure(r: Node, rng: RandomNumberGenerator) -> void:
 			var rm := CylinderMesh.new()
 			rm.top_radius = 0.1
 			rm.bottom_radius = 5.2
-			rm.height = 3.2
+			rm.height = 4.2
 			rm.radial_segments = 4
 			roof.mesh = rm
 			roof.material_override = thatch
@@ -1273,7 +1273,7 @@ static func _azure(r: Node, rng: RandomNumberGenerator) -> void:
 			hut.add_child(walk)
 			root.add_child(hut)
 	r._world.add_child(root)
-	spot(r, "bungalows", start + out * 35.0, 30.0)
+	spot(r, "bungalows", start + out * 70.0, 30.0)
 	# the sea arch: the region's arch at giant scale standing out of the water off the coast
 	var fort := _poi(r, "az-fort")
 	var arch_at := _shore_from(r, fort, _sea_dir(r, fort))
