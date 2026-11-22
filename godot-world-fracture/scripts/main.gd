@@ -410,6 +410,8 @@ func _title_action(action: String) -> void:
 			_open_journal()
 		"skills":
 			_open_overlay("res://scripts/progress/skills_view.gd")
+		"season":
+			_open_overlay("res://scripts/progress/season_view.gd")
 		"cloud":
 			_close_title()
 			_open_cloud()
@@ -1105,6 +1107,8 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_journal()
 		if String(o) == "skills":
 			_open_overlay("res://scripts/progress/skills_view.gd")
+		if String(o) == "season":
+			_open_overlay("res://scripts/progress/season_view.gd")
 		# creator[:<tab>]  the operator creator on a tab (body by default)
 		if String(o).begins_with("creator"):
 			_open_creator()

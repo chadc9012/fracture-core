@@ -175,6 +175,12 @@ func _build_menu() -> VBoxContainer:
 		v.add_child(_button("JOURNAL", "journal", false, "MAIN JOBS  ·  SIDE JOBS  ·  GIGS  ·  CONTRACTS"))
 		var pts: int = load("res://scripts/progress/skills.gd").points(p)
 		v.add_child(_button("SKILLS", "skills", false, ("%d POINT%s TO SPEND" % [pts, "" if pts == 1 else "S"]) if pts > 0 else "COMBAT  ·  TECH  ·  STREET"))
+		var Season = load("res://scripts/progress/season_pass.gd")
+		var unclaimed := 0
+		for t in range(1, Season.tier(p) + 1):
+			if not Season.claimed(p, t):
+				unclaimed += 1
+		v.add_child(_button("SEASON PASS", "season", false, ("%d REWARD%s TO CLAIM" % [unclaimed, "" if unclaimed == 1 else "S"]) if unclaimed > 0 else "SEASON %d  ·  TIER %d / %d" % [int(Season.current().id), Season.tier(p), Season.TIERS]))
 		v.add_child(_button("TRIUMPHS", "triumphs", false, "SCORE %d  ·  COLLECTIONS" % Tri.score(p)))
 		v.add_child(_button("WORLD MAP", "globe", false, "THE GLOBE AND ITS DESTINATIONS"))
 		v.add_child(_button("NEW OPERATOR", "new"))

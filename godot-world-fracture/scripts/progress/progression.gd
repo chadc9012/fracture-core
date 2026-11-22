@@ -120,7 +120,11 @@ static func grant(p: Dictionary, source: String, nex: int, xp: int, note := "", 
 	var won: Array = load("res://scripts/progress/triumphs.gd").check(p)
 	for t in won:
 		lines.append("TRIUMPH · %s" % String(t.title))
-	return { "nex": nex, "xp": xp, "level": after, "leveled": after > before, "lines": lines, "goals": goals, "triumphs": won }
+	# the season pass climbs with the same XP (season_pass.gd); its rewards wait on the pass screen
+	var tiers: Array = load("res://scripts/progress/season_pass.gd").add_xp(p, xp, now_unix)
+	if not tiers.is_empty():
+		lines.append("SEASON TIER %d reached — claim it on the Season Pass" % int(tiers[-1]))
+	return { "nex": nex, "xp": xp, "level": after, "leveled": after > before, "lines": lines, "goals": goals, "triumphs": won, "season_tiers": tiers }
 
 ## one line for a HUD or the title: "LV 4 · 1,250 NEX"
 static func line(p: Dictionary) -> String:
