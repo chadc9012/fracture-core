@@ -195,6 +195,7 @@ static func hull_perf(id: String) -> Dictionary:
 	return { "max_speed": Handling.BASE_SPEED * float(p.top) * fleet * 0.55, "acceleration": float(p.accel) * 0.35, "steering": float(p.steer), "braking": float(p.brake) * 0.4, "pivot": bool(p.pivot), "hover": kind == "RACER" and id.contains("hover") }
 var parked: Array[Node3D] = []
 var driving_car: RefCounted
+var _bike := false              # the driven vehicle is a bike: the rider shows, in a helmet
 var _near_car: Node3D
 const InventoryView = preload("res://scripts/gear/inventory_view.gd")
 const ProfileView := preload("res://scripts/progress/profile_view.gd")
@@ -2360,6 +2361,7 @@ func drive_out(id: String) -> void:
 	close_garage()
 	var v := Catalog.vehicle(id)
 	if v.is_empty() or operator == null or driving_car != null or not ResourceLoader.exists(String(v.model)):
+		push_warning("drive_out: no %s to drive out (%s)" % [id, "unknown" if v.is_empty() else ("no operator" if operator == null else ("already driving" if driving_car else "no model " + String(v.model)))])
 		return
 	var car := (load(String(v.model)) as PackedScene).instantiate() as Node3D
 	var x0 := ROAD_W * 0.5 + WALK_W
@@ -2563,9 +2565,18 @@ func enter_car(c: Node3D) -> void:
 	# lights on while it is driven: dipped beams and tail lamps by day, full at night
 	CarDetail.set_lamps(c, 2.4 if night else 0.8)
 	Sound.sfx("car_chirp", -10.0)
+	# a bike is ridden in the open: the rider stays visible astride it in a helmet (work_idle.gd "ride"); a car hides them
+	_bike = String(Catalog.vehicle(id).get("cls", "")) == "bike"
 	if operator.rig:
-		operator.rig.visible = false
-	operator.cam_dist = 14.0 if Handling.BY_ID.has(id) else 9.0
+		operator.rig.visible = _bike
+		if _bike:
+			operator.idle_clip = "ride"
+			var wear: Array = Array(operator.rig.look.get("wear", []))
+			if "helmet" not in wear:
+				wear.append("helmet")
+				operator.rig.look.wear = wear
+				operator.rig._wear()
+	operator.cam_dist = 14.0 if Handling.BY_ID.has(id) else (7.0 if _bike else 9.0)
 	operator.cam_pivot = Vector3(0, 3.2 if Handling.BY_ID.has(id) else 2.4, 0)
 	operator.cam_yaw = c.rotation.y
 	var tank: bool = Handling.kind_of(id) == "TANK" and _arm_tank(c)
@@ -2605,6 +2616,13 @@ func exit_car() -> void:
 	operator.heading = c.rotation.y + PI   # the body faces +z at heading 0; the car's nose is -z
 	if operator.rig:
 		operator.rig.visible = true
+		if _bike:
+			operator.idle_clip = "idle"
+			var wear: Array = Array(operator.rig.look.get("wear", []))
+			wear.erase("helmet")
+			operator.rig.look.wear = wear
+			operator.rig._wear()
+	_bike = false
 	operator.cam_dist = 4.2
 	operator.cam_pivot = Vector3(0, 1.55, 0)
 	controls.set_armed_vehicle(false)
@@ -2678,6 +2696,14 @@ func _drive(dt: float) -> void:
 	# the operator rides inside: enemies aim at the car, the chase camera follows it from behind
 	operator.position = c.position
 	operator.velocity = car.forward() * car.speed
+	if _bike and operator.rig:
+		# astride the bike: the body up on the seat (the rig's feet are its origin), facing the way it goes
+		var bb: AABB = car.box()
+		operator.position = c.position + Vector3(0, bb.size.y * 0.48 - 0.72, 0) - car.forward() * 0.12
+		operator.heading = c.rotation.y + PI
+		operator.rig.rotation.y = operator.heading
+		operator.rig.position = Vector3.ZERO
+		operator._animate(0.0, false)
 	var look: Vector2 = controls.take_look()
 	operator.cam_yaw -= look.x * 0.0045
 	var gunner: bool = controls.armed_vehicle and _turret != null and is_instance_valid(_turret)

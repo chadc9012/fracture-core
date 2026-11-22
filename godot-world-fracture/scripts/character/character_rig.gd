@@ -467,6 +467,34 @@ func _wear() -> void:
 	var cloth := _mat(Color(0.12, 0.12, 0.14), 0.85, 0.0)
 	for id in wear:
 		match String(id):
+			"helmet":
+				# a full-face riding helmet over the head (street_slice puts it on for the bikes): the shell, a dark visor
+				var hh := _on_bone("Head", Vector3(0, 0.085, 0.012))
+				if hh:
+					var shell := SphereMesh.new()
+					shell.radius = 0.125
+					shell.height = 0.25
+					shell.radial_segments = 20
+					shell.rings = 10
+					var sm := MeshInstance3D.new()
+					sm.mesh = shell
+					sm.scale = Vector3(1.0, 1.1, 1.14)
+					sm.material_override = _mat(Color(0.12, 0.1, 0.16), 0.25, 0.4)
+					hh.add_child(sm)
+					var visor := MeshInstance3D.new()
+					var vm := BoxMesh.new()
+					vm.size = Vector3(0.17, 0.065, 0.03)
+					visor.mesh = vm
+					visor.position = Vector3(0, -0.01, 0.13)
+					visor.material_override = _mat(Color(0.05, 0.06, 0.08), 0.08, 0.6)
+					hh.add_child(visor)
+					var stripe := MeshInstance3D.new()
+					var stm := BoxMesh.new()
+					stm.size = Vector3(0.02, 0.2, 0.16)
+					stripe.mesh = stm
+					stripe.position = Vector3(0, 0.07, -0.02)
+					stripe.material_override = _mat(Color(0.95, 0.4, 0.1), 0.4, 0.2)
+					hh.add_child(stripe)
 			"chain":
 				var h := _on_bone("Neck", Vector3(0, -0.09, 0.07))
 				if h:
