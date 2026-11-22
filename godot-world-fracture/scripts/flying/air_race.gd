@@ -90,11 +90,17 @@ func step(dt: float) -> void:
 		if rolling:
 			pos.y = ground
 		else:
-			# climb or sink toward the ring's height, never under the ground or the roofs between
-			var want_y := target.y
-			for b in view._boxes:
-				if Vector2(b.get_center().x - pos.x, b.get_center().z - pos.z).length() < 30.0:
-					want_y = maxf(want_y, b.end.y + 12.0)
+			# climb or sink toward the ring's height, never under the ground or the roofs between (the roofs looked up
+			# every few frames: the city has thousands of boxes)
+			r.roof_t = float(r.get("roof_t", 0.0)) - dt
+			if float(r.roof_t) <= 0.0:
+				r.roof_t = 0.25
+				var roof := 0.0
+				for b in view._boxes:
+					if absf(b.get_center().x - pos.x) < 30.0 and absf(b.get_center().z - pos.z) < 30.0:
+						roof = maxf(roof, b.end.y + 12.0)
+				r.roof = roof
+			var want_y := maxf(target.y, float(r.get("roof", 0.0)))
 			pos.y = maxf(lerpf(pos.y, want_y, clampf(CLIMB_RATE * dt, 0.0, 1.0)), ground)
 		r.pos = pos
 		hull.position = pos

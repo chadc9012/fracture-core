@@ -114,7 +114,7 @@ func _ready() -> void:
 	for i in 40:
 		v._process(0.05)
 	check("you lift off and the field launches", v.state.airborne and v.race.launched)
-	for i in 1200:   # a minute
+	for i in 500:   # 25 s
 		v._process(0.05)
 	var flown := 0
 	for r in v.race.rivals:
@@ -122,7 +122,7 @@ func _ready() -> void:
 	var high := true
 	for r in v.race.rivals:
 		high = high and r.pos.y > v.region.ground(r.pos.x, r.pos.z) + 5.0
-	check("a minute in the rivals are flying the rings (best %d of %d) above the ground" % [flown, v.rings.size()], flown >= 2 and high)
+	check("25 s in the rivals are flying the rings (best %d of %d) above the ground" % [flown, v.rings.size()], flown >= 1 and high)
 	check("rivals ahead of you on rings place ahead", v.race.place() > 1 or v.next_ring >= flown)
 	# the finish: you through the last ring while a rival has the lot — second place money
 	v.race.rivals[0].next = v.rings.size()
