@@ -1,4 +1,5 @@
 extends Control
+const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## World Fracture (Godot): the Planetary Director. The globe is home; tapping a continent twice (or OPEN MAP) opens its region
 ## map, and Back returns to the globe. Android's back gesture goes back too.
@@ -1148,7 +1149,10 @@ func _shoot(path: String, opts: Array) -> void:
 		# the lights and drives itself
 		if String(o).begins_with("race") and not String(o).begins_with("race="):
 			var rq := String(o).split(":")
-			_open_race(rq[1] if rq.size() > 1 and rq[1] != "go" else "")
+			# race:<track>[:go][:in=<vehicle id>]  in= races that car or bike (as the last one driven would)
+			if String(o).contains("in="):
+				SessionStore.save(String(o).split("in=")[1].split(":")[0], 0.0)
+			_open_race(rq[1] if rq.size() > 1 and rq[1] not in ["go"] and not rq[1].begins_with("in=") else "")
 			if String(o).contains("go"):
 				race_view.countdown = 0.05
 				race_view.controls.scripted = true
