@@ -211,10 +211,9 @@ func _build_globe(area: Control) -> void:
 		tools.add_child(zb)
 	area.add_child(tools)
 	var hint := Data.label("Drag to spin · pinch to zoom · tap a continent", 11, Data.MUTED)
-	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	hint.position = Vector2(-330, -26)
-	hint.size = Vector2(320, 20)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# top left beside the zoom buttons (bottom right ran under the side panel and was cut off — polish, Nov 21)
+	hint.position = Vector2(64, 16)
+	hint.size = Vector2(340, 20)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	area.add_child(hint)
 

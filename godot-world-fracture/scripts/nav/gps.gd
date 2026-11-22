@@ -107,7 +107,7 @@ func refresh_map() -> void:
 	_tex = null
 	if region and not region.is_open_sea() and String(region.map_id) != "":
 		_map_id = String(region.map_id)
-		_tex = Data.texture("maps/%s.map.pngb" % _map_id, true)
+		_tex = _data().texture("maps/%s.map.pngb" % _map_id, true)
 
 ## puts a GPS on `host` for an on-foot operator in a region (the arrow follows the camera: the operator's body turns on
 ## its own)
@@ -120,6 +120,10 @@ static func attach(host: Control, reg: Node, who: Node3D) -> Control:
 	g.ranges = [70.0, 160.0, 400.0]
 	host.add_child(g)
 	return g
+
+## the Data autoload, found at run time (naming it would stop the --script tests that load views carrying a GPS)
+func _data() -> Node:
+	return get_node("/root/Data")
 
 func _process(_dt: float) -> void:
 	if region != null and not is_instance_valid(region):
@@ -173,7 +177,7 @@ func _caption() -> String:
 	if place_name.is_valid():
 		where = String(place_name.call())
 	elif region and String(region.map_id) != "":
-		where = String(Data.map(String(region.map_id)).get("name", region.map_id))
+		where = String(_data().map(String(region.map_id)).get("name", region.map_id))
 		var a := _area_name()
 		if a != "" and a != where:
 			where = "%s · %s" % [a, where]
@@ -187,7 +191,7 @@ func _caption() -> String:
 func _area_name() -> String:
 	if region == null or region.is_open_sea():
 		return ""
-	var m: Dictionary = Data.map(String(region.map_id))
+	var m: Dictionary = _data().map(String(region.map_id))
 	var me: Vector2 = region.map_point(_centre().x, _centre().y)
 	var best := ""
 	var bd := 160.0
@@ -244,7 +248,7 @@ func _draw_dial() -> void:
 	var h := view_heading()
 	# places: airports and the map's main places
 	if region and _tex:
-		var m: Dictionary = Data.map(String(region.map_id))
+		var m: Dictionary = _data().map(String(region.map_id))
 		for poi in m.get("pois", []):
 			var cat := String(poi.get("cat", ""))
 			var big := cat == "airport" or int(poi.get("rank", 3)) <= 1
@@ -283,7 +287,7 @@ func _draw_dial() -> void:
 			dp = c + (dp - c).limit_length(r - 8.0)
 		_dial.draw_circle(dp, 3.5, col)
 		if named.has(mi) and dp.distance_to(c) < r - 14.0:
-			var lt := String(mk.label)
+			var lt := _short(String(mk.label))
 			var lw := ThemeDB.fallback_font.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 			var lpos := dp + Vector2(6, 4) if dp.x < c.x + 10.0 else dp + Vector2(-6 - lw, 4)
 			lpos.x = clampf(lpos.x, 2.0, DIAM - lw - 2.0)

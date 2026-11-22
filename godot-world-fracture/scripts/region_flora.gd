@@ -332,12 +332,12 @@ static func _cyl(st: SurfaceTool, top: float, bottom: float, h: float, seg: int,
 	c.cap_bottom = false
 	st.append_from(c, 0, xf)
 
-static func _blob(st: SurfaceTool, r: float, xf: Transform3D, seg := 7) -> void:
+static func _blob(st: SurfaceTool, r: float, xf: Transform3D, seg := 7, rings := 4) -> void:
 	var s := SphereMesh.new()
 	s.radius = r
 	s.height = r * 2.0
 	s.radial_segments = seg
-	s.rings = 4
+	s.rings = rings
 	st.append_from(s, 0, xf)
 
 ## an oak (also the cherry): a stout trunk and a lumpy crown of five blobs. The trunk stays under 2.6 m, where
@@ -348,8 +348,13 @@ static func broadleaf() -> Mesh:
 	_cyl(st, 0.22, 0.38, 3.4, 6, Transform3D(Basis(), Vector3(0, 1.7, 0)))
 	_cyl(st, 0.08, 0.16, 2.2, 5, Transform3D(Basis(Vector3.BACK, 0.7), Vector3(-0.7, 3.4, 0)))
 	_cyl(st, 0.08, 0.16, 2.2, 5, Transform3D(Basis(Vector3.RIGHT, -0.7), Vector3(0, 3.5, -0.7)))
+	# rounder, denser blobs and a ring of small ones round the rim: five 7x4 spheres read as faceted lumps (polish, Nov 21)
 	for b in [[0.0, 5.2, 0.0, 2.3], [1.5, 4.6, 0.6, 1.7], [-1.4, 4.7, -0.5, 1.8], [0.4, 4.5, -1.5, 1.6], [-0.5, 6.4, 0.6, 1.5]]:
-		_blob(st, b[3], Transform3D(Basis().scaled(Vector3(1.0, 0.82, 1.0)), Vector3(b[0], b[1], b[2])))
+		_blob(st, b[3], Transform3D(Basis().scaled(Vector3(1.0, 0.82, 1.0)), Vector3(b[0], b[1], b[2])), 10, 6)
+	for k in 7:
+		var a := k * TAU / 7.0 + 0.4
+		var rr := 2.35 + 0.35 * sin(k * 2.3)
+		_blob(st, 0.75 + 0.2 * cos(k * 1.7), Transform3D(Basis(), Vector3(sin(a) * rr, 4.4 + 0.9 * sin(k * 1.3 + 1.0), cos(a) * rr)), 7, 4)
 	st.generate_normals()
 	return st.commit()
 
@@ -418,14 +423,22 @@ static func cherry_material(r: Node) -> ShaderMaterial:
 	sh.code = """shader_type spatial;
 uniform int season = 1;
 varying float hy;
-void vertex() { hy = VERTEX.y; }
+varying vec3 lp;
+void vertex() { hy = VERTEX.y; lp = VERTEX; }
+float h3(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+// smooth value noise: the old per-cell hash painted hard square patches on the crowns (polish, Nov 21)
+float vn(vec3 p) {
+	vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
+		mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
 void fragment() {
 	float n = fract(sin(dot(floor(NODE_POSITION_WORLD.xz), vec2(12.9898, 78.233))) * 43758.5453);
-	float spot = fract(sin(dot(floor(VERTEX.xz * 3.0 + VERTEX.y * 2.0), vec2(4.1, 7.7))) * 912.3);
+	float spot = vn(lp * 1.6) * 0.65 + vn(lp * 4.3 + 7.1) * 0.35;
 	vec3 pink = mix(vec3(0.93, 0.56, 0.7), vec3(0.99, 0.82, 0.89), n) * (0.85 + 0.2 * spot);
 	vec3 leaf = pink;
 	if (season == 1) leaf = mix(pink, vec3(0.32, 0.45, 0.2), 0.35 + 0.3 * spot);
-	if (season == 2) leaf = mix(vec3(0.7, 0.2, 0.12), vec3(0.88, 0.45, 0.18), spot);
+	if (season == 2) leaf = mix(mix(vec3(0.52, 0.2, 0.1), vec3(0.72, 0.42, 0.16), spot), vec3(0.42, 0.4, 0.16), 0.25 * n) * (0.85 + 0.15 * spot);
 	if (season == 3) leaf = vec3(0.3, 0.24, 0.22);
 	vec3 c = hy < 2.6 ? vec3(0.26, 0.16, 0.14) : leaf;
 	ALBEDO = c;
@@ -554,7 +567,7 @@ varying vec3 lp;
 void vertex() { lp = VERTEX; }
 void fragment() {
 	float strata = 0.88 + 0.12 * sin(lp.y * 3.1 + sin(lp.x * 0.7) * 1.5);
-	float g = fract(sin(dot(floor(lp * 2.0), vec3(12.9, 78.2, 37.7))) * 4375.5);
+	float g = 0.5 + 0.25 * sin(lp.x * 2.3 + sin(lp.z * 1.7)) * sin(lp.z * 2.9 + lp.y * 1.3);   // smooth: cell hash read as square tiles
 	ALBEDO = col * strata * (0.92 + 0.12 * g);
 	ROUGHNESS = 0.95;
 }"""
