@@ -164,12 +164,17 @@ static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 				var parts := [[], [], []]
 				for i in list.size():
 					parts[i % 3].append(list[i])
+				# the Meshy palms are 4-7 MB each: full detail only up close, the light city palm (palm-lod) beyond
+				var far := glb_mesh("res://models/city/palm-lod.glb", 11.0)
 				for j in 3:
 					var mesh := glb_mesh("res://models/foliage/palm-%s.glb" % ["a", "b", "c"][j], 11.0)
 					var xs: Array[Transform3D] = []
 					xs.assign(parts[j])
 					if mesh != null and not xs.is_empty():
-						r._multimesh(mesh, xs, null, 800.0)
+						if far != null:
+							r._multimesh_lod([[mesh, Phone.tree_detail_range() * 2.0], [far, 800.0]], xs, null)
+						else:
+							r._multimesh(mesh, xs, null, 800.0)
 			"alien":
 				var parts := alien()
 				r._multimesh(parts[0], list, alien_material(false), 700.0)

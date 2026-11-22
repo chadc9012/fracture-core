@@ -420,7 +420,12 @@ static func _palms(r: Node, pts: Array[Vector2], rng: RandomNumberGenerator, ban
 		if p.distance_to(bank_at) < bank_r:
 			y = maxf(y, bank - 0.3)   # on the oasis banks
 		xf.append(Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, y, p.y)))
-	r._multimesh(mesh, xf, null, 900.0)
+	# full detail up close only (the Meshy palm is 7 MB), the light city palm beyond
+	var far := Flora.glb_mesh("res://models/city/palm-lod.glb", 1.0)
+	if far != null:
+		r._multimesh_lod([[mesh, Flora.Phone.tree_detail_range() * 2.0], [far, 900.0]], xf, null)
+	else:
+		r._multimesh(mesh, xf, null, 900.0)
 
 ## a ruined aqueduct from a to b: weathered arches (the region's arch) end to end, some fallen, the last piers carrying
 ## the Ashen red banners
@@ -545,7 +550,6 @@ static func _verdant(r: Node, rng: RandomNumberGenerator) -> void:
 				spot(r, "elder", at, 24.0)
 		# no shadows: crowns this wide roofed the forest floor over in black (Street View, Nov 22)
 		r._multimesh(lods[0][0], xf, null, 1400.0, false)
-		print("BOARDDBG elder ", xf.size(), " aabb ", lods[0][0].get_aabb())
 	# the cliffs with their falls: three mossy bluffs, each with a long fall into a pool of mist
 	for i in 3:
 		var want := Vector2(cos(i * 2.1 + 0.4), sin(i * 2.1 + 0.4)) * half * 0.62
@@ -574,7 +578,6 @@ static func _verdant(r: Node, rng: RandomNumberGenerator) -> void:
 		mist.position = Vector3(fp.x + face.x * 4.0, gy + 1.0, fp.y + face.y * 4.0)
 		root.add_child(mist)
 		r._world.add_child(root)
-		print("BOARDDBG falls ", i, " at ", at, " h ", h, " top ", top, " gy ", gy, " kids ", root.get_child_count(), " vis ", root.visible)
 		spot(r, "falls%d" % i, at, h)
 	# the temple gate: ruined arches in a row up a slope with the red banners, near the old ruins
 	var ruins: Vector2 = _poi(r, "vf-ruins", "eg-shrine")
