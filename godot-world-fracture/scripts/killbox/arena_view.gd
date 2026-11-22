@@ -288,6 +288,9 @@ func _start() -> void:
 			e2.state = Enemies.State.ENGAGE
 			e2.set_meta("slot", i)
 			_bot_ids[e2] = "bot:%d" % (i + 1)
+	# each bot carries its callsign, so the death card names who got you as the kill feed does
+	for o in _bot_ids:
+		o.set_meta("callsign", String(_line(String(_bot_ids[o]), int(o.team)).name))
 	enemies.respawn_enabled = not match_state.is_rounds()
 	if match_state.is_rounds():
 		_objective_marker()

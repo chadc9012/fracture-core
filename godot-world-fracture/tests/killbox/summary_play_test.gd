@@ -44,6 +44,24 @@ func _ready() -> void:
 	ok(int(v._tally.player.k) == 2 and int(v._tally.player.d) == 1, "the tally keeps your kills and deaths (%d / %d)" % [int(v._tally.player.k), int(v._tally.player.d)])
 	ok(int(v._tally[String(v._bot_ids[rival])].d) == 2, "and the bot's deaths")
 	ok(v.controls._feed != null and v.controls._feed.get_child_count() >= 3, "each kill goes up on the kill feed")
+	# Titanfall's "You died" / The Finals' death camera: the bot that drops you is named on the card, the view turns to it
+	var en = v.enemies
+	en.down = 0.0
+	en.hull = en.hull_max
+	en.shield = 0.0
+	if rival.has_meta("foe"):
+		rival.remove_meta("foe")
+	en._damage_foe(rival, 99999.0)
+	ok(en.killer == rival, "the roster knows who put you down")
+	var card: Control = v.controls._death
+	var said: Array = card.find_children("*", "Label", true, false).map(func(l): return (l as Label).text) if card else []
+	ok(card != null and said.has(String(rival.get_meta("callsign")).to_upper()), "the death card names them by callsign (%s)" % [", ".join(PackedStringArray(said))])
+	var yaw0: float = v.operator.cam_yaw
+	en.step(0.5)
+	ok(absf(angle_difference(yaw0, v.operator.cam_yaw)) > 0.0001 or absf(angle_difference(v.operator.cam_yaw, atan2(-(rival.mover.position - v.operator.position).x, -(rival.mover.position - v.operator.position).z))) < 0.05, "the camera turns to them")
+	en.step(en.down + 0.1)
+	v.controls.show_hull(1.0, 0.0, en.down)
+	ok(v.controls._death == null, "the card clears when you stand")
 	v.match_state.over = true
 	v.match_state.winner = "us"
 	v._finish()

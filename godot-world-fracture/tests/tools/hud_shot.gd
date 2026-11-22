@@ -50,7 +50,9 @@ func _process(_dt: float) -> bool:
 		c.weapon_name.text = "Void Sceptre"
 		c.ammo.text = "18 / 120"
 		c.show_loadout("FUSION", "VOID")
-		c.show_hull(0.3 if down else 0.72, 0.6 if down else 0.0, 4.2 if down else 0.0, 0.0 if down else 0.55)
+		if down and OS.get_cmdline_user_args().has("death"):
+			c.death_card({ "name": "Nightjar", "kind": "Executor", "weapon": "shotgun", "hp": 0.38, "dist": 11.4 }, 5.0)
+		c.show_hull(0.3 if down else 0.72, 0.6 if down else 0.0, 3.2 if down else 0.0, 0.0 if down else 0.55)
 		c.show_grenade({ "name": "Breacher Frag", "max": 2, "charges": 1, "recharge": 0.4, "color": Color(1.0, 0.7, 0.35) })
 		c.toast("Daily goal complete  ·  +250 XP  ·  +120 Nex")
 		c.prompt("Enter Neon Drift")

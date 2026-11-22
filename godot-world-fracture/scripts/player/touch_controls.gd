@@ -453,7 +453,104 @@ func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> vo
 	# white while healthy, Destiny's red under a third
 	hull_fill.color = Color(0.95, 0.96, 0.97) if frac > 0.35 else Color(0.95, 0.3, 0.26)
 	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
-	status.text = ("DOWN  ·  %d" % ceili(down_left)) if down_left > 0.0 else ""
+	status.text = ("DOWN  ·  %d" % ceili(down_left)) if down_left > 0.0 and _death == null else ""
+	if _death:
+		if down_left <= 0.0:
+			_death.queue_free()
+			_death = null
+		else:
+			_death_left.text = "RESPAWN IN  %d" % ceili(down_left)
+			_death_bar.size.x = 300.0 * clampf(1.0 - down_left / _death_total, 0.0, 1.0)
+
+var _death: Control
+var _death_left: Label
+var _death_bar: ColorRect
+var _death_total := 5.0
+## Titanfall 2's "You died" with The Finals' death camera card (enemies.gd calls it as the operator goes down): who did
+## it in big caps, what they are and what they used, the health they had left and how far off they were, then RESPAWN
+## IN n over a bar that fills. Without a killer (a fall) it says YOU DIED and the countdown only. show_hull keeps the
+## countdown and clears it when the operator stands.
+func death_card(info: Dictionary, respawn: float) -> void:
+	if _death:
+		_death.queue_free()
+	_death_total = maxf(0.5, respawn)
+	var red := Color(1.0, 0.33, 0.3)
+	# a dark band across the screen behind it, as Titanfall's death screen sets its text on one
+	var holder := Control.new()
+	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(holder)
+	var band := ColorRect.new()
+	band.set_anchors_and_offsets_preset(Control.PRESET_HCENTER_WIDE)
+	band.offset_top = -238
+	band.offset_bottom = -32
+	band.color = Color(0.02, 0.02, 0.03, 0.62)
+	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(band)
+	var edge := ColorRect.new()
+	edge.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	edge.offset_bottom = 2
+	edge.color = Color(red.r, red.g, red.b, 0.8)
+	band.add_child(edge)
+	var card := VBoxContainer.new()
+	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.alignment = BoxContainer.ALIGNMENT_CENTER
+	card.add_theme_constant_override("separation", 4)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band.add_child(card)
+	_death = holder
+	var lab := func(t: String, w: int, sp: int, px: int, c: Color) -> Label:
+		var l := Label.new()
+		l.text = t
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.add_theme_font_override("font", UiTheme.font(w, sp))
+		l.add_theme_font_size_override("font_size", px)
+		l.add_theme_color_override("font_color", c)
+		l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+		l.add_theme_constant_override("outline_size", 6)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return l
+	if info.is_empty():
+		card.add_child(lab.call("YOU DIED", 800, 8, 44, red))
+	else:
+		card.add_child(lab.call("ELIMINATED BY", 700, 6, 16, red))
+		card.add_child(lab.call(String(info.name).to_upper(), 800, 4, 46, UiTheme.INK))
+		var what := String(info.kind)
+		card.add_child(lab.call(("%s  ·  %s" % [what, String(info.weapon)]).to_upper() if what != String(info.name) else String(info.weapon).to_upper(), 600, 3, 15, UiTheme.INK_DIM))
+		# their health left and the distance, as the death camera's stat line
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 10)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var back := ColorRect.new()
+		back.custom_minimum_size = Vector2(140, 6)
+		back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		back.color = Color(1, 1, 1, 0.15)
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var fill := ColorRect.new()
+		fill.size = Vector2(140.0 * float(info.hp), 6)
+		fill.color = red
+		back.add_child(fill)
+		row.add_child(back)
+		row.add_child(lab.call("%d%% HULL LEFT  ·  %d M" % [int(round(float(info.hp) * 100.0)), int(round(float(info.dist)))], 700, 3, 15, UiTheme.INK))
+		card.add_child(row)
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 10
+	card.add_child(gap)
+	_death_left = lab.call("RESPAWN IN  %d" % ceili(respawn), 700, 5, 17, UiTheme.INK)
+	card.add_child(_death_left)
+	var track := ColorRect.new()
+	track.custom_minimum_size = Vector2(300, 3)
+	track.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	track.color = Color(1, 1, 1, 0.15)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_death_bar = ColorRect.new()
+	_death_bar.size = Vector2(0, 3)
+	_death_bar.color = UiTheme.INK
+	track.add_child(_death_bar)
+	card.add_child(track)
+	holder.modulate.a = 0.0
+	holder.create_tween().tween_property(holder, "modulate:a", 1.0, 0.25)
 
 var _toast: Label
 var _toast_t := 0.0

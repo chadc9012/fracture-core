@@ -106,6 +106,9 @@ var respawn_enabled := true
 ## story difficulty (difficulty.gd apply): hostiles' health and the damage they deal the operator; 1.0 in the Killbox
 var hp_mult := 1.0
 var dmg_mult := 1.0
+## who put the operator down last (Titanfall 2's "You died" / The Finals' death camera): the camera turns to them and
+## the HUD's death card names them; views may name bots with set_meta("callsign", ...)
+var killer: Enemy
 const TEAM_COLORS := [Color(1.0, 0.25, 0.25), Color(0.25, 0.6, 1.0), Color(1.0, 0.7, 0.2), Color(0.3, 1.0, 0.5), Color(0.85, 0.35, 1.0), Color(0.2, 0.95, 0.95), Color(1.0, 0.45, 0.75), Color(0.95, 0.95, 0.4), Color(0.6, 0.4, 0.2), Color(0.5, 0.75, 1.0), Color(1.0, 0.55, 0.3), Color(0.7, 1.0, 0.7)]
 const OPERATOR_HIT := -2
 
@@ -245,6 +248,7 @@ func step(dt: float) -> void:
 	hurt = maxf(0.0, hurt - dt * 3.0)
 	if down > 0.0:
 		down -= dt
+		_death_cam(dt)
 		if down <= 0.0:
 			hull = hull_max
 			shield = shield_max
@@ -548,6 +552,7 @@ func burn(damage: float) -> void:
 		down = 5.0
 		deaths += 1
 		Sound.sfx("down", -2.0)
+		_downed(false)
 		operator_down.emit()
 
 ## a new difficulty mid-mission (the briefing's pick): live hostiles' health rescaled to it, bolts hit at its weight
@@ -590,7 +595,42 @@ func _hit_operator(damage: float) -> void:
 		down = 5.0
 		deaths += 1
 		Sound.sfx("down", -2.0)
+		_downed(true)
 		operator_down.emit()
+
+## the operator just went down: who did it (the bot whose bolt landed last, when a bolt did) and the HUD's death card
+func _downed(by_bot: bool) -> void:
+	killer = null
+	if by_bot:
+		for o in enemies:
+			if o.has_meta("hit_operator"):
+				killer = o
+	var c: Node = get_tree().get_first_node_in_group("touch_controls") if is_inside_tree() else null
+	if c and c.has_method("death_card"):
+		c.death_card(killer_info(), down)
+
+## what the death card says about the one who did it: {name, kind, weapon, hp 0..1, dist}; {} when nobody did
+func killer_info() -> Dictionary:
+	if killer == null or not enemies.has(killer):
+		return {}
+	var e := killer
+	var w := String(e.def.get("weapon", "")).get_basename().replace("-", " ").replace("_", " ")
+	if bool(e.def.get("melee", false)):
+		w = "melee"
+	var nm := String(e.get_meta("callsign")) if e.has_meta("callsign") else String(e.def.get("name", e.type))
+	return { "name": nm, "kind": String(e.def.get("name", e.type)), "weapon": w if w != "" else "weapon",
+		"hp": clampf(e.target.hp / maxf(1.0, e.target.max_hp), 0.0, 1.0) if e.target else 0.0,
+		"dist": (e.mover.position.distance_to(player.position)) if e.mover and player else 0.0 }
+
+## the death camera: while down, the view swings round to the one who did it
+func _death_cam(dt: float) -> void:
+	if killer == null or not enemies.has(killer) or killer.mover == null or player == null or player.get("cam_yaw") == null:
+		return
+	var d: Vector3 = killer.mover.position - player.position
+	if Vector2(d.x, d.z).length() < 0.5:
+		return
+	var want := atan2(-d.x, -d.z)
+	player.cam_yaw = lerp_angle(float(player.cam_yaw), want, minf(1.0, dt * 4.0))
 
 func _on_target_killed(_t: Gunplay.Target) -> void:
 	pass
