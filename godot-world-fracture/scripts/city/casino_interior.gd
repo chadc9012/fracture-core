@@ -18,6 +18,9 @@ const ROOF_Y := 262.0
 const GOLD := Color(0.95, 0.72, 0.32)
 const CRIMSON := Color(0.55, 0.05, 0.09)
 const VIOLET := Color(0.62, 0.22, 1.0)
+## the skydeck boards (Nov 22, docs/reference/nfs-night/skydeck-board-1/2): the round bar mid-deck, fire-pit lounges round it
+const SKY_BAR := Vector3(0, 0, 15.0)
+const SKY_LOUNGES := [Vector3(-9.5, 0, 9.0), Vector3(9.5, 0, 9.0), Vector3(-7.5, 0, 25.0), Vector3(7.5, 0, 25.0)]
 
 var cam: Camera3D
 var world: Node3D
@@ -38,9 +41,10 @@ var _views := [
 	["PENTHOUSE", Vector3(12, PENT_Y + 1.7, 3), Vector3(-10, PENT_Y + 1.0, -6)],
 	["PENTHOUSE — STUDIO & VAULT", Vector3(-3, PENT_Y + 1.7, 1.5), Vector3(-8, PENT_Y + 1.3, 9.4)],
 	["PENTHOUSE — TERRACE", Vector3(-12, PENT_Y + 2.4, -12), Vector3(6, PENT_Y - 0.5, -28)],
-	["SKYDECK — CROWD", Vector3(3, ROOF_Y + 3.4, 29), Vector3(0, ROOF_Y + 5.5, -14)],
+	["SKYDECK — CROWD", Vector3(4, ROOF_Y + 2.4, 6), Vector3(-1, ROOF_Y + 4.6, -14)],
 	["SKYDECK — STAGE", Vector3(14, ROOF_Y + 6.0, -2), Vector3(-4, ROOF_Y + 3.0, -14)],
 	["THE FLOOR — GRAND STAIR", Vector3(19, 1.9, -13), Vector3(25, 3.6, -29)],
+	["SKYDECK — AERIAL", Vector3(0, ROOF_Y + 40, 74), Vector3(0, ROOF_Y - 4, 4)],
 ]
 var _view := 0
 var _title: Label
@@ -825,14 +829,20 @@ func _chandelier(at: Vector3) -> void:
 ## a Meshy model (docs/reference/MESHY_UPGRADE.md batch 5) standing at `at`, its longest side `fit` metres; null when
 ## the file isn't there (the built piece stays)
 func _meshy(file: String, at: Vector3, yaw: float, fit: float) -> Node3D:
-	var path := "res://models/city/" + file
+	var path := file if file.begins_with("res://") else "res://models/city/" + file
 	if not ResourceLoader.exists(path):
 		return null
 	var n := (load(path) as PackedScene).instantiate() as Node3D
 	var bb := AABB()
 	var first := true
 	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
-		var a: AABB = mi.transform * mi.get_aabb()
+		# the whole chain up to the model's root (fleet GLBs nest their meshes under scaled nodes)
+		var xf := mi.transform
+		var up := mi.get_parent()
+		while up != n and up is Node3D:
+			xf = (up as Node3D).transform * xf
+			up = up.get_parent()
+		var a: AABB = xf * mi.get_aabb()
 		bb = a if first else bb.merge(a)
 		first = false
 	var s := fit / maxf(maxf(bb.size.x, bb.size.z), 0.01)
@@ -1276,9 +1286,9 @@ func _skydeck() -> void:
 			_meshy("palm.glb", Vector3(sx4 * 27.5, y + 1.0, pz3), 0.0, 4.0)
 	# the board's cabanas down both sides: gold frames, cream drapes, a lounge and a fire table, warm light inside
 	var drape := glass(Color(1.0, 0.94, 0.85, 0.55))
-	for cz: float in [-1.0, 9.0, 19.0]:
+	for cz: float in [-8.0, 1.0]:
 		for sx6: float in [-1.0, 1.0]:
-			var cx := sx6 * 22.5
+			var cx := sx6 * 23.5
 			for px3: float in [-1.6, 1.6]:
 				for pz4: float in [-1.6, 1.6]:
 					_box(Vector3(0.12, 2.8, 0.12), Vector3(cx + px3, y + 1.4, cz + pz4), flat(GOLD, 0.25, 1.0))
@@ -1306,8 +1316,12 @@ void fragment() {
 	ALBEDO = mix(vec3(0.9, 0.85, 1.0), vec3(0.75, 0.4, 1.0), UV.y) * a * 0.8;
 }
 """)
-	for k7 in 4:
-		var jx: float = [-11.5, -8.5, 8.5, 11.5][k7]
+	# four by the stage front, four at the deck's corners (boards)
+	var jets := [Vector3(-11.5, 1.6, -11.4), Vector3(-8.5, 1.6, -11.4), Vector3(8.5, 1.6, -11.4), Vector3(11.5, 1.6, -11.4),
+		Vector3(-28.5, 0.0, 30.5), Vector3(28.5, 0.0, 30.5), Vector3(-28.5, 0.0, -30.5), Vector3(28.5, 0.0, -30.5)]
+	for k7 in jets.size():
+		var jp: Vector3 = jets[k7]
+		var jx := jp.x
 		var jet := MeshInstance3D.new()
 		var cm := CylinderMesh.new()
 		cm.top_radius = 1.6
@@ -1316,13 +1330,13 @@ void fragment() {
 		cm.cap_top = false
 		cm.cap_bottom = false
 		jet.mesh = cm
-		jet.position = Vector3(jx, y + 1.6 + 3.5, -18.0 + 6.6)
+		jet.position = Vector3(jx, y + jp.y + 3.5, jp.z)
 		var sm := smoke.duplicate() as ShaderMaterial
 		sm.set_shader_parameter("phase", k7 * 1.3)
 		jet.material_override = sm
 		jet.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		world.add_child(jet)
-		_box(Vector3(0.6, 0.4, 0.6), Vector3(jx, y + 1.8, -18.0 + 6.6), flat(Color(0.1, 0.1, 0.12), 0.4, 0.8))
+		_box(Vector3(0.6, 0.4, 0.6), Vector3(jx, y + jp.y + 0.2, jp.z), flat(Color(0.1, 0.1, 0.12), 0.4, 0.8))
 	# the stage at the north end
 	var sz := -18.0
 	_box(Vector3(26, 1.6, 12), Vector3(0, y + 0.8, sz), Materials.pbr("metal_plate", Color(0.32, 0.32, 0.34), 1.2, 0.6, 0.8))
@@ -1438,11 +1452,7 @@ void fragment() {
 	_light(Vector3(-8, y + 6, sz + 2), Color(0.3, 0.8, 1.0), 2.0, 14.0)
 	_light(Vector3(8, y + 6, sz + 2), Color(1.0, 0.7, 0.3), 2.0, 14.0)
 	_light(Vector3(0, y + 5, 10), Color(0.6, 0.4, 1.0), 1.2, 26.0)
-	# the front-of-house mix tent and a bar on the south side
-	_box(Vector3(5, 0.9, 3), Vector3(0, y + 0.45, 18), flat(Color(0.06, 0.06, 0.07), 0.5))
-	_box(Vector3(4.6, 0.1, 2.2), Vector3(0, y + 0.95, 18), flat(Color(0.2, 0.9, 0.5), 0.3, 0.0, 1.5))
-	_box(Vector3(12, 1.1, 1.2), Vector3(-17, y + 0.55, 26), flat(Color(0.12, 0.08, 0.06), 0.4, 0.3))
-	_label("ROOFTOP BAR", Vector3(-17, y + 2.4, 26.7), PI, Color(1.0, 0.4, 0.6), 70, 0.01)
+	_skydeck_board(y)
 	_crowd_build(y, sz)
 
 func _truss_tower(base: Vector3, h: float, mat: Material) -> void:
@@ -1465,6 +1475,142 @@ func _performer(at: Vector3, outfit: Color, mic: bool) -> void:
 		_light(at + Vector3(0, 4.0, 2.5), Color(1.0, 0.95, 0.9), 3.0, 7.0)
 
 ## the audience: one multimesh of figures, each bobbing to its own beat in _process
+## the skydeck boards: the round bar in the middle, fire-pit lounges round it, the pool to the west, the helipad over
+## the VIP entrance to the east, smoke at the corners, and the tower under the deck with the crowned GRAND CASINO
+## SKYDECK sign and violet falls down its front corners
+func _skydeck_board(y: float) -> void:
+	_bar(Vector3(SKY_BAR.x, y, SKY_BAR.z))
+	var sofa := flat(Color(0.82, 0.8, 0.76), 0.7)
+	var stone := flat(Color(0.05, 0.04, 0.06), 0.2, 0.3)
+	for lg: Vector3 in SKY_LOUNGES:
+		var c := Vector3(lg.x, y, lg.z)
+		# a horseshoe of sofa round a fire table, open toward the bar
+		var face := atan2(SKY_BAR.x - c.x, SKY_BAR.z - c.z)
+		for k in 7:
+			var a := face + PI * 0.35 + k * (PI * 1.3 / 6.0)
+			_box(Vector3(1.3, 0.45, 0.8), c + Vector3(sin(a), 0, cos(a)) * 2.3 + Vector3(0, 0.23, 0), sofa, null, a)
+			_box(Vector3(1.3, 0.55, 0.22), c + Vector3(sin(a), 0, cos(a)) * 2.7 + Vector3(0, 0.55, 0), sofa, null, a)
+		_cyl(0.95, 0.42, c + Vector3(0, 0.21, 0), stone)
+		_cyl(0.98, 0.04, c + Vector3(0, 0.43, 0), flat(GOLD, 0.25, 1.0))
+		_cyl(0.6, 0.12, c + Vector3(0, 0.5, 0), flat(Color(1.0, 0.5, 0.12), 0.3, 0.0, 9.0))
+		_light(c + Vector3(0, 1.4, 0), Color(1.0, 0.6, 0.3), 1.6, 5.0)
+	# the pool: glowing cyan water in a gold-edged basin, loungers along it
+	var px := -20.5
+	var pz := 21.5
+	var water := _shader("""
+shader_type spatial;
+render_mode unshaded;
+void fragment() {
+	vec2 p = UV * vec2(12.0, 14.0);
+	float w = sin(p.x * 2.1 + TIME * 1.3) * sin(p.y * 1.7 - TIME * 1.1) + sin((p.x + p.y) * 1.3 + TIME);
+	float caustic = smoothstep(0.9, 1.6, w);
+	ALBEDO = mix(vec3(0.05, 0.45, 0.75), vec3(0.4, 0.95, 1.0), caustic) * 1.4;
+}
+""")
+	_box(Vector3(13.0, 0.5, 15.0), Vector3(px, y + 0.25, pz), flat(Color(0.06, 0.05, 0.08), 0.2, 0.3))
+	var pool := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(12.0, 14.0)
+	pool.mesh = pm
+	pool.material_override = water
+	pool.position = Vector3(px, y + 0.52, pz)
+	world.add_child(pool)
+	for sz2: float in [-1.0, 1.0]:
+		_box(Vector3(13.2, 0.08, 0.3), Vector3(px, y + 0.54, pz + sz2 * 7.1), flat(GOLD, 0.25, 1.0))
+		_box(Vector3(0.3, 0.08, 15.2), Vector3(px + sz2 * 6.6, y + 0.54, pz), flat(GOLD, 0.25, 1.0))
+	_box(Vector3(13.4, 0.06, 0.12), Vector3(px, y + 0.03, pz - 7.6), flat(VIOLET, 0.3, 0.0, 5.0))
+	_light(Vector3(px, y + 2.0, pz), Color(0.3, 0.85, 1.0), 2.4, 12.0)
+	for k2 in 5:
+		_box(Vector3(0.75, 0.3, 2.0), Vector3(px + 7.6, y + 0.15, pz - 6.0 + k2 * 3.0), sofa)
+	# the helipad over the VIP entrance: a raised round pad, the H and the gold ring, a Rift helicopter on it
+	var hx := 20.5
+	var hz := 21.5
+	_cyl(7.0, 3.0, Vector3(hx, y + 1.5, hz), flat(Color(0.05, 0.04, 0.06), 0.25, 0.4), null, -1.0, 40)
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 6.6
+	tm.outer_radius = 6.85
+	tm.rings = 48
+	ring.mesh = tm
+	ring.position = Vector3(hx, y + 3.02, hz)
+	ring.material_override = flat(Color(1.0, 0.78, 0.2), 0.3, 0.0, 3.0)
+	world.add_child(ring)
+	var band := MeshInstance3D.new()
+	var bt := TorusMesh.new()
+	bt.inner_radius = 6.95
+	bt.outer_radius = 7.05
+	bt.rings = 48
+	band.mesh = bt
+	band.position = Vector3(hx, y + 2.6, hz)
+	band.material_override = flat(VIOLET, 0.3, 0.0, 5.0)
+	world.add_child(band)
+	var hmat := flat(Color(1.0, 0.85, 0.3), 0.4, 0.0, 1.5)
+	_box(Vector3(0.6, 0.03, 4.0), Vector3(hx - 1.3, y + 3.02, hz), hmat)
+	_box(Vector3(0.6, 0.03, 4.0), Vector3(hx + 1.3, y + 3.02, hz), hmat)
+	_box(Vector3(2.0, 0.03, 0.6), Vector3(hx, y + 3.02, hz), hmat)
+	_meshy("res://models/fleet/rift-helicopter.glb", Vector3(hx, y + 3.05, hz + 0.5), deg_to_rad(35.0), 11.0)
+	# the VIP door in the pad's west face: gold frame, crown, red carpet between stanchions
+	var vx := hx - 7.05
+	_box(Vector3(0.2, 2.8, 3.2), Vector3(vx, y + 1.4, hz), flat(Color(0.03, 0.02, 0.04), 0.15, 0.3))
+	_box(Vector3(0.22, 0.15, 3.5), Vector3(vx, y + 2.85, hz), flat(GOLD, 0.25, 1.0, 1.2))
+	for sd: float in [-1.0, 1.0]:
+		_box(Vector3(0.22, 2.9, 0.15), Vector3(vx, y + 1.45, hz + sd * 1.68), flat(GOLD, 0.25, 1.0, 1.2))
+	_label("VIP", Vector3(vx - 0.12, y + 2.2, hz), -PI * 0.5, Color(1.0, 0.82, 0.45), 120, 0.01)
+	_crown(Vector3(vx - 0.1, y + 3.2, hz), 0.35, flat(GOLD, 0.25, 1.0, 1.4))
+	_box(Vector3(5.5, 0.03, 1.8), Vector3(vx - 2.9, y + 0.02, hz), flat(Color(0.55, 0.03, 0.06), 0.8))
+	for k3 in 4:
+		for sd2: float in [-1.0, 1.0]:
+			var sp := Vector3(vx - 0.9 - k3 * 1.6, y, hz + sd2 * 1.25)
+			_cyl(0.05, 1.0, sp + Vector3(0, 0.5, 0), flat(GOLD, 0.25, 1.0))
+			_ball(0.08, sp + Vector3(0, 1.02, 0), flat(GOLD, 0.25, 1.0))
+		if k3 < 3:
+			for sd3: float in [-1.0, 1.0]:
+				_box(Vector3(1.6, 0.05, 0.05), Vector3(vx - 1.7 - k3 * 1.6, y + 0.85, hz + sd3 * 1.25), flat(Color(0.6, 0.04, 0.08), 0.6))
+	# the tower under the deck: dark glass floors with lit rooms, gold fins, a violet band at the deck edge
+	var tower := _shader("""
+shader_type spatial;
+render_mode unshaded;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void fragment() {
+	vec2 cell = floor(UV * vec2(30.0, 14.0));
+	vec2 f = fract(UV * vec2(30.0, 14.0));
+	float lit = step(0.5, h(cell)) * step(0.1, f.x) * step(f.x, 0.9) * step(0.2, f.y) * step(f.y, 0.85);
+	ALBEDO = vec3(0.02, 0.018, 0.03) + vec3(1.0, 0.72, 0.42) * lit * (0.5 + 0.6 * h(cell + 2.0));
+}
+""")
+	# only the top 13 m: the penthouse (240 m) sits below and looks out through its own glass
+	_box(Vector3(60.0, 13.0, 64.0), Vector3(0, y - 7.5, 0), tower)
+	_box(Vector3(60.6, 0.5, 64.6), Vector3(0, y - 1.3, 0), flat(VIOLET, 0.3, 0.0, 5.0))
+	for k4 in 13:
+		_box(Vector3(0.5, 13.0, 0.5), Vector3(-30.0 + k4 * 5.0, y - 7.5, 32.3), flat(GOLD, 0.25, 1.0, 0.5))
+	# the crowned sign on the front, as on the board
+	_box(Vector3(26.0, 11.5, 0.3), Vector3(0, y - 7.8, 32.4), flat(Color(0.02, 0.015, 0.03), 0.2, 0.3))
+	_crown(Vector3(0, y - 3.9, 32.65), 1.9, flat(GOLD, 0.25, 1.0, 1.8))
+	_label("GRAND", Vector3(0, y - 6.2, 32.62), 0.0, Color(1.0, 0.8, 0.42), 200, 0.014)
+	_label("CASINO", Vector3(0, y - 8.9, 32.62), 0.0, Color(1.0, 0.8, 0.42), 300, 0.017)
+	_label("S K Y D E C K", Vector3(0, y - 11.6, 32.62), 0.0, Color(1.0, 0.95, 0.9), 120, 0.012)
+	# violet falls down the front corners and smoke at the deck's four corners
+	var falls := _shader("""
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void fragment() {
+	float streak = h(vec2(floor(UV.x * 40.0), 0.0));
+	float flow = fract(UV.y * 3.0 + TIME * (0.6 + streak * 0.5) + streak * 7.0);
+	float a = (0.35 + 0.65 * smoothstep(0.3, 1.0, flow)) * smoothstep(1.0, 0.85, UV.y) * (0.6 + 0.4 * streak);
+	ALBEDO = mix(vec3(0.75, 0.35, 1.0), vec3(1.0, 0.85, 1.0), flow * 0.5) * a * 1.6;
+}
+""")
+	for fx: float in [-26.0, 26.0]:
+		var fall := MeshInstance3D.new()
+		var qm := QuadMesh.new()
+		qm.size = Vector2(5.0, 12.5)
+		fall.mesh = qm
+		fall.position = Vector3(fx, y - 7.8, 32.7)
+		fall.material_override = falls
+		fall.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		world.add_child(fall)
+
 func _crowd_build(y: float, sz: float) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -1473,10 +1619,20 @@ func _crowd_build(y: float, sz: float) -> void:
 	var pts: Array[Vector3] = []
 	var r := RandomNumberGenerator.new()
 	r.seed = 5
-	while pts.size() < 520:
+	while pts.size() < 440:
 		var p := Vector3(r.randf_range(-24, 24), y, r.randf_range(sz + 8.5, 22.0))
-		if absf(p.x) < 3.2 and p.z > 15.5 and p.z < 20.5:
-			continue  # the mix tent
+		if Vector2(p.x, p.z - SKY_BAR.z).length() < 8.0:
+			continue  # the round bar
+		if absf(p.x) > 12.5 and p.z > 12.0:
+			continue  # the pool (west) and the helipad / VIP (east)
+		if absf(p.x) > 20.5 and p.z < 5.0:
+			continue  # the cabanas
+		var in_lounge := false
+		for lg: Vector3 in SKY_LOUNGES:
+			if Vector2(p.x - lg.x, p.z - lg.z).length() < 3.4:
+				in_lounge = true
+		if in_lounge:
+			continue
 		# denser near the stage
 		if r.randf() > 1.15 - (p.z - (sz + 8.5)) / 40.0:
 			pts.append(p)
