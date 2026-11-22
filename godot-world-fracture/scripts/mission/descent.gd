@@ -95,6 +95,7 @@ func _ready() -> void:
 	_objective.modulate = Color(0.95, 0.85, 0.5)
 	add_child(_objective)
 	var back := Button.new()
+	_back_button = back
 	back.text = "← GLOBE"
 	back.position = Vector2(250, 8)   # right of the hull bar
 	back.pressed.connect(func(): _save(); closed.emit())
@@ -217,6 +218,22 @@ func _site(dist: float) -> Vector3:
 	return best
 
 var _gps: Control
+var _back_button: Button
+var _hud_hidden := false
+
+func _scene_on() -> bool:
+	return cutscene != null and cutscene.playing
+
+## a cutscene is a film: the HUD (hull, ammo, objective, the GPS, the buttons, the touch pad) steps out while it plays
+## and comes back when it ends (owner, Nov 22: "Stage everything" — the shots had the minimap over the faces)
+func _hud_for_scene() -> void:
+	var on := _scene_on()
+	if on == _hud_hidden:
+		return
+	_hud_hidden = on
+	for n in [controls, _objective, _coop_button, _coop_label, _gps, _back_button, beacon]:
+		if n != null and is_instance_valid(n):
+			n.visible = not on
 func _teardown_world() -> void:
 	_coop_stop()
 	if _gps:
@@ -442,6 +459,7 @@ func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
 	if region == null or enemies == null:
 		return
+	_hud_for_scene()
 	if cutscene and cutscene.playing:
 		# the scene plays; the world idles under it
 		enemies.step(dt)

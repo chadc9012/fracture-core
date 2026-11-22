@@ -74,15 +74,32 @@ const PEOPLE := [
 	{ "id": "voss", "name": "Commander Elias Voss", "age": 49, "body": "male", "build": "athletic", "job": "Frontier Defense Initiative commander", "personality": "gruff",
 		"outfit": "npc-swat", "tier": 3, "needs": "a05_choice", "beat": [-30.0, 30.0], "schedule": [[8, 20, "precinct", "patrol"]] },
 	{ "id": "seraphine", "name": "Dr. Seraphine Vale", "age": 38, "body": "female", "build": "slim", "job": "Fracture researcher", "personality": "proud",
-		"outfit": "npc-doctor", "tier": 3, "needs": "a05_choice", "schedule": [[9, 18, "plaza", "work"]] },
+		"outfit": "npc-doctor", "tier": 3, "needs": "a05_choice", "away": [["36", "62"]], "schedule": [[9, 18, "plaza", "work"]] },
 	{ "id": "ward", "name": "Director Helena Ward", "age": 55, "body": "female", "build": "slim", "job": "Frontier Defense Initiative director", "personality": "cynical",
-		"outfit": "npc-business", "tier": 3, "needs": "a05_choice", "schedule": [[10, 16, "precinct", "work"]] },
+		"outfit": "npc-business", "tier": 3, "needs": "a05_choice", "away": [["43", ""]], "schedule": [[10, 16, "precinct", "work"]] },
 	{ "id": "kael", "name": "Kael Draven", "age": 36, "body": "male", "build": "athletic", "job": "Free Operators leader", "personality": "cynical",
 		"outfit": "npc-all-black", "tier": 3, "needs": "a05_choice", "schedule": [[18, 2, "rift", "work"]] },
 	{ "id": "rainer", "name": "General Marcus Rainer", "age": 61, "body": "male", "build": "heavy", "job": "Frontier Defense Initiative general", "personality": "proud",
 		"outfit": "npc-swat", "tier": 3, "needs": "story_only", "schedule": [[10, 14, "precinct", "work"]] },
 	{ "id": "cole", "name": "Captain Adrian Cole", "age": 33, "body": "male", "build": "athletic", "job": "Haven-01 captain", "personality": "warm",
 		"outfit": "olive-utility", "tier": 3, "needs": "story_only", "schedule": [[8, 18, "plaza", "work"]] },
+	# the main story from Mission 8 (tools/campaign/story/): out on the avenue once their mission is done
+	# (`needs` "aftershock_done:<mission>"), away while the story has them elsewhere (`away`: [[from, back], …], back ""
+	# = for good)
+	{ "id": "ilyra", "name": "Ilyra Sen", "age": 40, "body": "female", "build": "slim", "job": "Voice of the Concord", "personality": "warm",
+		"outfit": "npc-summer", "tier": 3, "needs": "aftershock_done:12", "schedule": [[6, 11, "plaza", "work"]] },
+	{ "id": "auren", "name": "Auren Thale", "age": 70, "body": "male", "build": "heavy", "job": "First Cartographer", "personality": "cynical",
+		"outfit": "npc-elder", "tier": 3, "needs": "aftershock_done:17", "schedule": [[14, 20, "cafe", "work"]] },
+	{ "id": "nyx", "name": "Nyx", "age": 27, "body": "female", "build": "slim", "job": "Free Operator tracker", "personality": "cynical",
+		"outfit": "npc-hunter", "tier": 3, "needs": "aftershock_done:11", "schedule": [[19, 3, "plaza", "patrol"]] },
+	{ "id": "goliath", "name": "Marcus \"Goliath\" Reyes", "age": 34, "body": "male", "build": "heavy", "job": "Frontier Defense heavy", "personality": "warm",
+		"outfit": "npc-swat", "tier": 3, "needs": "aftershock_done:14", "beat": [-20.0, 20.0], "schedule": [[7, 15, "precinct", "patrol"]] },
+	{ "id": "cipher", "name": "Ari \"Cipher\" Volk", "age": 30, "body": "male", "build": "slim", "job": "Ascendancy defector", "personality": "proud",
+		"outfit": "npc-leather", "tier": 3, "needs": "aftershock_done:15", "schedule": [[11, 18, "cafe", "work"]] },
+	{ "id": "crane", "name": "Prefect Lysander Crane", "age": 52, "body": "male", "build": "slim", "job": "Ascendancy prefect", "personality": "proud",
+		"outfit": "npc-beige-suit", "tier": 3, "needs": "aftershock_done:08", "schedule": [[12, 17, "plaza", "work"]] },
+	{ "id": "oda", "name": "Chief Oda", "age": 58, "body": "female", "build": "heavy", "job": "Depth Engineers chief", "personality": "gruff",
+		"outfit": "npc-engineer", "tier": 3, "needs": "aftershock_done:30", "schedule": [[6, 10, "garage", "work"]] },
 	{ "id": "gloria", "name": "Gloria Haynes", "age": 52, "body": "female", "build": "heavy", "job": "construction foreman", "personality": "gruff",
 		"outfit": "olive-utility", "schedule": [[7, 16, "descent", "work"]] },
 ]
@@ -105,6 +122,8 @@ const NEON_PLACES := {
 
 ## Neon City wakes up at night: racers, the casino, the night market, hackers; the law works both shifts
 const NEON := [
+	{ "id": "vesper", "name": "Vesper", "age": 35, "body": "female", "build": "slim", "job": "fixer and information broker", "personality": "chatty",
+		"outfit": "npc-leather", "tier": 3, "needs": "aftershock_done:18", "schedule": [[20, 4, "market", "work"]] },
 	{ "id": "kai", "name": "Kai “Redline” Tanaka", "age": 27, "body": "male", "build": "athletic", "job": "street racer", "personality": "proud",
 		"outfit": "midnight-varsity", "schedule": [[20, 4, "garage", "work"]] },
 	{ "id": "vex", "name": "Vex Morales", "age": 30, "body": "female", "build": "heavy", "job": "casino door", "personality": "gruff",
@@ -237,8 +256,16 @@ static func city_of(id: String) -> String:
 	return "nexus"
 
 ## a tier 3 person may wait on the story: `needs` names a profile key that must be set (Captain Vale: m05_choice)
+## (main-story people: "aftershock_done:<mission>" — out once that mission is done; `away` hides them while the story
+## has them elsewhere — Ward after Haven falls, Seraphine while she stands beside the Architect)
 static func available(p: Dictionary, profile: Dictionary) -> bool:
 	var need := String(p.get("needs", ""))
+	var done: Array = profile.get("aftershock_done", [])
+	for span in p.get("away", []):
+		if done.has(String(span[0])) and (String(span[1]) == "" or not done.has(String(span[1]))):
+			return false
+	if need.contains(":"):
+		return (profile.get(need.get_slice(":", 0), []) as Array).has(need.get_slice(":", 1))
 	return need == "" or String(profile.get(need, "")) != ""
 
 static func tier(p: Dictionary) -> int:

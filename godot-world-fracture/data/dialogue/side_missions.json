@@ -691,6 +691,465 @@
    ]
   },
   {
+   "id": "C13",
+   "title": "The Lamp's Room",
+   "giver": "THE ECHO",
+   "region": "Thalassia",
+   "world": "thalassia",
+   "after": "31",
+   "beat": "The Echo left a room's worth of itself in NOVA, and it wants to see the sky",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC13A",
+     "title": "A Warm Room",
+     "location": "INT. THALASSIA — THE PORT",
+     "kind": "cutscene",
+     "start": "th-port",
+     "open": [
+      "SC13_001",
+      "SC13_002",
+      "SC13_003",
+      "SC13_004",
+      "SC13_005"
+     ],
+     "close": [],
+     "stage": "dome"
+    },
+    {
+     "id": "SC13B",
+     "title": "Up",
+     "location": "INT. THALASSIA — THE TRANSIT TUBES",
+     "kind": "reach",
+     "to": "th-arcadia",
+     "label": "Carry the Echo up to the Arcadia dome",
+     "open": [
+      "SC13_006"
+     ],
+     "close": [
+      "SC13_007",
+      "SC13_008",
+      "SC13_009",
+      "SC13_010",
+      "SC13_011"
+     ],
+     "stage": "dome"
+    }
+   ]
+  },
+  {
+   "id": "C14",
+   "title": "The Map's Last Sheet",
+   "giver": "AUREN THALE",
+   "region": "The Shattered Expanse",
+   "world": "shattered-reefs",
+   "after": "60",
+   "beat": "Auren wants to draw the one place his map never could",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC14A",
+     "title": "Ink",
+     "location": "EXT. THE SHATTERED EXPANSE — THE PORT",
+     "kind": "talk",
+     "who": "AUREN THALE",
+     "start": "sr-port",
+     "label": "Meet Auren at the Expanse port",
+     "open": [],
+     "close": [
+      "SC14_001",
+      "SC14_002",
+      "SC14_003"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC14B",
+     "title": "Survey",
+     "location": "EXT. THE DRIFT",
+     "kind": "trace",
+     "label": "Hold the survey stakes while Auren draws",
+     "open": [
+      "SC14_004"
+     ],
+     "close": [
+      "SC14_005",
+      "SC14_006",
+      "SC14_007"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "C15",
+   "title": "The Ledger's Price",
+   "giver": "VESPER",
+   "region": "Neon City",
+   "world": "neon-city",
+   "after": "20",
+   "beat": "Somebody wants Vesper dead for selling the ledger's location",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC15A",
+     "title": "Debt",
+     "location": "INT. THE UNDERGROUND — VESPER'S ROOM",
+     "kind": "talk",
+     "who": "VESPER",
+     "start": "neon-underground",
+     "to": "neon-underground",
+     "label": "Answer Vesper's call",
+     "open": [],
+     "close": [
+      "SC15_001",
+      "SC15_002",
+      "SC15_003"
+     ],
+     "stage": "neon_street"
+    },
+    {
+     "id": "SC15B",
+     "title": "Callers",
+     "location": "INT. THE UNDERGROUND",
+     "kind": "survive",
+     "amount": 50,
+     "label": "Keep Vesper's door shut",
+     "open": [
+      "SC15_004"
+     ],
+     "close": [
+      "SC15_005",
+      "SC15_006",
+      "SC15_007"
+     ],
+     "stage": "neon_street"
+    }
+   ]
+  },
+  {
+   "id": "C16",
+   "title": "Thaw",
+   "giver": "DR. HALVARD",
+   "region": "Frostveil",
+   "world": "frostveil",
+   "after": "37",
+   "beat": "The station's engineers who tried to lift the crown are still silent",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC16A",
+     "title": "Three Engineers",
+     "location": "INT. FROSTVEIL STATION",
+     "kind": "talk",
+     "who": "DR. HALVARD",
+     "start": "fv-station",
+     "to": "fv-station",
+     "label": "Find Halvard in the station",
+     "open": [],
+     "close": [
+      "SC16_001",
+      "SC16_002",
+      "SC16_003"
+     ],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "SC16B",
+     "title": "The Last Note",
+     "location": "EXT. FROSTVEIL — THE SHELF",
+     "kind": "kills",
+     "amount": 6,
+     "to": "fv-shelf",
+     "label": "Break the silence relays",
+     "open": [
+      "SC16_004"
+     ],
+     "close": [
+      "SC16_005",
+      "SC16_006"
+     ],
+     "stage": "snow_camp"
+    }
+   ]
+  },
+  {
+   "id": "C17",
+   "title": "Vigilance Tells the Best Stories",
+   "giver": "PHANTOM CHILD",
+   "region": "The Origin Engine — the Capital",
+   "world": "nexus",
+   "after": "52",
+   "beat": "The phantom child in the Engine wants one last story",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC17A",
+     "title": "The Garden Square",
+     "location": "EXT. THE CELESTIAL CAPITAL — A GARDEN SQUARE",
+     "kind": "talk",
+     "who": "PHANTOM CHILD",
+     "start": "nexus-central-plaza",
+     "label": "Find the child in the garden square",
+     "open": [],
+     "close": [
+      "SC17_001",
+      "SC17_002",
+      "SC17_003"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC17B",
+     "title": "Once",
+     "location": "EXT. THE GARDEN SQUARE",
+     "kind": "cutscene",
+     "open": [
+      "SC17_004",
+      "SC17_005",
+      "SC17_006",
+      "SC17_007",
+      "SC17_008",
+      "SC17_009",
+      "SC17_010"
+     ],
+     "close": [],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "C18",
+   "title": "Names",
+   "giver": "RESEARCHER LUNE",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "40",
+   "beat": "Lune wants every volunteer in the Ascendancy's records called by their name",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC18A",
+     "title": "Forty-One Files",
+     "location": "INT. ASCENDANCY TOWER",
+     "kind": "hack",
+     "start": "nexus-university",
+     "label": "Open the volunteer files",
+     "open": [
+      "SC18_001",
+      "SC18_002"
+     ],
+     "close": [
+      "SC18_003"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC18B",
+     "title": "Read Them",
+     "location": "INT. ASCENDANCY TOWER",
+     "kind": "cutscene",
+     "open": [
+      "SC18_004",
+      "SC18_005",
+      "SC18_006",
+      "SC18_007"
+     ],
+     "close": [],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "E13",
+   "title": "The Second Moon",
+   "category": "event",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "47",
+   "beat": "A reflection of the Engine's sky hangs over Nexus for a night",
+   "chapters": [
+    {
+     "id": "SE13A",
+     "title": "Two Moons",
+     "location": "EXT. NEXUS — THE HARBOUR",
+     "kind": "cutscene",
+     "start": "nexus-harbor",
+     "open": [
+      "SE13_001",
+      "SE13_002",
+      "SE13_003"
+     ],
+     "close": [],
+     "stage": "street"
+    },
+    {
+     "id": "SE13B",
+     "title": "Moonstruck",
+     "location": "EXT. NEXUS — THE HARBOUR",
+     "kind": "survive",
+     "amount": 45,
+     "label": "Keep the harbour calm until moonset",
+     "open": [
+      "SE13_004"
+     ],
+     "close": [
+      "SE13_005",
+      "SE13_006",
+      "SE13_007"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "E14",
+   "title": "The Lantern Road",
+   "category": "event",
+   "region": "Old Harrow",
+   "world": "old-harrow",
+   "after": "70",
+   "beat": "After the door is kept, the first visitors from the other side arrive at Old Harrow",
+   "chapters": [
+    {
+     "id": "SE14A",
+     "title": "Visitors",
+     "location": "EXT. OLD HARROW — THE BRIDGE",
+     "kind": "talk",
+     "who": "CIVILIAN",
+     "start": "oh-market",
+     "to": "oh-bridge",
+     "label": "Meet the visitors on the bridge",
+     "open": [
+      "SE14_001"
+     ],
+     "close": [
+      "SE14_002",
+      "SE14_003",
+      "SE14_004",
+      "SE14_005"
+     ],
+     "stage": "harrow"
+    }
+   ]
+  },
+  {
+   "id": "E15",
+   "title": "Dead Air",
+   "category": "event",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "08",
+   "beat": "Radio Free Nexus goes silent mid-broadcast",
+   "chapters": [
+    {
+     "id": "SE15A",
+     "title": "Static",
+     "location": "EXT. NEXUS — THE RELAY TOWERS",
+     "kind": "trace",
+     "start": "nexus-central-plaza",
+     "label": "Find out why the free radio stopped",
+     "open": [
+      "SE15_001",
+      "SE15_002"
+     ],
+     "close": [
+      "SE15_003"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "E16",
+   "title": "Bloomfall",
+   "category": "event",
+   "region": "Verdant Forest — Eldergrove",
+   "world": "eldergrove",
+   "after": "62",
+   "beat": "Every tree in Eldergrove flowers at once when the fourth seal sings",
+   "chapters": [
+    {
+     "id": "SE16A",
+     "title": "Petals",
+     "location": "EXT. ELDERGROVE VILLAGE",
+     "kind": "talk",
+     "who": "ELDER MAREN",
+     "start": "eg-village",
+     "to": "eg-village",
+     "label": "Find the elder in the falling petals",
+     "open": [],
+     "close": [
+      "SE16_001",
+      "SE16_002",
+      "SE16_003",
+      "SE16_004"
+     ],
+     "stage": "forest"
+    }
+   ]
+  },
+  {
+   "id": "E17",
+   "title": "Thalassian Sunrise",
+   "category": "event",
+   "region": "Thalassia",
+   "world": "thalassia",
+   "after": "30",
+   "beat": "The engineers' first trip up to see the sunrise",
+   "chapters": [
+    {
+     "id": "SE17A",
+     "title": "Up Top",
+     "location": "INT. THALASSIA — THE PORT",
+     "kind": "talk",
+     "who": "CHIEF ODA",
+     "start": "th-port",
+     "to": "th-port",
+     "label": "Ride the first sunrise pod with the engineers",
+     "open": [],
+     "close": [
+      "SE17_001",
+      "SE17_002",
+      "SE17_003",
+      "SE17_004",
+      "SE17_005",
+      "SE17_006"
+     ],
+     "stage": "dome"
+    }
+   ]
+  },
+  {
+   "id": "E18",
+   "title": "The Quiet Market",
+   "category": "event",
+   "region": "Neon City",
+   "world": "neon-city",
+   "after": "66",
+   "beat": "The Choir's last stragglers try to silence Neon's night market",
+   "chapters": [
+    {
+     "id": "SE18A",
+     "title": "Turn It Up",
+     "location": "EXT. NEON CITY — THE NIGHT MARKET",
+     "kind": "kills",
+     "amount": 8,
+     "start": "neon-dealer",
+     "label": "Clear the silence from the market",
+     "open": [
+      "SE18_001",
+      "SE18_002"
+     ],
+     "close": [
+      "SE18_003",
+      "SE18_004"
+     ],
+     "stage": "neon_street"
+    }
+   ]
+  },
+  {
    "id": "F01",
    "title": "Perimeter",
    "faction": "fdi",
@@ -2560,6 +3019,468 @@
    "mission": "C12",
    "speaker": "CHIEF ODA",
    "text": "She believed in eventually. That's what engineers do. We make eventually take a very long time."
+  },
+  {
+   "id": "SC13_001",
+   "mission": "C13",
+   "speaker": "NOVA",
+   "text": "Operator. The room the Echo left in me has started asking questions."
+  },
+  {
+   "id": "SC13_002",
+   "mission": "C13",
+   "speaker": "PLAYER",
+   "text": "What kind of questions?"
+  },
+  {
+   "id": "SC13_003",
+   "mission": "C13",
+   "speaker": "THE ECHO",
+   "text": "...the lamp says there is a sky... above the water... I have never seen one..."
+  },
+  {
+   "id": "SC13_004",
+   "mission": "C13",
+   "speaker": "NOVA",
+   "text": "It has spent longer than human history in the dark. It would like to see the sky once."
+  },
+  {
+   "id": "SC13_005",
+   "mission": "C13",
+   "speaker": "PLAYER",
+   "text": "Then let's take it up."
+  },
+  {
+   "id": "SC13_006",
+   "mission": "C13",
+   "speaker": "THE ECHO",
+   "text": "...the water is getting lighter... is that what lighter means..."
+  },
+  {
+   "id": "SC13_007",
+   "mission": "C13",
+   "speaker": "THE ECHO",
+   "text": "...oh..."
+  },
+  {
+   "id": "SC13_008",
+   "mission": "C13",
+   "speaker": "NOVA",
+   "text": "It's looking through me. At the light on the glass."
+  },
+  {
+   "id": "SC13_009",
+   "mission": "C13",
+   "speaker": "THE ECHO",
+   "text": "...it is not a question... the sky is not a question... it is an answer nobody asked for..."
+  },
+  {
+   "id": "SC13_010",
+   "mission": "C13",
+   "speaker": "NOVA",
+   "text": "I think it's happy. I think I am too. We're sharing it."
+  },
+  {
+   "id": "SC13_011",
+   "mission": "C13",
+   "speaker": "PLAYER",
+   "text": "That's the best kind."
+  },
+  {
+   "id": "SC14_001",
+   "mission": "C14",
+   "speaker": "AUREN THALE",
+   "text": "The edge of the glass. I've mapped everything else. I want one sheet of the place nobody decided."
+  },
+  {
+   "id": "SC14_002",
+   "mission": "C14",
+   "speaker": "PLAYER",
+   "text": "Can you map somewhere undecided?"
+  },
+  {
+   "id": "SC14_003",
+   "mission": "C14",
+   "speaker": "AUREN THALE",
+   "text": "No. That's why I want to try. Walk with me. Stay close. The ground's still in two minds."
+  },
+  {
+   "id": "SC14_004",
+   "mission": "C14",
+   "speaker": "AUREN THALE",
+   "text": "Three stakes. I draw between them. Don't let anything knock them over. Especially the ground."
+  },
+  {
+   "id": "SC14_005",
+   "mission": "C14",
+   "speaker": "AUREN THALE",
+   "text": "There. Look. It's blank."
+  },
+  {
+   "id": "SC14_006",
+   "mission": "C14",
+   "speaker": "PLAYER",
+   "text": "You drew nothing?"
+  },
+  {
+   "id": "SC14_007",
+   "mission": "C14",
+   "speaker": "AUREN THALE",
+   "text": "I drew it exactly. It's the most accurate map I've ever made. Nothing's been decided there yet. Isn't it beautiful?"
+  },
+  {
+   "id": "SC15_001",
+   "mission": "C15",
+   "speaker": "VESPER",
+   "text": "I sold you where the ledger was. Everyone on the ledger knows who sold it. I'd like to keep my head."
+  },
+  {
+   "id": "SC15_002",
+   "mission": "C15",
+   "speaker": "PLAYER",
+   "text": "Who's coming?"
+  },
+  {
+   "id": "SC15_003",
+   "mission": "C15",
+   "speaker": "VESPER",
+   "text": "Everyone who paid into it. Tonight. I'd prefer they find you instead of me."
+  },
+  {
+   "id": "SC15_004",
+   "mission": "C15",
+   "speaker": "VESPER",
+   "text": "I'll be under the desk. Being brave."
+  },
+  {
+   "id": "SC15_005",
+   "mission": "C15",
+   "speaker": "VESPER",
+   "text": "Still have my head. Lovely. What do I owe you?"
+  },
+  {
+   "id": "SC15_006",
+   "mission": "C15",
+   "speaker": "PLAYER",
+   "text": "Nothing."
+  },
+  {
+   "id": "SC15_007",
+   "mission": "C15",
+   "speaker": "VESPER",
+   "text": "Nobody in Neon City has ever said that to me. I'm going to have to sit down."
+  },
+  {
+   "id": "SC16_001",
+   "mission": "C16",
+   "speaker": "DR. HALVARD",
+   "text": "The three who tried to lift the crown. They can hear now. They still can't speak."
+  },
+  {
+   "id": "SC16_002",
+   "mission": "C16",
+   "speaker": "NOVA",
+   "text": "The Cantor's silence lingers in them. There may be a relay of it under the shelf, still singing."
+  },
+  {
+   "id": "SC16_003",
+   "mission": "C16",
+   "speaker": "DR. HALVARD",
+   "text": "Then break it. Please. One of them is my son."
+  },
+  {
+   "id": "SC16_004",
+   "mission": "C16",
+   "speaker": "NOVA",
+   "text": "Small constructs. Humming one note. Over and over."
+  },
+  {
+   "id": "SC16_005",
+   "mission": "C16",
+   "speaker": "DR. HALVARD",
+   "text": "...He said my name. He said my name. Thank you."
+  },
+  {
+   "id": "SC16_006",
+   "mission": "C16",
+   "speaker": "NOVA",
+   "text": "The other two are laughing. I think at nothing. I think that's allowed."
+  },
+  {
+   "id": "SC17_001",
+   "mission": "C17",
+   "speaker": "PHANTOM CHILD",
+   "text": "Vigilance! You came back! Tell me a story. The one about the people before the people."
+  },
+  {
+   "id": "SC17_002",
+   "mission": "C17",
+   "speaker": "NOVA",
+   "text": "...I don't remember it."
+  },
+  {
+   "id": "SC17_003",
+   "mission": "C17",
+   "speaker": "PHANTOM CHILD",
+   "text": "You do. You just have to start."
+  },
+  {
+   "id": "SC17_004",
+   "mission": "C17",
+   "speaker": "NOVA",
+   "text": "Once, before there were people, there was a question. And some very tired, very brave people tried to answer it."
+  },
+  {
+   "id": "SC17_005",
+   "mission": "C17",
+   "speaker": "NOVA",
+   "text": "They couldn't. So they left a seed instead. A seed that would grow into someone who could ask it properly."
+  },
+  {
+   "id": "SC17_006",
+   "mission": "C17",
+   "speaker": "PHANTOM CHILD",
+   "text": "Did the seed grow?"
+  },
+  {
+   "id": "SC17_007",
+   "mission": "C17",
+   "speaker": "NOVA",
+   "text": "It did. It's standing right here. It's quite tall now. It crashes trucks."
+  },
+  {
+   "id": "SC17_008",
+   "mission": "C17",
+   "speaker": "PLAYER",
+   "text": "One truck."
+  },
+  {
+   "id": "SC17_009",
+   "mission": "C17",
+   "speaker": "PHANTOM CHILD",
+   "text": "That's the best ending. Mama said you'd tell it best."
+  },
+  {
+   "id": "SC17_010",
+   "mission": "C17",
+   "speaker": "NOVA",
+   "text": "She's gone. The Engine's let her rest. I think she was waiting for the end of the story."
+  },
+  {
+   "id": "SC18_001",
+   "mission": "C18",
+   "speaker": "RESEARCHER LUNE",
+   "text": "Every volunteer is a number in the system. Crane says names make the work harder."
+  },
+  {
+   "id": "SC18_002",
+   "mission": "C18",
+   "speaker": "PLAYER",
+   "text": "He's right. That's why we're doing it."
+  },
+  {
+   "id": "SC18_003",
+   "mission": "C18",
+   "speaker": "NOVA",
+   "text": "Files open. Two hundred and twelve volunteers. Two hundred and twelve names."
+  },
+  {
+   "id": "SC18_004",
+   "mission": "C18",
+   "speaker": "RESEARCHER LUNE",
+   "text": "Tallis Volk. Tomas Arden. Mira Celt. Joan Okafor. Ben and Rosa Lin, twins."
+  },
+  {
+   "id": "SC18_005",
+   "mission": "C18",
+   "speaker": "RESEARCHER LUNE",
+   "text": "I'm going to read all of them. Out loud. It'll take a while."
+  },
+  {
+   "id": "SC18_006",
+   "mission": "C18",
+   "speaker": "CRANE",
+   "text": "...Go on, Lune. I'm listening."
+  },
+  {
+   "id": "SC18_007",
+   "mission": "C18",
+   "speaker": "NOVA",
+   "text": "I am recording every one."
+  },
+  {
+   "id": "SE13_001",
+   "mission": "E13",
+   "speaker": "NOVA",
+   "text": "There are two moons over Nexus tonight. One of them is the Astryan sky leaking through the Engine."
+  },
+  {
+   "id": "SE13_002",
+   "mission": "E13",
+   "speaker": "CIVILIAN",
+   "text": "Is it the end of the world?"
+  },
+  {
+   "id": "SE13_003",
+   "mission": "E13",
+   "speaker": "PLAYER",
+   "text": "No. It's just a very old sky saying hello."
+  },
+  {
+   "id": "SE13_004",
+   "mission": "E13",
+   "speaker": "NOVA",
+   "text": "Riftwalkers are stepping through the reflection. Small numbers. Curious."
+  },
+  {
+   "id": "SE13_005",
+   "mission": "E13",
+   "speaker": "NOVA",
+   "text": "Moonset. The second one's gone."
+  },
+  {
+   "id": "SE13_006",
+   "mission": "E13",
+   "speaker": "CIVILIAN",
+   "text": "My kids want to know if it'll come back."
+  },
+  {
+   "id": "SE13_007",
+   "mission": "E13",
+   "speaker": "PLAYER",
+   "text": "Tell them to keep looking up."
+  },
+  {
+   "id": "SE14_001",
+   "mission": "E14",
+   "speaker": "NOVA",
+   "text": "Someone has walked out of the old parade's road. Real this time. Carrying a lantern."
+  },
+  {
+   "id": "SE14_002",
+   "mission": "E14",
+   "speaker": "CIVILIAN",
+   "text": "We followed the singing. Is this... is this where the door is?"
+  },
+  {
+   "id": "SE14_003",
+   "mission": "E14",
+   "speaker": "PLAYER",
+   "text": "It's one of them. Welcome."
+  },
+  {
+   "id": "SE14_004",
+   "mission": "E14",
+   "speaker": "CIVILIAN",
+   "text": "We didn't know if anyone would be on this side."
+  },
+  {
+   "id": "SE14_005",
+   "mission": "E14",
+   "speaker": "NOVA",
+   "text": "There always will be, now. That's what kept means."
+  },
+  {
+   "id": "SE15_001",
+   "mission": "E15",
+   "speaker": "RADIO FREE NEXUS",
+   "text": "...water at the harbour... shelter at — "
+  },
+  {
+   "id": "SE15_002",
+   "mission": "E15",
+   "speaker": "NOVA",
+   "text": "The broadcast cut out. All three relays. Something is sitting on them."
+  },
+  {
+   "id": "SE15_003",
+   "mission": "E15",
+   "speaker": "RADIO FREE NEXUS",
+   "text": "...sorry about that, Nexus. A little technical difficulty with a very large bird. We're back. You're not alone."
+  },
+  {
+   "id": "SE16_001",
+   "mission": "E16",
+   "speaker": "ELDER MAREN",
+   "text": "Every tree flowered at dawn. All of them. Even the dead ones."
+  },
+  {
+   "id": "SE16_002",
+   "mission": "E16",
+   "speaker": "ILYRA SEN",
+   "text": "The fourth seal sang. The forest heard. It always hears."
+  },
+  {
+   "id": "SE16_003",
+   "mission": "E16",
+   "speaker": "ELDER MAREN",
+   "text": "Will it happen again?"
+  },
+  {
+   "id": "SE16_004",
+   "mission": "E16",
+   "speaker": "ILYRA SEN",
+   "text": "Every time someone keeps a promise. So, not often. But sometimes."
+  },
+  {
+   "id": "SE17_001",
+   "mission": "E17",
+   "speaker": "CHIEF ODA",
+   "text": "Eighty of us in a pod built for forty. Nobody complained. Nobody breathed, either."
+  },
+  {
+   "id": "SE17_002",
+   "mission": "E17",
+   "speaker": "CHIEF ODA",
+   "text": "There. Look. On fire and everywhere. Again."
+  },
+  {
+   "id": "SE17_003",
+   "mission": "E17",
+   "speaker": "PLAYER",
+   "text": "You've seen it before."
+  },
+  {
+   "id": "SE17_004",
+   "mission": "E17",
+   "speaker": "CHIEF ODA",
+   "text": "Once. Once is not enough of anything this good."
+  },
+  {
+   "id": "SE17_005",
+   "mission": "E17",
+   "speaker": "NOVA",
+   "text": "The engineers are crying. Every one of them."
+  },
+  {
+   "id": "SE17_006",
+   "mission": "E17",
+   "speaker": "CHIEF ODA",
+   "text": "Salt water. We're used to it."
+  },
+  {
+   "id": "SE18_001",
+   "mission": "E18",
+   "speaker": "NOVA",
+   "text": "The Choir's last constructs. They've found the loudest place in Neon City and are trying to make it quiet."
+  },
+  {
+   "id": "SE18_002",
+   "mission": "E18",
+   "speaker": "VESPER",
+   "text": "Over my dead body. And my stall's."
+  },
+  {
+   "id": "SE18_003",
+   "mission": "E18",
+   "speaker": "VESPER",
+   "text": "Music back on! Everybody, louder! Louder than that!"
+  },
+  {
+   "id": "SE18_004",
+   "mission": "E18",
+   "speaker": "NOVA",
+   "text": "Four hundred people singing very badly. It's perfect."
   },
   {
    "id": "SF01_001",

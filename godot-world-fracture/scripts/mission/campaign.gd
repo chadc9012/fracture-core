@@ -440,6 +440,13 @@ func _choice_key(mission: String) -> String:
 func coop_chain() -> String:
 	return "campaign"
 
+## a choice on screen is part of the scene too: the HUD stays out until it's made
+func _scene_on() -> bool:
+	return super() or (choice_view != null and choice_view.visible) or (_card_up())
+
+func _card_up() -> bool:
+	return false
+
 func _busy() -> bool:
 	return super() or (choice_view != null and choice_view.visible) or race_view != null
 

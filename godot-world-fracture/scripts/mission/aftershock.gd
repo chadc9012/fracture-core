@@ -48,6 +48,9 @@ func _begin(id: String) -> void:
 			return
 	super(id)
 
+func _card_up() -> bool:
+	return _card != null
+
 func _chapter_of(def: Dictionary) -> Array:
 	for m in _story().get("missions", []):
 		if String(m.id) == String(def.get("mission", "")):

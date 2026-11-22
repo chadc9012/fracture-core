@@ -23,7 +23,7 @@ STAGE_BY_WORLD = {"nexus": "street", "neon-city": "neon_street", "wastelands": "
 def main():
     out = {"version": 1, "source": "tools/campaign/side/*.py (character quests, faction missions, world events)",
            "bosses": BOSSES, "missions": [], "lines": []}
-    for name in ("characters", "factions", "events"):
+    for name in ("characters", "keepers", "factions", "events"):
         spec = importlib.util.spec_from_file_location(name, os.path.join(HERE, name + ".py"))
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
@@ -40,7 +40,7 @@ def main():
                 return res
 
             mo = {k: v for k, v in m.items() if k != "chapters"}
-            mo["category"] = mod.CATEGORY
+            mo["category"] = m.get("category", mod.CATEGORY)
             mo["chapters"] = []
             for c in m["chapters"]:
                 assert c["kind"] in KINDS, c["kind"]
