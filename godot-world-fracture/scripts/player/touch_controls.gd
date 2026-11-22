@@ -593,8 +593,24 @@ func show_abilities(list: Array) -> void:
 		var b: Button = _ability_buttons[i]
 		var h: Dictionary = list[i]
 		var r := clampf(float(h.ready), 0.0, 1.0)
-		b.text = "%s\n%s" % [String(h.name).split(" ")[0], "READY" if r >= 1.0 else "%d%%" % int(r * 100.0)]
-		b.modulate = (h.color as Color).lerp(Color.WHITE, 0.35) if r >= 1.0 else Color(0.7, 0.7, 0.75, 0.75)
+		# the boards' ability tile, drawn on the button (its text stays empty)
+		b.text = ""
+		b.modulate = Color(1, 1, 1, 1)
+		b.set_meta("tile", h)
+		b.set_meta("tile_i", i)
+		if not b.has_meta("tile_hooked"):
+			b.set_meta("tile_hooked", true)
+			for st in ["normal", "hover", "pressed"]:
+				var sb := StyleBoxEmpty.new()
+				b.add_theme_stylebox_override(st, sb)
+			b.draw.connect(func():
+				var hh: Dictionary = b.get_meta("tile", {})
+				var side := minf(b.size.x, b.size.y)
+				var rr := Rect2((b.size.x - side) * 0.5, (b.size.y - side) * 0.5, side, side)
+				BoardHud.tile(b, rr, hh, int(b.get_meta("tile_i", 0)), "", ThemeDB.fallback_font))
+		b.queue_redraw()
+	if hud:
+		hud.set("abilities", list if (not touch_ui and mode == "foot" and weapons_out) else [])
 	if touch_ui:
 		return
 	if not _ability_label:
@@ -610,7 +626,7 @@ func show_abilities(list: Array) -> void:
 		var h2: Dictionary = list[i]
 		var r2 := clampf(float(h2.ready), 0.0, 1.0)
 		parts.append("%d %s %s" % [i + 1, String(h2.name), "●" if r2 >= 1.0 else "%d%%" % int(r2 * 100.0)])
-	_ability_label.text = "   ".join(parts) if mode == "foot" and weapons_out else ""
+	_ability_label.text = ""   # the board's tiles (board_hud.gd) show them now
 
 ## the sights are up: the phone's toggle, the right mouse button, the left trigger
 func ads() -> bool:

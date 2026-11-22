@@ -483,6 +483,7 @@ func _process(dt: float) -> void:
 	if wildlife:
 		wildlife.step(dt)
 	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
+	_board_objective()
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:
@@ -928,3 +929,29 @@ func _toggle_coop() -> void:
 func _coop_paint() -> void:
 	if _coop_button:
 		_coop_button.text = "CO-OP: OPEN" if online else "CO-OP: PRIVATE"
+
+## the boards' quest panel (board_hud.gd) carries the objective: first line the title, the rest its steps; the old label
+## keeps the text (tests and co-op read it) but no longer draws
+var _board_obj_was := ""
+func _board_objective() -> void:
+	if not controls or not controls.hud or not _objective:
+		return
+	_objective.self_modulate.a = 0.0
+	var t := _objective.text
+	if t == _board_obj_was:
+		return
+	_board_obj_was = t
+	var rows := t.split("\n", false)
+	if rows.is_empty():
+		controls.hud.call("set_quest", "", [])
+		return
+	var lines: Array = []
+	for i in range(1, rows.size()):
+		lines.append({ "text": rows[i], "done": false })
+	if lines.is_empty():
+		lines.append({ "text": rows[0], "done": true })
+	controls.hud.call("set_quest", rows[0], lines)
+	var w := String(quest.get("world", "")) if quest is Dictionary else ""
+	var names := { "veridan": "Verdant Forest", "neon": "Neon City", "nexus": "Nexus City", "swamps": "Shrouded Swamps", "solara": "Solara Desert", "ember": "Ember Peaks", "frostspire": "Frost Spire", "wastelands": "The Wastelands", "thalassia": "Thalassia" }
+	controls.hud.set("place", String(names.get(w, w.capitalize())) + ("  •  " + String(quest.get("title", "")) if quest is Dictionary and quest.has("title") else ""))
+
