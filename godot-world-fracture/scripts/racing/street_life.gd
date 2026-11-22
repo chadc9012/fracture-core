@@ -22,6 +22,7 @@ const Gear := preload("res://scripts/gear/gear_store.gd")
 const Progression := preload("res://scripts/progress/progression.gd")
 const Nexus := preload("res://scripts/city/nexus_districts.gd")
 const RankCard := preload("res://scripts/ui/rank_card.gd")
+const RaceBoard := preload("res://scripts/ui/race_board.gd")
 const RaceCards := preload("res://scripts/ui/race_cards.gd")
 var _countdown: Control   # NFS Heat's start lights (race_cards.gd Countdown) while the grid counts down
 const FLEET := "res://models/fleet/"
@@ -86,6 +87,8 @@ var _chain_pts := 0.0
 var _drift_idle := 0.0
 var _hits_seen := 0
 var _done_t := 0.0
+## the leaderboard the last finish put up (tests look for it)
+var board_shown: Control
 var _cleared: Array = []         # [[box index, its box]] parked-car boxes moved off a turnaround
 var _hidden: Array = []          # parked car nodes hidden off it
 var _zones: Array = []           # [Vector2(z, half length)] kept clear of parked cars
@@ -817,23 +820,41 @@ func _finish() -> void:
 		place = _clock_place()
 	else:
 		place = finishers.find("You") + 1
-	var got: Dictionary = career.finish(ev_id, place, ev if ev_id == "" else {})
+	var drift := String(ev.kind) == "drift"
+	var mine := drift_score if drift else time
+	var got: Dictionary = career.finish(ev_id, place, ev if ev_id == "" else {}, mine)
 	career.save()
 	var pr := Gear.profile_load()
 	Progression.grant(pr, "street_race", int(got.nex), 120, String(ev.name))
 	Gear.profile_save(pr)
 	if slice.get("wallet") is Dictionary and not (slice.wallet as Dictionary).is_empty():
 		slice.wallet = pr
-	var line := "%s · %s" % [ORDINAL[mini(place - 1, ORDINAL.size() - 1)], String(ev.name).to_upper()]
-	if String(ev.kind) == "drift":
-		line += "\n%d drift points" % int(drift_score)
-	elif players_in.is_empty():
-		line += "\n%s · the meet's pace %s" % [fmt(time), fmt(par_time())]
-	line += "\n+%d Nex" % int(got.nex)
-	show_result(line, Color(1.0, 0.85, 0.3) if place == 1 else Color(1, 1, 1))
-	# the rep as Destiny's reputation card: the ring fills from where you were, RANK UP when you crossed a rung
-	if int(got.rep) > 0:
-		slice.add_child(RankCard.make("STREET REPUTATION", Career.TIERS, career.rep - int(got.rep), career.rep))
+	# The Crew Motorfest's leaderboard (scripts/ui/race_board.gd); the reputation card follows it
+	var rows: Array
+	if players_in.is_empty():
+		rows = RaceBoard.rows(ev_id, ev, mine, 0.0 if drift else par_time())
+	else:
+		var tms := { "You": time }
+		for pl in players_in:
+			if float(pl.finished_at) >= 0.0:
+				tms[String(pl.name)] = float(pl.finished_at)
+		var order: Array = finishers.duplicate()
+		for pl in players_in:
+			if not order.has(String(pl.name)):
+				order.append(String(pl.name))
+		rows = RaceBoard.crew_rows(order, tms)
+	var board = RaceBoard.new()
+	board.data = { "event": String(ev.name), "kind": String(ev.kind), "place": place, "rows": rows, "value": mine,
+		"pb": bool(got.get("pb", false)) and ev_id != "", "prev": float(got.get("prev", -1.0)),
+		"nex": int(got.nex), "rep": int(got.rep), "xp": 120 }
+	var rep_before: int = career.rep - int(got.rep)
+	var rep_now: int = career.rep
+	board.closed.connect(func():
+		# the rep as Destiny's reputation card: the ring fills from where you were, RANK UP when you crossed a rung
+		if int(got.rep) > 0 and is_instance_valid(slice):
+			slice.add_child(RankCard.make("STREET REPUTATION", Career.TIERS, rep_before, rep_now)))
+	slice.add_child(board)
+	board_shown = board
 	Sound.sfx("capture" if place == 1 else "confirm", -2.0)
 	state = "done"
 	_done_t = 4.0

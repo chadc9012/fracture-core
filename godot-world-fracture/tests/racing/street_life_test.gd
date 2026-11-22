@@ -192,7 +192,8 @@ func _run() -> void:
 			break
 	ok(life.state == "done" and life.place >= 1 and life.career.rep > 0 and life.career.races == 1, "the finish pays (P%d, %d rep)" % [life.place, life.career.rep])
 	ok(int(load("res://scripts/gear/gear_store.gd").profile_load().get("nex", 0)) > nex_before, "the prize lands in the profile")
-	ok(life.result.visible, "the result shows")
+	ok(is_instance_valid(life.board_shown) and life.board_shown.data.rows.any(func(r): return r.you), "the leaderboard shows, with you on it")
+	ok(life.career.times.has(life.ev_id), "the run's time is kept as the personal best")
 	# a bust: stop with a unit alongside
 	st.controls.move = Vector2.ZERO
 	car.speed = 0.0
