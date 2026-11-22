@@ -61,6 +61,30 @@ CAST = {
     "TRAVELER": (LT, 450, "plain"),
     "SOLDIER": (LT, 405, "comms"),
     "ELLIS": (LT, 600, "plain"),
+    # Chapter 1 — The Aftershock (data/dialogue/aftershock.json, the owner's Nov 22 screenplays)
+    "VOSS": (LT, 660, "plain"),
+    "SERAPHINE": (LT, 450, "plain"),
+    "RAINER": (LT, 780, "deep"),
+    "WARD": (LT, 735, "plain"),
+    "KAEL": (LT, 270, "plain"),
+    "COLE": (LT, 495, "plain"),
+    "BOY": (LT, 60, "child"),
+    "DANIEL": (LT, 60, "child"),
+    "MAN": (LT, 105, "plain"),
+    "OFFICER": (LT, 405, "plain"),
+    "MILITARY RADIO": (LT, 330, "radio"),
+    "SCIENTIST": (LT, 346, "tv"),
+    "DR. CROSS": (LT, 346, "tv"),
+    "UNKNOWN VOICE": (LT, 300, "fracture"),
+    "UNKNOWN FIGURE": (LT, 870, "crown"),
+    "SECOND FIGURE": (LT, 885, "crown"),
+    "UNKNOWN RULER": (LT, 840, "vyrak"),
+    "THE HARBINGER": (LT, 720, "vyrak"),
+    "ENEMY COMMANDER": (LT, 30, "fracture"),
+    "FRACTURE INFILTRATOR": (LT, 75, "fracture"),
+    "ARCHIVE WARDEN": (LT, 600, "crown"),
+    "ARCHIVE RECORDING": (LT, 225, "crown"),
+    "GLOBAL BROADCAST": (LT, 764, "tv"),
 }
 FALLBACK = (LT, 885, "plain")
 
@@ -124,6 +148,11 @@ def load_lines():
     full = os.path.join(ROOT, "data", "dialogue", "campaign_full.json")
     if os.path.exists(full):
         for l in json.load(open(full))["lines"]:
+            lines.append({"id": l["id"], "speaker": l["speaker"], "text": l["text"]})
+    # Chapter 1 — The Aftershock (tools/campaign/aftershock.py)
+    aft = os.path.join(ROOT, "data", "dialogue", "aftershock.json")
+    if os.path.exists(aft):
+        for l in json.load(open(aft))["lines"]:
             lines.append({"id": l["id"], "speaker": l["speaker"], "text": l["text"]})
     # the people's talk lines (tools/people_lines.py → data/dialogue/people.json), one voice per job
     people = os.path.join(ROOT, "data", "dialogue", "people.json")

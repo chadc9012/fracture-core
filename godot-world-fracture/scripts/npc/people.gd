@@ -69,6 +69,20 @@ const PEOPLE := [
 	# response team; she's on the avenue only once you've met her in Mission 01's chapters 04-05 (profile m05_choice)
 	{ "id": "vale", "name": "Captain Vale", "age": 44, "body": "female", "build": "athletic", "job": "Operator response captain", "personality": "proud",
 		"outfit": "olive-utility", "tier": 3, "needs": "m05_choice", "beat": [-40.0, 40.0], "schedule": [[9, 13, "precinct", "patrol"], [13, 19, "plaza", "work"]] },
+	# Chapter 1 — The Aftershock's people (the owner's Nov 22 screenplays, scripts/mission/aftershock.gd): on the avenue
+	# once you've made Mission 5's choice (profile a05_choice); the general and the captain only in the story itself
+	{ "id": "voss", "name": "Commander Elias Voss", "age": 49, "body": "male", "build": "athletic", "job": "Frontier Defense Initiative commander", "personality": "gruff",
+		"outfit": "npc-swat", "tier": 3, "needs": "a05_choice", "beat": [-30.0, 30.0], "schedule": [[8, 20, "precinct", "patrol"]] },
+	{ "id": "seraphine", "name": "Dr. Seraphine Vale", "age": 38, "body": "female", "build": "slim", "job": "Fracture researcher", "personality": "proud",
+		"outfit": "npc-doctor", "tier": 3, "needs": "a05_choice", "schedule": [[9, 18, "plaza", "work"]] },
+	{ "id": "ward", "name": "Director Helena Ward", "age": 55, "body": "female", "build": "slim", "job": "Frontier Defense Initiative director", "personality": "cynical",
+		"outfit": "npc-business", "tier": 3, "needs": "a05_choice", "schedule": [[10, 16, "precinct", "work"]] },
+	{ "id": "kael", "name": "Kael Draven", "age": 36, "body": "male", "build": "athletic", "job": "Free Operators leader", "personality": "cynical",
+		"outfit": "npc-all-black", "tier": 3, "needs": "a05_choice", "schedule": [[18, 2, "rift", "work"]] },
+	{ "id": "rainer", "name": "General Marcus Rainer", "age": 61, "body": "male", "build": "heavy", "job": "Frontier Defense Initiative general", "personality": "proud",
+		"outfit": "npc-swat", "tier": 3, "needs": "story_only", "schedule": [[10, 14, "precinct", "work"]] },
+	{ "id": "cole", "name": "Captain Adrian Cole", "age": 33, "body": "male", "build": "athletic", "job": "Haven-01 captain", "personality": "warm",
+		"outfit": "olive-utility", "tier": 3, "needs": "story_only", "schedule": [[8, 18, "plaza", "work"]] },
 	{ "id": "gloria", "name": "Gloria Haynes", "age": 52, "body": "female", "build": "heavy", "job": "construction foreman", "personality": "gruff",
 		"outfit": "olive-utility", "schedule": [[7, 16, "descent", "work"]] },
 ]

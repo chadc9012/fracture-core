@@ -17,6 +17,7 @@ const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 const Descent := preload("res://scripts/mission/descent.gd")
 const Campaign := preload("res://scripts/mission/campaign.gd")
+const Aftershock := preload("res://scripts/mission/aftershock.gd")
 const ArenaView := preload("res://scripts/killbox/arena_view.gd")
 const RoyaleView := preload("res://scripts/killbox/royale_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
@@ -267,8 +268,9 @@ func _street_door(id: String) -> void:
 		"rift":
 			view = BossArena.new()
 		"descent":
-			# the crash-site transport: Act 1's descent, then the campaign's missions 02–25 once the act is cleared
-			view = Campaign.new() if Descent.chapter_cleared() else Descent.new()
+			# the crash-site transport: Chapter 1 — The Aftershock (the owner's Nov 22 screenplays), then the original story —
+			# Act 1's descent, then the campaign's missions 02–25 once the act is cleared
+			view = _story_view()
 		"apartment":
 			view = Mission01.new()
 			view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -316,6 +318,8 @@ func _show_from_street(view: Control) -> void:
 		view.flew.connect(_flown.bind(view))
 	if view.has_signal("outside"):
 		view.outside.connect(_walk_out.bind(view))
+	if view.has_signal("roll_on"):
+		view.roll_on.connect(_roll_on.bind(view))
 	add_child(view)
 
 func _airport_view(code: String, arriving: bool) -> Control:
@@ -323,6 +327,21 @@ func _airport_view(code: String, arriving: bool) -> Control:
 	v.code = code
 	v.arriving = arriving
 	return v
+
+## the story the crash-site door opens: Chapter 1 until it is done, then Act 1, then missions 02–25
+func _story_view() -> Control:
+	if not Aftershock.finished():
+		return Aftershock.new()
+	return Campaign.new() if Descent.chapter_cleared() else Descent.new()
+
+## Chapter 1 done: the story rolls straight on into the original set, over the same hidden street
+func _roll_on(from_view: Control) -> void:
+	if _from_street != from_view:
+		return
+	_from_street = null
+	from_view.queue_free()
+	Sound.loops_stop()
+	_show_from_street(_story_view())
 
 ## walked out of a region's airport (Azure Isles, Frostveil, Solara): that region on foot
 func _walk_out(code: String, from_view: Control) -> void:
@@ -973,6 +992,23 @@ func _shoot(path: String, opts: Array) -> void:
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o) == "cloud":
 			_open_cloud()
+		# aftershock[:<chapter id>][:scene]  Chapter 1 — The Aftershock (scripts/mission/aftershock.gd) standing in a chapter
+		# (A02A … A07G), its opening skipped, or :scene with it playing
+		if String(o).begins_with("aftershock"):
+			var aid := "A02A"
+			for part in String(o).split(":"):
+				if part.length() == 4 and part.begins_with("A0"):
+					aid = part
+			var fa := FileAccess.open("user://aftershock.json", FileAccess.WRITE)
+			fa.store_string(JSON.stringify({ "done": [], "current": aid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 0, "stage": 0 }))
+			fa.close()
+			var aft: Control = Aftershock.new()
+			aft.closed.connect(_close_descent)
+			descent = aft
+			add_child(aft)
+			planet_view.set_process(false)
+			if not String(o).contains("scene") and aft.cutscene and aft.cutscene.playing:
+				aft.cutscene._end()
 		# campaign[:<chapter id>][:scene]  the campaign's chapters (scripts/mission/campaign.gd) standing in a chapter (02A …
 		# 25C) with its opening skipped, or :scene with it playing
 		if String(o).begins_with("campaign"):

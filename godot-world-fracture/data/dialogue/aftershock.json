@@ -1,0 +1,3939 @@
+{
+ "version": 1,
+ "chapter": "Chapter 1 — The Aftershock",
+ "source": "The owner's Chapter 1 screenplays (Nov 22), Missions 2–7, every spoken line verbatim in the script's order (tools/campaign/aftershock.py). Mission 1 is Mission 01 (scripts/mission/mission_01.gd).",
+ "missions": [
+  {
+   "id": "02",
+   "title": "No Way Back",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Rescue / introductory combat / evacuation",
+   "chapters": [
+    {
+     "id": "A02A",
+     "title": "The Fallen City",
+     "location": "NEXUS CITY — RESIDENTIAL DISTRICT · 8:47 AM",
+     "kind": "reach",
+     "start": "nexus-central-plaza",
+     "label": "Reach the damaged intersection",
+     "open": [
+      "A02_001",
+      "A02_002",
+      "A02_003",
+      "A02_004",
+      "A02_005",
+      "A02_006",
+      "A02_007",
+      "A02_008",
+      "A02_009",
+      "A02_010",
+      "A02_011"
+     ],
+     "close": []
+    },
+    {
+     "id": "A02B",
+     "title": "The Survivors",
+     "location": "DOWNTOWN NEXUS CITY — THE OVERTURNED BUS",
+     "kind": "kills",
+     "amount": 3,
+     "label": "Protect Daniel and his father",
+     "open": [
+      "A02_012",
+      "A02_013",
+      "A02_014",
+      "A02_015",
+      "A02_016",
+      "A02_017",
+      "A02_018",
+      "A02_019",
+      "A02_020",
+      "A02_021"
+     ],
+     "close": [
+      "A02_022",
+      "A02_023",
+      "A02_024",
+      "A02_025",
+      "A02_026",
+      "A02_027"
+     ]
+    },
+    {
+     "id": "A02C",
+     "title": "The Military Checkpoint",
+     "location": "NEXUS CITY — CENTRAL EVACUATION ROUTE",
+     "kind": "talk",
+     "who": "VOSS",
+     "to": "nexus-bastion",
+     "label": "Reach the military barricade",
+     "open": [],
+     "close": [
+      "A02_028",
+      "A02_029",
+      "A02_030",
+      "A02_031",
+      "A02_032",
+      "A02_033",
+      "A02_034",
+      "A02_035",
+      "A02_036",
+      "A02_037",
+      "A02_038",
+      "A02_039",
+      "A02_040"
+     ]
+    },
+    {
+     "id": "A02D",
+     "title": "The First Organized Attack",
+     "location": "EVACUATION CHECKPOINT",
+     "kind": "boss",
+     "boss": "fracture-commander",
+     "boss_name": "Fracture Commander",
+     "label": "Take out the big one",
+     "open": [
+      "A02_041",
+      "A02_042",
+      "A02_043",
+      "A02_044",
+      "A02_045",
+      "A02_046",
+      "A02_047"
+     ],
+     "close": [
+      "A02_048",
+      "A02_049",
+      "A02_050",
+      "A02_051",
+      "A02_052"
+     ]
+    },
+    {
+     "id": "A02E",
+     "title": "The Woman in the Lab Coat",
+     "location": "TEMPORARY MEDICAL EVACUATION CENTRE",
+     "kind": "talk",
+     "who": "SERAPHINE",
+     "to": "nexus-academy",
+     "label": "Reach the medical evacuation centre",
+     "open": [],
+     "close": [
+      "A02_053",
+      "A02_054",
+      "A02_055",
+      "A02_056",
+      "A02_057",
+      "A02_058",
+      "A02_059",
+      "A02_060",
+      "A02_061",
+      "A02_062",
+      "A02_063",
+      "A02_064",
+      "A02_065",
+      "A02_066",
+      "A02_067"
+     ]
+    },
+    {
+     "id": "A02F",
+     "title": "The Missing Signal",
+     "location": "SUBLEVEL RESEARCH COMPLEX 09 — SECURITY RECORDING",
+     "kind": "cutscene",
+     "open": [
+      "A02_068",
+      "A02_069",
+      "A02_070",
+      "A02_071",
+      "A02_072",
+      "A02_073",
+      "A02_074",
+      "A02_075",
+      "A02_076",
+      "A02_077",
+      "A02_078",
+      "A02_079",
+      "A02_080",
+      "A02_081",
+      "A02_082",
+      "A02_083",
+      "A02_084",
+      "A02_085",
+      "A02_086",
+      "A02_087",
+      "A02_088",
+      "A02_089",
+      "A02_090",
+      "A02_091"
+     ],
+     "close": []
+    }
+   ]
+  },
+  {
+   "id": "03",
+   "title": "The Missing Signal",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Investigation / survival horror / mini-boss / escape",
+   "chapters": [
+    {
+     "id": "A03A",
+     "title": "The Sealed Door",
+     "location": "INT. RESEARCH COMPLEX 09 — ENTRANCE",
+     "kind": "hack",
+     "start": "nexus-harbor",
+     "amount": 2,
+     "label": "Open the blast door",
+     "open": [
+      "A03_001",
+      "A03_002",
+      "A03_003",
+      "A03_004",
+      "A03_005",
+      "A03_006",
+      "A03_007",
+      "A03_008",
+      "A03_009",
+      "A03_010"
+     ],
+     "close": [
+      "A03_011",
+      "A03_012",
+      "A03_013",
+      "A03_014"
+     ]
+    },
+    {
+     "id": "A03B",
+     "title": "The Empty Laboratory",
+     "location": "INT. RESEARCH COMPLEX 09 — LABORATORY",
+     "kind": "trace",
+     "label": "Search the laboratory",
+     "open": [
+      "A03_015",
+      "A03_016",
+      "A03_017",
+      "A03_018",
+      "A03_019",
+      "A03_020",
+      "A03_021",
+      "A03_022"
+     ],
+     "close": []
+    },
+    {
+     "id": "A03C",
+     "title": "Subject Zero",
+     "location": "INT. BIOLOGICAL RESEARCH WING",
+     "kind": "boss",
+     "boss": "subject-zero",
+     "boss_name": "Subject Zero",
+     "label": "Survive Subject Zero",
+     "open": [
+      "A03_023",
+      "A03_024",
+      "A03_025",
+      "A03_026"
+     ],
+     "close": [
+      "A03_027",
+      "A03_028",
+      "A03_029"
+     ]
+    },
+    {
+     "id": "A03D",
+     "title": "Project Genesis",
+     "location": "INT. RESTRICTED TERMINAL",
+     "kind": "cutscene",
+     "open": [
+      "A03_030",
+      "A03_031",
+      "A03_032",
+      "A03_033",
+      "A03_034",
+      "A03_035",
+      "A03_036",
+      "A03_037",
+      "A03_038",
+      "A03_039",
+      "A03_040"
+     ],
+     "close": []
+    },
+    {
+     "id": "A03E",
+     "title": "The Voice",
+     "location": "INT. CENTRAL RESEARCH CHAMBER",
+     "kind": "cutscene",
+     "open": [
+      "A03_041",
+      "A03_042",
+      "A03_043",
+      "A03_044",
+      "A03_045",
+      "A03_046",
+      "A03_047",
+      "A03_048",
+      "A03_049",
+      "A03_050",
+      "A03_051"
+     ],
+     "close": []
+    },
+    {
+     "id": "A03F",
+     "title": "The Escape",
+     "location": "INT. COLLAPSING WING → MAINTENANCE TUNNEL",
+     "kind": "survive",
+     "amount": 45,
+     "label": "Hold the maintenance lift with Seraphine",
+     "open": [
+      "A03_052",
+      "A03_053",
+      "A03_054",
+      "A03_055"
+     ],
+     "close": [
+      "A03_056",
+      "A03_057",
+      "A03_058",
+      "A03_059",
+      "A03_060",
+      "A03_061",
+      "A03_062",
+      "A03_063"
+     ]
+    },
+    {
+     "id": "A03G",
+     "title": "The Revelation",
+     "location": "EXT. THE SURFACE",
+     "kind": "cutscene",
+     "open": [
+      "A03_064",
+      "A03_065",
+      "A03_066",
+      "A03_067",
+      "A03_068",
+      "A03_069",
+      "A03_070",
+      "A03_071",
+      "A03_072",
+      "A03_073",
+      "A03_074",
+      "A03_075"
+     ],
+     "close": []
+    }
+   ]
+  },
+  {
+   "id": "04",
+   "title": "First Contact",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Urban combat / first intelligent enemy / mini-boss",
+   "chapters": [
+    {
+     "id": "A04A",
+     "title": "The Emergency Briefing",
+     "location": "FRONTIER DEFENSE INITIATIVE HEADQUARTERS · 2:15 PM",
+     "kind": "talk",
+     "who": "VOSS",
+     "start": "nexus-bastion",
+     "to": "nexus-bastion",
+     "label": "Report to the command centre",
+     "open": [],
+     "close": [
+      "A04_001",
+      "A04_002",
+      "A04_003",
+      "A04_004",
+      "A04_005",
+      "A04_006",
+      "A04_007",
+      "A04_008",
+      "A04_009",
+      "A04_010"
+     ]
+    },
+    {
+     "id": "A04B",
+     "title": "The Enemy Has Arrived",
+     "location": "INT. BRIEFING ROOM",
+     "kind": "cutscene",
+     "open": [
+      "A04_011",
+      "A04_012",
+      "A04_013",
+      "A04_014",
+      "A04_015",
+      "A04_016",
+      "A04_017",
+      "A04_018",
+      "A04_019",
+      "A04_020",
+      "A04_021",
+      "A04_022",
+      "A04_023",
+      "A04_024",
+      "A04_025",
+      "A04_026",
+      "A04_027",
+      "A04_028"
+     ],
+     "close": []
+    },
+    {
+     "id": "A04C",
+     "title": "Operation Iron Veil",
+     "location": "EASTERN NEXUS CITY",
+     "kind": "kills",
+     "start": "nexus-university",
+     "amount": 6,
+     "label": "Secure the destroyed checkpoint",
+     "open": [
+      "A04_029",
+      "A04_030",
+      "A04_031",
+      "A04_032",
+      "A04_033",
+      "A04_034",
+      "A04_035",
+      "A04_036",
+      "A04_037",
+      "A04_038"
+     ],
+     "close": []
+    },
+    {
+     "id": "A04D",
+     "title": "Hold the Corridor",
+     "location": "EASTERN NEXUS CITY — EVACUATION CORRIDOR",
+     "kind": "survive",
+     "amount": 40,
+     "label": "Hold the evacuation corridor",
+     "open": [],
+     "close": []
+    },
+    {
+     "id": "A04E",
+     "title": "The First Intelligent Enemy",
+     "location": "INT. ABANDONED SUBWAY STATION",
+     "kind": "boss",
+     "boss": "fracture-executioner",
+     "boss_name": "Fracture Executioner",
+     "label": "Defeat the Fracture Executioner",
+     "open": [
+      "A04_039",
+      "A04_040",
+      "A04_041",
+      "A04_042",
+      "A04_043",
+      "A04_044",
+      "A04_045",
+      "A04_046",
+      "A04_047"
+     ],
+     "close": [
+      "A04_048",
+      "A04_049",
+      "A04_050",
+      "A04_051",
+      "A04_052",
+      "A04_053",
+      "A04_054",
+      "A04_055",
+      "A04_056",
+      "A04_057",
+      "A04_058",
+      "A04_059"
+     ]
+    },
+    {
+     "id": "A04F",
+     "title": "The Betrayal",
+     "location": "EASTERN MILITARY COMMAND POST",
+     "kind": "talk",
+     "who": "RAINER",
+     "to": "nexus-bastion",
+     "label": "Return to the command post",
+     "open": [],
+     "close": [
+      "A04_060",
+      "A04_061",
+      "A04_062",
+      "A04_063",
+      "A04_064",
+      "A04_065",
+      "A04_066",
+      "A04_067",
+      "A04_068",
+      "A04_069",
+      "A04_070",
+      "A04_071",
+      "A04_072",
+      "A04_073",
+      "A04_074",
+      "A04_075",
+      "A04_076"
+     ]
+    },
+    {
+     "id": "A04G",
+     "title": "The Watcher",
+     "location": "UNKNOWN DIMENSIONAL STRUCTURE",
+     "kind": "cutscene",
+     "open": [
+      "A04_077",
+      "A04_078",
+      "A04_079",
+      "A04_080",
+      "A04_081",
+      "A04_082",
+      "A04_083",
+      "A04_084"
+     ],
+     "close": []
+    },
+    {
+     "id": "A04H",
+     "title": "The Transit Terminal",
+     "location": "OLD NEXUS CITY TRANSIT TERMINAL · 11:38 PM",
+     "kind": "talk",
+     "who": "VOSS",
+     "to": "terminal:nexus",
+     "label": "Meet Voss at the old transit terminal",
+     "open": [],
+     "close": [
+      "A04_085",
+      "A04_086",
+      "A04_087",
+      "A04_088",
+      "A04_089",
+      "A04_090",
+      "A04_091",
+      "A04_092",
+      "A04_093",
+      "A04_094",
+      "A04_095",
+      "A04_096",
+      "A04_097",
+      "A04_098",
+      "A04_099",
+      "A04_100",
+      "A04_101",
+      "A04_102",
+      "A04_103"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "05",
+   "title": "The Gathering Storm",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Character introduction / faction politics",
+   "chapters": [
+    {
+     "id": "A05A",
+     "title": "The Invitation",
+     "location": "OLD NEXUS CITY TRANSIT TERMINAL · 7:20 AM",
+     "kind": "cutscene",
+     "start": "terminal:nexus",
+     "open": [
+      "A05_001",
+      "A05_002",
+      "A05_003",
+      "A05_004",
+      "A05_005",
+      "A05_006",
+      "A05_007"
+     ],
+     "close": []
+    },
+    {
+     "id": "A05B",
+     "title": "The Frontier Defense Initiative",
+     "location": "INT. FRONTIER DEFENSE HEADQUARTERS",
+     "kind": "talk",
+     "who": "WARD",
+     "to": "nexus-bastion",
+     "label": "Meet Director Ward at headquarters",
+     "open": [],
+     "close": [
+      "A05_008",
+      "A05_009",
+      "A05_010",
+      "A05_011",
+      "A05_012",
+      "A05_013",
+      "A05_014",
+      "A05_015"
+     ]
+    },
+    {
+     "id": "A05C",
+     "title": "Humanity's Divided",
+     "location": "INT. FRONTIER DEFENSE HEADQUARTERS",
+     "kind": "cutscene",
+     "open": [
+      "A05_016",
+      "A05_017",
+      "A05_018",
+      "A05_019",
+      "A05_020",
+      "A05_021"
+     ],
+     "close": []
+    },
+    {
+     "id": "A05D",
+     "title": "Kael Draven",
+     "location": "INT. HEADQUARTERS OBSERVATION BALCONY",
+     "kind": "talk",
+     "who": "KAEL",
+     "label": "Find Kael Draven on the balcony",
+     "open": [],
+     "close": [
+      "A05_022",
+      "A05_023",
+      "A05_024",
+      "A05_025",
+      "A05_026",
+      "A05_027",
+      "A05_028",
+      "A05_029",
+      "A05_030",
+      "A05_031"
+     ]
+    },
+    {
+     "id": "A05E",
+     "title": "The Hidden Directive",
+     "location": "INT. RESEARCH DIVISION",
+     "kind": "cutscene",
+     "open": [
+      "A05_032",
+      "A05_033",
+      "A05_034",
+      "A05_035",
+      "A05_036",
+      "A05_037"
+     ],
+     "close": []
+    },
+    {
+     "id": "A05F",
+     "title": "The General's Secret",
+     "location": "INT. COMMAND CHAMBER",
+     "kind": "cutscene",
+     "open": [
+      "A05_038",
+      "A05_039",
+      "A05_040",
+      "A05_041",
+      "A05_042",
+      "A05_043",
+      "A05_044",
+      "A05_045",
+      "A05_046"
+     ],
+     "close": []
+    },
+    {
+     "id": "A05G",
+     "title": "Headquarters Attack",
+     "location": "INT. EASTERN SECURITY SECTOR",
+     "kind": "hack",
+     "amount": 3,
+     "label": "Defend the research division and reach the security terminal",
+     "open": [],
+     "close": [
+      "A05_047",
+      "A05_048",
+      "A05_049",
+      "A05_050"
+     ]
+    },
+    {
+     "id": "A05H",
+     "title": "The Choice",
+     "location": "INT. FRONTIER DEFENSE HEADQUARTERS",
+     "kind": "choice",
+     "prompt": "Director Ward lays out three paths. Who do you stand with?",
+     "options": [
+      [
+       "fdi",
+       "Support the Frontier Defense Initiative",
+       "Military resources and secure facilities — more scrutiny from the independent Operators"
+      ],
+      [
+       "free",
+       "Work with the Free Operators",
+       "Kael's settlements and black-market contacts — less military support"
+      ],
+      [
+       "ascendancy",
+       "Investigate the Ascendancy",
+       "Advanced research and Fracture discoveries — dangerous experiments, suspicion from the others"
+      ]
+     ],
+     "open": [],
+     "close": []
+    },
+    {
+     "id": "A05I",
+     "title": "The Final Transmission",
+     "location": "UNKNOWN DIMENSIONAL STRUCTURE",
+     "kind": "cutscene",
+     "open": [
+      "A05_051",
+      "A05_052",
+      "A05_053",
+      "A05_054",
+      "A05_055",
+      "A05_056"
+     ],
+     "close": []
+    }
+   ]
+  },
+  {
+   "id": "06",
+   "title": "The First Siege",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Large-scale warfare / rescue / multi-stage boss encounters",
+   "chapters": [
+    {
+     "id": "A06A",
+     "title": "The Calm Before War",
+     "location": "EXT. HAVEN-01 — SUNSET",
+     "kind": "talk",
+     "who": "COLE",
+     "start": "nexus-harbor",
+     "label": "Find Captain Cole",
+     "open": [
+      "A06_001",
+      "A06_002",
+      "A06_003",
+      "A06_004",
+      "A06_005",
+      "A06_006"
+     ],
+     "close": [
+      "A06_007",
+      "A06_008",
+      "A06_009"
+     ]
+    },
+    {
+     "id": "A06B",
+     "title": "Something Is Coming",
+     "location": "EXT. NORTHERN OBSERVATION TOWER",
+     "kind": "cutscene",
+     "open": [
+      "A06_010",
+      "A06_011",
+      "A06_012",
+      "A06_013",
+      "A06_014",
+      "A06_015",
+      "A06_016",
+      "A06_017",
+      "A06_018",
+      "A06_019"
+     ],
+     "close": []
+    },
+    {
+     "id": "A06C",
+     "title": "Operation Last Stand",
+     "location": "HAVEN-01 — THE PERIMETER",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Defend the settlement",
+     "open": [],
+     "close": []
+    },
+    {
+     "id": "A06D",
+     "title": "The Northern Wall",
+     "location": "HAVEN-01 — THE NORTHERN WALL",
+     "kind": "boss",
+     "boss": "siege-beast",
+     "boss_name": "Fracture Siege Beast",
+     "label": "Stop the Siege Beast",
+     "open": [
+      "A06_020",
+      "A06_021",
+      "A06_022",
+      "A06_023",
+      "A06_024",
+      "A06_025"
+     ],
+     "close": [
+      "A06_026",
+      "A06_027",
+      "A06_028"
+     ]
+    },
+    {
+     "id": "A06E",
+     "title": "The Sacrifice",
+     "location": "EXT. EASTERN EVACUATION CORRIDOR",
+     "kind": "survive",
+     "amount": 45,
+     "label": "Get the civilians to the transport",
+     "open": [
+      "A06_029",
+      "A06_030",
+      "A06_031",
+      "A06_032",
+      "A06_033",
+      "A06_034",
+      "A06_035",
+      "A06_036",
+      "A06_037",
+      "A06_038",
+      "A06_039",
+      "A06_040",
+      "A06_041"
+     ],
+     "close": [
+      "A06_042",
+      "A06_043",
+      "A06_044"
+     ]
+    },
+    {
+     "id": "A06F",
+     "title": "The Harbinger",
+     "location": "EXT. CENTRAL BATTLEFIELD",
+     "kind": "boss",
+     "boss": "harbinger",
+     "boss_name": "The Harbinger",
+     "label": "Face the Harbinger",
+     "open": [
+      "A06_045",
+      "A06_046",
+      "A06_047",
+      "A06_048",
+      "A06_049",
+      "A06_050",
+      "A06_051",
+      "A06_052"
+     ],
+     "close": [
+      "A06_053",
+      "A06_054",
+      "A06_055",
+      "A06_056",
+      "A06_057"
+     ]
+    },
+    {
+     "id": "A06G",
+     "title": "After the Battle",
+     "location": "INT. HAVEN-01 COMMAND CENTRE",
+     "kind": "cutscene",
+     "open": [
+      "A06_058",
+      "A06_059",
+      "A06_060",
+      "A06_061",
+      "A06_062",
+      "A06_063",
+      "A06_064",
+      "A06_065",
+      "A06_066",
+      "A06_067"
+     ],
+     "close": []
+    },
+    {
+     "id": "A06H",
+     "title": "The World Changes",
+     "location": "GLOBAL EMERGENCY BROADCAST",
+     "kind": "cutscene",
+     "open": [
+      "A06_068",
+      "A06_069",
+      "A06_070",
+      "A06_071",
+      "A06_072",
+      "A06_073",
+      "A06_074"
+     ],
+     "close": []
+    }
+   ]
+  },
+  {
+   "id": "07",
+   "title": "Beneath the Ashes",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Archaeological investigation / exploration / combat / lore revelation",
+   "chapters": [
+    {
+     "id": "A07A",
+     "title": "The Crater",
+     "location": "EXT. NEXUS CITY — OLD QUARTER — DAWN",
+     "kind": "talk",
+     "who": "VOSS",
+     "start": "nexus-central-plaza",
+     "label": "Meet Voss at the crater",
+     "open": [],
+     "close": [
+      "A07_001",
+      "A07_002",
+      "A07_003",
+      "A07_004",
+      "A07_005",
+      "A07_006",
+      "A07_007",
+      "A07_008",
+      "A07_009",
+      "A07_010",
+      "A07_011",
+      "A07_012"
+     ]
+    },
+    {
+     "id": "A07B",
+     "title": "The Descent",
+     "location": "INT. SUBTERRANEAN ACCESS SHAFT",
+     "kind": "trace",
+     "label": "Keep NOVA's relay online on the way down",
+     "open": [
+      "A07_013",
+      "A07_014",
+      "A07_015",
+      "A07_016",
+      "A07_017",
+      "A07_018",
+      "A07_019",
+      "A07_020",
+      "A07_021"
+     ],
+     "close": []
+    },
+    {
+     "id": "A07C",
+     "title": "The Ashen Archive",
+     "location": "INT. ANCIENT HALL",
+     "kind": "kills",
+     "amount": 6,
+     "label": "Destroy the Archive Sentinels",
+     "open": [
+      "A07_022",
+      "A07_023",
+      "A07_024",
+      "A07_025",
+      "A07_026",
+      "A07_027",
+      "A07_028",
+      "A07_029",
+      "A07_030",
+      "A07_031",
+      "A07_032",
+      "A07_033"
+     ],
+     "close": []
+    },
+    {
+     "id": "A07D",
+     "title": "The Warden",
+     "location": "INT. ANCIENT HALL — THE CENTRAL DAIS",
+     "kind": "boss",
+     "boss": "archive-warden",
+     "boss_name": "Archive Warden",
+     "label": "Face the Archive Warden",
+     "open": [
+      "A07_034",
+      "A07_035",
+      "A07_036",
+      "A07_037",
+      "A07_038",
+      "A07_039",
+      "A07_040",
+      "A07_041",
+      "A07_042",
+      "A07_043"
+     ],
+     "close": [
+      "A07_044",
+      "A07_045"
+     ]
+    },
+    {
+     "id": "A07E",
+     "title": "The Memory of the Covenant",
+     "location": "HOLOGRAPHIC RECORDING — ANCIENT PAST",
+     "kind": "cutscene",
+     "open": [
+      "A07_046",
+      "A07_047",
+      "A07_048",
+      "A07_049",
+      "A07_050",
+      "A07_051",
+      "A07_052",
+      "A07_053",
+      "A07_054",
+      "A07_055",
+      "A07_056",
+      "A07_057",
+      "A07_058",
+      "A07_059",
+      "A07_060",
+      "A07_061",
+      "A07_062",
+      "A07_063"
+     ],
+     "close": []
+    },
+    {
+     "id": "A07F",
+     "title": "The Archive Collapses",
+     "location": "INT. THE SHIFTING HALL",
+     "kind": "reach",
+     "label": "Reach the ascent platform with the data core",
+     "open": [
+      "A07_064",
+      "A07_065",
+      "A07_066",
+      "A07_067",
+      "A07_068",
+      "A07_069"
+     ],
+     "close": []
+    },
+    {
+     "id": "A07G",
+     "title": "The Surface",
+     "location": "EXT. OLD QUARTER CRATER — MORNING",
+     "kind": "cutscene",
+     "open": [
+      "A07_070",
+      "A07_071",
+      "A07_072",
+      "A07_073",
+      "A07_074",
+      "A07_075",
+      "A07_076",
+      "A07_077",
+      "A07_078",
+      "A07_079",
+      "A07_080",
+      "A07_081",
+      "A07_082",
+      "A07_083"
+     ],
+     "close": []
+    }
+   ]
+  }
+ ],
+ "lines": [
+  {
+   "id": "A02_001",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Operator? Can you hear me?"
+  },
+  {
+   "id": "A02_002",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Your biometric readings are unstable. Please respond."
+  },
+  {
+   "id": "A02_003",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "What the hell happened?"
+  },
+  {
+   "id": "A02_004",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "A Fracture event has occurred approximately 1.8 kilometres from your current position."
+  },
+  {
+   "id": "A02_005",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "A what?"
+  },
+  {
+   "id": "A02_006",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "I am detecting an anomalous energy signature across the entire city."
+  },
+  {
+   "id": "A02_007",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "People are still inside those buildings!"
+  },
+  {
+   "id": "A02_008",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Correct. Approximately 340 civilians remain inside the immediate danger zone."
+  },
+  {
+   "id": "A02_009",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Then we're getting them out."
+  },
+  {
+   "id": "A02_010",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "That decision is statistically dangerous."
+  },
+  {
+   "id": "A02_011",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Get used to it."
+  },
+  {
+   "id": "A02_012",
+   "mission": "02",
+   "speaker": "BOY",
+   "text": "Please! Somebody help my dad!"
+  },
+  {
+   "id": "A02_013",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Hey. Look at me. What's your name?"
+  },
+  {
+   "id": "A02_014",
+   "mission": "02",
+   "speaker": "BOY",
+   "text": "Daniel."
+  },
+  {
+   "id": "A02_015",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Daniel, I'm going to get your dad out. Stay right here."
+  },
+  {
+   "id": "A02_016",
+   "mission": "02",
+   "speaker": "MAN",
+   "text": "Don't... don't worry about me. Get my son somewhere safe."
+  },
+  {
+   "id": "A02_017",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "I'm getting both of you out."
+  },
+  {
+   "id": "A02_018",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Operator, movement detected beneath the overturned vehicle."
+  },
+  {
+   "id": "A02_019",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "What kind of movement?"
+  },
+  {
+   "id": "A02_020",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Unknown biological signatures."
+  },
+  {
+   "id": "A02_021",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Daniel! Get behind me!"
+  },
+  {
+   "id": "A02_022",
+   "mission": "02",
+   "speaker": "DANIEL",
+   "text": "What was that thing?"
+  },
+  {
+   "id": "A02_023",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "I don't know."
+  },
+  {
+   "id": "A02_024",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "I have identified the biological structure."
+  },
+  {
+   "id": "A02_025",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "What is it?"
+  },
+  {
+   "id": "A02_026",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "I cannot classify it."
+  },
+  {
+   "id": "A02_027",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "And I am detecting hundreds more."
+  },
+  {
+   "id": "A02_028",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "Stop right there! Identify yourself!"
+  },
+  {
+   "id": "A02_029",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "I'm not your enemy."
+  },
+  {
+   "id": "A02_030",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "That's what everyone says until one of those things starts wearing their face."
+  },
+  {
+   "id": "A02_031",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "I've been helping civilians get out."
+  },
+  {
+   "id": "A02_032",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "You survived the initial event?"
+  },
+  {
+   "id": "A02_033",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Apparently."
+  },
+  {
+   "id": "A02_034",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "Then you're either incredibly lucky or something happened to you."
+  },
+  {
+   "id": "A02_035",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Operator, this individual has access to military command networks."
+  },
+  {
+   "id": "A02_036",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Can you identify him?"
+  },
+  {
+   "id": "A02_037",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Commander Elias Voss. Frontier Defense Initiative."
+  },
+  {
+   "id": "A02_038",
+   "mission": "02",
+   "speaker": "MILITARY RADIO",
+   "text": "Command, this is Outpost Seven! We're under attack! Repeat, we're under attack!"
+  },
+  {
+   "id": "A02_039",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "Everyone, defensive positions! Move!"
+  },
+  {
+   "id": "A02_040",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "You wanted to help? Here's your chance."
+  },
+  {
+   "id": "A02_041",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "What the hell are those things?"
+  },
+  {
+   "id": "A02_042",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "You tell me. You're the military."
+  },
+  {
+   "id": "A02_043",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "We've been shooting at them for twenty minutes. Nothing seems to work!"
+  },
+  {
+   "id": "A02_044",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Operator, the larger entity appears to be coordinating the smaller hostiles."
+  },
+  {
+   "id": "A02_045",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "You mean it's commanding them?"
+  },
+  {
+   "id": "A02_046",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Affirmative."
+  },
+  {
+   "id": "A02_047",
+   "mission": "02",
+   "speaker": "VOSS",
+   "text": "You heard that? Take out the big one!"
+  },
+  {
+   "id": "A02_048",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "This is not random biological mutation."
+  },
+  {
+   "id": "A02_049",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Then what is it?"
+  },
+  {
+   "id": "A02_050",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Technology."
+  },
+  {
+   "id": "A02_051",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Technology? From where?"
+  },
+  {
+   "id": "A02_052",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Unknown."
+  },
+  {
+   "id": "A02_053",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "You. You're the one who survived the first wave?"
+  },
+  {
+   "id": "A02_054",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Depends who's asking."
+  },
+  {
+   "id": "A02_055",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "Dr. Seraphine Vale. Fracture research division."
+  },
+  {
+   "id": "A02_056",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "You study those things?"
+  },
+  {
+   "id": "A02_057",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "I studied the energy signatures before today."
+  },
+  {
+   "id": "A02_058",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Before today?"
+  },
+  {
+   "id": "A02_059",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "We've been detecting anomalies for months."
+  },
+  {
+   "id": "A02_060",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "And nobody thought to tell the public?"
+  },
+  {
+   "id": "A02_061",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "We didn't know what they were."
+  },
+  {
+   "id": "A02_062",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "That's convenient."
+  },
+  {
+   "id": "A02_063",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "There is something you need to understand. The event that destroyed this city wasn't the beginning."
+  },
+  {
+   "id": "A02_064",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "What do you mean?"
+  },
+  {
+   "id": "A02_065",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "Something opened the door."
+  },
+  {
+   "id": "A02_066",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "And what's on the other side?"
+  },
+  {
+   "id": "A02_067",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "That's what I'm afraid we're about to find out."
+  },
+  {
+   "id": "A02_068",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Operator, I have located an active signal beneath Nexus City."
+  },
+  {
+   "id": "A02_069",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Another survivor?"
+  },
+  {
+   "id": "A02_070",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Negative."
+  },
+  {
+   "id": "A02_071",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Then what?"
+  },
+  {
+   "id": "A02_072",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "A research facility."
+  },
+  {
+   "id": "A02_073",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "Which facility?"
+  },
+  {
+   "id": "A02_074",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Sublevel Research Complex 09."
+  },
+  {
+   "id": "A02_075",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "That's impossible."
+  },
+  {
+   "id": "A02_076",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "Why?"
+  },
+  {
+   "id": "A02_077",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "Because that facility was sealed six months ago."
+  },
+  {
+   "id": "A02_078",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "What were they researching?"
+  },
+  {
+   "id": "A02_079",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "The Fractures."
+  },
+  {
+   "id": "A02_080",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "You said nobody knew what they were."
+  },
+  {
+   "id": "A02_081",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "I said we didn't understand them."
+  },
+  {
+   "id": "A02_082",
+   "mission": "02",
+   "speaker": "SERAPHINE",
+   "text": "There's a difference."
+  },
+  {
+   "id": "A02_083",
+   "mission": "02",
+   "speaker": "SCIENTIST",
+   "text": "Day 184. The signal has changed again."
+  },
+  {
+   "id": "A02_084",
+   "mission": "02",
+   "speaker": "SCIENTIST",
+   "text": "We've confirmed that the energy signature is responding to human consciousness."
+  },
+  {
+   "id": "A02_085",
+   "mission": "02",
+   "speaker": "SCIENTIST",
+   "text": "No... no, that's not possible."
+  },
+  {
+   "id": "A02_086",
+   "mission": "02",
+   "speaker": "SCIENTIST",
+   "text": "If anyone finds this recording, listen carefully."
+  },
+  {
+   "id": "A02_087",
+   "mission": "02",
+   "speaker": "SCIENTIST",
+   "text": "It knew we were coming."
+  },
+  {
+   "id": "A02_088",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "Operator..."
+  },
+  {
+   "id": "A02_089",
+   "mission": "02",
+   "speaker": "PLAYER",
+   "text": "What?"
+  },
+  {
+   "id": "A02_090",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "I've found something."
+  },
+  {
+   "id": "A02_091",
+   "mission": "02",
+   "speaker": "NOVA",
+   "text": "I don't think we were the first civilization to encounter this."
+  },
+  {
+   "id": "A03_001",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "This is the place?"
+  },
+  {
+   "id": "A03_002",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "Yes. Research Complex 09."
+  },
+  {
+   "id": "A03_003",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "You said it was shut down six months ago."
+  },
+  {
+   "id": "A03_004",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "It was supposed to be."
+  },
+  {
+   "id": "A03_005",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "I've detected an active power source behind the blast door."
+  },
+  {
+   "id": "A03_006",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Can you open it?"
+  },
+  {
+   "id": "A03_007",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "I can attempt to access the security network."
+  },
+  {
+   "id": "A03_008",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "This facility was never connected to the public network. It had its own isolated system."
+  },
+  {
+   "id": "A03_009",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Tell me that was the ventilation system."
+  },
+  {
+   "id": "A03_010",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "It was not."
+  },
+  {
+   "id": "A03_011",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Welcome back, Dr. Vale."
+  },
+  {
+   "id": "A03_012",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "What did you just say?"
+  },
+  {
+   "id": "A03_013",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "I said welcome back, Dr. Vale."
+  },
+  {
+   "id": "A03_014",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "I have never accessed this terminal."
+  },
+  {
+   "id": "A03_015",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "These systems are still active. Somebody has been conducting experiments here."
+  },
+  {
+   "id": "A03_016",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Six months after the facility supposedly closed?"
+  },
+  {
+   "id": "A03_017",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "Apparently."
+  },
+  {
+   "id": "A03_018",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "I have detected 27 biological signatures."
+  },
+  {
+   "id": "A03_019",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Where are they?"
+  },
+  {
+   "id": "A03_020",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Unclear."
+  },
+  {
+   "id": "A03_021",
+   "mission": "03",
+   "speaker": "DR. CROSS",
+   "text": "If you're watching this, then the containment protocols have failed. We thought the Fracture was an opening. A doorway into another dimension. We were wrong."
+  },
+  {
+   "id": "A03_022",
+   "mission": "03",
+   "speaker": "DR. CROSS",
+   "text": "It's not opening into somewhere else. Something is opening into us."
+  },
+  {
+   "id": "A03_023",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "They were trying to synchronize human biology with Fracture energy."
+  },
+  {
+   "id": "A03_024",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Why?"
+  },
+  {
+   "id": "A03_025",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "To create soldiers who could survive inside a Fracture."
+  },
+  {
+   "id": "A03_026",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Warning. Biological activity increasing."
+  },
+  {
+   "id": "A03_027",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Is it dead?"
+  },
+  {
+   "id": "A03_028",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Biological activity has ceased."
+  },
+  {
+   "id": "A03_029",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "I've seen this symbol before. In the original Fracture research files."
+  },
+  {
+   "id": "A03_030",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "NOVA, open it."
+  },
+  {
+   "id": "A03_031",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Access denied."
+  },
+  {
+   "id": "A03_032",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Try again."
+  },
+  {
+   "id": "A03_033",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "What?"
+  },
+  {
+   "id": "A03_034",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "The system has identified your biometric signature."
+  },
+  {
+   "id": "A03_035",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "I've never been here."
+  },
+  {
+   "id": "A03_036",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "I understand."
+  },
+  {
+   "id": "A03_037",
+   "mission": "03",
+   "speaker": "DR. CROSS",
+   "text": "There are five signatures. Five points of contact between our world and something far older. We believed they were individuals. But they aren't just connected to the Fractures. They are connected to why the Fractures exist."
+  },
+  {
+   "id": "A03_038",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "Five signatures..."
+  },
+  {
+   "id": "A03_039",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "You know what they are?"
+  },
+  {
+   "id": "A03_040",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "No. But I think we've been looking in the wrong direction."
+  },
+  {
+   "id": "A03_041",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Energy signature detected."
+  },
+  {
+   "id": "A03_042",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "That's not a gateway."
+  },
+  {
+   "id": "A03_043",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Then what is it?"
+  },
+  {
+   "id": "A03_044",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "A receiver."
+  },
+  {
+   "id": "A03_045",
+   "mission": "03",
+   "speaker": "UNKNOWN VOICE",
+   "text": "...connection established..."
+  },
+  {
+   "id": "A03_046",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "NOVA?"
+  },
+  {
+   "id": "A03_047",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "That transmission is not originating from our network."
+  },
+  {
+   "id": "A03_048",
+   "mission": "03",
+   "speaker": "UNKNOWN VOICE",
+   "text": "...we have found you..."
+  },
+  {
+   "id": "A03_049",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "Shut it down!"
+  },
+  {
+   "id": "A03_050",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "I'm attempting to—"
+  },
+  {
+   "id": "A03_051",
+   "mission": "03",
+   "speaker": "UNKNOWN VOICE",
+   "text": "...the first has awakened..."
+  },
+  {
+   "id": "A03_052",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Warning. Structural integrity compromised."
+  },
+  {
+   "id": "A03_053",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "We need to get out!"
+  },
+  {
+   "id": "A03_054",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "The emergency elevator is on the eastern side!"
+  },
+  {
+   "id": "A03_055",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Negative. The elevator is inaccessible. Maintenance tunnel, approximately 180 metres ahead."
+  },
+  {
+   "id": "A03_056",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "How much do you know about this project?"
+  },
+  {
+   "id": "A03_057",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "Not enough."
+  },
+  {
+   "id": "A03_058",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "Try again."
+  },
+  {
+   "id": "A03_059",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "I knew the research existed. I didn't know what they were building."
+  },
+  {
+   "id": "A03_060",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "And you expect me to believe that?"
+  },
+  {
+   "id": "A03_061",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "No. But I need you to understand something. If that machine was communicating with something outside our reality, then the Fracture wasn't an invasion."
+  },
+  {
+   "id": "A03_062",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "What was it?"
+  },
+  {
+   "id": "A03_063",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "An invitation."
+  },
+  {
+   "id": "A03_064",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Operator, we have a problem."
+  },
+  {
+   "id": "A03_065",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "What now?"
+  },
+  {
+   "id": "A03_066",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "The signal we detected underground has been transmitted."
+  },
+  {
+   "id": "A03_067",
+   "mission": "03",
+   "speaker": "SERAPHINE",
+   "text": "Transmitted where?"
+  },
+  {
+   "id": "A03_068",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "I don't know. But something has responded."
+  },
+  {
+   "id": "A03_069",
+   "mission": "03",
+   "speaker": "PLAYER",
+   "text": "NOVA... how many?"
+  },
+  {
+   "id": "A03_070",
+   "mission": "03",
+   "speaker": "NOVA",
+   "text": "Multiple incoming signatures."
+  },
+  {
+   "id": "A03_071",
+   "mission": "03",
+   "speaker": "UNKNOWN VOICE",
+   "text": "The first door is open."
+  },
+  {
+   "id": "A03_072",
+   "mission": "03",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "The first signal has been received."
+  },
+  {
+   "id": "A03_073",
+   "mission": "03",
+   "speaker": "SECOND FIGURE",
+   "text": "And the vessel?"
+  },
+  {
+   "id": "A03_074",
+   "mission": "03",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "Awakened."
+  },
+  {
+   "id": "A03_075",
+   "mission": "03",
+   "speaker": "SECOND FIGURE",
+   "text": "Find the five."
+  },
+  {
+   "id": "A04_001",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "You're late."
+  },
+  {
+   "id": "A04_002",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Didn't realize I had an appointment."
+  },
+  {
+   "id": "A04_003",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "After what happened underground, you're lucky you're still breathing."
+  },
+  {
+   "id": "A04_004",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "You knew about that facility?"
+  },
+  {
+   "id": "A04_005",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "I knew it existed. I didn't know what they were doing inside."
+  },
+  {
+   "id": "A04_006",
+   "mission": "04",
+   "speaker": "SERAPHINE",
+   "text": "That's convenient."
+  },
+  {
+   "id": "A04_007",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Doctor, I suggest you choose your next words carefully."
+  },
+  {
+   "id": "A04_008",
+   "mission": "04",
+   "speaker": "SERAPHINE",
+   "text": "People died because your organization concealed information."
+  },
+  {
+   "id": "A04_009",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "People are dying right now because we don't understand what's coming through those openings."
+  },
+  {
+   "id": "A04_010",
+   "mission": "04",
+   "speaker": "OFFICER",
+   "text": "Commander, General Rainer is ready."
+  },
+  {
+   "id": "A04_011",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "Twenty minutes ago, we lost communication with three military installations."
+  },
+  {
+   "id": "A04_012",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "What happened?"
+  },
+  {
+   "id": "A04_013",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "They were attacked."
+  },
+  {
+   "id": "A04_014",
+   "mission": "04",
+   "speaker": "SERAPHINE",
+   "text": "By the same creatures?"
+  },
+  {
+   "id": "A04_015",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "No."
+  },
+  {
+   "id": "A04_016",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "These things are different."
+  },
+  {
+   "id": "A04_017",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "They use weapons. They communicate. They coordinate attacks."
+  },
+  {
+   "id": "A04_018",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "So they're soldiers."
+  },
+  {
+   "id": "A04_019",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "Exactly."
+  },
+  {
+   "id": "A04_020",
+   "mission": "04",
+   "speaker": "SERAPHINE",
+   "text": "That's not instinctive behavior."
+  },
+  {
+   "id": "A04_021",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Correct. Their movements indicate a centralized command structure."
+  },
+  {
+   "id": "A04_022",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Can we identify their leader?"
+  },
+  {
+   "id": "A04_023",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Negative."
+  },
+  {
+   "id": "A04_024",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "However, this entity appears to control nearby hostiles."
+  },
+  {
+   "id": "A04_025",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "We need that thing captured or destroyed."
+  },
+  {
+   "id": "A04_026",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "And we need the eastern district secured."
+  },
+  {
+   "id": "A04_027",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "When do we leave?"
+  },
+  {
+   "id": "A04_028",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "Immediately."
+  },
+  {
+   "id": "A04_029",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Listen carefully. You're not military."
+  },
+  {
+   "id": "A04_030",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Never claimed to be."
+  },
+  {
+   "id": "A04_031",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Out there, that distinction won't matter."
+  },
+  {
+   "id": "A04_032",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Then why bring me?"
+  },
+  {
+   "id": "A04_033",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Because you survived something that killed trained soldiers."
+  },
+  {
+   "id": "A04_034",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "That's your entire recruitment strategy?"
+  },
+  {
+   "id": "A04_035",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "For now."
+  },
+  {
+   "id": "A04_036",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Approaching the designated combat zone."
+  },
+  {
+   "id": "A04_037",
+   "mission": "04",
+   "speaker": "SOLDIER",
+   "text": "Contact! Front!"
+  },
+  {
+   "id": "A04_038",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Everyone out! Defensive formation!"
+  },
+  {
+   "id": "A04_039",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Warning. Unknown hostile approaching."
+  },
+  {
+   "id": "A04_040",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "I can see that."
+  },
+  {
+   "id": "A04_041",
+   "mission": "04",
+   "speaker": "ENEMY COMMANDER",
+   "text": "Identify... the awakened one."
+  },
+  {
+   "id": "A04_042",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Did you hear that?"
+  },
+  {
+   "id": "A04_043",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Affirmative."
+  },
+  {
+   "id": "A04_044",
+   "mission": "04",
+   "speaker": "ENEMY COMMANDER",
+   "text": "You were not meant to awaken."
+  },
+  {
+   "id": "A04_045",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Who are you?"
+  },
+  {
+   "id": "A04_046",
+   "mission": "04",
+   "speaker": "ENEMY COMMANDER",
+   "text": "The question is not who I am."
+  },
+  {
+   "id": "A04_047",
+   "mission": "04",
+   "speaker": "ENEMY COMMANDER",
+   "text": "The question is what you have become."
+  },
+  {
+   "id": "A04_048",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Who sent you?"
+  },
+  {
+   "id": "A04_049",
+   "mission": "04",
+   "speaker": "ENEMY COMMANDER",
+   "text": "You still believe this is an invasion."
+  },
+  {
+   "id": "A04_050",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Isn't it?"
+  },
+  {
+   "id": "A04_051",
+   "mission": "04",
+   "speaker": "ENEMY COMMANDER",
+   "text": "No."
+  },
+  {
+   "id": "A04_052",
+   "mission": "04",
+   "speaker": "ENEMY COMMANDER",
+   "text": "It is a reclamation."
+  },
+  {
+   "id": "A04_053",
+   "mission": "04",
+   "speaker": "ENEMY COMMANDER",
+   "text": "Tell the five... the covenant has been broken."
+  },
+  {
+   "id": "A04_054",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Transmission detected."
+  },
+  {
+   "id": "A04_055",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "From where?"
+  },
+  {
+   "id": "A04_056",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "The defeated entity."
+  },
+  {
+   "id": "A04_057",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Can you trace it?"
+  },
+  {
+   "id": "A04_058",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Yes."
+  },
+  {
+   "id": "A04_059",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "It originated from Earth."
+  },
+  {
+   "id": "A04_060",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "You destroyed our only opportunity to capture one alive!"
+  },
+  {
+   "id": "A04_061",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "It was trying to kill me."
+  },
+  {
+   "id": "A04_062",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "We needed intelligence!"
+  },
+  {
+   "id": "A04_063",
+   "mission": "04",
+   "speaker": "SERAPHINE",
+   "text": "General, the creature communicated with us."
+  },
+  {
+   "id": "A04_064",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "What?"
+  },
+  {
+   "id": "A04_065",
+   "mission": "04",
+   "speaker": "SERAPHINE",
+   "text": "It knew about five individuals. It mentioned something called the Covenant."
+  },
+  {
+   "id": "A04_066",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "General?"
+  },
+  {
+   "id": "A04_067",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "Dismissed."
+  },
+  {
+   "id": "A04_068",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Excuse me?"
+  },
+  {
+   "id": "A04_069",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "I said dismissed."
+  },
+  {
+   "id": "A04_070",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "You know something."
+  },
+  {
+   "id": "A04_071",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "You have no idea what you're involved in."
+  },
+  {
+   "id": "A04_072",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Then explain it."
+  },
+  {
+   "id": "A04_073",
+   "mission": "04",
+   "speaker": "RAINER",
+   "text": "Not here."
+  },
+  {
+   "id": "A04_074",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Meet me at the old transit terminal tonight."
+  },
+  {
+   "id": "A04_075",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Why?"
+  },
+  {
+   "id": "A04_076",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Because I think someone inside our organization is working with them."
+  },
+  {
+   "id": "A04_077",
+   "mission": "04",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "The first contact has been made."
+  },
+  {
+   "id": "A04_078",
+   "mission": "04",
+   "speaker": "SECOND FIGURE",
+   "text": "And the awakened one?"
+  },
+  {
+   "id": "A04_079",
+   "mission": "04",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "Confirmed."
+  },
+  {
+   "id": "A04_080",
+   "mission": "04",
+   "speaker": "SECOND FIGURE",
+   "text": "Then the prophecy was correct."
+  },
+  {
+   "id": "A04_081",
+   "mission": "04",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "No."
+  },
+  {
+   "id": "A04_082",
+   "mission": "04",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "The prophecy was incomplete."
+  },
+  {
+   "id": "A04_083",
+   "mission": "04",
+   "speaker": "SECOND FIGURE",
+   "text": "What is the sixth?"
+  },
+  {
+   "id": "A04_084",
+   "mission": "04",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "A mistake."
+  },
+  {
+   "id": "A04_085",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "You said you had answers."
+  },
+  {
+   "id": "A04_086",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "I have questions. That's worse."
+  },
+  {
+   "id": "A04_087",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Six months ago, General Rainer authorized a classified operation."
+  },
+  {
+   "id": "A04_088",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Project Genesis?"
+  },
+  {
+   "id": "A04_089",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "They weren't studying the Fractures."
+  },
+  {
+   "id": "A04_090",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Then what?"
+  },
+  {
+   "id": "A04_091",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "They were trying to communicate with whatever was inside them."
+  },
+  {
+   "id": "A04_092",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "Why?"
+  },
+  {
+   "id": "A04_093",
+   "mission": "04",
+   "speaker": "VOSS",
+   "text": "Because somebody promised them they could control it."
+  },
+  {
+   "id": "A04_094",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Operator. Incoming transmission."
+  },
+  {
+   "id": "A04_095",
+   "mission": "04",
+   "speaker": "UNKNOWN VOICE",
+   "text": "We know you are listening."
+  },
+  {
+   "id": "A04_096",
+   "mission": "04",
+   "speaker": "UNKNOWN VOICE",
+   "text": "You have awakened something that should have remained asleep."
+  },
+  {
+   "id": "A04_097",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "Operator..."
+  },
+  {
+   "id": "A04_098",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "What?"
+  },
+  {
+   "id": "A04_099",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "I have discovered something in my own system."
+  },
+  {
+   "id": "A04_100",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "What did you find?"
+  },
+  {
+   "id": "A04_101",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "An encrypted directive."
+  },
+  {
+   "id": "A04_102",
+   "mission": "04",
+   "speaker": "PLAYER",
+   "text": "From who?"
+  },
+  {
+   "id": "A04_103",
+   "mission": "04",
+   "speaker": "NOVA",
+   "text": "From someone who knew you before the Fracture."
+  },
+  {
+   "id": "A05_001",
+   "mission": "05",
+   "speaker": "VOSS",
+   "text": "This contains everything I could recover from the Genesis operation."
+  },
+  {
+   "id": "A05_002",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "And General Rainer?"
+  },
+  {
+   "id": "A05_003",
+   "mission": "05",
+   "speaker": "VOSS",
+   "text": "He's not going to make this easy."
+  },
+  {
+   "id": "A05_004",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "I've decrypted part of the transmission. It references an individual identified as Subject Six."
+  },
+  {
+   "id": "A05_005",
+   "mission": "05",
+   "speaker": "VOSS",
+   "text": "The Genesis project only documented five signatures."
+  },
+  {
+   "id": "A05_006",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Then what is Subject Six?"
+  },
+  {
+   "id": "A05_007",
+   "mission": "05",
+   "speaker": "VOSS",
+   "text": "That's what we're going to find out."
+  },
+  {
+   "id": "A05_008",
+   "mission": "05",
+   "speaker": "WARD",
+   "text": "So this is the one."
+  },
+  {
+   "id": "A05_009",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "I'm standing right here."
+  },
+  {
+   "id": "A05_010",
+   "mission": "05",
+   "speaker": "WARD",
+   "text": "Good. I prefer people who speak for themselves. We've reviewed your combat recordings."
+  },
+  {
+   "id": "A05_011",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Without asking?"
+  },
+  {
+   "id": "A05_012",
+   "mission": "05",
+   "speaker": "WARD",
+   "text": "The world ended yesterday. Privacy regulations are having a difficult week."
+  },
+  {
+   "id": "A05_013",
+   "mission": "05",
+   "speaker": "SERAPHINE",
+   "text": "Director, we need to discuss Research Complex 09."
+  },
+  {
+   "id": "A05_014",
+   "mission": "05",
+   "speaker": "WARD",
+   "text": "Not here."
+  },
+  {
+   "id": "A05_015",
+   "mission": "05",
+   "speaker": "SERAPHINE",
+   "text": "That's exactly the problem. Nobody wants to discuss it anywhere."
+  },
+  {
+   "id": "A05_016",
+   "mission": "05",
+   "speaker": "WARD",
+   "text": "Our priority is survival. We protect settlements, secure resources and establish safe territories."
+  },
+  {
+   "id": "A05_017",
+   "mission": "05",
+   "speaker": "SERAPHINE",
+   "text": "The Ascendancy has been collecting Fracture samples since before the disaster."
+  },
+  {
+   "id": "A05_018",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "And nobody stopped them?"
+  },
+  {
+   "id": "A05_019",
+   "mission": "05",
+   "speaker": "VOSS",
+   "text": "They have facilities outside our jurisdiction."
+  },
+  {
+   "id": "A05_020",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "So humanity is already fighting itself."
+  },
+  {
+   "id": "A05_021",
+   "mission": "05",
+   "speaker": "WARD",
+   "text": "Humanity has always fought itself. The Fractures simply gave us something bigger to fight over."
+  },
+  {
+   "id": "A05_022",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "You're Kael Draven?"
+  },
+  {
+   "id": "A05_023",
+   "mission": "05",
+   "speaker": "KAEL",
+   "text": "Depends who's asking."
+  },
+  {
+   "id": "A05_024",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Someone who keeps hearing your name."
+  },
+  {
+   "id": "A05_025",
+   "mission": "05",
+   "speaker": "KAEL",
+   "text": "That's usually a bad sign."
+  },
+  {
+   "id": "A05_026",
+   "mission": "05",
+   "speaker": "KAEL",
+   "text": "Everybody down there thinks they're saving the world."
+  },
+  {
+   "id": "A05_027",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "And you don't?"
+  },
+  {
+   "id": "A05_028",
+   "mission": "05",
+   "speaker": "KAEL",
+   "text": "I think people need saving. The world can sort itself out."
+  },
+  {
+   "id": "A05_029",
+   "mission": "05",
+   "speaker": "KAEL",
+   "text": "My people operate outside military control. We rescue civilians, recover supplies and hunt anything that comes through those openings."
+  },
+  {
+   "id": "A05_030",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Sounds useful."
+  },
+  {
+   "id": "A05_031",
+   "mission": "05",
+   "speaker": "KAEL",
+   "text": "It is. Until somebody decides we're criminals. If you ever get tired of taking orders, give me a call."
+  },
+  {
+   "id": "A05_032",
+   "mission": "05",
+   "speaker": "SERAPHINE",
+   "text": "These readings were recorded over several years. The sixth was deliberately removed from the official records."
+  },
+  {
+   "id": "A05_033",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "Operator. I have located the encrypted directive."
+  },
+  {
+   "id": "A05_034",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "NOVA, what is this?"
+  },
+  {
+   "id": "A05_035",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "I cannot determine the original authorization source."
+  },
+  {
+   "id": "A05_036",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Who programmed you?"
+  },
+  {
+   "id": "A05_037",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "I don't know."
+  },
+  {
+   "id": "A05_038",
+   "mission": "05",
+   "speaker": "RAINER",
+   "text": "Six months ago, we received a transmission."
+  },
+  {
+   "id": "A05_039",
+   "mission": "05",
+   "speaker": "SERAPHINE",
+   "text": "From whom?"
+  },
+  {
+   "id": "A05_040",
+   "mission": "05",
+   "speaker": "RAINER",
+   "text": "We never identified the sender. It contained information about Fracture technology, advanced energy systems and something called the Ascension Protocol."
+  },
+  {
+   "id": "A05_041",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "And you responded?"
+  },
+  {
+   "id": "A05_042",
+   "mission": "05",
+   "speaker": "VOSS",
+   "text": "You opened communication with them?"
+  },
+  {
+   "id": "A05_043",
+   "mission": "05",
+   "speaker": "RAINER",
+   "text": "We believed we could control the situation."
+  },
+  {
+   "id": "A05_044",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "And now?"
+  },
+  {
+   "id": "A05_045",
+   "mission": "05",
+   "speaker": "RAINER",
+   "text": "Now I believe we made a terrible mistake."
+  },
+  {
+   "id": "A05_046",
+   "mission": "05",
+   "speaker": "NOVA",
+   "text": "Unauthorized access detected in the eastern security sector."
+  },
+  {
+   "id": "A05_047",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Stop right there!"
+  },
+  {
+   "id": "A05_048",
+   "mission": "05",
+   "speaker": "FRACTURE INFILTRATOR",
+   "text": "The sixth has been located."
+  },
+  {
+   "id": "A05_049",
+   "mission": "05",
+   "speaker": "PLAYER",
+   "text": "Who sent you?"
+  },
+  {
+   "id": "A05_050",
+   "mission": "05",
+   "speaker": "FRACTURE INFILTRATOR",
+   "text": "The ones who remember."
+  },
+  {
+   "id": "A05_051",
+   "mission": "05",
+   "speaker": "SECOND FIGURE",
+   "text": "The sixth has awakened."
+  },
+  {
+   "id": "A05_052",
+   "mission": "05",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "Yes."
+  },
+  {
+   "id": "A05_053",
+   "mission": "05",
+   "speaker": "SECOND FIGURE",
+   "text": "Then the Covenant must be restored."
+  },
+  {
+   "id": "A05_054",
+   "mission": "05",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "Not yet. The vessel is incomplete."
+  },
+  {
+   "id": "A05_055",
+   "mission": "05",
+   "speaker": "SECOND FIGURE",
+   "text": "And the five?"
+  },
+  {
+   "id": "A05_056",
+   "mission": "05",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "They must remember who they were."
+  },
+  {
+   "id": "A06_001",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Current population estimate: 18,420 civilians."
+  },
+  {
+   "id": "A06_002",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "How many soldiers?"
+  },
+  {
+   "id": "A06_003",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Approximately 2,300 military personnel and 640 independent Operators."
+  },
+  {
+   "id": "A06_004",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "That's a lot of people depending on us."
+  },
+  {
+   "id": "A06_005",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Correct."
+  },
+  {
+   "id": "A06_006",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "You always know how to make someone feel better."
+  },
+  {
+   "id": "A06_007",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "There you are. Command wants you at the northern observation tower."
+  },
+  {
+   "id": "A06_008",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "What's happening?"
+  },
+  {
+   "id": "A06_009",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "That's what we're trying to figure out."
+  },
+  {
+   "id": "A06_010",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "We've been tracking this for forty minutes."
+  },
+  {
+   "id": "A06_011",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "What is it?"
+  },
+  {
+   "id": "A06_012",
+   "mission": "06",
+   "speaker": "SERAPHINE",
+   "text": "A Fracture. Not like the others."
+  },
+  {
+   "id": "A06_013",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Energy output exceeds all previously recorded events."
+  },
+  {
+   "id": "A06_014",
+   "mission": "06",
+   "speaker": "WARD",
+   "text": "Can we close it?"
+  },
+  {
+   "id": "A06_015",
+   "mission": "06",
+   "speaker": "SERAPHINE",
+   "text": "I don't know."
+  },
+  {
+   "id": "A06_016",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "Everyone to battle stations!"
+  },
+  {
+   "id": "A06_017",
+   "mission": "06",
+   "speaker": "WARD",
+   "text": "Evacuate the outer settlement!"
+  },
+  {
+   "id": "A06_018",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "We're not abandoning these people!"
+  },
+  {
+   "id": "A06_019",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "We're holding this position."
+  },
+  {
+   "id": "A06_020",
+   "mission": "06",
+   "speaker": "SOLDIER",
+   "text": "THAT THING IS GOING TO BREAK THROUGH!"
+  },
+  {
+   "id": "A06_021",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "Operator, we need that creature stopped!"
+  },
+  {
+   "id": "A06_022",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Working on it!"
+  },
+  {
+   "id": "A06_023",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Its outer armor is extremely resistant to conventional weapons."
+  },
+  {
+   "id": "A06_024",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Weak point?"
+  },
+  {
+   "id": "A06_025",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Three energy nodes along its spinal structure."
+  },
+  {
+   "id": "A06_026",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "You actually killed it."
+  },
+  {
+   "id": "A06_027",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "I wouldn't recommend trying that yourself."
+  },
+  {
+   "id": "A06_028",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "Trust me. I wasn't planning on it."
+  },
+  {
+   "id": "A06_029",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "Get these people moving!"
+  },
+  {
+   "id": "A06_030",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Where's the evacuation transport?"
+  },
+  {
+   "id": "A06_031",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "Three minutes out!"
+  },
+  {
+   "id": "A06_032",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Incoming hostile force approaching from the east."
+  },
+  {
+   "id": "A06_033",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "How many?"
+  },
+  {
+   "id": "A06_034",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Approximately 180 signatures."
+  },
+  {
+   "id": "A06_035",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "Get them out."
+  },
+  {
+   "id": "A06_036",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "We're leaving together."
+  },
+  {
+   "id": "A06_037",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "That's an order."
+  },
+  {
+   "id": "A06_038",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "I'm not in your military."
+  },
+  {
+   "id": "A06_039",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "Then consider it a request."
+  },
+  {
+   "id": "A06_040",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Cole! Don't!"
+  },
+  {
+   "id": "A06_041",
+   "mission": "06",
+   "speaker": "COLE",
+   "text": "Tell them we held the line."
+  },
+  {
+   "id": "A06_042",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Captain Cole's biometric signal has been lost."
+  },
+  {
+   "id": "A06_043",
+   "mission": "06",
+   "speaker": "SERAPHINE",
+   "text": "I'm sorry."
+  },
+  {
+   "id": "A06_044",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Keep the evacuation moving."
+  },
+  {
+   "id": "A06_045",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Operator, I am detecting an extremely powerful entity."
+  },
+  {
+   "id": "A06_046",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Another commander?"
+  },
+  {
+   "id": "A06_047",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Negative. This signature is substantially greater."
+  },
+  {
+   "id": "A06_048",
+   "mission": "06",
+   "speaker": "THE HARBINGER",
+   "text": "You have built a fortress upon stolen ground."
+  },
+  {
+   "id": "A06_049",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Who are you?"
+  },
+  {
+   "id": "A06_050",
+   "mission": "06",
+   "speaker": "THE HARBINGER",
+   "text": "The one who comes to reclaim what was taken."
+  },
+  {
+   "id": "A06_051",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "You're going to have to be more specific."
+  },
+  {
+   "id": "A06_052",
+   "mission": "06",
+   "speaker": "THE HARBINGER",
+   "text": "You will remember."
+  },
+  {
+   "id": "A06_053",
+   "mission": "06",
+   "speaker": "THE HARBINGER",
+   "text": "You still carry the mark."
+  },
+  {
+   "id": "A06_054",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "What mark?"
+  },
+  {
+   "id": "A06_055",
+   "mission": "06",
+   "speaker": "THE HARBINGER",
+   "text": "The mark of the first betrayal."
+  },
+  {
+   "id": "A06_056",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "Operator! Your neural activity is destabilizing!"
+  },
+  {
+   "id": "A06_057",
+   "mission": "06",
+   "speaker": "THE HARBINGER",
+   "text": "Not yet. The five must awaken before the sixth remembers."
+  },
+  {
+   "id": "A06_058",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "We held the settlement."
+  },
+  {
+   "id": "A06_059",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "Barely."
+  },
+  {
+   "id": "A06_060",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "Barely is better than nothing."
+  },
+  {
+   "id": "A06_061",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "Cole believed we could win this."
+  },
+  {
+   "id": "A06_062",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "He saved hundreds of people."
+  },
+  {
+   "id": "A06_063",
+   "mission": "06",
+   "speaker": "VOSS",
+   "text": "He shouldn't have had to."
+  },
+  {
+   "id": "A06_064",
+   "mission": "06",
+   "speaker": "SERAPHINE",
+   "text": "This isn't an enemy insignia. It's an identification mark."
+  },
+  {
+   "id": "A06_065",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "The sixth signature matches the Operator."
+  },
+  {
+   "id": "A06_066",
+   "mission": "06",
+   "speaker": "PLAYER",
+   "text": "What does that mean?"
+  },
+  {
+   "id": "A06_067",
+   "mission": "06",
+   "speaker": "NOVA",
+   "text": "I don't know."
+  },
+  {
+   "id": "A06_068",
+   "mission": "06",
+   "speaker": "GLOBAL BROADCAST",
+   "text": "Attention. All surviving settlements. This is an international emergency transmission. Multiple Fracture incursions have been confirmed across the planet. All remaining military organizations are ordered to establish defensive positions."
+  },
+  {
+   "id": "A06_069",
+   "mission": "06",
+   "speaker": "UNKNOWN RULER",
+   "text": "Did you find the sixth?"
+  },
+  {
+   "id": "A06_070",
+   "mission": "06",
+   "speaker": "THE HARBINGER",
+   "text": "Yes."
+  },
+  {
+   "id": "A06_071",
+   "mission": "06",
+   "speaker": "UNKNOWN RULER",
+   "text": "And the five?"
+  },
+  {
+   "id": "A06_072",
+   "mission": "06",
+   "speaker": "THE HARBINGER",
+   "text": "Still scattered."
+  },
+  {
+   "id": "A06_073",
+   "mission": "06",
+   "speaker": "UNKNOWN RULER",
+   "text": "Then the First War will continue. Prepare the Covenant."
+  },
+  {
+   "id": "A06_074",
+   "mission": "06",
+   "speaker": "UNKNOWN RULER",
+   "text": "The old world is ending."
+  },
+  {
+   "id": "A07_001",
+   "mission": "07",
+   "speaker": "VOSS",
+   "text": "We found this under three city blocks. The siege cracked the ground open."
+  },
+  {
+   "id": "A07_002",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "How far down?"
+  },
+  {
+   "id": "A07_003",
+   "mission": "07",
+   "speaker": "VOSS",
+   "text": "Our scanners can't find the bottom."
+  },
+  {
+   "id": "A07_004",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "That's not possible. The structure is absorbing the scan."
+  },
+  {
+   "id": "A07_005",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "The material composition does not match any terrestrial alloy or known geological sample."
+  },
+  {
+   "id": "A07_006",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "So we're going underground."
+  },
+  {
+   "id": "A07_007",
+   "mission": "07",
+   "speaker": "VOSS",
+   "text": "You're going underground. I'm keeping the surface secure."
+  },
+  {
+   "id": "A07_008",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "I'm coming with you."
+  },
+  {
+   "id": "A07_009",
+   "mission": "07",
+   "speaker": "VOSS",
+   "text": "Doctor, this isn't a research excursion."
+  },
+  {
+   "id": "A07_010",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "It's the first evidence that might explain why the enemy calls Earth stolen ground."
+  },
+  {
+   "id": "A07_011",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "She's coming."
+  },
+  {
+   "id": "A07_012",
+   "mission": "07",
+   "speaker": "VOSS",
+   "text": "If your signal drops, I send a team. Don't make me regret it."
+  },
+  {
+   "id": "A07_013",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "This thing is still powered."
+  },
+  {
+   "id": "A07_014",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "Correct. Its energy output is stable and predates the current Fracture event."
+  },
+  {
+   "id": "A07_015",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "Look at these markings."
+  },
+  {
+   "id": "A07_016",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "Can you read them?"
+  },
+  {
+   "id": "A07_017",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "No. But they repeat in groups of five."
+  },
+  {
+   "id": "A07_018",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "I recorded that."
+  },
+  {
+   "id": "A07_019",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "Don't display it again."
+  },
+  {
+   "id": "A07_020",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "Why?"
+  },
+  {
+   "id": "A07_021",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "Because it matches the symbol from the Harbinger."
+  },
+  {
+   "id": "A07_022",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "This place is older than anything we've ever excavated."
+  },
+  {
+   "id": "A07_023",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "How old?"
+  },
+  {
+   "id": "A07_024",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "I can't even begin to estimate."
+  },
+  {
+   "id": "A07_025",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "The structure's geometry is consistent with the energy architecture recorded at Research Complex 09."
+  },
+  {
+   "id": "A07_026",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "The lab copied this place?"
+  },
+  {
+   "id": "A07_027",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "Or the lab was trying to recreate it."
+  },
+  {
+   "id": "A07_028",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "There's the sixth again."
+  },
+  {
+   "id": "A07_029",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "It isn't standing with the others."
+  },
+  {
+   "id": "A07_030",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "The sixth figure is separated from the central arrangement."
+  },
+  {
+   "id": "A07_031",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "Defensive constructs activating."
+  },
+  {
+   "id": "A07_032",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "Are they hostile?"
+  },
+  {
+   "id": "A07_033",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "That answers the question."
+  },
+  {
+   "id": "A07_034",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "Unauthorized presence."
+  },
+  {
+   "id": "A07_035",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "We're just looking around."
+  },
+  {
+   "id": "A07_036",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "The Covenant is sealed. The breach is forbidden."
+  },
+  {
+   "id": "A07_037",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "We need to know what happened here."
+  },
+  {
+   "id": "A07_038",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "Knowledge is not permission."
+  },
+  {
+   "id": "A07_039",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "Then give us a reason to leave."
+  },
+  {
+   "id": "A07_040",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "The marked vessel has returned."
+  },
+  {
+   "id": "A07_041",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "Sixth bearer. Your presence is a wound in the archive."
+  },
+  {
+   "id": "A07_042",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "I don't know what that means."
+  },
+  {
+   "id": "A07_043",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "You were not meant to remember."
+  },
+  {
+   "id": "A07_044",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "The seal recognizes you."
+  },
+  {
+   "id": "A07_045",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "What seal?"
+  },
+  {
+   "id": "A07_046",
+   "mission": "07",
+   "speaker": "ARCHIVE RECORDING",
+   "text": "The Covenant was formed to preserve the passage between worlds. Five keepers maintained the balance. The world called Earth was made a sanctuary and a lock."
+  },
+  {
+   "id": "A07_047",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "Earth was a lock?"
+  },
+  {
+   "id": "A07_048",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "What was it locking away?"
+  },
+  {
+   "id": "A07_049",
+   "mission": "07",
+   "speaker": "ARCHIVE RECORDING",
+   "text": "When the sixth returns, the broken Covenant will call its debt."
+  },
+  {
+   "id": "A07_050",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "That's all?"
+  },
+  {
+   "id": "A07_051",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "The archive has withheld or lost the remaining record."
+  },
+  {
+   "id": "A07_052",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "No. Someone deliberately erased it."
+  },
+  {
+   "id": "A07_053",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "Translation fragment: \"Aetherion... first sanctuary... bearer...\""
+  },
+  {
+   "id": "A07_054",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "Aetherion. That's not in any human historical record."
+  },
+  {
+   "id": "A07_055",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "What is it?"
+  },
+  {
+   "id": "A07_056",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "It may refer to a location, civilization or designation."
+  },
+  {
+   "id": "A07_057",
+   "mission": "07",
+   "speaker": "UNKNOWN VOICE",
+   "text": "You were the promise. You became the breach."
+  },
+  {
+   "id": "A07_058",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "What did you see?"
+  },
+  {
+   "id": "A07_059",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "I don't know. But it knew me."
+  },
+  {
+   "id": "A07_060",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "Operator, your biometric pattern briefly matched the archive's sixth signature."
+  },
+  {
+   "id": "A07_061",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "For how long?"
+  },
+  {
+   "id": "A07_062",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "2.4 seconds."
+  },
+  {
+   "id": "A07_063",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "That's enough. We need to get this information out."
+  },
+  {
+   "id": "A07_064",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "The first seal has weakened."
+  },
+  {
+   "id": "A07_065",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "How many seals?"
+  },
+  {
+   "id": "A07_066",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "Five."
+  },
+  {
+   "id": "A07_067",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "Where are they?"
+  },
+  {
+   "id": "A07_068",
+   "mission": "07",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "Scattered among the worlds. The keepers must remember."
+  },
+  {
+   "id": "A07_069",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "Structural instability detected. We must leave."
+  },
+  {
+   "id": "A07_070",
+   "mission": "07",
+   "speaker": "VOSS",
+   "text": "You took your time."
+  },
+  {
+   "id": "A07_071",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "We found something."
+  },
+  {
+   "id": "A07_072",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "A buried civilization. A network between worlds. Five keepers. And a sixth figure tied to the seal."
+  },
+  {
+   "id": "A07_073",
+   "mission": "07",
+   "speaker": "VOSS",
+   "text": "Can you prove any of it?"
+  },
+  {
+   "id": "A07_074",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "I have recovered a partial archive record."
+  },
+  {
+   "id": "A07_075",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "And Earth?"
+  },
+  {
+   "id": "A07_076",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "It wasn't just a place they invaded. It was part of something much older."
+  },
+  {
+   "id": "A07_077",
+   "mission": "07",
+   "speaker": "NOVA",
+   "text": "These coordinates correspond to five distinct energy readings."
+  },
+  {
+   "id": "A07_078",
+   "mission": "07",
+   "speaker": "PLAYER",
+   "text": "The five signatures."
+  },
+  {
+   "id": "A07_079",
+   "mission": "07",
+   "speaker": "SERAPHINE",
+   "text": "And the keepers."
+  },
+  {
+   "id": "A07_080",
+   "mission": "07",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "The sanctuary has remembered."
+  },
+  {
+   "id": "A07_081",
+   "mission": "07",
+   "speaker": "SECOND FIGURE",
+   "text": "Then the sixth will remember too."
+  },
+  {
+   "id": "A07_082",
+   "mission": "07",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "Not if the keepers reach them first."
+  },
+  {
+   "id": "A07_083",
+   "mission": "07",
+   "speaker": "UNKNOWN FIGURE",
+   "text": "Find the first keeper."
+  }
+ ]
+}

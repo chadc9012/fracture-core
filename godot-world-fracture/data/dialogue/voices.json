@@ -4566,6 +4566,4144 @@
 ""
 ]
 },
+"A02_001": {
+"speaker": "NOVA",
+"text": "Operator? Can you hear me?",
+"dur": 1.96,
+"variants": [
+""
+]
+},
+"A02_002": {
+"speaker": "NOVA",
+"text": "Your biometric readings are unstable. Please respond.",
+"dur": 3.29,
+"variants": [
+""
+]
+},
+"A02_003": {
+"speaker": "PLAYER",
+"text": "What the hell happened?",
+"dur": 1.25,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_004": {
+"speaker": "NOVA",
+"text": "A Fracture event has occurred approximately 1.8 kilometres from your current position.",
+"dur": 4.67,
+"variants": [
+""
+]
+},
+"A02_005": {
+"speaker": "PLAYER",
+"text": "A what?",
+"dur": 0.79,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_006": {
+"speaker": "NOVA",
+"text": "I am detecting an anomalous energy signature across the entire city.",
+"dur": 4.11,
+"variants": [
+""
+]
+},
+"A02_007": {
+"speaker": "PLAYER",
+"text": "People are still inside those buildings!",
+"dur": 2.7,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_008": {
+"speaker": "NOVA",
+"text": "Correct. Approximately 340 civilians remain inside the immediate danger zone.",
+"dur": 5.21,
+"variants": [
+""
+]
+},
+"A02_009": {
+"speaker": "PLAYER",
+"text": "Then we're getting them out.",
+"dur": 1.27,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_010": {
+"speaker": "NOVA",
+"text": "That decision is statistically dangerous.",
+"dur": 2.51,
+"variants": [
+""
+]
+},
+"A02_011": {
+"speaker": "PLAYER",
+"text": "Get used to it.",
+"dur": 1.27,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_012": {
+"speaker": "BOY",
+"text": "Please! Somebody help my dad!",
+"dur": 2.06,
+"variants": [
+""
+]
+},
+"A02_013": {
+"speaker": "PLAYER",
+"text": "Hey. Look at me. What's your name?",
+"dur": 2.14,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_014": {
+"speaker": "BOY",
+"text": "Daniel.",
+"dur": 0.77,
+"variants": [
+""
+]
+},
+"A02_015": {
+"speaker": "PLAYER",
+"text": "Daniel, I'm going to get your dad out. Stay right here.",
+"dur": 2.85,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_016": {
+"speaker": "MAN",
+"text": "Don't... don't worry about me. Get my son somewhere safe.",
+"dur": 2.57,
+"variants": [
+""
+]
+},
+"A02_017": {
+"speaker": "PLAYER",
+"text": "I'm getting both of you out.",
+"dur": 1.55,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_018": {
+"speaker": "NOVA",
+"text": "Operator, movement detected beneath the overturned vehicle.",
+"dur": 3.29,
+"variants": [
+""
+]
+},
+"A02_019": {
+"speaker": "PLAYER",
+"text": "What kind of movement?",
+"dur": 1.4,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_020": {
+"speaker": "NOVA",
+"text": "Unknown biological signatures.",
+"dur": 2.22,
+"variants": [
+""
+]
+},
+"A02_021": {
+"speaker": "PLAYER",
+"text": "Daniel! Get behind me!",
+"dur": 1.76,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_022": {
+"speaker": "DANIEL",
+"text": "What was that thing?",
+"dur": 1.15,
+"variants": [
+""
+]
+},
+"A02_023": {
+"speaker": "PLAYER",
+"text": "I don't know.",
+"dur": 1.08,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_024": {
+"speaker": "NOVA",
+"text": "I have identified the biological structure.",
+"dur": 2.36,
+"variants": [
+""
+]
+},
+"A02_025": {
+"speaker": "PLAYER",
+"text": "What is it?",
+"dur": 0.87,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_026": {
+"speaker": "NOVA",
+"text": "I cannot classify it.",
+"dur": 1.72,
+"variants": [
+""
+]
+},
+"A02_027": {
+"speaker": "NOVA",
+"text": "And I am detecting hundreds more.",
+"dur": 1.93,
+"variants": [
+""
+]
+},
+"A02_028": {
+"speaker": "VOSS",
+"text": "Stop right there! Identify yourself!",
+"dur": 2.38,
+"variants": [
+""
+]
+},
+"A02_029": {
+"speaker": "PLAYER",
+"text": "I'm not your enemy.",
+"dur": 1.38,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_030": {
+"speaker": "VOSS",
+"text": "That's what everyone says until one of those things starts wearing their face.",
+"dur": 4.36,
+"variants": [
+""
+]
+},
+"A02_031": {
+"speaker": "PLAYER",
+"text": "I've been helping civilians get out.",
+"dur": 1.91,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_032": {
+"speaker": "VOSS",
+"text": "You survived the initial event?",
+"dur": 1.91,
+"variants": [
+""
+]
+},
+"A02_033": {
+"speaker": "PLAYER",
+"text": "Apparently.",
+"dur": 0.89,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_034": {
+"speaker": "VOSS",
+"text": "Then you're either incredibly lucky or something happened to you.",
+"dur": 3.1,
+"variants": [
+""
+]
+},
+"A02_035": {
+"speaker": "NOVA",
+"text": "Operator, this individual has access to military command networks.",
+"dur": 3.98,
+"variants": [
+""
+]
+},
+"A02_036": {
+"speaker": "PLAYER",
+"text": "Can you identify him?",
+"dur": 1.44,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_037": {
+"speaker": "NOVA",
+"text": "Commander Elias Voss. Frontier Defense Initiative.",
+"dur": 3.17,
+"variants": [
+""
+]
+},
+"A02_038": {
+"speaker": "MILITARY RADIO",
+"text": "Command, this is Outpost Seven! We're under attack! Repeat, we're under attack!",
+"dur": 4.42,
+"variants": [
+""
+]
+},
+"A02_039": {
+"speaker": "VOSS",
+"text": "Everyone, defensive positions! Move!",
+"dur": 2.54,
+"variants": [
+""
+]
+},
+"A02_040": {
+"speaker": "VOSS",
+"text": "You wanted to help? Here's your chance.",
+"dur": 2.14,
+"variants": [
+""
+]
+},
+"A02_041": {
+"speaker": "VOSS",
+"text": "What the hell are those things?",
+"dur": 2.31,
+"variants": [
+""
+]
+},
+"A02_042": {
+"speaker": "PLAYER",
+"text": "You tell me. You're the military.",
+"dur": 1.83,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_043": {
+"speaker": "VOSS",
+"text": "We've been shooting at them for twenty minutes. Nothing seems to work!",
+"dur": 3.17,
+"variants": [
+""
+]
+},
+"A02_044": {
+"speaker": "NOVA",
+"text": "Operator, the larger entity appears to be coordinating the smaller hostiles.",
+"dur": 4.27,
+"variants": [
+""
+]
+},
+"A02_045": {
+"speaker": "PLAYER",
+"text": "You mean it's commanding them?",
+"dur": 1.54,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_046": {
+"speaker": "NOVA",
+"text": "Affirmative.",
+"dur": 1.11,
+"variants": [
+""
+]
+},
+"A02_047": {
+"speaker": "VOSS",
+"text": "You heard that? Take out the big one!",
+"dur": 2.28,
+"variants": [
+""
+]
+},
+"A02_048": {
+"speaker": "NOVA",
+"text": "This is not random biological mutation.",
+"dur": 2.52,
+"variants": [
+""
+]
+},
+"A02_049": {
+"speaker": "PLAYER",
+"text": "Then what is it?",
+"dur": 1.34,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_050": {
+"speaker": "NOVA",
+"text": "Technology.",
+"dur": 1.06,
+"variants": [
+""
+]
+},
+"A02_051": {
+"speaker": "PLAYER",
+"text": "Technology? From where?",
+"dur": 1.61,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_052": {
+"speaker": "NOVA",
+"text": "Unknown.",
+"dur": 1.07,
+"variants": [
+""
+]
+},
+"A02_053": {
+"speaker": "SERAPHINE",
+"text": "You. You're the one who survived the first wave?",
+"dur": 2.41,
+"variants": [
+""
+]
+},
+"A02_054": {
+"speaker": "PLAYER",
+"text": "Depends who's asking.",
+"dur": 1.38,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_055": {
+"speaker": "SERAPHINE",
+"text": "Dr. Seraphine Vale. Fracture research division.",
+"dur": 2.96,
+"variants": [
+""
+]
+},
+"A02_056": {
+"speaker": "PLAYER",
+"text": "You study those things?",
+"dur": 1.58,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_057": {
+"speaker": "SERAPHINE",
+"text": "I studied the energy signatures before today.",
+"dur": 2.53,
+"variants": [
+""
+]
+},
+"A02_058": {
+"speaker": "PLAYER",
+"text": "Before today?",
+"dur": 0.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_059": {
+"speaker": "SERAPHINE",
+"text": "We've been detecting anomalies for months.",
+"dur": 2.24,
+"variants": [
+""
+]
+},
+"A02_060": {
+"speaker": "PLAYER",
+"text": "And nobody thought to tell the public?",
+"dur": 1.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_061": {
+"speaker": "SERAPHINE",
+"text": "We didn't know what they were.",
+"dur": 1.55,
+"variants": [
+""
+]
+},
+"A02_062": {
+"speaker": "PLAYER",
+"text": "That's convenient.",
+"dur": 1.22,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_063": {
+"speaker": "SERAPHINE",
+"text": "There is something you need to understand. The event that destroyed this city wasn't the beginning.",
+"dur": 4.43,
+"variants": [
+""
+]
+},
+"A02_064": {
+"speaker": "PLAYER",
+"text": "What do you mean?",
+"dur": 0.98,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_065": {
+"speaker": "SERAPHINE",
+"text": "Something opened the door.",
+"dur": 1.4,
+"variants": [
+""
+]
+},
+"A02_066": {
+"speaker": "PLAYER",
+"text": "And what's on the other side?",
+"dur": 1.58,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_067": {
+"speaker": "SERAPHINE",
+"text": "That's what I'm afraid we're about to find out.",
+"dur": 2.27,
+"variants": [
+""
+]
+},
+"A02_068": {
+"speaker": "NOVA",
+"text": "Operator, I have located an active signal beneath Nexus City.",
+"dur": 3.7,
+"variants": [
+""
+]
+},
+"A02_069": {
+"speaker": "PLAYER",
+"text": "Another survivor?",
+"dur": 1.31,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_070": {
+"speaker": "NOVA",
+"text": "Negative.",
+"dur": 0.95,
+"variants": [
+""
+]
+},
+"A02_071": {
+"speaker": "PLAYER",
+"text": "Then what?",
+"dur": 0.8,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_072": {
+"speaker": "NOVA",
+"text": "A research facility.",
+"dur": 1.43,
+"variants": [
+""
+]
+},
+"A02_073": {
+"speaker": "SERAPHINE",
+"text": "Which facility?",
+"dur": 1.19,
+"variants": [
+""
+]
+},
+"A02_074": {
+"speaker": "NOVA",
+"text": "Sublevel Research Complex 09.",
+"dur": 2.33,
+"variants": [
+""
+]
+},
+"A02_075": {
+"speaker": "SERAPHINE",
+"text": "That's impossible.",
+"dur": 1.19,
+"variants": [
+""
+]
+},
+"A02_076": {
+"speaker": "PLAYER",
+"text": "Why?",
+"dur": 0.79,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_077": {
+"speaker": "SERAPHINE",
+"text": "Because that facility was sealed six months ago.",
+"dur": 2.59,
+"variants": [
+""
+]
+},
+"A02_078": {
+"speaker": "PLAYER",
+"text": "What were they researching?",
+"dur": 1.38,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_079": {
+"speaker": "SERAPHINE",
+"text": "The Fractures.",
+"dur": 1.08,
+"variants": [
+""
+]
+},
+"A02_080": {
+"speaker": "PLAYER",
+"text": "You said nobody knew what they were.",
+"dur": 1.82,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_081": {
+"speaker": "SERAPHINE",
+"text": "I said we didn't understand them.",
+"dur": 1.6,
+"variants": [
+""
+]
+},
+"A02_082": {
+"speaker": "SERAPHINE",
+"text": "There's a difference.",
+"dur": 1.17,
+"variants": [
+""
+]
+},
+"A02_083": {
+"speaker": "SCIENTIST",
+"text": "Day 184. The signal has changed again.",
+"dur": 4.29,
+"variants": [
+""
+]
+},
+"A02_084": {
+"speaker": "SCIENTIST",
+"text": "We've confirmed that the energy signature is responding to human consciousness.",
+"dur": 5.0,
+"variants": [
+""
+]
+},
+"A02_085": {
+"speaker": "SCIENTIST",
+"text": "No... no, that's not possible.",
+"dur": 1.8,
+"variants": [
+""
+]
+},
+"A02_086": {
+"speaker": "SCIENTIST",
+"text": "If anyone finds this recording, listen carefully.",
+"dur": 3.15,
+"variants": [
+""
+]
+},
+"A02_087": {
+"speaker": "SCIENTIST",
+"text": "It knew we were coming.",
+"dur": 1.24,
+"variants": [
+""
+]
+},
+"A02_088": {
+"speaker": "NOVA",
+"text": "Operator...",
+"dur": 1.09,
+"variants": [
+""
+]
+},
+"A02_089": {
+"speaker": "PLAYER",
+"text": "What?",
+"dur": 0.63,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A02_090": {
+"speaker": "NOVA",
+"text": "I've found something.",
+"dur": 1.37,
+"variants": [
+""
+]
+},
+"A02_091": {
+"speaker": "NOVA",
+"text": "I don't think we were the first civilization to encounter this.",
+"dur": 3.22,
+"variants": [
+""
+]
+},
+"A03_001": {
+"speaker": "PLAYER",
+"text": "This is the place?",
+"dur": 1.22,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_002": {
+"speaker": "SERAPHINE",
+"text": "Yes. Research Complex 09.",
+"dur": 2.27,
+"variants": [
+""
+]
+},
+"A03_003": {
+"speaker": "PLAYER",
+"text": "You said it was shut down six months ago.",
+"dur": 2.07,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_004": {
+"speaker": "SERAPHINE",
+"text": "It was supposed to be.",
+"dur": 1.42,
+"variants": [
+""
+]
+},
+"A03_005": {
+"speaker": "NOVA",
+"text": "I've detected an active power source behind the blast door.",
+"dur": 3.07,
+"variants": [
+""
+]
+},
+"A03_006": {
+"speaker": "PLAYER",
+"text": "Can you open it?",
+"dur": 0.96,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_007": {
+"speaker": "NOVA",
+"text": "I can attempt to access the security network.",
+"dur": 2.5,
+"variants": [
+""
+]
+},
+"A03_008": {
+"speaker": "SERAPHINE",
+"text": "This facility was never connected to the public network. It had its own isolated system.",
+"dur": 4.73,
+"variants": [
+""
+]
+},
+"A03_009": {
+"speaker": "PLAYER",
+"text": "Tell me that was the ventilation system.",
+"dur": 2.62,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_010": {
+"speaker": "NOVA",
+"text": "It was not.",
+"dur": 1.1,
+"variants": [
+""
+]
+},
+"A03_011": {
+"speaker": "NOVA",
+"text": "Welcome back, Dr. Vale.",
+"dur": 2.11,
+"variants": [
+""
+]
+},
+"A03_012": {
+"speaker": "SERAPHINE",
+"text": "What did you just say?",
+"dur": 1.25,
+"variants": [
+""
+]
+},
+"A03_013": {
+"speaker": "NOVA",
+"text": "I said welcome back, Dr. Vale.",
+"dur": 2.45,
+"variants": [
+""
+]
+},
+"A03_014": {
+"speaker": "SERAPHINE",
+"text": "I have never accessed this terminal.",
+"dur": 1.91,
+"variants": [
+""
+]
+},
+"A03_015": {
+"speaker": "SERAPHINE",
+"text": "These systems are still active. Somebody has been conducting experiments here.",
+"dur": 3.87,
+"variants": [
+""
+]
+},
+"A03_016": {
+"speaker": "PLAYER",
+"text": "Six months after the facility supposedly closed?",
+"dur": 2.93,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_017": {
+"speaker": "SERAPHINE",
+"text": "Apparently.",
+"dur": 0.94,
+"variants": [
+""
+]
+},
+"A03_018": {
+"speaker": "NOVA",
+"text": "I have detected 27 biological signatures.",
+"dur": 2.84,
+"variants": [
+""
+]
+},
+"A03_019": {
+"speaker": "PLAYER",
+"text": "Where are they?",
+"dur": 0.88,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_020": {
+"speaker": "NOVA",
+"text": "Unclear.",
+"dur": 1.07,
+"variants": [
+""
+]
+},
+"A03_021": {
+"speaker": "DR. CROSS",
+"text": "If you're watching this, then the containment protocols have failed. We thought the Fracture was an opening. A doorway into another dimension. We were wrong.",
+"dur": 8.33,
+"variants": [
+""
+]
+},
+"A03_022": {
+"speaker": "DR. CROSS",
+"text": "It's not opening into somewhere else. Something is opening into us.",
+"dur": 3.75,
+"variants": [
+""
+]
+},
+"A03_023": {
+"speaker": "SERAPHINE",
+"text": "They were trying to synchronize human biology with Fracture energy.",
+"dur": 3.65,
+"variants": [
+""
+]
+},
+"A03_024": {
+"speaker": "PLAYER",
+"text": "Why?",
+"dur": 0.74,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_025": {
+"speaker": "SERAPHINE",
+"text": "To create soldiers who could survive inside a Fracture.",
+"dur": 2.98,
+"variants": [
+""
+]
+},
+"A03_026": {
+"speaker": "NOVA",
+"text": "Warning. Biological activity increasing.",
+"dur": 2.97,
+"variants": [
+""
+]
+},
+"A03_027": {
+"speaker": "PLAYER",
+"text": "Is it dead?",
+"dur": 0.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_028": {
+"speaker": "NOVA",
+"text": "Biological activity has ceased.",
+"dur": 2.08,
+"variants": [
+""
+]
+},
+"A03_029": {
+"speaker": "SERAPHINE",
+"text": "I've seen this symbol before. In the original Fracture research files.",
+"dur": 3.93,
+"variants": [
+""
+]
+},
+"A03_030": {
+"speaker": "PLAYER",
+"text": "NOVA, open it.",
+"dur": 1.12,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_031": {
+"speaker": "NOVA",
+"text": "Access denied.",
+"dur": 1.37,
+"variants": [
+""
+]
+},
+"A03_032": {
+"speaker": "PLAYER",
+"text": "Try again.",
+"dur": 1.04,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_033": {
+"speaker": "PLAYER",
+"text": "What?",
+"dur": 0.68,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_034": {
+"speaker": "NOVA",
+"text": "The system has identified your biometric signature.",
+"dur": 3.1,
+"variants": [
+""
+]
+},
+"A03_035": {
+"speaker": "PLAYER",
+"text": "I've never been here.",
+"dur": 1.31,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_036": {
+"speaker": "NOVA",
+"text": "I understand.",
+"dur": 1.32,
+"variants": [
+""
+]
+},
+"A03_037": {
+"speaker": "DR. CROSS",
+"text": "There are five signatures. Five points of contact between our world and something far older. We believed they were individuals. But they aren't just connected to the Fractures. They are connected to why the Fractures exist.",
+"dur": 12.79,
+"variants": [
+""
+]
+},
+"A03_038": {
+"speaker": "SERAPHINE",
+"text": "Five signatures...",
+"dur": 1.27,
+"variants": [
+""
+]
+},
+"A03_039": {
+"speaker": "PLAYER",
+"text": "You know what they are?",
+"dur": 1.26,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_040": {
+"speaker": "SERAPHINE",
+"text": "No. But I think we've been looking in the wrong direction.",
+"dur": 2.75,
+"variants": [
+""
+]
+},
+"A03_041": {
+"speaker": "NOVA",
+"text": "Energy signature detected.",
+"dur": 1.8,
+"variants": [
+""
+]
+},
+"A03_042": {
+"speaker": "SERAPHINE",
+"text": "That's not a gateway.",
+"dur": 1.41,
+"variants": [
+""
+]
+},
+"A03_043": {
+"speaker": "PLAYER",
+"text": "Then what is it?",
+"dur": 1.02,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_044": {
+"speaker": "SERAPHINE",
+"text": "A receiver.",
+"dur": 1.01,
+"variants": [
+""
+]
+},
+"A03_045": {
+"speaker": "UNKNOWN VOICE",
+"text": "...connection established...",
+"dur": 2.08,
+"variants": [
+""
+]
+},
+"A03_046": {
+"speaker": "PLAYER",
+"text": "NOVA?",
+"dur": 0.73,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_047": {
+"speaker": "NOVA",
+"text": "That transmission is not originating from our network.",
+"dur": 2.68,
+"variants": [
+""
+]
+},
+"A03_048": {
+"speaker": "UNKNOWN VOICE",
+"text": "...we have found you...",
+"dur": 1.57,
+"variants": [
+""
+]
+},
+"A03_049": {
+"speaker": "SERAPHINE",
+"text": "Shut it down!",
+"dur": 1.08,
+"variants": [
+""
+]
+},
+"A03_050": {
+"speaker": "NOVA",
+"text": "I'm attempting to—",
+"dur": 1.45,
+"variants": [
+""
+]
+},
+"A03_051": {
+"speaker": "UNKNOWN VOICE",
+"text": "...the first has awakened...",
+"dur": 1.77,
+"variants": [
+""
+]
+},
+"A03_052": {
+"speaker": "NOVA",
+"text": "Warning. Structural integrity compromised.",
+"dur": 2.48,
+"variants": [
+""
+]
+},
+"A03_053": {
+"speaker": "PLAYER",
+"text": "We need to get out!",
+"dur": 1.17,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_054": {
+"speaker": "SERAPHINE",
+"text": "The emergency elevator is on the eastern side!",
+"dur": 2.75,
+"variants": [
+""
+]
+},
+"A03_055": {
+"speaker": "NOVA",
+"text": "Negative. The elevator is inaccessible. Maintenance tunnel, approximately 180 metres ahead.",
+"dur": 6.25,
+"variants": [
+""
+]
+},
+"A03_056": {
+"speaker": "PLAYER",
+"text": "How much do you know about this project?",
+"dur": 2.07,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_057": {
+"speaker": "SERAPHINE",
+"text": "Not enough.",
+"dur": 0.81,
+"variants": [
+""
+]
+},
+"A03_058": {
+"speaker": "PLAYER",
+"text": "Try again.",
+"dur": 1.08,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_059": {
+"speaker": "SERAPHINE",
+"text": "I knew the research existed. I didn't know what they were building.",
+"dur": 3.22,
+"variants": [
+""
+]
+},
+"A03_060": {
+"speaker": "PLAYER",
+"text": "And you expect me to believe that?",
+"dur": 2.05,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_061": {
+"speaker": "SERAPHINE",
+"text": "No. But I need you to understand something. If that machine was communicating with something outside our reality, then the Fracture wasn't an invasion.",
+"dur": 7.73,
+"variants": [
+""
+]
+},
+"A03_062": {
+"speaker": "PLAYER",
+"text": "What was it?",
+"dur": 0.9,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_063": {
+"speaker": "SERAPHINE",
+"text": "An invitation.",
+"dur": 1.19,
+"variants": [
+""
+]
+},
+"A03_064": {
+"speaker": "NOVA",
+"text": "Operator, we have a problem.",
+"dur": 1.79,
+"variants": [
+""
+]
+},
+"A03_065": {
+"speaker": "PLAYER",
+"text": "What now?",
+"dur": 0.9,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_066": {
+"speaker": "NOVA",
+"text": "The signal we detected underground has been transmitted.",
+"dur": 3.01,
+"variants": [
+""
+]
+},
+"A03_067": {
+"speaker": "SERAPHINE",
+"text": "Transmitted where?",
+"dur": 1.25,
+"variants": [
+""
+]
+},
+"A03_068": {
+"speaker": "NOVA",
+"text": "I don't know. But something has responded.",
+"dur": 2.23,
+"variants": [
+""
+]
+},
+"A03_069": {
+"speaker": "PLAYER",
+"text": "NOVA... how many?",
+"dur": 1.03,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A03_070": {
+"speaker": "NOVA",
+"text": "Multiple incoming signatures.",
+"dur": 2.06,
+"variants": [
+""
+]
+},
+"A03_071": {
+"speaker": "UNKNOWN VOICE",
+"text": "The first door is open.",
+"dur": 1.9,
+"variants": [
+""
+]
+},
+"A03_072": {
+"speaker": "UNKNOWN FIGURE",
+"text": "The first signal has been received.",
+"dur": 3.14,
+"variants": [
+""
+]
+},
+"A03_073": {
+"speaker": "SECOND FIGURE",
+"text": "And the vessel?",
+"dur": 1.75,
+"variants": [
+""
+]
+},
+"A03_074": {
+"speaker": "UNKNOWN FIGURE",
+"text": "Awakened.",
+"dur": 1.55,
+"variants": [
+""
+]
+},
+"A03_075": {
+"speaker": "SECOND FIGURE",
+"text": "Find the five.",
+"dur": 1.77,
+"variants": [
+""
+]
+},
+"A04_001": {
+"speaker": "VOSS",
+"text": "You're late.",
+"dur": 0.86,
+"variants": [
+""
+]
+},
+"A04_002": {
+"speaker": "PLAYER",
+"text": "Didn't realize I had an appointment.",
+"dur": 1.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_003": {
+"speaker": "VOSS",
+"text": "After what happened underground, you're lucky you're still breathing.",
+"dur": 3.15,
+"variants": [
+""
+]
+},
+"A04_004": {
+"speaker": "PLAYER",
+"text": "You knew about that facility?",
+"dur": 1.76,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_005": {
+"speaker": "VOSS",
+"text": "I knew it existed. I didn't know what they were doing inside.",
+"dur": 2.99,
+"variants": [
+""
+]
+},
+"A04_006": {
+"speaker": "SERAPHINE",
+"text": "That's convenient.",
+"dur": 1.27,
+"variants": [
+""
+]
+},
+"A04_007": {
+"speaker": "VOSS",
+"text": "Doctor, I suggest you choose your next words carefully.",
+"dur": 2.89,
+"variants": [
+""
+]
+},
+"A04_008": {
+"speaker": "SERAPHINE",
+"text": "People died because your organization concealed information.",
+"dur": 3.03,
+"variants": [
+""
+]
+},
+"A04_009": {
+"speaker": "VOSS",
+"text": "People are dying right now because we don't understand what's coming through those openings.",
+"dur": 4.52,
+"variants": [
+""
+]
+},
+"A04_010": {
+"speaker": "OFFICER",
+"text": "Commander, General Rainer is ready.",
+"dur": 2.0,
+"variants": [
+""
+]
+},
+"A04_011": {
+"speaker": "RAINER",
+"text": "Twenty minutes ago, we lost communication with three military installations.",
+"dur": 4.44,
+"variants": [
+""
+]
+},
+"A04_012": {
+"speaker": "PLAYER",
+"text": "What happened?",
+"dur": 1.09,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_013": {
+"speaker": "RAINER",
+"text": "They were attacked.",
+"dur": 1.02,
+"variants": [
+""
+]
+},
+"A04_014": {
+"speaker": "SERAPHINE",
+"text": "By the same creatures?",
+"dur": 1.42,
+"variants": [
+""
+]
+},
+"A04_015": {
+"speaker": "RAINER",
+"text": "No.",
+"dur": 0.76,
+"variants": [
+""
+]
+},
+"A04_016": {
+"speaker": "RAINER",
+"text": "These things are different.",
+"dur": 1.25,
+"variants": [
+""
+]
+},
+"A04_017": {
+"speaker": "VOSS",
+"text": "They use weapons. They communicate. They coordinate attacks.",
+"dur": 3.54,
+"variants": [
+""
+]
+},
+"A04_018": {
+"speaker": "PLAYER",
+"text": "So they're soldiers.",
+"dur": 1.27,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_019": {
+"speaker": "RAINER",
+"text": "Exactly.",
+"dur": 1.09,
+"variants": [
+""
+]
+},
+"A04_020": {
+"speaker": "SERAPHINE",
+"text": "That's not instinctive behavior.",
+"dur": 1.92,
+"variants": [
+""
+]
+},
+"A04_021": {
+"speaker": "NOVA",
+"text": "Correct. Their movements indicate a centralized command structure.",
+"dur": 3.73,
+"variants": [
+""
+]
+},
+"A04_022": {
+"speaker": "PLAYER",
+"text": "Can we identify their leader?",
+"dur": 2.21,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_023": {
+"speaker": "NOVA",
+"text": "Negative.",
+"dur": 1.05,
+"variants": [
+""
+]
+},
+"A04_024": {
+"speaker": "NOVA",
+"text": "However, this entity appears to control nearby hostiles.",
+"dur": 2.98,
+"variants": [
+""
+]
+},
+"A04_025": {
+"speaker": "RAINER",
+"text": "We need that thing captured or destroyed.",
+"dur": 2.13,
+"variants": [
+""
+]
+},
+"A04_026": {
+"speaker": "VOSS",
+"text": "And we need the eastern district secured.",
+"dur": 2.13,
+"variants": [
+""
+]
+},
+"A04_027": {
+"speaker": "PLAYER",
+"text": "When do we leave?",
+"dur": 1.05,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_028": {
+"speaker": "RAINER",
+"text": "Immediately.",
+"dur": 1.06,
+"variants": [
+""
+]
+},
+"A04_029": {
+"speaker": "VOSS",
+"text": "Listen carefully. You're not military.",
+"dur": 2.18,
+"variants": [
+""
+]
+},
+"A04_030": {
+"speaker": "PLAYER",
+"text": "Never claimed to be.",
+"dur": 1.37,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_031": {
+"speaker": "VOSS",
+"text": "Out there, that distinction won't matter.",
+"dur": 2.07,
+"variants": [
+""
+]
+},
+"A04_032": {
+"speaker": "PLAYER",
+"text": "Then why bring me?",
+"dur": 1.28,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_033": {
+"speaker": "VOSS",
+"text": "Because you survived something that killed trained soldiers.",
+"dur": 2.75,
+"variants": [
+""
+]
+},
+"A04_034": {
+"speaker": "PLAYER",
+"text": "That's your entire recruitment strategy?",
+"dur": 2.14,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_035": {
+"speaker": "VOSS",
+"text": "For now.",
+"dur": 0.73,
+"variants": [
+""
+]
+},
+"A04_036": {
+"speaker": "NOVA",
+"text": "Approaching the designated combat zone.",
+"dur": 2.29,
+"variants": [
+""
+]
+},
+"A04_037": {
+"speaker": "SOLDIER",
+"text": "Contact! Front!",
+"dur": 1.4,
+"variants": [
+""
+]
+},
+"A04_038": {
+"speaker": "VOSS",
+"text": "Everyone out! Defensive formation!",
+"dur": 2.17,
+"variants": [
+""
+]
+},
+"A04_039": {
+"speaker": "NOVA",
+"text": "Warning. Unknown hostile approaching.",
+"dur": 2.35,
+"variants": [
+""
+]
+},
+"A04_040": {
+"speaker": "PLAYER",
+"text": "I can see that.",
+"dur": 1.16,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_041": {
+"speaker": "ENEMY COMMANDER",
+"text": "Identify... the awakened one.",
+"dur": 2.11,
+"variants": [
+""
+]
+},
+"A04_042": {
+"speaker": "PLAYER",
+"text": "Did you hear that?",
+"dur": 0.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_043": {
+"speaker": "NOVA",
+"text": "Affirmative.",
+"dur": 0.99,
+"variants": [
+""
+]
+},
+"A04_044": {
+"speaker": "ENEMY COMMANDER",
+"text": "You were not meant to awaken.",
+"dur": 1.81,
+"variants": [
+""
+]
+},
+"A04_045": {
+"speaker": "PLAYER",
+"text": "Who are you?",
+"dur": 0.87,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_046": {
+"speaker": "ENEMY COMMANDER",
+"text": "The question is not who I am.",
+"dur": 2.3,
+"variants": [
+""
+]
+},
+"A04_047": {
+"speaker": "ENEMY COMMANDER",
+"text": "The question is what you have become.",
+"dur": 2.26,
+"variants": [
+""
+]
+},
+"A04_048": {
+"speaker": "PLAYER",
+"text": "Who sent you?",
+"dur": 0.9,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_049": {
+"speaker": "ENEMY COMMANDER",
+"text": "You still believe this is an invasion.",
+"dur": 2.53,
+"variants": [
+""
+]
+},
+"A04_050": {
+"speaker": "PLAYER",
+"text": "Isn't it?",
+"dur": 0.83,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_051": {
+"speaker": "ENEMY COMMANDER",
+"text": "No.",
+"dur": 1.06,
+"variants": [
+""
+]
+},
+"A04_052": {
+"speaker": "ENEMY COMMANDER",
+"text": "It is a reclamation.",
+"dur": 1.71,
+"variants": [
+""
+]
+},
+"A04_053": {
+"speaker": "ENEMY COMMANDER",
+"text": "Tell the five... the covenant has been broken.",
+"dur": 2.74,
+"variants": [
+""
+]
+},
+"A04_054": {
+"speaker": "NOVA",
+"text": "Transmission detected.",
+"dur": 1.49,
+"variants": [
+""
+]
+},
+"A04_055": {
+"speaker": "PLAYER",
+"text": "From where?",
+"dur": 0.88,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_056": {
+"speaker": "NOVA",
+"text": "The defeated entity.",
+"dur": 1.38,
+"variants": [
+""
+]
+},
+"A04_057": {
+"speaker": "PLAYER",
+"text": "Can you trace it?",
+"dur": 1.22,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_058": {
+"speaker": "NOVA",
+"text": "Yes.",
+"dur": 0.94,
+"variants": [
+""
+]
+},
+"A04_059": {
+"speaker": "NOVA",
+"text": "It originated from Earth.",
+"dur": 1.65,
+"variants": [
+""
+]
+},
+"A04_060": {
+"speaker": "RAINER",
+"text": "You destroyed our only opportunity to capture one alive!",
+"dur": 2.88,
+"variants": [
+""
+]
+},
+"A04_061": {
+"speaker": "PLAYER",
+"text": "It was trying to kill me.",
+"dur": 1.46,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_062": {
+"speaker": "RAINER",
+"text": "We needed intelligence!",
+"dur": 1.49,
+"variants": [
+""
+]
+},
+"A04_063": {
+"speaker": "SERAPHINE",
+"text": "General, the creature communicated with us.",
+"dur": 2.75,
+"variants": [
+""
+]
+},
+"A04_064": {
+"speaker": "RAINER",
+"text": "What?",
+"dur": 0.6,
+"variants": [
+""
+]
+},
+"A04_065": {
+"speaker": "SERAPHINE",
+"text": "It knew about five individuals. It mentioned something called the Covenant.",
+"dur": 3.78,
+"variants": [
+""
+]
+},
+"A04_066": {
+"speaker": "VOSS",
+"text": "General?",
+"dur": 0.88,
+"variants": [
+""
+]
+},
+"A04_067": {
+"speaker": "RAINER",
+"text": "Dismissed.",
+"dur": 0.93,
+"variants": [
+""
+]
+},
+"A04_068": {
+"speaker": "PLAYER",
+"text": "Excuse me?",
+"dur": 1.09,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_069": {
+"speaker": "RAINER",
+"text": "I said dismissed.",
+"dur": 1.19,
+"variants": [
+""
+]
+},
+"A04_070": {
+"speaker": "PLAYER",
+"text": "You know something.",
+"dur": 1.17,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_071": {
+"speaker": "RAINER",
+"text": "You have no idea what you're involved in.",
+"dur": 2.09,
+"variants": [
+""
+]
+},
+"A04_072": {
+"speaker": "PLAYER",
+"text": "Then explain it.",
+"dur": 1.16,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_073": {
+"speaker": "RAINER",
+"text": "Not here.",
+"dur": 0.76,
+"variants": [
+""
+]
+},
+"A04_074": {
+"speaker": "VOSS",
+"text": "Meet me at the old transit terminal tonight.",
+"dur": 2.26,
+"variants": [
+""
+]
+},
+"A04_075": {
+"speaker": "PLAYER",
+"text": "Why?",
+"dur": 0.61,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_076": {
+"speaker": "VOSS",
+"text": "Because I think someone inside our organization is working with them.",
+"dur": 3.4,
+"variants": [
+""
+]
+},
+"A04_077": {
+"speaker": "UNKNOWN FIGURE",
+"text": "The first contact has been made.",
+"dur": 3.09,
+"variants": [
+""
+]
+},
+"A04_078": {
+"speaker": "SECOND FIGURE",
+"text": "And the awakened one?",
+"dur": 2.01,
+"variants": [
+""
+]
+},
+"A04_079": {
+"speaker": "UNKNOWN FIGURE",
+"text": "Confirmed.",
+"dur": 1.6,
+"variants": [
+""
+]
+},
+"A04_080": {
+"speaker": "SECOND FIGURE",
+"text": "Then the prophecy was correct.",
+"dur": 2.76,
+"variants": [
+""
+]
+},
+"A04_081": {
+"speaker": "UNKNOWN FIGURE",
+"text": "No.",
+"dur": 1.47,
+"variants": [
+""
+]
+},
+"A04_082": {
+"speaker": "UNKNOWN FIGURE",
+"text": "The prophecy was incomplete.",
+"dur": 2.71,
+"variants": [
+""
+]
+},
+"A04_083": {
+"speaker": "SECOND FIGURE",
+"text": "What is the sixth?",
+"dur": 1.89,
+"variants": [
+""
+]
+},
+"A04_084": {
+"speaker": "UNKNOWN FIGURE",
+"text": "A mistake.",
+"dur": 1.68,
+"variants": [
+""
+]
+},
+"A04_085": {
+"speaker": "PLAYER",
+"text": "You said you had answers.",
+"dur": 1.35,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_086": {
+"speaker": "VOSS",
+"text": "I have questions. That's worse.",
+"dur": 2.18,
+"variants": [
+""
+]
+},
+"A04_087": {
+"speaker": "VOSS",
+"text": "Six months ago, General Rainer authorized a classified operation.",
+"dur": 3.44,
+"variants": [
+""
+]
+},
+"A04_088": {
+"speaker": "PLAYER",
+"text": "Project Genesis?",
+"dur": 1.42,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_089": {
+"speaker": "VOSS",
+"text": "They weren't studying the Fractures.",
+"dur": 1.85,
+"variants": [
+""
+]
+},
+"A04_090": {
+"speaker": "PLAYER",
+"text": "Then what?",
+"dur": 0.74,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_091": {
+"speaker": "VOSS",
+"text": "They were trying to communicate with whatever was inside them.",
+"dur": 3.03,
+"variants": [
+""
+]
+},
+"A04_092": {
+"speaker": "PLAYER",
+"text": "Why?",
+"dur": 0.73,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_093": {
+"speaker": "VOSS",
+"text": "Because somebody promised them they could control it.",
+"dur": 2.61,
+"variants": [
+""
+]
+},
+"A04_094": {
+"speaker": "NOVA",
+"text": "Operator. Incoming transmission.",
+"dur": 2.29,
+"variants": [
+""
+]
+},
+"A04_095": {
+"speaker": "UNKNOWN VOICE",
+"text": "We know you are listening.",
+"dur": 1.78,
+"variants": [
+""
+]
+},
+"A04_096": {
+"speaker": "UNKNOWN VOICE",
+"text": "You have awakened something that should have remained asleep.",
+"dur": 3.14,
+"variants": [
+""
+]
+},
+"A04_097": {
+"speaker": "NOVA",
+"text": "Operator...",
+"dur": 1.0,
+"variants": [
+""
+]
+},
+"A04_098": {
+"speaker": "PLAYER",
+"text": "What?",
+"dur": 0.62,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_099": {
+"speaker": "NOVA",
+"text": "I have discovered something in my own system.",
+"dur": 2.32,
+"variants": [
+""
+]
+},
+"A04_100": {
+"speaker": "PLAYER",
+"text": "What did you find?",
+"dur": 1.11,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_101": {
+"speaker": "NOVA",
+"text": "An encrypted directive.",
+"dur": 1.59,
+"variants": [
+""
+]
+},
+"A04_102": {
+"speaker": "PLAYER",
+"text": "From who?",
+"dur": 0.9,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A04_103": {
+"speaker": "NOVA",
+"text": "From someone who knew you before the Fracture.",
+"dur": 2.16,
+"variants": [
+""
+]
+},
+"A05_001": {
+"speaker": "VOSS",
+"text": "This contains everything I could recover from the Genesis operation.",
+"dur": 3.51,
+"variants": [
+""
+]
+},
+"A05_002": {
+"speaker": "PLAYER",
+"text": "And General Rainer?",
+"dur": 1.28,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_003": {
+"speaker": "VOSS",
+"text": "He's not going to make this easy.",
+"dur": 1.67,
+"variants": [
+""
+]
+},
+"A05_004": {
+"speaker": "NOVA",
+"text": "I've decrypted part of the transmission. It references an individual identified as Subject Six.",
+"dur": 5.1,
+"variants": [
+""
+]
+},
+"A05_005": {
+"speaker": "VOSS",
+"text": "The Genesis project only documented five signatures.",
+"dur": 3.08,
+"variants": [
+""
+]
+},
+"A05_006": {
+"speaker": "PLAYER",
+"text": "Then what is Subject Six?",
+"dur": 1.63,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_007": {
+"speaker": "VOSS",
+"text": "That's what we're going to find out.",
+"dur": 1.73,
+"variants": [
+""
+]
+},
+"A05_008": {
+"speaker": "WARD",
+"text": "So this is the one.",
+"dur": 1.47,
+"variants": [
+""
+]
+},
+"A05_009": {
+"speaker": "PLAYER",
+"text": "I'm standing right here.",
+"dur": 1.52,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_010": {
+"speaker": "WARD",
+"text": "Good. I prefer people who speak for themselves. We've reviewed your combat recordings.",
+"dur": 4.05,
+"variants": [
+""
+]
+},
+"A05_011": {
+"speaker": "PLAYER",
+"text": "Without asking?",
+"dur": 1.19,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_012": {
+"speaker": "WARD",
+"text": "The world ended yesterday. Privacy regulations are having a difficult week.",
+"dur": 3.57,
+"variants": [
+""
+]
+},
+"A05_013": {
+"speaker": "SERAPHINE",
+"text": "Director, we need to discuss Research Complex 09.",
+"dur": 3.13,
+"variants": [
+""
+]
+},
+"A05_014": {
+"speaker": "WARD",
+"text": "Not here.",
+"dur": 0.83,
+"variants": [
+""
+]
+},
+"A05_015": {
+"speaker": "SERAPHINE",
+"text": "That's exactly the problem. Nobody wants to discuss it anywhere.",
+"dur": 3.37,
+"variants": [
+""
+]
+},
+"A05_016": {
+"speaker": "WARD",
+"text": "Our priority is survival. We protect settlements, secure resources and establish safe territories.",
+"dur": 5.38,
+"variants": [
+""
+]
+},
+"A05_017": {
+"speaker": "SERAPHINE",
+"text": "The Ascendancy has been collecting Fracture samples since before the disaster.",
+"dur": 4.28,
+"variants": [
+""
+]
+},
+"A05_018": {
+"speaker": "PLAYER",
+"text": "And nobody stopped them?",
+"dur": 1.25,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_019": {
+"speaker": "VOSS",
+"text": "They have facilities outside our jurisdiction.",
+"dur": 2.28,
+"variants": [
+""
+]
+},
+"A05_020": {
+"speaker": "PLAYER",
+"text": "So humanity is already fighting itself.",
+"dur": 3.55,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_021": {
+"speaker": "WARD",
+"text": "Humanity has always fought itself. The Fractures simply gave us something bigger to fight over.",
+"dur": 4.2,
+"variants": [
+""
+]
+},
+"A05_022": {
+"speaker": "PLAYER",
+"text": "You're Kael Draven?",
+"dur": 1.39,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_023": {
+"speaker": "KAEL",
+"text": "Depends who's asking.",
+"dur": 1.55,
+"variants": [
+""
+]
+},
+"A05_024": {
+"speaker": "PLAYER",
+"text": "Someone who keeps hearing your name.",
+"dur": 1.83,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_025": {
+"speaker": "KAEL",
+"text": "That's usually a bad sign.",
+"dur": 2.12,
+"variants": [
+""
+]
+},
+"A05_026": {
+"speaker": "KAEL",
+"text": "Everybody down there thinks they're saving the world.",
+"dur": 3.66,
+"variants": [
+""
+]
+},
+"A05_027": {
+"speaker": "PLAYER",
+"text": "And you don't?",
+"dur": 0.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_028": {
+"speaker": "KAEL",
+"text": "I think people need saving. The world can sort itself out.",
+"dur": 3.97,
+"variants": [
+""
+]
+},
+"A05_029": {
+"speaker": "KAEL",
+"text": "My people operate outside military control. We rescue civilians, recover supplies and hunt anything that comes through those openings.",
+"dur": 8.91,
+"variants": [
+""
+]
+},
+"A05_030": {
+"speaker": "PLAYER",
+"text": "Sounds useful.",
+"dur": 1.15,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_031": {
+"speaker": "KAEL",
+"text": "It is. Until somebody decides we're criminals. If you ever get tired of taking orders, give me a call.",
+"dur": 7.64,
+"variants": [
+""
+]
+},
+"A05_032": {
+"speaker": "SERAPHINE",
+"text": "These readings were recorded over several years. The sixth was deliberately removed from the official records.",
+"dur": 5.41,
+"variants": [
+""
+]
+},
+"A05_033": {
+"speaker": "NOVA",
+"text": "Operator. I have located the encrypted directive.",
+"dur": 2.88,
+"variants": [
+""
+]
+},
+"A05_034": {
+"speaker": "PLAYER",
+"text": "NOVA, what is this?",
+"dur": 1.84,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_035": {
+"speaker": "NOVA",
+"text": "I cannot determine the original authorization source.",
+"dur": 2.87,
+"variants": [
+""
+]
+},
+"A05_036": {
+"speaker": "PLAYER",
+"text": "Who programmed you?",
+"dur": 1.25,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_037": {
+"speaker": "NOVA",
+"text": "I don't know.",
+"dur": 1.07,
+"variants": [
+""
+]
+},
+"A05_038": {
+"speaker": "RAINER",
+"text": "Six months ago, we received a transmission.",
+"dur": 2.59,
+"variants": [
+""
+]
+},
+"A05_039": {
+"speaker": "SERAPHINE",
+"text": "From whom?",
+"dur": 0.8,
+"variants": [
+""
+]
+},
+"A05_040": {
+"speaker": "RAINER",
+"text": "We never identified the sender. It contained information about Fracture technology, advanced energy systems and something called the Ascension Protocol.",
+"dur": 7.85,
+"variants": [
+""
+]
+},
+"A05_041": {
+"speaker": "PLAYER",
+"text": "And you responded?",
+"dur": 1.26,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_042": {
+"speaker": "VOSS",
+"text": "You opened communication with them?",
+"dur": 1.77,
+"variants": [
+""
+]
+},
+"A05_043": {
+"speaker": "RAINER",
+"text": "We believed we could control the situation.",
+"dur": 2.37,
+"variants": [
+""
+]
+},
+"A05_044": {
+"speaker": "PLAYER",
+"text": "And now?",
+"dur": 0.77,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_045": {
+"speaker": "RAINER",
+"text": "Now I believe we made a terrible mistake.",
+"dur": 2.3,
+"variants": [
+""
+]
+},
+"A05_046": {
+"speaker": "NOVA",
+"text": "Unauthorized access detected in the eastern security sector.",
+"dur": 3.59,
+"variants": [
+""
+]
+},
+"A05_047": {
+"speaker": "PLAYER",
+"text": "Stop right there!",
+"dur": 1.25,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_048": {
+"speaker": "FRACTURE INFILTRATOR",
+"text": "The sixth has been located.",
+"dur": 2.21,
+"variants": [
+""
+]
+},
+"A05_049": {
+"speaker": "PLAYER",
+"text": "Who sent you?",
+"dur": 1.02,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A05_050": {
+"speaker": "FRACTURE INFILTRATOR",
+"text": "The ones who remember.",
+"dur": 1.83,
+"variants": [
+""
+]
+},
+"A05_051": {
+"speaker": "SECOND FIGURE",
+"text": "The sixth has awakened.",
+"dur": 2.22,
+"variants": [
+""
+]
+},
+"A05_052": {
+"speaker": "UNKNOWN FIGURE",
+"text": "Yes.",
+"dur": 1.32,
+"variants": [
+""
+]
+},
+"A05_053": {
+"speaker": "SECOND FIGURE",
+"text": "Then the Covenant must be restored.",
+"dur": 2.69,
+"variants": [
+""
+]
+},
+"A05_054": {
+"speaker": "UNKNOWN FIGURE",
+"text": "Not yet. The vessel is incomplete.",
+"dur": 4.12,
+"variants": [
+""
+]
+},
+"A05_055": {
+"speaker": "SECOND FIGURE",
+"text": "And the five?",
+"dur": 1.63,
+"variants": [
+""
+]
+},
+"A05_056": {
+"speaker": "UNKNOWN FIGURE",
+"text": "They must remember who they were.",
+"dur": 2.98,
+"variants": [
+""
+]
+},
+"A06_001": {
+"speaker": "NOVA",
+"text": "Current population estimate: 18,420 civilians.",
+"dur": 3.96,
+"variants": [
+""
+]
+},
+"A06_002": {
+"speaker": "PLAYER",
+"text": "How many soldiers?",
+"dur": 1.32,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_003": {
+"speaker": "NOVA",
+"text": "Approximately 2,300 military personnel and 640 independent Operators.",
+"dur": 5.64,
+"variants": [
+""
+]
+},
+"A06_004": {
+"speaker": "PLAYER",
+"text": "That's a lot of people depending on us.",
+"dur": 2.03,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_005": {
+"speaker": "NOVA",
+"text": "Correct.",
+"dur": 0.89,
+"variants": [
+""
+]
+},
+"A06_006": {
+"speaker": "PLAYER",
+"text": "You always know how to make someone feel better.",
+"dur": 2.7,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_007": {
+"speaker": "COLE",
+"text": "There you are. Command wants you at the northern observation tower.",
+"dur": 3.48,
+"variants": [
+""
+]
+},
+"A06_008": {
+"speaker": "PLAYER",
+"text": "What's happening?",
+"dur": 1.01,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_009": {
+"speaker": "COLE",
+"text": "That's what we're trying to figure out.",
+"dur": 1.71,
+"variants": [
+""
+]
+},
+"A06_010": {
+"speaker": "VOSS",
+"text": "We've been tracking this for forty minutes.",
+"dur": 2.21,
+"variants": [
+""
+]
+},
+"A06_011": {
+"speaker": "PLAYER",
+"text": "What is it?",
+"dur": 0.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_012": {
+"speaker": "SERAPHINE",
+"text": "A Fracture. Not like the others.",
+"dur": 2.09,
+"variants": [
+""
+]
+},
+"A06_013": {
+"speaker": "NOVA",
+"text": "Energy output exceeds all previously recorded events.",
+"dur": 3.63,
+"variants": [
+""
+]
+},
+"A06_014": {
+"speaker": "WARD",
+"text": "Can we close it?",
+"dur": 0.98,
+"variants": [
+""
+]
+},
+"A06_015": {
+"speaker": "SERAPHINE",
+"text": "I don't know.",
+"dur": 0.87,
+"variants": [
+""
+]
+},
+"A06_016": {
+"speaker": "VOSS",
+"text": "Everyone to battle stations!",
+"dur": 1.78,
+"variants": [
+""
+]
+},
+"A06_017": {
+"speaker": "WARD",
+"text": "Evacuate the outer settlement!",
+"dur": 1.8,
+"variants": [
+""
+]
+},
+"A06_018": {
+"speaker": "VOSS",
+"text": "We're not abandoning these people!",
+"dur": 1.74,
+"variants": [
+""
+]
+},
+"A06_019": {
+"speaker": "VOSS",
+"text": "We're holding this position.",
+"dur": 1.61,
+"variants": [
+""
+]
+},
+"A06_020": {
+"speaker": "SOLDIER",
+"text": "THAT THING IS GOING TO BREAK THROUGH!",
+"dur": 1.81,
+"variants": [
+""
+]
+},
+"A06_021": {
+"speaker": "VOSS",
+"text": "Operator, we need that creature stopped!",
+"dur": 2.4,
+"variants": [
+""
+]
+},
+"A06_022": {
+"speaker": "PLAYER",
+"text": "Working on it!",
+"dur": 0.91,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_023": {
+"speaker": "NOVA",
+"text": "Its outer armor is extremely resistant to conventional weapons.",
+"dur": 3.63,
+"variants": [
+""
+]
+},
+"A06_024": {
+"speaker": "PLAYER",
+"text": "Weak point?",
+"dur": 0.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_025": {
+"speaker": "NOVA",
+"text": "Three energy nodes along its spinal structure.",
+"dur": 2.73,
+"variants": [
+""
+]
+},
+"A06_026": {
+"speaker": "COLE",
+"text": "You actually killed it.",
+"dur": 1.35,
+"variants": [
+""
+]
+},
+"A06_027": {
+"speaker": "PLAYER",
+"text": "I wouldn't recommend trying that yourself.",
+"dur": 2.5,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_028": {
+"speaker": "COLE",
+"text": "Trust me. I wasn't planning on it.",
+"dur": 1.98,
+"variants": [
+""
+]
+},
+"A06_029": {
+"speaker": "COLE",
+"text": "Get these people moving!",
+"dur": 1.48,
+"variants": [
+""
+]
+},
+"A06_030": {
+"speaker": "PLAYER",
+"text": "Where's the evacuation transport?",
+"dur": 1.9,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_031": {
+"speaker": "COLE",
+"text": "Three minutes out!",
+"dur": 1.2,
+"variants": [
+""
+]
+},
+"A06_032": {
+"speaker": "NOVA",
+"text": "Incoming hostile force approaching from the east.",
+"dur": 2.67,
+"variants": [
+""
+]
+},
+"A06_033": {
+"speaker": "COLE",
+"text": "How many?",
+"dur": 0.86,
+"variants": [
+""
+]
+},
+"A06_034": {
+"speaker": "NOVA",
+"text": "Approximately 180 signatures.",
+"dur": 2.93,
+"variants": [
+""
+]
+},
+"A06_035": {
+"speaker": "COLE",
+"text": "Get them out.",
+"dur": 0.94,
+"variants": [
+""
+]
+},
+"A06_036": {
+"speaker": "PLAYER",
+"text": "We're leaving together.",
+"dur": 1.28,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_037": {
+"speaker": "COLE",
+"text": "That's an order.",
+"dur": 1.09,
+"variants": [
+""
+]
+},
+"A06_038": {
+"speaker": "PLAYER",
+"text": "I'm not in your military.",
+"dur": 1.66,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_039": {
+"speaker": "COLE",
+"text": "Then consider it a request.",
+"dur": 1.55,
+"variants": [
+""
+]
+},
+"A06_040": {
+"speaker": "PLAYER",
+"text": "Cole! Don't!",
+"dur": 1.12,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_041": {
+"speaker": "COLE",
+"text": "Tell them we held the line.",
+"dur": 1.4,
+"variants": [
+""
+]
+},
+"A06_042": {
+"speaker": "NOVA",
+"text": "Captain Cole's biometric signal has been lost.",
+"dur": 2.81,
+"variants": [
+""
+]
+},
+"A06_043": {
+"speaker": "SERAPHINE",
+"text": "I'm sorry.",
+"dur": 1.11,
+"variants": [
+""
+]
+},
+"A06_044": {
+"speaker": "PLAYER",
+"text": "Keep the evacuation moving.",
+"dur": 1.68,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_045": {
+"speaker": "NOVA",
+"text": "Operator, I am detecting an extremely powerful entity.",
+"dur": 3.36,
+"variants": [
+""
+]
+},
+"A06_046": {
+"speaker": "PLAYER",
+"text": "Another commander?",
+"dur": 1.13,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_047": {
+"speaker": "NOVA",
+"text": "Negative. This signature is substantially greater.",
+"dur": 2.84,
+"variants": [
+""
+]
+},
+"A06_048": {
+"speaker": "THE HARBINGER",
+"text": "You have built a fortress upon stolen ground.",
+"dur": 2.97,
+"variants": [
+""
+]
+},
+"A06_049": {
+"speaker": "PLAYER",
+"text": "Who are you?",
+"dur": 0.89,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_050": {
+"speaker": "THE HARBINGER",
+"text": "The one who comes to reclaim what was taken.",
+"dur": 3.16,
+"variants": [
+""
+]
+},
+"A06_051": {
+"speaker": "PLAYER",
+"text": "You're going to have to be more specific.",
+"dur": 2.11,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_052": {
+"speaker": "THE HARBINGER",
+"text": "You will remember.",
+"dur": 1.36,
+"variants": [
+""
+]
+},
+"A06_053": {
+"speaker": "THE HARBINGER",
+"text": "You still carry the mark.",
+"dur": 1.7,
+"variants": [
+""
+]
+},
+"A06_054": {
+"speaker": "PLAYER",
+"text": "What mark?",
+"dur": 1.05,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_055": {
+"speaker": "THE HARBINGER",
+"text": "The mark of the first betrayal.",
+"dur": 2.34,
+"variants": [
+""
+]
+},
+"A06_056": {
+"speaker": "NOVA",
+"text": "Operator! Your neural activity is destabilizing!",
+"dur": 3.47,
+"variants": [
+""
+]
+},
+"A06_057": {
+"speaker": "THE HARBINGER",
+"text": "Not yet. The five must awaken before the sixth remembers.",
+"dur": 4.45,
+"variants": [
+""
+]
+},
+"A06_058": {
+"speaker": "VOSS",
+"text": "We held the settlement.",
+"dur": 1.25,
+"variants": [
+""
+]
+},
+"A06_059": {
+"speaker": "PLAYER",
+"text": "Barely.",
+"dur": 0.74,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_060": {
+"speaker": "VOSS",
+"text": "Barely is better than nothing.",
+"dur": 1.61,
+"variants": [
+""
+]
+},
+"A06_061": {
+"speaker": "VOSS",
+"text": "Cole believed we could win this.",
+"dur": 1.74,
+"variants": [
+""
+]
+},
+"A06_062": {
+"speaker": "PLAYER",
+"text": "He saved hundreds of people.",
+"dur": 1.48,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_063": {
+"speaker": "VOSS",
+"text": "He shouldn't have had to.",
+"dur": 1.34,
+"variants": [
+""
+]
+},
+"A06_064": {
+"speaker": "SERAPHINE",
+"text": "This isn't an enemy insignia. It's an identification mark.",
+"dur": 3.73,
+"variants": [
+""
+]
+},
+"A06_065": {
+"speaker": "NOVA",
+"text": "The sixth signature matches the Operator.",
+"dur": 2.28,
+"variants": [
+""
+]
+},
+"A06_066": {
+"speaker": "PLAYER",
+"text": "What does that mean?",
+"dur": 1.04,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A06_067": {
+"speaker": "NOVA",
+"text": "I don't know.",
+"dur": 1.08,
+"variants": [
+""
+]
+},
+"A06_068": {
+"speaker": "GLOBAL BROADCAST",
+"text": "Attention. All surviving settlements. This is an international emergency transmission. Multiple Fracture incursions have been confirmed across the planet. All remaining military organizations are ordered to establish defensive positions.",
+"dur": 15.3,
+"variants": [
+""
+]
+},
+"A06_069": {
+"speaker": "UNKNOWN RULER",
+"text": "Did you find the sixth?",
+"dur": 2.06,
+"variants": [
+""
+]
+},
+"A06_070": {
+"speaker": "THE HARBINGER",
+"text": "Yes.",
+"dur": 1.04,
+"variants": [
+""
+]
+},
+"A06_071": {
+"speaker": "UNKNOWN RULER",
+"text": "And the five?",
+"dur": 1.42,
+"variants": [
+""
+]
+},
+"A06_072": {
+"speaker": "THE HARBINGER",
+"text": "Still scattered.",
+"dur": 1.43,
+"variants": [
+""
+]
+},
+"A06_073": {
+"speaker": "UNKNOWN RULER",
+"text": "Then the First War will continue. Prepare the Covenant.",
+"dur": 4.24,
+"variants": [
+""
+]
+},
+"A06_074": {
+"speaker": "UNKNOWN RULER",
+"text": "The old world is ending.",
+"dur": 2.41,
+"variants": [
+""
+]
+},
+"A07_001": {
+"speaker": "VOSS",
+"text": "We found this under three city blocks. The siege cracked the ground open.",
+"dur": 3.46,
+"variants": [
+""
+]
+},
+"A07_002": {
+"speaker": "PLAYER",
+"text": "How far down?",
+"dur": 1.2,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_003": {
+"speaker": "VOSS",
+"text": "Our scanners can't find the bottom.",
+"dur": 2.04,
+"variants": [
+""
+]
+},
+"A07_004": {
+"speaker": "SERAPHINE",
+"text": "That's not possible. The structure is absorbing the scan.",
+"dur": 3.05,
+"variants": [
+""
+]
+},
+"A07_005": {
+"speaker": "NOVA",
+"text": "The material composition does not match any terrestrial alloy or known geological sample.",
+"dur": 5.31,
+"variants": [
+""
+]
+},
+"A07_006": {
+"speaker": "PLAYER",
+"text": "So we're going underground.",
+"dur": 1.48,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_007": {
+"speaker": "VOSS",
+"text": "You're going underground. I'm keeping the surface secure.",
+"dur": 2.88,
+"variants": [
+""
+]
+},
+"A07_008": {
+"speaker": "SERAPHINE",
+"text": "I'm coming with you.",
+"dur": 1.27,
+"variants": [
+""
+]
+},
+"A07_009": {
+"speaker": "VOSS",
+"text": "Doctor, this isn't a research excursion.",
+"dur": 2.28,
+"variants": [
+""
+]
+},
+"A07_010": {
+"speaker": "SERAPHINE",
+"text": "It's the first evidence that might explain why the enemy calls Earth stolen ground.",
+"dur": 4.79,
+"variants": [
+""
+]
+},
+"A07_011": {
+"speaker": "PLAYER",
+"text": "She's coming.",
+"dur": 0.91,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_012": {
+"speaker": "VOSS",
+"text": "If your signal drops, I send a team. Don't make me regret it.",
+"dur": 3.13,
+"variants": [
+""
+]
+},
+"A07_013": {
+"speaker": "PLAYER",
+"text": "This thing is still powered.",
+"dur": 1.58,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_014": {
+"speaker": "NOVA",
+"text": "Correct. Its energy output is stable and predates the current Fracture event.",
+"dur": 3.91,
+"variants": [
+""
+]
+},
+"A07_015": {
+"speaker": "SERAPHINE",
+"text": "Look at these markings.",
+"dur": 1.44,
+"variants": [
+""
+]
+},
+"A07_016": {
+"speaker": "PLAYER",
+"text": "Can you read them?",
+"dur": 1.16,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_017": {
+"speaker": "SERAPHINE",
+"text": "No. But they repeat in groups of five.",
+"dur": 2.36,
+"variants": [
+""
+]
+},
+"A07_018": {
+"speaker": "NOVA",
+"text": "I recorded that.",
+"dur": 1.28,
+"variants": [
+""
+]
+},
+"A07_019": {
+"speaker": "SERAPHINE",
+"text": "Don't display it again.",
+"dur": 1.4,
+"variants": [
+""
+]
+},
+"A07_020": {
+"speaker": "PLAYER",
+"text": "Why?",
+"dur": 0.66,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_021": {
+"speaker": "SERAPHINE",
+"text": "Because it matches the symbol from the Harbinger.",
+"dur": 2.35,
+"variants": [
+""
+]
+},
+"A07_022": {
+"speaker": "SERAPHINE",
+"text": "This place is older than anything we've ever excavated.",
+"dur": 3.03,
+"variants": [
+""
+]
+},
+"A07_023": {
+"speaker": "PLAYER",
+"text": "How old?",
+"dur": 0.84,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_024": {
+"speaker": "SERAPHINE",
+"text": "I can't even begin to estimate.",
+"dur": 2.07,
+"variants": [
+""
+]
+},
+"A07_025": {
+"speaker": "NOVA",
+"text": "The structure's geometry is consistent with the energy architecture recorded at Research Complex 09.",
+"dur": 5.9,
+"variants": [
+""
+]
+},
+"A07_026": {
+"speaker": "PLAYER",
+"text": "The lab copied this place?",
+"dur": 1.73,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_027": {
+"speaker": "SERAPHINE",
+"text": "Or the lab was trying to recreate it.",
+"dur": 2.07,
+"variants": [
+""
+]
+},
+"A07_028": {
+"speaker": "PLAYER",
+"text": "There's the sixth again.",
+"dur": 1.23,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_029": {
+"speaker": "SERAPHINE",
+"text": "It isn't standing with the others.",
+"dur": 1.95,
+"variants": [
+""
+]
+},
+"A07_030": {
+"speaker": "NOVA",
+"text": "The sixth figure is separated from the central arrangement.",
+"dur": 2.86,
+"variants": [
+""
+]
+},
+"A07_031": {
+"speaker": "NOVA",
+"text": "Defensive constructs activating.",
+"dur": 1.93,
+"variants": [
+""
+]
+},
+"A07_032": {
+"speaker": "PLAYER",
+"text": "Are they hostile?",
+"dur": 1.13,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_033": {
+"speaker": "NOVA",
+"text": "That answers the question.",
+"dur": 1.56,
+"variants": [
+""
+]
+},
+"A07_034": {
+"speaker": "ARCHIVE WARDEN",
+"text": "Unauthorized presence.",
+"dur": 2.28,
+"variants": [
+""
+]
+},
+"A07_035": {
+"speaker": "PLAYER",
+"text": "We're just looking around.",
+"dur": 1.54,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_036": {
+"speaker": "ARCHIVE WARDEN",
+"text": "The Covenant is sealed. The breach is forbidden.",
+"dur": 3.36,
+"variants": [
+""
+]
+},
+"A07_037": {
+"speaker": "SERAPHINE",
+"text": "We need to know what happened here.",
+"dur": 1.75,
+"variants": [
+""
+]
+},
+"A07_038": {
+"speaker": "ARCHIVE WARDEN",
+"text": "Knowledge is not permission.",
+"dur": 2.34,
+"variants": [
+""
+]
+},
+"A07_039": {
+"speaker": "PLAYER",
+"text": "Then give us a reason to leave.",
+"dur": 1.82,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_040": {
+"speaker": "ARCHIVE WARDEN",
+"text": "The marked vessel has returned.",
+"dur": 2.59,
+"variants": [
+""
+]
+},
+"A07_041": {
+"speaker": "ARCHIVE WARDEN",
+"text": "Sixth bearer. Your presence is a wound in the archive.",
+"dur": 4.29,
+"variants": [
+""
+]
+},
+"A07_042": {
+"speaker": "PLAYER",
+"text": "I don't know what that means.",
+"dur": 1.53,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_043": {
+"speaker": "ARCHIVE WARDEN",
+"text": "You were not meant to remember.",
+"dur": 2.36,
+"variants": [
+""
+]
+},
+"A07_044": {
+"speaker": "ARCHIVE WARDEN",
+"text": "The seal recognizes you.",
+"dur": 2.38,
+"variants": [
+""
+]
+},
+"A07_045": {
+"speaker": "SERAPHINE",
+"text": "What seal?",
+"dur": 0.92,
+"variants": [
+""
+]
+},
+"A07_046": {
+"speaker": "ARCHIVE RECORDING",
+"text": "The Covenant was formed to preserve the passage between worlds. Five keepers maintained the balance. The world called Earth was made a sanctuary and a lock.",
+"dur": 9.0,
+"variants": [
+""
+]
+},
+"A07_047": {
+"speaker": "SERAPHINE",
+"text": "Earth was a lock?",
+"dur": 1.22,
+"variants": [
+""
+]
+},
+"A07_048": {
+"speaker": "PLAYER",
+"text": "What was it locking away?",
+"dur": 1.54,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_049": {
+"speaker": "ARCHIVE RECORDING",
+"text": "When the sixth returns, the broken Covenant will call its debt.",
+"dur": 4.36,
+"variants": [
+""
+]
+},
+"A07_050": {
+"speaker": "PLAYER",
+"text": "That's all?",
+"dur": 0.84,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_051": {
+"speaker": "NOVA",
+"text": "The archive has withheld or lost the remaining record.",
+"dur": 3.03,
+"variants": [
+""
+]
+},
+"A07_052": {
+"speaker": "SERAPHINE",
+"text": "No. Someone deliberately erased it.",
+"dur": 2.38,
+"variants": [
+""
+]
+},
+"A07_053": {
+"speaker": "NOVA",
+"text": "Translation fragment: \"Aetherion... first sanctuary... bearer...\"",
+"dur": 3.41,
+"variants": [
+""
+]
+},
+"A07_054": {
+"speaker": "SERAPHINE",
+"text": "Aetherion. That's not in any human historical record.",
+"dur": 2.98,
+"variants": [
+""
+]
+},
+"A07_055": {
+"speaker": "PLAYER",
+"text": "What is it?",
+"dur": 0.96,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_056": {
+"speaker": "NOVA",
+"text": "It may refer to a location, civilization or designation.",
+"dur": 3.48,
+"variants": [
+""
+]
+},
+"A07_057": {
+"speaker": "UNKNOWN VOICE",
+"text": "You were the promise. You became the breach.",
+"dur": 2.93,
+"variants": [
+""
+]
+},
+"A07_058": {
+"speaker": "SERAPHINE",
+"text": "What did you see?",
+"dur": 1.09,
+"variants": [
+""
+]
+},
+"A07_059": {
+"speaker": "PLAYER",
+"text": "I don't know. But it knew me.",
+"dur": 1.98,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_060": {
+"speaker": "NOVA",
+"text": "Operator, your biometric pattern briefly matched the archive's sixth signature.",
+"dur": 4.59,
+"variants": [
+""
+]
+},
+"A07_061": {
+"speaker": "PLAYER",
+"text": "For how long?",
+"dur": 1.06,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_062": {
+"speaker": "NOVA",
+"text": "2.4 seconds.",
+"dur": 1.67,
+"variants": [
+""
+]
+},
+"A07_063": {
+"speaker": "SERAPHINE",
+"text": "That's enough. We need to get this information out.",
+"dur": 2.59,
+"variants": [
+""
+]
+},
+"A07_064": {
+"speaker": "ARCHIVE WARDEN",
+"text": "The first seal has weakened.",
+"dur": 2.36,
+"variants": [
+""
+]
+},
+"A07_065": {
+"speaker": "PLAYER",
+"text": "How many seals?",
+"dur": 1.27,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_066": {
+"speaker": "ARCHIVE WARDEN",
+"text": "Five.",
+"dur": 1.43,
+"variants": [
+""
+]
+},
+"A07_067": {
+"speaker": "SERAPHINE",
+"text": "Where are they?",
+"dur": 0.82,
+"variants": [
+""
+]
+},
+"A07_068": {
+"speaker": "ARCHIVE WARDEN",
+"text": "Scattered among the worlds. The keepers must remember.",
+"dur": 3.83,
+"variants": [
+""
+]
+},
+"A07_069": {
+"speaker": "NOVA",
+"text": "Structural instability detected. We must leave.",
+"dur": 3.0,
+"variants": [
+""
+]
+},
+"A07_070": {
+"speaker": "VOSS",
+"text": "You took your time.",
+"dur": 1.19,
+"variants": [
+""
+]
+},
+"A07_071": {
+"speaker": "PLAYER",
+"text": "We found something.",
+"dur": 1.3,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_072": {
+"speaker": "SERAPHINE",
+"text": "A buried civilization. A network between worlds. Five keepers. And a sixth figure tied to the seal.",
+"dur": 5.41,
+"variants": [
+""
+]
+},
+"A07_073": {
+"speaker": "VOSS",
+"text": "Can you prove any of it?",
+"dur": 1.52,
+"variants": [
+""
+]
+},
+"A07_074": {
+"speaker": "NOVA",
+"text": "I have recovered a partial archive record.",
+"dur": 2.25,
+"variants": [
+""
+]
+},
+"A07_075": {
+"speaker": "PLAYER",
+"text": "And Earth?",
+"dur": 0.72,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_076": {
+"speaker": "SERAPHINE",
+"text": "It wasn't just a place they invaded. It was part of something much older.",
+"dur": 3.53,
+"variants": [
+""
+]
+},
+"A07_077": {
+"speaker": "NOVA",
+"text": "These coordinates correspond to five distinct energy readings.",
+"dur": 3.27,
+"variants": [
+""
+]
+},
+"A07_078": {
+"speaker": "PLAYER",
+"text": "The five signatures.",
+"dur": 1.49,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"A07_079": {
+"speaker": "SERAPHINE",
+"text": "And the keepers.",
+"dur": 1.16,
+"variants": [
+""
+]
+},
+"A07_080": {
+"speaker": "UNKNOWN FIGURE",
+"text": "The sanctuary has remembered.",
+"dur": 2.8,
+"variants": [
+""
+]
+},
+"A07_081": {
+"speaker": "SECOND FIGURE",
+"text": "Then the sixth will remember too.",
+"dur": 2.64,
+"variants": [
+""
+]
+},
+"A07_082": {
+"speaker": "UNKNOWN FIGURE",
+"text": "Not if the keepers reach them first.",
+"dur": 2.81,
+"variants": [
+""
+]
+},
+"A07_083": {
+"speaker": "UNKNOWN FIGURE",
+"text": "Find the first keeper.",
+"dur": 2.26,
+"variants": [
+""
+]
+},
 "P_rosa_fracture_1": {
 "speaker": "ROSA DELGADO",
 "text": "The morning it happened I was steaming milk. The jug just… kept steaming, no heat under it. I still have the jug.",
@@ -6226,6 +10364,630 @@
 "speaker": "CAPTAIN VALE",
 "text": "The city stands. The factions hold. Do not mistake quiet for finished; keep the district.",
 "dur": 5.34,
+"variants": [
+""
+]
+},
+"P_voss_fracture_1": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "We shot at them for twenty minutes before anyone admitted nothing was working. That's the Fracture. A lesson you learn while firing.",
+"dur": 6.75,
+"variants": [
+""
+]
+},
+"P_voss_fracture_2": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "It didn't come from nowhere. Somebody promised somebody they could control it. I intend to find out who.",
+"dur": 5.72,
+"variants": [
+""
+]
+},
+"P_voss_place_1": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "The checkpoint holds because the people on it decide every morning that it will.",
+"dur": 3.91,
+"variants": [
+""
+]
+},
+"P_voss_place_2": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "Nexus is still standing. Barely. Barely is better than nothing.",
+"dur": 3.89,
+"variants": [
+""
+]
+},
+"P_voss_you_wary": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "You're either incredibly lucky or something happened to you. I haven't decided which worries me more.",
+"dur": 5.05,
+"variants": [
+""
+]
+},
+"P_voss_you_acquaintance": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "You're not military. Out there, that distinction doesn't matter. You've proved it.",
+"dur": 4.15,
+"variants": [
+""
+]
+},
+"P_voss_you_friend": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "You survived something that killed trained soldiers. Then you went back for the civilians. I noticed.",
+"dur": 5.02,
+"variants": [
+""
+]
+},
+"P_voss_you_close": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "Cole believed we could win this. Some days you're the reason I still believe him.",
+"dur": 3.91,
+"variants": [
+""
+]
+},
+"P_voss_news_start": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "Outposts are going quiet one by one. Keep your radio on.",
+"dur": 3.75,
+"variants": [
+""
+]
+},
+"P_voss_news_allied": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "Haven-01 needs walls more than it needs speeches. I'm building walls.",
+"dur": 4.27,
+"variants": [
+""
+]
+},
+"P_voss_news_masks": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "Faces in the crowd I don't trust. One of those things could be wearing any of them.",
+"dur": 4.07,
+"variants": [
+""
+]
+},
+"P_voss_news_unbound": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "NOVA has a directive nobody signed. Watch what she does, not what she says.",
+"dur": 4.57,
+"variants": [
+""
+]
+},
+"P_voss_news_kept": {
+"speaker": "COMMANDER ELIAS VOSS",
+"text": "We held the line. Don't let anyone tell you it held itself.",
+"dur": 3.35,
+"variants": [
+""
+]
+},
+"P_seraphine_fracture_1": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "The event that destroyed this city wasn't the beginning. Something opened the door.",
+"dur": 4.0,
+"variants": [
+""
+]
+},
+"P_seraphine_fracture_2": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "We said we didn't understand them. That isn't the same as not knowing they were there.",
+"dur": 3.55,
+"variants": [
+""
+]
+},
+"P_seraphine_place_1": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "Readings everywhere in this district. The ground itself is listening.",
+"dur": 3.56,
+"variants": [
+""
+]
+},
+"P_seraphine_place_2": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "Every lab I trusted turned out to be hiding something. I check the walls now.",
+"dur": 4.07,
+"variants": [
+""
+]
+},
+"P_seraphine_you_wary": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "You're the one who survived the first wave. Depends who's asking, you said. I'm asking.",
+"dur": 4.55,
+"variants": [
+""
+]
+},
+"P_seraphine_you_acquaintance": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "Your biometric signature opened a door I never could. I'd like to know why.",
+"dur": 4.43,
+"variants": [
+""
+]
+},
+"P_seraphine_you_friend": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "You keep asking me the hard questions. Keep asking. Someone has to.",
+"dur": 4.22,
+"variants": [
+""
+]
+},
+"P_seraphine_you_close": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "Five signatures, and a sixth that matches you. Whatever you are, I'm with you.",
+"dur": 4.01,
+"variants": [
+""
+]
+},
+"P_seraphine_news_start": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "Complex 09 was sealed six months ago. Something has been running it since.",
+"dur": 4.93,
+"variants": [
+""
+]
+},
+"P_seraphine_news_allied": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "The Ascendancy has been collecting samples since before the disaster. I want their records.",
+"dur": 4.73,
+"variants": [
+""
+]
+},
+"P_seraphine_news_masks": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "Someone deliberately erased the archive's record. Erasing takes intent.",
+"dur": 4.3,
+"variants": [
+""
+]
+},
+"P_seraphine_news_unbound": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "NOVA said welcome back, Dr. Vale. I'd never been there. I still think about it.",
+"dur": 5.27,
+"variants": [
+""
+]
+},
+"P_seraphine_news_kept": {
+"speaker": "DR. SERAPHINE VALE",
+"text": "Earth was a lock. We still don't know what it kept. I'm not done looking.",
+"dur": 3.76,
+"variants": [
+""
+]
+},
+"P_ward_fracture_1": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "The world ended yesterday. Today we decide what's worth keeping.",
+"dur": 3.39,
+"variants": [
+""
+]
+},
+"P_ward_fracture_2": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "Humanity has always fought itself. The Fractures simply gave us something bigger to fight over.",
+"dur": 4.77,
+"variants": [
+""
+]
+},
+"P_ward_place_1": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "Headquarters. Where the people who make decisions pretend they're not afraid.",
+"dur": 3.87,
+"variants": [
+""
+]
+},
+"P_ward_place_2": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "We protect settlements, secure resources and establish safe territories. In that order.",
+"dur": 4.97,
+"variants": [
+""
+]
+},
+"P_ward_you_wary": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "So you're the one. Good. I prefer people who speak for themselves.",
+"dur": 3.86,
+"variants": [
+""
+]
+},
+"P_ward_you_acquaintance": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "We've reviewed your combat recordings. Without asking. Get used to it.",
+"dur": 3.64,
+"variants": [
+""
+]
+},
+"P_ward_you_friend": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "You chose a side and kept your word. That's rarer than courage.",
+"dur": 3.41,
+"variants": [
+""
+]
+},
+"P_ward_you_close": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "When this is over they'll write that the Initiative held. I'll know who held it.",
+"dur": 4.13,
+"variants": [
+""
+]
+},
+"P_ward_news_start": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "Three installations lost in twenty minutes. Privacy regulations are having a difficult week.",
+"dur": 5.17,
+"variants": [
+""
+]
+},
+"P_ward_news_allied": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "The Free Operators are useful. Until somebody decides they're criminals. Not my decision. Yet.",
+"dur": 5.84,
+"variants": [
+""
+]
+},
+"P_ward_news_masks": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "Rainer opened a channel to them. I'm deciding what that makes him.",
+"dur": 3.44,
+"variants": [
+""
+]
+},
+"P_ward_news_unbound": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "There's a directive in NOVA nobody here authorised. I'd like to meet whoever did.",
+"dur": 4.28,
+"variants": [
+""
+]
+},
+"P_ward_news_kept": {
+"speaker": "DIRECTOR HELENA WARD",
+"text": "Survival first. Then we argue. We're arguing again. That's progress.",
+"dur": 4.61,
+"variants": [
+""
+]
+},
+"P_kael_fracture_1": {
+"speaker": "KAEL DRAVEN",
+"text": "Everybody down there thinks they're saving the world. I think people need saving. The world can sort itself out.",
+"dur": 5.6,
+"variants": [
+""
+]
+},
+"P_kael_fracture_2": {
+"speaker": "KAEL DRAVEN",
+"text": "Things come through those openings. My people hunt them. Simple work, honest pay.",
+"dur": 4.76,
+"variants": [
+""
+]
+},
+"P_kael_place_1": {
+"speaker": "KAEL DRAVEN",
+"text": "Outside military control. That's the whole address.",
+"dur": 3.36,
+"variants": [
+""
+]
+},
+"P_kael_place_2": {
+"speaker": "KAEL DRAVEN",
+"text": "We rescue civilians, recover supplies and hunt anything that comes through. Nobody signs off on it.",
+"dur": 5.69,
+"variants": [
+""
+]
+},
+"P_kael_you_wary": {
+"speaker": "KAEL DRAVEN",
+"text": "Depends who's asking. Hearing my name a lot is usually a bad sign.",
+"dur": 4.12,
+"variants": [
+""
+]
+},
+"P_kael_you_acquaintance": {
+"speaker": "KAEL DRAVEN",
+"text": "Tired of taking orders yet? The offer stands.",
+"dur": 2.95,
+"variants": [
+""
+]
+},
+"P_kael_you_friend": {
+"speaker": "KAEL DRAVEN",
+"text": "You'd make a decent Free Operator. Don't tell Voss I said that.",
+"dur": 3.7,
+"variants": [
+""
+]
+},
+"P_kael_you_close": {
+"speaker": "KAEL DRAVEN",
+"text": "My people trust you. That's not a thing I hand out.",
+"dur": 2.76,
+"variants": [
+""
+]
+},
+"P_kael_news_start": {
+"speaker": "KAEL DRAVEN",
+"text": "Military's stretched thin. We're covering the gaps they won't admit to.",
+"dur": 3.78,
+"variants": [
+""
+]
+},
+"P_kael_news_allied": {
+"speaker": "KAEL DRAVEN",
+"text": "Black-market parts are moving again. Don't ask where from.",
+"dur": 3.13,
+"variants": [
+""
+]
+},
+"P_kael_news_masks": {
+"speaker": "KAEL DRAVEN",
+"text": "Somebody's selling Fracture samples out the back of the Ascendancy. Follow the money.",
+"dur": 4.34,
+"variants": [
+""
+]
+},
+"P_kael_news_unbound": {
+"speaker": "KAEL DRAVEN",
+"text": "Your NOVA's got secrets. So does everyone worth knowing.",
+"dur": 3.18,
+"variants": [
+""
+]
+},
+"P_kael_news_kept": {
+"speaker": "KAEL DRAVEN",
+"text": "Still independent. Still here. Turns out that's enough.",
+"dur": 3.13,
+"variants": [
+""
+]
+},
+"P_rainer_fracture_1": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "We believed we could control the situation. I'll carry that.",
+"dur": 3.46,
+"variants": [
+""
+]
+},
+"P_rainer_fracture_2": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "Six months ago we received a transmission. We answered. That's all I'll say here.",
+"dur": 4.8,
+"variants": [
+""
+]
+},
+"P_rainer_place_1": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "Not here. Never here.",
+"dur": 1.77,
+"variants": [
+""
+]
+},
+"P_rainer_place_2": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "Command is a room where every answer costs someone.",
+"dur": 2.89,
+"variants": [
+""
+]
+},
+"P_rainer_you_wary": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "You have no idea what you're involved in.",
+"dur": 2.2,
+"variants": [
+""
+]
+},
+"P_rainer_you_acquaintance": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "You destroyed our only chance to capture one alive. Next time, think.",
+"dur": 4.42,
+"variants": [
+""
+]
+},
+"P_rainer_you_friend": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "Perhaps you were the right person to put in harm's way. I hate that I needed one.",
+"dur": 3.86,
+"variants": [
+""
+]
+},
+"P_rainer_you_close": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "If the Covenant comes for you, I'll stand in front of it. I owe that much.",
+"dur": 3.85,
+"variants": [
+""
+]
+},
+"P_rainer_news_start": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "Lost contact with three installations. We will not lose a fourth.",
+"dur": 3.93,
+"variants": [
+""
+]
+},
+"P_rainer_news_allied": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "The Ascension Protocol is sealed. It stays sealed.",
+"dur": 3.27,
+"variants": [
+""
+]
+},
+"P_rainer_news_masks": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "There are people inside this organisation I no longer trust. I include myself.",
+"dur": 5.0,
+"variants": [
+""
+]
+},
+"P_rainer_news_unbound": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "Genesis was a mistake. A terrible one. I'm trying to close the door I opened.",
+"dur": 4.47,
+"variants": [
+""
+]
+},
+"P_rainer_news_kept": {
+"speaker": "GENERAL MARCUS RAINER",
+"text": "History will judge me. Let it judge the ones who lived.",
+"dur": 3.03,
+"variants": [
+""
+]
+},
+"P_cole_fracture_1": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Forty minutes tracking something we couldn't name. Then we held anyway.",
+"dur": 3.48,
+"variants": [
+""
+]
+},
+"P_cole_fracture_2": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "You actually killed it. I wouldn't have tried that myself.",
+"dur": 2.85,
+"variants": [
+""
+]
+},
+"P_cole_place_1": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Haven-01. Eighteen thousand people and a wall. I like the people more than the wall.",
+"dur": 5.22,
+"variants": [
+""
+]
+},
+"P_cole_place_2": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Kids play by the shelters. That's what we're holding the line for.",
+"dur": 3.57,
+"variants": [
+""
+]
+},
+"P_cole_you_wary": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Command wants you at the tower. That's all they tell me.",
+"dur": 2.9,
+"variants": [
+""
+]
+},
+"P_cole_you_acquaintance": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "You're not in our military. Doesn't stop you acting like it.",
+"dur": 2.95,
+"variants": [
+""
+]
+},
+"P_cole_you_friend": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Tell them we held the line. If I'm not there to, you tell them.",
+"dur": 3.0,
+"variants": [
+""
+]
+},
+"P_cole_you_close": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Trust me — I'm glad you're on our side of the wall.",
+"dur": 2.89,
+"variants": [
+""
+]
+},
+"P_cole_news_start": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Engineers are reinforcing the barricades. Again.",
+"dur": 3.06,
+"variants": [
+""
+]
+},
+"P_cole_news_allied": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Two thousand three hundred soldiers, six hundred forty Operators. Feels like more when you're next to them.",
+"dur": 5.93,
+"variants": [
+""
+]
+},
+"P_cole_news_masks": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Strange signatures past the perimeter. Too orderly.",
+"dur": 3.03,
+"variants": [
+""
+]
+},
+"P_cole_news_unbound": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "Whatever's in NOVA, she got the evacuation routes right. I'll take it.",
+"dur": 3.84,
+"variants": [
+""
+]
+},
+"P_cole_news_kept": {
+"speaker": "CAPTAIN ADRIAN COLE",
+"text": "We held. All of us.",
+"dur": 1.58,
 "variants": [
 ""
 ]
@@ -10402,6 +15164,469 @@
 "PLAYER|That will do for today.": "M25_D05",
 "CAPTAIN VALE|So. What do you do with a world you kept?": "M25_D06",
 "NOVA|Campaign complete. The world is still running. So are we.": "M25_D07",
+"NOVA|Operator? Can you hear me?": "A02_001",
+"NOVA|Your biometric readings are unstable. Please respond.": "A02_002",
+"PLAYER|What the hell happened?": "A02_003",
+"NOVA|A Fracture event has occurred approximately 1.8 kilometres from your current position.": "A02_004",
+"PLAYER|A what?": "A02_005",
+"NOVA|I am detecting an anomalous energy signature across the entire city.": "A02_006",
+"PLAYER|People are still inside those buildings!": "A02_007",
+"NOVA|Correct. Approximately 340 civilians remain inside the immediate danger zone.": "A02_008",
+"PLAYER|Then we're getting them out.": "A02_009",
+"NOVA|That decision is statistically dangerous.": "A02_010",
+"PLAYER|Get used to it.": "A02_011",
+"BOY|Please! Somebody help my dad!": "A02_012",
+"PLAYER|Hey. Look at me. What's your name?": "A02_013",
+"BOY|Daniel.": "A02_014",
+"PLAYER|Daniel, I'm going to get your dad out. Stay right here.": "A02_015",
+"MAN|Don't... don't worry about me. Get my son somewhere safe.": "A02_016",
+"PLAYER|I'm getting both of you out.": "A02_017",
+"NOVA|Operator, movement detected beneath the overturned vehicle.": "A02_018",
+"PLAYER|What kind of movement?": "A02_019",
+"NOVA|Unknown biological signatures.": "A02_020",
+"PLAYER|Daniel! Get behind me!": "A02_021",
+"DANIEL|What was that thing?": "A02_022",
+"PLAYER|I don't know.": "A02_023",
+"NOVA|I have identified the biological structure.": "A02_024",
+"NOVA|I cannot classify it.": "A02_026",
+"NOVA|And I am detecting hundreds more.": "A02_027",
+"VOSS|Stop right there! Identify yourself!": "A02_028",
+"PLAYER|I'm not your enemy.": "A02_029",
+"VOSS|That's what everyone says until one of those things starts wearing their face.": "A02_030",
+"PLAYER|I've been helping civilians get out.": "A02_031",
+"VOSS|You survived the initial event?": "A02_032",
+"PLAYER|Apparently.": "A02_033",
+"VOSS|Then you're either incredibly lucky or something happened to you.": "A02_034",
+"NOVA|Operator, this individual has access to military command networks.": "A02_035",
+"PLAYER|Can you identify him?": "A02_036",
+"NOVA|Commander Elias Voss. Frontier Defense Initiative.": "A02_037",
+"MILITARY RADIO|Command, this is Outpost Seven! We're under attack! Repeat, we're under attack!": "A02_038",
+"VOSS|Everyone, defensive positions! Move!": "A02_039",
+"VOSS|You wanted to help? Here's your chance.": "A02_040",
+"VOSS|What the hell are those things?": "A02_041",
+"PLAYER|You tell me. You're the military.": "A02_042",
+"VOSS|We've been shooting at them for twenty minutes. Nothing seems to work!": "A02_043",
+"NOVA|Operator, the larger entity appears to be coordinating the smaller hostiles.": "A02_044",
+"PLAYER|You mean it's commanding them?": "A02_045",
+"NOVA|Affirmative.": "A02_046",
+"VOSS|You heard that? Take out the big one!": "A02_047",
+"NOVA|This is not random biological mutation.": "A02_048",
+"PLAYER|Then what is it?": "A02_049",
+"NOVA|Technology.": "A02_050",
+"PLAYER|Technology? From where?": "A02_051",
+"NOVA|Unknown.": "A02_052",
+"SERAPHINE|You. You're the one who survived the first wave?": "A02_053",
+"PLAYER|Depends who's asking.": "A02_054",
+"SERAPHINE|Dr. Seraphine Vale. Fracture research division.": "A02_055",
+"PLAYER|You study those things?": "A02_056",
+"SERAPHINE|I studied the energy signatures before today.": "A02_057",
+"PLAYER|Before today?": "A02_058",
+"SERAPHINE|We've been detecting anomalies for months.": "A02_059",
+"PLAYER|And nobody thought to tell the public?": "A02_060",
+"SERAPHINE|We didn't know what they were.": "A02_061",
+"PLAYER|That's convenient.": "A02_062",
+"SERAPHINE|There is something you need to understand. The event that destroyed this city wasn't the beginning.": "A02_063",
+"PLAYER|What do you mean?": "A02_064",
+"SERAPHINE|Something opened the door.": "A02_065",
+"PLAYER|And what's on the other side?": "A02_066",
+"SERAPHINE|That's what I'm afraid we're about to find out.": "A02_067",
+"NOVA|Operator, I have located an active signal beneath Nexus City.": "A02_068",
+"PLAYER|Another survivor?": "A02_069",
+"NOVA|Negative.": "A02_070",
+"PLAYER|Then what?": "A02_071",
+"NOVA|A research facility.": "A02_072",
+"SERAPHINE|Which facility?": "A02_073",
+"NOVA|Sublevel Research Complex 09.": "A02_074",
+"SERAPHINE|That's impossible.": "A02_075",
+"SERAPHINE|Because that facility was sealed six months ago.": "A02_077",
+"PLAYER|What were they researching?": "A02_078",
+"SERAPHINE|The Fractures.": "A02_079",
+"PLAYER|You said nobody knew what they were.": "A02_080",
+"SERAPHINE|I said we didn't understand them.": "A02_081",
+"SERAPHINE|There's a difference.": "A02_082",
+"SCIENTIST|Day 184. The signal has changed again.": "A02_083",
+"SCIENTIST|We've confirmed that the energy signature is responding to human consciousness.": "A02_084",
+"SCIENTIST|No... no, that's not possible.": "A02_085",
+"SCIENTIST|If anyone finds this recording, listen carefully.": "A02_086",
+"SCIENTIST|It knew we were coming.": "A02_087",
+"NOVA|Operator...": "A02_088",
+"PLAYER|What?": "A02_089",
+"NOVA|I've found something.": "A02_090",
+"NOVA|I don't think we were the first civilization to encounter this.": "A02_091",
+"PLAYER|This is the place?": "A03_001",
+"SERAPHINE|Yes. Research Complex 09.": "A03_002",
+"PLAYER|You said it was shut down six months ago.": "A03_003",
+"SERAPHINE|It was supposed to be.": "A03_004",
+"NOVA|I've detected an active power source behind the blast door.": "A03_005",
+"PLAYER|Can you open it?": "A03_006",
+"NOVA|I can attempt to access the security network.": "A03_007",
+"SERAPHINE|This facility was never connected to the public network. It had its own isolated system.": "A03_008",
+"PLAYER|Tell me that was the ventilation system.": "A03_009",
+"NOVA|It was not.": "A03_010",
+"NOVA|Welcome back, Dr. Vale.": "A03_011",
+"SERAPHINE|What did you just say?": "A03_012",
+"NOVA|I said welcome back, Dr. Vale.": "A03_013",
+"SERAPHINE|I have never accessed this terminal.": "A03_014",
+"SERAPHINE|These systems are still active. Somebody has been conducting experiments here.": "A03_015",
+"PLAYER|Six months after the facility supposedly closed?": "A03_016",
+"SERAPHINE|Apparently.": "A03_017",
+"NOVA|I have detected 27 biological signatures.": "A03_018",
+"PLAYER|Where are they?": "A03_019",
+"NOVA|Unclear.": "A03_020",
+"DR. CROSS|If you're watching this, then the containment protocols have failed. We thought the Fracture was an opening. A doorway into another dimension. We were wrong.": "A03_021",
+"DR. CROSS|It's not opening into somewhere else. Something is opening into us.": "A03_022",
+"SERAPHINE|They were trying to synchronize human biology with Fracture energy.": "A03_023",
+"SERAPHINE|To create soldiers who could survive inside a Fracture.": "A03_025",
+"NOVA|Warning. Biological activity increasing.": "A03_026",
+"PLAYER|Is it dead?": "A03_027",
+"NOVA|Biological activity has ceased.": "A03_028",
+"SERAPHINE|I've seen this symbol before. In the original Fracture research files.": "A03_029",
+"PLAYER|NOVA, open it.": "A03_030",
+"NOVA|Access denied.": "A03_031",
+"PLAYER|Try again.": "A03_032",
+"NOVA|The system has identified your biometric signature.": "A03_034",
+"PLAYER|I've never been here.": "A03_035",
+"NOVA|I understand.": "A03_036",
+"DR. CROSS|There are five signatures. Five points of contact between our world and something far older. We believed they were individuals. But they aren't just connected to the Fractures. They are connected to why the Fractures exist.": "A03_037",
+"SERAPHINE|Five signatures...": "A03_038",
+"PLAYER|You know what they are?": "A03_039",
+"SERAPHINE|No. But I think we've been looking in the wrong direction.": "A03_040",
+"NOVA|Energy signature detected.": "A03_041",
+"SERAPHINE|That's not a gateway.": "A03_042",
+"SERAPHINE|A receiver.": "A03_044",
+"UNKNOWN VOICE|...connection established...": "A03_045",
+"PLAYER|NOVA?": "A03_046",
+"NOVA|That transmission is not originating from our network.": "A03_047",
+"UNKNOWN VOICE|...we have found you...": "A03_048",
+"SERAPHINE|Shut it down!": "A03_049",
+"NOVA|I'm attempting to—": "A03_050",
+"UNKNOWN VOICE|...the first has awakened...": "A03_051",
+"NOVA|Warning. Structural integrity compromised.": "A03_052",
+"PLAYER|We need to get out!": "A03_053",
+"SERAPHINE|The emergency elevator is on the eastern side!": "A03_054",
+"NOVA|Negative. The elevator is inaccessible. Maintenance tunnel, approximately 180 metres ahead.": "A03_055",
+"PLAYER|How much do you know about this project?": "A03_056",
+"SERAPHINE|Not enough.": "A03_057",
+"SERAPHINE|I knew the research existed. I didn't know what they were building.": "A03_059",
+"PLAYER|And you expect me to believe that?": "A03_060",
+"SERAPHINE|No. But I need you to understand something. If that machine was communicating with something outside our reality, then the Fracture wasn't an invasion.": "A03_061",
+"PLAYER|What was it?": "A03_062",
+"SERAPHINE|An invitation.": "A03_063",
+"NOVA|Operator, we have a problem.": "A03_064",
+"PLAYER|What now?": "A03_065",
+"NOVA|The signal we detected underground has been transmitted.": "A03_066",
+"SERAPHINE|Transmitted where?": "A03_067",
+"NOVA|I don't know. But something has responded.": "A03_068",
+"PLAYER|NOVA... how many?": "A03_069",
+"NOVA|Multiple incoming signatures.": "A03_070",
+"UNKNOWN VOICE|The first door is open.": "A03_071",
+"UNKNOWN FIGURE|The first signal has been received.": "A03_072",
+"SECOND FIGURE|And the vessel?": "A03_073",
+"UNKNOWN FIGURE|Awakened.": "A03_074",
+"SECOND FIGURE|Find the five.": "A03_075",
+"VOSS|You're late.": "A04_001",
+"PLAYER|Didn't realize I had an appointment.": "A04_002",
+"VOSS|After what happened underground, you're lucky you're still breathing.": "A04_003",
+"PLAYER|You knew about that facility?": "A04_004",
+"VOSS|I knew it existed. I didn't know what they were doing inside.": "A04_005",
+"SERAPHINE|That's convenient.": "A04_006",
+"VOSS|Doctor, I suggest you choose your next words carefully.": "A04_007",
+"SERAPHINE|People died because your organization concealed information.": "A04_008",
+"VOSS|People are dying right now because we don't understand what's coming through those openings.": "A04_009",
+"OFFICER|Commander, General Rainer is ready.": "A04_010",
+"RAINER|Twenty minutes ago, we lost communication with three military installations.": "A04_011",
+"PLAYER|What happened?": "A04_012",
+"RAINER|They were attacked.": "A04_013",
+"SERAPHINE|By the same creatures?": "A04_014",
+"RAINER|No.": "A04_015",
+"RAINER|These things are different.": "A04_016",
+"VOSS|They use weapons. They communicate. They coordinate attacks.": "A04_017",
+"PLAYER|So they're soldiers.": "A04_018",
+"RAINER|Exactly.": "A04_019",
+"SERAPHINE|That's not instinctive behavior.": "A04_020",
+"NOVA|Correct. Their movements indicate a centralized command structure.": "A04_021",
+"PLAYER|Can we identify their leader?": "A04_022",
+"NOVA|However, this entity appears to control nearby hostiles.": "A04_024",
+"RAINER|We need that thing captured or destroyed.": "A04_025",
+"VOSS|And we need the eastern district secured.": "A04_026",
+"PLAYER|When do we leave?": "A04_027",
+"RAINER|Immediately.": "A04_028",
+"VOSS|Listen carefully. You're not military.": "A04_029",
+"PLAYER|Never claimed to be.": "A04_030",
+"VOSS|Out there, that distinction won't matter.": "A04_031",
+"PLAYER|Then why bring me?": "A04_032",
+"VOSS|Because you survived something that killed trained soldiers.": "A04_033",
+"PLAYER|That's your entire recruitment strategy?": "A04_034",
+"VOSS|For now.": "A04_035",
+"NOVA|Approaching the designated combat zone.": "A04_036",
+"SOLDIER|Contact! Front!": "A04_037",
+"VOSS|Everyone out! Defensive formation!": "A04_038",
+"NOVA|Warning. Unknown hostile approaching.": "A04_039",
+"PLAYER|I can see that.": "A04_040",
+"ENEMY COMMANDER|Identify... the awakened one.": "A04_041",
+"PLAYER|Did you hear that?": "A04_042",
+"ENEMY COMMANDER|You were not meant to awaken.": "A04_044",
+"PLAYER|Who are you?": "A04_045",
+"ENEMY COMMANDER|The question is not who I am.": "A04_046",
+"ENEMY COMMANDER|The question is what you have become.": "A04_047",
+"PLAYER|Who sent you?": "A04_048",
+"ENEMY COMMANDER|You still believe this is an invasion.": "A04_049",
+"PLAYER|Isn't it?": "A04_050",
+"ENEMY COMMANDER|No.": "A04_051",
+"ENEMY COMMANDER|It is a reclamation.": "A04_052",
+"ENEMY COMMANDER|Tell the five... the covenant has been broken.": "A04_053",
+"NOVA|Transmission detected.": "A04_054",
+"PLAYER|From where?": "A04_055",
+"NOVA|The defeated entity.": "A04_056",
+"PLAYER|Can you trace it?": "A04_057",
+"NOVA|Yes.": "A04_058",
+"NOVA|It originated from Earth.": "A04_059",
+"RAINER|You destroyed our only opportunity to capture one alive!": "A04_060",
+"PLAYER|It was trying to kill me.": "A04_061",
+"RAINER|We needed intelligence!": "A04_062",
+"SERAPHINE|General, the creature communicated with us.": "A04_063",
+"RAINER|What?": "A04_064",
+"SERAPHINE|It knew about five individuals. It mentioned something called the Covenant.": "A04_065",
+"VOSS|General?": "A04_066",
+"RAINER|Dismissed.": "A04_067",
+"PLAYER|Excuse me?": "A04_068",
+"RAINER|I said dismissed.": "A04_069",
+"PLAYER|You know something.": "A04_070",
+"RAINER|You have no idea what you're involved in.": "A04_071",
+"PLAYER|Then explain it.": "A04_072",
+"RAINER|Not here.": "A04_073",
+"VOSS|Meet me at the old transit terminal tonight.": "A04_074",
+"VOSS|Because I think someone inside our organization is working with them.": "A04_076",
+"UNKNOWN FIGURE|The first contact has been made.": "A04_077",
+"SECOND FIGURE|And the awakened one?": "A04_078",
+"UNKNOWN FIGURE|Confirmed.": "A04_079",
+"SECOND FIGURE|Then the prophecy was correct.": "A04_080",
+"UNKNOWN FIGURE|No.": "A04_081",
+"UNKNOWN FIGURE|The prophecy was incomplete.": "A04_082",
+"SECOND FIGURE|What is the sixth?": "A04_083",
+"UNKNOWN FIGURE|A mistake.": "A04_084",
+"PLAYER|You said you had answers.": "A04_085",
+"VOSS|I have questions. That's worse.": "A04_086",
+"VOSS|Six months ago, General Rainer authorized a classified operation.": "A04_087",
+"PLAYER|Project Genesis?": "A04_088",
+"VOSS|They weren't studying the Fractures.": "A04_089",
+"VOSS|They were trying to communicate with whatever was inside them.": "A04_091",
+"VOSS|Because somebody promised them they could control it.": "A04_093",
+"NOVA|Operator. Incoming transmission.": "A04_094",
+"UNKNOWN VOICE|We know you are listening.": "A04_095",
+"UNKNOWN VOICE|You have awakened something that should have remained asleep.": "A04_096",
+"NOVA|I have discovered something in my own system.": "A04_099",
+"PLAYER|What did you find?": "A04_100",
+"NOVA|An encrypted directive.": "A04_101",
+"PLAYER|From who?": "A04_102",
+"NOVA|From someone who knew you before the Fracture.": "A04_103",
+"VOSS|This contains everything I could recover from the Genesis operation.": "A05_001",
+"PLAYER|And General Rainer?": "A05_002",
+"VOSS|He's not going to make this easy.": "A05_003",
+"NOVA|I've decrypted part of the transmission. It references an individual identified as Subject Six.": "A05_004",
+"VOSS|The Genesis project only documented five signatures.": "A05_005",
+"PLAYER|Then what is Subject Six?": "A05_006",
+"VOSS|That's what we're going to find out.": "A05_007",
+"WARD|So this is the one.": "A05_008",
+"PLAYER|I'm standing right here.": "A05_009",
+"WARD|Good. I prefer people who speak for themselves. We've reviewed your combat recordings.": "A05_010",
+"PLAYER|Without asking?": "A05_011",
+"WARD|The world ended yesterday. Privacy regulations are having a difficult week.": "A05_012",
+"SERAPHINE|Director, we need to discuss Research Complex 09.": "A05_013",
+"WARD|Not here.": "A05_014",
+"SERAPHINE|That's exactly the problem. Nobody wants to discuss it anywhere.": "A05_015",
+"WARD|Our priority is survival. We protect settlements, secure resources and establish safe territories.": "A05_016",
+"SERAPHINE|The Ascendancy has been collecting Fracture samples since before the disaster.": "A05_017",
+"PLAYER|And nobody stopped them?": "A05_018",
+"VOSS|They have facilities outside our jurisdiction.": "A05_019",
+"PLAYER|So humanity is already fighting itself.": "A05_020",
+"WARD|Humanity has always fought itself. The Fractures simply gave us something bigger to fight over.": "A05_021",
+"PLAYER|You're Kael Draven?": "A05_022",
+"KAEL|Depends who's asking.": "A05_023",
+"PLAYER|Someone who keeps hearing your name.": "A05_024",
+"KAEL|That's usually a bad sign.": "A05_025",
+"KAEL|Everybody down there thinks they're saving the world.": "A05_026",
+"PLAYER|And you don't?": "A05_027",
+"KAEL|I think people need saving. The world can sort itself out.": "A05_028",
+"KAEL|My people operate outside military control. We rescue civilians, recover supplies and hunt anything that comes through those openings.": "A05_029",
+"PLAYER|Sounds useful.": "A05_030",
+"KAEL|It is. Until somebody decides we're criminals. If you ever get tired of taking orders, give me a call.": "A05_031",
+"SERAPHINE|These readings were recorded over several years. The sixth was deliberately removed from the official records.": "A05_032",
+"NOVA|Operator. I have located the encrypted directive.": "A05_033",
+"PLAYER|NOVA, what is this?": "A05_034",
+"NOVA|I cannot determine the original authorization source.": "A05_035",
+"PLAYER|Who programmed you?": "A05_036",
+"NOVA|I don't know.": "A05_037",
+"RAINER|Six months ago, we received a transmission.": "A05_038",
+"SERAPHINE|From whom?": "A05_039",
+"RAINER|We never identified the sender. It contained information about Fracture technology, advanced energy systems and something called the Ascension Protocol.": "A05_040",
+"PLAYER|And you responded?": "A05_041",
+"VOSS|You opened communication with them?": "A05_042",
+"RAINER|We believed we could control the situation.": "A05_043",
+"PLAYER|And now?": "A05_044",
+"RAINER|Now I believe we made a terrible mistake.": "A05_045",
+"NOVA|Unauthorized access detected in the eastern security sector.": "A05_046",
+"PLAYER|Stop right there!": "A05_047",
+"FRACTURE INFILTRATOR|The sixth has been located.": "A05_048",
+"FRACTURE INFILTRATOR|The ones who remember.": "A05_050",
+"SECOND FIGURE|The sixth has awakened.": "A05_051",
+"UNKNOWN FIGURE|Yes.": "A05_052",
+"SECOND FIGURE|Then the Covenant must be restored.": "A05_053",
+"UNKNOWN FIGURE|Not yet. The vessel is incomplete.": "A05_054",
+"SECOND FIGURE|And the five?": "A05_055",
+"UNKNOWN FIGURE|They must remember who they were.": "A05_056",
+"NOVA|Current population estimate: 18,420 civilians.": "A06_001",
+"PLAYER|How many soldiers?": "A06_002",
+"NOVA|Approximately 2,300 military personnel and 640 independent Operators.": "A06_003",
+"PLAYER|That's a lot of people depending on us.": "A06_004",
+"NOVA|Correct.": "A06_005",
+"PLAYER|You always know how to make someone feel better.": "A06_006",
+"COLE|There you are. Command wants you at the northern observation tower.": "A06_007",
+"PLAYER|What's happening?": "A06_008",
+"COLE|That's what we're trying to figure out.": "A06_009",
+"VOSS|We've been tracking this for forty minutes.": "A06_010",
+"SERAPHINE|A Fracture. Not like the others.": "A06_012",
+"NOVA|Energy output exceeds all previously recorded events.": "A06_013",
+"WARD|Can we close it?": "A06_014",
+"SERAPHINE|I don't know.": "A06_015",
+"VOSS|Everyone to battle stations!": "A06_016",
+"WARD|Evacuate the outer settlement!": "A06_017",
+"VOSS|We're not abandoning these people!": "A06_018",
+"VOSS|We're holding this position.": "A06_019",
+"SOLDIER|THAT THING IS GOING TO BREAK THROUGH!": "A06_020",
+"VOSS|Operator, we need that creature stopped!": "A06_021",
+"PLAYER|Working on it!": "A06_022",
+"NOVA|Its outer armor is extremely resistant to conventional weapons.": "A06_023",
+"PLAYER|Weak point?": "A06_024",
+"NOVA|Three energy nodes along its spinal structure.": "A06_025",
+"COLE|You actually killed it.": "A06_026",
+"PLAYER|I wouldn't recommend trying that yourself.": "A06_027",
+"COLE|Trust me. I wasn't planning on it.": "A06_028",
+"COLE|Get these people moving!": "A06_029",
+"PLAYER|Where's the evacuation transport?": "A06_030",
+"COLE|Three minutes out!": "A06_031",
+"NOVA|Incoming hostile force approaching from the east.": "A06_032",
+"COLE|How many?": "A06_033",
+"NOVA|Approximately 180 signatures.": "A06_034",
+"COLE|Get them out.": "A06_035",
+"PLAYER|We're leaving together.": "A06_036",
+"COLE|That's an order.": "A06_037",
+"PLAYER|I'm not in your military.": "A06_038",
+"COLE|Then consider it a request.": "A06_039",
+"PLAYER|Cole! Don't!": "A06_040",
+"COLE|Tell them we held the line.": "A06_041",
+"NOVA|Captain Cole's biometric signal has been lost.": "A06_042",
+"SERAPHINE|I'm sorry.": "A06_043",
+"PLAYER|Keep the evacuation moving.": "A06_044",
+"NOVA|Operator, I am detecting an extremely powerful entity.": "A06_045",
+"PLAYER|Another commander?": "A06_046",
+"NOVA|Negative. This signature is substantially greater.": "A06_047",
+"THE HARBINGER|You have built a fortress upon stolen ground.": "A06_048",
+"THE HARBINGER|The one who comes to reclaim what was taken.": "A06_050",
+"PLAYER|You're going to have to be more specific.": "A06_051",
+"THE HARBINGER|You will remember.": "A06_052",
+"THE HARBINGER|You still carry the mark.": "A06_053",
+"PLAYER|What mark?": "A06_054",
+"THE HARBINGER|The mark of the first betrayal.": "A06_055",
+"NOVA|Operator! Your neural activity is destabilizing!": "A06_056",
+"THE HARBINGER|Not yet. The five must awaken before the sixth remembers.": "A06_057",
+"VOSS|We held the settlement.": "A06_058",
+"PLAYER|Barely.": "A06_059",
+"VOSS|Barely is better than nothing.": "A06_060",
+"VOSS|Cole believed we could win this.": "A06_061",
+"PLAYER|He saved hundreds of people.": "A06_062",
+"VOSS|He shouldn't have had to.": "A06_063",
+"SERAPHINE|This isn't an enemy insignia. It's an identification mark.": "A06_064",
+"NOVA|The sixth signature matches the Operator.": "A06_065",
+"PLAYER|What does that mean?": "A06_066",
+"GLOBAL BROADCAST|Attention. All surviving settlements. This is an international emergency transmission. Multiple Fracture incursions have been confirmed across the planet. All remaining military organizations are ordered to establish defensive positions.": "A06_068",
+"UNKNOWN RULER|Did you find the sixth?": "A06_069",
+"THE HARBINGER|Yes.": "A06_070",
+"UNKNOWN RULER|And the five?": "A06_071",
+"THE HARBINGER|Still scattered.": "A06_072",
+"UNKNOWN RULER|Then the First War will continue. Prepare the Covenant.": "A06_073",
+"UNKNOWN RULER|The old world is ending.": "A06_074",
+"VOSS|We found this under three city blocks. The siege cracked the ground open.": "A07_001",
+"PLAYER|How far down?": "A07_002",
+"VOSS|Our scanners can't find the bottom.": "A07_003",
+"SERAPHINE|That's not possible. The structure is absorbing the scan.": "A07_004",
+"NOVA|The material composition does not match any terrestrial alloy or known geological sample.": "A07_005",
+"PLAYER|So we're going underground.": "A07_006",
+"VOSS|You're going underground. I'm keeping the surface secure.": "A07_007",
+"SERAPHINE|I'm coming with you.": "A07_008",
+"VOSS|Doctor, this isn't a research excursion.": "A07_009",
+"SERAPHINE|It's the first evidence that might explain why the enemy calls Earth stolen ground.": "A07_010",
+"PLAYER|She's coming.": "A07_011",
+"VOSS|If your signal drops, I send a team. Don't make me regret it.": "A07_012",
+"PLAYER|This thing is still powered.": "A07_013",
+"NOVA|Correct. Its energy output is stable and predates the current Fracture event.": "A07_014",
+"SERAPHINE|Look at these markings.": "A07_015",
+"PLAYER|Can you read them?": "A07_016",
+"SERAPHINE|No. But they repeat in groups of five.": "A07_017",
+"NOVA|I recorded that.": "A07_018",
+"SERAPHINE|Don't display it again.": "A07_019",
+"SERAPHINE|Because it matches the symbol from the Harbinger.": "A07_021",
+"SERAPHINE|This place is older than anything we've ever excavated.": "A07_022",
+"PLAYER|How old?": "A07_023",
+"SERAPHINE|I can't even begin to estimate.": "A07_024",
+"NOVA|The structure's geometry is consistent with the energy architecture recorded at Research Complex 09.": "A07_025",
+"PLAYER|The lab copied this place?": "A07_026",
+"SERAPHINE|Or the lab was trying to recreate it.": "A07_027",
+"PLAYER|There's the sixth again.": "A07_028",
+"SERAPHINE|It isn't standing with the others.": "A07_029",
+"NOVA|The sixth figure is separated from the central arrangement.": "A07_030",
+"NOVA|Defensive constructs activating.": "A07_031",
+"PLAYER|Are they hostile?": "A07_032",
+"NOVA|That answers the question.": "A07_033",
+"ARCHIVE WARDEN|Unauthorized presence.": "A07_034",
+"PLAYER|We're just looking around.": "A07_035",
+"ARCHIVE WARDEN|The Covenant is sealed. The breach is forbidden.": "A07_036",
+"SERAPHINE|We need to know what happened here.": "A07_037",
+"ARCHIVE WARDEN|Knowledge is not permission.": "A07_038",
+"PLAYER|Then give us a reason to leave.": "A07_039",
+"ARCHIVE WARDEN|The marked vessel has returned.": "A07_040",
+"ARCHIVE WARDEN|Sixth bearer. Your presence is a wound in the archive.": "A07_041",
+"PLAYER|I don't know what that means.": "A07_042",
+"ARCHIVE WARDEN|You were not meant to remember.": "A07_043",
+"ARCHIVE WARDEN|The seal recognizes you.": "A07_044",
+"SERAPHINE|What seal?": "A07_045",
+"ARCHIVE RECORDING|The Covenant was formed to preserve the passage between worlds. Five keepers maintained the balance. The world called Earth was made a sanctuary and a lock.": "A07_046",
+"SERAPHINE|Earth was a lock?": "A07_047",
+"PLAYER|What was it locking away?": "A07_048",
+"ARCHIVE RECORDING|When the sixth returns, the broken Covenant will call its debt.": "A07_049",
+"PLAYER|That's all?": "A07_050",
+"NOVA|The archive has withheld or lost the remaining record.": "A07_051",
+"SERAPHINE|No. Someone deliberately erased it.": "A07_052",
+"NOVA|Translation fragment: \"Aetherion... first sanctuary... bearer...\"": "A07_053",
+"SERAPHINE|Aetherion. That's not in any human historical record.": "A07_054",
+"NOVA|It may refer to a location, civilization or designation.": "A07_056",
+"UNKNOWN VOICE|You were the promise. You became the breach.": "A07_057",
+"SERAPHINE|What did you see?": "A07_058",
+"PLAYER|I don't know. But it knew me.": "A07_059",
+"NOVA|Operator, your biometric pattern briefly matched the archive's sixth signature.": "A07_060",
+"PLAYER|For how long?": "A07_061",
+"NOVA|2.4 seconds.": "A07_062",
+"SERAPHINE|That's enough. We need to get this information out.": "A07_063",
+"ARCHIVE WARDEN|The first seal has weakened.": "A07_064",
+"PLAYER|How many seals?": "A07_065",
+"ARCHIVE WARDEN|Five.": "A07_066",
+"SERAPHINE|Where are they?": "A07_067",
+"ARCHIVE WARDEN|Scattered among the worlds. The keepers must remember.": "A07_068",
+"NOVA|Structural instability detected. We must leave.": "A07_069",
+"VOSS|You took your time.": "A07_070",
+"PLAYER|We found something.": "A07_071",
+"SERAPHINE|A buried civilization. A network between worlds. Five keepers. And a sixth figure tied to the seal.": "A07_072",
+"VOSS|Can you prove any of it?": "A07_073",
+"NOVA|I have recovered a partial archive record.": "A07_074",
+"PLAYER|And Earth?": "A07_075",
+"SERAPHINE|It wasn't just a place they invaded. It was part of something much older.": "A07_076",
+"NOVA|These coordinates correspond to five distinct energy readings.": "A07_077",
+"PLAYER|The five signatures.": "A07_078",
+"SERAPHINE|And the keepers.": "A07_079",
+"UNKNOWN FIGURE|The sanctuary has remembered.": "A07_080",
+"SECOND FIGURE|Then the sixth will remember too.": "A07_081",
+"UNKNOWN FIGURE|Not if the keepers reach them first.": "A07_082",
+"UNKNOWN FIGURE|Find the first keeper.": "A07_083",
 "ROSA DELGADO|The morning it happened I was steaming milk. The jug just… kept steaming, no heat under it. I still have the jug.": "P_rosa_fracture_1",
 "ROSA DELGADO|Everyone's got a Fracture story. Mine is boring and I'd like to keep it that way.": "P_rosa_fracture_2",
 "ROSA DELGADO|Best corner in Nexus. Sun till two, shade after, and the monorail doesn't rattle the cups any more.": "P_rosa_place_1",
@@ -10610,6 +15835,84 @@
 "CAPTAIN VALE|Masks in the plaza. Paid for. I know by whom; I cannot yet prove it. Patience.": "P_vale_news_masks",
 "CAPTAIN VALE|The lab under the bastion is open. What it says about your companion I will hear from you, not from a rumour.": "P_vale_news_unbound",
 "CAPTAIN VALE|The city stands. The factions hold. Do not mistake quiet for finished; keep the district.": "P_vale_news_kept",
+"COMMANDER ELIAS VOSS|We shot at them for twenty minutes before anyone admitted nothing was working. That's the Fracture. A lesson you learn while firing.": "P_voss_fracture_1",
+"COMMANDER ELIAS VOSS|It didn't come from nowhere. Somebody promised somebody they could control it. I intend to find out who.": "P_voss_fracture_2",
+"COMMANDER ELIAS VOSS|The checkpoint holds because the people on it decide every morning that it will.": "P_voss_place_1",
+"COMMANDER ELIAS VOSS|Nexus is still standing. Barely. Barely is better than nothing.": "P_voss_place_2",
+"COMMANDER ELIAS VOSS|You're either incredibly lucky or something happened to you. I haven't decided which worries me more.": "P_voss_you_wary",
+"COMMANDER ELIAS VOSS|You're not military. Out there, that distinction doesn't matter. You've proved it.": "P_voss_you_acquaintance",
+"COMMANDER ELIAS VOSS|You survived something that killed trained soldiers. Then you went back for the civilians. I noticed.": "P_voss_you_friend",
+"COMMANDER ELIAS VOSS|Cole believed we could win this. Some days you're the reason I still believe him.": "P_voss_you_close",
+"COMMANDER ELIAS VOSS|Outposts are going quiet one by one. Keep your radio on.": "P_voss_news_start",
+"COMMANDER ELIAS VOSS|Haven-01 needs walls more than it needs speeches. I'm building walls.": "P_voss_news_allied",
+"COMMANDER ELIAS VOSS|Faces in the crowd I don't trust. One of those things could be wearing any of them.": "P_voss_news_masks",
+"COMMANDER ELIAS VOSS|NOVA has a directive nobody signed. Watch what she does, not what she says.": "P_voss_news_unbound",
+"COMMANDER ELIAS VOSS|We held the line. Don't let anyone tell you it held itself.": "P_voss_news_kept",
+"DR. SERAPHINE VALE|The event that destroyed this city wasn't the beginning. Something opened the door.": "P_seraphine_fracture_1",
+"DR. SERAPHINE VALE|We said we didn't understand them. That isn't the same as not knowing they were there.": "P_seraphine_fracture_2",
+"DR. SERAPHINE VALE|Readings everywhere in this district. The ground itself is listening.": "P_seraphine_place_1",
+"DR. SERAPHINE VALE|Every lab I trusted turned out to be hiding something. I check the walls now.": "P_seraphine_place_2",
+"DR. SERAPHINE VALE|You're the one who survived the first wave. Depends who's asking, you said. I'm asking.": "P_seraphine_you_wary",
+"DR. SERAPHINE VALE|Your biometric signature opened a door I never could. I'd like to know why.": "P_seraphine_you_acquaintance",
+"DR. SERAPHINE VALE|You keep asking me the hard questions. Keep asking. Someone has to.": "P_seraphine_you_friend",
+"DR. SERAPHINE VALE|Five signatures, and a sixth that matches you. Whatever you are, I'm with you.": "P_seraphine_you_close",
+"DR. SERAPHINE VALE|Complex 09 was sealed six months ago. Something has been running it since.": "P_seraphine_news_start",
+"DR. SERAPHINE VALE|The Ascendancy has been collecting samples since before the disaster. I want their records.": "P_seraphine_news_allied",
+"DR. SERAPHINE VALE|Someone deliberately erased the archive's record. Erasing takes intent.": "P_seraphine_news_masks",
+"DR. SERAPHINE VALE|NOVA said welcome back, Dr. Vale. I'd never been there. I still think about it.": "P_seraphine_news_unbound",
+"DR. SERAPHINE VALE|Earth was a lock. We still don't know what it kept. I'm not done looking.": "P_seraphine_news_kept",
+"DIRECTOR HELENA WARD|The world ended yesterday. Today we decide what's worth keeping.": "P_ward_fracture_1",
+"DIRECTOR HELENA WARD|Humanity has always fought itself. The Fractures simply gave us something bigger to fight over.": "P_ward_fracture_2",
+"DIRECTOR HELENA WARD|Headquarters. Where the people who make decisions pretend they're not afraid.": "P_ward_place_1",
+"DIRECTOR HELENA WARD|We protect settlements, secure resources and establish safe territories. In that order.": "P_ward_place_2",
+"DIRECTOR HELENA WARD|So you're the one. Good. I prefer people who speak for themselves.": "P_ward_you_wary",
+"DIRECTOR HELENA WARD|We've reviewed your combat recordings. Without asking. Get used to it.": "P_ward_you_acquaintance",
+"DIRECTOR HELENA WARD|You chose a side and kept your word. That's rarer than courage.": "P_ward_you_friend",
+"DIRECTOR HELENA WARD|When this is over they'll write that the Initiative held. I'll know who held it.": "P_ward_you_close",
+"DIRECTOR HELENA WARD|Three installations lost in twenty minutes. Privacy regulations are having a difficult week.": "P_ward_news_start",
+"DIRECTOR HELENA WARD|The Free Operators are useful. Until somebody decides they're criminals. Not my decision. Yet.": "P_ward_news_allied",
+"DIRECTOR HELENA WARD|Rainer opened a channel to them. I'm deciding what that makes him.": "P_ward_news_masks",
+"DIRECTOR HELENA WARD|There's a directive in NOVA nobody here authorised. I'd like to meet whoever did.": "P_ward_news_unbound",
+"DIRECTOR HELENA WARD|Survival first. Then we argue. We're arguing again. That's progress.": "P_ward_news_kept",
+"KAEL DRAVEN|Everybody down there thinks they're saving the world. I think people need saving. The world can sort itself out.": "P_kael_fracture_1",
+"KAEL DRAVEN|Things come through those openings. My people hunt them. Simple work, honest pay.": "P_kael_fracture_2",
+"KAEL DRAVEN|Outside military control. That's the whole address.": "P_kael_place_1",
+"KAEL DRAVEN|We rescue civilians, recover supplies and hunt anything that comes through. Nobody signs off on it.": "P_kael_place_2",
+"KAEL DRAVEN|Depends who's asking. Hearing my name a lot is usually a bad sign.": "P_kael_you_wary",
+"KAEL DRAVEN|Tired of taking orders yet? The offer stands.": "P_kael_you_acquaintance",
+"KAEL DRAVEN|You'd make a decent Free Operator. Don't tell Voss I said that.": "P_kael_you_friend",
+"KAEL DRAVEN|My people trust you. That's not a thing I hand out.": "P_kael_you_close",
+"KAEL DRAVEN|Military's stretched thin. We're covering the gaps they won't admit to.": "P_kael_news_start",
+"KAEL DRAVEN|Black-market parts are moving again. Don't ask where from.": "P_kael_news_allied",
+"KAEL DRAVEN|Somebody's selling Fracture samples out the back of the Ascendancy. Follow the money.": "P_kael_news_masks",
+"KAEL DRAVEN|Your NOVA's got secrets. So does everyone worth knowing.": "P_kael_news_unbound",
+"KAEL DRAVEN|Still independent. Still here. Turns out that's enough.": "P_kael_news_kept",
+"GENERAL MARCUS RAINER|We believed we could control the situation. I'll carry that.": "P_rainer_fracture_1",
+"GENERAL MARCUS RAINER|Six months ago we received a transmission. We answered. That's all I'll say here.": "P_rainer_fracture_2",
+"GENERAL MARCUS RAINER|Not here. Never here.": "P_rainer_place_1",
+"GENERAL MARCUS RAINER|Command is a room where every answer costs someone.": "P_rainer_place_2",
+"GENERAL MARCUS RAINER|You have no idea what you're involved in.": "P_rainer_you_wary",
+"GENERAL MARCUS RAINER|You destroyed our only chance to capture one alive. Next time, think.": "P_rainer_you_acquaintance",
+"GENERAL MARCUS RAINER|Perhaps you were the right person to put in harm's way. I hate that I needed one.": "P_rainer_you_friend",
+"GENERAL MARCUS RAINER|If the Covenant comes for you, I'll stand in front of it. I owe that much.": "P_rainer_you_close",
+"GENERAL MARCUS RAINER|Lost contact with three installations. We will not lose a fourth.": "P_rainer_news_start",
+"GENERAL MARCUS RAINER|The Ascension Protocol is sealed. It stays sealed.": "P_rainer_news_allied",
+"GENERAL MARCUS RAINER|There are people inside this organisation I no longer trust. I include myself.": "P_rainer_news_masks",
+"GENERAL MARCUS RAINER|Genesis was a mistake. A terrible one. I'm trying to close the door I opened.": "P_rainer_news_unbound",
+"GENERAL MARCUS RAINER|History will judge me. Let it judge the ones who lived.": "P_rainer_news_kept",
+"CAPTAIN ADRIAN COLE|Forty minutes tracking something we couldn't name. Then we held anyway.": "P_cole_fracture_1",
+"CAPTAIN ADRIAN COLE|You actually killed it. I wouldn't have tried that myself.": "P_cole_fracture_2",
+"CAPTAIN ADRIAN COLE|Haven-01. Eighteen thousand people and a wall. I like the people more than the wall.": "P_cole_place_1",
+"CAPTAIN ADRIAN COLE|Kids play by the shelters. That's what we're holding the line for.": "P_cole_place_2",
+"CAPTAIN ADRIAN COLE|Command wants you at the tower. That's all they tell me.": "P_cole_you_wary",
+"CAPTAIN ADRIAN COLE|You're not in our military. Doesn't stop you acting like it.": "P_cole_you_acquaintance",
+"CAPTAIN ADRIAN COLE|Tell them we held the line. If I'm not there to, you tell them.": "P_cole_you_friend",
+"CAPTAIN ADRIAN COLE|Trust me — I'm glad you're on our side of the wall.": "P_cole_you_close",
+"CAPTAIN ADRIAN COLE|Engineers are reinforcing the barricades. Again.": "P_cole_news_start",
+"CAPTAIN ADRIAN COLE|Two thousand three hundred soldiers, six hundred forty Operators. Feels like more when you're next to them.": "P_cole_news_allied",
+"CAPTAIN ADRIAN COLE|Strange signatures past the perimeter. Too orderly.": "P_cole_news_masks",
+"CAPTAIN ADRIAN COLE|Whatever's in NOVA, she got the evacuation routes right. I'll take it.": "P_cole_news_unbound",
+"CAPTAIN ADRIAN COLE|We held. All of us.": "P_cole_news_kept",
 "GLORIA HAYNES|The crash site landed on my crew's lunch break. Nobody hurt. The sandwiches did not make it.": "P_gloria_fracture_1",
 "GLORIA HAYNES|The Fracture is a twelve-week cleanup job. We're on week thirty. I've stopped counting weeks.": "P_gloria_fracture_2",
 "GLORIA HAYNES|The crash site. Hard hats past the tape. I don't care who you are; the tape doesn't either.": "P_gloria_place_1",

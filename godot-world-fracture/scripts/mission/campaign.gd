@@ -18,9 +18,14 @@ const PROFILE := "user://profile.json"
 ## the campaign's own kinds mapped onto the descent's loop
 const AS_REACH := ["talk", "race", "drive"]
 ## the bosses the campaign's beats name, on the bosses the build has (scripts/combat/boss.gd BOSSES)
-const BOSS_FOR := { "vyrak": "vyrak", "crownkeeper": "colossus", "fracture-heart": "astravore", "convergence": "abyssal-leviathan" }
+const BOSS_FOR := { "vyrak": "vyrak", "crownkeeper": "colossus", "fracture-heart": "astravore", "convergence": "abyssal-leviathan",
+	# Chapter 1 — The Aftershock's (aftershock.gd), each under its own name (`boss_name`) until it has a hull of its own
+	"fracture-commander": "rift-hound", "subject-zero": "crystal-stalker", "fracture-executioner": "astravore",
+	"siege-beast": "colossus", "harbinger": "astravore", "archive-warden": "colossus" }
 
 static var _data: Dictionary = {}
+## story lines that run on this runner with data of their own (aftershock.gd): path -> parsed data
+static var _datas: Dictionary = {}
 var chapters: Array = []          # every chapter of every mission, in order, with "mission" and "mission_title"
 var choice_view: Control
 var _closing := ""                # the chapter whose closing lines are playing
@@ -35,8 +40,19 @@ static func data() -> Dictionary:
 				_data = d
 	return _data
 
+## the story this runner plays (a story line of its own overrides it: aftershock.gd)
+func _story() -> Dictionary:
+	return data()
+
+static func data_of(path: String) -> Dictionary:
+	if not _datas.has(path):
+		var f := FileAccess.open(path, FileAccess.READ)
+		var d: Variant = JSON.parse_string(f.get_as_text()) if f else null
+		_datas[path] = d if d is Dictionary else {}
+	return _datas[path]
+
 func _init() -> void:
-	for m in data().get("missions", []):
+	for m in _story().get("missions", []):
 		for c in m.chapters:
 			var q: Dictionary = c.duplicate()
 			q["mission"] = String(m.id)
@@ -215,10 +231,10 @@ func _complete() -> void:
 ## a mission finished: the profile remembers (the people's news changes), and the next mission's card
 func _mission_done(mission: String, title: String) -> void:
 	var p := _profile()
-	var done: Array = p.get("campaign_done", [])
+	var done: Array = p.get(_done_key(), [])
 	if not done.has(mission):
 		done.append(mission)
-	p.campaign_done = done
+	p[_done_key()] = done
 	_profile_save(p)
 	controls.toast("MISSION %s COMPLETE · %s" % [mission, title])
 
@@ -292,7 +308,7 @@ func _ask_choice(def: Dictionary) -> void:
 		choice_view.visible = false
 		controls.visible = true
 		var p := _profile()
-		p["m%s_choice" % String(def.mission)] = key
+		p[_choice_key(String(def.mission))] = key
 		_profile_save(p)
 		var by: Dictionary = def.get("by_choice", {})
 		var beats := _beats(by.get(key, []), operator.position, 120.0)
@@ -304,12 +320,20 @@ func _ask_choice(def: Dictionary) -> void:
 	, CONNECT_ONE_SHOT)
 
 func _summon_boss(id: String) -> void:
+	if boss and boss.rules and boss.rules.dead:
+		# the last chapter's boss went down: it gives way to this one (a mission can have more than one)
+		boss.queue_free()
+		boss = null
 	if boss:
 		return
 	boss = BossView.new()
 	region.world().add_child(boss)
 	var at := _on_ground(operator.position + Vector3(0, 0, -24.0))
 	boss.setup(String(BOSS_FOR.get(id, "vyrak")), at, operator, gunplay, enemies, operator.ground_at)
+	if quest.has("boss_name"):
+		# the story's name on the build's hull (the rules' def is the shared table row: a copy carries the name)
+		boss.rules.def = boss.rules.def.duplicate()
+		boss.rules.def.name = String(quest.boss_name)
 	boss.obstacles = operator.obstacles
 	boss.heading = PI
 	boss.toast = func(t: String) -> void: controls.toast(t)
@@ -360,6 +384,13 @@ static func _profile_save(p: Dictionary) -> void:
 	var f := FileAccess.open(PROFILE, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(p))
+
+## where the profile keeps the finished missions and a mission's choice (a story line of its own keeps its own)
+func _done_key() -> String:
+	return "campaign_done"
+
+func _choice_key(mission: String) -> String:
+	return "m%s_choice" % mission
 
 ## story co-op: the campaign's chapters share rooms of their own; a choice or a story race is busy like a cutscene
 func coop_chain() -> String:
