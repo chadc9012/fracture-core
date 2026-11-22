@@ -96,6 +96,10 @@ signal operator_down
 ## a bot went down: who it was, and the team that got the kill (0 rivals, 1 the operator's side; -1 unknown)
 ## `by_player`: the operator's own bolt made the kill (an ally bot's kill carries the operator's team but not the credit)
 signal bot_down(e: Enemy, by_team: int, by_player: bool)
+## online raids (online_raid.gd): a bot's round landed on a "remote" body (another player's stand-in here; their own
+## client takes the damage), and every bot bolt for the other screens' tracers
+signal remote_hit(e: Enemy, damage: float)
+signal shot(from: Vector3, to: Vector3, team: int)
 ## the operator's team for Killbox (bots of this team never target the operator)
 var operator_team := 1
 ## which bot last hit each bot, for the kill credit
@@ -248,6 +252,8 @@ func step(dt: float) -> void:
 		e.target.box = _box(e)
 
 func _step_enemy(e: Enemy, dt: float) -> void:
+	if e.has_meta("puppet"):
+		return      # moved from the network (online_raid.gd), never by the AI
 	var m: Node3D = e.mover
 	if e.state == State.DOWN:
 		e.fell = true
@@ -503,6 +509,7 @@ func _shoot(e: Enemy) -> void:
 				end = p
 	gunplay.tracer(from, end, Color(0.4, 0.9, 1.0) if e.team == 0 else Color(1.0, 0.75, 0.3))
 	gunplay.spark(end, hit)
+	shot.emit(from, end, e.team)
 	Sound.sfx_at("smg" if String(e.def.get("weapon", "")) in ["smg", "pistol"] else "rifle", from, player.position, -8.0)
 	if hit:
 		_damage_foe(e, float(e.def.damage))
@@ -518,6 +525,9 @@ func _damage_foe(e: Enemy, damage: float) -> void:
 		_hit_operator(damage)
 		return
 	var o := foe as Enemy
+	if o.has_meta("remote"):
+		remote_hit.emit(o, damage)
+		return
 	var res: Dictionary = o.target.take(damage)
 	if float(res.shield) > 0.0:
 		gunplay._shield_flash(o.target, bool(res.broke))

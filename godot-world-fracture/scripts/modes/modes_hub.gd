@@ -5,12 +5,14 @@ extends Control
 ## modes and features along the bottom); each tile opens that mode's lobby, and the lobby launches the mode's own view:
 ##
 ##   PvP     the Killbox arenas (scripts/killbox/arena_view.gd), Clash against bot teams
-##   Raids   Raid 01 · The Hollow Star (scripts/raid/raid_view.gd) with a bot fireteam, from the gate or the checkpoint
+##   Raids   Raid 01 · The Hollow Star (scripts/raid/raid_view.gd): an online fireteam (players, bots in the empty
+##           slots) or bots only, from the gate or the checkpoint
 ##   Races   Nexus Speedway and the Neon Night Circuit (scripts/racing/race_view.gd) against bot racers
 ##
 ## Online play (Nov 18, the owner: "make the bots in the pvp a game mode not available in other modes"): PvP plays
 ## ONLINE against other players or VS BOTS — its own mode, the only one with bot opponents; Races are between the players
-## on the line (alone, the track's pace); Raids keep their AI fireteam until online fireteams land. The views are hosted
+## on the line (alone, the track's pace); Raids are an online fireteam (Nov 22, online_raid.gd) with bots filling the
+## empty slots — the bots are allies there, never opponents. The views are hosted
 ## here, so LEAVE in a mode comes back to its lobby.
 
 signal closed
@@ -366,9 +368,21 @@ func _launch_arena(id: String) -> void:
 	_host(av)
 
 # --------------------------------------------------------------------------------------------- Raids
+## raids join the encounter's online fireteam (bots fill the empty slots); off: you and five bots, offline
+var raids_online := true
+
 func _raids() -> void:
 	var v := _page()
-	v.add_child(_header("RAIDS", "SIX-PLAYER FIRETEAMS   /   CHECKPOINTS   /   YOU + FIVE BOTS", show_hub))
+	v.add_child(_header("RAIDS", "SIX-PLAYER FIRETEAMS   /   CHECKPOINTS   /   %s" % ("ONLINE · PLAYERS + BOTS IN THE EMPTY SLOTS" if raids_online else "YOU + FIVE BOTS · OFFLINE"), show_hub))
+	var sw := HBoxContainer.new()
+	sw.add_theme_constant_override("separation", 10)
+	for opt in [[true, "ONLINE FIRETEAM"], [false, "BOTS ONLY"]]:
+		var b := Data.button(String(opt[1]), raids_online == bool(opt[0]))
+		b.custom_minimum_size = Vector2(200, 44)
+		var want: bool = opt[0]
+		b.pressed.connect(func(): raids_online = want; open_mode("raids"))
+		sw.add_child(b)
+	v.add_child(sw)
 	var row := _row()
 	v.add_child(row)
 	var save := HollowStar.load_save()
@@ -394,7 +408,7 @@ func _raids() -> void:
 		var l := text("%s  %d  %s%s" % [mark, n, String(e.name).to_upper(), "" if on else "  (coming)"], 14, Color(0.9, 0.92, 1.0) if on else Color(0.5, 0.55, 0.65), false)
 		sv.add_child(l)
 		n += 1
-	sv.add_child(text("Fireteam: you + Vance, Iko, Sable, Ren, Tamsin\nLives: %d shared · Clears: %d%s" % [HollowStar.LIVES, int(save.clears), ("\nBest: %d:%02d" % [int(float(save.best) / 60.0), int(fmod(float(save.best), 60.0))]) if float(save.best) > 0.0 else ""], 13, Color(0.75, 0.82, 0.92), false))
+	sv.add_child(text(("Fireteam: the players in the encounter, bots in the empty slots\nThe first one in leads" if raids_online else "Fireteam: you + Vance, Iko, Sable, Ren, Tamsin") + "\nLives: %d shared · Clears: %d%s" % [HollowStar.LIVES, int(save.clears), ("\nBest: %d:%02d" % [int(float(save.best) / 60.0), int(fmod(float(save.best), 60.0))]) if float(save.best) > 0.0 else ""], 13, Color(0.75, 0.82, 0.92), false))
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sv.add_child(spacer)
@@ -413,6 +427,7 @@ func _raids() -> void:
 func _launch_raid(at: String) -> void:
 	var rv := RaidView.new()
 	rv.start_at = at
+	rv.online = raids_online
 	rv.next.connect(func(enc: String): _launch_raid(enc))
 	_host(rv)
 
