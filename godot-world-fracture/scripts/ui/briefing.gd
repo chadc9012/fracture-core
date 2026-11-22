@@ -8,8 +8,12 @@ signal deploy
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const ACCENT := Color(1.0, 0.82, 0.3)   # Helldivers' super-earth yellow, close to our gold
+const Difficulty := preload("res://scripts/progress/difficulty.gd")
 
 var data: Dictionary = {}
+var _tiles: Array[Button] = []
+var _diff_line: Label
+var _reward: Label
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -86,7 +90,29 @@ func _ready() -> void:
 		col.add_child(_label("   ·   ".join(PackedStringArray(threats)).to_upper(), 600, 2, 16, Color(1.0, 0.5, 0.45)))
 	if String(data.get("reward", "")) != "":
 		_section(col, "REWARD")
-		col.add_child(_label(String(data.reward).to_upper(), 700, 2, 18, UiTheme.GOLD))
+		_reward = _label(String(data.reward).to_upper(), 700, 2, 18, UiTheme.GOLD)
+		col.add_child(_reward)
+	# Halo Infinite's difficulty select: four tiles, the picked one lit, what it does underneath
+	_section(col, "DIFFICULTY")
+	var tiles := HBoxContainer.new()
+	tiles.add_theme_constant_override("separation", 8)
+	col.add_child(tiles)
+	for l in Difficulty.LEVELS:
+		var tb := Button.new()
+		tb.text = String(l.name)
+		tb.custom_minimum_size = Vector2(0, 46)
+		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tb.focus_mode = Control.FOCUS_NONE
+		tb.add_theme_font_override("font", UiTheme.font(700, 4))
+		tb.add_theme_font_size_override("font_size", 14)
+		var id := String(l.id)
+		tb.pressed.connect(func(): _pick(id))
+		tiles.add_child(tb)
+		_tiles.append(tb)
+	_diff_line = _label("", 400, 0, 16, UiTheme.INK_DIM)
+	_diff_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(_diff_line)
+	_show_level()
 	var gap := Control.new()
 	gap.custom_minimum_size.y = 10
 	col.add_child(gap)
@@ -110,7 +136,46 @@ func _ready() -> void:
 	modulate.a = 0.0
 	create_tween().tween_property(self, "modulate:a", 1.0, 0.3)
 
+func _pick(id: String) -> void:
+	Difficulty.set_level(id)
+	_show_level()
+
+func _show_level() -> void:
+	var cur := Difficulty.level()
+	for i in _tiles.size():
+		var l: Dictionary = Difficulty.LEVELS[i]
+		var on := String(l.id) == String(cur.id)
+		var col := _level_color(i)
+		var st := UiTheme.box(Color(col.r, col.g, col.b, 0.22) if on else Color(1, 1, 1, 0.03), col if on else UiTheme.LINE, 2 if on else 1, Vector4(10, 6, 10, 6))
+		for k in ["normal", "hover", "pressed", "focus"]:
+			_tiles[i].add_theme_stylebox_override(k, st)
+		for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+			_tiles[i].add_theme_color_override(k, col if on else UiTheme.INK_DIM)
+	var hp := int(round((float(cur.hp) - 1.0) * 100.0))
+	var dmg := int(round((float(cur.dmg) - 1.0) * 100.0))
+	var xp := int(round((float(cur.xp) - 1.0) * 100.0))
+	var bits := PackedStringArray()
+	if hp != 0:
+		bits.append("hostile health %+d%%" % hp)
+	if dmg != 0:
+		bits.append("hostile damage %+d%%" % dmg)
+	if xp != 0:
+		bits.append("XP %+d%%" % xp)
+	_diff_line.text = String(cur.line) + ("" if bits.is_empty() else "   ·   " + ",  ".join(bits).to_upper())
+	if _reward and data.has("xp"):
+		_reward.text = ("◆ %d nex  ·  %d xp  ·  a chance at elite gear" % [int(data.get("nex", 0)), int(round(int(data.xp) * float(cur.xp)))]).to_upper()
+
+## easy to legendary: cool to hot, as Halo's tiles warm toward Legendary
+static func _level_color(i: int) -> Color:
+	return [Color(0.45, 0.85, 1.0), Color(0.6, 0.95, 0.6), Color(1.0, 0.72, 0.3), Color(1.0, 0.4, 0.35)][i]
+
 func _unhandled_input(e: InputEvent) -> void:
+	if e is InputEventKey and (e as InputEventKey).pressed and (e as InputEventKey).keycode in [KEY_LEFT, KEY_RIGHT]:
+		var i := Difficulty.LEVELS.find(Difficulty.level())
+		i = clampi(i + (1 if (e as InputEventKey).keycode == KEY_RIGHT else -1), 0, Difficulty.LEVELS.size() - 1)
+		_pick(String(Difficulty.LEVELS[i].id))
+		get_viewport().set_input_as_handled()
+		return
 	if e is InputEventKey and (e as InputEventKey).pressed and (e as InputEventKey).keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
 		get_viewport().set_input_as_handled()
 		_go()

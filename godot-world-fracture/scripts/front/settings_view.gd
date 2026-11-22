@@ -60,6 +60,15 @@ func _ready() -> void:
 	_fit()
 	var s := Store.load_all()
 
+	# Halo Infinite's difficulty select (scripts/progress/difficulty.gd): story, bosses and the raid; never the Killbox
+	_section("GAMEPLAY")
+	var Difficulty = load("res://scripts/progress/difficulty.gd")
+	var diff_note := _note(String(Difficulty.level().line))
+	_row("Difficulty", _choices(Difficulty.LEVELS.map(func(l): return l.id), String(Difficulty.level().id), func(d: String):
+		Difficulty.set_level(d)
+		diff_note.text = String(Difficulty.level(d).line)), "story · bosses · raid")
+	_column.add_child(diff_note)
+
 	_section("GRAPHICS")
 	_tier_note = _note("")
 	_row("Quality", _choices(["auto", "low", "medium", "high"], String(s.graphics), func(t: String):

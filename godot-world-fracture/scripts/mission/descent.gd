@@ -104,9 +104,14 @@ func _brief() -> void:
 	var b = load("res://scripts/ui/briefing.gd").new()
 	b.data = { "code": String(quest.id), "title": String(quest.title), "place": place[0], "art": place[1],
 		"text": String(quest.get("line", "")), "objectives": objectives, "threats": place[2],
-		"reward": "◆ %d nex  ·  %d xp  ·  a chance at elite gear" % [int(quest.get("nex", 0)), int(quest.get("xp", 0))] }
+		"reward": "◆ %d nex  ·  %d xp  ·  a chance at elite gear" % [int(quest.get("nex", 0)), int(quest.get("xp", 0))],
+		"nex": int(quest.get("nex", 0)), "xp": int(quest.get("xp", 0)) }
 	set_process(false)
-	b.deploy.connect(func(): set_process(true))
+	b.deploy.connect(func():
+		# the pick on the briefing holds for this drop (Halo Infinite's difficulty select)
+		var l: Dictionary = load("res://scripts/progress/difficulty.gd").level()
+		enemies.set_difficulty(float(l.hp), float(l.dmg))
+		set_process(true))
 	add_child(b)
 
 ## the chain (the campaign runner, scripts/mission/campaign.gd, extends this with its own)
@@ -164,6 +169,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 	enemies = Enemies.new()
 	region.world().add_child(enemies)
 	enemies.setup(operator, gunplay)
+	load("res://scripts/progress/difficulty.gd").apply(enemies)   # story difficulty (Halo Infinite)
 	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	wildlife = null
 	if world in ["veridan", "swamps"]:
@@ -345,7 +351,7 @@ func _complete() -> void:
 		return
 	progress.done.append(id)
 	var p := Gear.profile_load()
-	var res := Progression.grant(p, "quest", int(quest.nex), int(quest.xp), "%s complete" % String(quest.title))
+	var res := Progression.grant(p, "quest", int(quest.nex), int(round(int(quest.xp) * float(load("res://scripts/progress/difficulty.gd").level().xp))), "%s complete" % String(quest.title))
 	Gear.profile_save(p)
 	# a quest drops from the elite pool
 	var gear := Gear.load_save()

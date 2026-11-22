@@ -103,6 +103,9 @@ var operator_team := 1
 var _last_hitter := {}
 ## Killbox rounds: downed bots stay down until revive_all()
 var respawn_enabled := true
+## story difficulty (difficulty.gd apply): hostiles' health and the damage they deal the operator; 1.0 in the Killbox
+var hp_mult := 1.0
+var dmg_mult := 1.0
 const TEAM_COLORS := [Color(1.0, 0.25, 0.25), Color(0.25, 0.6, 1.0), Color(1.0, 0.7, 0.2), Color(0.3, 1.0, 0.5), Color(0.85, 0.35, 1.0), Color(0.2, 0.95, 0.95), Color(1.0, 0.45, 0.75), Color(0.95, 0.95, 0.4), Color(0.6, 0.4, 0.2), Color(0.5, 0.75, 1.0), Color(1.0, 0.55, 0.3), Color(0.7, 1.0, 0.7)]
 const OPERATOR_HIT := -2
 
@@ -162,8 +165,9 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 			_tint(e, team_color(team))
 	else:
 		_drone_body(e)
-	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
-	e.target.shield_max = float(e.def.get("shield", 0.0))
+	var hard := hp_mult if e.team != operator_team else 1.0
+	e.target = Gunplay.Target.new(_box(e), float(e.def.hull) * hard, null)
+	e.target.shield_max = float(e.def.get("shield", 0.0)) * hard
 	e.target.shield = e.target.shield_max
 	# what it bleeds (gunplay.spark): machines coolant, people red
 	e.target.set_meta("blood", Color(0.2, 0.9, 1.0) if type in ["drone", "sentinel", "turret"] else Color(0.85, 0.1, 0.08))
@@ -521,7 +525,7 @@ func _damage_foe(e: Enemy, damage: float) -> void:
 			if o.has_meta("hit_operator"):
 				o.remove_meta("hit_operator")
 		e.set_meta("hit_operator", true)
-		_hit_operator(damage)
+		_hit_operator(damage * dmg_mult)
 		return
 	var o := foe as Enemy
 	var res: Dictionary = o.target.take(damage)
@@ -545,6 +549,18 @@ func burn(damage: float) -> void:
 		deaths += 1
 		Sound.sfx("down", -2.0)
 		operator_down.emit()
+
+## a new difficulty mid-mission (the briefing's pick): live hostiles' health rescaled to it, bolts hit at its weight
+func set_difficulty(hp: float, dmg: float) -> void:
+	var k := hp / hp_mult
+	hp_mult = hp
+	dmg_mult = dmg
+	for e in enemies:
+		if e.team != operator_team and e.target:
+			e.target.hp *= k
+			e.target.max_hp *= k
+			e.target.shield *= k
+			e.target.shield_max *= k
 
 func _hit_operator(damage: float) -> void:
 	if down > 0.0:
