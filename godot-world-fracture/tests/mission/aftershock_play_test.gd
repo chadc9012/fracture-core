@@ -65,7 +65,10 @@ func _data_checks() -> void:
 	var people: Array = []
 	var bosses: Array = []
 	for c in a.chapters:
-		for lid in c.get("open", []) + c.get("close", []):
+		var ids: Array = c.get("open", []) + c.get("close", [])
+		for branch in (c.get("by_choice", {}) as Dictionary).values():
+			ids += branch
+		for lid in ids:
 			lines += 1
 			if not Lines.has(String(lid)):
 				unvoiced.append(lid)
