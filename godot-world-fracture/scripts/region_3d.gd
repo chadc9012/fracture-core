@@ -680,7 +680,7 @@ func _style_for(id: String) -> Dictionary:
 			# horizon, the crystals glowing (Nov 18 pass: the region_sky storm deck with a warm horizon, lightning on)
 			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 18.0, "sun_az": 150.0,
 				# (Nov 21, Street View: the ground and the trees were black in the shade — more violet ambient, a higher sun)
-				"amb": 0.95, "amb_col": "#6c5c92", "sat": 1.1, "exp": 1.1, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
+				"amb": 0.7, "amb_col": "#6c5c92", "sat": 1.1, "exp": 1.05, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
 		"crystal-badlands":
 			# the owner's "MOONLIGHT - FRACTURE ZONE" photo: a full moon over dark rock spires, deep blue night, the crystals
 			# and rift seams glowing cyan and violet (it was a flat pink-orange dusk)
@@ -748,7 +748,8 @@ func _build_env() -> void:
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if not _style.under else Environment.AMBIENT_SOURCE_COLOR
 	_env.ambient_light_color = Color(_style.fog)
 	_env.ambient_light_energy = _style.amb + _style.night * 0.5
-	if _style.night > 0.5:
+	# a style that names its ambient colour gets it by day too (the Storm Islands' dark cloud deck lit nothing: black shade)
+	if _style.night > 0.5 or _style.has("amb_col"):
 		_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 		_env.ambient_light_color = Color(_style.get("amb_col", Color(_style.hor).lightened(0.25)))
 	_env.tonemap_mode = Environment.TONE_MAPPER_ACES
