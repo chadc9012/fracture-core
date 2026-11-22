@@ -1003,6 +1003,9 @@ func _build_buildings() -> void:
 	mat.shader = load("res://shaders/building3d.gdshader")
 	mat.set_shader_parameter("night", _style.night)
 	mat.set_shader_parameter("neon", _style.neon)
+	# facade styles drawn in the shader (Nov 22, no new models): a half-timbered town, scrap-built outposts
+	mat.set_shader_parameter("town", 1.0 if map_id in ["old-harrow", "goldenreach"] else 0.0)
+	mat.set_shader_parameter("rust", 1.0 if map_id in ["wastelands", "ember"] else 0.0)
 	mi.material_override = mat
 	_world.add_child(mi)
 	# Neon City's signs: strips of colour along the rooflines of the taller towers
