@@ -278,7 +278,7 @@ func _ready() -> void:
 		var cy := _button("⟳")
 		cy.custom_minimum_size = Vector2(56, 64)
 		cy.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-		cy.position = Vector2(-316, -240)
+		cy.position = Vector2(-72, -432)     # above SWAP: the ADS button took its old place by GRENADE
 		bind(cy, func(): _cycle_grenade = true)
 		add_child(cy)
 		_cycle_button = cy

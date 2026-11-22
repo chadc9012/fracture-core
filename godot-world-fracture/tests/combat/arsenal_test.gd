@@ -245,6 +245,5 @@ func _street() -> void:
 		fb.scale = Vector2.ONE
 		tc._load_layout()
 		ok(fb.position.is_equal_approx(moved) and absf(fb.scale.x - 1.2) < 0.01, "the HUD editor moves and sizes FIRE, and the layout loads back (%s)" % str(fb.position))
-		tc._reset_layout()
-		tc._save_layout()
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(tc.LAYOUT_FILE))     # leave no layout behind
 	tc.queue_free()
