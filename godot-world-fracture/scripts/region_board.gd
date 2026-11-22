@@ -805,7 +805,7 @@ static func _ember(r: Node, rng: RandomNumberGenerator) -> void:
 	var basalt := Flora.rock_material(Color(0.2, 0.18, 0.18))
 	# the hold: a dark fortress on its ridge — curtain walls, square towers, a keep, red banners, warm windows
 	var want: Vector2 = _poi(r, "sp-ash-outpost")
-	var at := _open_spot(r, want + Vector2(-28, 30), 70.0, 34.0)
+	var at := _high_spot(r, want, 110.0, 52.0)
 	_fortress(r, at, rng)
 	spot(r, "fortress", at, 26.0)
 	# lava falls: molten sheets down three basalt bluffs, pooling at the foot
@@ -896,8 +896,8 @@ static func _fortress(r: Node, at: Vector2, rng: RandomNumberGenerator) -> void:
 	root.position = Vector3(at.x, low - 2.0, at.y)
 	root.rotation.y = rng.randf() * TAU
 	var stone := StandardMaterial3D.new()
-	stone.albedo_color = Color(0.2, 0.19, 0.2)
-	stone.roughness = 0.92
+	stone.albedo_color = Color(0.3, 0.28, 0.29)
+	stone.roughness = 0.88
 	var win := StandardMaterial3D.new()
 	win.albedo_color = Color(1.0, 0.62, 0.25)
 	win.emission_enabled = true
@@ -962,3 +962,17 @@ static func _fortress(r: Node, at: Vector2, rng: RandomNumberGenerator) -> void:
 	hearth.position = Vector3(0, 10, 0)
 	root.add_child(hearth)
 	r._world.add_child(root)
+
+## the highest open spot near `want` (a hold on its ridge)
+static func _high_spot(r: Node, want: Vector2, search: float, clear: float) -> Vector2:
+	var best := _open_spot(r, want, search, clear)
+	var top: float = r._h(best.x, best.y)
+	for i in 64:
+		var c := want + Vector2(cos(i * 2.4), sin(i * 2.4)) * search * sqrt(float(i) / 64.0)
+		if not _clear_of_places(r, c, clear) or r.over_water(c.x, c.y):
+			continue
+		var y: float = r._h(c.x, c.y)
+		if y > top:
+			top = y
+			best = c
+	return best

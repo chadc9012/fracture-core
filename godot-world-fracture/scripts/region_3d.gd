@@ -656,10 +656,11 @@ func _style_for(id: String) -> Dictionary:
 			# (it was an orange noon haze, every surface the same rust, the crater blown out to white)
 			# Nov 22, the owner's Ember Peaks / Obsidian Reach boards: a burning dusk — a dark violet zenith over a red-orange
 			# horizon under heavy cloud lit from below, the sun down behind the peaks, black rock and the lava the brightest thing
-			s.merge({"top": "#1a0c26", "hor": "#e0582a", "fog": "#4a2622", "fog_d": 0.0018, "sun": 1.1, "sun_col": "#ff8a4a", "sun_el": 8.0, "sun_az": 150.0,
-				"amb": 0.55, "amb_col": "#6a3a3a", "night": 0.4, "sat": 1.15, "exp": 1.0, "planet": false, "sky": "sunset",
-				"sky_set": {"cover": 0.62, "cloud_dark": Color("#2a1018"), "cloud_lit": Color("#ff7a3a"), "streak": 0.5},
-				"glow": "#ff4a14", "glow_amt": 0.5, "embers": 1.0}, true)
+			# (first render: one red wash over everything — a darker violet zenith, a grey-brown haze, more contrast)
+			s.merge({"top": "#120a24", "hor": "#f0642a", "fog": "#2c1e22", "fog_d": 0.0016, "sun": 1.2, "sun_col": "#ff9050", "sun_el": 8.0, "sun_az": 150.0,
+				"amb": 0.6, "amb_col": "#5a4a58", "night": 0.4, "sat": 1.05, "exp": 1.0, "planet": false, "sky": "sunset",
+				"sky_set": {"cover": 0.55, "cloud_dark": Color("#1e0e1c"), "cloud_lit": Color("#ff8a48"), "streak": 0.5},
+				"glow": "#ff4a14", "glow_amt": 0.32, "embers": 1.0}, true)
 		"frostspire":
 			# the owner's "NIGHT / MOON - FROSTSPIRE MOUNTAINS" photos: a big moon over the peaks, deep blue night, the snow
 			# lit blue-white, the dark rock showing on the steep faces, the settlements' lights warm in the valleys (it was
