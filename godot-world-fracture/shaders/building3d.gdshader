@@ -24,12 +24,30 @@ float vn(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 
 	return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), f.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), f.x), f.y); }
 
 varying float seed;
-void vertex() { seed = UV2.x; }
+varying vec3 mp;   // model position and normal: the merged building mesh is unrotated, so these are the world's
+varying vec3 mn;
+void vertex() { seed = UV2.x; mp = VERTEX; mn = NORMAL; }
 void fragment() {
 	vec3 base = COLOR.rgb;
 	if (COLOR.a > 0.5) {
 		ALBEDO = base * 0.82;
 		ROUGHNESS = 0.9;
+		float slope = normalize(mn).y;
+		if (town > 0.5 && slope > 0.3 && slope < 0.97) {
+			// a pitched roof in clay tile: courses down the slope, the tiles staggered course to course, each one a
+			// touch different, moss and soot towards the eaves (Nov 22, no new models)
+			float along = dot(mp.xz, normalize(vec2(-mn.z, mn.x) + vec2(1e-5)));
+			float course = mp.y * 3.6;
+			float row = floor(course);
+			float col = along * 2.4 + mod(row, 2.0) * 0.5;
+			float tile = hash2(vec2(floor(col), row) + seed * 3.0);
+			vec3 c = base * (0.78 + 0.34 * tile);
+			c *= 0.72 + 0.28 * smoothstep(0.0, 0.35, fract(course));             // each course shades the one below
+			c *= 1.0 - 0.22 * smoothstep(0.42, 0.5, abs(fract(col) - 0.5));       // the gaps between tiles
+			c = mix(c, vec3(0.22, 0.27, 0.16), 0.35 * smoothstep(0.55, 0.9, vn(mp.xz * 0.6 + seed * 20.0)));
+			ALBEDO = c;
+			ROUGHNESS = 0.85;
+		}
 	} else if (town > 0.5) {
 		vec2 cell = floor(UV / vec2(2.6, 3.2));
 		vec2 f = fract(UV / vec2(2.6, 3.2));
