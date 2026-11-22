@@ -33,8 +33,9 @@ func setup() -> void:
 		StreetCar.face_forward(hull)
 		view.region.world().add_child(hull)
 		_fit(hull, float(view.CRAFT[id].length))
+		# on the apron's level (the pad's: the airport's apron is a flat deck above the terrain under it)
 		var p: Vector3 = view.pad + side * (22.0 + 20.0 * i) + back * 6.0 * i
-		p.y = view.region.ground(p.x, p.z) + Handling.RIDE
+		p.y = view.pad.y + Handling.RIDE
 		hull.position = p
 		hull.rotation.y = view.state.yaw
 		var top: float = float(view.top_speed) * (0.92 + 0.1 * float(r[2]))
@@ -85,7 +86,7 @@ func step(dt: float) -> void:
 		r.yaw = lerp_angle(float(r.yaw), want_yaw, clampf(turn / maxf(absf(angle_difference(float(r.yaw), want_yaw)), 0.001), 0.0, 1.0))
 		var fwd := Vector3(-sin(float(r.yaw)), 0, -cos(float(r.yaw)))
 		pos += fwd * float(r.speed) * dt
-		var ground: float = view.region.ground(pos.x, pos.z) + Handling.RIDE
+		var ground: float = maxf(view.region.ground(pos.x, pos.z), view.pad.y if pos.distance_to(view.pad) < 160.0 else -INF) + Handling.RIDE
 		var rolling := float(r.speed) < pace * 0.45 and pos.y <= ground + 0.5
 		if rolling:
 			pos.y = ground

@@ -104,7 +104,7 @@ func _ready() -> void:
 	for r in v.race.rivals:
 		var d: float = Vector2(r.pos.x - v.pad.x, r.pos.z - v.pad.z).length()
 		where.append("%.0f m, dy %.1f" % [d, r.pos.y - v.pad.y])
-		apron = apron and d > 15.0 and d < 90.0 and absf(r.pos.y - (v.region.ground(r.pos.x, r.pos.z) + Handling.RIDE)) < 0.5
+		apron = apron and d > 15.0 and d < 90.0 and absf(r.pos.y - (v.pad.y + Handling.RIDE)) < 0.5
 	check("the rivals wait beside the pad, on the ground (%s)" % [where], apron)
 	v.race.step(0.05)
 	check("nobody moves before you lift off", not v.race.launched and v.race.rivals[0].speed == 0.0)
@@ -124,16 +124,21 @@ func _ready() -> void:
 		high = high and r.pos.y > v.region.ground(r.pos.x, r.pos.z) + 5.0
 		moving = moving and float(r.speed) > 20.0 and r.pos.distance_to(v.pad) > 100.0
 	check("8 s in the rivals are up and away toward the first ring (%.0f m/s)" % float(v.race.rivals[0].speed), high and moving)
-	# a rival through a ring places ahead of you
-	v.race.rivals[1].next = 2
-	check("rivals ahead of you on rings place ahead (P%d)" % v.race.place(), v.race.place() == 2 and String(v.race.standings()[0].name) == String(v.race.rivals[1].name))
-	# the finish: you through the last ring while a rival has the lot — second place money
+	# a rival through more rings than you places ahead of you
+	v.race.rivals[1].next = 3
+	check("rivals ahead of you on rings place ahead (P%d)" % v.race.place(), v.race.place() > 1 and String(v.race.standings()[0].name) == String(v.race.rivals[1].name))
+	# the finish: you through the last ring while one rival has the lot — second place money
 	v.race.rivals[0].next = v.rings.size()
-	v.race.rivals[0].done_at = 10.0
+	v.race.rivals[0].done_at = 1.0   # through the lot long before you
+	v.race.rivals[1].next = 3
+	v.race.rivals[2].next = 1
 	v.next_ring = v.rings.size() - 1
 	var pr0 := Gear.profile_load()
 	var nex0 := int(pr0.get("nex", 0))
-	v.hull.position = v.rings[v.rings.size() - 1].pos
+	var last: Vector3 = v.rings[v.rings.size() - 1].pos
+	v.hull.position = last   # the frame moves the hull on from here by state.speed (zeroed), at state.y
+	v.state.y = last.y
+	v.state.speed = 0.0
 	v._process(0.05)
 	var pr1 := Gear.profile_load()
 	check("through the last ring behind one rival: P2 and the P2 purse (%d Nex)" % v.race.purse(2), v.finished and v.race.place() == 2 and int(pr1.get("nex", 0)) - nex0 == v.race.purse(2))
