@@ -398,7 +398,7 @@ void fragment() {
 
 ## palms at the points (the city palm model, 9-13 m), standing on the ground
 static func _palms(r: Node, pts: Array[Vector2], rng: RandomNumberGenerator, bank := -INF, bank_at := Vector2.ZERO, bank_r := 0.0) -> void:
-	var mesh := Flora.glb_mesh("res://models/foliage/palm.glb", 1.0)
+	var mesh := Flora.glb_mesh("res://models/foliage/palm-a.glb", 1.0)
 	if mesh == null:
 		mesh = Flora.glb_mesh("res://models/city/palm.glb", 1.0)
 	if mesh == null:
@@ -520,8 +520,8 @@ static func _flat_spot(r: Node, want: Vector2, search: float, rad: float) -> Vec
 static func _verdant(r: Node, rng: RandomNumberGenerator) -> void:
 	var half: float = r.span() * 0.5
 	var mossy := Flora.rock_material(Color(0.42, 0.44, 0.36))
-	# the elder trees: the forest's oak grown to 38-52 m, standing over the canopy (the key art's giant trunks)
-	var lods := Flora.tree_lods("oak", 1.0)
+	# the elder trees: the forest's broadleaf grown to 38-52 m, standing over the canopy (the key art's giant trunks)
+	var lods := Flora.tree_lods("broadleaf", 1.0)
 	if not lods.is_empty():
 		var xf: Array[Transform3D] = []
 		var tries := 0
