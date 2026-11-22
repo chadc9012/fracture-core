@@ -411,6 +411,14 @@ func simple() -> bool:
 ## in the water the JUMP button ducks under (DIVE) and, under the surface, kicks up (UP); the operator's view calls this
 ## each frame with operator_player.gd's swimming / diving
 func water_label(swimming: bool, diving: bool) -> void:
+	# the guns are stowed in the water (gunplay follow_swim): no FIRE and no crosshair until the shore
+	if swimming != _in_water and mode == "foot":
+		if swimming:
+			_armed_ashore = weapons_out
+			set_armed(false)
+		else:
+			set_armed(_armed_ashore)
+		_in_water = swimming
 	if _jump_button and mode == "foot":
 		var t := ("UP" if diving else "DIVE") if swimming else "JUMP"
 		if _jump_button.text != t:
@@ -463,6 +471,8 @@ static func _at_corner(b: Control, at: Vector2) -> void:
 
 var crosshair: Control
 var weapons_out := true
+var _in_water := false
+var _armed_ashore := true
 ## the driven car has nitrous: in drive mode the SPRINT button becomes NOS (tap to fire it, tap again to stop; Shift on a
 ## keyboard, held)
 var has_nitro := false

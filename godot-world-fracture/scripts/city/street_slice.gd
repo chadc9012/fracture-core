@@ -245,7 +245,10 @@ func _ready() -> void:
 	cam.far = 1500.0
 	world.add_child(cam)
 	cam.current = true
-	look_from(Vector3(ROAD_W * 0.5 + 3.4, 1.7, 30.0), Vector3(ROAD_W * 0.5 - 3.0, 4.0, -40.0))
+	# the opening frame only — not look_from, whose points are held every frame over the follow camera (that pinned the
+	# walking camera here for good, Nov 11 – Nov 22: the operator walked out of shot)
+	cam.position = Vector3(ROAD_W * 0.5 + 3.4, 1.7, 30.0)
+	cam.look_at(Vector3(ROAD_W * 0.5 - 3.0, 4.0, -40.0))
 	if walk:
 		_spawn_player()
 	sound_on()

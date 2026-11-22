@@ -98,6 +98,8 @@ func _run() -> void:
 	var worst := []
 	var still := 0.0
 	var backing := 0.0
+	var far := 0
+	var far_max := 0.0
 	while t < secs:
 		var steer := sin(t * 0.9) * (1.0 if fmod(t, 9.0) < 6.0 else 0.0)
 		controls.move = Vector2(steer, 1.0)
@@ -129,7 +131,12 @@ func _run() -> void:
 		var bi := _inside(p, boxes)
 		var g: float = ground.call(p.x, p.z)
 		var bad := ""
-		if bi >= 0:
+		var lag := p.distance_to(subject.call())
+		far_max = maxf(far_max, lag)
+		if mode == "walk" and lag > 9.0:
+			far += 1
+			bad = "camera %.1f m from the operator" % lag
+		elif bi >= 0:
 			inside += 1
 			bad = "inside box %d %s" % [bi, str(boxes[bi])]
 		elif p.y < g + 0.05:
@@ -152,6 +159,7 @@ func _run() -> void:
 				shots += 1
 				await RenderingServer.frame_post_draw
 				root.get_texture().get_image().save_png("%s/%s_%02d.png" % [out, mode.replace(":", "_"), shots])
+	print("CAM_AUDIT %s camera too far %d frames (furthest %.1f m)" % [mode, far, far_max])
 	print("CAM_AUDIT %s frames %d inside %d under %d blocked %d · travelled %.0f m, ended %.0f m from the start, %d boxes" % [mode, frames, inside, under, blocked, travel, prev.distance_to(start), boxes.size()])
 	for w in worst.slice(0, 12):
 		print("CAM_AUDIT   ", w)
