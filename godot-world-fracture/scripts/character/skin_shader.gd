@@ -93,6 +93,21 @@ float wf_hash(vec3 q) { return fract(sin(dot(q, vec3(127.1, 311.7, 74.7))) * 437
 void vertex() { rest = CUSTOM0.xyz; }
 void fragment() {
 	vec3 c = texture(albedo_tex, UV).rgb;
+	// the scans' skin is blotchy (baked noise and stray dark flecks): on skin only, the texel is blended with its
+	// neighbours, darker outliers most, so pores stay and blotches go (GTA pass, Nov 22); brows, lashes, lips, beard and
+	// hair are not skin-coloured and keep their own sharpness
+	{
+		vec2 ts = 1.6 / vec2(textureSize(albedo_tex, 0));
+		vec3 nb = (texture(albedo_tex, UV + vec2(ts.x, 0.0)).rgb + texture(albedo_tex, UV - vec2(ts.x, 0.0)).rgb
+			+ texture(albedo_tex, UV + vec2(0.0, ts.y)).rgb + texture(albedo_tex, UV - vec2(0.0, ts.y)).rgb
+			+ texture(albedo_tex, UV + ts * 1.7).rgb + texture(albedo_tex, UV - ts * 1.7).rgb) / 6.0;
+		float l0 = dot(c, vec3(0.3, 0.59, 0.11));
+		float ln = dot(nb, vec3(0.3, 0.59, 0.11));
+		float mx0 = max(nb.r, max(nb.g, nb.b)), mn0 = min(nb.r, min(nb.g, nb.b));
+		float skinish = smoothstep(0.015, 0.05, nb.r - nb.b) * smoothstep(0.12, 0.25, (mx0 - mn0) / (mx0 + 1e-4)) * smoothstep(0.06, 0.14, ln);
+		float outlier = smoothstep(0.0, 0.12, (ln - l0) / max(ln, 0.02));
+		c = mix(c, nb, skinish * (0.45 + 0.45 * outlier));
+	}
 	vec3 col = c;
 	float glow = 0.0;
 	float l = dot(c, vec3(0.3, 0.59, 0.11));
@@ -131,6 +146,8 @@ void fragment() {
 		if not m.is_empty():
 			s += _marking(m)
 	s += "\tALBEDO = col;\n\tROUGHNESS = roughness_v;\n\tEMISSION = vec3(0.15, 0.85, 1.0) * glow * 1.6;\n"
+	# skin: a little light through it at the edges (ears, nose), a soft sheen; the forehead and nose a touch glossier
+	s += "\tBACKLIGHT = col * 0.3 * k;\n\tSPECULAR = 0.45;\n\tROUGHNESS = mix(roughness_v, roughness_v * 0.82, k * smoothstep(0.08, 0.12, p.y) * smoothstep(0.03, 0.06, p.z));\n"
 	if has_normal:
 		s += "\tNORMAL_MAP = texture(normal_tex, UV).rgb;\n"
 	s += "}\n"
