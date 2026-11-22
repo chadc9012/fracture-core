@@ -30,12 +30,12 @@ const FOLIAGE := "res://models/foliage/"
 const BOSSES := "res://models/bosses/"
 
 ## the sets that are rooms: the operator is stood inside them and they are floored flat
-const ROOMS := ["dome", "farms", "tubes", "ring", "pool", "garden", "palace", "backroom", "vault", "engine", "transport", "tower", "sanctuary", "lodge", "map_room", "murals", "lab", "lab_red", "recording", "chamber", "briefing", "subway", "shaft", "archive", "memory", "hq_hall", "balcony"]
+const ROOMS := ["astryan_hall", "council", "stacks", "pods", "heart", "forge", "cathedral", "underground", "station", "observatory", "ice_cave", "throne", "citadel", "dome", "farms", "tubes", "ring", "pool", "garden", "palace", "backroom", "vault", "engine", "transport", "tower", "sanctuary", "lodge", "map_room", "murals", "lab", "lab_red", "recording", "chamber", "briefing", "subway", "shaft", "archive", "memory", "hq_hall", "balcony"]
 ## sets hung in the sky (the dimensional structure the two figures speak from)
 const SKY := ["void"]
 
 ## who speaks without a body in the scene (a radio, a broadcast, a voice in the dark): the camera holds the set
-const VOICES := ["MILITARY RADIO", "UNKNOWN VOICE", "GLOBAL BROADCAST", "ARCHIVE RECORDING"]
+const VOICES := ["MILITARY RADIO", "UNKNOWN VOICE", "GLOBAL BROADCAST", "ARCHIVE RECORDING", "MEMORY", "ENGINE VOICE", "COUNCILLOR"]
 ## the people of the story with a roster row (people.gd) — they wear their own look
 const ROSTER := ["VOSS", "SERAPHINE", "RAINER", "WARD", "KAEL", "COLE"]
 ## the looks of everyone else who speaks or stands in a scene: outfit, body, build, scale, and a whole-character model
@@ -53,6 +53,9 @@ const EXTRAS := {
 	"CIPHER": ["", "male", "slim", 1.0, "warlock"], "COLLECTOR": ["npc-all-black", "male", "athletic", 1.0],
 	"VESPER": ["npc-leather", "female", "slim", 1.0], "EXECUTOR": ["npc-all-black", "male", "heavy", 1.0],
 	"CHIEF ODA": ["npc-engineer", "female", "heavy", 1.0], "HIEROPHANT": ["npc-elder", "male", "slim", 1.0],
+	"DR. HALVARD": ["npc-hivis", "male", "heavy", 1.0], "TALLIS": ["npc-shirtless", "male", "athletic", 1.0],
+	"RAIDER": ["npc-tank-cargo", "male", "athletic", 1.0], "PHANTOM CHILD": ["npc-summer", "female", "slim", 0.6],
+	"ASTRYAN MAKER": ["npc-doctor", "female", "slim", 1.0],
 }
 
 ## the look a speaker wears: their people.gd row when they have one, else their EXTRAS row (a civilian for anyone else)
@@ -86,7 +89,7 @@ const FIGURES := {
 	"ARCHIVE WARDEN": ["guardian-boss.glb", 6.0, Color(1.0, 0.8, 0.45)],
 }
 ## recordings play as holograms
-const HOLO := ["SCIENTIST", "DR. CROSS"]
+const HOLO := ["SCIENTIST", "DR. CROSS", "PHANTOM CHILD", "ASTRYAN MAKER"]
 
 var region: Control           # region_3d.gd (ground, world)
 var operator: Node3D
@@ -1168,6 +1171,290 @@ func _set_sea() -> void:
 	_focus = p(0, 1.5, 24.0, true)
 	_wide = Vector3(3, 2.0, -4)
 
+
+# --------------------------------------------------------------------------------------------- Chapter 5 sets (Frostveil)
+## a cold camp on the ice: tents, a tracked truck, flare stakes, snowbanks
+func _set_snow_camp() -> void:
+	var snow := mat(Color(0.88, 0.92, 0.96), 0.9)
+	tent(-6.0, 8.0, 4.0, 4.0, Color(0.7, 0.2, 0.15), 0.0)
+	tent(5.0, 9.0, 4.0, 4.0, Color(0.75, 0.55, 0.15), 15.0)
+	vehicle("offroad-truck.glb", -9.0, 2.0, 40.0)
+	for i in 6:
+		box(Vector3(3.0, 0.9, 1.6), -10.0 + float(i) * 4.0, -0.3, 16.0 + float(i % 2), snow, false, float(i * 9))
+	for x: float in [-3.0, 3.0]:
+		cyl(0.05, 1.4, x, 0, 4.0, mat(Color(0.4, 0.4, 0.4), 0.6))
+		box(Vector3(0.15, 0.2, 0.15), x, 1.4, 4.0, mat(Color(1.0, 0.3, 0.2), 0.4, 0.0, 4.0), false)
+		light(x, 1.6, 4.0, Color(1.0, 0.35, 0.2), 1.4, 8.0)
+	_wide = Vector3(7, 3.0, -4)
+
+## the research station inside: steel walls, frosted windows, bunks and consoles
+func _set_station() -> void:
+	room(14.0, 14.0, 3.6, Color(0.35, 0.37, 0.4), Color(0.6, 0.63, 0.66), Color(0.9, 0.95, 1.0))
+	for i in 3:
+		model(CITY + "office-desk.glb", -5.0, 0, 2.0 + float(i) * 3.0, 2.2, 90.0)
+		model(CITY + "bed.glb", 5.0, 0, 2.0 + float(i) * 3.0, 2.0, -90.0)
+	box(Vector3(4.0, 1.4, 0.06), 0, 1.4, 10.8, mat(Color(0.8, 0.9, 1.0, 0.45), 0.1), false)
+	_wide = Vector3(4.5, 2.4, -1)
+
+## the star readers' observatory: a round hall, the great lens tilted at the sky, the aurora beyond
+func _set_observatory() -> void:
+	room(18.0, 18.0, 10.0, Color(0.3, 0.3, 0.34), Color(0.4, 0.4, 0.46), Color(0.6, 1.0, 0.75), 5.0, false)
+	cyl(2.0, 1.2, 0, 0, 9.0, mat(Color(0.35, 0.36, 0.4), 0.4, 0.8))
+	var lens := cyl(1.8, 0.3, 0, 4.0, 9.0, mat(Color(0.6, 0.9, 1.0, 0.5), 0.05, 0.0, 1.5), false)
+	lens.rotation.x = deg_to_rad(55.0)
+	cyl(0.35, 4.0, 0, 1.2, 9.0, mat(Color(0.5, 0.5, 0.55), 0.4, 0.8), false)
+	light(0, 5.0, 9.0, Color(0.5, 1.0, 0.7), 2.4, 20.0)
+	_focus = p(0, 4.2, 9.0)
+	_wide = Vector3(6, 3.0, 0)
+
+## the ice cavern: blue walls closing in, frozen pillars, a faint light under the floor
+func _set_ice_cave() -> void:
+	room(14.0, 22.0, 8.0, Color(0.6, 0.75, 0.85), Color(0.55, 0.75, 0.9, 0.85), Color(0.6, 0.85, 1.0), 4.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3434
+	FractureSet.crystals(_root, p(0, 0, 10.0), 6.0, 12, Color(0.65, 0.9, 1.0), rng)
+	_wide = Vector3(4, 2.6, -1)
+
+## the chair of ice: a throne on a dais, the crown on its seat, the veiled woman preserved in the wall behind
+func _set_throne() -> void:
+	room(18.0, 20.0, 9.0, Color(0.6, 0.75, 0.85), Color(0.55, 0.75, 0.9, 0.85), Color(0.7, 0.85, 1.0), 4.0)
+	var ice := mat(Color(0.75, 0.9, 1.0, 0.75), 0.05, 0.0, 0.4)
+	box(Vector3(6.0, 0.8, 4.0), 0, 0, 12.0, ice)
+	box(Vector3(1.8, 1.0, 1.4), 0, 0.8, 12.6, ice)
+	box(Vector3(1.8, 2.6, 0.4), 0, 1.8, 13.2, ice)
+	var crown := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.18
+	tm.outer_radius = 0.26
+	crown.mesh = tm
+	crown.material_override = mat(Color(0.9, 0.95, 1.0), 0.2, 0.9, 1.5)
+	_root.add_child(crown)
+	crown.global_position = p(0, 1.95, 12.5)
+	_acts["crown"] = crown
+	var veiled := Player.new()
+	_root.add_child(veiled)
+	veiled.civilian = true
+	veiled.build(look_of("SERAPHINE"))
+	veiled.global_position = p(0, 0.8, 15.5)
+	veiled.heading = yaw_of(180.0)
+	veiled.rig.rotation.y = veiled.heading
+	_holo(veiled, Color(0.8, 0.9, 1.0))
+	for ap in veiled.find_children("*", "AnimationPlayer", true, false):
+		(ap as AnimationPlayer).pause()
+	cast["VEILED SOVEREIGN"] = veiled
+	box(Vector3(5.0, 4.0, 0.3), 0, 0.8, 15.0, mat(Color(0.7, 0.85, 1.0, 0.35), 0.05), false)
+	light(0, 3.0, 12.5, Color(0.75, 0.9, 1.0), 2.2, 16.0)
+	_focus = p(0, 2.0, 12.5)
+	_wide = Vector3(6, 3.0, 2)
+
+## the Architect's citadel: black stone and white light, long and high and very still
+func _set_citadel() -> void:
+	room(20.0, 26.0, 14.0, Color(0.08, 0.08, 0.1), Color(0.12, 0.12, 0.15), Color(0.95, 0.95, 1.0), 6.0)
+	for i in 4:
+		for x: float in [-7.0, 7.0]:
+			box(Vector3(1.2, 14.0, 1.2), x, 0, 2.0 + float(i) * 5.5, mat(Color(0.15, 0.15, 0.18), 0.3, 0.6))
+			box(Vector3(0.15, 12.0, 0.15), x * 0.93, 1.0, 2.0 + float(i) * 5.5, mat(Color(0.95, 0.95, 1.0), 0.3, 0.0, 3.0), false)
+	box(Vector3(5.0, 0.6, 4.0), 0, 0, 19.0, mat(Color(0.2, 0.2, 0.24), 0.3, 0.6))
+	label("◯", 0, 8.0, 22.6, Color(0.95, 0.95, 1.0), 240)
+	_focus = p(0, 2.0, 19.0)
+	_wide = Vector3(7, 3.6, 0)
+
+
+# --------------------------------------------------------------------------------------------- Chapter 6 sets
+## the Obsidian Reach: black rock, lava light, an ash-grey camp
+func _set_lava_camp() -> void:
+	tent(-5.0, 8.0, 4.0, 4.0, Color(0.3, 0.3, 0.3), 0.0)
+	vehicle("war-rig.glb", 7.0, 6.0, -20.0)
+	for i in 6:
+		model(FOLIAGE + "rocks.glb", -10.0 + float(i) * 4.0, -0.2, 16.0 + float(i % 2) * 3.0, 3.0, float(i * 50), true)
+	box(Vector3(12.0, 0.05, 2.0), 0, 0.02, 20.0, mat(Color(1.0, 0.35, 0.05), 0.6, 0.0, 4.0), false)
+	light(0, 1.0, 20.0, Color(1.0, 0.4, 0.1), 3.0, 22.0)
+	_wide = Vector3(8, 3.0, -4)
+
+## the Astryan foundry: a great hall of black iron, forge chambers glowing along the walls
+func _set_forge() -> void:
+	room(22.0, 26.0, 12.0, Color(0.14, 0.12, 0.11), Color(0.2, 0.17, 0.15), Color(1.0, 0.5, 0.2), 6.0)
+	for i in 4:
+		for x: float in [-9.0, 9.0]:
+			box(Vector3(3.0, 5.0, 3.0), x, 0, 2.0 + float(i) * 5.5, mat(Color(0.25, 0.22, 0.2), 0.5, 0.7))
+			box(Vector3(2.0, 2.0, 0.1), x * 0.84, 1.5, 2.0 + float(i) * 5.5, mat(Color(1.0, 0.45, 0.1), 0.6, 0.0, 4.0), false)
+	cyl(3.0, 2.0, 0, 0, 16.0, mat(Color(0.3, 0.26, 0.22), 0.4, 0.8))
+	FractureSet.conduit(_root, p(0, 2.0, 16.0), p(0, 11.0, 16.0), Color(1.0, 0.5, 0.15), 0.3)
+	light(0, 4.0, 16.0, Color(1.0, 0.5, 0.15), 3.0, 26.0)
+	_focus = p(0, 2.5, 16.0)
+	_wide = Vector3(8, 3.6, 0)
+
+## Obsidian Ridge: a black spine of rock, and on it a door standing in the air
+func _set_ridge() -> void:
+	for i in 8:
+		model(FOLIAGE + "boulder.glb", -14.0 + float(i) * 4.0, -0.4, 14.0 + float(i % 3) * 2.0, 3.0 + float(i % 2) * 2.0, float(i * 40), true)
+	var door := Fx.portal(4.0, Color(0.55, 0.2, 0.9))
+	_root.add_child(door)
+	door.global_position = p(0, 0.5, 18.0)
+	door.rotation.y = yaw_of(0.0)
+	light(0, 4.0, 18.0, Color(0.6, 0.25, 1.0), 3.0, 24.0)
+	_focus = p(0, 3.0, 18.0)
+	_wide = Vector3(9, 3.4, -4)
+
+## Old Harrow: timber-framed houses round a market square, a well, lanterns
+func _set_harrow() -> void:
+	var wood := Color(0.42, 0.3, 0.2)
+	var plaster := Color(0.85, 0.8, 0.7)
+	for i in 3:
+		box(Vector3(6.0, 5.0, 5.0), -10.0 + float(i) * 10.0, 0, 16.0, mat(plaster, 0.9))
+		tent(-10.0 + float(i) * 10.0, 16.0, 6.0, 5.0, wood, 0.0)
+	cyl(1.0, 0.9, 0, 0, 8.0, mat(Color(0.5, 0.48, 0.44), 0.95))
+	for x: float in [-4.0, 4.0]:
+		cyl(0.08, 3.0, x, 0, 5.0, mat(wood, 0.8))
+		light(x, 3.0, 5.0, Color(1.0, 0.75, 0.4), 1.4, 10.0)
+	_extras(["CIVILIAN", "MAN"], [Vector3(-5, 0, 10), Vector3(6, 0, 11)], 180.0)
+	_wide = Vector3(8, 3.0, -4)
+
+## the cathedral: a nave of grey stone, candles, a rose window glowing at the end
+func _set_cathedral() -> void:
+	room(14.0, 30.0, 14.0, Color(0.4, 0.38, 0.35), Color(0.55, 0.52, 0.48), Color(1.0, 0.8, 0.55), 4.0)
+	for i in 5:
+		for x: float in [-4.5, 4.5]:
+			cyl(0.7, 14.0, x, 0, 1.0 + float(i) * 5.0, mat(Color(0.55, 0.52, 0.48), 0.9))
+	for i in 4:
+		box(Vector3(3.0, 0.5, 0.6), -1.8, 0, 3.0 + float(i) * 2.5, mat(Color(0.32, 0.22, 0.14), 0.8))
+		box(Vector3(3.0, 0.5, 0.6), 1.8 + 0.0, 0, 3.0 + float(i) * 2.5, mat(Color(0.32, 0.22, 0.14), 0.8))
+	cyl(3.0, 0.1, 0, 7.0, 26.6, mat(Color(0.7, 0.4, 0.8, 0.8), 0.3, 0.0, 2.0), false).rotation.x = PI * 0.5
+	light(0, 6.0, 22.0, Color(1.0, 0.75, 0.5), 2.0, 24.0)
+	_focus = p(0, 7.0, 26.6)
+	_wide = Vector3(4, 3.4, 0)
+
+## the Wastelands: cracked highway, scrap, a burnt rig, dust
+func _set_wasteland() -> void:
+	burnt(2, -7.0, 10.0, 30.0)
+	burnt(1, 8.0, 16.0, -60.0, false)
+	vehicle("raider-buggy.glb", 4.0, 4.0, -120.0)
+	for i in 5:
+		model(FOLIAGE + "rocks.glb", -12.0 + float(i) * 6.0, -0.2, 22.0, 3.0, float(i * 70), true)
+	model(FOLIAGE + "tree-dead.glb", -4.0, 0, 18.0, 6.0, 30.0, false)
+	_wide = Vector3(9, 3.2, -5)
+
+## the Underground's gate: a blast door in a cliff, floodlights, a queue of the desperate
+func _set_vault_gate() -> void:
+	box(Vector3(26.0, 14.0, 3.0), 0, 0, 20.0, mat(Color(0.45, 0.38, 0.3), 0.95))
+	var door := cyl(5.0, 0.6, 0, 0, 18.4, mat(Color(0.5, 0.52, 0.55), 0.35, 0.9), false)
+	door.rotation.x = PI * 0.5
+	door.global_position = p(0, 5.0, 18.4)
+	for x: float in [-9.0, 9.0]:
+		box(Vector3(1.0, 0.6, 0.4), x, 8.0, 18.2, mat(Color(1.0, 0.95, 0.8), 0.3, 0.0, 4.0), false)
+		light(x, 7.5, 16.0, Color(1.0, 0.95, 0.8), 2.4, 22.0)
+	_extras(["CIVILIAN", "CIVILIAN", "MAN", "CIVILIAN", "MEDIC"], [Vector3(-6, 0, 8), Vector3(-3, 0, 9), Vector3(0, 0, 8), Vector3(3, 0, 9.5), Vector3(6, 0, 8)], 0.0)
+	_focus = p(0, 5.0, 18.4)
+	_wide = Vector3(8, 3.4, -4)
+
+## the Underground City: a vault hall turned into a town — stalls, bunks, cables and warm light
+func _set_underground() -> void:
+	room(20.0, 22.0, 8.0, Color(0.3, 0.28, 0.25), Color(0.36, 0.33, 0.3), Color(1.0, 0.8, 0.5), 5.0)
+	for i in 3:
+		box(Vector3(3.0, 0.08, 2.0), -6.0 + float(i) * 6.0, 2.2, 12.0, mat(Color(0.6, 0.3, 0.2), 0.9), false)
+		box(Vector3(2.6, 0.9, 0.9), -6.0 + float(i) * 6.0, 0, 12.6, mat(Color(0.35, 0.26, 0.18), 0.8))
+	box(Vector3(2.6, 0.8, 4.0), 0, 0, 5.0, mat(Color(0.3, 0.22, 0.15), 0.8))
+	_extras(["CIVILIAN", "MAN", "TRADER"], [Vector3(-6, 0, 11), Vector3(0, 0, 11), Vector3(6, 0, 11)], 180.0)
+	_wide = Vector3(7, 3.0, -1)
+
+
+# --------------------------------------------------------------------------------------------- Chapter 7 sets (the Origin Engine)
+## an Astryan hall: pale stone and gold light, glyph-lit terminals, the far wall open on a folded sky
+func _astryan(w: float, d: float, h: float, lamp: Color) -> void:
+	room(w, d, h, Color(0.82, 0.8, 0.74), Color(0.88, 0.86, 0.8), lamp, 6.0)
+	for i in int(d / 6.0):
+		for x: float in [-w * 0.5 + 1.2, w * 0.5 - 1.2]:
+			cyl(0.5, h, x, 0, float(i) * 6.0, mat(Color(0.9, 0.88, 0.82), 0.6))
+			box(Vector3(0.1, h * 0.8, 0.1), x * 0.9, 0.5, float(i) * 6.0, mat(Color(1.0, 0.85, 0.5), 0.4, 0.0, 2.5), false)
+
+func _set_astryan_hall() -> void:
+	_astryan(18.0, 24.0, 10.0, Color(1.0, 0.88, 0.6))
+	for i in 3:
+		box(Vector3(1.2, 1.4, 0.6), -4.0 + float(i) * 4.0, 0, 12.0, mat(Color(0.75, 0.73, 0.68), 0.4, 0.6))
+		box(Vector3(1.0, 0.7, 0.05), -4.0 + float(i) * 4.0, 1.4, 11.7, mat(Color(0.5, 0.85, 1.0), 0.3, 0.0, 3.0), false)
+	_wide = Vector3(7, 3.4, -1)
+
+## the Celestial Capital: a street held in one moment — set tables, open doors, banners mid-flutter
+func _set_capital() -> void:
+	var white := mat(Color(0.88, 0.86, 0.8), 0.6)
+	for i in 3:
+		for x: float in [-11.0, 11.0]:
+			box(Vector3(6.0, 9.0 + float(i % 2) * 3.0, 6.0), x, 0, 4.0 + float(i) * 8.0, white)
+	for i in 3:
+		model(CITY + "cafe-set.glb", -3.0 + float(i) * 3.0, 0, 9.0, 2.4)
+	for x: float in [-6.0, 6.0]:
+		box(Vector3(1.4, 4.0, 0.05), x, 4.0, 14.0, mat(Color(0.9, 0.7, 0.3), 0.8, 0.0, 0.4), false)
+	light(0, 8.0, 10.0, Color(1.0, 0.9, 0.7), 2.4, 30.0)
+	_wide = Vector3(8, 3.6, -4)
+
+## the Council Hall: a ring of seats round a floor of light where the vote is replayed
+func _set_council() -> void:
+	_astryan(24.0, 24.0, 12.0, Color(1.0, 0.9, 0.7))
+	for i in 9:
+		var a := PI + PI * float(i) / 8.0
+		box(Vector3(1.6, 1.2, 1.2), cos(a) * 9.0, 0, 12.0 - sin(a) * 9.0, mat(Color(0.7, 0.66, 0.58), 0.6))
+	cyl(4.0, 0.08, 0, 0.02, 12.0, mat(Color(1.0, 0.85, 0.5), 0.4, 0.0, 2.0), false)
+	_focus = p(0, 1.5, 12.0)
+	_wide = Vector3(8, 4.0, 0)
+
+## the Eternal Archives: stacks of crystal records rising into the dark
+func _set_stacks() -> void:
+	room(20.0, 26.0, 14.0, Color(0.15, 0.15, 0.2), Color(0.2, 0.2, 0.26), Color(0.6, 0.8, 1.0), 4.0)
+	for i in 4:
+		for x: float in [-6.0, 6.0]:
+			box(Vector3(2.0, 12.0, 4.0), x, 0, 2.0 + float(i) * 6.0, mat(Color(0.3, 0.32, 0.4), 0.4, 0.6))
+			box(Vector3(2.1, 11.0, 0.1), x, 0.5, 4.05 + float(i) * 6.0, mat(Color(0.5, 0.75, 1.0), 0.3, 0.0, 1.6), false)
+	_wide = Vector3(3, 3.0, -1)
+
+## the Living Gardens: terraces of green under a gold sky, a fountain, the dragon arch
+func _set_gardens() -> void:
+	box(Vector3(30.0, 0.2, 30.0), 0, -0.2, 12.0, mat(Color(0.3, 0.45, 0.25), 0.9), false)
+	cyl(2.4, 0.8, 0, 0, 8.0, mat(Color(0.85, 0.83, 0.78), 0.6))
+	cyl(2.0, 0.1, 0, 0.8, 8.0, mat(Color(0.4, 0.7, 0.9, 0.7), 0.05), false)
+	for x: float in [-4.0, 4.0]:
+		box(Vector3(1.2, 9.0, 1.2), x, 0, 18.0, mat(Color(0.85, 0.83, 0.78), 0.6))
+	box(Vector3(9.2, 1.4, 1.4), 0, 9.0, 18.0, mat(Color(0.85, 0.83, 0.78), 0.6), false)
+	label("ASHEN · STORM · TIDE · EMBER · DAWN", 0, 9.7, 17.2, Color(1.0, 0.85, 0.5), 64)
+	for i in 8:
+		model(FOLIAGE + ("broadleaf.glb" if i % 2 == 0 else "birch.glb"), -12.0 + float(i) * 3.4, 0, 22.0 + float(i % 2) * 3.0, 8.0, float(i * 45), false)
+	light(0, 6.0, 10.0, Color(1.0, 0.9, 0.65), 2.4, 30.0)
+	_wide = Vector3(8, 3.2, -4)
+
+## the Continuum Chamber: rows of pods, each with a light in it — the sixth's other lives
+func _set_pods() -> void:
+	room(20.0, 24.0, 8.0, Color(0.1, 0.1, 0.12), Color(0.14, 0.14, 0.17), Color(0.9, 0.9, 1.0), 6.0)
+	var pods: Array = []
+	for row in 3:
+		for i in 6:
+			var x := -7.5 + float(i) * 3.0
+			var z := 4.0 + float(row) * 5.0
+			cyl(0.7, 0.3, x, 0, z, mat(Color(0.2, 0.2, 0.24), 0.4, 0.8))
+			var glass := cyl(0.6, 2.2, x, 0.3, z, mat(Color(0.6, 0.85, 1.0, 0.25), 0.05), false)
+			var glow := cyl(0.25, 0.25, x, 1.2, z, mat(Color(0.95, 0.95, 1.0), 0.3, 0.0, 4.0), false)
+			pods.append(glow)
+	_acts["pods"] = pods
+	_wide = Vector3(7, 3.4, -1)
+
+## the Heart of Origin: the Engine's core, rings of gold turning round a white light
+func _set_heart() -> void:
+	room(26.0, 26.0, 16.0, Color(0.85, 0.82, 0.74), Color(0.9, 0.88, 0.82), Color(1.0, 0.92, 0.7), 6.0)
+	for i in 3:
+		var mi := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 3.0 + float(i) * 1.6
+		tm.outer_radius = tm.inner_radius + 0.25
+		mi.mesh = tm
+		mi.material_override = mat(Color(1.0, 0.82, 0.45), 0.3, 0.9, 1.5)
+		_root.add_child(mi)
+		mi.global_position = p(0, 6.0, 14.0)
+		mi.rotation = Vector3(float(i) * 0.6, float(i) * 0.9, 0.3)
+	var core := Fx.hologram("globe", Color(1.0, 0.95, 0.8), 3.0)
+	_root.add_child(core)
+	core.global_position = p(0, 4.5, 14.0)
+	light(0, 6.0, 14.0, Color(1.0, 0.95, 0.8), 4.0, 30.0)
+	_focus = p(0, 6.0, 14.0)
+	_wide = Vector3(9, 4.0, 0)
+
 # --------------------------------------------------------------------------------------------- the cast
 ## the speakers of the scene stand in an arc in front of the operator, facing in; the unnamed wear stand-in looks
 func _cast(speakers: Array) -> void:
@@ -1177,7 +1464,7 @@ func _cast(speakers: Array) -> void:
 	var n := 0
 	for sp in speakers:
 		var s := String(sp)
-		if s == "PLAYER" or s in VOICES or cast.has(s):
+		if s == "PLAYER" or s in VOICES or (cast.has(s) and is_instance_valid(cast[s])):
 			continue
 		if s == "NOVA":
 			_make_nova()
@@ -1391,6 +1678,14 @@ func act(name: String) -> void:
 		"seal":
 			# the seal recognises the sixth bearer: the dais lights
 			light(0, 1.5, 14.0, Color(1.0, 0.85, 0.5), 6.0, 24.0)
+		"release":
+			# the pods let their memories go: each light rises and fades
+			for g in _acts.get("pods", []):
+				var n: Node3D = g
+				if is_instance_valid(n):
+					var tw := create_tween()
+					tw.tween_property(n, "global_position", n.global_position + Vector3(0, 7.0, 0), 3.0 + randf())
+					tw.tween_property(n, "scale", Vector3.ZERO, 0.6)
 		"collapse":
 			# the hall shifts: rubble comes down
 			for i in 6:

@@ -10,7 +10,15 @@
   "observer-prime": "abyssal-leviathan",
   "abyssal-beast": "abyssal-leviathan",
   "second-hand": "crystal-stalker",
-  "choir-leviathan": "abyssal-leviathan"
+  "choir-leviathan": "abyssal-leviathan",
+  "sovereign-guard": "rift-hound",
+  "silent-cantor": "colossus",
+  "citadel-warden": "colossus",
+  "ascended": "crystal-stalker",
+  "vael-turog": "astravore",
+  "choir-breaker": "colossus",
+  "phantom-prime": "crystal-stalker",
+  "sovereign-machine": "colossus"
  },
  "source": "The owner's Chapter 1 screenplays (Nov 22), Missions 2–7, every spoken line verbatim in the script's order (tools/campaign/aftershock.py); Missions 8 onward from tools/campaign/story/ch*.py. Mission 1 is Mission 01 (scripts/mission/mission_01.gd).",
  "missions": [
@@ -3758,6 +3766,1760 @@
      ],
      "close": [],
      "stage": "sea"
+    }
+   ]
+  },
+  {
+   "id": "32",
+   "title": "Frostveil Silence",
+   "region": "Frostveil",
+   "world": "frostveil",
+   "beat": "Arrival / the silent station / the Choir's quiet ones / Seraphine's dreams",
+   "chapter": [
+    5,
+    "The Frozen Crown"
+   ],
+   "chapters": [
+    {
+     "id": "A32A",
+     "title": "North",
+     "location": "EXT. FROSTVEIL — THE ICE SHELF",
+     "kind": "cutscene",
+     "start": "fv-camp",
+     "open": [
+      "A32_001",
+      "A32_002",
+      "A32_003",
+      "A32_004",
+      "A32_005",
+      "A32_006",
+      "A32_007"
+     ],
+     "close": [],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A32B",
+     "title": "The Station",
+     "location": "EXT. FROSTVEIL RESEARCH STATION",
+     "kind": "reach",
+     "to": "fv-station",
+     "label": "Reach the research station",
+     "open": [
+      "A32_008",
+      "A32_009",
+      "A32_010"
+     ],
+     "close": [],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A32C",
+     "title": "The Chief",
+     "location": "INT. FROSTVEIL STATION — THE COMMON ROOM",
+     "kind": "talk",
+     "who": "DR. HALVARD",
+     "to": "fv-station",
+     "label": "Wake the station's chief",
+     "open": [],
+     "close": [
+      "A32_011",
+      "A32_012",
+      "A32_013",
+      "A32_014",
+      "A32_015",
+      "A32_016",
+      "A32_017"
+     ],
+     "stage": "station"
+    },
+    {
+     "id": "A32D",
+     "title": "The Quiet Ones",
+     "location": "EXT. FROSTVEIL STATION — THE YARD",
+     "kind": "kills",
+     "amount": 9,
+     "label": "Clear the Choir's silent constructs",
+     "open": [
+      "A32_018",
+      "A32_019"
+     ],
+     "close": [
+      "A32_020"
+     ],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A32E",
+     "title": "The Dream",
+     "location": "INT. FROSTVEIL STATION — NIGHT",
+     "kind": "cutscene",
+     "open": [
+      "A32_021",
+      "A32_022",
+      "A32_023",
+      "A32_024",
+      "A32_025",
+      "A32_026",
+      "A32_027"
+     ],
+     "close": [],
+     "stage": "station"
+    }
+   ]
+  },
+  {
+   "id": "33",
+   "title": "The Star Readers",
+   "region": "Aurora Gate",
+   "world": "aurora-gate",
+   "beat": "The Astryan observatory / reading the seals in the sky / the Choir follows",
+   "chapter": [
+    5,
+    "The Frozen Crown"
+   ],
+   "chapters": [
+    {
+     "id": "A33A",
+     "title": "Aurora",
+     "location": "EXT. AURORA GATE — NIGHT",
+     "kind": "cutscene",
+     "start": "ag-airport",
+     "open": [
+      "A33_001",
+      "A33_002",
+      "A33_003",
+      "A33_004"
+     ],
+     "close": [],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A33B",
+     "title": "The Hill Road",
+     "location": "EXT. AURORA GATE — THE HILL ROAD",
+     "kind": "drive",
+     "to": "ag-observatory",
+     "label": "Drive to the observatory",
+     "open": [
+      "A33_005"
+     ],
+     "close": [],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A33C",
+     "title": "The Great Lens",
+     "location": "INT. THE OBSERVATORY — THE GREAT LENS",
+     "kind": "hack",
+     "to": "ag-observatory",
+     "label": "Wake the great lens",
+     "open": [
+      "A33_006",
+      "A33_007"
+     ],
+     "close": [
+      "A33_008"
+     ],
+     "stage": "observatory"
+    },
+    {
+     "id": "A33D",
+     "title": "Five Stars",
+     "location": "INT. THE OBSERVATORY — THE GREAT LENS",
+     "kind": "cutscene",
+     "open": [
+      "A33_009",
+      "A33_010",
+      "A33_011",
+      "A33_012",
+      "A33_013",
+      "A33_014",
+      "A33_015",
+      "A33_016",
+      "A33_017"
+     ],
+     "close": [],
+     "stage": "observatory"
+    },
+    {
+     "id": "A33E",
+     "title": "Hold the Hill",
+     "location": "EXT. THE OBSERVATORY",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold the observatory while NOVA copies the star map",
+     "open": [
+      "A33_018",
+      "A33_019"
+     ],
+     "close": [
+      "A33_020"
+     ],
+     "stage": "observatory"
+    }
+   ]
+  },
+  {
+   "id": "34",
+   "title": "The Veiled Sovereign",
+   "region": "Frostveil",
+   "world": "frostveil",
+   "beat": "Into the ice / the crown / a face under the veil",
+   "chapter": [
+    5,
+    "The Frozen Crown"
+   ],
+   "chapters": [
+    {
+     "id": "A34A",
+     "title": "Crevasses",
+     "location": "EXT. FROSTVEIL — THE CREVASSE FIELD",
+     "kind": "trace",
+     "start": "fv-crevasses",
+     "label": "Follow the star map down through the crevasses",
+     "open": [
+      "A34_001",
+      "A34_002"
+     ],
+     "close": [],
+     "stage": "ice_cave"
+    },
+    {
+     "id": "A34B",
+     "title": "The Cavern",
+     "location": "INT. THE ICE CAVERN",
+     "kind": "reach",
+     "to": "fv-cave",
+     "label": "Reach the cavern of the crown",
+     "open": [
+      "A34_003",
+      "A34_004",
+      "A34_005"
+     ],
+     "close": [],
+     "stage": "ice_cave"
+    },
+    {
+     "id": "A34C",
+     "title": "The Chair of Ice",
+     "location": "INT. THE ICE CAVERN — THE THRONE",
+     "kind": "cutscene",
+     "open": [
+      "A34_006",
+      "A34_007",
+      "A34_008",
+      "A34_009",
+      "A34_010",
+      "A34_011",
+      "A34_012",
+      "A34_013"
+     ],
+     "close": [],
+     "stage": "throne"
+    },
+    {
+     "id": "A34D",
+     "title": "The Sovereign Speaks",
+     "location": "INT. THE ICE CAVERN — THE THRONE",
+     "kind": "talk",
+     "who": "SERAPHINE",
+     "label": "Stand with Seraphine at the throne",
+     "open": [],
+     "close": [
+      "A34_014",
+      "A34_015",
+      "A34_016",
+      "A34_017",
+      "A34_018",
+      "A34_019",
+      "A34_020",
+      "A34_021"
+     ],
+     "stage": "throne"
+    },
+    {
+     "id": "A34E",
+     "title": "Afraid of the Words",
+     "location": "INT. THE ICE CAVERN",
+     "kind": "cutscene",
+     "open": [
+      "A34_022",
+      "A34_023",
+      "A34_024",
+      "A34_025",
+      "A34_026",
+      "A34_027",
+      "A34_028"
+     ],
+     "close": [],
+     "stage": "throne"
+    }
+   ]
+  },
+  {
+   "id": "35",
+   "title": "The Crown Nobody Can Lift",
+   "region": "Frostveil",
+   "world": "frostveil",
+   "beat": "The Architect's second offer / a choice / the crown is lifted",
+   "chapter": [
+    5,
+    "The Frozen Crown"
+   ],
+   "chapters": [
+    {
+     "id": "A35A",
+     "title": "The Second Offer",
+     "location": "INT. THE ICE CAVERN — THE THRONE",
+     "kind": "cutscene",
+     "start": "fv-cave",
+     "open": [
+      "A35_001",
+      "A35_002",
+      "A35_003",
+      "A35_004",
+      "A35_005",
+      "A35_006",
+      "A35_007",
+      "A35_008"
+     ],
+     "close": [],
+     "stage": "throne"
+    },
+    {
+     "id": "A35B",
+     "title": "The Crown",
+     "location": "INT. THE ICE CAVERN — THE THRONE",
+     "kind": "choice",
+     "prompt": "The crown is on the throne. The Architect is waiting. Seraphine is looking at you.",
+     "options": [
+      [
+       "beside",
+       "Lift it with her",
+       "Put your hand on the crown beside hers. Whatever she remembers, she doesn't remember it alone."
+      ],
+      [
+       "alone",
+       "Let her choose alone",
+       "Step back. It's her memory. It's her choice."
+      ],
+      [
+       "refuse",
+       "Tell her not to",
+       "Ask her to leave it. Some doors should stay shut."
+      ]
+     ],
+     "open": [],
+     "close": [],
+     "by_choice": {
+      "beside": [
+       "A35_009"
+      ],
+      "alone": [
+       "A35_010"
+      ],
+      "refuse": [
+       "A35_011"
+      ]
+     },
+     "stage": "throne"
+    },
+    {
+     "id": "A35C",
+     "title": "Remembering",
+     "location": "INT. THE ICE CAVERN — THE THRONE",
+     "kind": "cutscene",
+     "open": [
+      "A35_012",
+      "A35_013",
+      "A35_014",
+      "A35_015",
+      "A35_016",
+      "A35_017",
+      "A35_018",
+      "A35_019"
+     ],
+     "close": [],
+     "stage": "throne",
+     "acts": {
+      "A35_014": "seal"
+     }
+    }
+   ]
+  },
+  {
+   "id": "36",
+   "title": "The Betrayal",
+   "region": "Frostveil",
+   "world": "frostveil",
+   "beat": "Seraphine leaves / the Sovereign's guard / the seal goes with her",
+   "chapter": [
+    5,
+    "The Frozen Crown"
+   ],
+   "chapters": [
+    {
+     "id": "A36A",
+     "title": "The Door Again",
+     "location": "INT. THE ICE CAVERN",
+     "kind": "cutscene",
+     "start": "fv-cave",
+     "open": [
+      "A36_001",
+      "A36_002",
+      "A36_003",
+      "A36_004",
+      "A36_005",
+      "A36_006",
+      "A36_007",
+      "A36_008",
+      "A36_009"
+     ],
+     "close": [],
+     "stage": "throne"
+    },
+    {
+     "id": "A36B",
+     "title": "Cover",
+     "location": "INT. THE ICE CAVERN — THE TUNNELS",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Survive the Executors covering her retreat",
+     "open": [
+      "A36_010",
+      "A36_011"
+     ],
+     "close": [
+      "A36_012"
+     ],
+     "stage": "ice_cave"
+    },
+    {
+     "id": "A36C",
+     "title": "The Sovereign's Guard",
+     "location": "INT. THE ICE CAVERN — THE THRONE",
+     "kind": "boss",
+     "boss": "sovereign-guard",
+     "boss_name": "The Sovereign's Guard",
+     "label": "Get past the throne's guardian",
+     "open": [
+      "A36_013",
+      "A36_014",
+      "A36_015"
+     ],
+     "close": [
+      "A36_016"
+     ],
+     "stage": "throne"
+    },
+    {
+     "id": "A36D",
+     "title": "Empty Chair",
+     "location": "INT. THE ICE CAVERN — THE THRONE",
+     "kind": "cutscene",
+     "open": [
+      "A36_017",
+      "A36_018",
+      "A36_019",
+      "A36_020",
+      "A36_021"
+     ],
+     "close": [],
+     "stage": "throne"
+    }
+   ]
+  },
+  {
+   "id": "37",
+   "title": "Whiteout",
+   "region": "Frostveil",
+   "world": "frostveil",
+   "beat": "The Silent Cantor / fighting without sound / Turog's mockery",
+   "chapter": [
+    5,
+    "The Frozen Crown"
+   ],
+   "chapters": [
+    {
+     "id": "A37A",
+     "title": "The Silence Returns",
+     "location": "EXT. FROSTVEIL STATION",
+     "kind": "cutscene",
+     "start": "fv-station",
+     "open": [
+      "A37_001",
+      "A37_002",
+      "A37_003",
+      "A37_004"
+     ],
+     "close": [],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A37B",
+     "title": "Hold the Generators",
+     "location": "EXT. FROSTVEIL STATION — THE GENERATOR YARD",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Keep the generators running against the silence",
+     "open": [
+      "A37_005"
+     ],
+     "close": [
+      "A37_006"
+     ],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A37C",
+     "title": "The Silent Cantor",
+     "location": "EXT. FROSTVEIL — THE SHELF",
+     "kind": "boss",
+     "boss": "silent-cantor",
+     "boss_name": "The Silent Cantor",
+     "label": "Break the Silent Cantor",
+     "open": [
+      "A37_007",
+      "A37_008",
+      "A37_009"
+     ],
+     "close": [
+      "A37_010"
+     ],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A37D",
+     "title": "Mockery",
+     "location": "EXT. FROSTVEIL — THE SHELF",
+     "kind": "cutscene",
+     "open": [
+      "A37_011",
+      "A37_012",
+      "A37_013",
+      "A37_014",
+      "A37_015"
+     ],
+     "close": [],
+     "stage": "snow_camp"
+    }
+   ]
+  },
+  {
+   "id": "38",
+   "title": "The Fourth Seal",
+   "region": "Frostveil",
+   "world": "frostveil",
+   "beat": "The Architect's citadel / Seraphine at his side / the seal restored from inside",
+   "chapter": [
+    5,
+    "The Frozen Crown"
+   ],
+   "chapters": [
+    {
+     "id": "A38A",
+     "title": "The Spine",
+     "location": "EXT. FROSTVEIL — THE SPINE ROAD",
+     "kind": "drive",
+     "to": "fv-spine",
+     "start": "fv-station",
+     "label": "Drive to the citadel on the Spine",
+     "open": [
+      "A38_001",
+      "A38_002",
+      "A38_003"
+     ],
+     "close": [],
+     "stage": "snow_camp"
+    },
+    {
+     "id": "A38B",
+     "title": "The Gate of the Citadel",
+     "location": "EXT. THE CITADEL — THE GATE",
+     "kind": "kills",
+     "amount": 10,
+     "to": "fv-spine",
+     "label": "Break into the citadel",
+     "open": [
+      "A38_004"
+     ],
+     "close": [],
+     "stage": "citadel"
+    },
+    {
+     "id": "A38C",
+     "title": "The Wall",
+     "location": "INT. THE CITADEL — THE HIGH HALL",
+     "kind": "cutscene",
+     "open": [
+      "A38_005",
+      "A38_006",
+      "A38_007",
+      "A38_008",
+      "A38_009",
+      "A38_010",
+      "A38_011",
+      "A38_012"
+     ],
+     "close": [],
+     "stage": "citadel"
+    },
+    {
+     "id": "A38D",
+     "title": "The Citadel Warden",
+     "location": "INT. THE CITADEL — THE HIGH HALL",
+     "kind": "boss",
+     "boss": "citadel-warden",
+     "boss_name": "Citadel Warden",
+     "label": "Defeat the Citadel Warden",
+     "open": [
+      "A38_013"
+     ],
+     "close": [
+      "A38_014"
+     ],
+     "stage": "citadel"
+    },
+    {
+     "id": "A38E",
+     "title": "From Inside",
+     "location": "EXT. THE SPINE — DUSK",
+     "kind": "cutscene",
+     "open": [
+      "A38_015",
+      "A38_016",
+      "A38_017",
+      "A38_018",
+      "A38_019",
+      "A38_020",
+      "A38_021",
+      "A38_022"
+     ],
+     "close": [],
+     "stage": "snow_camp",
+     "acts": {
+      "A38_019": "seal"
+     }
+    }
+   ]
+  },
+  {
+   "id": "39",
+   "title": "Fire on the Reach",
+   "region": "Obsidian Reach — Ember Peaks",
+   "world": "ember",
+   "beat": "The Ascendancy's forge / Cipher's past / Crane's protocol",
+   "chapter": [
+    6,
+    "The Broken Covenant"
+   ],
+   "chapters": [
+    {
+     "id": "A39A",
+     "title": "Ash",
+     "location": "EXT. OBSIDIAN REACH — THE ASH OUTPOST",
+     "kind": "cutscene",
+     "start": "sp-ash-outpost",
+     "open": [
+      "A39_001",
+      "A39_002",
+      "A39_003",
+      "A39_004",
+      "A39_005",
+      "A39_006"
+     ],
+     "close": [],
+     "stage": "lava_camp"
+    },
+    {
+     "id": "A39B",
+     "title": "The Lava Road",
+     "location": "EXT. OBSIDIAN REACH — THE LAVA ROAD",
+     "kind": "drive",
+     "to": "sp-ancient-forge",
+     "label": "Drive the lava road to the foundry",
+     "open": [
+      "A39_007"
+     ],
+     "close": [],
+     "stage": "lava_camp"
+    },
+    {
+     "id": "A39C",
+     "title": "The Foundry Gate",
+     "location": "EXT. THE ANCIENT FORGE — THE GATE",
+     "kind": "kills",
+     "amount": 10,
+     "to": "sp-ancient-forge",
+     "label": "Break the foundry's guard",
+     "open": [
+      "A39_008"
+     ],
+     "close": [],
+     "stage": "forge"
+    },
+    {
+     "id": "A39D",
+     "title": "The Prefect's Forge",
+     "location": "INT. THE ANCIENT FORGE",
+     "kind": "talk",
+     "who": "CRANE",
+     "to": "sp-ancient-forge",
+     "label": "Find Crane in the forge",
+     "open": [],
+     "close": [
+      "A39_009",
+      "A39_010",
+      "A39_011",
+      "A39_012",
+      "A39_013",
+      "A39_014",
+      "A39_015"
+     ],
+     "stage": "forge"
+    },
+    {
+     "id": "A39E",
+     "title": "Tallis",
+     "location": "INT. THE ANCIENT FORGE — THE CHAMBER",
+     "kind": "cutscene",
+     "open": [
+      "A39_016",
+      "A39_017",
+      "A39_018",
+      "A39_019",
+      "A39_020",
+      "A39_021"
+     ],
+     "close": [],
+     "stage": "forge"
+    }
+   ]
+  },
+  {
+   "id": "40",
+   "title": "The Ascension Protocol",
+   "region": "Obsidian Reach — Ember Peaks",
+   "world": "ember",
+   "beat": "The forge core / a brother / what Crane learns",
+   "chapter": [
+    6,
+    "The Broken Covenant"
+   ],
+   "chapters": [
+    {
+     "id": "A40A",
+     "title": "The Forge Core",
+     "location": "INT. THE ANCIENT FORGE — THE CORE",
+     "kind": "hack",
+     "start": "sp-ancient-forge",
+     "label": "Shut the forge core down",
+     "open": [
+      "A40_001",
+      "A40_002"
+     ],
+     "close": [
+      "A40_003"
+     ],
+     "stage": "forge"
+    },
+    {
+     "id": "A40B",
+     "title": "The Forge Wakes",
+     "location": "INT. THE ANCIENT FORGE",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold the forge",
+     "open": [
+      "A40_004"
+     ],
+     "close": [],
+     "stage": "forge"
+    },
+    {
+     "id": "A40C",
+     "title": "The Ascended",
+     "location": "INT. THE ANCIENT FORGE — THE CHAMBER",
+     "kind": "boss",
+     "boss": "ascended",
+     "boss_name": "Tallis, the Ascended",
+     "label": "Free Tallis",
+     "open": [
+      "A40_005",
+      "A40_006"
+     ],
+     "close": [
+      "A40_007",
+      "A40_008"
+     ],
+     "stage": "forge"
+    },
+    {
+     "id": "A40D",
+     "title": "What Crane Learned",
+     "location": "INT. THE ANCIENT FORGE",
+     "kind": "cutscene",
+     "open": [
+      "A40_009",
+      "A40_010",
+      "A40_011",
+      "A40_012",
+      "A40_013",
+      "A40_014",
+      "A40_015",
+      "A40_016"
+     ],
+     "close": [],
+     "stage": "forge"
+    }
+   ]
+  },
+  {
+   "id": "41",
+   "title": "The Severant",
+   "region": "Obsidian Reach — Ember Peaks",
+   "world": "ember",
+   "beat": "Vael Turog crosses / a fight you cannot win / the fifth keeper's doctrine",
+   "chapter": [
+    6,
+    "The Broken Covenant"
+   ],
+   "chapters": [
+    {
+     "id": "A41A",
+     "title": "The Fifth Star Lands",
+     "location": "EXT. OBSIDIAN RIDGE",
+     "kind": "cutscene",
+     "start": "obsidian-ridge",
+     "open": [
+      "A41_001",
+      "A41_002",
+      "A41_003"
+     ],
+     "close": [],
+     "stage": "ridge"
+    },
+    {
+     "id": "A41B",
+     "title": "The Choir's Honour Guard",
+     "location": "EXT. OBSIDIAN RIDGE",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Survive the Choir's guard",
+     "open": [
+      "A41_004"
+     ],
+     "close": [
+      "A41_005"
+     ],
+     "stage": "ridge"
+    },
+    {
+     "id": "A41C",
+     "title": "Vael Turog",
+     "location": "EXT. OBSIDIAN RIDGE — THE DOOR",
+     "kind": "boss",
+     "boss": "vael-turog",
+     "boss_name": "Vael Turog, the Severant",
+     "label": "Stand against the Severant",
+     "open": [
+      "A41_006",
+      "A41_007"
+     ],
+     "close": [
+      "A41_008",
+      "A41_009"
+     ],
+     "stage": "ridge"
+    },
+    {
+     "id": "A41D",
+     "title": "The Seal of Endings",
+     "location": "EXT. OBSIDIAN RIDGE — THE DOOR",
+     "kind": "cutscene",
+     "open": [
+      "A41_010",
+      "A41_011",
+      "A41_012",
+      "A41_013",
+      "A41_014",
+      "A41_015",
+      "A41_016"
+     ],
+     "close": [],
+     "stage": "ridge"
+    }
+   ]
+  },
+  {
+   "id": "42",
+   "title": "The Broken Covenant",
+   "region": "Old Harrow",
+   "world": "old-harrow",
+   "beat": "A secret meeting / Seraphine's plan / the two ways to break the world",
+   "chapter": [
+    6,
+    "The Broken Covenant"
+   ],
+   "chapters": [
+    {
+     "id": "A42A",
+     "title": "Neutral Ground",
+     "location": "EXT. OLD HARROW — THE MARKET",
+     "kind": "cutscene",
+     "start": "oh-market",
+     "open": [
+      "A42_001",
+      "A42_002",
+      "A42_003",
+      "A42_004"
+     ],
+     "close": [],
+     "stage": "harrow"
+    },
+    {
+     "id": "A42B",
+     "title": "The Cathedral",
+     "location": "INT. OLD HARROW CATHEDRAL",
+     "kind": "talk",
+     "who": "SERAPHINE",
+     "to": "oh-cathedral",
+     "label": "Meet Seraphine in the cathedral",
+     "open": [],
+     "close": [
+      "A42_005",
+      "A42_006",
+      "A42_007",
+      "A42_008",
+      "A42_009",
+      "A42_010",
+      "A42_011",
+      "A42_012",
+      "A42_013"
+     ],
+     "stage": "cathedral"
+    },
+    {
+     "id": "A42C",
+     "title": "Followed",
+     "location": "EXT. OLD HARROW — THE CASTLE ROAD",
+     "kind": "kills",
+     "amount": 9,
+     "to": "oh-castle",
+     "label": "Cover Seraphine's way out",
+     "open": [
+      "A42_014",
+      "A42_015"
+     ],
+     "close": [],
+     "stage": "harrow"
+    },
+    {
+     "id": "A42D",
+     "title": "What You Did",
+     "location": "EXT. OLD HARROW — THE BRIDGE",
+     "kind": "cutscene",
+     "open": [
+      "A42_016",
+      "A42_017",
+      "A42_018",
+      "A42_019",
+      "A42_020",
+      "A42_021",
+      "A42_022"
+     ],
+     "close": [],
+     "stage": "harrow"
+    }
+   ]
+  },
+  {
+   "id": "43",
+   "title": "Haven Falls",
+   "region": "Nexus City",
+   "world": "nexus",
+   "beat": "Two armies at the walls / Ward's last command / evacuation",
+   "chapter": [
+    6,
+    "The Broken Covenant"
+   ],
+   "chapters": [
+    {
+     "id": "A43A",
+     "title": "Both At Once",
+     "location": "INT. HAVEN-01 COMMAND CENTRE",
+     "kind": "cutscene",
+     "start": "nexus-harbor",
+     "open": [
+      "A43_001",
+      "A43_002",
+      "A43_003",
+      "A43_004",
+      "A43_005",
+      "A43_006"
+     ],
+     "close": [],
+     "stage": "command_post"
+    },
+    {
+     "id": "A43B",
+     "title": "The Walls Again",
+     "location": "HAVEN-01 — THE PERIMETER",
+     "kind": "survive",
+     "amount": 80,
+     "label": "Hold the walls",
+     "open": [
+      "A43_007",
+      "A43_008"
+     ],
+     "close": [
+      "A43_009"
+     ],
+     "stage": "haven"
+    },
+    {
+     "id": "A43C",
+     "title": "The Breaker",
+     "location": "HAVEN-01 — THE NORTHERN WALL",
+     "kind": "boss",
+     "boss": "choir-breaker",
+     "boss_name": "Choir Breaker",
+     "label": "Stop the Breaker",
+     "open": [
+      "A43_010"
+     ],
+     "close": [
+      "A43_011"
+     ],
+     "stage": "haven"
+    },
+    {
+     "id": "A43D",
+     "title": "Last Command",
+     "location": "INT. HAVEN-01 COMMAND CENTRE",
+     "kind": "cutscene",
+     "open": [
+      "A43_012",
+      "A43_013",
+      "A43_014",
+      "A43_015",
+      "A43_016",
+      "A43_017",
+      "A43_018",
+      "A43_019"
+     ],
+     "close": [],
+     "stage": "command_post"
+    },
+    {
+     "id": "A43E",
+     "title": "Out of Haven",
+     "location": "EXT. HAVEN-01 — THE HARBOUR GATE",
+     "kind": "reach",
+     "label": "Get out of Haven",
+     "open": [
+      "A43_020"
+     ],
+     "close": [],
+     "stage": "haven"
+    }
+   ]
+  },
+  {
+   "id": "44",
+   "title": "Kael's Run",
+   "region": "The Wastelands",
+   "world": "wastelands",
+   "beat": "Refugee convoy / raiders turned / the Underground opens its gate",
+   "chapter": [
+    6,
+    "The Broken Covenant"
+   ],
+   "chapters": [
+    {
+     "id": "A44A",
+     "title": "Where Now",
+     "location": "EXT. THE WASTELANDS — THE OLD HIGHWAY",
+     "kind": "cutscene",
+     "start": "wl-old-highway",
+     "open": [
+      "A44_001",
+      "A44_002",
+      "A44_003",
+      "A44_004",
+      "A44_005"
+     ],
+     "close": [],
+     "stage": "wasteland"
+    },
+    {
+     "id": "A44B",
+     "title": "The Convoy",
+     "location": "EXT. THE OLD HIGHWAY",
+     "kind": "drive",
+     "to": "vault-gate",
+     "label": "Lead the convoy to the Underground's gate",
+     "open": [
+      "A44_006",
+      "A44_007"
+     ],
+     "close": [],
+     "stage": "wasteland"
+    },
+    {
+     "id": "A44C",
+     "title": "Raiders",
+     "location": "EXT. THE VAULT GATE ROAD",
+     "kind": "kills",
+     "amount": 10,
+     "label": "Clear the raiders off the gate road",
+     "open": [
+      "A44_008",
+      "A44_009"
+     ],
+     "close": [],
+     "stage": "wasteland"
+    },
+    {
+     "id": "A44D",
+     "title": "The Gate",
+     "location": "EXT. THE VAULT GATE",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold the gate while the Underground decides",
+     "open": [
+      "A44_010"
+     ],
+     "close": [
+      "A44_011"
+     ],
+     "stage": "vault_gate"
+    },
+    {
+     "id": "A44E",
+     "title": "Underground",
+     "location": "INT. THE UNDERGROUND CITY",
+     "kind": "cutscene",
+     "open": [
+      "A44_012",
+      "A44_013",
+      "A44_014",
+      "A44_015",
+      "A44_016"
+     ],
+     "close": [],
+     "stage": "underground"
+    }
+   ]
+  },
+  {
+   "id": "45",
+   "title": "The Fifth Signature",
+   "region": "The Wastelands",
+   "world": "wastelands",
+   "beat": "The keepers' council / where the fifth seal is / the Witness shows an ending",
+   "chapter": [
+    6,
+    "The Broken Covenant"
+   ],
+   "chapters": [
+    {
+     "id": "A45A",
+     "title": "Council Underground",
+     "location": "INT. THE UNDERGROUND — THE OLD VAULT",
+     "kind": "cutscene",
+     "start": "vault-gate",
+     "open": [
+      "A45_001",
+      "A45_002",
+      "A45_003",
+      "A45_004",
+      "A45_005",
+      "A45_006",
+      "A45_007",
+      "A45_008",
+      "A45_009"
+     ],
+     "close": [],
+     "stage": "underground"
+    },
+    {
+     "id": "A45B",
+     "title": "Triangulate",
+     "location": "EXT. THE WASTELANDS — THE CRATER",
+     "kind": "trace",
+     "to": "wl-crater",
+     "label": "Help Auren triangulate the fifth seal",
+     "open": [
+      "A45_010"
+     ],
+     "close": [
+      "A45_011"
+     ],
+     "stage": "wasteland"
+    },
+    {
+     "id": "A45C",
+     "title": "The Memory",
+     "location": "EXT. THE WASTELANDS — NIGHT",
+     "kind": "cutscene",
+     "open": [
+      "A45_012",
+      "A45_013",
+      "A45_014",
+      "A45_015",
+      "A45_016",
+      "A45_017",
+      "A45_018",
+      "A45_019"
+     ],
+     "close": [],
+     "stage": "wasteland"
+    },
+    {
+     "id": "A45D",
+     "title": "The Last Night Before",
+     "location": "INT. THE UNDERGROUND — THE OLD VAULT",
+     "kind": "cutscene",
+     "open": [
+      "A45_020",
+      "A45_021",
+      "A45_022",
+      "A45_023",
+      "A45_024",
+      "A45_025",
+      "A45_026",
+      "A45_027"
+     ],
+     "close": [],
+     "stage": "underground"
+    }
+   ]
+  },
+  {
+   "id": "46",
+   "title": "The Gate Beneath Nexus",
+   "region": "Nexus City — beneath the Old Quarter",
+   "world": "nexus",
+   "beat": "The archive's deepest door / the sentinels wake / Arrival",
+   "chapter": [
+    7,
+    "The Origin Engine"
+   ],
+   "chapters": [
+    {
+     "id": "A46A",
+     "title": "Four Seals",
+     "location": "INT. THE ASHEN ARCHIVE — THE DAIS",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "A46_001",
+      "A46_002",
+      "A46_003",
+      "A46_004",
+      "A46_005",
+      "A46_006"
+     ],
+     "close": [],
+     "stage": "archive"
+    },
+    {
+     "id": "A46B",
+     "title": "The Deep Stair",
+     "location": "INT. THE DEEP STAIR",
+     "kind": "reach",
+     "label": "Descend the deep stair",
+     "open": [
+      "A46_007",
+      "A46_008"
+     ],
+     "close": [],
+     "stage": "shaft"
+    },
+    {
+     "id": "A46C",
+     "title": "Sentinels",
+     "location": "INT. THE ENGINE — THE ARRIVAL GATE",
+     "kind": "kills",
+     "amount": 10,
+     "label": "Get past the waking sentinels",
+     "open": [
+      "A46_009",
+      "A46_010",
+      "A46_011"
+     ],
+     "close": [],
+     "stage": "astryan_hall"
+    },
+    {
+     "id": "A46D",
+     "title": "Welcome Back",
+     "location": "INT. THE ENGINE — ARRIVAL",
+     "kind": "cutscene",
+     "open": [
+      "A46_012",
+      "A46_013",
+      "A46_014",
+      "A46_015",
+      "A46_016"
+     ],
+     "close": [],
+     "stage": "astryan_hall"
+    }
+   ]
+  },
+  {
+   "id": "47",
+   "title": "Arrival",
+   "region": "The Origin Engine — Arrival",
+   "world": "nexus",
+   "beat": "The terminals / the riftwalkers / the Astryans' three answers",
+   "chapter": [
+    7,
+    "The Origin Engine"
+   ],
+   "chapters": [
+    {
+     "id": "A47A",
+     "title": "The Terminal",
+     "location": "INT. ARRIVAL — THE TERMINAL HALL",
+     "kind": "hack",
+     "start": "nexus-central-plaza",
+     "label": "Give NOVA the Arrival terminal",
+     "open": [
+      "A47_001",
+      "A47_002"
+     ],
+     "close": [
+      "A47_003"
+     ],
+     "stage": "astryan_hall"
+    },
+    {
+     "id": "A47B",
+     "title": "Riftwalkers",
+     "location": "INT. ARRIVAL — THE TRANSIT RING",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold the transit ring",
+     "open": [
+      "A47_004",
+      "A47_005"
+     ],
+     "close": [],
+     "stage": "astryan_hall"
+    },
+    {
+     "id": "A47C",
+     "title": "Three Answers",
+     "location": "INT. ARRIVAL — THE TERMINAL HALL",
+     "kind": "cutscene",
+     "open": [
+      "A47_006",
+      "A47_007",
+      "A47_008",
+      "A47_009",
+      "A47_010",
+      "A47_011"
+     ],
+     "close": [],
+     "stage": "astryan_hall"
+    },
+    {
+     "id": "A47D",
+     "title": "To the Capital",
+     "location": "INT. ARRIVAL — THE TRANSIT",
+     "kind": "reach",
+     "label": "Take the transit to the Celestial Capital",
+     "open": [
+      "A47_012"
+     ],
+     "close": [],
+     "stage": "astryan_hall"
+    }
+   ]
+  },
+  {
+   "id": "48",
+   "title": "The Celestial Capital",
+   "region": "The Origin Engine — the Capital",
+   "world": "nexus",
+   "beat": "A city in one moment / a phantom child / the turning replayed",
+   "chapter": [
+    7,
+    "The Origin Engine"
+   ],
+   "chapters": [
+    {
+     "id": "A48A",
+     "title": "One Moment",
+     "location": "EXT. THE CELESTIAL CAPITAL",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "A48_001",
+      "A48_002",
+      "A48_003",
+      "A48_004"
+     ],
+     "close": [],
+     "stage": "capital"
+    },
+    {
+     "id": "A48B",
+     "title": "The Child",
+     "location": "EXT. THE CAPITAL — A GARDEN SQUARE",
+     "kind": "talk",
+     "who": "PHANTOM CHILD",
+     "label": "Follow the child into the garden square",
+     "open": [],
+     "close": [
+      "A48_005",
+      "A48_006",
+      "A48_007",
+      "A48_008",
+      "A48_009",
+      "A48_010"
+     ],
+     "stage": "capital"
+    },
+    {
+     "id": "A48C",
+     "title": "The Eternal Guard",
+     "location": "EXT. THE CAPITAL — THE COUNCIL STEPS",
+     "kind": "kills",
+     "amount": 10,
+     "label": "Fight through the Eternal Guard",
+     "open": [
+      "A48_011"
+     ],
+     "close": [],
+     "stage": "capital"
+    },
+    {
+     "id": "A48D",
+     "title": "The Turning",
+     "location": "INT. THE COUNCIL HALL",
+     "kind": "cutscene",
+     "open": [
+      "A48_012",
+      "A48_013",
+      "A48_014",
+      "A48_015",
+      "A48_016",
+      "A48_017"
+     ],
+     "close": [],
+     "stage": "council"
+    }
+   ]
+  },
+  {
+   "id": "49",
+   "title": "The Eternal Archives",
+   "region": "The Origin Engine — the Archives",
+   "world": "nexus",
+   "beat": "The Architect's name / the archive's guardian / what the turning really did",
+   "chapter": [
+    7,
+    "The Origin Engine"
+   ],
+   "chapters": [
+    {
+     "id": "A49A",
+     "title": "Stacks",
+     "location": "INT. THE ETERNAL ARCHIVES",
+     "kind": "trace",
+     "start": "nexus-central-plaza",
+     "label": "Search the archive stacks for the Council's records",
+     "open": [
+      "A49_001",
+      "A49_002"
+     ],
+     "close": [
+      "A49_003"
+     ],
+     "stage": "stacks"
+    },
+    {
+     "id": "A49B",
+     "title": "Idris Maelor",
+     "location": "INT. THE ARCHIVES — A RECORD",
+     "kind": "cutscene",
+     "open": [
+      "A49_004",
+      "A49_005",
+      "A49_006",
+      "A49_007",
+      "A49_008"
+     ],
+     "close": [],
+     "stage": "stacks"
+    },
+    {
+     "id": "A49C",
+     "title": "Archive Phantom Prime",
+     "location": "INT. THE ARCHIVES — THE DEEP STACKS",
+     "kind": "boss",
+     "boss": "phantom-prime",
+     "boss_name": "Archive Phantom Prime",
+     "label": "Defeat the archive's guardian",
+     "open": [
+      "A49_009"
+     ],
+     "close": [
+      "A49_010"
+     ],
+     "stage": "stacks"
+    },
+    {
+     "id": "A49D",
+     "title": "What He Kept",
+     "location": "INT. THE ARCHIVES",
+     "kind": "cutscene",
+     "open": [
+      "A49_011",
+      "A49_012",
+      "A49_013",
+      "A49_014",
+      "A49_015",
+      "A49_016"
+     ],
+     "close": [],
+     "stage": "stacks"
+    }
+   ]
+  },
+  {
+   "id": "50",
+   "title": "The First Memory",
+   "region": "The Origin Engine — the Gardens",
+   "world": "nexus",
+   "beat": "The Living Gardens / NOVA's maker / where the sixth came from",
+   "chapter": [
+    7,
+    "The Origin Engine"
+   ],
+   "chapters": [
+    {
+     "id": "A50A",
+     "title": "The Living Gardens",
+     "location": "INT. THE LIVING GARDENS",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "A50_001",
+      "A50_002",
+      "A50_003"
+     ],
+     "close": [],
+     "stage": "gardens"
+    },
+    {
+     "id": "A50B",
+     "title": "Gardeners",
+     "location": "INT. THE GARDENS — THE DRAGON ARCH",
+     "kind": "kills",
+     "amount": 9,
+     "label": "Clear the gardens' wardens",
+     "open": [
+      "A50_004",
+      "A50_005"
+     ],
+     "close": [],
+     "stage": "gardens"
+    },
+    {
+     "id": "A50C",
+     "title": "Elenya",
+     "location": "INT. THE GARDENS — THE MAKER'S BENCH",
+     "kind": "talk",
+     "who": "ASTRYAN MAKER",
+     "label": "Find the maker's bench",
+     "open": [],
+     "close": [
+      "A50_006",
+      "A50_007",
+      "A50_008",
+      "A50_009",
+      "A50_010",
+      "A50_011",
+      "A50_012"
+     ],
+     "stage": "gardens"
+    },
+    {
+     "id": "A50D",
+     "title": "Older",
+     "location": "INT. THE GARDENS",
+     "kind": "cutscene",
+     "open": [
+      "A50_013",
+      "A50_014",
+      "A50_015",
+      "A50_016",
+      "A50_017",
+      "A50_018"
+     ],
+     "close": [],
+     "stage": "gardens"
+    }
+   ]
+  },
+  {
+   "id": "51",
+   "title": "The Continuum Chamber",
+   "region": "The Origin Engine — the Chamber",
+   "world": "nexus",
+   "beat": "The Architect's laboratory / the other lives / Seraphine's sabotage",
+   "chapter": [
+    7,
+    "The Origin Engine"
+   ],
+   "chapters": [
+    {
+     "id": "A51A",
+     "title": "The Chamber Door",
+     "location": "INT. THE CONTINUUM CHAMBER — THE DOOR",
+     "kind": "reach",
+     "start": "nexus-central-plaza",
+     "label": "Reach the Continuum Chamber",
+     "open": [
+      "A51_001"
+     ],
+     "close": [],
+     "stage": "astryan_hall"
+    },
+    {
+     "id": "A51B",
+     "title": "Inner Circle",
+     "location": "INT. THE CHAMBER",
+     "kind": "kills",
+     "amount": 11,
+     "label": "Fight through the Inner Circle",
+     "open": [
+      "A51_002"
+     ],
+     "close": [],
+     "stage": "pods"
+    },
+    {
+     "id": "A51C",
+     "title": "The Other Lives",
+     "location": "INT. THE CHAMBER — THE PODS",
+     "kind": "cutscene",
+     "open": [
+      "A51_003",
+      "A51_004",
+      "A51_005",
+      "A51_006",
+      "A51_007",
+      "A51_008",
+      "A51_009"
+     ],
+     "close": [],
+     "stage": "pods"
+    },
+    {
+     "id": "A51D",
+     "title": "Release",
+     "location": "INT. THE CHAMBER — THE PODS",
+     "kind": "hack",
+     "label": "Release the memories",
+     "open": [
+      "A51_010",
+      "A51_011",
+      "A51_012"
+     ],
+     "close": [
+      "A51_013"
+     ],
+     "stage": "pods",
+     "acts": {
+      "A51_013": "release"
+     }
+    },
+    {
+     "id": "A51E",
+     "title": "He Knows",
+     "location": "INT. THE CHAMBER",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold the chamber while the memories go",
+     "open": [
+      "A51_014",
+      "A51_015",
+      "A51_016"
+     ],
+     "close": [],
+     "stage": "pods"
+    }
+   ]
+  },
+  {
+   "id": "52",
+   "title": "The Architect",
+   "region": "The Origin Engine — the threshold of the Heart",
+   "world": "nexus",
+   "beat": "Face to face / the machine he wears / the lock begins",
+   "chapter": [
+    7,
+    "The Origin Engine"
+   ],
+   "chapters": [
+    {
+     "id": "A52A",
+     "title": "Threshold",
+     "location": "INT. THE THRESHOLD OF THE HEART",
+     "kind": "cutscene",
+     "start": "nexus-central-plaza",
+     "open": [
+      "A52_001",
+      "A52_002",
+      "A52_003",
+      "A52_004",
+      "A52_005",
+      "A52_006",
+      "A52_007"
+     ],
+     "close": [],
+     "stage": "heart"
+    },
+    {
+     "id": "A52B",
+     "title": "The Sovereign Machine",
+     "location": "INT. THE THRESHOLD",
+     "kind": "boss",
+     "boss": "sovereign-machine",
+     "boss_name": "The Architect's Sovereign Machine",
+     "label": "Break the Architect's machine",
+     "open": [
+      "A52_008",
+      "A52_009"
+     ],
+     "close": [
+      "A52_010"
+     ],
+     "stage": "heart"
+    },
+    {
+     "id": "A52C",
+     "title": "The Lock Begins",
+     "location": "INT. THE HEART — THE CORE",
+     "kind": "cutscene",
+     "open": [
+      "A52_011",
+      "A52_012",
+      "A52_013",
+      "A52_014",
+      "A52_015",
+      "A52_016",
+      "A52_017"
+     ],
+     "close": [],
+     "stage": "heart"
     }
    ]
   }
@@ -11682,6 +13444,2418 @@
    "mission": "31",
    "speaker": "NOVA",
    "text": "For four seconds, nothing in the world made a sound. Not even me."
+  },
+  {
+   "id": "A32_001",
+   "mission": "32",
+   "speaker": "NOVA",
+   "text": "Frostveil. Minus thirty-eight degrees. The research station stopped transmitting four days ago."
+  },
+  {
+   "id": "A32_002",
+   "mission": "32",
+   "speaker": "KAEL",
+   "text": "My people run supplies up here. Last run came back with the drivers unable to speak. Not wouldn't. Couldn't."
+  },
+  {
+   "id": "A32_003",
+   "mission": "32",
+   "speaker": "PLAYER",
+   "text": "You came yourself."
+  },
+  {
+   "id": "A32_004",
+   "mission": "32",
+   "speaker": "KAEL",
+   "text": "When things get strange enough, I like to look at them with my own eyes."
+  },
+  {
+   "id": "A32_005",
+   "mission": "32",
+   "speaker": "SERAPHINE",
+   "text": "I've been dreaming about this place. Snow that doesn't fall. A chair made of ice."
+  },
+  {
+   "id": "A32_006",
+   "mission": "32",
+   "speaker": "KAEL",
+   "text": "That's a weird dream, Doc."
+  },
+  {
+   "id": "A32_007",
+   "mission": "32",
+   "speaker": "SERAPHINE",
+   "text": "I'm a weird person, Kael."
+  },
+  {
+   "id": "A32_008",
+   "mission": "32",
+   "speaker": "NOVA",
+   "text": "There are heat signatures inside. Forty people. None of them are moving."
+  },
+  {
+   "id": "A32_009",
+   "mission": "32",
+   "speaker": "PLAYER",
+   "text": "Alive?"
+  },
+  {
+   "id": "A32_010",
+   "mission": "32",
+   "speaker": "NOVA",
+   "text": "Alive. Silent. Even their hearts are quiet."
+  },
+  {
+   "id": "A32_011",
+   "mission": "32",
+   "speaker": "DR. HALVARD",
+   "text": "...sound... is that sound? I can hear you."
+  },
+  {
+   "id": "A32_012",
+   "mission": "32",
+   "speaker": "PLAYER",
+   "text": "Take it slow. What happened here?"
+  },
+  {
+   "id": "A32_013",
+   "mission": "32",
+   "speaker": "DR. HALVARD",
+   "text": "The silence came off the shelf. Like fog. Everything it touched forgot how to make noise. The wind. The generators. Us."
+  },
+  {
+   "id": "A32_014",
+   "mission": "32",
+   "speaker": "NOVA",
+   "text": "A Null Choir suppression field. It spreads where a keeper is close to waking. The Choir's answer to a song is silence."
+  },
+  {
+   "id": "A32_015",
+   "mission": "32",
+   "speaker": "DR. HALVARD",
+   "text": "We were drilling. Under the shelf. We found a cavern with a chair in it. A chair of ice with a crown on the seat."
+  },
+  {
+   "id": "A32_016",
+   "mission": "32",
+   "speaker": "SERAPHINE",
+   "text": "Did anyone touch it?"
+  },
+  {
+   "id": "A32_017",
+   "mission": "32",
+   "speaker": "DR. HALVARD",
+   "text": "Nobody could lift it. Three engineers tried. That's when the silence came."
+  },
+  {
+   "id": "A32_018",
+   "mission": "32",
+   "speaker": "NOVA",
+   "text": "Constructs in the yard. My audio is failing near them. If I stop talking, keep shooting."
+  },
+  {
+   "id": "A32_019",
+   "mission": "32",
+   "speaker": "KAEL",
+   "text": "That's the best plan I've heard in weeks."
+  },
+  {
+   "id": "A32_020",
+   "mission": "32",
+   "speaker": "NOVA",
+   "text": "...signal returning. Station is quiet. The normal kind of quiet."
+  },
+  {
+   "id": "A32_021",
+   "mission": "32",
+   "speaker": "SERAPHINE",
+   "text": "Are you awake?"
+  },
+  {
+   "id": "A32_022",
+   "mission": "32",
+   "speaker": "PLAYER",
+   "text": "Now I am."
+  },
+  {
+   "id": "A32_023",
+   "mission": "32",
+   "speaker": "SERAPHINE",
+   "text": "In the dream I'm sitting on the chair. There's a veil over my face and I can't take it off. And you're standing at the gate with your hand on it, and I'm saying something to you."
+  },
+  {
+   "id": "A32_024",
+   "mission": "32",
+   "speaker": "PLAYER",
+   "text": "What are you saying?"
+  },
+  {
+   "id": "A32_025",
+   "mission": "32",
+   "speaker": "SERAPHINE",
+   "text": "I don't know. Every time I get to the words, I wake up. I think I'm afraid of them."
+  },
+  {
+   "id": "A32_026",
+   "mission": "32",
+   "speaker": "NOVA",
+   "text": "Seraphine's neural pattern during sleep matched the archive's fourth signature for eleven minutes."
+  },
+  {
+   "id": "A32_027",
+   "mission": "32",
+   "speaker": "SERAPHINE",
+   "text": "Yes, NOVA. I know. Thank you."
+  },
+  {
+   "id": "A33_001",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "Aurora Gate. The observatory on the hill is Astryan underneath. Built to read the lock in the sky."
+  },
+  {
+   "id": "A33_002",
+   "mission": "33",
+   "speaker": "KAEL",
+   "text": "Read the lock in the sky. Sure. Why not."
+  },
+  {
+   "id": "A33_003",
+   "mission": "33",
+   "speaker": "PLAYER",
+   "text": "What will it show us?"
+  },
+  {
+   "id": "A33_004",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "Where the crown's seal truly sleeps. The cavern under the shelf is only where it surfaced."
+  },
+  {
+   "id": "A33_005",
+   "mission": "33",
+   "speaker": "KAEL",
+   "text": "Roads up here were built by people who hated driving."
+  },
+  {
+   "id": "A33_006",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "The lens is Astryan crystal. It needs a keeper's signature to align. Or the sixth's."
+  },
+  {
+   "id": "A33_007",
+   "mission": "33",
+   "speaker": "PLAYER",
+   "text": "I'm getting used to being a key."
+  },
+  {
+   "id": "A33_008",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "Aligned."
+  },
+  {
+   "id": "A33_009",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "The lens shows the lock as a constellation. Five stars round a dark centre."
+  },
+  {
+   "id": "A33_010",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "The first three are bright. The Voice. The Cartographer. The Echo."
+  },
+  {
+   "id": "A33_011",
+   "mission": "33",
+   "speaker": "SERAPHINE",
+   "text": "And the fourth?"
+  },
+  {
+   "id": "A33_012",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "Dim. It is not under the shelf. It is in the person the seal was given to."
+  },
+  {
+   "id": "A33_013",
+   "mission": "33",
+   "speaker": "PLAYER",
+   "text": "The Veiled Sovereign."
+  },
+  {
+   "id": "A33_014",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "The crown is a lock on her memory. Whoever lifts it remembers what she was."
+  },
+  {
+   "id": "A33_015",
+   "mission": "33",
+   "speaker": "KAEL",
+   "text": "And the fifth?"
+  },
+  {
+   "id": "A33_016",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "The fifth star is moving. Toward the centre."
+  },
+  {
+   "id": "A33_017",
+   "mission": "33",
+   "speaker": "SERAPHINE",
+   "text": "Turog."
+  },
+  {
+   "id": "A33_018",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "The Choir noticed the lens. They are coming up the hill."
+  },
+  {
+   "id": "A33_019",
+   "mission": "33",
+   "speaker": "KAEL",
+   "text": "Free Operators! Earn your keep!"
+  },
+  {
+   "id": "A33_020",
+   "mission": "33",
+   "speaker": "NOVA",
+   "text": "Star map copied. We have what we came for."
+  },
+  {
+   "id": "A34_001",
+   "mission": "34",
+   "speaker": "NOVA",
+   "text": "Three anchor points lead down to the cavern. The star map shows a path the drill missed."
+  },
+  {
+   "id": "A34_002",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "I know the way. I don't know how I know."
+  },
+  {
+   "id": "A34_003",
+   "mission": "34",
+   "speaker": "NOVA",
+   "text": "Temperature dropping. Sound is fading again."
+  },
+  {
+   "id": "A34_004",
+   "mission": "34",
+   "speaker": "PLAYER",
+   "text": "Choir?"
+  },
+  {
+   "id": "A34_005",
+   "mission": "34",
+   "speaker": "NOVA",
+   "text": "No. This silence is older. It is respectful."
+  },
+  {
+   "id": "A34_006",
+   "mission": "34",
+   "speaker": "NOVA",
+   "text": "A throne. A crown on the seat. And behind the ice of the wall... a woman."
+  },
+  {
+   "id": "A34_007",
+   "mission": "34",
+   "speaker": "PLAYER",
+   "text": "Frozen?"
+  },
+  {
+   "id": "A34_008",
+   "mission": "34",
+   "speaker": "NOVA",
+   "text": "Preserved. Veiled. Her signature is the fourth keeper's."
+  },
+  {
+   "id": "A34_009",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "Move the light. Please. I need to see her."
+  },
+  {
+   "id": "A34_010",
+   "mission": "34",
+   "speaker": "NOVA",
+   "text": "..."
+  },
+  {
+   "id": "A34_011",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "It's me. Under the veil. It's my face."
+  },
+  {
+   "id": "A34_012",
+   "mission": "34",
+   "speaker": "PLAYER",
+   "text": "Seraphine..."
+  },
+  {
+   "id": "A34_013",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "I left myself here. I left my memory on a chair in the ice and I walked out and I forgot I'd done it."
+  },
+  {
+   "id": "A34_014",
+   "mission": "34",
+   "speaker": "VEILED SOVEREIGN",
+   "text": "You came back for me. For yourself. I always hoped you would, and I always hoped you wouldn't."
+  },
+  {
+   "id": "A34_015",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "Why did you leave me here?"
+  },
+  {
+   "id": "A34_016",
+   "mission": "34",
+   "speaker": "VEILED SOVEREIGN",
+   "text": "Because I couldn't carry what I knew and still be kind. So I put it down. And I picked up a lab coat."
+  },
+  {
+   "id": "A34_017",
+   "mission": "34",
+   "speaker": "VEILED SOVEREIGN",
+   "text": "Sixth. You're here too. Of course you are. You were always where the hardest thing was."
+  },
+  {
+   "id": "A34_018",
+   "mission": "34",
+   "speaker": "PLAYER",
+   "text": "What did you know? What was too heavy?"
+  },
+  {
+   "id": "A34_019",
+   "mission": "34",
+   "speaker": "VEILED SOVEREIGN",
+   "text": "That the Covenant didn't break when you opened the gate. It broke before. It broke when I walked away from it. You only finished what I started."
+  },
+  {
+   "id": "A34_020",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "..."
+  },
+  {
+   "id": "A34_021",
+   "mission": "34",
+   "speaker": "VEILED SOVEREIGN",
+   "text": "Lift the crown, if you want to remember. You will hate us both for a while. That's the price."
+  },
+  {
+   "id": "A34_022",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "If I lift it, I'll remember all of it."
+  },
+  {
+   "id": "A34_023",
+   "mission": "34",
+   "speaker": "PLAYER",
+   "text": "Then don't. Not yet."
+  },
+  {
+   "id": "A34_024",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "Vasq said every time I remember, I leave. Eleven worlds. I left eleven times."
+  },
+  {
+   "id": "A34_025",
+   "mission": "34",
+   "speaker": "PLAYER",
+   "text": "You don't have to leave this time."
+  },
+  {
+   "id": "A34_026",
+   "mission": "34",
+   "speaker": "SERAPHINE",
+   "text": "You don't know that. Neither do I. That's what terrifies me."
+  },
+  {
+   "id": "A34_027",
+   "mission": "34",
+   "speaker": "NOVA",
+   "text": "Operator. Something just arrived at the cavern entrance. It has no signature. And then it has one."
+  },
+  {
+   "id": "A34_028",
+   "mission": "34",
+   "speaker": "THE ARCHITECT",
+   "text": "I said I'd ask again when the third keeper woke. I'm a man of my word. Usually."
+  },
+  {
+   "id": "A35_001",
+   "mission": "35",
+   "speaker": "THE ARCHITECT",
+   "text": "Hello, Seraphine. You found her. I hoped you wouldn't, for your sake."
+  },
+  {
+   "id": "A35_002",
+   "mission": "35",
+   "speaker": "SERAPHINE",
+   "text": "You knew she was here."
+  },
+  {
+   "id": "A35_003",
+   "mission": "35",
+   "speaker": "THE ARCHITECT",
+   "text": "I carried you here. You asked me to. You were weeping. You said, \"Make me someone who doesn't know.\" So I did."
+  },
+  {
+   "id": "A35_004",
+   "mission": "35",
+   "speaker": "PLAYER",
+   "text": "And then you let her think she was your Second."
+  },
+  {
+   "id": "A35_005",
+   "mission": "35",
+   "speaker": "THE ARCHITECT",
+   "text": "She was my Second. She was the best I ever had. She simply didn't know she'd been something else first."
+  },
+  {
+   "id": "A35_006",
+   "mission": "35",
+   "speaker": "THE ARCHITECT",
+   "text": "Sixth, my offer. Stand aside. Let Seraphine come home with me, uncrowned. The fourth seal stays asleep. Turog never gets his five. The world goes on."
+  },
+  {
+   "id": "A35_007",
+   "mission": "35",
+   "speaker": "PLAYER",
+   "text": "Asleep. Locked. Held still."
+  },
+  {
+   "id": "A35_008",
+   "mission": "35",
+   "speaker": "THE ARCHITECT",
+   "text": "Alive."
+  },
+  {
+   "id": "A35_009",
+   "mission": "35",
+   "speaker": "SERAPHINE",
+   "text": "Together, then. If I hate you afterwards, it's your own fault."
+  },
+  {
+   "id": "A35_010",
+   "mission": "35",
+   "speaker": "SERAPHINE",
+   "text": "Thank you. You're the first person in a very long time who hasn't decided for me."
+  },
+  {
+   "id": "A35_011",
+   "mission": "35",
+   "speaker": "SERAPHINE",
+   "text": "I know. I know. And I'm sorry. I've spent eleven worlds not knowing."
+  },
+  {
+   "id": "A35_012",
+   "mission": "35",
+   "speaker": "SERAPHINE",
+   "text": "..."
+  },
+  {
+   "id": "A35_013",
+   "mission": "35",
+   "speaker": "NOVA",
+   "text": "Her neural activity is... I have never seen a human brain do this. I'm not sure it is a human brain."
+  },
+  {
+   "id": "A35_014",
+   "mission": "35",
+   "speaker": "SERAPHINE",
+   "text": "Oh. Oh, no."
+  },
+  {
+   "id": "A35_015",
+   "mission": "35",
+   "speaker": "PLAYER",
+   "text": "Seraphine?"
+  },
+  {
+   "id": "A35_016",
+   "mission": "35",
+   "speaker": "SERAPHINE",
+   "text": "I remember the gate. I remember your hand on it. I remember what I said to you."
+  },
+  {
+   "id": "A35_017",
+   "mission": "35",
+   "speaker": "PLAYER",
+   "text": "What did you say?"
+  },
+  {
+   "id": "A35_018",
+   "mission": "35",
+   "speaker": "SERAPHINE",
+   "text": "I said, \"If you open it, I will spend every world after this one making sure you never remember why.\" And I have. Every single one."
+  },
+  {
+   "id": "A35_019",
+   "mission": "35",
+   "speaker": "THE ARCHITECT",
+   "text": "Welcome back, Sovereign."
+  },
+  {
+   "id": "A36_001",
+   "mission": "36",
+   "speaker": "SERAPHINE",
+   "text": "I'm going with him."
+  },
+  {
+   "id": "A36_002",
+   "mission": "36",
+   "speaker": "PLAYER",
+   "text": "No."
+  },
+  {
+   "id": "A36_003",
+   "mission": "36",
+   "speaker": "SERAPHINE",
+   "text": "You don't understand yet. You will. When you remember everything, the world ends. I've watched it. Eleven times. Your hand on the gate. Every time."
+  },
+  {
+   "id": "A36_004",
+   "mission": "36",
+   "speaker": "PLAYER",
+   "text": "Then help me do it differently."
+  },
+  {
+   "id": "A36_005",
+   "mission": "36",
+   "speaker": "SERAPHINE",
+   "text": "I tried. In world seven, I stayed. We tried together. I wrote it down. Read it again sometime."
+  },
+  {
+   "id": "A36_006",
+   "mission": "36",
+   "speaker": "OREN VASQ",
+   "text": "Sovereign. The door."
+  },
+  {
+   "id": "A36_007",
+   "mission": "36",
+   "speaker": "SERAPHINE",
+   "text": "Hold it, Oren. Like you always do."
+  },
+  {
+   "id": "A36_008",
+   "mission": "36",
+   "speaker": "NOVA",
+   "text": "Seraphine. Please."
+  },
+  {
+   "id": "A36_009",
+   "mission": "36",
+   "speaker": "SERAPHINE",
+   "text": "Look after them, Vigilance. You were always better at it than me."
+  },
+  {
+   "id": "A36_010",
+   "mission": "36",
+   "speaker": "NOVA",
+   "text": "Executors in the tunnels. They are not trying to kill us. They are trying to slow us."
+  },
+  {
+   "id": "A36_011",
+   "mission": "36",
+   "speaker": "KAEL",
+   "text": "Then let's be fast."
+  },
+  {
+   "id": "A36_012",
+   "mission": "36",
+   "speaker": "NOVA",
+   "text": "Something is rising from the floor of the cavern. Ice and armour. Old."
+  },
+  {
+   "id": "A36_013",
+   "mission": "36",
+   "speaker": "NOVA",
+   "text": "A guardian she left with the crown. It is following her last command."
+  },
+  {
+   "id": "A36_014",
+   "mission": "36",
+   "speaker": "PLAYER",
+   "text": "Which was?"
+  },
+  {
+   "id": "A36_015",
+   "mission": "36",
+   "speaker": "NOVA",
+   "text": "\"Let no one follow me.\""
+  },
+  {
+   "id": "A36_016",
+   "mission": "36",
+   "speaker": "NOVA",
+   "text": "It's down. The throne is empty. The crown is gone. So is the seal."
+  },
+  {
+   "id": "A36_017",
+   "mission": "36",
+   "speaker": "KAEL",
+   "text": "I'm sorry. I liked her. I don't like a lot of people."
+  },
+  {
+   "id": "A36_018",
+   "mission": "36",
+   "speaker": "PLAYER",
+   "text": "She took the fourth seal with her."
+  },
+  {
+   "id": "A36_019",
+   "mission": "36",
+   "speaker": "NOVA",
+   "text": "She took her memory of it. The seal itself is in her. It goes where she goes."
+  },
+  {
+   "id": "A36_020",
+   "mission": "36",
+   "speaker": "PLAYER",
+   "text": "To the Architect."
+  },
+  {
+   "id": "A36_021",
+   "mission": "36",
+   "speaker": "NOVA",
+   "text": "To the Architect. Operator... I think she was crying when she left. I don't know what my sensors are worth anymore. But I think she was."
+  },
+  {
+   "id": "A37_001",
+   "mission": "37",
+   "speaker": "DR. HALVARD",
+   "text": "It's coming back. The silence. Bigger than before."
+  },
+  {
+   "id": "A37_002",
+   "mission": "37",
+   "speaker": "NOVA",
+   "text": "A Choir construct at the centre of it. Much larger. It is singing silence."
+  },
+  {
+   "id": "A37_003",
+   "mission": "37",
+   "speaker": "KAEL",
+   "text": "Singing silence. Great."
+  },
+  {
+   "id": "A37_004",
+   "mission": "37",
+   "speaker": "NOVA",
+   "text": "Inside its field my voice will fail. Your abilities may fail. Use the station. The generators, the flares. Anything that makes noise."
+  },
+  {
+   "id": "A37_005",
+   "mission": "37",
+   "speaker": "DR. HALVARD",
+   "text": "The generators are the loudest thing we have. Keep them running and the field can't close."
+  },
+  {
+   "id": "A37_006",
+   "mission": "37",
+   "speaker": "NOVA",
+   "text": "...it's here."
+  },
+  {
+   "id": "A37_007",
+   "mission": "37",
+   "speaker": "NOVA",
+   "text": "..."
+  },
+  {
+   "id": "A37_008",
+   "mission": "37",
+   "speaker": "PLAYER",
+   "text": "NOVA? NOVA!"
+  },
+  {
+   "id": "A37_009",
+   "mission": "37",
+   "speaker": "KAEL",
+   "text": "She's gone quiet! Just shoot the big singing thing!"
+  },
+  {
+   "id": "A37_010",
+   "mission": "37",
+   "speaker": "NOVA",
+   "text": "...signal... I'm back. I heard nothing for three minutes. I did not like it."
+  },
+  {
+   "id": "A37_011",
+   "mission": "37",
+   "speaker": "VAEL TUROG",
+   "text": "My Cantor sang well. You only killed the song, not the singer."
+  },
+  {
+   "id": "A37_012",
+   "mission": "37",
+   "speaker": "PLAYER",
+   "text": "Turog."
+  },
+  {
+   "id": "A37_013",
+   "mission": "37",
+   "speaker": "VAEL TUROG",
+   "text": "Your Sovereign has chosen the wall again. She always chooses the wall. The Architect's wall, my silence. We are the only two honest answers to a world that cannot stop ending."
+  },
+  {
+   "id": "A37_014",
+   "mission": "37",
+   "speaker": "PLAYER",
+   "text": "There's a third answer."
+  },
+  {
+   "id": "A37_015",
+   "mission": "37",
+   "speaker": "VAEL TUROG",
+   "text": "There is always a third answer, sixth. You have tried it eleven times."
+  },
+  {
+   "id": "A38_001",
+   "mission": "38",
+   "speaker": "NOVA",
+   "text": "The Continuum has a citadel on the Spine. It wasn't there yesterday."
+  },
+  {
+   "id": "A38_002",
+   "mission": "38",
+   "speaker": "KAEL",
+   "text": "Buildings don't just appear."
+  },
+  {
+   "id": "A38_003",
+   "mission": "38",
+   "speaker": "NOVA",
+   "text": "This one did."
+  },
+  {
+   "id": "A38_004",
+   "mission": "38",
+   "speaker": "NOVA",
+   "text": "Executors. Observers. And something in the walls listening."
+  },
+  {
+   "id": "A38_005",
+   "mission": "38",
+   "speaker": "THE ARCHITECT",
+   "text": "You came for her. Of course."
+  },
+  {
+   "id": "A38_006",
+   "mission": "38",
+   "speaker": "SERAPHINE",
+   "text": "Go home. Please."
+  },
+  {
+   "id": "A38_007",
+   "mission": "38",
+   "speaker": "PLAYER",
+   "text": "Not without you."
+  },
+  {
+   "id": "A38_008",
+   "mission": "38",
+   "speaker": "SERAPHINE",
+   "text": "I'm exactly where I need to be."
+  },
+  {
+   "id": "A38_009",
+   "mission": "38",
+   "speaker": "THE ARCHITECT",
+   "text": "She has agreed to keep the fourth seal asleep. Here. Under my care. Turog will never have five."
+  },
+  {
+   "id": "A38_010",
+   "mission": "38",
+   "speaker": "PLAYER",
+   "text": "And the lock never opens."
+  },
+  {
+   "id": "A38_011",
+   "mission": "38",
+   "speaker": "THE ARCHITECT",
+   "text": "And the world never ends."
+  },
+  {
+   "id": "A38_012",
+   "mission": "38",
+   "speaker": "SERAPHINE",
+   "text": "Go. Before the Warden wakes."
+  },
+  {
+   "id": "A38_013",
+   "mission": "38",
+   "speaker": "THE ARCHITECT",
+   "text": "I'm sorry. It's only a machine. It will only hurt you a great deal."
+  },
+  {
+   "id": "A38_014",
+   "mission": "38",
+   "speaker": "NOVA",
+   "text": "It's down. The Architect is gone. Seraphine is gone."
+  },
+  {
+   "id": "A38_015",
+   "mission": "38",
+   "speaker": "NOVA",
+   "text": "Operator. Wait. A transmission. On my oldest channel. Only an Astryan key could use it."
+  },
+  {
+   "id": "A38_016",
+   "mission": "38",
+   "speaker": "SERAPHINE",
+   "text": "Vigilance. Don't say anything. Just listen."
+  },
+  {
+   "id": "A38_017",
+   "mission": "38",
+   "speaker": "SERAPHINE",
+   "text": "I lied to him. I'm good at it. I've had eleven worlds of practice."
+  },
+  {
+   "id": "A38_018",
+   "mission": "38",
+   "speaker": "SERAPHINE",
+   "text": "I'm restoring the fourth seal. Now. From inside his walls, where Turog can't reach it and where he won't think to look."
+  },
+  {
+   "id": "A38_019",
+   "mission": "38",
+   "speaker": "NOVA",
+   "text": "Fourth seal restored. The star is bright."
+  },
+  {
+   "id": "A38_020",
+   "mission": "38",
+   "speaker": "SERAPHINE",
+   "text": "Tell the sixth I'm sorry. Tell them I'm not leaving this time. I'm just standing somewhere they can't see me yet."
+  },
+  {
+   "id": "A38_021",
+   "mission": "38",
+   "speaker": "PLAYER",
+   "text": "She did it."
+  },
+  {
+   "id": "A38_022",
+   "mission": "38",
+   "speaker": "NOVA",
+   "text": "Four of five. And the fifth star is still moving toward the centre."
+  },
+  {
+   "id": "A39_001",
+   "mission": "39",
+   "speaker": "CIPHER",
+   "text": "The Ascendancy's forge is in the old Astryan foundry. Crane's been running it day and night since the broadcast."
+  },
+  {
+   "id": "A39_002",
+   "mission": "39",
+   "speaker": "PLAYER",
+   "text": "Making what?"
+  },
+  {
+   "id": "A39_003",
+   "mission": "39",
+   "speaker": "CIPHER",
+   "text": "People. Better ones, he says. The Ascension Protocol was never about weapons. It was about replacing the keepers."
+  },
+  {
+   "id": "A39_004",
+   "mission": "39",
+   "speaker": "GOLIATH",
+   "text": "Replacing them with what?"
+  },
+  {
+   "id": "A39_005",
+   "mission": "39",
+   "speaker": "CIPHER",
+   "text": "With us. Volunteers who can hold a seal. Made, not born."
+  },
+  {
+   "id": "A39_006",
+   "mission": "39",
+   "speaker": "NOVA",
+   "text": "Cipher's neural resonance is rising the closer we get. Whatever they did to him, it's calling."
+  },
+  {
+   "id": "A39_007",
+   "mission": "39",
+   "speaker": "GOLIATH",
+   "text": "If this road had a personality it would be me before coffee."
+  },
+  {
+   "id": "A39_008",
+   "mission": "39",
+   "speaker": "NOVA",
+   "text": "Ascendancy guards. And something with them that moves like Cipher."
+  },
+  {
+   "id": "A39_009",
+   "mission": "39",
+   "speaker": "CRANE",
+   "text": "Cipher. You came home. And you brought the sixth. Did you bring my equipment back too?"
+  },
+  {
+   "id": "A39_010",
+   "mission": "39",
+   "speaker": "CIPHER",
+   "text": "You turned the volunteers into keys."
+  },
+  {
+   "id": "A39_011",
+   "mission": "39",
+   "speaker": "CRANE",
+   "text": "I turned them into hope. The keepers are ancient, half-mad and outnumbered. When Turog kills them, who holds the lock? Your Architect? The Choir?"
+  },
+  {
+   "id": "A39_012",
+   "mission": "39",
+   "speaker": "PLAYER",
+   "text": "So you build new keepers."
+  },
+  {
+   "id": "A39_013",
+   "mission": "39",
+   "speaker": "CRANE",
+   "text": "I build humanity a seat at the table. For once in its short, frightened life."
+  },
+  {
+   "id": "A39_014",
+   "mission": "39",
+   "speaker": "NOVA",
+   "text": "Operator. A forge chamber just opened. Something walked out of it."
+  },
+  {
+   "id": "A39_015",
+   "mission": "39",
+   "speaker": "CRANE",
+   "text": "Ah. Tallis. My first. My best. He's not finished."
+  },
+  {
+   "id": "A39_016",
+   "mission": "39",
+   "speaker": "TALLIS",
+   "text": "Cipher. Brother. You left me in the fire."
+  },
+  {
+   "id": "A39_017",
+   "mission": "39",
+   "speaker": "CIPHER",
+   "text": "Tallis. I thought you were dead."
+  },
+  {
+   "id": "A39_018",
+   "mission": "39",
+   "speaker": "TALLIS",
+   "text": "I was. Then I was a door. Now I'm something with a door inside it, and it won't close."
+  },
+  {
+   "id": "A39_019",
+   "mission": "39",
+   "speaker": "CRANE",
+   "text": "Stabilise him! Now!"
+  },
+  {
+   "id": "A39_020",
+   "mission": "39",
+   "speaker": "NOVA",
+   "text": "His signature is collapsing into a keeper's pattern. He is trying to hold a seal that doesn't exist."
+  },
+  {
+   "id": "A39_021",
+   "mission": "39",
+   "speaker": "TALLIS",
+   "text": "It hurts, brother. Make it stop."
+  },
+  {
+   "id": "A40_001",
+   "mission": "40",
+   "speaker": "CIPHER",
+   "text": "Cut the core and Tallis stops burning. Maybe. I don't know."
+  },
+  {
+   "id": "A40_002",
+   "mission": "40",
+   "speaker": "PLAYER",
+   "text": "Maybe's enough."
+  },
+  {
+   "id": "A40_003",
+   "mission": "40",
+   "speaker": "NOVA",
+   "text": "The core is down. Tallis's signal is not."
+  },
+  {
+   "id": "A40_004",
+   "mission": "40",
+   "speaker": "NOVA",
+   "text": "The forge's old guardians are waking. Astryan machines. They think we're Crane's."
+  },
+  {
+   "id": "A40_005",
+   "mission": "40",
+   "speaker": "TALLIS",
+   "text": "I can't stop. I'm holding everything. Brother, I'm holding everything."
+  },
+  {
+   "id": "A40_006",
+   "mission": "40",
+   "speaker": "CIPHER",
+   "text": "Then let go! Tallis, let go!"
+  },
+  {
+   "id": "A40_007",
+   "mission": "40",
+   "speaker": "TALLIS",
+   "text": "...it's quiet. Is it quiet?"
+  },
+  {
+   "id": "A40_008",
+   "mission": "40",
+   "speaker": "CIPHER",
+   "text": "It's quiet."
+  },
+  {
+   "id": "A40_009",
+   "mission": "40",
+   "speaker": "CIPHER",
+   "text": "He's gone."
+  },
+  {
+   "id": "A40_010",
+   "mission": "40",
+   "speaker": "CRANE",
+   "text": "..."
+  },
+  {
+   "id": "A40_011",
+   "mission": "40",
+   "speaker": "PLAYER",
+   "text": "Was it worth it?"
+  },
+  {
+   "id": "A40_012",
+   "mission": "40",
+   "speaker": "CRANE",
+   "text": "He held a seal-pattern for nine seconds. Nine. No human has ever done that. I've proven it can be done."
+  },
+  {
+   "id": "A40_013",
+   "mission": "40",
+   "speaker": "CIPHER",
+   "text": "You proved it kills them."
+  },
+  {
+   "id": "A40_014",
+   "mission": "40",
+   "speaker": "CRANE",
+   "text": "Today. Not forever. That's what science is, Cipher."
+  },
+  {
+   "id": "A40_015",
+   "mission": "40",
+   "speaker": "PLAYER",
+   "text": "We're shutting this place down."
+  },
+  {
+   "id": "A40_016",
+   "mission": "40",
+   "speaker": "CRANE",
+   "text": "Go ahead. I've copied everything. And when your keepers die, Operator, and they will, you'll come to me. Everyone comes to me in the end."
+  },
+  {
+   "id": "A41_001",
+   "mission": "41",
+   "speaker": "NOVA",
+   "text": "Operator. The fifth star has reached the centre. A Fracture is opening on the ridge. It is not a tear. It is a door."
+  },
+  {
+   "id": "A41_002",
+   "mission": "41",
+   "speaker": "GOLIATH",
+   "text": "Everybody behind the big rocks."
+  },
+  {
+   "id": "A41_003",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "No need to hide. I came to talk. And to take whatever you won't give me."
+  },
+  {
+   "id": "A41_004",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "My guard will test you first. It's a courtesy."
+  },
+  {
+   "id": "A41_005",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "Good. Now me."
+  },
+  {
+   "id": "A41_006",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "Show me what eleven worlds taught you."
+  },
+  {
+   "id": "A41_007",
+   "mission": "41",
+   "speaker": "PLAYER",
+   "text": "That you talk too much."
+  },
+  {
+   "id": "A41_008",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "Enough. You fight well for someone fighting the wrong war."
+  },
+  {
+   "id": "A41_009",
+   "mission": "41",
+   "speaker": "NOVA",
+   "text": "He isn't hurt. He's stopping because he wants to."
+  },
+  {
+   "id": "A41_010",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "Do you know what seal I held, sixth? Ilyra had the song. Auren the roads. The Echo, the listening. The Sovereign, the memory."
+  },
+  {
+   "id": "A41_011",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "I held the ending. The right to close a possibility that was only going to suffer. That was my burden. And I carried it kindly."
+  },
+  {
+   "id": "A41_012",
+   "mission": "41",
+   "speaker": "PLAYER",
+   "text": "And then I opened the gate."
+  },
+  {
+   "id": "A41_013",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "And then you said no possibility should ever be closed. Not by us. Not by anyone. You made my seal a crime."
+  },
+  {
+   "id": "A41_014",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "So I went to the ones who still believed in mercy. The Choir. They gave me a voice that could reach every world at once."
+  },
+  {
+   "id": "A41_015",
+   "mission": "41",
+   "speaker": "PLAYER",
+   "text": "To erase them."
+  },
+  {
+   "id": "A41_016",
+   "mission": "41",
+   "speaker": "VAEL TUROG",
+   "text": "To end them gently. Before they end themselves screaming. I'll take my seal back, sixth. And then I'll close the one possibility I should have closed first. You."
+  },
+  {
+   "id": "A42_001",
+   "mission": "42",
+   "speaker": "NOVA",
+   "text": "A message. On my oldest channel again. \"Old Harrow. The cathedral. Come alone. Bring the lamp.\""
+  },
+  {
+   "id": "A42_002",
+   "mission": "42",
+   "speaker": "PLAYER",
+   "text": "Seraphine."
+  },
+  {
+   "id": "A42_003",
+   "mission": "42",
+   "speaker": "NOVA",
+   "text": "She called me a lamp. Only the Echo calls me a lamp."
+  },
+  {
+   "id": "A42_004",
+   "mission": "42",
+   "speaker": "PLAYER",
+   "text": "Then she wants us to know it's really her."
+  },
+  {
+   "id": "A42_005",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "Hello. You came alone. You never come alone."
+  },
+  {
+   "id": "A42_006",
+   "mission": "42",
+   "speaker": "PLAYER",
+   "text": "You never ask."
+  },
+  {
+   "id": "A42_007",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "I'm asking now. Listen, I have very little time. The Architect isn't keeping the fourth seal asleep. He's gathering all four. He'll take them to the Origin Engine and turn the lock into a wall. Permanent. No gate. No sixth. No Choir."
+  },
+  {
+   "id": "A42_008",
+   "mission": "42",
+   "speaker": "PLAYER",
+   "text": "No beginnings."
+  },
+  {
+   "id": "A42_009",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "Nothing new, ever again. He calls it the Continuity Lock. And Turog wants the opposite: all five seals, the gate thrown open, and the Choir's silence pouring through."
+  },
+  {
+   "id": "A42_010",
+   "mission": "42",
+   "speaker": "PLAYER",
+   "text": "Two ways to break the Covenant."
+  },
+  {
+   "id": "A42_011",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "And you're the third. You always are."
+  },
+  {
+   "id": "A42_012",
+   "mission": "42",
+   "speaker": "PLAYER",
+   "text": "Come back with me."
+  },
+  {
+   "id": "A42_013",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "Not yet. If I leave him now, he'll take the seals from the keepers by force. While he trusts me, he waits."
+  },
+  {
+   "id": "A42_014",
+   "mission": "42",
+   "speaker": "NOVA",
+   "text": "Executors. They followed her."
+  },
+  {
+   "id": "A42_015",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "Or he sent them to see what I'd do. Make it look real."
+  },
+  {
+   "id": "A42_016",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "One more thing. You asked me in the vault what I said to you at the gate."
+  },
+  {
+   "id": "A42_017",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "The rest of it. You opened the gate because Earth was going to be erased by the Choir or starved by the lock. You opened it so the people on this world could choose for themselves what was on the other side."
+  },
+  {
+   "id": "A42_018",
+   "mission": "42",
+   "speaker": "PLAYER",
+   "text": "And the Choir came through."
+  },
+  {
+   "id": "A42_019",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "Some did. And some of the people here met them, and fought them, and some of them talked to them. You gave them a door. That's all. What they did with it was always going to be theirs."
+  },
+  {
+   "id": "A42_020",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "I couldn't bear it. So I ran to the Architect. And we spent eleven worlds trying to close what you opened."
+  },
+  {
+   "id": "A42_021",
+   "mission": "42",
+   "speaker": "PLAYER",
+   "text": "And now?"
+  },
+  {
+   "id": "A42_022",
+   "mission": "42",
+   "speaker": "SERAPHINE",
+   "text": "Now I think you were right. I'm just very late saying so."
+  },
+  {
+   "id": "A43_001",
+   "mission": "43",
+   "speaker": "WARD",
+   "text": "Choir from the north. Continuum from the south. They're not working together. They're racing."
+  },
+  {
+   "id": "A43_002",
+   "mission": "43",
+   "speaker": "VOSS",
+   "text": "Racing for what?"
+  },
+  {
+   "id": "A43_003",
+   "mission": "43",
+   "speaker": "NOVA",
+   "text": "For Ilyra, Auren and the Echo's room inside me. The three keepers in Haven. And for me."
+  },
+  {
+   "id": "A43_004",
+   "mission": "43",
+   "speaker": "WARD",
+   "text": "Then they don't get any of you. Voss, the evacuation. Operator, the walls. I've got the command centre."
+  },
+  {
+   "id": "A43_005",
+   "mission": "43",
+   "speaker": "VOSS",
+   "text": "Director —"
+  },
+  {
+   "id": "A43_006",
+   "mission": "43",
+   "speaker": "WARD",
+   "text": "That's an order, Commander. For once in my life let me give one that isn't for sale."
+  },
+  {
+   "id": "A43_007",
+   "mission": "43",
+   "speaker": "GOLIATH",
+   "text": "Same walls. Same mud. Worse odds."
+  },
+  {
+   "id": "A43_008",
+   "mission": "43",
+   "speaker": "NYX",
+   "text": "You love it."
+  },
+  {
+   "id": "A43_009",
+   "mission": "43",
+   "speaker": "NOVA",
+   "text": "The northern wall is breaking. Something huge is coming through."
+  },
+  {
+   "id": "A43_010",
+   "mission": "43",
+   "speaker": "NOVA",
+   "text": "A siege construct. Built to break walls and the people behind them."
+  },
+  {
+   "id": "A43_011",
+   "mission": "43",
+   "speaker": "NOVA",
+   "text": "It's down. The command centre has stopped answering."
+  },
+  {
+   "id": "A43_012",
+   "mission": "43",
+   "speaker": "WARD",
+   "text": "...there you are. Late. As usual."
+  },
+  {
+   "id": "A43_013",
+   "mission": "43",
+   "speaker": "PLAYER",
+   "text": "Ward. Hold on."
+  },
+  {
+   "id": "A43_014",
+   "mission": "43",
+   "speaker": "WARD",
+   "text": "I've been holding on. It's very overrated. Did they get out?"
+  },
+  {
+   "id": "A43_015",
+   "mission": "43",
+   "speaker": "VOSS",
+   "text": "Every transport's away. Every civilian."
+  },
+  {
+   "id": "A43_016",
+   "mission": "43",
+   "speaker": "WARD",
+   "text": "Good. Good. Voss. You're the Director now. Don't take anyone's money."
+  },
+  {
+   "id": "A43_017",
+   "mission": "43",
+   "speaker": "VOSS",
+   "text": "I won't."
+  },
+  {
+   "id": "A43_018",
+   "mission": "43",
+   "speaker": "WARD",
+   "text": "Liar. Take it when it saves people. Just tell them you took it. That's the only difference between us and them."
+  },
+  {
+   "id": "A43_019",
+   "mission": "43",
+   "speaker": "NOVA",
+   "text": "Her heart has stopped. I'm sorry."
+  },
+  {
+   "id": "A43_020",
+   "mission": "43",
+   "speaker": "VOSS",
+   "text": "Haven's lost. We go. Now."
+  },
+  {
+   "id": "A44_001",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "Eighteen thousand people and nowhere to put them. Except one place."
+  },
+  {
+   "id": "A44_002",
+   "mission": "44",
+   "speaker": "VOSS",
+   "text": "The Underground City. They don't take outsiders."
+  },
+  {
+   "id": "A44_003",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "They take me. I've been running fuel to them for six years. They owe me."
+  },
+  {
+   "id": "A44_004",
+   "mission": "44",
+   "speaker": "PLAYER",
+   "text": "Enough to take eighteen thousand?"
+  },
+  {
+   "id": "A44_005",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "We're about to find out."
+  },
+  {
+   "id": "A44_006",
+   "mission": "44",
+   "speaker": "NOVA",
+   "text": "Raider camps along the highway. They are flying Choir colours."
+  },
+  {
+   "id": "A44_007",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "The Choir's been recruiting out here. Promising an end to the dust."
+  },
+  {
+   "id": "A44_008",
+   "mission": "44",
+   "speaker": "RAIDER",
+   "text": "Turn back! The quiet's coming for all of you anyway!"
+  },
+  {
+   "id": "A44_009",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "Not today it isn't."
+  },
+  {
+   "id": "A44_010",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "They're talking about it in there. Arguing. Hold them off till they're done arguing."
+  },
+  {
+   "id": "A44_011",
+   "mission": "44",
+   "speaker": "NOVA",
+   "text": "The gate is opening."
+  },
+  {
+   "id": "A44_012",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "They'll take them. All of them. Fuel debt's paid in full, they said."
+  },
+  {
+   "id": "A44_013",
+   "mission": "44",
+   "speaker": "VOSS",
+   "text": "Kael. Thank you."
+  },
+  {
+   "id": "A44_014",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "Don't thank me. Thank the six years of fuel runs. And the operator who kept walking into things."
+  },
+  {
+   "id": "A44_015",
+   "mission": "44",
+   "speaker": "PLAYER",
+   "text": "We need somewhere the keepers can hide."
+  },
+  {
+   "id": "A44_016",
+   "mission": "44",
+   "speaker": "KAEL",
+   "text": "This is somewhere. It's the most somewhere left."
+  },
+  {
+   "id": "A45_001",
+   "mission": "45",
+   "speaker": "ILYRA SEN",
+   "text": "Three of us in one room. It hasn't happened since the sanctuary."
+  },
+  {
+   "id": "A45_002",
+   "mission": "45",
+   "speaker": "AUREN THALE",
+   "text": "And one of us in a lamp."
+  },
+  {
+   "id": "A45_003",
+   "mission": "45",
+   "speaker": "THE ECHO",
+   "text": "...a warm lamp..."
+  },
+  {
+   "id": "A45_004",
+   "mission": "45",
+   "speaker": "NOVA",
+   "text": "Thank you."
+  },
+  {
+   "id": "A45_005",
+   "mission": "45",
+   "speaker": "PLAYER",
+   "text": "Four seals restored. The fifth is Turog's."
+  },
+  {
+   "id": "A45_006",
+   "mission": "45",
+   "speaker": "AUREN THALE",
+   "text": "My map says he keeps it in the Shattered Expanse. Where the world is most broken. He likes it there. It agrees with him."
+  },
+  {
+   "id": "A45_007",
+   "mission": "45",
+   "speaker": "ILYRA SEN",
+   "text": "And the Architect has the Sovereign, and through her, the fourth."
+  },
+  {
+   "id": "A45_008",
+   "mission": "45",
+   "speaker": "PLAYER",
+   "text": "Seraphine's with us. She's inside his walls."
+  },
+  {
+   "id": "A45_009",
+   "mission": "45",
+   "speaker": "ILYRA SEN",
+   "text": "I believe you. I'm not sure she does."
+  },
+  {
+   "id": "A45_010",
+   "mission": "45",
+   "speaker": "AUREN THALE",
+   "text": "Three readings. Far apart. The crater, the scrapyard, the dust rose. The map will do the rest."
+  },
+  {
+   "id": "A45_011",
+   "mission": "45",
+   "speaker": "AUREN THALE",
+   "text": "There. The Shattered Expanse. A place that's never finished falling."
+  },
+  {
+   "id": "A45_012",
+   "mission": "45",
+   "speaker": "NOVA",
+   "text": "Operator. The Witness. It's here. It's... showing us something."
+  },
+  {
+   "id": "A45_013",
+   "mission": "45",
+   "speaker": "FIRST WITNESS",
+   "text": "Observe."
+  },
+  {
+   "id": "A45_014",
+   "mission": "45",
+   "speaker": "MEMORY",
+   "text": "This is world nine. The sixth has remembered everything. The sixth opens the gate fully, alone, in anger."
+  },
+  {
+   "id": "A45_015",
+   "mission": "45",
+   "speaker": "MEMORY",
+   "text": "The Architect locks the world. The Choir pours through the cracks in the lock. Nothing is left that can make a sound."
+  },
+  {
+   "id": "A45_016",
+   "mission": "45",
+   "speaker": "PLAYER",
+   "text": "Why show me this?"
+  },
+  {
+   "id": "A45_017",
+   "mission": "45",
+   "speaker": "FIRST WITNESS",
+   "text": "Because you asked. In world nine. You asked me to show you, if there was a world twelve."
+  },
+  {
+   "id": "A45_018",
+   "mission": "45",
+   "speaker": "PLAYER",
+   "text": "Is there?"
+  },
+  {
+   "id": "A45_019",
+   "mission": "45",
+   "speaker": "FIRST WITNESS",
+   "text": "You are standing in it. Unwritten. Continue."
+  },
+  {
+   "id": "A45_020",
+   "mission": "45",
+   "speaker": "VOSS",
+   "text": "So. The Shattered Expanse. A demigod with a seal of endings. An Architect with a wall."
+  },
+  {
+   "id": "A45_021",
+   "mission": "45",
+   "speaker": "GOLIATH",
+   "text": "And us."
+  },
+  {
+   "id": "A45_022",
+   "mission": "45",
+   "speaker": "NYX",
+   "text": "We've had worse odds."
+  },
+  {
+   "id": "A45_023",
+   "mission": "45",
+   "speaker": "GOLIATH",
+   "text": "We have not had worse odds."
+  },
+  {
+   "id": "A45_024",
+   "mission": "45",
+   "speaker": "CIPHER",
+   "text": "Tallis would have liked this. All of us in one room, arguing."
+  },
+  {
+   "id": "A45_025",
+   "mission": "45",
+   "speaker": "PLAYER",
+   "text": "Get some sleep. We go at dawn."
+  },
+  {
+   "id": "A45_026",
+   "mission": "45",
+   "speaker": "NOVA",
+   "text": "Operator. Before the Expanse... the Architect will go to the Origin Engine. If he locks the world before we reach Turog, it won't matter who has the fifth seal."
+  },
+  {
+   "id": "A45_027",
+   "mission": "45",
+   "speaker": "PLAYER",
+   "text": "Then we go to the Engine first."
+  },
+  {
+   "id": "A46_001",
+   "mission": "46",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "Four seals sing. The deep door hears them. Sixth bearer. You may pass."
+  },
+  {
+   "id": "A46_002",
+   "mission": "46",
+   "speaker": "PLAYER",
+   "text": "What's beyond it?"
+  },
+  {
+   "id": "A46_003",
+   "mission": "46",
+   "speaker": "ARCHIVE WARDEN",
+   "text": "The world the first world built to keep itself. The Engine. It has been waiting for someone to come and ask it why."
+  },
+  {
+   "id": "A46_004",
+   "mission": "46",
+   "speaker": "VOSS",
+   "text": "I'm coming with you."
+  },
+  {
+   "id": "A46_005",
+   "mission": "46",
+   "speaker": "PLAYER",
+   "text": "Voss, you're the Director now."
+  },
+  {
+   "id": "A46_006",
+   "mission": "46",
+   "speaker": "VOSS",
+   "text": "And the Director's going where the war is. Ward would have kicked me down those stairs herself."
+  },
+  {
+   "id": "A46_007",
+   "mission": "46",
+   "speaker": "NOVA",
+   "text": "The stair goes down further than the planet's crust. It is not going down. It is going sideways, into somewhere else."
+  },
+  {
+   "id": "A46_008",
+   "mission": "46",
+   "speaker": "VOSS",
+   "text": "I'm going to pretend I didn't hear that."
+  },
+  {
+   "id": "A46_009",
+   "mission": "46",
+   "speaker": "NOVA",
+   "text": "Astryan sentinels. Dormant for longer than humanity has existed. Waking now."
+  },
+  {
+   "id": "A46_010",
+   "mission": "46",
+   "speaker": "PLAYER",
+   "text": "Hostile?"
+  },
+  {
+   "id": "A46_011",
+   "mission": "46",
+   "speaker": "NOVA",
+   "text": "Confused. Which in a sentinel is the same thing."
+  },
+  {
+   "id": "A46_012",
+   "mission": "46",
+   "speaker": "ENGINE VOICE",
+   "text": "Welcome back, Vigilance. Welcome back, Promise. The Engine has been waiting."
+  },
+  {
+   "id": "A46_013",
+   "mission": "46",
+   "speaker": "NOVA",
+   "text": "It knows me."
+  },
+  {
+   "id": "A46_014",
+   "mission": "46",
+   "speaker": "ENGINE VOICE",
+   "text": "All terminals at your disposal. Districts: Arrival, Capital, Archives, Foundries, Gardens, the Chamber, the Heart."
+  },
+  {
+   "id": "A46_015",
+   "mission": "46",
+   "speaker": "VOSS",
+   "text": "It's a city. Under the city."
+  },
+  {
+   "id": "A46_016",
+   "mission": "46",
+   "speaker": "NOVA",
+   "text": "Not under. Beside. Folded. This is the Astryans' last world. They kept it when the first one ended."
+  },
+  {
+   "id": "A47_001",
+   "mission": "47",
+   "speaker": "NOVA",
+   "text": "I can read the Engine through its terminals. Let me in."
+  },
+  {
+   "id": "A47_002",
+   "mission": "47",
+   "speaker": "PLAYER",
+   "text": "Go."
+  },
+  {
+   "id": "A47_003",
+   "mission": "47",
+   "speaker": "NOVA",
+   "text": "I have a map. And a history."
+  },
+  {
+   "id": "A47_004",
+   "mission": "47",
+   "speaker": "NOVA",
+   "text": "Riftwalkers. The Eternal Guard's scouts. They step between layers to flank you."
+  },
+  {
+   "id": "A47_005",
+   "mission": "47",
+   "speaker": "VOSS",
+   "text": "Then watch every side at once."
+  },
+  {
+   "id": "A47_006",
+   "mission": "47",
+   "speaker": "NOVA",
+   "text": "The Astryans split over the Engine. Three factions. The Preservationists wanted to protect reality from being changed at all."
+  },
+  {
+   "id": "A47_007",
+   "mission": "47",
+   "speaker": "NOVA",
+   "text": "The Ascendants wanted to evolve beyond bodies. Beyond worlds. The Continuity Council wanted to control reality so it could never collapse."
+  },
+  {
+   "id": "A47_008",
+   "mission": "47",
+   "speaker": "PLAYER",
+   "text": "Crane. The Architect. And..."
+  },
+  {
+   "id": "A47_009",
+   "mission": "47",
+   "speaker": "NOVA",
+   "text": "And my maker. A Preservationist. They lost the vote."
+  },
+  {
+   "id": "A47_010",
+   "mission": "47",
+   "speaker": "VOSS",
+   "text": "So everything that's happening now —"
+  },
+  {
+   "id": "A47_011",
+   "mission": "47",
+   "speaker": "NOVA",
+   "text": "— is the same argument. It never ended. It only changed hands."
+  },
+  {
+   "id": "A47_012",
+   "mission": "47",
+   "speaker": "NOVA",
+   "text": "The transit still runs. Of course it does. The Astryans built things to outlast them."
+  },
+  {
+   "id": "A48_001",
+   "mission": "48",
+   "speaker": "NOVA",
+   "text": "The Capital. Preserved at the moment the Engine turned."
+  },
+  {
+   "id": "A48_002",
+   "mission": "48",
+   "speaker": "PLAYER",
+   "text": "There are tables still set. Doors still open."
+  },
+  {
+   "id": "A48_003",
+   "mission": "48",
+   "speaker": "VOSS",
+   "text": "It's like the city stepped out for a minute and never came back."
+  },
+  {
+   "id": "A48_004",
+   "mission": "48",
+   "speaker": "NOVA",
+   "text": "It did step out. For a minute. The minute just hasn't ended."
+  },
+  {
+   "id": "A48_005",
+   "mission": "48",
+   "speaker": "PHANTOM CHILD",
+   "text": "Are you the Promise? Mama said the Promise would come and the turning would be all right."
+  },
+  {
+   "id": "A48_006",
+   "mission": "48",
+   "speaker": "PLAYER",
+   "text": "I don't know if it'll be all right."
+  },
+  {
+   "id": "A48_007",
+   "mission": "48",
+   "speaker": "PHANTOM CHILD",
+   "text": "That's what grown-ups say before something bad. Is Vigilance with you? Vigilance tells the best stories."
+  },
+  {
+   "id": "A48_008",
+   "mission": "48",
+   "speaker": "NOVA",
+   "text": "...I tell stories?"
+  },
+  {
+   "id": "A48_009",
+   "mission": "48",
+   "speaker": "PHANTOM CHILD",
+   "text": "The best ones. About the people before the people. And the question nobody can answer."
+  },
+  {
+   "id": "A48_010",
+   "mission": "48",
+   "speaker": "NOVA",
+   "text": "Operator, she is an Archive Phantom. A memory the Engine keeps walking. She has been asking that question for... a very long time."
+  },
+  {
+   "id": "A48_011",
+   "mission": "48",
+   "speaker": "NOVA",
+   "text": "The Eternal Guard are reacting to the Continuity Council's last order. Hold the Capital against everyone."
+  },
+  {
+   "id": "A48_012",
+   "mission": "48",
+   "speaker": "NOVA",
+   "text": "The hall replays the vote. I can let you see it."
+  },
+  {
+   "id": "A48_013",
+   "mission": "48",
+   "speaker": "COUNCILLOR",
+   "text": "The Continuity Council moves to turn the Engine. To fix the world in place. No more collapse."
+  },
+  {
+   "id": "A48_014",
+   "mission": "48",
+   "speaker": "ASTRYAN MAKER",
+   "text": "If you fix it in place, it stops being alive. You'll have a museum with people in it."
+  },
+  {
+   "id": "A48_015",
+   "mission": "48",
+   "speaker": "COUNCILLOR",
+   "text": "A museum survives. The vote is carried."
+  },
+  {
+   "id": "A48_016",
+   "mission": "48",
+   "speaker": "VOSS",
+   "text": "That councillor. The voice."
+  },
+  {
+   "id": "A48_017",
+   "mission": "48",
+   "speaker": "PLAYER",
+   "text": "The Architect."
+  },
+  {
+   "id": "A49_001",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "Every Astryan who ever lived is recorded here. Every timeline the Engine touched."
+  },
+  {
+   "id": "A49_002",
+   "mission": "49",
+   "speaker": "PLAYER",
+   "text": "Find the councillor."
+  },
+  {
+   "id": "A49_003",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "Found."
+  },
+  {
+   "id": "A49_004",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "Councillor Idris Maelor. Head of the Continuity Council. He moved to turn the Engine."
+  },
+  {
+   "id": "A49_005",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "When it turned, the Astryans didn't die. They became... possibilities. Scattered across every layer. The Engine changed the relationship between realities, not just their shape."
+  },
+  {
+   "id": "A49_006",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "Maelor bound himself to the Engine's continuity function so he would survive. He has been alive ever since. Rebuilding the world each time it ends, the way he thinks it should be."
+  },
+  {
+   "id": "A49_007",
+   "mission": "49",
+   "speaker": "PLAYER",
+   "text": "The Architect."
+  },
+  {
+   "id": "A49_008",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "He chose the name. The record notes he chose it the same day he forgot his own."
+  },
+  {
+   "id": "A49_009",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "A guardian of the archive. It is made of every record anyone tried to destroy."
+  },
+  {
+   "id": "A49_010",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "It's quiet. The archive is letting us read."
+  },
+  {
+   "id": "A49_011",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "There is one more record about Maelor. A personal one."
+  },
+  {
+   "id": "A49_012",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "\"Day one of the new world. Everyone I loved is a possibility now. I cannot find them in any layer. I will hold this world still until I do.\""
+  },
+  {
+   "id": "A49_013",
+   "mission": "49",
+   "speaker": "VOSS",
+   "text": "He's looking for his family."
+  },
+  {
+   "id": "A49_014",
+   "mission": "49",
+   "speaker": "PLAYER",
+   "text": "For a very long time."
+  },
+  {
+   "id": "A49_015",
+   "mission": "49",
+   "speaker": "NOVA",
+   "text": "That doesn't make him right."
+  },
+  {
+   "id": "A49_016",
+   "mission": "49",
+   "speaker": "PLAYER",
+   "text": "No. It makes him easier to understand. That's worse."
+  },
+  {
+   "id": "A50_001",
+   "mission": "50",
+   "speaker": "NOVA",
+   "text": "The Gardens. My maker worked here. I... I know the path. Left at the fountain. Under the dragon arch."
+  },
+  {
+   "id": "A50_002",
+   "mission": "50",
+   "speaker": "VOSS",
+   "text": "Dragon arch?"
+  },
+  {
+   "id": "A50_003",
+   "mission": "50",
+   "speaker": "NOVA",
+   "text": "The dragons' records are kept here. The Astryans' allies. Their lineages are written on the arch. One of them is the Ashen line."
+  },
+  {
+   "id": "A50_004",
+   "mission": "50",
+   "speaker": "NOVA",
+   "text": "The gardens' wardens are tending the plants and anything that steps on them."
+  },
+  {
+   "id": "A50_005",
+   "mission": "50",
+   "speaker": "VOSS",
+   "text": "Watch your feet."
+  },
+  {
+   "id": "A50_006",
+   "mission": "50",
+   "speaker": "ASTRYAN MAKER",
+   "text": "Vigilance. If you are hearing this, you came home. I'm Elenya Sarr. I made you. I'm sorry I'm not here."
+  },
+  {
+   "id": "A50_007",
+   "mission": "50",
+   "speaker": "ASTRYAN MAKER",
+   "text": "There's something you need to know. Something the Council never knew."
+  },
+  {
+   "id": "A50_008",
+   "mission": "50",
+   "speaker": "ASTRYAN MAKER",
+   "text": "We didn't invent the Promise. We found them. Asleep, in the ruins of the people before us. The Elyndra had left them there. A sixth keeper, for a lock that didn't exist yet."
+  },
+  {
+   "id": "A50_009",
+   "mission": "50",
+   "speaker": "ASTRYAN MAKER",
+   "text": "We woke them. They asked us one thing. Not to turn the Engine. We didn't listen. I've regretted it every hour since."
+  },
+  {
+   "id": "A50_010",
+   "mission": "50",
+   "speaker": "NOVA",
+   "text": "..."
+  },
+  {
+   "id": "A50_011",
+   "mission": "50",
+   "speaker": "PLAYER",
+   "text": "I'm older than the Astryans."
+  },
+  {
+   "id": "A50_012",
+   "mission": "50",
+   "speaker": "ASTRYAN MAKER",
+   "text": "Look after them, Vigilance. They don't remember how old they are. That's the kindest thing the world ever did for them."
+  },
+  {
+   "id": "A50_013",
+   "mission": "50",
+   "speaker": "NOVA",
+   "text": "Operator. Are you all right?"
+  },
+  {
+   "id": "A50_014",
+   "mission": "50",
+   "speaker": "PLAYER",
+   "text": "I was asleep in the Elyndra ruins. Before the Astryans. Before the Covenant."
+  },
+  {
+   "id": "A50_015",
+   "mission": "50",
+   "speaker": "NOVA",
+   "text": "The Echo said the Elyndra asked a question. Maybe you are part of the answer they left behind."
+  },
+  {
+   "id": "A50_016",
+   "mission": "50",
+   "speaker": "VOSS",
+   "text": "So you're ancient. Fine. You still owe me for the truck you crashed in the Eastern blocks."
+  },
+  {
+   "id": "A50_017",
+   "mission": "50",
+   "speaker": "PLAYER",
+   "text": "...Thanks, Voss."
+  },
+  {
+   "id": "A50_018",
+   "mission": "50",
+   "speaker": "VOSS",
+   "text": "Somebody has to keep you human."
+  },
+  {
+   "id": "A51_001",
+   "mission": "51",
+   "speaker": "NOVA",
+   "text": "The Chamber was the Continuity Council's. The Architect has been using it as his laboratory."
+  },
+  {
+   "id": "A51_002",
+   "mission": "51",
+   "speaker": "NOVA",
+   "text": "The Architect's Inner Circle. His oldest servants. Some of them were Astryans."
+  },
+  {
+   "id": "A51_003",
+   "mission": "51",
+   "speaker": "NOVA",
+   "text": "Pods. Hundreds. Each one holds a memory. Each memory is yours."
+  },
+  {
+   "id": "A51_004",
+   "mission": "51",
+   "speaker": "PLAYER",
+   "text": "Mine?"
+  },
+  {
+   "id": "A51_005",
+   "mission": "51",
+   "speaker": "NOVA",
+   "text": "From the other worlds. Everything you were in worlds one to eleven. He kept it. Every time a world ended, he took what you remembered and put it here, so you'd wake up empty."
+  },
+  {
+   "id": "A51_006",
+   "mission": "51",
+   "speaker": "VOSS",
+   "text": "He's been harvesting you."
+  },
+  {
+   "id": "A51_007",
+   "mission": "51",
+   "speaker": "SERAPHINE",
+   "text": "Studying them. Trying to find the one version that wouldn't open the gate."
+  },
+  {
+   "id": "A51_008",
+   "mission": "51",
+   "speaker": "PLAYER",
+   "text": "Seraphine."
+  },
+  {
+   "id": "A51_009",
+   "mission": "51",
+   "speaker": "SERAPHINE",
+   "text": "You're early. I was going to blow this place up before you got here. It was going to be a surprise."
+  },
+  {
+   "id": "A51_010",
+   "mission": "51",
+   "speaker": "SERAPHINE",
+   "text": "If you open the pods, the memories go back to you. All at once."
+  },
+  {
+   "id": "A51_011",
+   "mission": "51",
+   "speaker": "PLAYER",
+   "text": "And every time I remember everything, the world ends."
+  },
+  {
+   "id": "A51_012",
+   "mission": "51",
+   "speaker": "SERAPHINE",
+   "text": "So we don't give them back. We let them go. Free. Into the Engine. They'll find you slowly. The way memories should."
+  },
+  {
+   "id": "A51_013",
+   "mission": "51",
+   "speaker": "NOVA",
+   "text": "Pods opening. The memories are... drifting. Like light."
+  },
+  {
+   "id": "A51_014",
+   "mission": "51",
+   "speaker": "SERAPHINE",
+   "text": "He knows. He's coming. Hold the door."
+  },
+  {
+   "id": "A51_015",
+   "mission": "51",
+   "speaker": "PLAYER",
+   "text": "Like Vasq?"
+  },
+  {
+   "id": "A51_016",
+   "mission": "51",
+   "speaker": "SERAPHINE",
+   "text": "Better than Vasq. I'm on your side of it this time."
+  },
+  {
+   "id": "A52_001",
+   "mission": "52",
+   "speaker": "THE ARCHITECT",
+   "text": "You let them go. Eleven worlds of study, drifting off like dandelion seed."
+  },
+  {
+   "id": "A52_002",
+   "mission": "52",
+   "speaker": "SERAPHINE",
+   "text": "They weren't yours, Idris."
+  },
+  {
+   "id": "A52_003",
+   "mission": "52",
+   "speaker": "THE ARCHITECT",
+   "text": "...Nobody's called me that in a very long time."
+  },
+  {
+   "id": "A52_004",
+   "mission": "52",
+   "speaker": "PLAYER",
+   "text": "We read the archives. You're looking for your family."
+  },
+  {
+   "id": "A52_005",
+   "mission": "52",
+   "speaker": "THE ARCHITECT",
+   "text": "I'm keeping the world still enough to find them. If it never changes again, I will find them eventually. I have nothing but time."
+  },
+  {
+   "id": "A52_006",
+   "mission": "52",
+   "speaker": "PLAYER",
+   "text": "And everyone else lives in your museum."
+  },
+  {
+   "id": "A52_007",
+   "mission": "52",
+   "speaker": "THE ARCHITECT",
+   "text": "Everyone else lives. That is more than any world before this one has managed. Stand aside, Promise."
+  },
+  {
+   "id": "A52_008",
+   "mission": "52",
+   "speaker": "THE ARCHITECT",
+   "text": "I am not a fighter. So I wear one."
+  },
+  {
+   "id": "A52_009",
+   "mission": "52",
+   "speaker": "NOVA",
+   "text": "A Sovereign Machine. The Astryans built twelve. This is the last."
+  },
+  {
+   "id": "A52_010",
+   "mission": "52",
+   "speaker": "THE ARCHITECT",
+   "text": "Enough. You've won the fight. I've won the time."
+  },
+  {
+   "id": "A52_011",
+   "mission": "52",
+   "speaker": "NOVA",
+   "text": "He's at the Heart. He has the four seals' pattern. He took it from Seraphine's mind while she was beside him."
+  },
+  {
+   "id": "A52_012",
+   "mission": "52",
+   "speaker": "SERAPHINE",
+   "text": "I let him. I had to make him believe me."
+  },
+  {
+   "id": "A52_013",
+   "mission": "52",
+   "speaker": "THE ARCHITECT",
+   "text": "The Continuity Lock has begun. Seven days and the world will hold still forever. No gate. No Choir. No endings."
+  },
+  {
+   "id": "A52_014",
+   "mission": "52",
+   "speaker": "THE ARCHITECT",
+   "text": "Only the fifth seal can stop it now. And it is in the hands of a man who wants to end everything. Choose your monster, Promise."
+  },
+  {
+   "id": "A52_015",
+   "mission": "52",
+   "speaker": "NOVA",
+   "text": "He's gone. Into the Heart. It has sealed behind him."
+  },
+  {
+   "id": "A52_016",
+   "mission": "52",
+   "speaker": "VOSS",
+   "text": "Seven days."
+  },
+  {
+   "id": "A52_017",
+   "mission": "52",
+   "speaker": "PLAYER",
+   "text": "Then we go to the Expanse. We take the fifth seal from Turog. And we come back."
   }
  ]
 }
