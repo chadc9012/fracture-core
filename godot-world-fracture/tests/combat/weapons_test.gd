@@ -19,16 +19,22 @@ func _init() -> void:
 	var r2 := auto.mag == 32 and auto.reserve == 160
 	print("auto reload: ", r2, " ", auto.ammo_text())
 	ok = ok and r2
-	# the fusion rifle: five bolts a pull spaced 35 ms, one pull a second
+	# the fusion rifle: charges 0.45 s, then five bolts spaced 35 ms; let go early and nothing fires
 	var fus := Weapons.Gun.new("FUSION")
-	var first := fus.step(1.0 / 60.0, true)
+	var early := 0
+	for i in 15:
+		early += fus.step(1.0 / 60.0, true)
+	early += fus.step(1.0 / 60.0, false)
+	var first := 0
+	for i in 28:
+		first += fus.step(1.0 / 60.0, true)
 	var rest := 0
 	for i in 30:
 		rest += fus.step(1.0 / 60.0, false)
 	var later := 0
 	for i in 30:
 		later += fus.step(1.0 / 60.0, true)
-	var r3 := first == 1 and rest == 4 and fus.mag == 15 and later == 0
+	var r3 := early == 0 and first == 1 and rest == 4 and fus.mag == 15 and later == 0
 	print("fusion volley: ", r3, " ", first, "+", rest, " then ", later)
 	ok = ok and r3
 	# the sniper: full damage to 150 m, floor at 250 m; a head shot ×2.4
@@ -50,7 +56,7 @@ func _init() -> void:
 	var bolts := sg.step(0.02, true)
 	r5 = r5 and bolts == 1 and Weapons.pellets("SHOTGUN") == 8 and sg.mag == 5 and Weapons.pellets("AUTO") == 1
 	r5 = r5 and float(Weapons.FRAMES.SMG.fire_rate) < float(Weapons.FRAMES.AUTO.fire_rate) and Weapons.known("PLASMA") == "AUTO" and Weapons.known("LMG") == "LMG"
-	r5 = r5 and absf(Weapons.damage("SHOTGUN", 4.0) - 7.5) < 1e-6 and Weapons.damage("SHOTGUN", 20.0) < Weapons.damage("SHOTGUN", 4.0) * 0.25
+	r5 = r5 and absf(Weapons.damage("SHOTGUN", 4.0) - 9.5) < 1e-6 and Weapons.damage("SHOTGUN", 20.0) < Weapons.damage("SHOTGUN", 4.0) * 0.25
 	print("authored frames, pellets, fallback: ", r5)
 	ok = ok and r5
 	print("Weapons test: ", ok)

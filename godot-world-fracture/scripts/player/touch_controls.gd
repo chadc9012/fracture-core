@@ -398,7 +398,12 @@ var _toast_t := 0.0
 const MIN_TOAST := 2.2
 var _toast_queue: Array[String] = []
 
+## tests listen here for every toast asked for (tests/gear/loot_test.gd), before the queue drops repeats
+var toast_hook: Callable
+
 func toast(text: String) -> void:
+	if toast_hook.is_valid():
+		toast_hook.call(text)
 	if _toast and _toast_t > 0.0 and _toast.text != "":
 		if _toast.text == text or _toast_queue.has(text):
 			return

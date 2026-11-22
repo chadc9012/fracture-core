@@ -10,26 +10,26 @@ const FRAMES := {
 		"range_full": 28.0, "range_end": 55.0, "range_floor": 0.7, "precision": 1.5, "muzzle_dz": 0.0, "stability": 62, "handling": 55, "pattern": 78, "zoom": 0.78, "category": "Assault Rifle", "perks": ["rampage", "kill_clip", "rapid_hit", "subsistence"], "label": "Rapid-fire · mid range" },
 	"SNIPER": { "name": "Sniper Rifle", "model": "rifle-sniper.glb", "damage": 6.5, "fire_rate": 1.05, "burst": 1, "burst_gap": 0.0, "spread": 0.06, "ads_spread": 0.08, "recoil": 0.07, "mag": 5, "reserve": 30, "reload": 2.6,
 		"range_full": 150.0, "range_end": 250.0, "range_floor": 0.9, "precision": 2.4, "muzzle_dz": 0.372, "stability": 40, "handling": 30, "pattern": 92, "zoom": 0.32, "category": "Sniper Rifle", "perks": ["snapshot", "outlaw", "firefly", "box_breathing"], "label": "One shot · aim down sights" },
-	"FUSION": { "name": "Fusion Rifle", "model": "rifle-fusion.glb", "damage": 2.2, "fire_rate": 1.1, "burst": 5, "burst_gap": 0.035, "spread": 0.02, "ads_spread": 0.6, "recoil": 0.008, "mag": 20, "reserve": 100, "reload": 2.2,
+	"FUSION": { "name": "Fusion Rifle", "model": "rifle-fusion.glb", "damage": 2.2, "fire_rate": 1.1, "burst": 5, "burst_gap": 0.035, "charge": 0.45, "spread": 0.02, "ads_spread": 0.6, "recoil": 0.008, "mag": 20, "reserve": 100, "reload": 2.2,
 		"range_full": 18.0, "range_end": 36.0, "range_floor": 0.4, "precision": 1.1, "muzzle_dz": 0.07, "stability": 58, "handling": 45, "pattern": 70, "zoom": 0.75, "category": "Fusion Rifle", "perks": ["backup_plan", "kill_clip", "rampage", "rapid_hit"], "label": "Five-bolt volley · close to mid" },
 	# the authored sidearm / shotgun / SMG / LMG / heavy (public/models/weapons via scripts/build-weapons.py), Nov 8
 	"SMG": { "name": "Submachine Gun", "model": "rifle-smg.glb", "damage": 0.72, "fire_rate": 0.065, "burst": 1, "burst_gap": 0.0, "spread": 0.026, "ads_spread": 0.55, "recoil": 0.005, "mag": 40, "reserve": 240, "reload": 1.5,
 		"range_full": 14.0, "range_end": 32.0, "range_floor": 0.55, "precision": 1.35, "muzzle_dz": 0.0, "stability": 55, "handling": 80, "pattern": 60, "zoom": 0.85, "category": "Submachine Gun", "perks": ["rampage", "subsistence", "kill_clip", "dragonfly"], "label": "Fastest fire · close range" },
-	"SHOTGUN": { "name": "Breach Shotgun", "model": "shotgun.glb", "damage": 0.75, "pellets": 8, "fire_rate": 0.8, "burst": 1, "burst_gap": 0.0, "spread": 0.075, "ads_spread": 0.75, "recoil": 0.04, "mag": 6, "reserve": 42, "reload": 2.4,
+	"SHOTGUN": { "name": "Breach Shotgun", "model": "shotgun.glb", "damage": 0.95, "pellets": 8, "fire_rate": 0.8, "burst": 1, "burst_gap": 0.0, "spread": 0.075, "ads_spread": 0.75, "recoil": 0.04, "mag": 6, "reserve": 42, "reload": 2.4,
 		"range_full": 8.0, "range_end": 20.0, "range_floor": 0.2, "precision": 1.15, "muzzle_dz": 0.0, "stability": 35, "handling": 60, "pattern": 85, "zoom": 0.9, "category": "Shotgun", "perks": ["trench_barrel", "outlaw", "rampage", "subsistence"], "label": "Close quarters · one-shot inside 8 m" },
 	"SIDEARM": { "name": "Hand Cannon", "model": "pistol.glb", "damage": 2.4, "fire_rate": 0.34, "burst": 1, "burst_gap": 0.0, "spread": 0.012, "ads_spread": 0.4, "recoil": 0.03, "mag": 8, "reserve": 64, "reload": 1.3,
 		"range_full": 26.0, "range_end": 48.0, "range_floor": 0.6, "precision": 2.0, "muzzle_dz": -0.3, "stability": 45, "handling": 70, "pattern": 88, "zoom": 0.82, "category": "Hand Cannon", "perks": ["outlaw", "firefly", "rapid_hit", "kill_clip"], "label": "Precision · rewards headshots" },
 	"LMG": { "name": "Light Machine Gun", "model": "heavy.glb", "damage": 1.05, "fire_rate": 0.095, "burst": 1, "burst_gap": 0.0, "spread": 0.045, "ads_spread": 0.45, "recoil": 0.009, "mag": 80, "reserve": 320, "reload": 3.6,
 		"range_full": 32.0, "range_end": 60.0, "range_floor": 0.7, "precision": 1.4, "muzzle_dz": 0.1, "stability": 70, "handling": 25, "pattern": 74, "zoom": 0.8, "category": "Light Machine Gun", "perks": ["rampage", "subsistence", "dragonfly", "kill_clip"], "label": "Big magazine · sustained fire" },
-	"HEAVY": { "name": "Heavy Cannon", "model": "heavy.glb", "damage": 4.5, "fire_rate": 0.9, "burst": 1, "burst_gap": 0.0, "spread": 0.01, "ads_spread": 0.5, "recoil": 0.05, "mag": 4, "reserve": 20, "reload": 2.6,
+	"HEAVY": { "name": "Heavy Cannon", "model": "heavy.glb", "damage": 6.5, "fire_rate": 0.9, "burst": 1, "burst_gap": 0.0, "spread": 0.01, "ads_spread": 0.5, "recoil": 0.05, "mag": 4, "reserve": 20, "reload": 2.6,
 		"range_full": 100.0, "range_end": 160.0, "range_floor": 0.85, "precision": 1.8, "muzzle_dz": 0.1, "stability": 50, "handling": 30, "pattern": 90, "zoom": 0.7, "category": "Heavy Cannon", "perks": ["outlaw", "firefly", "rampage", "box_breathing"], "label": "High impact · long range" },
 	# the owner's weapon list (Nov 22, "weapons with distinct personalities"): pistols, marksman rifles, rocket and
 	# grenade launchers and bows join the web frames; rockets and grenades fly (gunplay hands them to heavy_weapons.gd)
-	"PISTOL": { "name": "Sidearm Pistol", "model": "pistol.glb", "damage": 1.25, "fire_rate": 0.16, "burst": 1, "burst_gap": 0.0, "spread": 0.016, "ads_spread": 0.45, "recoil": 0.012, "mag": 15, "reserve": 105, "reload": 1.1,
+	"PISTOL": { "name": "Sidearm Pistol", "model": "pistol.glb", "damage": 1.45, "fire_rate": 0.16, "burst": 1, "burst_gap": 0.0, "spread": 0.016, "ads_spread": 0.45, "recoil": 0.012, "mag": 15, "reserve": 105, "reload": 1.1,
 		"range_full": 20.0, "range_end": 40.0, "range_floor": 0.6, "precision": 1.6, "muzzle_dz": -0.3, "stability": 68, "handling": 90, "pattern": 80, "zoom": 0.85, "category": "Pistol", "perks": ["rapid_hit", "kill_clip", "subsistence", "dragonfly"], "label": "Quick draw · semi-auto" },
 	"MARKSMAN": { "name": "Marksman Rifle", "model": "rifle-sniper.glb", "damage": 3.1, "fire_rate": 0.38, "burst": 1, "burst_gap": 0.0, "spread": 0.02, "ads_spread": 0.2, "recoil": 0.028, "mag": 12, "reserve": 72, "reload": 2.0,
 		"range_full": 70.0, "range_end": 120.0, "range_floor": 0.8, "precision": 1.9, "muzzle_dz": 0.372, "stability": 58, "handling": 50, "pattern": 86, "zoom": 0.5, "category": "Marksman Rifle", "perks": ["outlaw", "firefly", "snapshot", "rapid_hit"], "label": "Semi-auto · long range" },
-	"ROCKET": { "name": "Rocket Launcher", "model": "launcher.glb", "damage": 14.0, "fire_rate": 1.2, "burst": 1, "burst_gap": 0.0, "spread": 0.004, "ads_spread": 0.6, "recoil": 0.09, "mag": 1, "reserve": 6, "reload": 2.8,
+	"ROCKET": { "name": "Rocket Launcher", "model": "launcher.glb", "damage": 20.0, "fire_rate": 1.2, "burst": 1, "burst_gap": 0.0, "spread": 0.004, "ads_spread": 0.6, "recoil": 0.09, "mag": 1, "reserve": 6, "reload": 2.8,
 		"range_full": 200.0, "range_end": 300.0, "range_floor": 1.0, "precision": 1.0, "muzzle_dz": 0.3, "stability": 40, "handling": 20, "pattern": 95, "zoom": 0.7, "category": "Rocket Launcher", "perks": ["cluster_bomb", "impact_casing", "backup_plan"],
 		"projectile": { "kind": "rocket", "speed": 48.0, "gravity": 0.0, "radius": 6.0 }, "label": "Splash · one big hit" },
 	"GL": { "name": "Grenade Launcher", "model": "launcher.glb", "damage": 6.0, "fire_rate": 0.7, "burst": 1, "burst_gap": 0.0, "spread": 0.01, "ads_spread": 0.6, "recoil": 0.05, "mag": 4, "reserve": 20, "reload": 2.4,
@@ -190,6 +190,7 @@ class Gun:
 	var tactical := false        # the reload under way started with rounds still in the mag (shorter)
 	var reload_full := 0.0       # this reload's whole length, for its animation
 	var charge := 0.0            # a bow's draw, seconds
+	var spool := 0.0             # a fusion rifle's charge, seconds
 	var last_charge := 1.0       # the released draw, 0..1 (damage scales with it)
 	var _was_trigger := false
 	var _stacks := 0             # rampage
@@ -309,6 +310,17 @@ class Gun:
 		if trigger and mag <= 0:
 			reload()
 			return 0
+		# a fusion rifle charges first (Destiny's charge time): hold the trigger through it and the volley goes; let go
+		# early and the charge drains
+		if def().has("charge") and _burst_left <= 0:
+			if trigger and cool <= 0.0 and mag > 0:
+				spool += dt
+				if spool < float(def().charge):
+					return shots
+				spool = 0.0
+			else:
+				spool = 0.0
+				return shots
 		if trigger and cool <= 0.0:
 			cool = float(def().fire_rate)
 			shots = 1

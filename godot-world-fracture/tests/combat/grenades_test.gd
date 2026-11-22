@@ -75,7 +75,12 @@ func _init() -> void:
 	_run(4.0)
 	check("the pool burns out", gr.live.is_empty())
 
-	# NYX
+	# NYX (the GOLIATH bots are cleared first: tougher elites outlive the pool now, and a fighting squadmate calls
+	# the watcher in — enemies.gd squad call-outs)
+	for e in en.enemies:
+		e.target.hp = 0.0
+		e.stays_down = true
+	en.step(1.0 / 60.0)
 	gr.set_frame("nyx")
 	check("NYX's first grenade is Shroud", gr.pouch.kind == "shroud")
 	_drop("shroud", p.position + Vector3(0, 0, 1))

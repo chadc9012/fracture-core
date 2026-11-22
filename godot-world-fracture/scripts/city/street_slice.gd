@@ -543,7 +543,9 @@ func _after_enemies() -> void:
 		var source := "enemy"
 		if e != null and e.type == "elite":
 			source = "elite"
-		var it := Gear.roll_drop(gear, source, randf(), Gear.operator_power(gear), randi())
+		# rolled at the operator's level, like every other mode's drops (it rolled at level 1: a level-20 operator's street
+		# drops came in ~40 power under the band — tests/gear/loot_test.gd)
+		var it := Gear.roll_drop(gear, source, randf(), Gear.operator_power(gear, int(wallet.get("level", 1))), randi())
 		if not it.is_empty():
 			Gear.save(gear)
 			controls.toast("Picked up %s · %d" % [it.name, int(it.power)]))

@@ -40,6 +40,7 @@ var _views := [
 	["PENTHOUSE — TERRACE", Vector3(-12, PENT_Y + 2.4, -12), Vector3(6, PENT_Y - 0.5, -28)],
 	["SKYDECK — CROWD", Vector3(3, ROOF_Y + 3.4, 29), Vector3(0, ROOF_Y + 5.5, -14)],
 	["SKYDECK — STAGE", Vector3(14, ROOF_Y + 6.0, -2), Vector3(-4, ROOF_Y + 3.0, -14)],
+	["THE FLOOR — GRAND STAIR", Vector3(19, 1.9, -13), Vector3(25, 3.6, -29)],
 ]
 var _view := 0
 var _title: Label
@@ -513,6 +514,25 @@ void fragment() {
 		_box(Vector3(0.12, 0.07, L - 2.0), Vector3(x - sx3 * 3.0, y + mz + 1.3, 0), gold)
 		_box(Vector3(0.1, 0.1, L - 2.0), Vector3(x - sx3 * 3.0, y + mz - 0.28, 0), violet)
 		_box(Vector3(0.14, 0.14, L - 2.0), Vector3(x - sx3 * 3.0, y + mz + 0.23, 0), gold)
+	# the board's upper tier: a narrower balcony over each mezzanine, lounge windows glowing behind
+	var up := 8.9
+	for sx5: float in [-1.0, 1.0]:
+		var x5 := sx5 * (W * 0.5 - 1.9)
+		_box(Vector3(3.2, 0.35, L - 2.0), Vector3(x5, y + up, 0), flat(Color(0.05, 0.035, 0.06), 0.25, 0.3))
+		_box(Vector3(0.05, 0.95, L - 2.0), Vector3(x5 - sx5 * 1.6, y + up + 0.65, 0), glass(Color(0.8, 0.7, 1.0, 0.14)))
+		_box(Vector3(0.1, 0.06, L - 2.0), Vector3(x5 - sx5 * 1.6, y + up + 1.15, 0), gold)
+		_box(Vector3(0.1, 0.1, L - 2.0), Vector3(x5 - sx5 * 1.6, y + up - 0.22, 0), violet)
+		for k6 in 9:
+			var z6 := -L * 0.5 + 6.0 + k6 * 8.5
+			_box(Vector3(0.06, 1.6, 5.0), Vector3(sx5 * (W * 0.5 - 0.62), y + up + 1.1, z6), flat(Color(1.0, 0.72, 0.42), 0.3, 0.0, 1.6))
+			_box(Vector3(0.06, 1.6, 5.0), Vector3(sx5 * (W * 0.5 - 0.62), y + mz + 1.3, z6), flat(Color(0.95, 0.6, 0.95), 0.3, 0.0, 1.2))
+	_people(y + mz + 0.23, Rect2(29.5, -36, 4.0, 70), 12, 41)
+	_people(y + mz + 0.23, Rect2(-33.5, -36, 4.0, 70), 12, 43)
+	_grand_stair(Vector3(24.0, y, -27.0), 5.0, mz + 0.23)
+	# the board's screen over the stair: ROOFTOP CONCERT VENUE
+	_box(Vector3(10.0, 2.6, 0.2), Vector3(22.0, y + 8.6, -L * 0.5 + 0.8), flat(Color(0.35, 0.12, 0.75), 0.3, 0.0, 2.2))
+	_box(Vector3(10.3, 2.9, 0.15), Vector3(22.0, y + 8.6, -L * 0.5 + 0.7), gold)
+	_label("ROOFTOP  CONCERT  VENUE   >", Vector3(22.0, y + 8.6, -L * 0.5 + 0.92), 0.0, Color(1, 1, 1), 64, 0.011)
 	# columns: black marble, gold bands, a violet strip on each face
 	for cz: float in [-24.0, -8.0, 8.0, 24.0]:
 		for cx: float in [-14.0, 14.0]:
@@ -603,6 +623,43 @@ void fragment() {
 		world.add_child(probe)
 	# guests
 	_people(y, Rect2(-32, -36, 64, 70), 70, 11)
+
+## the board's grand stair: a half turn of marble steps from the floor up to the mezzanine at the back right,
+## gold-capped glass balustrades on both edges, a violet line under every nosing
+func _grand_stair(c: Vector3, r: float, rise: float) -> void:
+	var steps := 26
+	var tread := flat(Color(0.9, 0.88, 0.9), 0.12, 0.1)
+	var riser := flat(Color(0.05, 0.035, 0.06), 0.2, 0.3)
+	var nosing := flat(VIOLET, 0.4, 0.0, 4.5)
+	var gold := flat(GOLD, 0.22, 1.0)
+	var glass_m := glass(Color(0.85, 0.75, 1.0, 0.16))
+	var w := 3.0
+	for i in steps:
+		var a := PI + PI * (i + 0.5) / steps        # from the floor side (-x) round the back (-z) to the mezzanine (+x)
+		var p := c + Vector3(cos(a) * r, 0, sin(a) * r)
+		var h := rise * (i + 1) / steps
+		var yaw := -a                                # tread runs radially
+		var depth := PI * r / steps + 0.08
+		_box(Vector3(w, 0.06, depth), Vector3(p.x, c.y + h - 0.03, p.z), tread, null, yaw + PI * 0.5)
+		_box(Vector3(w, h, depth), Vector3(p.x, c.y + h * 0.5 - 0.03, p.z), riser, null, yaw + PI * 0.5)
+		var tang := Vector3(-sin(a), 0, cos(a))
+		_box(Vector3(w, 0.04, 0.04), Vector3(p.x, c.y + h - 0.08, p.z) - tang * depth * 0.5, nosing, null, yaw + PI * 0.5)
+		for edge: float in [-1.0, 1.0]:
+			var e := c + Vector3(cos(a), 0, sin(a)) * (r + edge * w * 0.5)
+			_box(Vector3(0.04, 1.0, depth), Vector3(e.x, c.y + h + 0.5, e.z), glass_m, null, yaw + PI * 0.5)
+			_box(Vector3(0.09, 0.07, depth + 0.02), Vector3(e.x, c.y + h + 1.02, e.z), gold, null, yaw + PI * 0.5)
+			if i % 3 == 0:
+				_box(Vector3(0.07, 1.05, 0.07), Vector3(e.x, c.y + h + 0.52, e.z), gold)
+	# warm light down the flight and violet from under it
+	_light(c + Vector3(0, 4.5, -r), Color(1.0, 0.8, 0.58), 3.0, 12.0)
+	_light(c + Vector3(-r * 0.7, 2.0, -r * 0.7), Color(1.0, 0.8, 0.58), 2.2, 8.0)
+	_light(c + Vector3(r * 0.7, 3.5, -r * 0.7), VIOLET, 2.0, 9.0)
+	# a landing pad and the crowned sign at its foot, as on the board
+	var foot := c + Vector3(-r, 0, 0)
+	_box(Vector3(3.4, 0.08, 2.0), foot + Vector3(0, 0.04, 1.2), tread)
+	_crown(foot + Vector3(-2.4, 2.9, 1.2), 0.5, flat(GOLD, 0.25, 1.0, 1.4))
+	_box(Vector3(0.2, 2.4, 1.4), foot + Vector3(-2.4, 1.2, 1.2), flat(Color(0.03, 0.02, 0.04), 0.15, 0.3))
+	_label("PENTHOUSES  &\nROOFTOP VENUE", foot + Vector3(-2.28, 1.6, 1.2), PI * 0.5, GOLD, 60, 0.008)
 
 ## a black marble column with gold bands at the foot, waist and head and a violet light strip on each face
 func _column(at: Vector3, h: float) -> void:
