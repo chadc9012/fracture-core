@@ -33,7 +33,7 @@ const MODES := [
 	{ "id": "raids", "name": "RAIDS", "plate": "RAID 01", "accent": Color(0.7, 0.45, 1.0), "sub": "Six-player fireteams · 3.8 km down",
 	  "blurb": "The Hollow Star: hold the Broken Gate, then break Astravore before the machine overloads.", "tags": ["Fireteam of 6", "Checkpoints", "Exotic drops"] },
 	{ "id": "races", "name": "RACES", "plate": "CIRCUITS", "accent": Color(0.3, 0.9, 1.0), "sub": "Venues · street circuits · online",
-	  "blurb": "Your garage build against the players on the line: the Speedway by day, Neon City's streets by night, the long tracks.", "tags": ["Your garage car", "Other players", "Prize Nex"] },
+	  "blurb": "Your garage build against other players: the Speedway, Neon City's night streets, the long tracks.", "tags": ["Your garage car", "Other players", "Prize Nex"] },
 ]
 
 var page: Control

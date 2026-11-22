@@ -184,27 +184,48 @@ func _environment() -> void:
 	var sky := Sky.new()
 	var psm := ProceduralSkyMaterial.new()
 	psm.sky_top_color = Color(0.22, 0.42, 0.72)
-	psm.sky_horizon_color = Color(0.82, 0.72, 0.6)
+	psm.sky_horizon_color = Color(0.68, 0.78, 0.88)   # a clear day's horizon: the beige one read as a sandstorm (polish, Nov 21)
 	psm.ground_bottom_color = Color(0.2, 0.2, 0.18)
-	psm.ground_horizon_color = Color(0.6, 0.55, 0.45)
+	psm.ground_horizon_color = Color(0.52, 0.56, 0.5)
 	sky.sky_material = psm
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.9
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.8, 0.75, 0.65)
+	env.fog_light_color = Color(0.7, 0.78, 0.86)
 	env.fog_density = 0.0004
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
 
+## mown infield grass: muted, striped by the mower, patchy up close (the flat colour box read as lime plastic)
+func _grass() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """shader_type spatial;
+varying vec2 wp;
+void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz; }
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+void fragment() {
+	float stripe = smoothstep(-0.15, 0.15, sin(wp.x * 0.42));
+	float patchy = vn(wp * 0.08) * 0.6 + vn(wp * 0.9) * 0.25 + vn(wp * 6.0) * 0.15;
+	vec3 c = mix(vec3(0.17, 0.27, 0.1), vec3(0.23, 0.34, 0.13), stripe);
+	c = mix(c, vec3(0.3, 0.32, 0.15), smoothstep(0.55, 0.85, patchy) * 0.5) * (0.88 + 0.24 * patchy);
+	ALBEDO = c;
+	ROUGHNESS = 0.95;
+}"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	return m
+
 ## asphalt segments along the centreline with kerbs at both edges; grass under everything; a wall past the run-off
 func _build_track() -> void:
-	var grass := _mat(Color(0.26, 0.42, 0.18), 1.0)
+	var grass := _grass()
 	var g := track.bounds(140.0)     # the ground follows the circuit (it was a fixed 400 m square for the old oval)
 	_box(Vector3(g.size.x, 0.1, g.size.y), Vector3(g.get_center().x, -0.06, g.get_center().y), grass)
-	var asphalt := _mat(Color(0.11, 0.11, 0.12), 0.9)
+	var asphalt := Materials.pbr("asphalt_02", Color(0.3, 0.3, 0.32), 4.0, 0.85)
 	var red := _mat(Color(0.8, 0.12, 0.1), 0.6)
 	var white := _mat(Color(0.9, 0.9, 0.88), 0.6)
 	var line := _mat(Color(0.95, 0.95, 0.9), 0.5)

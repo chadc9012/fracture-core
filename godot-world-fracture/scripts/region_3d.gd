@@ -1943,6 +1943,21 @@ func _build_lamps() -> void:
 	mat.emission = mat.albedo_color
 	mat.emission_energy_multiplier = 4.0
 	_multimesh(sm, xf, mat)
+	# the posts under the heads (they hung in the air on their own — polish, Nov 21)
+	var post := CylinderMesh.new()
+	post.top_radius = 0.06
+	post.bottom_radius = 0.09
+	post.height = 6.0
+	post.radial_segments = 6
+	post.rings = 1
+	var pm := StandardMaterial3D.new()
+	pm.albedo_color = Color(0.16, 0.17, 0.19)
+	pm.roughness = 0.5
+	pm.metallic = 0.6
+	var posts: Array[Transform3D] = []
+	for t in xf:
+		posts.append(Transform3D(Basis(), t.origin - Vector3(0, 3.0, 0)))
+	_multimesh(post, posts, pm, 300.0, false)
 	# and the pool each one throws on the wet street under it (night_fx.gd's additive pools, one multimesh): the
 	# boards' amber-lit roads, which the heads alone left dark (Nov 18 Neon pass)
 	if map_id in ["neon-city", "nexus"]:

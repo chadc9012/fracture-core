@@ -33,10 +33,23 @@ void vertex() {
 
 void fragment() {
 	// dither the lookup by a texel so cover edges read as ragged ground, not pixels (the index itself must stay exact)
-	vec2 texel = 1.0 / vec2(textureSize(data_tex, 0));
-	vec2 j = vec2(vnoise(wpos * 0.9), vnoise(wpos * 0.9 + 17.0)) - 0.5;
-	int cover = int(round(texture(data_tex, UV + j * texel * 1.6).r * 255.0));
-	vec3 c = pal[clamp(cover, 0, 31)];
+	// The stepped edges still showed from the ground (polish, Nov 21), so: warp the lookup at the texel's own scale, blend
+	// the four nearest covers' colours, and keep the nearest one's index for the detail below.
+	vec2 sz = vec2(textureSize(data_tex, 0));
+	vec2 texel = 1.0 / sz;
+	float tm = bounds.z * texel.x;   // metres per texel
+	vec2 q = wpos / tm;
+	vec2 j = vec2(vnoise(q * 0.7) + 0.5 * vnoise(q * 2.3 + 3.1), vnoise(q * 0.7 + 17.0) + 0.5 * vnoise(q * 2.3 + 9.7)) / 1.5 - 0.5;
+	vec2 px = (UV + j * texel * 1.8) * sz - 0.5;
+	vec2 f = fract(px);
+	vec2 b0 = (floor(px) + 0.5) * texel;
+	int c00 = clamp(int(round(texture(data_tex, b0).r * 255.0)), 0, 31);
+	int c10 = clamp(int(round(texture(data_tex, b0 + vec2(texel.x, 0.0)).r * 255.0)), 0, 31);
+	int c01 = clamp(int(round(texture(data_tex, b0 + vec2(0.0, texel.y)).r * 255.0)), 0, 31);
+	int c11 = clamp(int(round(texture(data_tex, b0 + texel).r * 255.0)), 0, 31);
+	vec2 sf = smoothstep(0.25, 0.75, f);
+	vec3 c = mix(mix(pal[c00], pal[c10], sf.x), mix(pal[c01], pal[c11], sf.x), sf.y);
+	int cover = f.y < 0.5 ? (f.x < 0.5 ? c00 : c10) : (f.x < 0.5 ? c01 : c11);
 	vec2 w = wpos;
 	// smooth grain (two octaves of value noise): the hashed 33 cm cells it replaced read as pixel squares up close
 	// (Verdant Forest pass, Nov 18)

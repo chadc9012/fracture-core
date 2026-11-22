@@ -82,7 +82,7 @@ func _ready() -> void:
 	gunplay.set_holstered(not armed)
 	controls.set_armed(armed)
 	var row := HBoxContainer.new()
-	row.position = Vector2(16, 16)
+	row.position = Vector2(250, 8)   # right of the hull bar (HUD rule): it sat on it (polish, Nov 21)
 	row.add_theme_constant_override("separation", 8)
 	add_child(row)
 	var back := Button.new()

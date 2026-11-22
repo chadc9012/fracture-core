@@ -253,7 +253,7 @@ func _start() -> void:
 	add_child(_hud)
 	var back := Button.new()
 	back.text = "← EXIT"
-	back.position = Vector2(16, 16)
+	back.position = Vector2(250, 8)   # right of the hull bar (HUD rule; polish, Nov 21)
 	back.pressed.connect(_try_exit)
 	add_child(back)
 	start_region = region_id
