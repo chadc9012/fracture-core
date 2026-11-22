@@ -424,12 +424,9 @@ static func _palms(r: Node, pts: Array[Vector2], rng: RandomNumberGenerator, ban
 		if p.distance_to(bank_at) < bank_r:
 			y = maxf(y, bank - 0.3)   # on the oasis banks
 		xf.append(Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, y, p.y)))
-	# full detail up close only (the Meshy palm is 7 MB), the light city palm beyond
-	var far := Flora.glb_mesh("res://models/city/palm-lod.glb", 1.0, Flora.glb_mesh("res://models/city/palm.glb", 1.0))
-	if far != null:
-		r._multimesh_lod([[mesh, Flora.Phone.tree_detail_range() * 2.0], [far, 900.0]], xf, null)
-	else:
-		r._multimesh(mesh, xf, null, 900.0)
+	# a few dozen at most: full detail all the way out (the light LOD palm read as bare sticks from the overview); the
+	# region-wide palms (region_flora "palm") are the ones that switch to it
+	r._multimesh(mesh, xf, null, 900.0)
 
 ## a ruined aqueduct from a to b: weathered arches (the region's arch) end to end, some fallen, the last piers carrying
 ## the Ashen red banners
