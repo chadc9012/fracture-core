@@ -150,7 +150,7 @@ static func time_word(hour: float) -> String:
 ## the greeting: by personality and how well they know you (`player` is how they address you)
 static func greeting(p: Dictionary, s: Dictionary, hour: float, player: String, profile := {}) -> String:
 	var b := Memory.band(Memory.affinity(s, String(p.id)))
-	# the story's own people: their lines, and Captain Vale remembers the choice you made with her (Mission 05)
+	# the story's own people: their lines, and Captain Rourke remembers the choice you made with her (Mission 05)
 	var canon: Dictionary = CANON.get(String(p.id), {})
 	if not canon.is_empty():
 		var choice := String(profile.get("m05_choice", ""))

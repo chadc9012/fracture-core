@@ -137,8 +137,8 @@ func _run() -> void:
 	ok(n.npcs.has("ravi") and n.npcs.has("tony") and n.npcs.has("luis"), "23:00 — Ghost, Big Tony and Officer Moreno come out")
 	ok(n.npcs["rosa"].leaving and n.npcs["dana"].leaving, "…and the day shift heads home")
 	n._close()
-	# Captain Vale joins the avenue once Mission 05's choice is made
-	ok(not n.npcs.has("vale"), "no Captain Vale before the story brings her")
+	# Captain Rourke joins the avenue once Mission 05's choice is made
+	ok(not n.npcs.has("vale"), "no Captain Rourke before the story brings her")
 	var prof := Gear.profile_load()
 	prof["m05_choice"] = "cooperate"
 	Gear.profile_save(prof)
@@ -146,10 +146,10 @@ func _run() -> void:
 	n.hour_override = 15.0
 	n._schedule()
 	await _frames(2)
-	ok(n.npcs.has("vale"), "after Mission 05, Captain Vale is on the plaza")
+	ok(n.npcs.has("vale"), "after Mission 05, Captain Rourke is on the plaza")
 	n.talk("vale")
 	await _frames(2)
-	ok(String((n._panel.find_child("Say", true, false) as Label).text).contains("Captain Vale"), "she introduces herself as Captain Vale")
+	ok(String((n._panel.find_child("Say", true, false) as Label).text).contains("Captain Rourke"), "she introduces herself as Captain Rourke")
 	n._close()
 	n.talk("vale")
 	await _frames(1)

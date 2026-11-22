@@ -8,7 +8,7 @@ Topics, per person (people.gd rosters — Nexus, Neon, the seven regional airpor
   news       what is happening, by the campaign's stage: start (before Mission 05), allied (after 05), masks (after 16,
              the city of masks), unbound (after 22, NOVA's truth is out), kept (after 25, the world kept)
 Each line gets an id P_<person>_<topic>[_<key>][_<n>] and a speaker name for the voice tool (tools/make_voices.py
-picks a voice per person from their body and age). The owner's canon people (Vale, Sable, Neri, Rook, Kest, Draev,
+picks a voice per person from their body and age). The owner's canon people (Rourke, Sable, Neri, Rook, Kest, Draev,
 the Wanderer, Ilya, Mira) speak in the register of the dialogue draft.
 
     python3 tools/people_lines.py
@@ -23,7 +23,7 @@ PEOPLE = {
     "fracture": ["The morning it happened I was steaming milk. The jug just… kept steaming, no heat under it. I still have the jug.", "Everyone's got a Fracture story. Mine is boring and I'd like to keep it that way."],
     "place": ["Best corner in Nexus. Sun till two, shade after, and the monorail doesn't rattle the cups any more.", "This café was my mum's. Half the regulars knew her. They still order like she's here."],
     "you": {"wary": "You're new. New people get one free coffee and one chance.", "acquaintance": "You tip. You say thanks. That's already better than most of the avenue.", "friend": "Honestly? You're the reason I don't flinch at the door any more.", "close": "If the sky cracks again I'm hiding behind you. Don't argue."},
-    "news": {"start": "Trains are back. Prices aren't. Everyone pretends that's normal.", "allied": "The response team walks the avenue now. Vale's people. They tip badly.", "masks": "There were masks in the plaza yesterday. Nobody knows whose. I closed early.", "unbound": "Somebody told me the voice in your ear has a history. I said who doesn't.", "kept": "It's quiet. Properly quiet. I keep waiting for the catch."}}),
+    "news": {"start": "Trains are back. Prices aren't. Everyone pretends that's normal.", "allied": "The response team walks the avenue now. Rourke's people. They tip badly.", "masks": "There were masks in the plaza yesterday. Nobody knows whose. I closed early.", "unbound": "Somebody told me the voice in your ear has a history. I said who doesn't.", "kept": "It's quiet. Properly quiet. I keep waiting for the catch."}}),
  "marcus": ("Marcus Okafor", "male", 41, {
     "fracture": ["Fracture static chews through ignition coils. I've replaced more coils this year than in the ten before it.", "Day it hit, every car on the avenue started at once. Nobody in them. I don't talk about it much."],
     "place": ["Garage was my dad's. Roof leaks in the same spot it leaked in '09.", "You want a car fixed, this is the place. You want it pretty, go to Neon."],
@@ -48,7 +48,7 @@ PEOPLE = {
     "fracture": ["The grill didn't go out. Purple light everywhere, the ground shaking, and my skewers kept cooking. I took it as a sign.", "Thirty years on this corner. The Fracture's just the latest thing that tried to move me."],
     "place": ["This corner's seen a riot, two floods, a film crew and the Fracture. It's a good corner.", "Sit on the kerb, eat, watch the avenue. Best show in Nexus and it's free with a skewer."],
     "you": {"wary": "Two Nex. Then we talk.", "acquaintance": "Back for more. The glaze gets everyone.", "friend": "You eat like someone who's been places. Tell me about them sometime.", "close": "Family rate for you. Don't tell the regulars. Don't tell my wife."},
-    "news": {"start": "The response team came by. Ate six skewers. Paid for four. Said it was a tax.", "allied": "Vale's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat.", "masks": "Masks in the plaza yesterday. I sold out. People eat when they're nervous.", "unbound": "They say the old lab under the bastion's awake. My grandfather worked there. He never said what it was.", "kept": "Quiet week. Ran out of skewers anyway. People eat when they're happy too, it turns out."}}),
+    "news": {"start": "The response team came by. Ate six skewers. Paid for four. Said it was a tax.", "allied": "Rourke's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat.", "masks": "Masks in the plaza yesterday. I sold out. People eat when they're nervous.", "unbound": "They say the old lab under the bastion's awake. My grandfather worked there. He never said what it was.", "kept": "Quiet week. Ran out of skewers anyway. People eat when they're happy too, it turns out."}}),
  "jade": ("Jade Walker", "female", 22, {
     "fracture": ["I was in the stock room. Every hoodie on the rail turned inside out. All of them. I've still got the photo.", "The Fracture's the reason streetwear got practical. Pockets for a flashlight, that kind of thing."],
     "place": ["Nova Threads, Galleria, ground floor. Best lighting in the city — don't tell anyone I said that.", "The dressing room's bigger than my flat. I've napped in it. Don't tell Nina."],
@@ -94,7 +94,7 @@ PEOPLE = {
     "place": ["Under the monorail. The acoustics are stupid good. Trains come through and it's like a drum.", "Coins in the case, requests in the air. Don't request the Fracture song. I'll play it anyway."],
     "you": {"wary": "…hi.", "acquaintance": "Oh — hey. You're the one who, um. Thanks for the coin.", "friend": "I wrote a bit about you. It's not finished. It's… yeah.", "close": "That song's about you. The good one. Don't make me say it twice."},
     "news": {"start": "Vanguard moved me off the plaza. Said I was a 'gathering'. One guy. A gathering.", "allied": "The captain from the bastion stopped and listened. Whole song. Didn't tip. Did nod.", "masks": "The masks came through the plaza while I was playing. They stopped. Then someone made them move on. I kept playing.", "unbound": "They say the voice in your ear was built to find someone. I think it found the right one. That's in the song too.", "kept": "I played the plaza today. Nobody moved me on. Biggest crowd I've had."}}),
- "vale": ("Captain Vale", "female", 44, {
+ "vale": ("Captain Rourke", "female", 44, {
     "fracture": ["I was on the wall when the sky opened. I had thirty seconds to decide what my people were for. I decided civilians.", "The Fracture is not an event. It is a condition. We are living in it, and I intend to keep the district standing inside it."],
     "place": ["The bastion. The last wall in Nexus that means anything. Everything inside it is mine to keep.", "The checkpoint is not for show. Everything that crosses it is counted. Including you."],
     "you": {"wary": "People are calling you a hero. Others are calling you a threat. I have not decided which report to file.", "acquaintance": "You held the district. That earned you the door. The rest you earn daily.", "friend": "You answer to your conscience before you answer to me. I have come to prefer it.", "close": "They know what your choices did to their streets. So do I. I would not trade you for a company."},

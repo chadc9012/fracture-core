@@ -613,7 +613,7 @@
 ]
 },
 "M04_001": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Weapon down. State your affiliation.",
 "dur": 2.32,
 "variants": [
@@ -631,7 +631,7 @@
 ]
 },
 "M04_003": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Not if you can explain how you survived the breach.",
 "dur": 2.49,
 "variants": [
@@ -657,7 +657,7 @@
 ]
 },
 "M04_006": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "That is not possible. NOVA was decommissioned.",
 "dur": 2.85,
 "variants": [
@@ -673,7 +673,7 @@
 ]
 },
 "M04_008": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Come with us. We can keep civilians safe.",
 "dur": 2.35,
 "variants": [
@@ -691,7 +691,7 @@
 ]
 },
 "M05_001": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "We need people who can withstand the Fractures.",
 "dur": 2.42,
 "variants": [
@@ -709,7 +709,7 @@
 ]
 },
 "M05_003": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Then be something better. Make your own choice.",
 "dur": 2.39,
 "variants": [
@@ -735,7 +735,7 @@
 ]
 },
 "M05_006": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Fair. Prove you can protect this district, and we talk again.",
 "dur": 3.01,
 "variants": [
@@ -753,7 +753,7 @@
 ]
 },
 "M05_cooperate_002": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Agreed. You answer to your conscience before you answer to me.",
 "dur": 2.78,
 "variants": [
@@ -771,7 +771,7 @@
 ]
 },
 "M05_independent_002": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Then prove that independence is not indifference.",
 "dur": 2.62,
 "variants": [
@@ -1477,7 +1477,7 @@
 ]
 },
 "M16_001": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "People are calling you a hero. Others are calling you a threat.",
 "dur": 3.27,
 "variants": [
@@ -1495,7 +1495,7 @@
 ]
 },
 "M16_003": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "They know what your choices did to their streets.",
 "dur": 2.57,
 "variants": [
@@ -1521,7 +1521,7 @@
 ]
 },
 "M16_006": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Then make sure your next choice is worth defending.",
 "dur": 2.33,
 "variants": [
@@ -1887,7 +1887,7 @@
 ]
 },
 "M23_001": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Every alliance you made is being tested.",
 "dur": 2.25,
 "variants": [
@@ -1959,7 +1959,7 @@
 ]
 },
 "M23_negotiate_002": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "I can give you ten minutes.",
 "dur": 1.54,
 "variants": [
@@ -2047,7 +2047,7 @@
 ]
 },
 "M25_001": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "The Fractures are quiet. For now.",
 "dur": 1.95,
 "variants": [
@@ -2701,7 +2701,7 @@
 ]
 },
 "M04_D04": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "That is more than most people decide in a week.",
 "dur": 2.55,
 "variants": [
@@ -2717,7 +2717,7 @@
 ]
 },
 "M04_D06": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Armory. Draw what you can carry. Nobody gets issued more than they can explain.",
 "dur": 4.2,
 "variants": [
@@ -2735,7 +2735,7 @@
 ]
 },
 "M04_D08": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Good. Explain the rest to me tomorrow.",
 "dur": 2.09,
 "variants": [
@@ -2770,8 +2770,8 @@
 },
 "M05_D04": {
 "speaker": "NOVA",
-"text": "District clear. Vale watched the whole thing from the wall.",
-"dur": 3.11,
+"text": "District clear. Rourke watched the whole thing from the wall.",
+"dur": 2.81,
 "variants": [
 ""
 ]
@@ -2787,7 +2787,7 @@
 ]
 },
 "M05_D06": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "You held the district. So. Where do you stand?",
 "dur": 2.55,
 "variants": [
@@ -3811,7 +3811,7 @@
 ]
 },
 "M16_D07": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Nobody died. In this city, today, that is a political statement.",
 "dur": 4.26,
 "variants": [
@@ -3829,7 +3829,7 @@
 ]
 },
 "M16_D09": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "That is why it worked.",
 "dur": 1.28,
 "variants": [
@@ -4382,8 +4382,8 @@
 },
 "M23_D01": {
 "speaker": "NOVA",
-"text": "Draev's line, Vale's line, the Warden's rangers in the scrub. One of them fires in the next minute unless you do something.",
-"dur": 6.23,
+"text": "Draev's line, Rourke's line, the Warden's rangers in the scrub. One of them fires in the next minute unless you do something.",
+"dur": 5.78,
 "variants": [
 ""
 ]
@@ -4415,7 +4415,7 @@
 ]
 },
 "M23_D05": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "The ridge is quiet. My people are alive. So are Draev's.",
 "dur": 2.99,
 "variants": [
@@ -4551,7 +4551,7 @@
 ]
 },
 "M25_D06": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "So. What do you do with a world you kept?",
 "dur": 2.27,
 "variants": [
@@ -24806,8 +24806,8 @@
 },
 "P_rosa_news_allied": {
 "speaker": "ROSA DELGADO",
-"text": "The response team walks the avenue now. Vale's people. They tip badly.",
-"dur": 4.25,
+"text": "The response team walks the avenue now. Rourke's people. They tip badly.",
+"dur": 4.23,
 "variants": [
 ""
 ]
@@ -25326,8 +25326,8 @@
 },
 "P_theo_news_allied": {
 "speaker": "THEO BRANDT",
-"text": "Vale's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat.",
-"dur": 5.09,
+"text": "Rourke's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat.",
+"dur": 5.13,
 "variants": [
 ""
 ]
@@ -26293,7 +26293,7 @@
 ]
 },
 "P_vale_fracture_1": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "I was on the wall when the sky opened. I had thirty seconds to decide what my people were for. I decided civilians.",
 "dur": 6.22,
 "variants": [
@@ -26301,7 +26301,7 @@
 ]
 },
 "P_vale_fracture_2": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "The Fracture is not an event. It is a condition. We are living in it, and I intend to keep the district standing inside it.",
 "dur": 6.46,
 "variants": [
@@ -26309,7 +26309,7 @@
 ]
 },
 "P_vale_place_1": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "The bastion. The last wall in Nexus that means anything. Everything inside it is mine to keep.",
 "dur": 5.73,
 "variants": [
@@ -26317,7 +26317,7 @@
 ]
 },
 "P_vale_place_2": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "The checkpoint is not for show. Everything that crosses it is counted. Including you.",
 "dur": 4.13,
 "variants": [
@@ -26325,7 +26325,7 @@
 ]
 },
 "P_vale_you_wary": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "People are calling you a hero. Others are calling you a threat. I have not decided which report to file.",
 "dur": 5.22,
 "variants": [
@@ -26333,7 +26333,7 @@
 ]
 },
 "P_vale_you_acquaintance": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "You held the district. That earned you the door. The rest you earn daily.",
 "dur": 3.62,
 "variants": [
@@ -26341,7 +26341,7 @@
 ]
 },
 "P_vale_you_friend": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "You answer to your conscience before you answer to me. I have come to prefer it.",
 "dur": 3.49,
 "variants": [
@@ -26349,7 +26349,7 @@
 ]
 },
 "P_vale_you_close": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "They know what your choices did to their streets. So do I. I would not trade you for a company.",
 "dur": 4.38,
 "variants": [
@@ -26357,7 +26357,7 @@
 ]
 },
 "P_vale_news_start": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Breaches nightly. The drones are learning the avenue. So are we.",
 "dur": 3.19,
 "variants": [
@@ -26365,7 +26365,7 @@
 ]
 },
 "P_vale_news_allied": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "My team walks the avenue in the open now. Civilians first. Report anything that does not fit.",
 "dur": 5.07,
 "variants": [
@@ -26373,7 +26373,7 @@
 ]
 },
 "P_vale_news_masks": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "Masks in the plaza. Paid for. I know by whom; I cannot yet prove it. Patience.",
 "dur": 4.92,
 "variants": [
@@ -26381,7 +26381,7 @@
 ]
 },
 "P_vale_news_unbound": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "The lab under the bastion is open. What it says about your companion I will hear from you, not from a rumour.",
 "dur": 5.33,
 "variants": [
@@ -26389,7 +26389,7 @@
 ]
 },
 "P_vale_news_kept": {
-"speaker": "CAPTAIN VALE",
+"speaker": "CAPTAIN ROURKE",
 "text": "The city stands. The factions hold. Do not mistake quiet for finished; keep the district.",
 "dur": 5.34,
 "variants": [
@@ -31565,25 +31565,25 @@
 "NOVA|Remember: cover, movement, then ability. Survive first.": "M03_008",
 "PLAYER|And if the street tears open again?": "M03_009",
 "NOVA|Then we improvise.": "M03_010",
-"CAPTAIN VALE|Weapon down. State your affiliation.": "M04_001",
+"CAPTAIN ROURKE|Weapon down. State your affiliation.": "M04_001",
 "PLAYER|I woke up in an apartment. Is that an affiliation?": "M04_002",
-"CAPTAIN VALE|Not if you can explain how you survived the breach.": "M04_003",
+"CAPTAIN ROURKE|Not if you can explain how you survived the breach.": "M04_003",
 "NOVA|Recommend honesty, selectively.": "M04_004",
 "PLAYER|I can hear a voice. It says its name is NOVA.": "M04_005",
-"CAPTAIN VALE|That is not possible. NOVA was decommissioned.": "M04_006",
+"CAPTAIN ROURKE|That is not possible. NOVA was decommissioned.": "M04_006",
 "NOVA|That is an inaccurate description of events.": "M04_007",
-"CAPTAIN VALE|Come with us. We can keep civilians safe.": "M04_008",
+"CAPTAIN ROURKE|Come with us. We can keep civilians safe.": "M04_008",
 "PLAYER|I will come. But I decide who I help.": "M04_009",
-"CAPTAIN VALE|We need people who can withstand the Fractures.": "M05_001",
+"CAPTAIN ROURKE|We need people who can withstand the Fractures.": "M05_001",
 "PLAYER|You need soldiers. I am not one.": "M05_002",
-"CAPTAIN VALE|Then be something better. Make your own choice.": "M05_003",
+"CAPTAIN ROURKE|Then be something better. Make your own choice.": "M05_003",
 "NOVA|There are benefits to cooperating. There are also risks.": "M05_004",
 "PLAYER|I am not signing away my life because the sky cracked.": "M05_005",
-"CAPTAIN VALE|Fair. Prove you can protect this district, and we talk again.": "M05_006",
+"CAPTAIN ROURKE|Fair. Prove you can protect this district, and we talk again.": "M05_006",
 "PLAYER|I will work with your team, but civilians come first.": "M05_cooperate_001",
-"CAPTAIN VALE|Agreed. You answer to your conscience before you answer to me.": "M05_cooperate_002",
+"CAPTAIN ROURKE|Agreed. You answer to your conscience before you answer to me.": "M05_cooperate_002",
 "PLAYER|I will help, but I am not joining your command.": "M05_independent_001",
-"CAPTAIN VALE|Then prove that independence is not indifference.": "M05_independent_002",
+"CAPTAIN ROURKE|Then prove that independence is not indifference.": "M05_independent_002",
 "NOVA|Verdant Forest. The vegetation has absorbed Fracture energy.": "M06_001",
 "PLAYER|It looks peaceful.": "M06_002",
 "SCOUT MIRA|That is how it catches you off guard.": "M06_003",
@@ -31664,12 +31664,12 @@
 "NOVA|The crown is amplifying the storm. Disable its anchors.": "M15_004",
 "PLAYER|Then we free the people trapped here.": "M15_005",
 "CROWNKEEPER|IF YOU BREAK THE CROWN, REMEMBER THOSE IT HELD.": "M15_006",
-"CAPTAIN VALE|People are calling you a hero. Others are calling you a threat.": "M16_001",
+"CAPTAIN ROURKE|People are calling you a hero. Others are calling you a threat.": "M16_001",
 "PLAYER|Neither group knows me.": "M16_002",
-"CAPTAIN VALE|They know what your choices did to their streets.": "M16_003",
+"CAPTAIN ROURKE|They know what your choices did to their streets.": "M16_003",
 "NOVA|Your reputation is changing how factions respond.": "M16_004",
 "PLAYER|Good. Let them respond to what I do next.": "M16_005",
-"CAPTAIN VALE|Then make sure your next choice is worth defending.": "M16_006",
+"CAPTAIN ROURKE|Then make sure your next choice is worth defending.": "M16_006",
 "FIXER SABLE|Weapons, vehicles, secrets. Everything has a price.": "M17_001",
 "PLAYER|And what is the price of trust?": "M17_002",
 "FIXER SABLE|Usually the thing you cannot afford to lose.": "M17_003",
@@ -31711,7 +31711,7 @@
 "NOVA|You were never the intended host. You were the one who chose to help.": "M22_005",
 "PLAYER|Then stop deciding what I can handle.": "M22_006",
 "NOVA|Agreed. No more omissions without your consent.": "M22_007",
-"CAPTAIN VALE|Every alliance you made is being tested.": "M23_001",
+"CAPTAIN ROURKE|Every alliance you made is being tested.": "M23_001",
 "PLAYER|They can disagree without becoming enemies.": "M23_002",
 "MARSHAL DRAEV|Not all disagreements survive the first shot.": "M23_003",
 "WARDEN ILYA|The forest will not forgive another invasion.": "M23_004",
@@ -31719,7 +31719,7 @@
 "NOVA|There is no route without loss. There are routes with fewer lives at risk.": "M23_006",
 "PLAYER|Show me those routes.": "M23_007",
 "PLAYER|I am opening a ceasefire channel. Everybody listens.": "M23_negotiate_001",
-"CAPTAIN VALE|I can give you ten minutes.": "M23_negotiate_002",
+"CAPTAIN ROURKE|I can give you ten minutes.": "M23_negotiate_002",
 "PLAYER|Forget the meeting. We move civilians out first.": "M23_evacuate_001",
 "NOVA|Evacuation routes plotted.": "M23_evacuate_002",
 "NOVA|We have reached the origin point.": "M24_001",
@@ -31729,7 +31729,7 @@
 "FRACTURE VOICE|YOU CANNOT HOLD INFINITY APART.": "M24_005",
 "NOVA|You do not have to. You only need to choose which boundaries to protect.": "M24_006",
 "PLAYER|Then we protect the people first. All of them.": "M24_007",
-"CAPTAIN VALE|The Fractures are quiet. For now.": "M25_001",
+"CAPTAIN ROURKE|The Fractures are quiet. For now.": "M25_001",
 "PLAYER|Quiet is not the same as healed.": "M25_002",
 "NOVA|The world is still changing. So are you.": "M25_003",
 "VYRAK|A COVENANT IS NOT AN ENDING. IT IS A PROMISE.": "M25_004",
@@ -31806,17 +31806,17 @@
 "NOVA|Operator response team at the bastion. Armoured, calm, and counting you.": "M04_D01",
 "PLAYER|Counting me as what?": "M04_D02",
 "NOVA|That is the question they will ask.": "M04_D03",
-"CAPTAIN VALE|That is more than most people decide in a week.": "M04_D04",
+"CAPTAIN ROURKE|That is more than most people decide in a week.": "M04_D04",
 "NOVA|She is recording you. So am I. Mine is the one you can read.": "M04_D05",
-"CAPTAIN VALE|Armory. Draw what you can carry. Nobody gets issued more than they can explain.": "M04_D06",
+"CAPTAIN ROURKE|Armory. Draw what you can carry. Nobody gets issued more than they can explain.": "M04_D06",
 "PLAYER|I can explain a rifle.": "M04_D07",
-"CAPTAIN VALE|Good. Explain the rest to me tomorrow.": "M04_D08",
+"CAPTAIN ROURKE|Good. Explain the rest to me tomorrow.": "M04_D08",
 "NOVA|Breach signatures at the plaza. Two squads of Vanguard drones, one of them already leaking.": "M05_D01",
 "PLAYER|Leaking what?": "M05_D02",
 "NOVA|Whatever the purple light is made of.": "M05_D03",
-"NOVA|District clear. Vale watched the whole thing from the wall.": "M05_D04",
+"NOVA|District clear. Rourke watched the whole thing from the wall.": "M05_D04",
 "PLAYER|Then she has her proof.": "M05_D05",
-"CAPTAIN VALE|You held the district. So. Where do you stand?": "M05_D06",
+"CAPTAIN ROURKE|You held the district. So. Where do you stand?": "M05_D06",
 "NOVA|Recorded. Both of us will remember this one.": "M05_D07",
 "NOVA|The scout's trail runs north. She has not used the same route twice.": "M06_D01",
 "PLAYER|Careful, or lost?": "M06_D02",
@@ -31936,9 +31936,9 @@
 "NOVA|Three factions in one plaza. Vanguard, Syndicate runners, and the people who live here. Somebody brought masks.": "M16_D04",
 "PLAYER|Whose side are the masks?": "M16_D05",
 "NOVA|Their own. Keep the civilians behind you and do not fire first.": "M16_D06",
-"CAPTAIN VALE|Nobody died. In this city, today, that is a political statement.": "M16_D07",
+"CAPTAIN ROURKE|Nobody died. In this city, today, that is a political statement.": "M16_D07",
 "PLAYER|I did not make it for politics.": "M16_D08",
-"CAPTAIN VALE|That is why it worked.": "M16_D09",
+"CAPTAIN ROURKE|That is why it worked.": "M16_D09",
 "NOVA|The Fracture Market is not a place. It is Sable's phone.": "M17_D01",
 "PLAYER|Then we talk to the phone.": "M17_D02",
 "FIXER SABLE|One crate, three buyers, one of you. Drive it to the harbor and the contract is real.": "M17_D03",
@@ -32002,11 +32002,11 @@
 "NOVA|Clear. I have no secrets left that could do that to you.": "M22_D12",
 "PLAYER|Keep one or two. Just tell me they exist.": "M22_D13",
 "NOVA|Two. They exist.": "M22_D14",
-"NOVA|Draev's line, Vale's line, the Warden's rangers in the scrub. One of them fires in the next minute unless you do something.": "M23_D01",
+"NOVA|Draev's line, Rourke's line, the Warden's rangers in the scrub. One of them fires in the next minute unless you do something.": "M23_D01",
 "NOVA|Somebody fired anyway. Not one of ours. Syndicate marksmen on the ridge, paid to make this happen.": "M23_D02",
 "PLAYER|Then everybody has the same enemy for ninety seconds.": "M23_D03",
 "NOVA|Make it count.": "M23_D04",
-"CAPTAIN VALE|The ridge is quiet. My people are alive. So are Draev's.": "M23_D05",
+"CAPTAIN ROURKE|The ridge is quiet. My people are alive. So are Draev's.": "M23_D05",
 "MARSHAL DRAEV|Then we are not enemies today.": "M23_D06",
 "WARDEN ILYA|Today is what I can promise.": "M23_D07",
 "NOVA|Alliance held. Consequences logged. They will persist whether or not anyone wants them to.": "M23_D08",
@@ -32022,7 +32022,7 @@
 "NOVA|Together. Three anchors. Then the choice is yours, not its.": "M25_D03",
 "NOVA|It is quiet. Not healed. Quiet.": "M25_D04",
 "PLAYER|That will do for today.": "M25_D05",
-"CAPTAIN VALE|So. What do you do with a world you kept?": "M25_D06",
+"CAPTAIN ROURKE|So. What do you do with a world you kept?": "M25_D06",
 "NOVA|Campaign complete. The world is still running. So are we.": "M25_D07",
 "NOVA|Operator? Can you hear me?": "A02_001",
 "NOVA|Your biometric readings are unstable. Please respond.": "A02_002",
@@ -34357,7 +34357,7 @@
 "ROSA DELGADO|Honestly? You're the reason I don't flinch at the door any more.": "P_rosa_you_friend",
 "ROSA DELGADO|If the sky cracks again I'm hiding behind you. Don't argue.": "P_rosa_you_close",
 "ROSA DELGADO|Trains are back. Prices aren't. Everyone pretends that's normal.": "P_rosa_news_start",
-"ROSA DELGADO|The response team walks the avenue now. Vale's people. They tip badly.": "P_rosa_news_allied",
+"ROSA DELGADO|The response team walks the avenue now. Rourke's people. They tip badly.": "P_rosa_news_allied",
 "ROSA DELGADO|There were masks in the plaza yesterday. Nobody knows whose. I closed early.": "P_rosa_news_masks",
 "ROSA DELGADO|Somebody told me the voice in your ear has a history. I said who doesn't.": "P_rosa_news_unbound",
 "ROSA DELGADO|It's quiet. Properly quiet. I keep waiting for the catch.": "P_rosa_news_kept",
@@ -34422,7 +34422,7 @@
 "THEO BRANDT|You eat like someone who's been places. Tell me about them sometime.": "P_theo_you_friend",
 "THEO BRANDT|Family rate for you. Don't tell the regulars. Don't tell my wife.": "P_theo_you_close",
 "THEO BRANDT|The response team came by. Ate six skewers. Paid for four. Said it was a tax.": "P_theo_news_start",
-"THEO BRANDT|Vale's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat.": "P_theo_news_allied",
+"THEO BRANDT|Rourke's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat.": "P_theo_news_allied",
 "THEO BRANDT|Masks in the plaza yesterday. I sold out. People eat when they're nervous.": "P_theo_news_masks",
 "THEO BRANDT|They say the old lab under the bastion's awake. My grandfather worked there. He never said what it was.": "P_theo_news_unbound",
 "THEO BRANDT|Quiet week. Ran out of skewers anyway. People eat when they're happy too, it turns out.": "P_theo_news_kept",
@@ -34543,19 +34543,19 @@
 "JONAH PRICE|The masks came through the plaza while I was playing. They stopped. Then someone made them move on. I kept playing.": "P_jonah_news_masks",
 "JONAH PRICE|They say the voice in your ear was built to find someone. I think it found the right one. That's in the song too.": "P_jonah_news_unbound",
 "JONAH PRICE|I played the plaza today. Nobody moved me on. Biggest crowd I've had.": "P_jonah_news_kept",
-"CAPTAIN VALE|I was on the wall when the sky opened. I had thirty seconds to decide what my people were for. I decided civilians.": "P_vale_fracture_1",
-"CAPTAIN VALE|The Fracture is not an event. It is a condition. We are living in it, and I intend to keep the district standing inside it.": "P_vale_fracture_2",
-"CAPTAIN VALE|The bastion. The last wall in Nexus that means anything. Everything inside it is mine to keep.": "P_vale_place_1",
-"CAPTAIN VALE|The checkpoint is not for show. Everything that crosses it is counted. Including you.": "P_vale_place_2",
-"CAPTAIN VALE|People are calling you a hero. Others are calling you a threat. I have not decided which report to file.": "P_vale_you_wary",
-"CAPTAIN VALE|You held the district. That earned you the door. The rest you earn daily.": "P_vale_you_acquaintance",
-"CAPTAIN VALE|You answer to your conscience before you answer to me. I have come to prefer it.": "P_vale_you_friend",
-"CAPTAIN VALE|They know what your choices did to their streets. So do I. I would not trade you for a company.": "P_vale_you_close",
-"CAPTAIN VALE|Breaches nightly. The drones are learning the avenue. So are we.": "P_vale_news_start",
-"CAPTAIN VALE|My team walks the avenue in the open now. Civilians first. Report anything that does not fit.": "P_vale_news_allied",
-"CAPTAIN VALE|Masks in the plaza. Paid for. I know by whom; I cannot yet prove it. Patience.": "P_vale_news_masks",
-"CAPTAIN VALE|The lab under the bastion is open. What it says about your companion I will hear from you, not from a rumour.": "P_vale_news_unbound",
-"CAPTAIN VALE|The city stands. The factions hold. Do not mistake quiet for finished; keep the district.": "P_vale_news_kept",
+"CAPTAIN ROURKE|I was on the wall when the sky opened. I had thirty seconds to decide what my people were for. I decided civilians.": "P_vale_fracture_1",
+"CAPTAIN ROURKE|The Fracture is not an event. It is a condition. We are living in it, and I intend to keep the district standing inside it.": "P_vale_fracture_2",
+"CAPTAIN ROURKE|The bastion. The last wall in Nexus that means anything. Everything inside it is mine to keep.": "P_vale_place_1",
+"CAPTAIN ROURKE|The checkpoint is not for show. Everything that crosses it is counted. Including you.": "P_vale_place_2",
+"CAPTAIN ROURKE|People are calling you a hero. Others are calling you a threat. I have not decided which report to file.": "P_vale_you_wary",
+"CAPTAIN ROURKE|You held the district. That earned you the door. The rest you earn daily.": "P_vale_you_acquaintance",
+"CAPTAIN ROURKE|You answer to your conscience before you answer to me. I have come to prefer it.": "P_vale_you_friend",
+"CAPTAIN ROURKE|They know what your choices did to their streets. So do I. I would not trade you for a company.": "P_vale_you_close",
+"CAPTAIN ROURKE|Breaches nightly. The drones are learning the avenue. So are we.": "P_vale_news_start",
+"CAPTAIN ROURKE|My team walks the avenue in the open now. Civilians first. Report anything that does not fit.": "P_vale_news_allied",
+"CAPTAIN ROURKE|Masks in the plaza. Paid for. I know by whom; I cannot yet prove it. Patience.": "P_vale_news_masks",
+"CAPTAIN ROURKE|The lab under the bastion is open. What it says about your companion I will hear from you, not from a rumour.": "P_vale_news_unbound",
+"CAPTAIN ROURKE|The city stands. The factions hold. Do not mistake quiet for finished; keep the district.": "P_vale_news_kept",
 "COMMANDER ELIAS VOSS|We shot at them for twenty minutes before anyone admitted nothing was working. That's the Fracture. A lesson you learn while firing.": "P_voss_fracture_1",
 "COMMANDER ELIAS VOSS|It didn't come from nowhere. Somebody promised somebody they could control it. I intend to find out who.": "P_voss_fracture_2",
 "COMMANDER ELIAS VOSS|The checkpoint holds because the people on it decide every morning that it will.": "P_voss_place_1",

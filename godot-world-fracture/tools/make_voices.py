@@ -39,7 +39,7 @@ CAST = {
     "CIVILIAN": (LT, 0, "plain"),
     "CHILD": (LT, 60, "child"),
     "SURVIVOR": (LT, 45, "plain"),
-    "CAPTAIN VALE": (LT, 615, "plain"),
+    "CAPTAIN ROURKE": (LT, 615, "plain"),
     "VYRAK": (LT, 720, "vyrak"),
     "FIXER SABLE": (LT, 840, "plain"),
     "PILOT NERI": (LT, 180, "comms"),

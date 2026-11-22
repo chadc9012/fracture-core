@@ -429,7 +429,7 @@
    }
   },
   "vale": {
-   "name": "Captain Vale",
+   "name": "Captain Rourke",
    "body": "female",
    "age": 44,
    "topics": {
@@ -1908,7 +1908,7 @@
    "speaker": "ROSA DELGADO",
    "body": "female",
    "age": 34,
-   "text": "The response team walks the avenue now. Vale's people. They tip badly."
+   "text": "The response team walks the avenue now. Rourke's people. They tip badly."
   },
   {
    "id": "P_rosa_news_masks",
@@ -2428,7 +2428,7 @@
    "speaker": "THEO BRANDT",
    "body": "male",
    "age": 58,
-   "text": "Vale's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat."
+   "text": "Rourke's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat."
   },
   {
    "id": "P_theo_news_masks",
@@ -3393,7 +3393,7 @@
   {
    "id": "P_vale_fracture_1",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "I was on the wall when the sky opened. I had thirty seconds to decide what my people were for. I decided civilians."
@@ -3401,7 +3401,7 @@
   {
    "id": "P_vale_fracture_2",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The Fracture is not an event. It is a condition. We are living in it, and I intend to keep the district standing inside it."
@@ -3409,7 +3409,7 @@
   {
    "id": "P_vale_place_1",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The bastion. The last wall in Nexus that means anything. Everything inside it is mine to keep."
@@ -3417,7 +3417,7 @@
   {
    "id": "P_vale_place_2",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The checkpoint is not for show. Everything that crosses it is counted. Including you."
@@ -3425,7 +3425,7 @@
   {
    "id": "P_vale_you_wary",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "People are calling you a hero. Others are calling you a threat. I have not decided which report to file."
@@ -3433,7 +3433,7 @@
   {
    "id": "P_vale_you_acquaintance",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "You held the district. That earned you the door. The rest you earn daily."
@@ -3441,7 +3441,7 @@
   {
    "id": "P_vale_you_friend",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "You answer to your conscience before you answer to me. I have come to prefer it."
@@ -3449,7 +3449,7 @@
   {
    "id": "P_vale_you_close",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "They know what your choices did to their streets. So do I. I would not trade you for a company."
@@ -3457,7 +3457,7 @@
   {
    "id": "P_vale_news_start",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "Breaches nightly. The drones are learning the avenue. So are we."
@@ -3465,7 +3465,7 @@
   {
    "id": "P_vale_news_allied",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "My team walks the avenue in the open now. Civilians first. Report anything that does not fit."
@@ -3473,7 +3473,7 @@
   {
    "id": "P_vale_news_masks",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "Masks in the plaza. Paid for. I know by whom; I cannot yet prove it. Patience."
@@ -3481,7 +3481,7 @@
   {
    "id": "P_vale_news_unbound",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The lab under the bastion is open. What it says about your companion I will hear from you, not from a rumour."
@@ -3489,7 +3489,7 @@
   {
    "id": "P_vale_news_kept",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The city stands. The factions hold. Do not mistake quiet for finished; keep the district."

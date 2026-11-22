@@ -30,10 +30,10 @@ func _init() -> void:
 	check("Neon City is busier at night than at noon", People.out_at(23.0, "neon").size() > People.out_at(12.0, "neon").size())
 	check("Neon rumours are Neon's", Talk.NEON_RUMOURS.has(Talk.rumour(People.by_id("lin"), "2026-11-11")))
 	# tier 3
-	check("Captain Vale waits for the story", not People.out_at(10.0, "nexus", {}).any(func(o): return o.person.id == "vale") and People.out_at(10.0, "nexus", { "m05_choice": "cooperate" }).any(func(o): return o.person.id == "vale"))
+	check("Captain Rourke waits for the story", not People.out_at(10.0, "nexus", {}).any(func(o): return o.person.id == "vale") and People.out_at(10.0, "nexus", { "m05_choice": "cooperate" }).any(func(o): return o.person.id == "vale"))
 	var sv := Memory.blank()
 	Memory.talk(sv, "vale", "2026-11-11")
-	check("Vale remembers your Mission 05 choice", Talk.greeting(People.by_id("vale"), sv, 10.0, "Nyx", { "m05_choice": "independent" }).contains("independence"))
+	check("Rourke remembers your Mission 05 choice", Talk.greeting(People.by_id("vale"), sv, 10.0, "Nyx", { "m05_choice": "independent" }).contains("independence"))
 	# asking them (people.json): every named person answers every ask; "you" follows the band, "news" the campaign stage
 	var asks := Talk.asks()
 	check("four things to ask", asks.size() == 4)

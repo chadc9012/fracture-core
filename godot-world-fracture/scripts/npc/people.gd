@@ -65,9 +65,9 @@ const PEOPLE := [
 		"outfit": "varsity", "schedule": [[14, 23, "sports", "work"]] },
 	{ "id": "jonah", "name": "Jonah Price", "age": 19, "body": "male", "build": "slim", "job": "street musician", "personality": "shy",
 		"outfit": "tee-shorts", "schedule": [[16, 23, "plaza", "play"]] },
-	# tier 3: the story's own people (docs/story/WorldFracture_Dialogue_Bible_Draft1.md). Captain Vale leads the Operator
+	# tier 3: the story's own people (docs/story/WorldFracture_Dialogue_Bible_Draft1.md). Captain Rourke leads the Operator
 	# response team; she's on the avenue only once you've met her in Mission 01's chapters 04-05 (profile m05_choice)
-	{ "id": "vale", "name": "Captain Vale", "age": 44, "body": "female", "build": "athletic", "job": "Operator response captain", "personality": "proud",
+	{ "id": "vale", "name": "Captain Rourke", "age": 44, "body": "female", "build": "athletic", "job": "Operator response captain", "personality": "proud",
 		"outfit": "olive-utility", "tier": 3, "needs": "m05_choice", "beat": [-40.0, 40.0], "schedule": [[9, 13, "precinct", "patrol"], [13, 19, "plaza", "work"]] },
 	# Chapter 1 — The Aftershock's people (the owner's Nov 22 screenplays, scripts/mission/aftershock.gd): on the avenue
 	# once you've made Mission 5's choice (profile a05_choice); the general and the captain only in the story itself
@@ -255,7 +255,7 @@ static func city_of(id: String) -> String:
 				return city
 	return "nexus"
 
-## a tier 3 person may wait on the story: `needs` names a profile key that must be set (Captain Vale: m05_choice)
+## a tier 3 person may wait on the story: `needs` names a profile key that must be set (Captain Rourke: m05_choice)
 ## (main-story people: "aftershock_done:<mission>" — out once that mission is done; `away` hides them while the story
 ## has them elsewhere — Ward after Haven falls, Seraphine while she stands beside the Architect)
 static func available(p: Dictionary, profile: Dictionary) -> bool:
