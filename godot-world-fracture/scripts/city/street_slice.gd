@@ -1286,8 +1286,9 @@ func _wet_paving(sm: ShaderMaterial) -> void:
 	# than the Nov 8 pass and fully wet
 	sm.set_shader_parameter("wet", 1.0)
 	sm.set_shader_parameter("puddle_noise", _noise_tex(0.004, 4, 512))
-	sm.set_shader_parameter("lo_col", Vector3(0.3, 0.3, 0.34))
-	sm.set_shader_parameter("hi_col", Vector3(0.42, 0.42, 0.47))
+	# dark wet stone, as the frame (the pale pavers read lilac under the night light; Nov 22 benchmark)
+	sm.set_shader_parameter("lo_col", Vector3(0.17, 0.17, 0.19))
+	sm.set_shader_parameter("hi_col", Vector3(0.25, 0.245, 0.26))
 
 ## Nexus by day: polished pale pavers, freshly hosed — a light sheen everywhere and shallow glossy patches that
 ## catch the towers and the sky (owner's street frame)
@@ -1453,6 +1454,8 @@ func _buildings() -> void:
 			var h: float = float(pick[1]) * _rng.randf_range(0.92, 1.1)
 			# Meshy models face +z; turning by -90 * side faces them across the street
 			var b := prop(String(pick[0]), h, Vector3(side * half, 0.0, z), -90.0 * side)
+			if b and night and style == "nexus":
+				_night_facade(b)
 			var width := 18.0
 			if b:
 				var size: Vector3 = b.get_meta("size")
@@ -1468,6 +1471,83 @@ func _buildings() -> void:
 					prop("shopfront.glb", 5.2, Vector3(side * (half + 4.0), 0.18, b.position.z), -90.0 * side)
 			z += width + _rng.randf_range(0.0, 1.5)
 			k += 1
+
+## Night facades (Nov 22 benchmark, owner's plan: the Nexus street to target-nexus-night first). The authored blocks are
+## white with planting and their windows are neutral grey panes in the texture; at night the white glowed and every
+## block read blank. This swaps each surface for a shader over the same textures: the walls a shade darker, and the
+## grey glass on the upright faces lit floor by floor — warm, a few cool, some dark — so the windows that light are the
+## model's own. One material per source material (cached), the LOD keeps the full model's materials as before.
+static var _night_mats := {}
+func _night_facade(b: Node3D) -> void:
+	for mi in b.find_children("*", "MeshInstance3D", true, false):
+		var m3 := mi as MeshInstance3D
+		if not m3.mesh:
+			continue
+		for si in m3.mesh.get_surface_count():
+			var src := m3.get_active_material(si) as StandardMaterial3D
+			if not src or not src.albedo_texture:
+				continue
+			if not _night_mats.has(src):
+				_night_mats[src] = _night_facade_material(src)
+			m3.set_surface_override_material(si, _night_mats[src])
+
+static var _night_shader: Shader
+static func _night_facade_material(src: StandardMaterial3D) -> ShaderMaterial:
+	if not _night_shader:
+		_night_shader = Shader.new()
+		_night_shader.code = """
+shader_type spatial;
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D orm_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform bool has_n = false;
+uniform bool has_orm = false;
+uniform float wall = 0.55;
+varying vec3 wpos;
+varying vec3 wn;
+void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; wn = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz); }
+float h21(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 9137.7); }
+void fragment() {
+	vec3 a = texture(albedo_tex, UV).rgb;
+	float l = dot(a, vec3(0.3, 0.59, 0.11));
+	float mx = max(a.r, max(a.g, a.b)), mn = min(a.r, min(a.g, a.b));
+	float s = (mx - mn) / (mx + 1e-4);
+	float upright = 1.0 - smoothstep(0.35, 0.6, abs(wn.y));
+	float glass = smoothstep(0.16, 0.08, s) * smoothstep(0.14, 0.22, l) * smoothstep(0.6, 0.45, l) * upright;
+	// a room is a cell of the facade, 2.8 m wide and a 3.4 m storey high; whether its light is on, and its colour
+	float along = abs(wn.x) > abs(wn.z) ? wpos.z : wpos.x;
+	vec2 rc = vec2(along / 2.8, wpos.y / 3.4);
+	vec2 cell = floor(rc);
+	vec2 f = fract(rc);
+	float r = h21(cell);
+	float on = step(0.45, r) * smoothstep(3.0, 4.0, wpos.y);
+	vec3 lamp = r > 0.9 ? vec3(0.72, 0.85, 1.0) : (r > 0.8 ? vec3(1.0, 0.62, 0.85) : vec3(1.0, 0.74, 0.46));
+	// each room seen through two panes in a frame (a lit room was one flat block of light: it read as a pixel), the
+	// ceiling light brightest near the top, some blinds half down
+	float aa = fwidth(rc.x) * 1.5;
+	float frame = smoothstep(0.04, 0.04 + aa, f.x) * smoothstep(0.96, 0.96 - aa, f.x) * smoothstep(0.5 - aa, 0.5 - aa - 0.03, abs(f.x - 0.5) - 0.0)
+		+ smoothstep(0.52, 0.52 + aa, f.x) * smoothstep(0.96, 0.96 - aa, f.x);
+	frame = clamp(frame, 0.0, 1.0) * smoothstep(0.06, 0.1, f.y) * smoothstep(0.9, 0.86, f.y);
+	float blind = step(0.7, h21(cell + 3.3)) * smoothstep(0.62, 0.6, f.y) * 0.0 + (1.0 - step(0.7, h21(cell + 3.3)) * step(f.y, 0.55) * 0.75);
+	float inside = mix(0.55, 1.0, smoothstep(0.1, 0.85, f.y)) * blind;
+	ALBEDO = a * mix(wall, 0.18, glass);
+	EMISSION = lamp * glass * on * frame * inside * (0.7 + 0.8 * h21(cell + 7.1));
+	ROUGHNESS = has_orm ? texture(orm_tex, UV).g : 0.7;
+	ROUGHNESS = mix(ROUGHNESS, 0.12, glass);
+	METALLIC = has_orm ? texture(orm_tex, UV).b : 0.0;
+	if (has_n) { NORMAL_MAP = texture(normal_tex, UV).xyz; }
+}
+"""
+	var m := ShaderMaterial.new()
+	m.shader = _night_shader
+	m.set_shader_parameter("albedo_tex", src.albedo_texture)
+	if src.normal_enabled and src.normal_texture:
+		m.set_shader_parameter("normal_tex", src.normal_texture)
+		m.set_shader_parameter("has_n", true)
+	if src.roughness_texture:
+		m.set_shader_parameter("orm_tex", src.roughness_texture)
+		m.set_shader_parameter("has_orm", true)
+	return m
 
 ## a Nexus district court opens on this side of the tile being built (never on the hub, never in the other cities)
 func _court_here(side: float) -> bool:
