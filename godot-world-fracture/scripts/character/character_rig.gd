@@ -228,6 +228,8 @@ func _attach_head(body_head: int) -> void:
 			custom[k * 4 + 2] = p.z
 			head_pts.append(p)
 		arr[Mesh.ARRAY_VERTEX] = vs
+		if not robot:
+			_trim_collar(arr, custom, src_mesh.surface_get_material(s))
 		if sculpt:
 			arr[Mesh.ARRAY_NORMAL] = _normals(vs, arr[Mesh.ARRAY_INDEX], arr[Mesh.ARRAY_NORMAL])
 		arr[Mesh.ARRAY_CUSTOM0] = custom
@@ -377,6 +379,49 @@ func _head_material(m: Material, robot: bool) -> Material:
 
 var _tex_skin: Variant = null
 ## the head texture's own skin colour (its mean over skin-like texels), or null when the image can't be read
+## The scanned heads are busts that end in a scrap of the armour collar they were made with: a grey flared ring under the
+## jaw. The old body's thick neck hid it; on the MakeHuman bodies it stood out round every neck (GTA pass, Nov 22). Its
+## triangles go: below the jaw and behind the chin, where the head's own texture is mid grey — not skin (warm), not hair (black).
+static func _trim_collar(arr: Array, head_space: PackedFloat32Array, m: Material) -> void:
+	var std := m as StandardMaterial3D
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+	var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV] if arr[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+	if not std or not std.albedo_texture or idx.is_empty() or uvs.is_empty():
+		return
+	var img := std.albedo_texture.get_image()
+	if not img or (img.is_compressed() and img.decompress() != OK):
+		return
+	var w := img.get_width()
+	var h := img.get_height()
+	var n := uvs.size()
+	var gone := PackedByteArray()
+	gone.resize(n)
+	for k in n:
+		var y := head_space[k * 4 + 1]
+		if y < 0.03 and absf(head_space[k * 4]) > 0.075:   # under the jaw and wider than it: the collar's side flaps
+			gone[k] = 1
+			continue
+		if y > 0.05 or head_space[k * 4 + 2] > 0.03:      # below the jaw line, and behind the chin (beards stay)
+			continue
+		var uv := uvs[k]
+		var c := img.get_pixel(clampi(int(uv.x * w), 0, w - 1), clampi(int(uv.y * h), 0, h - 1))
+		var mx := maxf(c.r, maxf(c.g, c.b))
+		var mn := minf(c.r, minf(c.g, c.b))
+		var sat := (mx - mn) / (mx + 1e-4)
+		var lum := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
+		# grey cloth / plate: darker than skin, lighter than black hair, without skin's warmth; or a deep dyed red (the
+		# women's heads end in a red collar); or anything flaring out past the neck well below the jaw
+		var r := Vector2(head_space[k * 4], head_space[k * 4 + 2]).length()
+		if (sat < 0.22 and lum > 0.055 and lum < 0.42) or (sat > 0.6 and lum < 0.3) or (y < -0.006 and r > 0.075) or (y < 0.02 and r > 0.082) or (y < 0.07 and r > 0.105):
+			gone[k] = 1
+	var keep := PackedInt32Array()
+	for t in range(0, idx.size(), 3):
+		if gone[idx[t]] == 0 and gone[idx[t + 1]] == 0 and gone[idx[t + 2]] == 0:
+			keep.append(idx[t])
+			keep.append(idx[t + 1])
+			keep.append(idx[t + 2])
+	arr[Mesh.ARRAY_INDEX] = keep
+
 static func _sample_skin(m: Material) -> Variant:
 	var std := m as StandardMaterial3D
 	if not std or not std.albedo_texture:

@@ -181,6 +181,7 @@ func _mount() -> void:
 		var m := (load(path) as PackedScene).instantiate() as Node3D
 		_held.add_child(m)
 		_models[f] = m
+		m.set_meta("mid", _model_box(m).get_center())   # before the attachments: a laser beam's mesh would swell the box
 		_attach(m, String(f))
 	_show_current()
 
@@ -820,9 +821,17 @@ func _place_holsters() -> void:
 	for f in _slung:
 		var m: Node3D = _models[f]
 		if _slung[f] == "back":
-			var at: Vector3 = sk.global_transform * sk.get_bone_global_pose(_spine_bone).origin - fwd * 0.2
-			var dir := (Vector3.UP * 0.8 - right * 0.6).normalized()
-			m.global_transform = Transform3D(Basis.looking_at(-dir, -fwd), at - dir * 0.25)
+			# centred on the upper back, clear of the armour (owner, Nov 22: the slung rifle cut through the body in a fight):
+			# the model's own middle sits 0.3 m behind the spine, steep across the shoulder blades, so a long sniper's stock
+			# stops at the hip instead of the knee and a swing's bend no longer pushes it through the chest
+			var spine: Transform3D = sk.global_transform * sk.get_bone_global_pose(_spine_bone)
+			var back := -fwd
+			var up := (spine.basis.y).normalized() if spine.basis.y.length() > 0.1 else Vector3.UP
+			var at: Vector3 = spine.origin - up * 0.06 + back * 0.28
+			var dir := (up * 0.78 - right * 0.62).normalized()
+			var bs := Basis.looking_at(-dir, -fwd)
+			var mid: Vector3 = m.get_meta("mid", Vector3.ZERO)
+			m.global_transform = Transform3D(bs, at - bs * mid)
 		else:
 			var at2: Vector3 = sk.global_transform * sk.get_bone_global_pose(_thigh_bone).origin + right * 0.17 - Vector3.UP * 0.14
 			var dir2 := (-Vector3.UP + fwd * 0.12).normalized()

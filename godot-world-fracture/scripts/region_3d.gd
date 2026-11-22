@@ -550,6 +550,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	_build_lamps()
 	Flora.landmark_fx(self)
 	Flora.fracture_set(self)
+	preload("res://scripts/region_board.gd").build(self)   # the owner's region boards (Nov 22): their landmarks
 	_build_labels()
 	_apply_season()
 	_weather = Weather.new()
@@ -653,15 +654,23 @@ func _style_for(id: String) -> Dictionary:
 			# the owner's "STORM - EMBER PEAKS" photo (docs/reference/world-photos/storm-ember.jpg, volcano.jpg): a night
 			# storm over black basalt — slate-blue cloud, cold light from the storm, the lava the only warm thing in the land
 			# (it was an orange noon haze, every surface the same rust, the crater blown out to white)
-			s.merge({"top": "#0c1120", "hor": "#3a3448", "fog": "#272433", "fog_d": 0.0019, "sun": 0.42, "sun_col": "#a9b8e0", "sun_el": 32.0,
-				"amb": 0.55, "amb_col": "#4a5276", "night": 0.8, "sat": 1.0, "exp": 1.25, "planet": false, "sky": "storm",
-				"glow": "#ff4a14", "glow_amt": 0.35, "embers": 1.0}, true)
+			# Nov 22, the owner's Ember Peaks / Obsidian Reach boards: a burning dusk — a dark violet zenith over a red-orange
+			# horizon under heavy cloud lit from below, the sun down behind the peaks, black rock and the lava the brightest thing
+			# (first render: one red wash over everything — a darker violet zenith, a grey-brown haze, more contrast)
+			s.merge({"top": "#120a24", "hor": "#f0642a", "fog": "#2c1e22", "fog_d": 0.0016, "sun": 1.2, "sun_col": "#ff9050", "sun_el": 8.0, "sun_az": 150.0,
+				"amb": 0.6, "amb_col": "#5a4a58", "night": 0.4, "sat": 1.05, "exp": 1.0, "planet": false, "sky": "sunset",
+				"sky_set": {"cover": 0.55, "cloud_dark": Color("#1e0e1c"), "cloud_lit": Color("#ff8a48"), "streak": 0.5},
+				"glow": "#ff4a14", "glow_amt": 0.32, "embers": 1.0}, true)
 		"frostspire":
 			# the owner's "NIGHT / MOON - FROSTSPIRE MOUNTAINS" photos: a big moon over the peaks, deep blue night, the snow
 			# lit blue-white, the dark rock showing on the steep faces, the settlements' lights warm in the valleys (it was
 			# a white-out: white sky, white fog, white ground, no shape)
-			s.merge({"top": "#050b22", "hor": "#2a4a86", "fog": "#1e3260", "fog_d": 0.0016, "sun": 0.85, "sun_col": "#b8ccff", "sun_el": 24.0, "sun_az": 120.0,
-				"amb": 0.38, "amb_col": "#3e5590", "night": 0.75, "sat": 1.05, "exp": 1.1, "planet": false, "sky": "moon", "glow": "#3d5ea8", "glow_amt": 0.25}, true)
+			# (first render: the snow blew out to flat white — lower exposure and moon so it keeps its blue shading)
+			# Nov 22, the owner's Frostspire / Frostveil boards: polar twilight rather than full night — a deep blue zenith
+			# over a lighter horizon, the aurora green across the north, the snow lit blue-white, the Fracture spire glowing
+			s.merge({"top": "#081640", "hor": "#5a7cc4", "fog": "#36508a", "fog_d": 0.0014, "sun": 0.8, "sun_col": "#b4c8ff", "sun_el": 22.0, "sun_az": 120.0,
+				"amb": 0.36, "amb_col": "#4a62a8", "night": 0.55, "sat": 1.15, "exp": 0.72, "planet": false, "sky": "moon", "glow": "#4a7ad0", "glow_amt": 0.3,
+				"aurora": 1.0}, true)
 		"swamps":
 			# the Shrouded Swamps (owner's world board: bioluminescent wetlands, mangroves, the sunken temple, a High Risk
 			# Fracture Zone): a misty green twilight under the moon, standing water through the marsh, glowing fungi and
@@ -669,7 +678,13 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#0f2024", "hor": "#4a6e5a", "fog": "#34493f", "fog_d": 0.003, "sun": 0.95, "sun_col": "#c4dccf", "sun_el": 26.0, "sun_az": 60.0,
 				"amb": 1.0, "amb_col": "#4a6c62", "night": 0.7, "sat": 1.0, "exp": 1.45, "planet": false, "sky": "moon", "glow": "#3f8a6a", "glow_amt": 0.3,
 				"bog": 1.0}, true)
-		"veridan", "riverdale":
+		"veridan":
+			# the owner's Verdant Forest / Eldergrove boards (Nov 22, docs/reference/regions): a bright clear day, deep blue
+			# sky with big white cumulus, the sun high and warm, saturated greens, turquoise water
+			s.merge({"top": "#2f6fc4", "hor": "#cfe2ec", "fog": "#9ab6ae", "fog_d": 0.0016, "sun": 1.45, "sun_col": "#fff0d0", "sun_el": 40.0, "sun_az": 140.0,
+				"amb": 0.6, "amb_col": "#6a8a74", "sat": 1.22, "exp": 0.72, "sky": "day", "sky_set": {"cover": 0.42, "cloud_scale": 0.85},
+				"tint": Vector3(0.8, 1.0, 0.68)}, true)
+		"riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
 		"wastelands":
 			# the owner's "SUNSET - THE WASTELANDS" photo: the sun on the horizon, an orange sky under streaked cloud, red
@@ -677,10 +692,12 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#2e3f7a", "hor": "#f08a48", "fog": "#b8704a", "fog_d": 0.0014, "sun": 1.7, "sun_col": "#ffa45c", "sun_el": 8.0, "sun_az": 150.0,
 				"amb": 0.42, "sat": 1.05, "exp": 0.95, "planet": true, "sky": "sunset", "glow": "#ff7a30", "glow_amt": 0.35, "tint": Vector3(0.92, 0.7, 0.52)}, true)
 		"solara":
-			# the owner's "DAY - SOLARA" photo (Nov 18): a deep blue sky with white cloud over golden sand (it read as pale
-			# cream). A lower, warmer sun and less exposure keep the dunes' shading (the noon sun blew them out to white)
-			s.merge({"top": "#2c6cc0", "hor": "#bcd6ec", "fog": "#d9c6a2", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95,
-				"sky": "day", "tint": Vector3(1.0, 0.84, 0.64)}, true)
+			# the owner's Solmara boards (Nov 22, docs/reference/regions/solmara-*.jpg): late golden hour — the sun low
+			# over the dunes, a blue zenith over gold and coral cloud, orange sand and red rock in long shadow (the Nov 18
+			# "DAY - SOLARA" noon read pale next to the boards)
+			s.merge({"top": "#2d5aa8", "hor": "#ffc27a", "fog": "#d8925a", "fog_d": 0.0011, "sun": 1.6, "sun_col": "#ffb468", "sun_el": 13.0, "sun_az": 150.0,
+				"amb": 0.5, "amb_col": "#9a7a7a", "exp": 0.78, "sat": 1.15, "sky": "sunset", "sky_set": {"cover": 0.38, "cloud_lit": Color("#ffcf8a"), "cloud_dark": Color("#8a5a6a"), "streak": 0.5},
+				"glow": "#ff9a48", "glow_amt": 0.3, "tint": Vector3(1.0, 0.74, 0.5)}, true)
 		"storm":
 			# the board's floating islands under a storm at dusk: a heavy cloud deck, the low sun breaking warm along the
 			# horizon, the crystals glowing (Nov 18 pass: the region_sky storm deck with a warm horizon, lightning on)
@@ -697,7 +714,7 @@ func _style_for(id: String) -> Dictionary:
 			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on (Nov 18: the
 			# region_sky sunset deck, streaked cloud lit from below)
 			s.merge({"top": "#2a3866", "hor": "#f0a468", "fog": "#a88468", "fog_d": 0.0016, "sun": 1.1, "sun_col": "#ffb27a", "sun_el": 9.0, "sun_az": 150.0,
-				"amb": 0.5, "night": 0.4, "sat": 1.05, "exp": 0.95, "sky": "sunset", "glow": "#ff8a44", "glow_amt": 0.3}, true)
+				"amb": 0.85, "amb_col": "#9a8c8a", "night": 0.4, "sat": 1.05, "exp": 1.0, "sky": "sunset", "glow": "#ff8a44", "glow_amt": 0.3}, true)   # Nov 22: dusk fill, the shaded streets were near black
 		"goldenreach":
 			# the owner's flower-field photo: late-afternoon gold, the sun low and warm behind haze, a blue sky with cloud
 			s.merge({"top": "#3f7cc8", "hor": "#f2d9ae", "fog": "#d8c49e", "fog_d": 0.0012, "sun": 1.4, "sun_col": "#ffd49a", "sun_el": 20.0, "sun_az": 150.0,
@@ -1030,7 +1047,7 @@ func _build_buildings() -> void:
 	mat.set_shader_parameter("night", _style.night)
 	mat.set_shader_parameter("neon", _style.neon)
 	# facade styles drawn in the shader (Nov 22, no new models): a half-timbered town, scrap-built outposts
-	mat.set_shader_parameter("town", 1.0 if map_id in ["old-harrow", "goldenreach"] else 0.0)
+	mat.set_shader_parameter("town", 1.0 if map_id in TOWN_MAPS else 0.0)
 	mat.set_shader_parameter("rust", 1.0 if map_id in ["wastelands", "ember"] else 0.0)
 	mi.material_override = mat
 	_world.add_child(mi)
@@ -1283,7 +1300,13 @@ const PITCH_USES := ["house", "store", "civic", "industrial", "school", "enterta
 func _pitched(use: String, hgt: float, hx: float, hz: float) -> bool:
 	if map_id in ["nexus", "neon-city", "thalassia", "crystal-badlands", "frostveil"]:
 		return false
+	# a market town's taller halls and inns are roofed too (Old Harrow's 26-30 m blocks were flat-topped boxes, Nov 22)
+	if map_id in TOWN_MAPS:
+		return use in PITCH_USES and hgt < 34.0 and maxf(hx, hz) < 22.0
 	return use in PITCH_USES and hgt < 18.0 and maxf(hx, hz) < 16.0
+
+## the half-timbered towns: building3d.gdshader `town` facades, tiled roofs with eaves
+const TOWN_MAPS := ["old-harrow", "goldenreach"]
 
 func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float, wall: Color, seed: float) -> void:
 	const ROOFS := [Color("#8e4a33"), Color("#6b3a2c"), Color("#4b5058"), Color("#5e4a3a"), Color("#9a5a3c")]
@@ -1295,6 +1318,17 @@ func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float
 	var a2: Vector2 = c[2]
 	var a3: Vector2 = c[3]
 	var rise := minf(hx, hz) * 0.75 + 0.3
+	var orig: Array = []
+	if map_id in TOWN_MAPS:
+		# a steeper roof that oversails the walls: push the corners out 0.5 m from the middle for the eaves
+		rise = minf(hx, hz) * 1.05 + 0.4
+		orig = [a0, a1, a2, a3]
+		var mid := (a0 + a1 + a2 + a3) * 0.25
+		var grow := func(v: Vector2) -> Vector2: return v + (v - mid).normalized() * 0.7
+		a0 = grow.call(a0)
+		a1 = grow.call(a1)
+		a2 = grow.call(a2)
+		a3 = grow.call(a3)
 	var r0: Vector2
 	var r1: Vector2
 	var slopes: Array
@@ -1310,6 +1344,20 @@ func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float
 		slopes = [[a1, a2, r1, r0], [a0, r0, r1, a3]]
 		ends = [[a0, a1, r0], [a3, r1, a2]]
 	var y := func(v: Vector2, ridge: bool) -> Vector3: return Vector3(v.x, top + (rise if ridge else 0.0), v.y)
+	if not orig.is_empty():
+		# the gable walls stay on the wall line under the oversailing roof
+		var o0: Vector2 = orig[0]
+		var o1: Vector2 = orig[1]
+		var o2: Vector2 = orig[2]
+		var o3: Vector2 = orig[3]
+		if along_x:
+			r0 = (o0 + o3) * 0.5
+			r1 = (o1 + o2) * 0.5
+			ends = [[o0, r0, o3], [o1, o2, r1]]
+		else:
+			r0 = (o0 + o1) * 0.5
+			r1 = (o3 + o2) * 0.5
+			ends = [[o0, o1, r0], [o3, r1, o2]]
 	for q in slopes:
 		var p0: Vector3 = y.call(q[0], false)
 		var p1: Vector3 = y.call(q[1], false)

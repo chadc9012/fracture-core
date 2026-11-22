@@ -1206,6 +1206,22 @@ func _shoot(path: String, opts: Array) -> void:
 		if String(o).begins_with("eye:") and region_3d:
 			for i in 3:
 				await get_tree().process_frame
+			if String(o).begins_with("eye:board:"):
+				# eye:board:<name>[:dist]  stands in front of one of the board landmarks (region_board.gd), between it and the
+				# middle of the land, facing it (the land's edge behind it, as the owner's key art frames them)
+				var bk := String(o).split(":")
+				var spots: Dictionary = region_3d.get_meta("board_spots", {})
+				if spots.has(bk[2]):
+					var sp: Vector3 = spots[bk[2]]
+					var dd := float(bk[3]) if bk.size() > 3 else maxf(sp.y * 3.0, 40.0)
+					var to := Vector2(-sp.x, -sp.z).normalized() if Vector2(sp.x, sp.z).length() > 1.0 else Vector2(0, 1)
+					var ex := sp.x + to.x * dd
+					var ez := sp.z + to.y * dd
+					region_3d.set_eye(ex, ez, atan2(-(sp.x - ex), -(sp.z - ez)))
+					region_3d._look_pitch = 4.0
+					region_3d._apply_cam()
+				print(o, " spots ", spots.keys())
+				continue
 			if String(o) in ["eye:root", "eye:cave", "eye:corrupt"]:
 				# eye:cave stands 12 m off the nearest underwater cave mouth (on the surface, looking down through the water)
 				var spots: Array[Vector3] = region_3d.root_spots if String(o) == "eye:root" else (region_3d.sea_caves if String(o) == "eye:cave" else region_3d.corrupt_spots)
