@@ -550,8 +550,9 @@ static func _verdant(r: Node, rng: RandomNumberGenerator) -> void:
 		var want := Vector2(cos(i * 2.1 + 0.4), sin(i * 2.1 + 0.4)) * half * 0.62
 		var at := _open_spot(r, want, 90.0, 40.0)
 		var root := Node3D.new()
-		var h := rng.randf_range(26.0, 38.0)
-		var mrad := rng.randf_range(16.0, 24.0)
+		var mrad := rng.randf_range(18.0, 26.0)
+		# tall enough to clear the canopy on its high side as well (the land slopes up to 20 m across a footprint)
+		var h := _rise(r, at, mrad) + rng.randf_range(24.0, 34.0)
 		var top := _mesa(r, root, at, mrad, h, mossy, rng)
 		var face := (-at).normalized()
 		# on the cliff's face (the footprint swings 0.62-1.12 of the radius; the cap's lip is ~0.8)
@@ -832,8 +833,8 @@ static func _ember(r: Node, rng: RandomNumberGenerator) -> void:
 		var w: Vector2 = Vector2(cos(i * 2.2 + 1.0), sin(i * 2.2 + 1.0)) * r.span() * 0.3
 		var c := _open_spot(r, w, 80.0, 34.0)
 		var root := Node3D.new()
-		var h := rng.randf_range(22.0, 34.0)
 		var mrad := rng.randf_range(14.0, 20.0)
+		var h := _rise(r, c, mrad) + rng.randf_range(18.0, 28.0)
 		var top := _mesa(r, root, c, mrad, h, basalt, rng)
 		var face := (-c).normalized()
 		var fp := c + face * (mrad * 0.86)
@@ -1320,3 +1321,15 @@ static func _sea_dir(r: Node, p: Vector2) -> Vector2:
 			most = n
 			best = d
 	return best
+
+## how much the ground climbs across a footprint (highest minus lowest, round its rim and at its middle)
+static func _rise(r: Node, at: Vector2, rad: float) -> float:
+	var hi := -INF
+	var lo := INF
+	for k in 12:
+		var t := TAU * k / 12.0
+		var y: float = r._h(at.x + cos(t) * rad, at.y + sin(t) * rad)
+		hi = maxf(hi, y)
+		lo = minf(lo, y)
+	var mid: float = r._h(at.x, at.y)
+	return maxf(hi, mid) - minf(lo, mid)
