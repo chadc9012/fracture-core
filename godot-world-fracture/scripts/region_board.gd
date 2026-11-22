@@ -425,7 +425,7 @@ static func _palms(r: Node, pts: Array[Vector2], rng: RandomNumberGenerator, ban
 			y = maxf(y, bank - 0.3)   # on the oasis banks
 		xf.append(Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, y, p.y)))
 	# full detail up close only (the Meshy palm is 7 MB), the light city palm beyond
-	var far := Flora.glb_mesh("res://models/city/palm-lod.glb", 1.0)
+	var far := Flora.glb_mesh("res://models/city/palm-lod.glb", 1.0, Flora.glb_mesh("res://models/city/palm.glb", 1.0))
 	if far != null:
 		r._multimesh_lod([[mesh, Flora.Phone.tree_detail_range() * 2.0], [far, 900.0]], xf, null)
 	else:

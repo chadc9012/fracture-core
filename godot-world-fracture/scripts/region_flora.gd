@@ -165,7 +165,7 @@ static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 				for i in list.size():
 					parts[i % 3].append(list[i])
 				# the Meshy palms are 4-7 MB each: full detail only up close, the light city palm (palm-lod) beyond
-				var far := glb_mesh("res://models/city/palm-lod.glb", 11.0)
+				var far := glb_mesh("res://models/city/palm-lod.glb", 11.0, glb_mesh("res://models/city/palm.glb", 11.0))   # the LOD file has no textures: the city palm lends its own
 				for j in 3:
 					var mesh := glb_mesh("res://models/foliage/palm-%s.glb" % ["a", "b", "c"][j], 11.0)
 					var xs: Array[Transform3D] = []
