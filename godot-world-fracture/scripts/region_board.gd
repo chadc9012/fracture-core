@@ -62,9 +62,9 @@ static func _solara(r: Node, rng: RandomNumberGenerator) -> void:
 		_mesa(r, mesas, at, rng.randf_range(7.0, 13.0), rng.randf_range(16.0, 30.0), rock, rng)
 	r._world.add_child(mesas)
 	# the broken Fracture ring over the dunes (Solmara key art), its tear burning violet in the gap
-	var ring_at := _open_spot(r, r._loc(150.0, 645.0), 80.0, 46.0)
-	_fracture_ring(r, ring_at, 34.0, rng)
-	spot(r, "ring", ring_at, 34.0)
+	var ring_at := _open_spot(r, r._loc(40.0, 640.0), 90.0, 60.0)
+	_fracture_ring(r, ring_at, 50.0, rng)
+	spot(r, "ring", ring_at, 50.0)
 	# the oasis by the town: a pool under a rock ledge with its fall, palms all round
 	var pool_at := _flat_spot(r, r._loc(305.0, 600.0), 70.0, 24.0)
 	_oasis(r, pool_at, 20.0, rock, rng)
@@ -134,11 +134,11 @@ static func _fracture_ring(r: Node, at: Vector2, rad: float, rng: RandomNumberGe
 	var root := Node3D.new()
 	root.name = "BoardFractureRing"
 	var gy: float = r._h(at.x, at.y)
-	root.position = Vector3(at.x, gy - rad * 0.22, at.y)
+	root.position = Vector3(at.x, gy - rad * 0.08, at.y)
 	root.rotation = Vector3(0.0, rng.randf() * TAU, deg_to_rad(9.0))
-	var band := _arc_band(rad, 4.2, 6.0, deg_to_rad(-30.0), deg_to_rad(215.0), 64)
+	var band := _arc_band(rad, rad * 0.13, rad * 0.17, deg_to_rad(-25.0), deg_to_rad(212.0), 72)
 	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.46, 0.4, 0.34)
+	metal.albedo_color = Color(0.62, 0.55, 0.46)
 	metal.metallic = 0.55
 	metal.roughness = 0.62
 	var mi := MeshInstance3D.new()
@@ -147,7 +147,7 @@ static func _fracture_ring(r: Node, at: Vector2, rad: float, rng: RandomNumberGe
 	root.add_child(mi)
 	# an inner lip, darker, and the ribs every ~12°
 	var lip := MeshInstance3D.new()
-	lip.mesh = _arc_band(rad - 3.4, 1.2, 4.0, deg_to_rad(-20.0), deg_to_rad(205.0), 56)
+	lip.mesh = _arc_band(rad - rad * 0.09, rad * 0.04, rad * 0.11, deg_to_rad(-20.0), deg_to_rad(205.0), 56)
 	var dark := StandardMaterial3D.new()
 	dark.albedo_color = Color(0.2, 0.18, 0.17)
 	dark.metallic = 0.6
@@ -155,7 +155,7 @@ static func _fracture_ring(r: Node, at: Vector2, rad: float, rng: RandomNumberGe
 	lip.material_override = dark
 	root.add_child(lip)
 	var rib := BoxMesh.new()
-	rib.size = Vector3(1.6, 7.6, 8.2)
+	rib.size = Vector3(rad * 0.05, rad * 0.22, rad * 0.24)
 	for k in 19:
 		var a := deg_to_rad(-26.0 + k * 12.0)
 		var b := MeshInstance3D.new()
@@ -176,7 +176,7 @@ static func _fracture_ring(r: Node, at: Vector2, rad: float, rng: RandomNumberGe
 			p.rotation = Vector3(rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6), e + rng.randf_range(-0.8, 0.8))
 			root.add_child(p)
 	var fallen := MeshInstance3D.new()
-	fallen.mesh = _arc_band(rad, 4.2, 6.0, deg_to_rad(0.0), deg_to_rad(34.0), 10)
+	fallen.mesh = _arc_band(rad, rad * 0.13, rad * 0.17, deg_to_rad(0.0), deg_to_rad(34.0), 10)
 	fallen.material_override = metal
 	fallen.position = Vector3(rad * 0.9, -rad * 0.62, 8.0)
 	fallen.rotation = Vector3(1.2, 0.3, 2.2)
@@ -184,7 +184,7 @@ static func _fracture_ring(r: Node, at: Vector2, rad: float, rng: RandomNumberGe
 	# the tear: a violet star of cracks with a white core, and its light
 	var tear := MeshInstance3D.new()
 	var q := QuadMesh.new()
-	q.size = Vector2(rad * 1.3, rad * 1.3)
+	q.size = Vector2(rad * 1.6, rad * 1.6)
 	tear.mesh = q
 	tear.material_override = _tear_material(Color(0.72, 0.35, 1.0))
 	tear.position = Vector3(rad * 0.25, rad * 0.1, 0)
@@ -195,8 +195,8 @@ static func _fracture_ring(r: Node, at: Vector2, rad: float, rng: RandomNumberGe
 	root.add_child(back)
 	var light := OmniLight3D.new()
 	light.light_color = Color(0.7, 0.4, 1.0)
-	light.light_energy = 6.0
-	light.omni_range = rad * 2.2
+	light.light_energy = 9.0
+	light.omni_range = rad * 2.6
 	light.position = tear.position
 	root.add_child(light)
 	r._world.add_child(root)
@@ -268,7 +268,7 @@ void fragment() {
 	}
 	float core = exp(-r * r * 30.0) * 2.5 + exp(-r * r * 6.0) * 0.6;
 	float pulse = 0.85 + 0.15 * sin(TIME * 2.0);
-	vec3 c = col * (ray * 2.2 + core * 0.8) * pulse + vec3(1.0) * exp(-r * r * 90.0) * 2.0;
+	vec3 c = col * (ray * 4.5 + core * 1.6) * pulse + vec3(1.0) * exp(-r * r * 90.0) * 3.0;
 	ALBEDO = c;
 	ALPHA = clamp(ray + core, 0.0, 1.0);
 }"""
