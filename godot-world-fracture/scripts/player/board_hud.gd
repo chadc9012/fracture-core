@@ -36,6 +36,9 @@ var _profile_t := 0.0
 var _font: Font
 var cam: Camera3D               # the view's camera; found by itself when a view keeps its 3D in a SubViewport
 var _cam_t := 0.0
+## a view's own top-row buttons (LEAVE at (250, 8), CO-OP, …) under the compass push the centre block down
+var _top := 0.0
+var _top_t := 0.0
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -43,17 +46,43 @@ func _ready() -> void:
 	_font = ThemeDB.fallback_font
 	_read_profile()
 
+var _view_quest := false
 func set_quest(title: String, lines: Array) -> void:
 	quest_title = title
 	quest_lines = lines
+	_view_quest = title != ""
 	queue_redraw()
+
+## the ability tiles (close_combat → touch_controls.show_abilities): [{name, ready 0..1, color, super}]
+var abilities: Array = []
+var ability_keys := ["1", "2", "3"]
+var tiles_on := true
 
 func _process(dt: float) -> void:
 	_profile_t -= dt
+	_top_t -= dt
+	if _top_t <= 0.0:
+		_top_t = 1.0
+		_top = _clear_top()
 	if _profile_t <= 0.0:
 		_profile_t = 2.0
 		_read_profile()
 	queue_redraw()
+
+func _clear_top() -> float:
+	var host := source.get_parent() if source else null
+	if host == null:
+		return 0.0
+	var cx := size.x * 0.5
+	var lo := 0.0
+	for b in host.find_children("*", "BaseButton", true, false):
+		var c := b as Control
+		if c == null or not c.is_visible_in_tree() or c.is_ancestor_of(self) or (source and source.is_ancestor_of(c)):
+			continue
+		var r := c.get_global_rect()
+		if r.position.y < 50.0 and r.end.x > cx - 180.0 and r.position.x < cx + 180.0:
+			lo = maxf(lo, r.end.y + 4.0)
+	return lo
 
 func _read_profile() -> void:
 	var f := FileAccess.open("user://profile.json", FileAccess.READ)
@@ -65,7 +94,7 @@ func _read_profile() -> void:
 	_level = Progression.level_for(int(p.get("xp", 0)))
 	_nex = int(p.get("nex", 0))
 	_shards = int(p.get("shards", 0))
-	if quest_title == "" or quest_title == "Daily Goals":
+	if not _view_quest:
 		var lines: Array = []
 		for g in Progression.daily(p):
 			lines.append({ "text": "%s  %d/%d" % [g.label, g.progress, g.target], "done": g.done })
@@ -79,6 +108,10 @@ func _draw() -> void:
 		_compass(w * 0.5)
 	_quest(w * 0.5)
 	_operator(w - 92.0)
+	if tiles_on and not abilities.is_empty():
+		for i in abilities.size():
+			var r := Rect2(w - 20.0 - (abilities.size() - i) * 74.0, size.y - 86.0, 66.0, 66.0)
+			tile(self, r, abilities[i], i, ability_keys[i] if i < ability_keys.size() else "", _font)
 
 # --------------------------------------------------------------------------------------------- pieces
 func _text(t: String, at: Vector2, sz: int, c: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
@@ -99,8 +132,8 @@ func _weapon_card() -> void:
 	var am: String = source.ammo.text if source.ammo else ""
 	if name == "" and am == "":
 		return
-	_slant(12, 12, 250, 74, PLATE, EDGE)
-	draw_line(Vector2(30, 12), Vector2(250, 12), GOLD, 2.0)
+	_slant(12, 12, 230, 74, PLATE, EDGE)   # ends before x 250, where views put their LEAVE button (HUD rule)
+	draw_line(Vector2(30, 12), Vector2(230, 12), GOLD, 2.0)
 	_text(name.to_upper(), Vector2(30, 34), 14, Color(0.85, 0.88, 0.95))
 	# "30 / 270" → the board's big magazine and small reserve
 	var parts := am.split("/")
@@ -127,8 +160,8 @@ func _compass(cx: float) -> void:
 		return
 	var fwd := -cam.global_transform.basis.z
 	var heading := rad_to_deg(atan2(fwd.x, -fwd.z))   # 0 = north (-z), clockwise
-	var half := 190.0
-	var y := 22.0
+	var half := 170.0
+	var y := 22.0 + _top
 	draw_line(Vector2(cx - half, y + 10), Vector2(cx + half, y + 10), Color(1, 1, 1, 0.35), 1.0)
 	var names := { 0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW" }
 	var px_per_deg := half / 80.0
@@ -153,7 +186,7 @@ func _quest(cx: float) -> void:
 	if quest_title == "" or quest_lines.is_empty():
 		return
 	var x := cx - 160.0
-	var y := 66.0
+	var y := 66.0 + _top
 	var h := 30.0 + 22.0 * quest_lines.size()
 	draw_rect(Rect2(x, y, 320, h), Color(0.02, 0.02, 0.05, 0.55))
 	draw_rect(Rect2(x, y, 2, h), GOLD)
@@ -202,3 +235,56 @@ static func _thousands(n: int) -> String:
 		out = "," + s.substr(s.length() - 3) + out
 		s = s.substr(0, s.length() - 3)
 	return ("-" if n < 0 else "") + s + out
+
+## one ability tile in the boards' style: a dark rounded plate, a glowing rim and glyph in the ability's colour, the
+## cooldown as a dark sweep closing clockwise, the key in a chip under it. Shared with the phone's ability buttons.
+static func tile(ci: CanvasItem, r: Rect2, a: Dictionary, idx: int, key: String, font: Font) -> void:
+	var col: Color = a.get("color", Color(0.6, 0.4, 1.0))
+	var ready := clampf(float(a.get("ready", 0.0)), 0.0, 1.0)
+	var c := r.get_center()
+	var rad := r.size.x * 0.5
+	var lit := ready >= 1.0
+	ci.draw_rect(r, Color(0.03, 0.025, 0.06, 0.82))
+	# the glyph: a burst for the first, a crest for the second, a vortex ring for the super
+	var gc := col.lerp(Color.WHITE, 0.35) if lit else Color(col.r, col.g, col.b, 0.45)
+	if bool(a.get("super", false)) or idx == 2:
+		for k in 3:
+			ci.draw_arc(c, rad * (0.28 + k * 0.16), k * 1.3, k * 1.3 + 4.4, 24, gc, 3.0 - k * 0.6, true)
+		ci.draw_circle(c, rad * 0.12, gc)
+	elif idx == 0:
+		for k in 8:
+			var d := Vector2.from_angle(k * TAU / 8.0)
+			ci.draw_line(c + d * rad * 0.18, c + d * rad * (0.72 if k % 2 == 0 else 0.48), gc, 3.0, true)
+		ci.draw_circle(c, rad * 0.16, gc)
+	else:
+		var pts := PackedVector2Array()
+		for k in 6:
+			pts.append(c + Vector2.from_angle(k * TAU / 6.0 - PI / 2) * rad * 0.62)
+		pts.append(pts[0])
+		ci.draw_polyline(pts, gc, 3.0, true)
+		ci.draw_line(c + Vector2(0, -rad * 0.35), c + Vector2(-rad * 0.18, rad * 0.05), gc, 3.0, true)
+		ci.draw_line(c + Vector2(-rad * 0.18, rad * 0.05), c + Vector2(rad * 0.12, rad * 0.05), gc, 3.0, true)
+		ci.draw_line(c + Vector2(rad * 0.12, rad * 0.05), c + Vector2(-rad * 0.05, rad * 0.4), gc, 3.0, true)
+	# cooldown sweep (what is still charging stays dark)
+	if not lit:
+		var pts2 := PackedVector2Array([c])
+		var start := -PI / 2 + TAU * ready
+		var n := 24
+		for k in n + 1:
+			pts2.append(c + Vector2.from_angle(start + (TAU * (1.0 - ready)) * k / n) * rad * 1.42)
+		var clip := PackedVector2Array()
+		for p in pts2:
+			clip.append(Vector2(clampf(p.x, r.position.x, r.end.x), clampf(p.y, r.position.y, r.end.y)))
+		ci.draw_colored_polygon(clip, Color(0, 0, 0, 0.55))
+	# rim: glowing when ready
+	var rim := col if lit else Color(col.r, col.g, col.b, 0.5)
+	ci.draw_rect(r, rim, false, 2.0)
+	if lit:
+		ci.draw_rect(r.grow(2.0), Color(col.r, col.g, col.b, 0.35), false, 2.0)
+	if key != "" and font:
+		var kr := Rect2(c.x - 10, r.end.y - 9, 20, 16)
+		ci.draw_rect(kr, Color(0.9, 0.9, 0.95))
+		ci.draw_string(font, Vector2(kr.position.x, kr.end.y - 3), key, HORIZONTAL_ALIGNMENT_CENTER, 20, 12, Color(0.05, 0.05, 0.08))
+	if not lit and font:
+		ci.draw_string(font, Vector2(r.position.x, c.y + 6), "%d%%" % int(ready * 100.0), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 15, Color(1, 1, 1, 0.9))
+
