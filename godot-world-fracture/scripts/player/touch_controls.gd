@@ -748,7 +748,21 @@ func take_look() -> Vector2:
 	look_delta = Vector2.ZERO
 	return d
 
+## the horn (Nov 22 audio pass): H on a keyboard, the left stick's click on a pad, while driving
+var _horn_was := false
+func _horn() -> void:
+	if mode != "drive":
+		_horn_was = false
+		return
+	var on := Input.is_physical_key_pressed(KEY_H)
+	for id in Input.get_connected_joypads():
+		on = on or Input.is_joy_button_pressed(id, JOY_BUTTON_LEFT_STICK)
+	if on and not _horn_was:
+		preload("res://scripts/audio/sound.gd").sfx("horn", -4.0, 0.02)
+	_horn_was = on
+
 func _process(_dt: float) -> void:
+	_horn()
 	if _hit_t > 0.0:
 		_hit_t -= _dt
 		if _hitmark:

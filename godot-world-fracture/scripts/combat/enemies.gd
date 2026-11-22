@@ -192,6 +192,8 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 	add_child(e.mover)
 	e.mover.bounds = player.bounds
 	e.mover.ground_at = player.ground_at
+	e.mover.surface_at = player.surface_at
+	e.mover.listener = player    # their footsteps, heard within 16 m (operator_player.gd)
 	e.mover.obstacles = player.obstacles
 	e.mover.position = at
 	e.mover.cam_yaw = 0.0

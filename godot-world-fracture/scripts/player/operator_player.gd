@@ -34,6 +34,11 @@ var bounds := Rect2(-1000, -1000, 2000, 2000)
 var obstacles: Array[AABB] = []
 ## ground height under (x, z); set by the scene
 var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
+## what the feet land on (region_3d.gd `surface`): the footstep cue; unset = the paving step
+var surface_at: Callable
+## a body without the camera (an enemy, a story person walking) is heard from here when it's set — its steps within
+## 16 m, at the listener's distance
+var listener: Node3D
 
 # camera
 var cam: Camera3D
@@ -269,15 +274,25 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 			else:
 				rig.action.stop()
 		_air_t = 0.0
-	if cam:
-		if grounded and not was_grounded and y_vel <= 0.0:
+	# footsteps: one per stride, the stride lengthening from a walk (1.15 m, ~2 a second) to a sprint (2.3 m, ~3 a
+	# second); louder and heavier as the pace picks up; the cue is the ground's (grass, dirt, sand, snow, water, paving)
+	var heard := cam != null or (listener != null and is_instance_valid(listener) and listener.global_position.distance_to(global_position) < 16.0)
+	if heard:
+		if grounded and not was_grounded and y_vel <= 0.0 and cam:
 			Sound.sfx("land", -8.0)
 		var sp := flat.length()
 		if grounded and sp > 0.5:
 			_step_t -= dt * sp
 			if _step_t <= 0.0:
-				_step_t = 2.1
-				Sound.sfx("step", -14.0 + minf(sp, 7.0) * 0.6, 0.15)
+				_step_t = 0.6 + 0.24 * minf(sp, 7.2)
+				var cue := "step"
+				if surface_at.is_valid():
+					cue = String(surface_at.call(position.x, position.z))
+				var db := -16.0 + minf(sp, 7.2) * 0.9
+				if cam:
+					Sound.sfx(cue, db, 0.15)
+				else:
+					Sound.sfx_at(cue, global_position, listener.global_position, db - 4.0)
 		else:
 			_step_t = minf(_step_t, 0.6)
 	combat_hold = maxf(0.0, combat_hold - dt)

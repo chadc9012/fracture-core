@@ -200,6 +200,39 @@ def step(d=0.16):
     return mix(d, (0, thud, 1.0), (0, grit, 0.55), (0.01, scuff, 1.0))
 
 
+def step_on(kind, d=0.2):
+    """a footstep on a surface: the heel's thud and the surface's own texture (owner, Nov 22: "walking running")"""
+    if kind == "grass":    # soft thud, a swish of blades
+        thud = sweep(d, 120, 60, 0.03) * 0.7
+        tex = bp(noise(d), 1200, 6500) * env(d, 0.008, 0.05) * 0.55
+        return mix(d, (0, thud, 1.0), (0, tex, 1.0))
+    if kind == "dirt":     # duller heel, a crunch of grit
+        thud = sweep(d, 130, 55, 0.03)
+        tex = bp(noise(d), 500, 3000) * env(d, 0.002, 0.035) * (0.5 + 0.5 * (rng.random(int(d * SR)) > 0.7))
+        return mix(d, (0, thud, 1.0), (0, tex, 0.7))
+    if kind == "sand":     # a sliding hiss, almost no heel
+        thud = sweep(d, 110, 50, 0.02) * 0.4
+        tex = bp(noise(d), 800, 5000) * env(d, 0.02, 0.07) * 0.6
+        return mix(d, (0, thud, 1.0), (0.005, tex, 1.0))
+    if kind == "snow":     # the squeak and crunch of packed snow
+        tex = bp(noise(d), 1500, 7000) * env(d, 0.01, 0.06) * (0.4 + 0.6 * (rng.random(int(d * SR)) > 0.55))
+        squeak = np.sin(2 * np.pi * (900 + 400 * t(d) / d) * t(d)) * env(d, 0.02, 0.04) * 0.08
+        return mix(d, (0, sweep(d, 100, 55, 0.02) * 0.5, 1.0), (0, tex, 0.9), (0.01, squeak, 1.0))
+    if kind == "water":    # a splash: a low plop and the spray
+        plop = sweep(d, 260, 90, 0.04) * 0.6
+        spray = bp(noise(d), 1800, 8000) * env(d, 0.004, 0.09) * 0.7
+        return mix(d, (0, plop, 1.0), (0.01, spray, 1.0))
+    return step(d)
+
+
+def seamless(x, ms=150):
+    """a loop's end crossfaded into its start (equal power) so it wraps without a click"""
+    f = int(ms / 1000 * SR)
+    x = x.copy()
+    x[:f] = x[:f] * np.sin(np.linspace(0, np.pi / 2, f)) + x[-f:] * np.cos(np.linspace(0, np.pi / 2, f))
+    return x[:-f]
+
+
 def hit(d=0.18, ping=0.0):
     thw = bp(noise(d), 400, 3500) * env(d, 0.0005, 0.02)
     punch = sweep(d, 220, 90, 0.035)
@@ -257,19 +290,25 @@ SOUNDS = {
     "headshot": lambda: finish(hit(0.3, ping=0.6), peak=0.85),
     "reload": lambda: finish(reload(), peak=0.75, drive=1.2),
     "dry": lambda: finish(dry(), peak=0.6),
-    "engine": lambda: finish(engine_loop(), peak=0.8, drive=1.4),
+    "engine": lambda: seamless(finish(engine_loop(), peak=0.6, drive=1.4)),
+    # footsteps by surface (Nov 22; operator_player.gd picks by the region's land cover)
+    "step_grass": lambda: finish(step_on("grass"), peak=0.55, drive=1.1),
+    "step_dirt": lambda: finish(step_on("dirt"), peak=0.65, drive=1.2),
+    "step_sand": lambda: finish(step_on("sand"), peak=0.55, drive=1.1),
+    "step_snow": lambda: finish(step_on("snow"), peak=0.6, drive=1.1),
+    "step_water": lambda: finish(step_on("water", 0.3), peak=0.65, drive=1.1),
     # combat details (asset catalog §5, Nov 10): a bolt on an energy shield, the shield collapsing, cover breaking up
     "shield": lambda: finish(mix(0.22, (0, zap(0.22, 2400, 1600, buzz=0.2), 0.8), (0, hit(0.12, ping=0.8), 0.5)), peak=0.7),
     "shield_break": lambda: finish(mix(0.7, (0, zap(0.7, 2600, 180, buzz=0.7), 1.0), (0, bp(noise(0.7), 2000, 8000) * env(0.7, 0.003, 0.18), 0.6)), peak=0.85, drive=1.5),
     # the nitrous firing: a hiss that swells into a rushing roar (Nov 11, the garage's nitrous)
     "nitro": lambda: finish(mix(1.2, (0, bp(noise(1.2), 1200, 9000) * env(1.2, 0.05, 0.5), 1.0), (0, lp(noise(1.2), 600) * env(1.2, 0.15, 0.6), 0.8)), peak=0.8, drive=1.3),
     # police pursuit (Nov 11, street racing life): the siren loop on the units' approach
-    "siren": lambda: finish(siren(), peak=0.7, drive=1.1),
+    "siren": lambda: seamless(finish(siren(), peak=0.45, drive=1.1)),
     # parked cars (Nov 11, "some should be locked from owner"): a locked car's alarm when its door is tried, the chirp
     # when a car's locks open
     # a burning car (fx/burnt.gd, Nov 15): low roar under crackles and pops, made to loop
     "fire": lambda: finish(fire_loop(), peak=0.7, drive=1.2),
-    "car_alarm": lambda: finish(car_alarm(), peak=0.75, drive=1.2),
+    "car_alarm": lambda: finish(car_alarm(), peak=0.4, drive=1.0),
     "car_chirp": lambda: finish(car_chirp(), peak=0.7, drive=1.1),
     # Nov 11 (owner: "Work on the tanks shooting missiles gun shooting audio ... should feel like call of duty fort nite"):
     # the Goliath's cannon, its breech, the missile pod, a big blast, a car going up, and the hit / head / kill confirms
@@ -343,9 +382,26 @@ def write(name, x):
 
 
 ## the shots get two more takes each (name_2, name_3): Audio.sfx picks one at random so a burst never repeats a sample
-VARIANTS = ["rifle", "smg", "lmg", "sidearm", "sniper", "shotgun", "heavy", "explosion", "hit", "tank_cannon"]
+VARIANTS = ["step", "step_grass", "step_dirt", "step_sand", "step_snow", "step_water", "rifle", "smg", "lmg", "sidearm", "sniper", "shotgun", "heavy", "explosion", "hit", "tank_cannon"]
+
+## the loops this file doesn't synthesize (jet, hover, rotor, wind, water came from the older set): `--seam` crossfades
+## their ends in place so they wrap without a click
+LOOP_FILES = ["jet", "hover", "rotor", "wind", "water"]
+
+
+def seam_existing():
+    for n in LOOP_FILES:
+        with wave.open(os.path.join(OUT, n + ".wav")) as w:
+            assert w.getframerate() == SR, n
+            x = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float64) / 32767
+        write(n, seamless(x))
+        print("seamless", n)
+
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--seam"]:
+        seam_existing()
+        sys.exit(0)
     names = sys.argv[1:] or list(SOUNDS)
     for n in names:
         write(n, SOUNDS[n]())

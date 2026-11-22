@@ -822,6 +822,7 @@ func _process(dt: float) -> void:
 		traffic.watch_point = operator.position
 		traffic.watch_box = driving_car.box() if driving_car else AABB()
 		traffic.step(minf(dt, 0.05))
+		_traffic_sound()
 	if heavy:
 		heavy.step(minf(dt, 0.05))
 	if online:
@@ -2866,7 +2867,35 @@ func _radio_next() -> void:
 func sound_on() -> void:
 	Sound.ambience(Sound.bed_for(style), -12.0 if night else -10.0)
 
+## the street's traffic is heard (Nov 22 audio pass): the nearest moving lane car within 35 m runs an engine loop of its
+## own, louder and higher as it comes close and fast, so a car passing the operator rises and falls
+var _traffic_on := false
+func _traffic_sound() -> void:
+	var best := 1e9
+	var spd := 0.0
+	var me: Vector3 = driving_car.node.position if driving_car else operator.position
+	for c in traffic.cars:
+		if c.wreck > 0.0 or not c.sc.node.visible or absf(float(c.sc.speed)) < 1.0:
+			continue
+		var d: float = (c.sc.node.position as Vector3).distance_to(me)
+		if d < best:
+			best = d
+			spd = absf(float(c.sc.speed))
+	if best < 35.0:
+		var k := clampf(spd / 14.0, 0.0, 1.0)
+		var db := -18.0 - best * 0.55 + k * 4.0
+		if not _traffic_on:
+			Sound.loop("traffic", "engine", db, 0.7 + k * 0.5)
+			_traffic_on = true
+		else:
+			Sound.loop_set("traffic", 0.7 + k * 0.5, db)
+	elif _traffic_on:
+		Sound.loop_stop("traffic")
+		_traffic_on = false
+
 func sound_off() -> void:
+	Sound.loop_stop("traffic")
+	_traffic_on = false
 	Sound.loop_stop("engine")
 	Sound.radio_off()
 

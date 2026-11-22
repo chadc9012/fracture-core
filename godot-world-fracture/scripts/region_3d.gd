@@ -2228,6 +2228,34 @@ func terrain(lx: float, lz: float) -> float:
 	return _h(lx, lz)
 func water_level() -> float:
 	return _water
+
+## what a foot lands on here (operator_player.gd footsteps, Nov 22): "step" (paving, rock, the city), "step_grass",
+## "step_dirt", "step_sand", "step_snow" or "step_water", from the map's land cover
+const STEP_FOR := { "beach": "step_sand", "desert": "step_sand", "dunes": "step_sand", "sandstone": "step_sand", "wash": "step_sand",
+	"meadow": "step_grass", "grass": "step_grass", "forest": "step_grass", "denseForest": "step_grass", "crop": "step_grass",
+	"scrub": "step_dirt", "dirt": "step_dirt", "ash": "step_dirt", "marsh": "step_water", "shallow": "step_water", "river": "step_water",
+	"lake": "step_water", "reef": "step_water", "snow": "step_snow", "ice": "step_snow" }
+var _cover_bytes := PackedByteArray()
+var _cover_w := 0
+func surface(lx: float, lz: float) -> String:
+	if _off_map(lx, lz) or over_water(lx, lz):
+		return "step_water"
+	if _cover_w == 0:
+		var img := Data.image("maps/%s.data.pngb" % map_id)
+		if img == null:
+			_cover_w = -1
+		else:
+			img = img.duplicate()
+			img.convert(Image.FORMAT_RGB8)
+			_cover_w = img.get_width()
+			_cover_bytes = img.get_data()
+	if _cover_w <= 0:
+		return "step"
+	var i := clampi(int((lx / _span + 0.5) * _cover_w), 0, _cover_w - 1)
+	var j := clampi(int((lz / _span + 0.5) * _cover_w), 0, _cover_w - 1)
+	var covers: Array = Data.styles.get("covers", [])
+	var cv := int(_cover_bytes[(j * _cover_w + i) * 3])
+	return String(STEP_FOR.get(String(covers[cv]) if cv < covers.size() else "", "step"))
 func over_water(lx: float, lz: float) -> bool:
 	if _off_map(lx, lz):
 		return true
