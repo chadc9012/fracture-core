@@ -289,35 +289,50 @@ static func _oasis(r: Node, at: Vector2, rad: float, rock: Material, rng: Random
 		var y: float = r._h(at.x + cos(t) * rad, at.y + sin(t) * rad)
 		hi = maxf(hi, y)
 		lo = minf(lo, y)
-	var wy := lerpf(lo, hi, 0.55)
+	# the water stands on low sandy banks above the dunes round it (the terrain is not carved), green at the water's edge
+	var wy := hi + 0.25
 	# the water: a disc with a shallow sandy shelf round it
 	var water := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = rad
 	cm.bottom_radius = rad * 0.75
-	cm.height = maxf(hi - lo, 1.0) + 2.0
+	cm.height = 1.0
 	cm.radial_segments = 48
 	water.mesh = cm
 	water.material_override = _pool_material()
 	water.position = Vector3(at.x, wy - cm.height * 0.5, at.y)
 	root.add_child(water)
+	var bank_h := (hi - lo) + 1.5
 	var shelf := MeshInstance3D.new()
 	var sm := CylinderMesh.new()
-	sm.top_radius = rad + 3.5
-	sm.bottom_radius = rad + 6.0
-	sm.height = cm.height
+	sm.top_radius = rad + 7.0
+	sm.bottom_radius = rad + 7.0 + bank_h * 3.0
+	sm.height = bank_h
 	sm.radial_segments = 48
 	shelf.mesh = sm
 	var sand := StandardMaterial3D.new()
-	sand.albedo_color = Color(0.78, 0.6, 0.38)
+	sand.albedo_color = Color(0.86, 0.5, 0.27)
 	sand.roughness = 1.0
 	shelf.material_override = sand
-	shelf.position = Vector3(at.x, wy - cm.height * 0.5 - 0.12, at.y)
+	shelf.position = Vector3(at.x, wy - 0.2 - bank_h * 0.5, at.y)
 	root.add_child(shelf)
+	var grass := MeshInstance3D.new()
+	var gm := CylinderMesh.new()
+	gm.top_radius = rad + 6.5
+	gm.bottom_radius = rad + 7.0
+	gm.height = 0.3
+	gm.radial_segments = 48
+	grass.mesh = gm
+	var gmat := StandardMaterial3D.new()
+	gmat.albedo_color = Color(0.32, 0.5, 0.16)
+	gmat.roughness = 0.95
+	grass.material_override = gmat
+	grass.position = Vector3(at.x, wy - 0.15, at.y)
+	root.add_child(grass)
 	# the ledge on the far side, and its fall
 	var lead := Vector2(1, 0).rotated(rng.randf() * TAU)
 	var ledge_at := at + lead * (rad + 9.0)
-	_mesa(r, root, ledge_at, 11.0, 12.0, rock, rng)
+	_mesa(r, root, ledge_at, 11.0, wy - float(r._h(ledge_at.x, ledge_at.y)) + 15.0, rock, rng)
 	var fall := MeshInstance3D.new()
 	var fq := QuadMesh.new()
 	fq.size = Vector2(3.5, 12.5)
@@ -344,11 +359,11 @@ static func _oasis(r: Node, at: Vector2, rad: float, rock: Material, rng: Random
 	var pts: Array[Vector2] = []
 	for k in 18:
 		var t := TAU * k / 18.0 + rng.randf_range(-0.1, 0.1)
-		pts.append(at + Vector2(cos(t), sin(t)) * (rad + rng.randf_range(4.0, 9.0)))
+		pts.append(at + Vector2(cos(t), sin(t)) * (rad + rng.randf_range(2.0, 6.0)))
 	for k in 14:
 		var t := rng.randf() * TAU
 		pts.append(at + Vector2(cos(t), sin(t)) * rng.randf_range(rad + 14.0, rad + 60.0))
-	_palms(r, pts, rng)
+	_palms(r, pts, rng, wy, at, rad + 8.0)
 
 static func _pool_material() -> ShaderMaterial:
 	var sh := Shader.new()
@@ -382,15 +397,20 @@ void fragment() {
 	return m
 
 ## palms at the points (the city palm model, 9-13 m), standing on the ground
-static func _palms(r: Node, pts: Array[Vector2], rng: RandomNumberGenerator) -> void:
-	var mesh := Flora.glb_mesh("res://models/city/palm.glb", 1.0)
+static func _palms(r: Node, pts: Array[Vector2], rng: RandomNumberGenerator, bank := -INF, bank_at := Vector2.ZERO, bank_r := 0.0) -> void:
+	var mesh := Flora.glb_mesh("res://models/foliage/palm.glb", 1.0)
+	if mesh == null:
+		mesh = Flora.glb_mesh("res://models/city/palm.glb", 1.0)
 	if mesh == null:
 		return
 	var xf: Array[Transform3D] = []
 	for p in pts:
 		var s := rng.randf_range(9.0, 13.0)
 		var b := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3(1, 0, 0), rng.randf_range(-0.08, 0.08))
-		xf.append(Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, r._h(p.x, p.y) - 0.3, p.y)))
+		var y: float = r._h(p.x, p.y) - 0.3
+		if p.distance_to(bank_at) < bank_r:
+			y = maxf(y, bank - 0.3)   # on the oasis banks
+		xf.append(Transform3D(b.scaled(Vector3.ONE * s), Vector3(p.x, y, p.y)))
 	r._multimesh(mesh, xf, null, 900.0)
 
 ## a ruined aqueduct from a to b: weathered arches (the region's arch) end to end, some fallen, the last piers carrying
