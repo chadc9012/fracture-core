@@ -408,6 +408,8 @@ func _title_action(action: String) -> void:
 			_open_triumphs()
 		"journal":
 			_open_journal()
+		"skills":
+			_open_overlay("res://scripts/progress/skills_view.gd")
 		"cloud":
 			_close_title()
 			_open_cloud()
@@ -431,6 +433,17 @@ func _open_profile() -> void:
 		profile_view.queue_free()
 		profile_view = null)
 	_overlays.add_child(profile_view)
+
+## any full-screen panel with a `closed` signal over whatever is open (the skill tree, …)
+var _overlay_view: Control
+func _open_overlay(path: String) -> void:
+	if _overlay_view:
+		return
+	_overlay_view = load(path).new()
+	_overlay_view.closed.connect(func():
+		_overlay_view.queue_free()
+		_overlay_view = null)
+	_overlays.add_child(_overlay_view)
 
 ## Cyberpunk's Journal over whatever is open (scripts/progress/journal_view.gd)
 var journal_view: Control
@@ -1090,6 +1103,8 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_triumphs(String(o))
 		if String(o) == "journal":
 			_open_journal()
+		if String(o) == "skills":
+			_open_overlay("res://scripts/progress/skills_view.gd")
 		# creator[:<tab>]  the operator creator on a tab (body by default)
 		if String(o).begins_with("creator"):
 			_open_creator()

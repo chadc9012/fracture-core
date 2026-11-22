@@ -95,6 +95,9 @@ static func _claim(p: Dictionary, now_unix: int) -> Array:
 ## shop / skyways). Returns what to show: {nex, xp, level, leveled, lines: [toast lines], goals: [completed goals]}
 static func grant(p: Dictionary, source: String, nex: int, xp: int, note := "", now_unix: int = -1) -> Dictionary:
 	var before := level_for(int(p.get("xp", 0)))
+	# the skill tree's Hustler / Kingpin (scripts/progress/skills.gd)
+	if not (p.get("skills", []) as Array).is_empty():
+		nex = int(round(nex * load("res://scripts/progress/skills.gd").value(p, "nex")))
 	p.nex = int(p.get("nex", 0)) + nex
 	p.xp = int(p.get("xp", 0)) + xp
 	var ledger: Array = p.get("ledger", [])

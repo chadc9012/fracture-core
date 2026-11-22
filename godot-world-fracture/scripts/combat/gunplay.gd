@@ -68,6 +68,8 @@ var grenades_on := true
 ## the super (scripts/combat/super_ability.gd): V / SUPER when the meter is full
 var super_ability: Node3D
 var _wheel_sig := ""
+## the skill tree's combat perks (scripts/progress/skills.gd), read when the loadout is set
+var head_bonus := 1.0
 ## Valorant's kill callouts: kills inside STREAK_S of each other build a streak (DOUBLE / TRIPLE / QUAD / RAMPAGE); a kill
 ## whose last hit was to the head is a HEADSHOT. touch_controls.medal shows them.
 const STREAK_S := 4.0
@@ -305,10 +307,13 @@ func set_loadout(list: Array) -> void:
 		return
 	var was := gun().frame if not guns.is_empty() else ""
 	guns.clear()
+	var Skills = load("res://scripts/progress/skills.gd")
+	var sk_dmg: float = Skills.saved("dmg")
+	head_bonus = Skills.saved("head")
 	for w in list:
 		var g := Weapons.Gun.new(Weapons.known(String(w.frame)))
 		g.label = String(w.name)
-		g.mult = float(w.mult)
+		g.mult = float(w.mult) * sk_dmg
 		g.element = String(w.get("element", ""))
 		guns.append(g)
 	current = 0
@@ -503,7 +508,7 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 	if hit_t:
 		# cover has no head, counts no kill and scavenges nothing; it stays down once broken
 		var head := not cover and end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
-		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult * (MARK_MULT if hit_t.mark > 0.0 else 1.0)
+		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult * (MARK_MULT if hit_t.mark > 0.0 else 1.0) * (head_bonus if head else 1.0)
 		if super_ability:
 			dmg *= super_ability.shot_mult()   # the Golden Gun's empowered shots
 		var res: Dictionary = hit_t.take(dmg, gun().frame == "FUSION")

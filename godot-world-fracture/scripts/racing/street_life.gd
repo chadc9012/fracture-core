@@ -113,6 +113,9 @@ func setup(s: Control) -> void:
 	slice = s
 	_rng.seed = 23
 	career = Career.load_or_fresh()
+	var Skills = load("res://scripts/progress/skills.gd")
+	career.rep_mult = Skills.saved("rep")
+	career.escape_mult = Skills.saved("escape")
 	_markers()
 	_ui()
 	if slice.get("online"):

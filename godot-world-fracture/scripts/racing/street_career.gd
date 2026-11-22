@@ -110,13 +110,17 @@ func unlocked(id: String) -> bool:
 	return not ev.is_empty() and tier() >= int(ev.tier)
 
 ## the paid result of a finish: {nex, rep, tier_up ("" or the new rung's name)}; `entrants` counts the player
+## the skill tree's Known Face / Ghost (scripts/progress/skills.gd); street_life sets them when it loads the career
+var rep_mult := 1.0
+var escape_mult := 1.0
+
 func finish(id: String, place: int, ev_override := {}) -> Dictionary:
 	var ev: Dictionary = ev_override if not ev_override.is_empty() else event(id)
 	var prize: Array = ev.get("prize", [0])
 	var reps: Array = ev.get("rep", [0])
 	var i := clampi(place - 1, 0, prize.size() - 1)
 	var before := tier()
-	var got := { "nex": int(prize[i]), "rep": int(reps[mini(i, reps.size() - 1)]), "tier_up": "" }
+	var got := { "nex": int(prize[i]), "rep": int(round(int(reps[mini(i, reps.size() - 1)]) * rep_mult)), "tier_up": "" }
 	rep += got.rep
 	races += 1
 	if place == 1:
@@ -137,7 +141,7 @@ func busted(level: int, holding_nex: int) -> Dictionary:
 ## shaking the police off pays in reputation
 func escaped(level: int) -> int:
 	escapes += 1
-	var got := 40 * maxi(1, level)
+	var got := int(round(40 * maxi(1, level) * escape_mult))
 	rep += got
 	return got
 

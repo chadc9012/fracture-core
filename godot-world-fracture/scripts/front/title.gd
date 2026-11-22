@@ -173,6 +173,8 @@ func _build_menu() -> VBoxContainer:
 		v.add_child(_button("GAME MODES", "modes", false, "PVP  ·  RAIDS  ·  RACES"))
 		var Tri = load("res://scripts/progress/triumphs.gd")
 		v.add_child(_button("JOURNAL", "journal", false, "MAIN JOBS  ·  SIDE JOBS  ·  GIGS  ·  CONTRACTS"))
+		var pts: int = load("res://scripts/progress/skills.gd").points(p)
+		v.add_child(_button("SKILLS", "skills", false, ("%d POINT%s TO SPEND" % [pts, "" if pts == 1 else "S"]) if pts > 0 else "COMBAT  ·  TECH  ·  STREET"))
 		v.add_child(_button("TRIUMPHS", "triumphs", false, "SCORE %d  ·  COLLECTIONS" % Tri.score(p)))
 		v.add_child(_button("WORLD MAP", "globe", false, "THE GLOBE AND ITS DESTINATIONS"))
 		v.add_child(_button("NEW OPERATOR", "new"))

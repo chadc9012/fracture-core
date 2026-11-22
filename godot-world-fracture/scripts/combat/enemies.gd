@@ -79,6 +79,7 @@ const SHIELD_DELAY := 3.0
 const SHIELD_RATE := 20.0
 var shield := SHIELD_MAX
 var shield_max := SHIELD_MAX
+var shield_delay := SHIELD_DELAY
 func shield_frac() -> float:
 	return shield / shield_max if shield_max > 0.0 else 0.0
 ## the operator's hull, damage this frame for the HUD flash, and the down state
@@ -108,6 +109,11 @@ const OPERATOR_HIT := -2
 func setup(p: Node3D, g: Node3D) -> void:
 	player = p
 	gunplay = g
+	# the skill tree's Capacitor / Hardlight / Fast Recharge (scripts/progress/skills.gd)
+	var Skills = load("res://scripts/progress/skills.gd")
+	shield_max = SHIELD_MAX * Skills.saved("shield")
+	shield = shield_max
+	shield_delay = SHIELD_DELAY * Skills.saved("shield_delay")
 	_rng.seed = 19
 	g.killed.connect(_on_target_killed)
 	if "roster" in g:
@@ -238,7 +244,7 @@ func step(dt: float) -> void:
 		if down <= 0.0:
 			hull = hull_max
 			shield = shield_max
-	elif since_hit > SHIELD_DELAY and shield < shield_max:
+	elif since_hit > shield_delay and shield < shield_max:
 		shield = minf(shield_max, shield + SHIELD_RATE * dt)
 	elif since_hit > 4.0:
 		hull = minf(hull_max, hull + 12.0 * dt)

@@ -25,7 +25,9 @@ var charge := 0.0
 var shots_left := 0       # Golden Gun shots still empowered
 var window := 0.0         # seconds left to use them
 var _ready_said := false
-var _casting := false     # the super's own kills don't charge it
+var _casting := false
+var kill_rate := 1.0
+var time_rate := 1.0     # the super's own kills don't charge it
 
 func setup(g: Node3D) -> void:
 	gunplay = g
@@ -36,10 +38,14 @@ func setup(g: Node3D) -> void:
 	frame = str(look.get("frame", CharacterStore.load_look().get("frame", "goliath")))
 	if not SUPERS.has(frame):
 		frame = "goliath"
+	# the skill tree's Executioner / Overclock (scripts/progress/skills.gd)
+	var Skills = load("res://scripts/progress/skills.gd")
+	kill_rate = Skills.saved("kill_charge")
+	time_rate = Skills.saved("super_time")
 	g.hit.connect(func(_t, _d, head: bool): if head: add(CHARGE.head))
 	g.killed.connect(func(t):
 		if not (t.has_meta("cover_box") or t.has_meta("prop")):
-			add(CHARGE.kill))
+			add(CHARGE.kill * kill_rate))
 
 func def() -> Dictionary:
 	return SUPERS[frame]
@@ -77,7 +83,7 @@ func step(dt: float, cam: Camera3D, fire := false) -> void:
 		if window <= 0.0:
 			shots_left = 0
 	elif not full():
-		add(CHARGE.time * dt)
+		add(CHARGE.time * time_rate * dt)
 	if full() and not _ready_said:
 		_ready_said = true
 		Sound.sfx("capture", -8.0)
