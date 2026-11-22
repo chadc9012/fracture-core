@@ -1941,6 +1941,8 @@ func fit_walker(p: Node3D) -> void:
 	p.ground_at = func(x: float, z: float) -> float: return wade_ground(x, z)
 	p.swim_at = func(x: float, z: float) -> float: return swim_surface(x, z)
 	p.cam_floor = func(x: float, z: float) -> float: return _ground(x, z)
+	p.bed_at = func(x: float, z: float) -> float: return _h(x, z)
+	p.water_top = _water
 ## the buildings as world boxes (local space, metres from the region centre), for the on-foot movers to slide around
 func building_boxes() -> Array[AABB]:
 	var out: Array[AABB] = []

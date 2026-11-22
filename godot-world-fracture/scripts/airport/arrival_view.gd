@@ -107,6 +107,7 @@ func _process(dt: float) -> void:
 			_shots = gunplay.shots_fired
 			npcs.gunfire(operator.position)
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	controls.water_label(operator.swimming, operator.diving)
 	if npcs:
 		var who: String = npcs.near(operator.position)
 		if who != _near:

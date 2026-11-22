@@ -14,6 +14,8 @@ func _init() -> void:
 	p.ground_at = func(x: float, _z: float) -> float: return maxf(bed.call(x), -DEPTH)
 	p.swim_at = func(x: float, _z: float) -> float: return 0.0 if (bed.call(x) as float) < -DEPTH else -INF
 	p.cam_floor = func(x: float, _z: float) -> float: return maxf(bed.call(x), 0.4)
+	p.bed_at = func(x: float, _z: float) -> float: return bed.call(x)
+	p.water_top = 0.0
 	p.cam_yaw = -PI * 0.5      # the camera looks along +x: the stick's forward walks out to sea
 	p.position = Vector3(-3, 0, 0)
 	var ok := true
@@ -34,13 +36,41 @@ func _init() -> void:
 	var swims := p.swimming and absf(p.position.y + DEPTH) < 0.05 and top <= Player.SWIM_FAST + 0.01 and top > Player.SWIM * 0.9
 	ok = ok and swims
 	print("swims out of depth: ", swims, " y ", p.position.y, " top speed ", top)
-	# no jumping off the water
+	# JUMP in the water never leaps out of it: it ducks under, and a still body floats back up to the surface
 	p.step(dt, Vector2.ZERO, Vector2.ZERO, true, false)
-	for i in 30:
+	var high := p.position.y
+	for i in 240:
 		p.step(dt, Vector2.ZERO, Vector2.ZERO, false, false)
-	var nojump := p.swimming and absf(p.position.y + DEPTH) < 0.05
+		high = maxf(high, p.position.y)
+	var nojump := p.swimming and high <= -DEPTH + 0.01 and not p.diving and absf(p.position.y + DEPTH) < 0.05
 	ok = ok and nojump
-	print("no jump in the water: ", nojump)
+	print("no leap out of the water, floats back up: ", nojump, " y ", p.position.y)
+	# diving: JUMP ducks under, the stick with the camera pitched down goes deeper, oxygen drains, and with none left the
+	# operator is carried back up to the surface and breathes again
+	p.step(dt, Vector2.ZERO, Vector2.ZERO, true, false)
+	var ducked := p.diving
+	p.cam_pitch = -0.75
+	var deepest := 0.0
+	for i in 300:
+		p.step(dt, Vector2(0, 1), Vector2.ZERO, false, false)
+		deepest = minf(deepest, p.position.y)
+	var dove := ducked and p.diving and deepest < -4.0 and p.oxygen < 100.0 - 4.5 * 5.0 + 1.0 and p.position.y >= (bed.call(p.position.x) as float) + 0.1
+	ok = ok and dove
+	print("dives: ", dove, " deepest ", deepest, " oxygen ", p.oxygen)
+	var surfaced := false
+	var o_min := p.oxygen
+	for i in 60 * 40:
+		p.step(dt, Vector2(0, 1), Vector2.ZERO, false, false)
+		o_min = minf(o_min, p.oxygen)
+		if not p.diving:
+			surfaced = true
+			break
+	for i in 120:
+		p.step(dt, Vector2.ZERO, Vector2.ZERO, false, false)
+	var breath := surfaced and o_min <= 0.0 and p.oxygen > 20.0 and absf(p.position.y + DEPTH) < 0.1
+	ok = ok and breath
+	print("out of air, carried up, breathes again: ", breath, " oxygen ", p.oxygen, " y ", p.position.y)
+	p.cam_pitch = -0.18
 	# the guns are stowed while swimming and come back on the shore
 	var Gunplay = load("res://scripts/combat/gunplay.gd")
 	var g = Gunplay.new()
@@ -49,7 +79,7 @@ func _init() -> void:
 	var stowed: bool = g.holstered
 	# back to the beach
 	p.cam_yaw = PI * 0.5
-	for i in 900:
+	for i in 4000:
 		p.step(dt, Vector2(0, 1), Vector2.ZERO, false, false)
 		if p.position.x < -1.0:
 			break

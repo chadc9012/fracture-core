@@ -51,7 +51,7 @@ func _run() -> void:
 		var l := _look(String(v.model))
 		ok(not l.is_empty(), "%s: the model loads" % v.id)
 		if not l.is_empty():
-			ok(int(l.tex) >= 4096, "%s: 4K paint texture (%d px)" % [v.id, int(l.tex)])
+			ok(int(l.tex) >= 2048, "%s: full paint texture at the phone cap (%d px; 0674a98 caps hero base colours at 2048)" % [v.id, int(l.tex)])
 			ok(int(l.tris) > 20000 and int(l.tris) <= 125000, "%s: phone triangle budget (%d)" % [v.id, int(l.tris)])
 	ok(ids.size() == Catalog.SHOWROOM.size(), "ids are unique")
 	for c in Catalog.SHOWROOM_CATS:
@@ -73,7 +73,7 @@ func _run() -> void:
 	for m in street + ["res://models/fleet/tuner.glb", "res://models/fleet/muscle-car-lod.glb", "res://models/fleet/war-rig.glb"]:
 		var cut := Catalog.street_cut(m)
 		var l := _look(cut)
-		ok(cut != m and not l.is_empty() and int(l.tex) >= 4096 and int(l.tris) <= 40000, "street cut of %s: %d tris, %d px" % [m.get_file(), int(l.get("tris", 0)), int(l.get("tex", 0))])
+		ok(cut != m and not l.is_empty() and int(l.tex) >= 2048 and int(l.tris) <= 40000, "street cut of %s: %d tris, %d px" % [m.get_file(), int(l.get("tris", 0)), int(l.get("tex", 0))])
 	# buying
 	var p := { "nex": 1000 }
 	ok(Dealer.owned(p).size() == Catalog.VEHICLES.size(), "the garage's starters are owned from the start")
@@ -90,7 +90,7 @@ func _run() -> void:
 	for f in DirAccess.get_files_at("res://models/fleet/craft"):
 		if f.ends_with(".glb"):
 			var l := _look("res://models/fleet/craft/" + f)
-			ok(not l.is_empty() and int(l.tex) >= 4096 and int(l.tris) <= 125000, "craft %s loads, 4K, %d tris" % [f, int(l.get("tris", 0))])
+			ok(not l.is_empty() and int(l.tex) >= 2048 and int(l.tris) <= 125000, "craft %s loads, full texture, %d tris" % [f, int(l.get("tris", 0))])
 	for id in Air.AIRCRAFT:
 		var path := "res://models/fleet/" + String(Air.AIRCRAFT[id].get("model", id + ".glb"))
 		ok(ResourceLoader.exists(path), "the hangar's %s has its model" % id)

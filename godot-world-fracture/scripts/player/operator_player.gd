@@ -45,6 +45,22 @@ const SWIM := 1.6
 const SWIM_FAST := 2.6
 const SWIM_SINK := 1.3        # body origin (the feet) below the surface while swimming: head and shoulders out
 var _swim_tilt := 0.0
+## diving (the web's underwater.ts): JUMP in the water ducks under, then the stick swims where the camera looks (pitch
+## down to go deeper); JUMP under water kicks up. Oxygen drains under the surface and comes back above it; with none
+## left the operator is carried up and cannot go down again until they have breathed. `bed_at` is the true sea floor
+## and `water_top` the sea level (region_3d.gd fit_walker); without them there is no diving.
+var bed_at: Callable
+var water_top := -INF
+var diving := false
+var oxygen := 100.0
+const OXYGEN_MAX := 100.0
+const OXYGEN_DRAIN := 5.5     # per second under (underwater.ts OXYGEN_DRAIN_PER_SEC)
+const OXYGEN_REGEN := 14.0
+const DIVE_V := 2.2           # m/s straight down or up at full stick
+const BUOYANCY := 0.6         # m/s drift up when not swimming down
+const KICK_V := 2.6
+var _dive_vy := 0.0
+var _under_fx: CanvasLayer
 
 # camera
 var cam: Camera3D
@@ -104,8 +120,12 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	if swim_at.is_valid():
 		surf = swim_at.call(position.x, position.z) as float
 	swimming = surf > -INF
+	if diving and not swimming:
+		diving = false            # under water over shallows: stand on the bed
 	if swimming:
 		top = SWIM_FAST if sprint else SWIM
+		if diving:
+			top *= 0.85
 	var target := want.normalized() * top * mag if mag > 0.02 else Vector3.ZERO
 	var rate := ACCEL if mag > 0.02 else DECEL
 	var flat := Vector3(velocity.x, 0, velocity.z).move_toward(target, rate * dt)
@@ -118,13 +138,39 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		heading = lerp_angle(heading, want_heading, minf(1.0, TURN * dt))
 	# vertical
 	var gy := ground_at.call(position.x, position.z) as float
-	if swimming:
+	if swimming and not diving and jump and bed_at.is_valid() and oxygen > 15.0 and position.y < surf - SWIM_SINK + 0.3:
+		diving = true             # duck under
+		_dive_vy = -DIVE_V
+		jump = false
+		if cam:
+			Sound.sfx("water", -10.0, 0.1)
+	if swimming and diving:
+		# under water: forward on the stick goes where the camera looks, up or down; buoyancy lifts a still body
+		var floor_y: float = (bed_at.call(position.x, position.z) as float) + 0.15
+		var pitch_k := clampf(sin(cam_pitch + 0.18) * 2.2, -1.0, 1.0)   # level-ish looks hold the depth
+		var want_vy := move.y * mag * pitch_k * DIVE_V + BUOYANCY
+		if jump:
+			_dive_vy = KICK_V
+		if oxygen <= 0.0:
+			want_vy = maxf(want_vy, DIVE_V)                        # out of air: up to the surface
+		_dive_vy = move_toward(_dive_vy, want_vy, 4.0 * dt)
+		gy = surf - SWIM_SINK
+		jump = false
+		grounded = true
+		y_vel = 0.0
+		position.y = clampf(position.y + _dive_vy * dt, floor_y, gy)
+		if position.y >= gy - 0.01 and _dive_vy >= 0.0:
+			diving = false                                         # surfaced
+	elif swimming:
 		# float at the surface: settle to the swimming depth (a jump or a fall into the water eases down to it)
 		gy = surf - SWIM_SINK
 		jump = false
 		grounded = true
 		y_vel = 0.0
 		position.y = lerpf(position.y, gy, minf(1.0, 6.0 * dt))
+	# breath: the head (≈1.6 m up the body) under the surface drains it
+	var head_under := water_top > -INF and position.y + 1.6 < water_top
+	oxygen = clampf(oxygen + (-OXYGEN_DRAIN if head_under else OXYGEN_REGEN) * dt, 0.0, OXYGEN_MAX)
 	var was_grounded := grounded
 	if grounded and jump:
 		y_vel = JUMP_V
@@ -187,6 +233,7 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		_swim_pose(dt, flat.length())
 	_animate(flat.length(), sprint)
 	_place_camera(dt)
+	_underwater_fx()
 
 func _slide(to: Vector2, from: Vector2, y: float) -> Vector2:
 	var p := to
@@ -229,10 +276,50 @@ func _swim_pose(dt: float, speed: float) -> void:
 	var want := 0.0
 	if swimming:
 		want = lerpf(0.25, 1.25, clampf(speed / SWIM, 0.0, 1.0))
+		if diving:
+			want = clampf(1.35 - _dive_vy * 0.35, 0.6, 2.3)       # head down going deeper, up rising
 	_swim_tilt = lerpf(_swim_tilt, want, minf(1.0, 5.0 * dt))
 	rig.rotation.x = _swim_tilt
 	var lift := sin(_swim_tilt) * 0.95
 	rig.position = Vector3(-sin(heading), 0.0, -cos(heading)) * lift + Vector3(0, (1.0 - cos(_swim_tilt)) * 1.15, 0)
+
+## the camera under the surface: a blue-green murk over the view, and the oxygen read-out while it is not full
+func _underwater_fx() -> void:
+	if not cam or water_top == -INF:
+		return
+	var under := cam.global_position.y < water_top if cam.is_inside_tree() else cam.position.y < water_top
+	var show_o2 := oxygen < OXYGEN_MAX - 0.5 or diving
+	if not under and not show_o2:
+		if _under_fx:
+			_under_fx.visible = false
+		return
+	if not _under_fx:
+		_under_fx = CanvasLayer.new()
+		_under_fx.layer = 5
+		var murk := ColorRect.new()
+		murk.name = "Murk"
+		murk.set_anchors_preset(Control.PRESET_FULL_RECT)
+		murk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		murk.color = Color(0.03, 0.22, 0.26, 0.55)
+		_under_fx.add_child(murk)
+		var o2 := Label.new()
+		o2.name = "O2"
+		o2.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		o2.offset_top = 64
+		o2.offset_left = -80
+		o2.offset_right = 80
+		o2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		o2.add_theme_font_size_override("font_size", 22)
+		o2.add_theme_constant_override("outline_size", 6)
+		o2.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		_under_fx.add_child(o2)
+		add_child(_under_fx)
+	_under_fx.visible = true
+	(_under_fx.get_node("Murk") as ColorRect).visible = under
+	var lab := _under_fx.get_node("O2") as Label
+	lab.visible = show_o2
+	lab.text = "O₂ %d%%" % int(round(oxygen / OXYGEN_MAX * 100.0))
+	lab.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3) if oxygen < 20.0 else Color(0.75, 0.95, 1.0))
 
 func _animate(speed: float, sprint: bool) -> void:
 	if not rig or not rig.anim:
@@ -278,7 +365,8 @@ func _place_camera(dt: float) -> void:
 	# keep the camera out of the walls: pull it in along the bounds, and never below the ground
 	want.x = clampf(want.x, bounds.position.x + 0.3, bounds.end.x - 0.3)
 	want.z = clampf(want.z, bounds.position.y + 0.3, bounds.end.y - 0.3)
-	want.y = maxf(want.y, ((cam_floor if cam_floor.is_valid() else ground_at).call(want.x, want.z) as float) + 0.4)
+	var floor_f: Callable = cam_floor if cam_floor.is_valid() and not diving else (bed_at if diving and bed_at.is_valid() else ground_at)
+	want.y = maxf(want.y, (floor_f.call(want.x, want.z) as float) + 0.4)
 	want = _clear_camera(pivot, want)
 	# pulled in by a box right behind (a pillar, the overpass): never into the operator's head — up and over instead,
 	# looking down past the shoulder (owner, Nov 11: the view was a face filling the screen)

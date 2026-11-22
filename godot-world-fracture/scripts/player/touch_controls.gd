@@ -408,6 +408,14 @@ func prompt(text: String) -> void:
 func simple() -> bool:
 	return touch_ui and bool(Settings.get_value("simple_hud"))
 
+## in the water the JUMP button ducks under (DIVE) and, under the surface, kicks up (UP); the operator's view calls this
+## each frame with operator_player.gd's swimming / diving
+func water_label(swimming: bool, diving: bool) -> void:
+	if _jump_button and mode == "foot":
+		var t := ("UP" if diving else "DIVE") if swimming else "JUMP"
+		if _jump_button.text != t:
+			_jump_button.text = t
+
 func set_mode(m: String) -> void:
 	mode = m
 	var drive := m == "drive"
