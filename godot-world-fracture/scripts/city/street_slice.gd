@@ -1595,8 +1595,10 @@ void fragment() {
 	EMISSION = vec3(1.0, 0.82, 0.6) * on * glow;
 }
 """
+	_sky_shader = sh
 	if style == "coast":
 		return     # the resort strip has no glass skyline: open sky over the palms
+	_vista()
 	for k in 26:
 		var m := ShaderMaterial.new()
 		m.shader = sh
@@ -1630,6 +1632,127 @@ void fragment() {
 	lm.set_shader_parameter("glow", 1.6 if night else 0.35)
 	_box(Vector3(30, 260, 30), Vector3(-62, 130, -LENGTH * 0.5 - 70.0), lm)
 	_box(Vector3(18, 60, 18), Vector3(-62, 290, -LENGTH * 0.5 - 70.0), lm)
+
+## The skyline down the avenue (Nov 22 benchmark, owner's target-nexus-night: the street ends in a canyon of lit towers
+## with neon crowns and vertical sign blades; ours ended in open sky — the glass skyline stands behind the courts, off to
+## the sides). Two clusters, ahead and behind, past the last streamed tile (the street is built to ±910 m), riding with
+## the operator along the avenue like a backdrop (`_step_dressing`), so the end of the street is always a city. Folded
+## into a few draws per look.
+var _sky_shader: Shader
+var _vista_root: Node3D
+func _vista() -> void:
+	_vista_root = Node3D.new()
+	_vista_root.name = "Vista"
+	world.add_child(_vista_root)
+	var mats: Array[ShaderMaterial] = []
+	for k in 5:
+		var m := ShaderMaterial.new()
+		m.shader = _sky_shader
+		var t := k / 4.0
+		m.set_shader_parameter("glass", Color(0.16 + 0.08 * t, 0.2 + 0.08 * t, 0.32 + 0.1 * t) if night else Color(0.4 + 0.1 * t, 0.55 + 0.08 * t, 0.72))
+		m.set_shader_parameter("lit", (0.22 + 0.1 * t) if night else 0.05)
+		m.set_shader_parameter("glow", 1.5 if night else 0.3)
+		m.set_shader_parameter("bay_w", 2.2)
+		m.set_shader_parameter("floor_h", 4.0)
+		mats.append(m)
+	var neon_cols := [Color(0.2, 0.9, 1.0), Color(1.0, 0.25, 0.75), Color(0.62, 0.3, 1.0), Color(1.0, 0.95, 0.9)]
+	if style == "neon":
+		neon_cols = [Color(1.0, 0.2, 0.8), Color(0.62, 0.25, 1.0), Color(0.2, 0.85, 1.0), Color(1.0, 0.5, 0.2)]
+	var neons: Array[StandardMaterial3D] = []
+	for c in neon_cols:
+		neons.append(_neon_mat(c, 4.0 if night else 1.2))
+	var vr := RandomNumberGenerator.new()
+	vr.seed = hash(style + ":vista")
+	for dir: float in [-1.0, 1.0]:
+		for i in 46:
+			# denser and taller near the avenue's line, so the street's vanishing point is a wall of towers
+			var off := vr.randf_range(-1.0, 1.0)
+			off = signf(off) * pow(absf(off), 1.4)
+			var x := off * 320.0
+			var z := dir * vr.randf_range(960.0, 1420.0)
+			var near_axis := 1.0 - minf(absf(x) / 320.0, 1.0)
+			var h := vr.randf_range(80.0, 180.0) + near_axis * vr.randf_range(40.0, 200.0)
+			var w := vr.randf_range(24.0, 52.0)
+			var d := w * vr.randf_range(0.8, 1.2)
+			_box(Vector3(w, h, d), Vector3(x, h * 0.5, z), mats[vr.randi() % mats.size()], _vista_root)
+			# a stepped crown on the tall ones
+			if h > 200.0 and vr.randf() < 0.6:
+				var h2 := h * vr.randf_range(0.12, 0.22)
+				_box(Vector3(w * 0.6, h2, d * 0.6), Vector3(x, h + h2 * 0.5, z), mats[vr.randi() % mats.size()], _vista_root)
+				h += h2
+			# a lit crown band round the top, on about half
+			if vr.randf() < 0.5:
+				var n := neons[vr.randi() % neons.size()]
+				_box(Vector3(w + 0.6, 1.4, d + 0.6), Vector3(x, h - vr.randf_range(2.0, 8.0), z), n, _vista_root)
+			# a vertical sign blade on the face toward the avenue, on a quarter
+			if vr.randf() < 0.28:
+				var bh := minf(h * vr.randf_range(0.2, 0.4), 70.0)
+				var face := z - dir * (d * 0.5 + 1.0)
+				_box(Vector3(3.0, bh, 0.8), Vector3(x + vr.randf_range(-w, w) * 0.35, vr.randf_range(20.0, maxf(h - bh - 10.0, 24.0)) + bh * 0.5, face), neons[vr.randi() % neons.size()], _vista_root)
+	StaticBatch.batch(_vista_root, 3000.0)   # one draw per look per end
+
+## The elevated highway over the avenue (owner's target-nexus-night: a road bridge crosses the street mid-distance,
+## neon along its underside, traffic lights streaming across it). One per block, 95 m past the block's middle (clear of
+## the crossing at -20 and the courts' frontage); it rides over the monorail (13 m) and runs into the street wall either
+## side; the lots' blocks (±2) and the coast have none. Lights in the deck's lanes stream as trails (`_trail_material`).
+func _skybridge() -> void:
+	if style == "coast" or absi(_tile_k) == 2:
+		return
+	var zc := 95.0
+	var span := 2.0 * (ROAD_W * 0.5 + WALK_W) + 10.0
+	var y := 17.5
+	var deck := flat(Color(0.2, 0.21, 0.24), 0.6, 0.3)
+	var under := flat(Color(0.12, 0.12, 0.14), 0.8, 0.2)
+	_box(Vector3(span, 1.4, 14.0), Vector3(0, y, zc), deck)
+	_box(Vector3(span, 0.4, 12.0), Vector3(0, y - 0.9, zc), under)
+	# parapets with a neon line along the top, and a neon underline both sides of the soffit
+	var c1 := Color(0.2, 0.9, 1.0) if style == "nexus" else Color(1.0, 0.25, 0.8)
+	var c2 := Color(0.62, 0.3, 1.0)
+	for sz: float in [-1.0, 1.0]:
+		_box(Vector3(span, 1.1, 0.35), Vector3(0, y + 1.25, zc + sz * 6.8), deck)
+		_box(Vector3(span, 0.12, 0.12), Vector3(0, y + 1.85, zc + sz * 6.8), _neon_mat(c2, 3.0))
+		_box(Vector3(span, 0.16, 0.16), Vector3(0, y - 1.15, zc + sz * 6.0), _neon_mat(c1, 4.0))
+	# a row of lamps under the soffit, lighting the street beneath
+	for lx in [-8.0, 0.0, 8.0]:
+		_box(Vector3(1.4, 0.08, 0.5), Vector3(lx, y - 1.12, zc), _neon_mat(Color(1.0, 0.92, 0.8), 2.5))
+	# traffic on the deck as streams of light: red tail lights one way, white head lights the other
+	for lane in 2:
+		var tr := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(span, 0.5)
+		tr.mesh = q
+		tr.rotation.x = -PI * 0.5
+		tr.position = Vector3(0, y + 0.75, zc + (lane - 0.5) * 5.0)
+		tr.material_override = _trail_material(Color(1.0, 0.15, 0.1) if lane == 0 else Color(1.0, 0.95, 0.85), 1.0 if lane == 0 else -1.0)
+		tr.set_meta("dynamic", true)
+		_root().add_child(tr)
+
+static var _trails := {}
+static func _trail_material(c: Color, dir: float) -> ShaderMaterial:
+	var key := "%s%s" % [c, dir]
+	if _trails.has(key):
+		return _trails[key]
+	var sh := Shader.new()
+	sh.code = """shader_type spatial;
+render_mode unshaded, blend_add, cull_disabled, shadows_disabled;
+uniform vec3 col : source_color;
+uniform float dir = 1.0;
+float h(float p) { return fract(sin(p * 91.7) * 4375.5); }
+void fragment() {
+	float x = UV.x * 9.0 - TIME * 0.9 * dir;
+	float cell = floor(x);
+	float f = fract(x);
+	float on = step(0.45, h(cell));
+	float streak = smoothstep(0.0, 0.6, f) * smoothstep(1.0, 0.85, f);
+	float edge = smoothstep(0.0, 0.3, UV.y) * smoothstep(1.0, 0.7, UV.y);
+	ALBEDO = col * on * streak * edge * 3.0;
+}"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	m.set_shader_parameter("col", Vector3(c.r, c.g, c.b))
+	m.set_shader_parameter("dir", dir)
+	_trails[key] = m
+	return m
 
 # --------------------------------------------------------------------------------------------- street furniture
 func _props() -> void:
@@ -2177,6 +2300,7 @@ func _dressing() -> void:
 	while zp < LENGTH * 0.5:
 		_box(Vector3(1.2, 12.6, 1.2), Vector3(beam_x, 6.3, zp), steel)
 		zp += 30.0
+	_skybridge()
 
 ## the hub block only: the holo rings on the landmark spire, the district sign, billboards with the owner's art, the train
 var _rings: Array = []
@@ -2262,6 +2386,8 @@ func _hub_dressing() -> void:
 		_box(Vector3(2.7, 0.06, 9.0), Vector3(0, 0.1, zc), _neon_mat(cyan, 3.0), _train)
 
 func _step_dressing(dt: float) -> void:
+	if _vista_root and operator:
+		_vista_root.position.z = (driving_car.node.position.z if driving_car else operator.position.z)
 	if _casino_tower:
 		_tower_clock += dt
 		CasinoTower.step(_casino_tower, _tower_clock)
