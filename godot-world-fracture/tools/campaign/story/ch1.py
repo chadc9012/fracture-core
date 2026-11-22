@@ -8,7 +8,7 @@ MISSIONS = [
     # =========================================================================================== MISSION 8
     {"id": "08", "title": "The Broken Alliance", "region": "Nexus City", "world": "nexus",
      "beat": "Faction politics / vault defence / pursuit / tower assault", "chapters": [
-        {"id": "08A", "title": "Fault Lines", "location": "INT. FRONTIER DEFENSE HEADQUARTERS — 6:10 AM", "kind": "cutscene",
+        {"id": "08A", "title": "Fault Lines", "location": "INT. FRONTIER DEFENSE HEADQUARTERS — 6:10 AM", "kind": "cutscene", "start": "nexus-bastion",
          "open": L(WARD, "Eleven settlements went dark overnight. Three of them asked for help. Eight of them didn't have time to.")
          + L(VOSS, "And the broadcast told every frightened warlord on the planet that the world is up for grabs.")
          + L(O, "Where's Rainer?")
@@ -99,7 +99,7 @@ MISSIONS = [
     # =========================================================================================== MISSION 9
     {"id": "09", "title": "The Five", "region": "Nexus City", "world": "nexus",
      "beat": "Investigation / signal triangulation / ambush / revelation", "chapters": [
-        {"id": "09A", "title": "Five Names", "location": "INT. RESEARCH DIVISION — THE CLEAN ROOM", "kind": "cutscene",
+        {"id": "09A", "title": "Five Names", "location": "INT. RESEARCH DIVISION — THE CLEAN ROOM", "kind": "cutscene", "start": "nexus-academy",
          "open": L(N, "Translation complete for the first five entries.")
          + L(SERA, "Read them.")
          + L(N, "Ilyra Sen, the Voice. Auren Thale, the Cartographer. The Echo Before Names. Vael Turog, the Severant.")
@@ -180,7 +180,7 @@ MISSIONS = [
     # =========================================================================================== MISSION 10
     {"id": "10", "title": "The First War", "region": "Nexus City", "world": "nexus",
      "beat": "Playable memory / the Covenant's last stand / revelation", "chapters": [
-        {"id": "10A", "title": "The Memory Gate", "location": "INT. THE ASHEN ARCHIVE — THE DAIS", "kind": "reach",
+        {"id": "10A", "title": "The Memory Gate", "location": "INT. THE ASHEN ARCHIVE — THE DAIS", "kind": "reach", "start": "nexus-central-plaza",
          "label": "Stand on the seal",
          "open": L(SERA, "The dais is warm. It wasn't last time.")
          + L(N, "The seal is waiting for a biometric match. Yours.")

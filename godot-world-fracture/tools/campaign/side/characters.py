@@ -29,14 +29,21 @@ MISSIONS = [
         {"id": "C01B", "title": "The Old Pharmacy", "location": "INT. EASTERN BLOCKS — THE PHARMACY", "kind": "kills", "amount": 6,
          "label": "Clear the pharmacy",
          "open": L(N, "Fracture growths on the shelves. And things living in them."),
-         "close": L(N, "Medicine located. Antibiotics, painkillers. Enough for his leg and three other patients.")},
+         "close": L(N, "Medicine located. Antibiotics, painkillers. Enough for his leg and three other patients.")
+         + L(O, "Take all of it.")
+         + L(N, "There is a box of children's vitamins on the floor. Strawberry flavour.")
+         + L(O, "Take that too.")},
         {"id": "C01C", "title": "Delivered", "location": "EXT. HAVEN-01 — THE TENTS", "kind": "talk", "who": "DANIEL", "to": "nexus-harbor",
          "label": "Bring the medicine to Daniel",
          "open": [],
          "close": L(DADMAN, "You're the one. From the bus. He hasn't stopped talking about you.")
          + L(O, "He's brave. He stayed where I told him.")
          + L(DADMAN, "He's never done what anyone told him in his life. Thank you.")
-         + L(DANIEL, "Here. You can keep the drawing. So you remember you won.")},
+         + L(DANIEL, "Here. You can keep the drawing. So you remember you won.")
+         + L(O, "I'll keep it somewhere safe.")
+         + L(DANIEL, "Where?")
+         + L(N, "I have filed it under \"important\". It is the only drawing in the folder.")
+         + L(DANIEL, "Cool.")},
     ]},
     {"id": "C02", "title": "Old Funerals", "giver": "VOSS", "region": "Nexus City", "world": "nexus", "after": "13",
      "beat": "Voss goes to the graves of the men he buried twice", "chapters": [
@@ -48,7 +55,10 @@ MISSIONS = [
          + L(VOSS, "I want to see if there's anyone in them.")},
         {"id": "C02B", "title": "Veterans' Hill", "location": "EXT. NEXUS — VETERANS' HILL", "kind": "reach", "label": "Walk Voss to the hill",
          "open": L(N, "The cemetery's records were altered three years ago. By an Observer account."),
-         "close": L(VOSS, "Empty. Both of them. They buried sandbags and gave me a flag.")},
+         "close": L(VOSS, "Empty. Both of them. They buried sandbags and gave me a flag.")
+         + L(O, "I'm sorry, Voss.")
+         + L(VOSS, "Hale used to say the army was the only family that would lie to you to your face and mean it kindly.")
+         + L(VOSS, "I always thought it was a joke.")},
         {"id": "C02C", "title": "Mourners", "location": "EXT. VETERANS' HILL", "kind": "kills", "amount": 7, "label": "Fight off the Executors who followed you",
          "open": L(N, "Executors. They monitor the graves of everyone they take.")
          + L(VOSS, "Of course they do."),
@@ -63,7 +73,11 @@ MISSIONS = [
          "open": [],
          "close": L(KAEL, "Six years, every month, a fuel truck to the Underground. Raiders, storms, the Fracture. Never missed one.")
          + L(O, "Why?")
-         + L(KAEL, "Because the first winter after the dust, nobody brought them anything, and they buried forty people. Ride with me.")},
+         + L(KAEL, "Because the first winter after the dust, nobody brought them anything, and they buried forty people. Ride with me.")
+         + L(O, "Who were they to you?")
+         + L(KAEL, "Nobody. That's the point. If you only help your own, you run out of help fast.")
+         + L(N, "That is a very efficient philosophy.")
+         + L(KAEL, "Don't tell anyone. I've got a reputation.")},
         {"id": "C03B", "title": "The Highway", "location": "EXT. THE OLD HIGHWAY", "kind": "drive", "to": "vault-gate", "label": "Drive the fuel to the vault gate",
          "open": L(KAEL, "Raiders like this stretch. Keep it moving."),
          "close": L(KAEL, "Made it. Again.")
@@ -85,7 +99,11 @@ MISSIONS = [
          "open": L(NYX, "There. Corner of your eye."),
          "close": L(NYX, "Done. Teo would have said something wise. Something about the forest remembering.")
          + L(O, "What would you say?")
-         + L(NYX, "I'd say I missed his stupid jokes.")},
+         + L(NYX, "I'd say I missed his stupid jokes.")
+         + L(O, "Tell me one.")
+         + L(NYX, "\"Why don't trees ever get lost? Because they stay rooted in the present.\" He thought that was wisdom.")
+         + L(N, "It is, a little.")
+         + L(NYX, "Don't encourage him. He's dead and he's still winning.")},
     ]},
     {"id": "C05", "title": "Sitting Down", "giver": "GOLIATH", "region": "Goldenreach", "world": "goldenreach", "after": "14",
      "beat": "Goliath goes home to the farm he hasn't seen since the Fracture", "chapters": [
@@ -100,7 +118,10 @@ MISSIONS = [
         {"id": "C05B", "title": "The Goat Thief", "location": "EXT. GOLDENREACH — THE ORCHARDS", "kind": "kills", "amount": 6, "to": "gf-orchards",
          "label": "Clear the orchard of what's eating the goats",
          "open": L(GOL, "Nobody eats my mother's goats."),
-         "close": L(MOM, "Stay for dinner. Both of you. And the little light.")
+         "close": L(MOM, "That thing ate my best goat. Gertrude. She bit everyone. I loved her.")
+         + L(GOL, "I remember Gertrude.")
+         + L(MOM, "She remembered you. She bit you hardest.")
+         + L(MOM, "Stay for dinner. Both of you. And the little light.")
          + L(N, "I don't eat.")
          + L(MOM, "Then you can sit and be polite. Marcus, sit down. You make the room nervous standing up.")
          + L(GOL, "...Yes, Mum.")},
@@ -120,7 +141,12 @@ MISSIONS = [
          + L(MOTHER, "...No. No, don't say it.")
          + L(CIPH, "He held something no one had ever held. For nine seconds. He was brave. He was so brave.")
          + L(MOTHER, "He wrote such terrible poems.")
-         + L(CIPH, "He did. I brought them.")},
+         + L(CIPH, "He did. I brought them.")
+         + L(MOTHER, "Read me one. The one about the bus stop.")
+         + L(CIPH, "\"The bus is late, the rain is wet, I have not met the future yet.\"")
+         + L(MOTHER, "Terrible. Read it again.")
+         + L(N, "Operator. I think we should give them the room.")
+         + L(O, "Yeah.")},
     ]},
     {"id": "C07", "title": "River Song", "giver": "ILYRA SEN", "region": "Verdant Forest — Eldergrove", "world": "eldergrove", "after": "12",
      "beat": "Ilyra looks for the river in her oldest song", "chapters": [
@@ -151,7 +177,10 @@ MISSIONS = [
         {"id": "C08C", "title": "Stranded", "location": "EXT. THE GLASS FLATS — THE CARAVAN", "kind": "survive", "amount": 45, "label": "Hold the caravan till the axle's fixed",
          "open": L(TRADER, "You! Again! Is this a delivery? I didn't order a rescue."),
          "close": L(TRADER, "Fixed. Tell the old man I still want my map.")
-         + L(AUREN, "Tell him he's standing on it.")},
+         + L(AUREN, "Tell him he's standing on it.")
+         + L(TRADER, "...The sand. The sand's the map?")
+         + L(AUREN, "Everything's a map, if you're lost enough.")
+         + L(TRADER, "I hate him. I'm going to name my next caravan after him.")},
     ]},
     {"id": "C09", "title": "The Word", "giver": "NOVA", "region": "Nexus City", "world": "nexus", "after": "27",
      "beat": "NOVA asks for help finding the word for what she feels", "chapters": [
@@ -188,7 +217,10 @@ MISSIONS = [
          "open": L(SERA, "Continuum loyalists. They think I betrayed him.")
          + L(O, "Did you?")
          + L(SERA, "Yes. Beautifully."),
-         "close": L(SERA, "...Let's get another coffee.")
+         "close": L(SERA, "They used to call me Sovereign. They don't know what to call me now.")
+         + L(O, "Seraphine works.")
+         + L(SERA, "It does, doesn't it. Strange. It's the only name I ever chose for myself.")
+         + L(SERA, "...Let's get another coffee.")
          + L(O, "Another terrible one?")
          + L(SERA, "The most terrible one they have.")},
     ]},
@@ -207,7 +239,10 @@ MISSIONS = [
          "open": L(WARD, "Light it."),
          "close": L(WARD, "That's a lot of walls going up in smoke.")
          + L(O, "Regrets?")
-         + L(WARD, "Hundreds. Just not this one.")},
+         + L(WARD, "Hundreds. Just not this one.")
+         + L(WARD, "Don't tell Voss I asked you. He'll want to make it a policy.")
+         + L(O, "Would that be bad?")
+         + L(WARD, "Policies get bought. People sometimes don't.")},
     ]},
     {"id": "C12", "title": "Pump It Out", "giver": "CHIEF ODA", "region": "Thalassia", "world": "thalassia", "after": "30",
      "beat": "Oda goes back down to restart Thalassia's pumps", "chapters": [
@@ -221,6 +256,9 @@ MISSIONS = [
          "open": L(ODA, "Station by station. Gentle. They're old."),
          "close": L(ODA, "Listen to that. She's breathing again.")
          + L(N, "The water is falling a centimetre a minute.")
-         + L(ODA, "A centimetre a minute. Give me a month and you'll be able to walk to the palace in your socks.")},
+         + L(ODA, "A centimetre a minute. Give me a month and you'll be able to walk to the palace in your socks.")
+         + L(ODA, "My grandmother built the first of these pumps by hand. She said the sea always wins, eventually.")
+         + L(O, "Did she believe it?")
+         + L(ODA, "She believed in eventually. That's what engineers do. We make eventually take a very long time.")},
     ]},
 ]

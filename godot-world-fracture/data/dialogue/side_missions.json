@@ -50,7 +50,10 @@
       "SC01_010"
      ],
      "close": [
-      "SC01_011"
+      "SC01_011",
+      "SC01_012",
+      "SC01_013",
+      "SC01_014"
      ],
      "stage": "street"
     },
@@ -64,10 +67,14 @@
      "label": "Bring the medicine to Daniel",
      "open": [],
      "close": [
-      "SC01_012",
-      "SC01_013",
-      "SC01_014",
-      "SC01_015"
+      "SC01_015",
+      "SC01_016",
+      "SC01_017",
+      "SC01_018",
+      "SC01_019",
+      "SC01_020",
+      "SC01_021",
+      "SC01_022"
      ],
      "stage": "street"
     }
@@ -110,7 +117,10 @@
       "SC02_004"
      ],
      "close": [
-      "SC02_005"
+      "SC02_005",
+      "SC02_006",
+      "SC02_007",
+      "SC02_008"
      ],
      "stage": "street"
     },
@@ -122,13 +132,13 @@
      "amount": 7,
      "label": "Fight off the Executors who followed you",
      "open": [
-      "SC02_006",
-      "SC02_007"
-     ],
-     "close": [
-      "SC02_008",
       "SC02_009",
       "SC02_010"
+     ],
+     "close": [
+      "SC02_011",
+      "SC02_012",
+      "SC02_013"
      ],
      "stage": "street"
     }
@@ -156,7 +166,11 @@
      "close": [
       "SC03_001",
       "SC03_002",
-      "SC03_003"
+      "SC03_003",
+      "SC03_004",
+      "SC03_005",
+      "SC03_006",
+      "SC03_007"
      ],
      "stage": "wasteland"
     },
@@ -168,12 +182,12 @@
      "to": "vault-gate",
      "label": "Drive the fuel to the vault gate",
      "open": [
-      "SC03_004"
+      "SC03_008"
      ],
      "close": [
-      "SC03_005",
-      "SC03_006",
-      "SC03_007"
+      "SC03_009",
+      "SC03_010",
+      "SC03_011"
      ],
      "stage": "wasteland"
     }
@@ -231,7 +245,11 @@
      "close": [
       "SC04_006",
       "SC04_007",
-      "SC04_008"
+      "SC04_008",
+      "SC04_009",
+      "SC04_010",
+      "SC04_011",
+      "SC04_012"
      ],
      "stage": "forest"
     }
@@ -283,7 +301,10 @@
       "SC05_008",
       "SC05_009",
       "SC05_010",
-      "SC05_011"
+      "SC05_011",
+      "SC05_012",
+      "SC05_013",
+      "SC05_014"
      ],
      "stage": "camp"
     }
@@ -329,7 +350,12 @@
       "SC06_006",
       "SC06_007",
       "SC06_008",
-      "SC06_009"
+      "SC06_009",
+      "SC06_010",
+      "SC06_011",
+      "SC06_012",
+      "SC06_013",
+      "SC06_014"
      ],
      "stage": "neon_street"
     }
@@ -432,7 +458,10 @@
      ],
      "close": [
       "SC08_006",
-      "SC08_007"
+      "SC08_007",
+      "SC08_008",
+      "SC08_009",
+      "SC08_010"
      ],
      "stage": "desert_camp"
     }
@@ -541,7 +570,10 @@
      "close": [
       "SC10_009",
       "SC10_010",
-      "SC10_011"
+      "SC10_011",
+      "SC10_012",
+      "SC10_013",
+      "SC10_014"
      ],
      "stage": "street"
     }
@@ -602,7 +634,10 @@
      "close": [
       "SC11_007",
       "SC11_008",
-      "SC11_009"
+      "SC11_009",
+      "SC11_010",
+      "SC11_011",
+      "SC11_012"
      ],
      "stage": "street"
     }
@@ -646,7 +681,10 @@
      "close": [
       "SC12_005",
       "SC12_006",
-      "SC12_007"
+      "SC12_007",
+      "SC12_008",
+      "SC12_009",
+      "SC12_010"
      ],
      "stage": "dome"
     }
@@ -1680,26 +1718,68 @@
   {
    "id": "SC01_012",
    "mission": "C01",
+   "speaker": "PLAYER",
+   "text": "Take all of it."
+  },
+  {
+   "id": "SC01_013",
+   "mission": "C01",
+   "speaker": "NOVA",
+   "text": "There is a box of children's vitamins on the floor. Strawberry flavour."
+  },
+  {
+   "id": "SC01_014",
+   "mission": "C01",
+   "speaker": "PLAYER",
+   "text": "Take that too."
+  },
+  {
+   "id": "SC01_015",
+   "mission": "C01",
    "speaker": "MAN",
    "text": "You're the one. From the bus. He hasn't stopped talking about you."
   },
   {
-   "id": "SC01_013",
+   "id": "SC01_016",
    "mission": "C01",
    "speaker": "PLAYER",
    "text": "He's brave. He stayed where I told him."
   },
   {
-   "id": "SC01_014",
+   "id": "SC01_017",
    "mission": "C01",
    "speaker": "MAN",
    "text": "He's never done what anyone told him in his life. Thank you."
   },
   {
-   "id": "SC01_015",
+   "id": "SC01_018",
    "mission": "C01",
    "speaker": "DANIEL",
    "text": "Here. You can keep the drawing. So you remember you won."
+  },
+  {
+   "id": "SC01_019",
+   "mission": "C01",
+   "speaker": "PLAYER",
+   "text": "I'll keep it somewhere safe."
+  },
+  {
+   "id": "SC01_020",
+   "mission": "C01",
+   "speaker": "DANIEL",
+   "text": "Where?"
+  },
+  {
+   "id": "SC01_021",
+   "mission": "C01",
+   "speaker": "NOVA",
+   "text": "I have filed it under \"important\". It is the only drawing in the folder."
+  },
+  {
+   "id": "SC01_022",
+   "mission": "C01",
+   "speaker": "DANIEL",
+   "text": "Cool."
   },
   {
    "id": "SC02_001",
@@ -1734,29 +1814,47 @@
   {
    "id": "SC02_006",
    "mission": "C02",
-   "speaker": "NOVA",
-   "text": "Executors. They monitor the graves of everyone they take."
+   "speaker": "PLAYER",
+   "text": "I'm sorry, Voss."
   },
   {
    "id": "SC02_007",
    "mission": "C02",
    "speaker": "VOSS",
-   "text": "Of course they do."
+   "text": "Hale used to say the army was the only family that would lie to you to your face and mean it kindly."
   },
   {
    "id": "SC02_008",
    "mission": "C02",
    "speaker": "VOSS",
-   "text": "Brennan's wife still lives in the Western blocks. I'm going to tell her. The truth. Even if it's worse."
+   "text": "I always thought it was a joke."
   },
   {
    "id": "SC02_009",
+   "mission": "C02",
+   "speaker": "NOVA",
+   "text": "Executors. They monitor the graves of everyone they take."
+  },
+  {
+   "id": "SC02_010",
+   "mission": "C02",
+   "speaker": "VOSS",
+   "text": "Of course they do."
+  },
+  {
+   "id": "SC02_011",
+   "mission": "C02",
+   "speaker": "VOSS",
+   "text": "Brennan's wife still lives in the Western blocks. I'm going to tell her. The truth. Even if it's worse."
+  },
+  {
+   "id": "SC02_012",
    "mission": "C02",
    "speaker": "PLAYER",
    "text": "Want company?"
   },
   {
-   "id": "SC02_010",
+   "id": "SC02_013",
    "mission": "C02",
    "speaker": "VOSS",
    "text": "No. This one's mine. But thanks."
@@ -1782,23 +1880,47 @@
   {
    "id": "SC03_004",
    "mission": "C03",
-   "speaker": "KAEL",
-   "text": "Raiders like this stretch. Keep it moving."
+   "speaker": "PLAYER",
+   "text": "Who were they to you?"
   },
   {
    "id": "SC03_005",
    "mission": "C03",
    "speaker": "KAEL",
-   "text": "Made it. Again."
+   "text": "Nobody. That's the point. If you only help your own, you run out of help fast."
   },
   {
    "id": "SC03_006",
    "mission": "C03",
    "speaker": "NOVA",
-   "text": "They're cheering. At the gate."
+   "text": "That is a very efficient philosophy."
   },
   {
    "id": "SC03_007",
+   "mission": "C03",
+   "speaker": "KAEL",
+   "text": "Don't tell anyone. I've got a reputation."
+  },
+  {
+   "id": "SC03_008",
+   "mission": "C03",
+   "speaker": "KAEL",
+   "text": "Raiders like this stretch. Keep it moving."
+  },
+  {
+   "id": "SC03_009",
+   "mission": "C03",
+   "speaker": "KAEL",
+   "text": "Made it. Again."
+  },
+  {
+   "id": "SC03_010",
+   "mission": "C03",
+   "speaker": "NOVA",
+   "text": "They're cheering. At the gate."
+  },
+  {
+   "id": "SC03_011",
    "mission": "C03",
    "speaker": "KAEL",
    "text": "They always do. That's the other reason."
@@ -1852,6 +1974,30 @@
    "text": "I'd say I missed his stupid jokes."
   },
   {
+   "id": "SC04_009",
+   "mission": "C04",
+   "speaker": "PLAYER",
+   "text": "Tell me one."
+  },
+  {
+   "id": "SC04_010",
+   "mission": "C04",
+   "speaker": "NYX",
+   "text": "\"Why don't trees ever get lost? Because they stay rooted in the present.\" He thought that was wisdom."
+  },
+  {
+   "id": "SC04_011",
+   "mission": "C04",
+   "speaker": "NOVA",
+   "text": "It is, a little."
+  },
+  {
+   "id": "SC04_012",
+   "mission": "C04",
+   "speaker": "NYX",
+   "text": "Don't encourage him. He's dead and he's still winning."
+  },
+  {
    "id": "SC05_001",
    "mission": "C05",
    "speaker": "GOLIATH",
@@ -1897,22 +2043,40 @@
    "id": "SC05_008",
    "mission": "C05",
    "speaker": "MRS. REYES",
-   "text": "Stay for dinner. Both of you. And the little light."
+   "text": "That thing ate my best goat. Gertrude. She bit everyone. I loved her."
   },
   {
    "id": "SC05_009",
    "mission": "C05",
-   "speaker": "NOVA",
-   "text": "I don't eat."
+   "speaker": "GOLIATH",
+   "text": "I remember Gertrude."
   },
   {
    "id": "SC05_010",
    "mission": "C05",
    "speaker": "MRS. REYES",
-   "text": "Then you can sit and be polite. Marcus, sit down. You make the room nervous standing up."
+   "text": "She remembered you. She bit you hardest."
   },
   {
    "id": "SC05_011",
+   "mission": "C05",
+   "speaker": "MRS. REYES",
+   "text": "Stay for dinner. Both of you. And the little light."
+  },
+  {
+   "id": "SC05_012",
+   "mission": "C05",
+   "speaker": "NOVA",
+   "text": "I don't eat."
+  },
+  {
+   "id": "SC05_013",
+   "mission": "C05",
+   "speaker": "MRS. REYES",
+   "text": "Then you can sit and be polite. Marcus, sit down. You make the room nervous standing up."
+  },
+  {
+   "id": "SC05_014",
    "mission": "C05",
    "speaker": "GOLIATH",
    "text": "...Yes, Mum."
@@ -1970,6 +2134,36 @@
    "mission": "C06",
    "speaker": "CIPHER",
    "text": "He did. I brought them."
+  },
+  {
+   "id": "SC06_010",
+   "mission": "C06",
+   "speaker": "ANNA VOLK",
+   "text": "Read me one. The one about the bus stop."
+  },
+  {
+   "id": "SC06_011",
+   "mission": "C06",
+   "speaker": "CIPHER",
+   "text": "\"The bus is late, the rain is wet, I have not met the future yet.\""
+  },
+  {
+   "id": "SC06_012",
+   "mission": "C06",
+   "speaker": "ANNA VOLK",
+   "text": "Terrible. Read it again."
+  },
+  {
+   "id": "SC06_013",
+   "mission": "C06",
+   "speaker": "NOVA",
+   "text": "Operator. I think we should give them the room."
+  },
+  {
+   "id": "SC06_014",
+   "mission": "C06",
+   "speaker": "PLAYER",
+   "text": "Yeah."
   },
   {
    "id": "SC07_001",
@@ -2060,6 +2254,24 @@
    "mission": "C08",
    "speaker": "AUREN THALE",
    "text": "Tell him he's standing on it."
+  },
+  {
+   "id": "SC08_008",
+   "mission": "C08",
+   "speaker": "TRADER",
+   "text": "...The sand. The sand's the map?"
+  },
+  {
+   "id": "SC08_009",
+   "mission": "C08",
+   "speaker": "AUREN THALE",
+   "text": "Everything's a map, if you're lost enough."
+  },
+  {
+   "id": "SC08_010",
+   "mission": "C08",
+   "speaker": "TRADER",
+   "text": "I hate him. I'm going to name my next caravan after him."
   },
   {
    "id": "SC09_001",
@@ -2185,16 +2397,34 @@
    "id": "SC10_009",
    "mission": "C10",
    "speaker": "SERAPHINE",
-   "text": "...Let's get another coffee."
+   "text": "They used to call me Sovereign. They don't know what to call me now."
   },
   {
    "id": "SC10_010",
    "mission": "C10",
    "speaker": "PLAYER",
-   "text": "Another terrible one?"
+   "text": "Seraphine works."
   },
   {
    "id": "SC10_011",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "It does, doesn't it. Strange. It's the only name I ever chose for myself."
+  },
+  {
+   "id": "SC10_012",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "...Let's get another coffee."
+  },
+  {
+   "id": "SC10_013",
+   "mission": "C10",
+   "speaker": "PLAYER",
+   "text": "Another terrible one?"
+  },
+  {
+   "id": "SC10_014",
    "mission": "C10",
    "speaker": "SERAPHINE",
    "text": "The most terrible one they have."
@@ -2254,6 +2484,24 @@
    "text": "Hundreds. Just not this one."
   },
   {
+   "id": "SC11_010",
+   "mission": "C11",
+   "speaker": "WARD",
+   "text": "Don't tell Voss I asked you. He'll want to make it a policy."
+  },
+  {
+   "id": "SC11_011",
+   "mission": "C11",
+   "speaker": "PLAYER",
+   "text": "Would that be bad?"
+  },
+  {
+   "id": "SC11_012",
+   "mission": "C11",
+   "speaker": "WARD",
+   "text": "Policies get bought. People sometimes don't."
+  },
+  {
    "id": "SC12_001",
    "mission": "C12",
    "speaker": "CHIEF ODA",
@@ -2294,6 +2542,24 @@
    "mission": "C12",
    "speaker": "CHIEF ODA",
    "text": "A centimetre a minute. Give me a month and you'll be able to walk to the palace in your socks."
+  },
+  {
+   "id": "SC12_008",
+   "mission": "C12",
+   "speaker": "CHIEF ODA",
+   "text": "My grandmother built the first of these pumps by hand. She said the sea always wins, eventually."
+  },
+  {
+   "id": "SC12_009",
+   "mission": "C12",
+   "speaker": "PLAYER",
+   "text": "Did she believe it?"
+  },
+  {
+   "id": "SC12_010",
+   "mission": "C12",
+   "speaker": "CHIEF ODA",
+   "text": "She believed in eventually. That's what engineers do. We make eventually take a very long time."
   },
   {
    "id": "SF01_001",

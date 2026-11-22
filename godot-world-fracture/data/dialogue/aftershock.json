@@ -1158,6 +1158,7 @@
      "title": "Fault Lines",
      "location": "INT. FRONTIER DEFENSE HEADQUARTERS — 6:10 AM",
      "kind": "cutscene",
+     "start": "nexus-bastion",
      "open": [
       "A08_001",
       "A08_002",
@@ -1329,6 +1330,7 @@
      "title": "Five Names",
      "location": "INT. RESEARCH DIVISION — THE CLEAN ROOM",
      "kind": "cutscene",
+     "start": "nexus-academy",
      "open": [
       "A09_001",
       "A09_002",
@@ -1475,6 +1477,7 @@
      "title": "The Memory Gate",
      "location": "INT. THE ASHEN ARCHIVE — THE DAIS",
      "kind": "reach",
+     "start": "nexus-central-plaza",
      "label": "Stand on the seal",
      "open": [
       "A10_001",
@@ -2161,6 +2164,7 @@
      "title": "The Defector",
      "location": "INT. SUNKEN ARCOLOGY — THE MAP ROOM",
      "kind": "cutscene",
+     "start": "sunken-arcology",
      "open": [
       "A15_001",
       "A15_002",

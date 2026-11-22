@@ -276,7 +276,7 @@ MISSIONS = [
     # =========================================================================================== MISSION 15
     {"id": "15", "title": "The Map That Should Not Exist", "region": "Solmara Desert", "world": "solara",
      "beat": "New ally / reading the map / storm / the second keeper", "chapters": [
-        {"id": "15A", "title": "The Defector", "location": "INT. SUNKEN ARCOLOGY — THE MAP ROOM", "kind": "cutscene",
+        {"id": "15A", "title": "The Defector", "location": "INT. SUNKEN ARCOLOGY — THE MAP ROOM", "kind": "cutscene", "start": "sunken-arcology",
          "open": L(CIPH, "Don't touch it with your hands. It remembers fingerprints. And it judges them.")
          + L(GOL, "Who's this?")
          + L(CIPH, "Cipher. Until last week, chief cartographic researcher for the Ascendancy. Until last week, Crane's favourite.")
