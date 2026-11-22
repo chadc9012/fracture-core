@@ -128,6 +128,23 @@ vec3 chest_print(vec3 c, int part, float lat, float hh) {
 	return mix(c, ink, clamp(disc - fill + slash, 0.0, 1.0));
 }
 
+// surface relief (GTA pass, Nov 22): a height field over the rest-pose zone coordinates (so it stays on the cloth as the
+// body moves), lit as a bump from its screen-space slopes — soft folds and creases in fabric, fine pores on bare skin
+float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn2(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h2(i), h2(i + vec2(1, 0)), f.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), f.x), f.y);
+}
+vec3 bumped(vec3 n, vec3 pos, float h, float strength) {
+	vec3 dpdx = dFdx(pos);
+	vec3 dpdy = dFdy(pos);
+	vec3 r1 = cross(dpdy, n);
+	vec3 r2 = cross(n, dpdx);
+	float det = dot(dpdx, r1);
+	vec3 grad = sign(det) * (dFdx(h) * r1 + dFdy(h) * r2);
+	return normalize(abs(det) * n - grad * strength);
+}
+
 void fragment() {
 	// glTF stores texture coordinates with V flipped (1 - v): undone here
 	int part = part_of(UV.x, 1.0 - UV.y, UV2.x, 1.0 - UV2.y);
@@ -142,15 +159,30 @@ void fragment() {
 	} else if (g > 1.5 && g < 2.5) {   // rib knit: fine ribs
 		float rb = sin((lpos.x + lpos.z) * 700.0) * 0.5 + 0.5;
 		shade *= 0.9 + rb * 0.12;
-	} else if (g > 2.5) {              // nylon / leather: smoother, a sheen
-		rough = 0.42;
+	} else if (g > 2.5) {              // nylon / leather: smoother, a soft sheen (0.42 read as latex)
+		rough = 0.62;
 	}
-	ALBEDO = c * shade;
-	ROUGHNESS = rough;
-	SPECULAR = 0.35;
-	if (part == SKIN) {          // bare skin: softer and a little translucent, like the heads' skin beside it
-		ROUGHNESS = 0.55;
+	vec2 q = vec2(UV.x + float(zone) * 3.1, 1.0 - UV.y);   // body heights; zones apart so seams don't line up
+	if (part == SKIN) {
+		// bare skin: softer and a little translucent like the heads beside it, faint mottling, fine pores
+		float mott = vn2(q * 60.0) * 0.6 + vn2(q * 180.0) * 0.4;
+		c *= 0.94 + 0.1 * mott;
+		ALBEDO = c;
+		ROUGHNESS = 0.5 + 0.12 * vn2(q * 300.0);
 		SPECULAR = 0.5;
 		BACKLIGHT = c * 0.35;
+		NORMAL = bumped(NORMAL, VERTEX, vn2(q * 700.0) * 0.7 + vn2(q * 1600.0) * 0.3, 0.0009);
+	} else {
+		// fabric: soft folds running round the limbs and body, finer creases, and the weave catching the light
+		float fold = vn2(vec2(q.x * 9.0, q.y * 30.0)) * 0.65 + vn2(vec2(q.x * 26.0, q.y * 75.0) + 7.3) * 0.35;
+		if (g > 2.5) fold *= 0.6;                          // nylon / leather: taut
+		shade *= 0.9 + 0.14 * fold;
+		ALBEDO = c * shade;
+		ROUGHNESS = rough;
+		SPECULAR = 0.35;
+		NORMAL = bumped(NORMAL, VERTEX, fold, g > 2.5 ? 0.006 : 0.011);
+		// a soft sheen across the fibres at grazing angles (cloth catches light at its edges)
+		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
+		ALBEDO += c * rim * (g > 2.5 ? 0.06 : 0.18);
 	}
 }

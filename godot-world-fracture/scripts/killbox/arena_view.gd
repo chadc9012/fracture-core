@@ -13,6 +13,7 @@ const Phone := preload("res://scripts/phone.gd")
 signal closed
 
 const Arena := preload("res://scripts/killbox/arena.gd")
+const Look := preload("res://scripts/killbox/arena_look.gd")
 const Match := preload("res://scripts/killbox/killbox_match.gd")
 const Player := preload("res://scripts/player/operator_player.gd")
 const TouchControls := preload("res://scripts/player/touch_controls.gd")
@@ -312,70 +313,39 @@ func _box(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	return mi
 
 func _environment() -> void:
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = look.sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.25, 0.2, 0.4)
-	env.ambient_light_energy = 1.3
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.fog_enabled = true
-	env.fog_light_color = look.fog
-	env.fog_density = 0.0015 if String(arena.def.look) == "neon-rooftops" else 0.0005
-	env.glow_enabled = true
-	env.glow_intensity = 0.6
-	var we := WorldEnvironment.new()
-	we.environment = env
-	world.add_child(we)
-	var moon := DirectionalLight3D.new()
-	moon.light_color = Color(0.5, 0.55, 0.9)
-	moon.light_energy = 0.7
-	moon.rotation_degrees = Vector3(-55, 20, 0)
-	moon.shadow_enabled = true
-	world.add_child(moon)
+	# the sky, the ambient and the key light per look; what stands around the arena (arena_look.gd)
+	Look.environment(world, String(arena.def.look), look)
+	Look.backdrop(world, String(arena.def.look), look, arena.bounds(), _rng)
 
 ## the street far below between the two blocks, lit by the signs: a reason not to fall
 func _street() -> void:
-	_box(Vector3(140, 0.2, 140), Vector3(0, -0.1, 0), _mat(Color(0.05, 0.05, 0.07), 0.3, 0.2))
-	var paint := _mat(Color(0.8, 0.8, 0.75), 0.5)
-	var z := -60.0
-	while z < 60.0:
-		_box(Vector3(0.15, 0.02, 3.0), Vector3(0, 0.01, z), paint)
-		z += 9.0
-	for s: float in [-1.0, 1.0]:
-		_box(Vector3(0.15, 0.02, 140), Vector3(s * 6.5, 0.01, 0), paint)
-	# the two blocks' facades up to the roofs, with lit windows
-	var facade := _mat(look.facade, 0.7)
-	var lit := _mat(Color(1.0, 0.85, 0.6), 0.5, 0.0, 1.5)
+	var city: bool = Look.scene(String(arena.def.look)).kind == "city"
+	if city:
+		_box(Vector3(140, 0.2, 140), Vector3(0, -0.1, 0), _mat(Color(0.05, 0.05, 0.07), 0.3, 0.2))
+		var paint := _mat(Color(0.8, 0.8, 0.75), 0.5)
+		var z := -60.0
+		while z < 60.0:
+			_box(Vector3(0.15, 0.02, 3.0), Vector3(0, 0.01, z), paint)
+			z += 9.0
+		for s: float in [-1.0, 1.0]:
+			_box(Vector3(0.15, 0.02, 140), Vector3(s * 6.5, 0.01, 0), paint)
+	# the blocks under the roofs: storeys of windows, some lit (few and faint by day)
+	var day: bool = Look.scene(String(arena.def.look)).kind == "desert"
+	var facade := Look.facade(look, 0.12 if day else 0.42, 0.5 if day else 1.7)
 	for r in arena.def.roofs:
 		var w := float(r.x1) - float(r.x0)
 		var d := float(r.z1) - float(r.z0)
 		var top := float(r.top)
 		_box(Vector3(w, top, d), Vector3((float(r.x0) + float(r.x1)) / 2.0, top / 2.0, (float(r.z0) + float(r.z1)) / 2.0), facade)
-		var zc := (float(r.z0) + float(r.z1)) / 2.0
-		for fl in int(top / 3.2):
-			for k in int(w / 4.0):
-				if _rng.randf() < 0.55:
-					_box(Vector3(1.6, 1.2, 0.05), Vector3(float(r.x0) + 2.0 + k * 4.0, 2.0 + fl * 3.2, float(r.z0) - 0.03 if zc < 0 else float(r.z1) + 0.03), lit)
 
 func _roofs() -> void:
-	var wet := _mat(look.roof, 0.25, 0.1)
+	var wet := Look.deck(look, String(arena.def.look))   # panels, seams and standing water in the shader
 	var trim_k := 0
 	for r in arena.def.roofs:
 		var w := float(r.x1) - float(r.x0)
 		var d := float(r.z1) - float(r.z0)
 		var c := Vector3((float(r.x0) + float(r.x1)) / 2.0, float(r.top), (float(r.z0) + float(r.z1)) / 2.0)
 		_box(Vector3(w, 0.3, d), c + Vector3(0, -0.15, 0), wet)
-		# seams between the roof panels, catching the sign light
-		var seam := _mat(Color(0.2, 0.2, 0.24), 0.2, 0.2)
-		var sx := float(r.x0) + 4.0
-		while sx < float(r.x1) - 0.5:
-			_box(Vector3(0.08, 0.02, d), Vector3(sx, float(r.top) + 0.01, c.z), seam)
-			sx += 4.0
-		var sz := float(r.z0) + 4.0
-		while sz < float(r.z1) - 0.5:
-			_box(Vector3(w, 0.02, 0.08), Vector3(c.x, float(r.top) + 0.01, sz), seam)
-			sz += 4.0
 		# parapets as drawn walls where the data puts them; neon trim along every edge
 		var neon: Color = look.trim[trim_k % (look.trim as Array).size()]
 		trim_k += 1
@@ -408,7 +378,7 @@ func _walks() -> void:
 				rail.rotation = mi.rotation
 
 func _cover() -> void:
-	var mats := { "hvac": _mat(Color(0.6, 0.62, 0.65), 0.5, 0.5), "tank": _mat(Color(0.5, 0.35, 0.25), 0.7), "vent": _mat(Color(0.4, 0.42, 0.45), 0.6, 0.5), "crate": _mat(Color(0.45, 0.4, 0.3), 0.8), "sign": _mat(Color(0.15, 0.15, 0.18), 0.5, 0.3), "container": _mat(Color(0.2, 0.35, 0.5), 0.6, 0.4), "console": _mat(Color(0.18, 0.2, 0.25), 0.4, 0.6), "barrier": _mat(Color(0.85, 0.3, 0.2), 0.7) }
+	var mats := { "hvac": _mat(Color(0.6, 0.62, 0.65), 0.5, 0.5), "tank": _mat(Color(0.5, 0.35, 0.25), 0.7), "vent": _mat(Color(0.4, 0.42, 0.45), 0.6, 0.5), "crate": _mat(Color(0.45, 0.4, 0.3), 0.8), "sign": _mat(Color(0.15, 0.15, 0.18), 0.5, 0.3), "container": Look.ribbed(Color(0.2, 0.35, 0.5)), "console": _mat(Color(0.18, 0.2, 0.25), 0.4, 0.6), "barrier": _mat(Color(0.85, 0.3, 0.2), 0.7), "pillar": _mat(Color(0.5, 0.5, 0.55), 0.7), "monolith": _mat(Color(0.1, 0.08, 0.13), 0.35, 0.3), "planter": _mat(Color(0.36, 0.36, 0.4), 0.8), "dropship": _mat(Color(0.3, 0.33, 0.38), 0.4, 0.7) }
 	for c in arena.def.cover:
 		var top: float = arena.surface_at(float(c.x), float(c.z))
 		if top == -INF:
@@ -427,11 +397,14 @@ func _cover() -> void:
 			mi.position = Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z))
 			mi.material_override = m
 			world.add_child(mi)
+			signs.append_array(Look.dress(world, "tank", mi.position, Vector3(float(c.w), float(c.h), float(c.w)), look))
 		else:
 			_box(Vector3(float(c.w), float(c.h), float(c.d)), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z)), m)
 			if c.kind == "sign":
 				var face := _box(Vector3(float(c.w) - 0.4, float(c.h) - 0.4, 0.05), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z) + float(c.d) / 2.0 + 0.03), _mat(look.trim[1], 0.4, 0.0, 3.0))
 				signs.append(face)
+			else:
+				signs.append_array(Look.dress(world, String(c.kind), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z)), Vector3(float(c.w), float(c.h), float(c.d)), look))
 
 ## destructible cover (asset catalog §5): a crate, barrier, vent, HVAC unit, console or sign is a Gunplay target with the
 ## arena's hull for its kind; the operator's bolts chip it and the last one breaks it — the mesh goes, chips fly, the
@@ -456,10 +429,12 @@ func _breakable_cover(c: Dictionary, top: float, m: Material) -> void:
 	elif c.kind == "barrier":
 		var stripe := _box(Vector3(size.x + 0.02, 0.18, size.z + 0.02), pos + Vector3(0, size.y * 0.2, 0), _mat(Color(0.95, 0.95, 0.9), 0.6))
 		stripe.reparent(holder)
+	if c.kind != "sign":
+		signs.append_array(Look.dress(holder, String(c.kind), pos, size, look))
 	var t := Gunplay.Target.new(arena.cover_box(c), float(Arena.BREAKABLE[String(c.kind)]), holder)
 	t.set_meta("prop", String(c.kind))
 	t.set_meta("cover", String(c.get("id", "")))
-	t.set_meta("blood", (m as StandardMaterial3D).albedo_color if m is StandardMaterial3D else Color(0.7, 0.65, 0.55))
+	t.set_meta("blood", (m as StandardMaterial3D).albedo_color if m is StandardMaterial3D else Color(0.3, 0.4, 0.5))
 	_cover_targets[String(c.get("id", ""))] = t   # registered with gunplay once it exists (_build)
 
 func _on_prop_killed(t: Gunplay.Target) -> void:
@@ -554,7 +529,8 @@ func _set_event(on: bool) -> void:
 	var f: Dictionary = arena.def.fracture
 	if float(f.get("visibility", 1.0)) < 1.0:
 		for s in signs:
-			(s as MeshInstance3D).visible = not on
+			if is_instance_valid(s):   # a broken crate's lights went with it
+				(s as MeshInstance3D).visible = not on
 		for l in sign_lights:
 			(l as OmniLight3D).light_energy = 0.3 if on else 2.5
 	if not _shifter_nodes.is_empty():
