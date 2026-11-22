@@ -19,6 +19,20 @@ const SCENES := {
 	"void-rift": { "kind": "void", "ground": Color(0.02, 0.0, 0.04), "sun": Color(0.7, 0.5, 1.0), "sun_e": 0.8, "amb": Color(0.28, 0.14, 0.42), "amb_e": 1.3, "stars": 1.0 },
 }
 
+## the body in each sky: direction, colour, angular radius, ringed
+const ORBS := {
+	"neon-rooftops": [Vector3(-0.5, 0.42, -0.75), Color(0.95, 0.75, 0.9), 0.07, 0.0],
+	"nexus-grid": [Vector3(0.6, 0.5, -0.6), Color(0.75, 0.9, 1.0), 0.05, 0.0],
+	"prime-roof": [Vector3(0.3, 0.5, -0.8), Color(0.85, 0.75, 1.0), 0.06, 0.0],
+	"skydock": [Vector3(-0.2, 0.3, -0.9), Color(1.0, 0.8, 0.55), 0.11, 0.0],
+	"neon-yard": [Vector3(0.7, 0.4, -0.5), Color(0.95, 0.8, 0.9), 0.05, 0.0],
+	"glass-spire": [Vector3(-0.6, 0.55, -0.55), Color(0.8, 0.88, 1.0), 0.06, 0.0],
+	"riverfront": [Vector3(0.1, 0.32, -0.95), Color(1.0, 0.9, 0.75), 0.08, 0.0],
+	"solara-outpost": [Vector3(0.45, 0.6, -0.65), Color(3.0, 2.7, 2.0), 0.045, 0.0],
+	"frostveil-ring": [Vector3(-0.35, 0.42, -0.85), Color(0.75, 0.82, 1.0), 0.13, 1.0],
+	"void-rift": [Vector3(0.0, 0.45, -0.9), Color(0.1, 0.02, 0.16), 0.16, 0.0],
+}
+
 static func scene(look_id: String) -> Dictionary:
 	return SCENES.get(look_id, SCENES["neon-rooftops"])
 
@@ -36,6 +50,10 @@ uniform vec3 horizon : source_color;
 uniform vec3 glow : source_color;
 uniform float stars = 0.6;
 uniform float aurora = 0.0;
+uniform vec3 orb_dir = vec3(0.0, 1.0, 0.0);
+uniform vec3 orb : source_color = vec3(0.0);
+uniform float orb_size = 0.0;
+uniform float orb_ring = 0.0;
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void sky() {
 	vec3 d = normalize(EYEDIR);
@@ -54,6 +72,27 @@ void sky() {
 	// curtains of light over the ice
 	float band = sin(d.x * 6.0 + sin(d.z * 4.0) * 2.0) * 0.5 + 0.5;
 	c += vec3(0.15, 0.9, 0.55) * aurora * band * smoothstep(0.15, 0.4, d.y) * smoothstep(0.85, 0.45, d.y) * 0.35;
+	// the sun, a moon or a ringed world
+	if (orb_size > 0.0) {
+		vec3 o = normalize(orb_dir);
+		float a = acos(clamp(dot(d, o), -1.0, 1.0));
+		float disc = smoothstep(orb_size, orb_size * 0.94, a);
+		// a soft terminator so the disc reads as a sphere
+		vec3 side = normalize(cross(o, vec3(0.0, 1.0, 0.0)));
+		float shade = mix(1.0, clamp(0.72 + dot(d - o * dot(d, o), side) / orb_size * 0.38, 0.2, 1.1), step(0.5, orb_ring + stars));
+		c = mix(c, orb * shade, disc);
+		c += orb * exp(-a / (orb_size * 2.2)) * 0.35 * (1.0 - disc);
+		if (orb_ring > 0.0) {
+			vec3 up = normalize(cross(side, o) + side * 0.35);
+			vec3 rel = d - o * dot(d, o);
+			float rx = dot(rel, side);
+			float ry = dot(rel, up) * 4.5;
+			float rr = length(vec2(rx, ry));
+			float ring = smoothstep(orb_size * 1.35, orb_size * 1.45, rr) * smoothstep(orb_size * 2.1, orb_size * 2.0, rr);
+			ring *= mix(1.0, 1.0 - disc, step(0.0, dot(rel, up)));
+			c = mix(c, orb * 0.85, ring * 0.7 * step(0.0, dot(d, o)));
+		}
+	}
 	COLOR = c;
 }
 """
@@ -70,6 +109,12 @@ static func environment(world: Node3D, look_id: String, look: Dictionary) -> Env
 	sm.set_shader_parameter("glow", Color(0, 0, 0) if day else (look.trim[0] as Color).lerp(look.fog, 0.5))
 	sm.set_shader_parameter("stars", float(sc.stars))
 	sm.set_shader_parameter("aurora", 1.0 if sc.kind == "ice" else 0.0)
+	var orb: Array = ORBS.get(look_id, [])
+	if not orb.is_empty():
+		sm.set_shader_parameter("orb_dir", orb[0])
+		sm.set_shader_parameter("orb", orb[1])
+		sm.set_shader_parameter("orb_size", orb[2])
+		sm.set_shader_parameter("orb_ring", orb[3])
 	var sky := Sky.new()
 	sky.sky_material = sm
 	env.background_mode = Environment.BG_SKY
@@ -233,6 +278,28 @@ static func ribbed(paint: Color) -> ShaderMaterial:
 	m.set_shader_parameter("paint", paint)
 	return m
 
+## a walkway: steel grating you can see the dark through, a solid kick plate along each edge
+const GRATE := """
+shader_type spatial;
+uniform vec3 tone : source_color = vec3(0.3, 0.32, 0.36);
+varying vec3 wp;
+void vertex() {
+	wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+void fragment() {
+	vec2 g = fract(wp.xz / 0.32);
+	float open = (1.0 - step(0.16, g.x) * step(g.x, 0.84) * step(0.16, g.y) * step(g.y, 0.84));
+	ALBEDO = mix(vec3(0.015, 0.015, 0.02), tone, open);
+	ROUGHNESS = mix(0.9, 0.35, open);
+	METALLIC = 0.8 * open;
+}
+"""
+
+static func grate() -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = _shader(GRATE)
+	return m
+
 static func flat(c: Color, rough := 0.8, metal := 0.0, emit := 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
@@ -283,6 +350,196 @@ static func backdrop(world: Node3D, look_id: String, look: Dictionary, keep: Rec
 			_sea(world, look, c, r0, rng)
 		"void":
 			_shards(world, look, c, r0, rng)
+	_set_piece(world, look_id, look, c, r0)
+
+## a shaft of light: unshaded, additive, fading to nothing at the top
+const BEAM := """
+shader_type spatial;
+render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
+uniform vec3 tint : source_color;
+uniform float power = 0.5;
+uniform float flip = 0.0;
+void fragment() {
+	float v = mix(UV.y, 1.0 - UV.y, flip);
+	float rim = pow(abs(dot(normalize(NORMAL), normalize(VIEW))), 1.5);
+	ALBEDO = tint * power * v * v * rim;
+}
+"""
+
+static func _beam(world: Node3D, pos: Vector3, h: float, r_bottom: float, r_top: float, tint: Color, power := 0.5, tilt := Vector3.ZERO, from_top := false) -> void:
+	var cm := CylinderMesh.new()
+	cm.bottom_radius = r_bottom
+	cm.top_radius = r_top
+	cm.height = h
+	cm.radial_segments = 16
+	cm.rings = 1
+	cm.cap_top = false
+	cm.cap_bottom = false
+	var m := ShaderMaterial.new()
+	m.shader = _shader(BEAM)
+	m.set_shader_parameter("tint", tint)
+	m.set_shader_parameter("power", power)
+	m.set_shader_parameter("flip", 1.0 if from_top else 0.0)
+	var mi := MeshInstance3D.new()
+	mi.mesh = cm
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var pivot := Node3D.new()
+	pivot.position = pos
+	pivot.rotation = tilt
+	mi.position.y = h * 0.5
+	pivot.add_child(mi)
+	world.add_child(pivot)
+
+## a giant advertising screen: scan lines and blocks of colour that crawl
+const SCREEN := """
+shader_type spatial;
+render_mode unshaded;
+uniform vec3 a : source_color;
+uniform vec3 b : source_color;
+float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void fragment() {
+	vec2 uv = UV * vec2(6.0, 10.0);
+	float t = floor(TIME * 0.6);
+	float blk = h21(floor(uv) + t * 0.37);
+	float bars = step(0.5, fract(UV.y * 3.0 - TIME * 0.05));
+	vec3 c = mix(a, b, step(0.55, blk)) * (0.35 + 0.65 * bars);
+	c *= 0.75 + 0.25 * sin(UV.y * 500.0);
+	float frame = step(0.03, UV.x) * step(UV.x, 0.97) * step(0.02, UV.y) * step(UV.y, 0.98);
+	ALBEDO = c * frame * 1.6;
+}
+"""
+
+static func _screen(world: Node3D, pos: Vector3, size: Vector2, yaw: float, a: Color, b: Color) -> void:
+	var qm := QuadMesh.new()
+	qm.size = size
+	var m := ShaderMaterial.new()
+	m.shader = _shader(SCREEN)
+	m.set_shader_parameter("a", a)
+	m.set_shader_parameter("b", b)
+	var mi := MeshInstance3D.new()
+	mi.mesh = qm
+	mi.material_override = m
+	mi.position = pos
+	mi.rotation.y = yaw
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(mi)
+	_part(world, _b(Vector3(size.x + 1.0, size.y + 1.0, 0.8)), pos - Vector3(sin(yaw), 0, cos(yaw)) * 0.5, flat(Color(0.05, 0.05, 0.07), 0.6, 0.5), Vector3(0, yaw, 0))
+
+static func _torus(world: Node3D, pos: Vector3, r: float, thick: float, rot: Vector3, mat: Material) -> void:
+	var tm := TorusMesh.new()
+	tm.inner_radius = r - thick
+	tm.outer_radius = r
+	tm.rings = 48
+	tm.ring_segments = 8
+	var mi := _part(world, tm, pos, mat, rot)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+## the one thing each arena is remembered by; all of it stands outside the fight (no collision, nothing to hide behind)
+static func _set_piece(world: Node3D, look_id: String, look: Dictionary, c: Vector2, r0: float) -> void:
+	var o := Vector3(c.x, 0, c.y)
+	var t0: Color = look.trim[0]
+	var t1: Color = look.trim[1 % (look.trim as Array).size()]
+	match look_id:
+		"neon-rooftops":
+			# advertising screens the size of buildings, facing the roofs
+			_screen(world, o + Vector3(-r0 - 8.0, 46.0, -18.0), Vector2(26, 40), PI * 0.5, t0, t1)
+			_screen(world, o + Vector3(r0 + 10.0, 52.0, 14.0), Vector2(30, 34), -PI * 0.5, t1, Color(1.0, 0.8, 0.3))
+			_screen(world, o + Vector3(8.0, 58.0, -r0 - 16.0), Vector2(44, 28), 0.0, Color(1.0, 0.3, 0.5), t1)
+		"nexus-grid":
+			# the Nexus spire and its beam
+			var sp := o + Vector3(-30.0, 0, -r0 - 60.0)
+			_part(world, _cyl(11.0, 150.0, 3.0), sp + Vector3(0, 75, 0), facade(look, 0.5, 1.4))
+			for k in 4:
+				_torus(world, sp + Vector3(0, 40.0 + k * 30.0, 0), 14.0 - k * 2.2, 0.6, Vector3.ZERO, flat(t0, 0.4, 0.0, 4.0))
+			_beam(world, sp + Vector3(0, 150, 0), 600.0, 2.5, 5.0, t0, 0.9, Vector3.ZERO, true)
+		"prime-roof":
+			# searchlights crossing over the arena
+			for k in 4:
+				var a := TAU * (float(k) + 0.3) / 4.0
+				_beam(world, o + Vector3(cos(a) * (r0 + 20.0), 10.0, sin(a) * (r0 + 20.0)), 420.0, 1.5, 22.0, t0.lerp(Color.WHITE, 0.5), 0.35, Vector3(cos(a + 1.9) * 0.45, 0, sin(a + 1.9) * 0.45), true)
+		"skydock":
+			# craft holding off the dock, their landing lights down through the haze
+			for k in 3:
+				var p := o + Vector3(-70.0 + k * 75.0, 44.0 + k * 9.0, -r0 - 30.0 - k * 22.0)
+				if ResourceLoader.exists("res://models/fleet/vanguard-jet.glb"):
+					var jet := (load("res://models/fleet/vanguard-jet.glb") as PackedScene).instantiate() as Node3D
+					jet.position = p
+					jet.rotation.y = 0.6 - k * 0.5
+					jet.scale = Vector3.ONE * 2.2
+					world.add_child(jet)
+				_beam(world, p + Vector3(0, -90, 0), 90.0, 9.0, 0.6, Color(1.0, 0.9, 0.7), 0.3)
+		"neon-yard":
+			# gantry cranes over the stacks
+			var steel := flat(Color(0.75, 0.3, 0.12), 0.6, 0.5)
+			for sgn: float in [-1.0, 1.0]:
+				var base := o + Vector3(sgn * (r0 + 14.0), 0, -10.0 * sgn)
+				for lz: float in [-9.0, 9.0]:
+					_part(world, _b(Vector3(2.0, 62.0, 2.0)), base + Vector3(0, 31, lz), steel)
+				_part(world, _b(Vector3(70.0, 3.0, 3.0)), base + Vector3(-sgn * 22.0, 62.0, 0), steel)
+				_part(world, _b(Vector3(3.0, 3.0, 20.0)), base + Vector3(0, 60.0, 0), steel)
+				_part(world, _b(Vector3(0.3, 22.0, 0.3)), base + Vector3(-sgn * 40.0, 50.0, 0), flat(Color(0.1, 0.1, 0.1), 0.5))
+				_part(world, _b(Vector3(6.0, 2.6, 2.6)), base + Vector3(-sgn * 40.0, 38.0, 0), ribbed(Color(0.6, 0.2, 0.2)))
+				_part(world, _b(Vector3(1.0, 1.0, 1.0)), base + Vector3(-sgn * 55.0, 64.5, 0), flat(Color(1.0, 0.15, 0.1), 0.5, 0.0, 6.0))
+		"glass-spire":
+			# sister spires, lit to their crowns
+			for k in 3:
+				var p2 := o + Vector3(-90.0 + k * 85.0, 0, -r0 - 50.0 - (k % 2) * 40.0)
+				var hh := 150.0 + k * 35.0
+				_part(world, _cyl(13.0, hh, 5.0), p2 + Vector3(0, hh * 0.5, 0), facade(look, 0.6, 1.5))
+				_part(world, _cyl(0.5, 40.0, 0.1), p2 + Vector3(0, hh + 20.0, 0), flat(t0, 0.4, 0.0, 5.0))
+				_torus(world, p2 + Vector3(0, hh - 2.0, 0), 6.5, 0.7, Vector3.ZERO, flat(t0, 0.4, 0.0, 5.0))
+		"riverfront":
+			# the bridge across the water, cables lit
+			var dark := flat(Color(0.1, 0.1, 0.13), 0.6, 0.5)
+			var z := o.z - r0 - 45.0
+			_part(world, _b(Vector3(420.0, 2.5, 14.0)), Vector3(o.x, 16.0, z), dark)
+			for sgn2: float in [-1.0, 1.0]:
+				var tx := o.x + sgn2 * 80.0
+				for lz2: float in [-6.0, 6.0]:
+					_part(world, _b(Vector3(4.0, 80.0, 3.0)), Vector3(tx, 40.0, z + lz2), dark)
+				_part(world, _b(Vector3(5.0, 3.0, 16.0)), Vector3(tx, 78.0, z), dark)
+				_part(world, _b(Vector3(1.2, 1.2, 1.2)), Vector3(tx, 82.0, z), flat(Color(1.0, 0.15, 0.1), 0.5, 0.0, 6.0))
+				for k2 in 9:
+					for dir: float in [-1.0, 1.0]:
+						var reach := 14.0 + k2 * 8.0
+						var top := Vector3(tx, 78.0 - k2 * 2.0, z)
+						var foot := Vector3(tx + dir * reach, 17.5, z)
+						var mid := (top + foot) * 0.5
+						var cable := _part(world, _b(Vector3(0.22, top.distance_to(foot), 0.22)), mid, flat(t0, 0.4, 0.0, 2.5))
+						cable.rotation.z = atan2(foot.x - top.x, top.y - foot.y)
+		"solara-outpost":
+			# a solar tower: the receiver burning white at the top, mirrors in rows below
+			var tp := o + Vector3(40.0, 0, -r0 - 70.0)
+			_part(world, _cyl(5.0, 110.0, 3.0), tp + Vector3(0, 55, 0), flat(Color(0.8, 0.78, 0.72), 0.7))
+			_part(world, _cyl(5.5, 10.0), tp + Vector3(0, 112, 0), flat(Color(1.0, 0.97, 0.85), 0.3, 0.0, 8.0))
+			var mirrors: Array = []
+			for ring in 3:
+				for k3 in 22:
+					var a2 := PI * 0.15 + PI * 0.7 * float(k3) / 21.0
+					var mp := tp + Vector3(cos(a2) * (40.0 + ring * 16.0), 2.5, sin(a2) * (40.0 + ring * 16.0))
+					mirrors.append(Transform3D(Basis.from_euler(Vector3(-0.7, -a2 + PI * 0.5, 0)).scaled(Vector3(6.0, 0.15, 4.5)), mp))
+			_mm(world, BoxMesh.new(), flat(Color(0.75, 0.86, 1.0), 0.05, 1.0), mirrors)
+		"frostveil-ring":
+			# drill pylons on the ice, each with a beacon
+			for k4 in 5:
+				var a3 := TAU * (float(k4) + 0.5) / 5.0
+				var pp := o + Vector3(cos(a3) * (r0 + 30.0), 0, sin(a3) * (r0 + 30.0))
+				_part(world, _cyl(2.2, 48.0, 0.8), pp + Vector3(0, 24, 0), flat(Color(0.3, 0.36, 0.44), 0.4, 0.7))
+				_part(world, _b(Vector3(1.4, 1.4, 1.4)), pp + Vector3(0, 49, 0), flat(t0, 0.4, 0.0, 6.0))
+				_beam(world, pp + Vector3(0, 49, 0), 160.0, 0.5, 2.5, t0, 0.5, Vector3.ZERO, true)
+		"thalassia-dome":
+			# sunlight coming down through the water
+			for k5 in 7:
+				var a4 := TAU * float(k5) / 7.0 + 0.4
+				var rr := (r0 + 5.0) * (0.35 + 0.5 * fmod(k5 * 0.618, 1.0))
+				_beam(world, o + Vector3(cos(a4) * rr, 0, sin(a4) * rr), 190.0, 4.0 + k5 % 3 * 2.0, 16.0, Color(0.5, 1.0, 0.95), 0.16, Vector3(0.12, 0, 0.18))
+		"void-rift":
+			# the rift itself: a burning ring round a hole in the sky, a second ring tilted through it
+			var rp := o + Vector3(0, 150.0, -r0 - 190.0)
+			_torus(world, rp, 78.0, 2.4, Vector3(PI * 0.5, 0, 0), flat(t0, 0.3, 0.0, 6.0))
+			_torus(world, rp, 96.0, 0.9, Vector3(PI * 0.5 + 0.5, 0.4, 0), flat(t1, 0.3, 0.0, 4.0))
+			_beam(world, o + Vector3(0, -40, -r0 - 190.0), 190.0, 3.0, 30.0, t0, 0.35)
 
 static func _ring(c: Vector2, r: float, a: float) -> Vector3:
 	return Vector3(c.x + cos(a) * r, 0.0, c.y + sin(a) * r)

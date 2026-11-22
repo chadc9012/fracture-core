@@ -359,7 +359,7 @@ func _roofs() -> void:
 
 func _walks() -> void:
 	var steel := _mat(Color(0.35, 0.37, 0.4), 0.5, 0.6)
-	var grate := _mat(Color(0.22, 0.23, 0.26), 0.6, 0.4)
+	var grate := Look.grate()
 	for w in arena.def.walks:
 		var q := Arena._walk_rect(w)
 		var lo := float(w.top)
