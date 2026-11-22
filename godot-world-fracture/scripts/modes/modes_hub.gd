@@ -440,7 +440,7 @@ func _races() -> void:
 		var body := "Neon City's blocks at night: barriers, right-angle corners, the market jog. Win: %d Nex." % int(tr.def.prize[0]) if street else "Stands, pit lane and start lights; a grand-prix lap with a hairpin and esses. Win: %d Nex." % int(tr.def.prize[0])
 		row.add_child(_tile("race-" + tid, String(tr.def.name).to_upper(), sub, body, Color(0.3, 0.9, 1.0), func(): _launch_race(tid), true, 28))
 	v.add_child(_track_pack())
-	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "Motorcycle · soon", "Off-road / mud · soon", "Air races · soon"], Color(0.3, 0.9, 1.0)))
+	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "✓ Motorcycle", "✓ Off-road / mud", "Air races · soon"], Color(0.3, 0.9, 1.0)))
 
 ## Track Pack 01 (the owner's eight long tracks, track_pack.gd): a button each, and how many laps — one, the board's
 ## shortest race, or its longest

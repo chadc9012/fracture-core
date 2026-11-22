@@ -535,49 +535,207 @@ func _grid() -> void:
 		countdown = INF
 		_lobby()
 		return
-	# rivals take the front rows, you start last
+	# rivals take the front rows, you start last — in your class: bikes against bikes (riders on them), off-roaders
+	# against off-roaders on the rally, the mountain and the volcano
+	var files := _rival_files()
 	for i in 3:
-		var sc := _spawn_car(RIVAL_FILES[i], track.grid(i), "")
+		var sc := _spawn_car(files[i], track.grid(i), "")
 		var names: Array = track.def.get("rivals", STREET_NAMES if track.street() else RIVAL_NAMES)
 		var e := race.add(String(names[i]))
 		e["node"] = sc.node
 		rivals.append({ "sc": sc, "entry": e, "skill": 0.86 + i * 0.05 })
+		if race_class() == "bike":
+			_mount_rider(sc, _rival_look(i))
 	player = _spawn_car(file, track.grid(3), vehicle_id)
 	var me2 := race.add("You", true)
 	me2["node"] = player.node
 	cam_yaw = player.yaw()
 	_mount_rider()
+	_mud()
 
-## on a bike you ride in the open (street_slice does the same on the avenue): your operator astride it in a helmet,
-## work_idle.gd "ride", moved with the bike every frame (_step_rider)
+# --------------------------------------------------------------------------------------------- race classes
+## the owner's racing direction (Nov 1): cars, motorcycles and off-road. The class is the vehicle you bring:
+##   bike     the rivals are on bikes too, every one with a rider (the showroom's Shadow R1, Tempest 900, Ravager)
+##   offroad  off-road rivals (the ATV, the Raider, the buggy) — and the rally, the mountain and the volcano run
+##            off-road whatever you bring, with mud across the road (_mud)
+##   street   the usual grid
+const BIKE_RIVALS := ["showroom/shadow-r1.glb", "showroom/tempest-900.glb", "showroom/ravager-chopper.glb"]
+const OFFROAD_RIVALS := ["showroom/sandstalker-atv.glb", "showroom/wasteland-raider.glb", "raider-buggy.glb"]
+func race_class() -> String:
+	var cls := String(Catalog.vehicle(vehicle_id).get("cls", ""))
+	if cls == "bike":
+		return "bike"
+	if cls == "offroad" or bool(track.def.get("offroad", false)):
+		return "offroad"
+	return "street"
+
+func _rival_files() -> Array:
+	match race_class():
+		"bike":
+			return BIKE_RIVALS
+		"offroad":
+			return OFFROAD_RIVALS
+	return RIVAL_FILES
+
+## a rival rider's look: a civilian frame and face, seeded by the slot so the same rider turns up at the same track
+func _rival_look(i: int) -> Dictionary:
+	var civ: Node = load("res://scripts/city/civilians.gd").new()
+	civ._rng.seed = hash(track_id) + i * 7919
+	var look: Dictionary = civ.random_look()
+	civ.free()
+	return look
+
+## on a bike you ride in the open (street_slice does the same on the avenue): the operator astride it in a helmet,
+## work_idle.gd "ride", moved with the bike every frame (_step_riders); the rivals' riders the same
 var rider: Node3D
-func _mount_rider() -> void:
-	if String(Catalog.vehicle(vehicle_id).get("cls", "")) != "bike" or player == null:
+var riders: Array = []   # [{ "rider": Node3D, "sc": StreetCar }]
+func _mount_rider(sc: RefCounted = null, look: Dictionary = {}) -> void:
+	var on: RefCounted = sc if sc else player
+	if on == null:
+		return
+	if sc == null and String(Catalog.vehicle(vehicle_id).get("cls", "")) != "bike":
 		return
 	var Player: GDScript = load("res://scripts/player/operator_player.gd")
-	rider = Player.new()
-	rider.set_meta("dynamic", true)
-	world.add_child(rider)
-	rider.build()
-	if rider.rig:
-		var wear: Array = Array(rider.rig.look.get("wear", []))
+	var r: Node3D = Player.new()
+	r.set_meta("dynamic", true)
+	world.add_child(r)
+	if sc:
+		r.set("civilian", true)
+	r.build(look)
+	if r.rig:
+		var wear: Array = Array(r.rig.look.get("wear", []))
 		if "helmet" not in wear:
 			wear.append("helmet")
-			rider.rig.look.wear = wear
-			rider.rig._wear()
-	rider.set("idle_clip", "ride")
-	_step_rider()
+			r.rig.look.wear = wear
+			r.rig._wear()
+	r.set("idle_clip", "ride")
+	riders.append({ "rider": r, "sc": on })
+	if sc == null:
+		rider = r
+	_step_riders()
 
-func _step_rider() -> void:
-	if rider == null or player == null:
+func _step_riders() -> void:
+	for it in riders:
+		var r: Node3D = it.rider
+		var on: RefCounted = it.sc
+		var bb: AABB = on.box()
+		var c: Node3D = on.node
+		r.position = c.position + Vector3(0, bb.size.y * 0.48 - 0.72, 0) - on.forward() * 0.12
+		r.set("heading", c.rotation.y + PI)
+		if r.rig:
+			r.rig.rotation.y = float(r.get("heading"))
+		r.call("_animate", 0.0, false)
+
+# --------------------------------------------------------------------------------------------- mud
+## mudding (owner, Nov 1): on the off-road runs, wallows of mud lie across the road every so often — dark, wet,
+## slick: a car in one loses its pace to a slither (MUD_CRAWL of top speed), throws up a brown spray, and comes out
+## caked (the hull tinted by Facility.paint_camo's damage tint, which the garage washes off)
+const MUD_EVERY := 140.0
+const MUD_CRAWL := 0.45
+var mud: Array = []      # [{ "p": Vector3, "r": float, "along": float }]
+var _mud_spray := {}     # StreetCar -> CPUParticles3D
+func _mud() -> void:
+	if race_class() != "offroad" or bool(track.def.get("hover", false)):
 		return
-	var bb: AABB = player.box()
-	var c: Node3D = player.node
-	rider.position = c.position + Vector3(0, bb.size.y * 0.48 - 0.72, 0) - player.forward() * 0.12
-	rider.set("heading", c.rotation.y + PI)
-	if rider.rig:
-		rider.rig.rotation.y = float(rider.get("heading"))
-	rider.call("_animate", 0.0, false)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(track_id + ":mud")
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	var quad := QuadMesh.new()
+	quad.size = Vector2(1, 1)
+	quad.orientation = PlaneMesh.FACE_Y
+	mm.mesh = quad
+	var d := MUD_EVERY * 0.6
+	while d < track.length - 40.0:
+		var a := track.at(d)
+		var b := track.at(d + 2.0)
+		var along := Vector3(b.x - a.x, 0, b.z - a.z).normalized()
+		var right := Vector3(-along.z, 0, along.x)
+		var off := (rng.randf() - 0.5) * track.width * 0.5
+		var r := 4.5 + rng.randf() * 4.0
+		mud.append({ "p": a + right * off, "r": r, "along": d })
+		d += MUD_EVERY * (0.7 + rng.randf() * 0.6)
+	mm.instance_count = mud.size() * 3
+	for i in mud.size():
+		for k in 3:
+			var m: Dictionary = mud[i]
+			var pr: float = float(m.r) * (1.0 - k * 0.22)
+			var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(pr * 2.0 * (1.0 + 0.35 * k), 1, pr * 1.4)), Vector3(m.p.x, m.p.y + 0.03 + k * 0.004, m.p.z) + Vector3((rng.randf() - 0.5) * 2.0, 0, (rng.randf() - 0.5) * 2.0))
+			mm.set_instance_transform(i * 3 + k, t)
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.2, 0.14, 0.09, 0.9)   # the wallow
+	mat.roughness = 0.25
+	mat.metallic = 0.0
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(mi)
+
+## the caking: a multiply overlay toward wet brown over every mesh of the hull (its own, not the damage tint: that one
+## lights the bonnet smoke)
+static func _cake(hull: Node, k: float) -> void:
+	var m := StandardMaterial3D.new()
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color.WHITE.lerp(Color(0.5, 0.38, 0.26), clampf(k, 0.0, 1.0) * 0.8)
+	for mi in hull.find_children("*", "MeshInstance3D", true, false):
+		if not (mi as MeshInstance3D).material_overlay or (mi as MeshInstance3D).material_overlay.has_meta("mud"):
+			m.set_meta("mud", true)
+			(mi as MeshInstance3D).material_overlay = m
+
+## in the mud: the slither, the spray, the caking — for every car on the grid
+func _step_mud(dt: float) -> void:
+	if mud.is_empty():
+		return
+	var cars: Array = [player]
+	for r in rivals:
+		cars.append(r.sc)
+	for sc in cars:
+		var p: Vector3 = sc.node.position
+		var inside := false
+		for m in mud:
+			if Vector2(p.x - m.p.x, p.z - m.p.z).length() < float(m.r):
+				inside = true
+				break
+		var spray: CPUParticles3D = _mud_spray.get(sc)
+		if inside:
+			var crawl: float = float(sc.profile.max_speed) * MUD_CRAWL
+			if absf(sc.speed) > crawl:
+				sc.speed = move_toward(sc.speed, signf(sc.speed) * crawl, (6.0 + absf(sc.speed) * 1.2) * dt)
+			if spray == null:
+				spray = CPUParticles3D.new()
+				spray.amount = 40
+				spray.lifetime = 0.9
+				spray.mesh = QuadMesh.new()
+				(spray.mesh as QuadMesh).size = Vector2(0.35, 0.35)
+				spray.direction = Vector3(0, 1, 0)
+				spray.spread = 55.0
+				spray.initial_velocity_min = 3.0
+				spray.initial_velocity_max = 7.0
+				spray.gravity = Vector3(0, -12, 0)
+				spray.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+				spray.emission_box_extents = Vector3(1.0, 0.1, 1.6)
+				spray.color = Color(0.25, 0.17, 0.1)
+				var pm := StandardMaterial3D.new()
+				pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				pm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+				pm.vertex_color_use_as_albedo = true
+				spray.mesh.surface_set_material(0, pm)
+				spray.position = Vector3(0, 0.2, 0)
+				sc.node.add_child(spray)
+				_mud_spray[sc] = spray
+			spray.emitting = absf(sc.speed) > 2.0
+			var caked: int = int(sc.node.get_meta("mud", 0))
+			if caked < 100:
+				caked = mini(100, caked + int(absf(sc.speed) * dt * 2.0) + 1)
+				sc.node.set_meta("mud", caked)
+				if caked % 10 == 0:
+					_cake(sc.node, caked / 100.0)
+		elif spray:
+			spray.emitting = false
 
 ## the GPS (owner, Nov 18): the track ahead and the rivals on it, under the standings board
 var gps: Control
@@ -848,7 +1006,8 @@ func _process(dt: float) -> void:
 		controls.nitro_off()
 	player.nitro_fx()
 	player.drive_fx(dt)
-	_step_rider()
+	_step_riders()
+	_step_mud(dt)
 	# the rivals: aim at a point ahead on the centreline, ease off for the corners, skill sets the pace
 	var ri := 0
 	for r in rivals:
