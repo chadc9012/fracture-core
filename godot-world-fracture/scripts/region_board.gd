@@ -113,12 +113,14 @@ static func _mesa(r: Node, parent: Node3D, at: Vector2, rad: float, h: float, ma
 			var a1 := li * N + (k + 1) % N
 			var b0 := (li + 1) * N + k
 			var b1 := (li + 1) * N + (k + 1) % N
+			# clockwise seen from outside (Godot's front faces): the first cut was wound inside-out and showed only the far
+			# inner walls (hollow shells from above, gone among trees)
 			st.add_index(a0)
-			st.add_index(b0)
-			st.add_index(a1)
 			st.add_index(a1)
 			st.add_index(b0)
+			st.add_index(a1)
 			st.add_index(b1)
+			st.add_index(b0)
 	# the cap
 	var top := levels.size() * N
 	st.set_uv(Vector2(0.5, 1.0))
@@ -126,8 +128,8 @@ static func _mesa(r: Node, parent: Node3D, at: Vector2, rad: float, h: float, ma
 	var ring0 := (levels.size() - 1) * N
 	for k in N:
 		st.add_index(top)
-		st.add_index(ring0 + (k + 1) % N)
 		st.add_index(ring0 + k)
+		st.add_index(ring0 + (k + 1) % N)
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
@@ -150,6 +152,7 @@ static func _fracture_ring(r: Node, at: Vector2, rad: float, rng: RandomNumberGe
 	metal.albedo_color = Color(0.62, 0.55, 0.46)
 	metal.metallic = 0.55
 	metal.roughness = 0.62
+	metal.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var mi := MeshInstance3D.new()
 	mi.mesh = band
 	mi.material_override = metal
@@ -161,6 +164,7 @@ static func _fracture_ring(r: Node, at: Vector2, rad: float, rng: RandomNumberGe
 	dark.albedo_color = Color(0.2, 0.18, 0.17)
 	dark.metallic = 0.6
 	dark.roughness = 0.5
+	dark.cull_mode = BaseMaterial3D.CULL_DISABLED
 	lip.material_override = dark
 	root.add_child(lip)
 	var rib := BoxMesh.new()
@@ -1027,11 +1031,11 @@ static func _volcano(r: Node, at: Vector2, h: float, rad: float, rng: RandomNumb
 			var b0 := (ri + 1) * SEG + k
 			var b1 := (ri + 1) * SEG + (k + 1) % SEG
 			st.add_index(a0)
-			st.add_index(b0)
-			st.add_index(a1)
 			st.add_index(a1)
 			st.add_index(b0)
+			st.add_index(a1)
 			st.add_index(b1)
+			st.add_index(b0)
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
@@ -1179,18 +1183,18 @@ static func _sky_island(rad: float, rng: RandomNumberGenerator) -> MeshInstance3
 			var b0 := (li + 1) * SEG + k
 			var b1 := (li + 1) * SEG + (k + 1) % SEG
 			st.add_index(a0)
-			st.add_index(a1)
 			st.add_index(b0)
 			st.add_index(a1)
+			st.add_index(a1)
+			st.add_index(b0)
 			st.add_index(b1)
-			st.add_index(b0)
 	var top := levels.size() * SEG
 	st.set_uv(Vector2(0.5, 0.0))
 	st.add_vertex(Vector3(0, 0.4, 0))
 	for k in SEG:
 		st.add_index(top)
-		st.add_index((k + 1) % SEG)
 		st.add_index(k)
+		st.add_index((k + 1) % SEG)
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
