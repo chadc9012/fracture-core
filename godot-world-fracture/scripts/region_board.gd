@@ -808,6 +808,13 @@ static func _ember(r: Node, rng: RandomNumberGenerator) -> void:
 	var at := _high_spot(r, want, 110.0, 52.0)
 	_fortress(r, at, rng)
 	spot(r, "fortress", at, 26.0)
+	# the volcanoes behind (the board's erupting cone): two big cones out on the region's edge, lava channels down them
+	var half: float = r.span() * 0.5
+	for i in 2:
+		var ang := atan2(at.y, at.x) + PI + (i * 0.9 - 0.45)
+		var vat := Vector2(cos(ang), sin(ang)) * half * (1.15 + i * 0.25)
+		_volcano(r, vat, 130.0 - i * 30.0, 150.0 - i * 30.0, rng)
+		spot(r, "volcano%d" % i, vat, 120.0)
 	# lava falls: molten sheets down three basalt bluffs, pooling at the foot
 	for i in 3:
 		var w: Vector2 = Vector2(cos(i * 2.2 + 1.0), sin(i * 2.2 + 1.0)) * r.span() * 0.3
@@ -976,3 +983,66 @@ static func _high_spot(r: Node, want: Vector2, search: float, clear: float) -> V
 			top = y
 			best = c
 	return best
+
+## a volcano: a broad noisy cone of black basalt with glowing lava channels running from the crater, the crater's glow
+## lighting it from above
+static func _volcano(r: Node, at: Vector2, h: float, rad: float, rng: RandomNumberGenerator) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	const SEG := 48
+	const RINGS := 14
+	var ph := rng.randf() * 10.0
+	for ri in RINGS + 1:
+		var t := float(ri) / RINGS            # 0 at the foot, 1 at the crater lip
+		var y := h * (1.0 - pow(1.0 - t, 1.6))
+		for k in SEG:
+			var a := TAU * k / SEG
+			var rr := rad * (1.0 - t * 0.88) * (1.0 + 0.08 * sin(a * 5.0 + ph) + 0.05 * sin(a * 11.0 + t * 6.0))
+			st.set_uv(Vector2(float(k) / SEG, t))
+			st.add_vertex(Vector3(cos(a) * rr, y - h * 0.08, sin(a) * rr))
+	for ri in RINGS:
+		for k in SEG:
+			var a0 := ri * SEG + k
+			var a1 := ri * SEG + (k + 1) % SEG
+			var b0 := (ri + 1) * SEG + k
+			var b1 := (ri + 1) * SEG + (k + 1) % SEG
+			st.add_index(a0)
+			st.add_index(b0)
+			st.add_index(a1)
+			st.add_index(a1)
+			st.add_index(b0)
+			st.add_index(b1)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var sh := Shader.new()
+	sh.code = """shader_type spatial;
+uniform float seed = 0.0;
+void fragment() {
+	// a few channels winding down from the lip, glowing hot near the crater and cooling to dull red at the foot
+	float x = UV.x * 48.0 + sin(UV.y * 9.0 + seed) * 1.6 + sin(UV.y * 23.0) * 0.4;
+	float ch = 0.0;
+	for (int i = 0; i < 5; i++) {
+		float c = float(i) * 9.6 + seed * 3.0;
+		ch = max(ch, smoothstep(0.55, 0.0, abs(mod(x - c + 24.0, 48.0) - 24.0)) * step(0.15 + 0.12 * float(i % 3), UV.y));
+	}
+	float heat = ch * mix(0.35, 1.0, UV.y);
+	float rock = 0.07 + 0.04 * sin(UV.x * 300.0 + UV.y * 40.0);
+	ALBEDO = vec3(rock * 1.1, rock, rock * 0.95);
+	ROUGHNESS = 0.9;
+	EMISSION = vec3(1.0, 0.38, 0.08) * heat * 4.0 + vec3(1.0, 0.45, 0.1) * smoothstep(0.9, 1.0, UV.y) * 3.0;
+}"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	m.set_shader_parameter("seed", rng.randf() * 10.0)
+	mi.material_override = m
+	mi.position = Vector3(at.x, float(r.water_level()) - 2.0, at.y)
+	mi.set_meta("not_land", true)
+	r._world.add_child(mi)
+	var glow := OmniLight3D.new()
+	glow.light_color = Color(1.0, 0.45, 0.15)
+	glow.light_energy = 8.0
+	glow.omni_range = h * 1.2
+	glow.position = mi.position + Vector3(0, h * 1.02, 0)
+	glow.set_meta("not_land", true)
+	r._world.add_child(glow)
