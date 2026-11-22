@@ -64,6 +64,7 @@ func dress(view: Control) -> void:
 	_apron_kit()
 	_hangar()
 	_airside()
+	_staff()
 	match style:
 		"coastal":
 			_thalassia()
@@ -1095,3 +1096,63 @@ func _glaze(n: Node, done: Dictionary) -> void:
 		mi.mesh = done[mi.mesh]
 		for i in mi.get_surface_override_material_count():
 			mi.set_surface_override_material(i, null)
+
+# --------------------------------------------------------------------------------------------- staff
+## people in uniform at the desks (the owner's boards: an agent at every check-in position, officers at the lanes,
+## the gate desks and the VIP reception manned, a clerk behind each shop counter). They are operator bodies in the
+## outfits.gd uniforms, standing in place with the job idles (work_idle.gd); not talkable, not targets. The phone tiers
+## get a lighter roster and no shadows on them.
+const STAFF_FACES := ["female", "male"]
+func _staff() -> void:
+	var Player: GDScript = load("res://scripts/player/operator_player.gd")
+	var Store: GDScript = load("res://scripts/character/character_store.gd")
+	var Catalog: GDScript = load("res://scripts/character/catalog.gd")
+	var full := Phone.tier() == "high"
+	var lean := Phone.tier() == "low"
+	var sz: float = _k("SECURITY_Z")
+	var spots: Array = []     # [position, heading, outfit, clip]
+	# check-in: the two islands at x -32 (z 16 ticket desk, z 3 bag drop), agents between the desk and the screen wall,
+	# facing the hall (+x)
+	for z0 in [16.0, 3.0]:
+		for dz in ([-2.6, 2.6] if not lean else [0.0]):
+			spots.append([Vector3(-33.7, 0, z0 + dz), PI * 0.5, "npc-airline", "work_counter"])
+	# security: an officer airside of each arch watching the walk-through, one at each X-ray belt (HIGH)
+	for x in _k("LANES"):
+		spots.append([Vector3(float(x) - 2.0, 0, sz - 1.3), 0.0, "npc-security", "wait"])
+		if full:
+			spots.append([Vector3(float(x) + 3.35, 0, sz + 2.0), -PI * 0.5, "npc-security", "work_counter"])
+	# the gate desks (airport_view _gates: x -40 + 16 i, z -26.5), agents on the window side facing the lounge
+	for i in Air.GATES.size():
+		if lean and i % 2 == 1:
+			continue
+		spots.append([Vector3(-40.0 + i * 16.0, 0, -27.6), 0.0, "npc-airline", "work_counter"])
+	# the VIP reception desk
+	var r: Rect2 = _k("VIP")
+	spots.append([Vector3(r.position.x + 3.0, 0, r.position.y + r.size.y * 0.5), PI * 0.5, "npc-business", "work_counter"])
+	# a clerk behind each shop counter (the units at x 40, counter at +1 m), facing the hall (-x)
+	if not lean:
+		for s in _k("SHOPS"):
+			spots.append([Vector3(42.3, 0, float(s[2]) + 0.6), -PI * 0.5, "uniform-bartender" if String(s[0]) == "cafe" else "npc-business", "work_counter"])
+	var obstacles: Array[AABB] = v.obstacles
+	for k in spots.size():
+		var sp: Array = spots[k]
+		var body := String(STAFF_FACES[k % 2])
+		var look: Dictionary = Store.clean({ "frame": "nyx" if body == "female" else "cipher", "body": body, "name": "Staff", "outfit": String(sp[2]) })
+		var faces: Array = Catalog.faces(body)
+		if not faces.is_empty():
+			look = Store.apply_face(look, String(faces[(k * 7 + hash(v.code)) % faces.size()].id))
+		var p: Node3D = Player.new()
+		p.set_meta("dynamic", true)
+		v.world.add_child(p)
+		p.position = sp[0]
+		p.set("heading", float(sp[1]))
+		p.build(look)
+		p.set("idle_clip", String(sp[3]))
+		p.call("_animate", 0.0, false)
+		if not full:
+			for g in p.find_children("*", "GeometryInstance3D", true, false):
+				(g as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		obstacles.append(AABB((sp[0] as Vector3) - Vector3(0.35, 0, 0.35), Vector3(0.7, 1.8, 0.7)))
+		staff.append(p)
+
+var staff: Array = []

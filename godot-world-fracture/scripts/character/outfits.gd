@@ -113,6 +113,10 @@ const LIST := [
 	{ "id": "npc-business", "npc": true, "name": "Black Blazer", "base": "denim", "pieces": ["shirt_collar", "cuffs"], "c": {
 		"top": "1a1b1f", "fabric": PLAIN, "rib": "1a1b1f", "hood": "1a1b1f", "zip": "f4f4f1", "inner": "f4f4f1", "print": "f4f4f1", "print2": "f4f4f1",
 		"legs": "1a1b1f", "legs2": "141518", "legs_fabric": PLAIN, "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	# the airports' check-in, gate and lounge staff (owner's airport boards, Nov 18: people in uniform at the desks)
+	{ "id": "npc-airline", "npc": true, "name": "Airline Uniform", "base": "denim", "pieces": ["shirt_collar", "cuffs"], "c": {
+		"top": "17233f", "fabric": PLAIN, "rib": "17233f", "hood": "17233f", "zip": "c9a45a", "inner": "f4f4f1", "print": "f4f4f1", "print2": "c9a45a",
+		"wrist": "c9a45a", "legs": "17233f", "legs2": "121c33", "legs_fabric": PLAIN, "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
 	{ "id": "npc-hoodie-backpack", "npc": true, "name": "Grey Hoodie & Backpack", "base": "heather-hoodie", "wear": ["backpack"], "hat": "cap", "c": {
 		"top": "b4b6ba", "rib": "a0a2a6", "print": "b4b6ba", "print2": "b4b6ba", "legs": "1c1d21", "shoe": "f2f2ef", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "e6e6e3" } },
 	{ "id": "npc-summer", "npc": true, "name": "Yellow Tank & Shorts", "base": "tee-shorts", "pieces": ["shorts_hems"], "tank": true, "c": {
