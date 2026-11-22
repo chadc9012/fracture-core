@@ -281,7 +281,7 @@ void fragment() {
 	}
 	float core = exp(-r * r * 30.0) * 2.5 + exp(-r * r * 6.0) * 0.6;
 	float pulse = 0.85 + 0.15 * sin(TIME * 2.0);
-	vec3 c = col * (ray * 3.2 + core * 1.1) * pulse + vec3(1.0) * exp(-r * r * 160.0) * 1.2;
+	vec3 c = col * (ray * 1.8 + core * 0.7) * pulse + vec3(1.0) * exp(-r * r * 300.0) * 0.5;
 	ALBEDO = c;
 	ALPHA = clamp(ray + core, 0.0, 1.0);
 }"""
