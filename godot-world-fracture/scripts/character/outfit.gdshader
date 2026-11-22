@@ -148,4 +148,9 @@ void fragment() {
 	ALBEDO = c * shade;
 	ROUGHNESS = rough;
 	SPECULAR = 0.35;
+	if (part == SKIN) {          // bare skin: softer and a little translucent, like the heads' skin beside it
+		ROUGHNESS = 0.55;
+		SPECULAR = 0.5;
+		BACKLIGHT = c * 0.35;
+	}
 }

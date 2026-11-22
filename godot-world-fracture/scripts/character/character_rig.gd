@@ -351,8 +351,9 @@ static func _sample_skin(m: Material) -> Variant:
 		return null
 	img = img.duplicate()
 	img.resize(96, 96, Image.INTERPOLATE_BILINEAR)
-	var sum := Color(0, 0, 0)
-	var n := 0
+	# the lit skin only: a plain average took in the beard, brows and shadowed creases, and the hands came out far darker
+	# than the face (polish, Nov 22) — so the skin-like pixels between the 70th and 97th percentile of brightness
+	var found: Array = []
 	for y in 96:
 		for x in 96:
 			var c := img.get_pixel(x, y)
@@ -361,9 +362,21 @@ static func _sample_skin(m: Material) -> Variant:
 			var sat := (mx - mn) / (mx + 1e-4)
 			var lum := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
 			if c.r - c.b > 0.06 and sat > 0.15 and sat < 0.8 and lum > 0.12 and c.b <= c.g + 0.04:
-				sum += c
-				n += 1
-	return Color(sum.r / n, sum.g / n, sum.b / n) if n > 50 else null
+				found.append([lum, c])
+	if found.size() <= 50:
+		return null
+	found.sort_custom(func(a, b): return a[0] < b[0])
+	var sum := Color(0, 0, 0)
+	var lo := int(found.size() * 0.7)
+	var hi := int(found.size() * 0.97)
+	for i in range(lo, hi):
+		sum += found[i][1]
+	var n := float(hi - lo)
+	var c := Color(sum.r / n, sum.g / n, sum.b / n)
+	# the face's texture carries baked highlights the bare arms don't get: a little less red so they sit with it
+	var l := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
+	c = c.lerp(Color(l, l, l), 0.35) * 1.1
+	return Color(minf(c.r, 1.0), minf(c.g, 1.0), minf(c.b, 1.0))
 
 ## a bare scalp's colour: the chosen skin tone, the head's own skin, or a warm tone at its skin brightness
 func _scalp_tone() -> Color:
