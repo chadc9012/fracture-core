@@ -264,7 +264,10 @@ func _attach_head(body_head: int) -> void:
 		sc.mesh = hb.scalp()
 		var sm := StandardMaterial3D.new()
 		sm.albedo_color = _scalp_tone()
-		sm.roughness = 0.6
+		sm.roughness = 0.5
+		sm.specular = 0.45
+		sm.backlight_enabled = true                   # lit like the face's skin beside it
+		sm.backlight = _scalp_tone() * 0.3
 		sc.material_override = sm
 		holder.add_child(sc)
 	var hm := hb.build(style) if not robot else null
@@ -398,6 +401,10 @@ static func _trim_collar(arr: Array, head_space: PackedFloat32Array, m: Material
 	gone.resize(n)
 	for k in n:
 		var y := head_space[k * 4 + 1]
+		# the head's own neck stub behind the chin: the body has its neck, and the stub poked through the collars
+		if y < -0.004 and head_space[k * 4 + 2] < 0.04:
+			gone[k] = 1
+			continue
 		if y < 0.03 and absf(head_space[k * 4]) > 0.075:   # under the jaw and wider than it: the collar's side flaps
 			gone[k] = 1
 			continue
