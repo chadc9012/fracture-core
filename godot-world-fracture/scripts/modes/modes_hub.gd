@@ -315,7 +315,6 @@ func open_mode(id: String) -> void:
 			_races()
 
 # --------------------------------------------------------------------------------------------- PvP
-const PVP_SOON := [["neon-yard", "NEON YARD", "Industrial container yard"], ["glass-spire", "GLASS SPIRE", "Vertical combat tower"], ["riverfront", "RIVERFRONT", "Urban waterfront arena"], ["void-rift", "VOID RIFT", "Fracture anomaly zone"]]
 
 ## ONLINE (players, no bots) or VS BOTS (the bot squads: the only mode with bots in it)
 var pvp_bots := false
@@ -353,10 +352,6 @@ func _pvp() -> void:
 		var royale := _tile("pvp-royale", "FRACTURE ROYALE", "60-player survival · the Verdant Forest · bots", "", Color(0.75, 0.3, 1.0), func(): _host(RoyaleView.new()), true, 22)
 		royale.custom_minimum_size = Vector2(0, 150)
 		grid.add_child(royale)
-	for s in PVP_SOON:
-		var t2 := _tile("pvp-" + String(s[0]), String(s[1]), String(s[2]) + " · coming", "", Color(0.4, 0.5, 0.6), func(): pass, false, 22)
-		t2.custom_minimum_size = Vector2(0, 150)
-		grid.add_child(t2)
 	v.add_child(_strip("PVP MODES", (["✓ Clash vs bot squads", "✓ Every arena's modes", "✓ Fracture Royale"] if pvp_bots else ["✓ Clash online · players", "Sides fill by who's in", "Ranked · soon"]), Color(1.0, 0.3, 0.7)))
 
 func _launch_arena(id: String) -> void:

@@ -466,10 +466,19 @@ func _signs() -> void:
 	l3.font_size = 220 if String(look.sign).length() <= 6 else 120
 	l3.pixel_size = 0.02
 	l3.modulate = Color(1, 1, 1)
+	l3.outline_size = 28
+	l3.outline_modulate = Color(0.03, 0.03, 0.06)
 	l3.shaded = false
 	l3.position = face.position + Vector3(0, 0, -0.2)
 	l3.rotation_degrees.y = 180.0
 	world.add_child(l3)
+	# the same face to the city behind: the board is lit on both sides, not a black slab from the south
+	var back := _box(Vector3(25, 5, 0.1), mi.position + Vector3(0, 0, 0.3), _mat(look.sign_color, 0.4, 0.0, 3.5))
+	signs.append(back)
+	var l4 := l3.duplicate() as Label3D
+	l4.position = back.position + Vector3(0, 0, 0.2)
+	l4.rotation_degrees.y = 0.0
+	world.add_child(l4)
 	for i in 4:
 		var l := OmniLight3D.new()
 		l.light_color = look.trim[i % (look.trim as Array).size()]
