@@ -481,7 +481,7 @@ func _process(dt: float) -> void:
 			boss.position = boss.position.lerp(_boss_to, minf(1.0, dt * 8.0))
 	if wildlife:
 		wildlife.step(dt)
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:

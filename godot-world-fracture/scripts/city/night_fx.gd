@@ -325,7 +325,7 @@ static func grade(env: Environment, sun: DirectionalLight3D, sky: Sky, neon_city
 		env.set_glow_level(lv, 1.0 if lv in [1, 2, 3, 4] else 0.0)
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.06, 0.05, 0.14)
-	env.fog_density = 0.0022
+	env.fog_density = 0.0011   # Nov 22: the skyline down the avenue (street_slice _vista, ~1 km) reads through the haze
 	env.fog_sun_scatter = 0.0
 	env.fog_aerial_perspective = 0.25
 	env.volumetric_fog_density = 0.008
