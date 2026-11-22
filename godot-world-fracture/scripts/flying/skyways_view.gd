@@ -405,8 +405,24 @@ func _process(dt: float) -> void:
 	var cam_pos := hull.position + back * cd.x + Vector3(0, cd.y, 0)
 	cam_pos.y = maxf(cam_pos.y, region.ground(cam_pos.x, cam_pos.z) + 2.0)
 	if cam_pos.y > hull.position.y + cd.y + 10.0:
-		# the ground behind rises into the camera: pull in toward the craft instead of looking from the hillside
-		cam_pos = hull.position + back * cd.x * 0.4 + Vector3(0, cd.y, 0)
+		# the ground behind rises into the camera (a boat or sub under a sea cliff, the seaport's quay): swing round to the
+		# nearest side that is open — the camera pulled in toward the craft sat inside the hillside, or on a roof looking
+		# through the building, for most of a boat run (cam_audit fly:boat, Nov 22); closer in when every side is high
+		var found := false
+		for frac in [1.0, 0.5]:
+			for off in [0.0, 0.6, -0.6, 1.2, -1.2, 1.9, -1.9, PI]:
+				var b2 := Vector3(sin(_cam_yaw + off), 0, cos(_cam_yaw + off))
+				var c2 := hull.position + b2 * cd.x * frac + Vector3(0, cd.y, 0)
+				if c2.y >= region.ground(c2.x, c2.z) + 1.5 and _clear_cam(hull.position + Vector3(0, 1.5, 0), c2).is_equal_approx(c2):
+					cam_pos = c2
+					_cam_yaw += off * minf(1.0, 4.0 * dt)
+					found = true
+					break
+			if found:
+				break
+		if not found:
+			cam_pos = hull.position + back * cd.x * 0.25 + Vector3(0, cd.y, 0)
+			cam_pos.y = maxf(cam_pos.y, region.ground(cam_pos.x, cam_pos.z) + 1.0)
 	# out of the buildings: the camera stops short of the first tower between the craft and it, and so does the eased
 	# position on its way there (it sat inside towers between the roofs and inside the terminal on the pad; cam_audit,
 	# Nov 18). A craft that jumped (a wreck back on the pad) gets the camera at once, not swooping through the city
@@ -415,6 +431,11 @@ func _process(dt: float) -> void:
 	if cam.position.distance_to(cam_pos) > 120.0:
 		cam.position = cam_pos
 	cam.position = _clear_cam(eye, cam.position.lerp(cam_pos, minf(1.0, 6.0 * dt)))
+	cam.position.y = maxf(cam.position.y, region.ground(cam.position.x, cam.position.z) + 0.5)   # the eased path too
+	# lifted over a hill into a building on it (the boat under the seaport's cliff): up over its roof
+	for b: AABB in _boxes:
+		if b.grow(0.3).has_point(cam.position) and not b.grow(0.6).has_point(eye):
+			cam.position.y = b.end.y + 0.6
 	cam.look_at(hull.position + Vector3(0, 1.5, 0) + fwd * 6.0, Vector3.UP)
 	controls.show_hull(hull_hp, 0.0, 0.0)
 	var alt: float = hull.position.y - (region.water_level() if String(profile.mode) == "WATER" else region.ground(px, pz))

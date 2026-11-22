@@ -133,6 +133,8 @@ func _fight(secs: float) -> int:
 			break
 		if secs > 0.0 and t > secs:
 			break
+		if d.operator.swimming:
+			break   # the guns are stowed in the water (gunplay follow_swim): swim on out of it first
 		var e = live[0]
 		d.controls.move = Vector2.ZERO
 		# step back from one that is on top of us (the camera sits behind the shoulder: point blank it aims past it)
