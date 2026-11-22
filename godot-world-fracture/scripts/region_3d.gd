@@ -2180,8 +2180,7 @@ func _stand_near(at: Vector2) -> void:
 	var best := Vector2(at.x + 12.0, at.y + 12.0)
 	var best_clear := -1.0
 	var boxes := building_boxes()
-	# (a dense town has no clear spot within 30 m — Old Harrow started with the camera on a wall, Nov 21: look further out)
-	for rad: float in [14.0, 22.0, 30.0, 42.0, 56.0]:
+	for rad: float in [14.0, 22.0, 30.0]:
 		for k in 16:
 			var a := k * TAU / 16.0
 			var q := at + Vector2(cos(a), sin(a)) * rad
