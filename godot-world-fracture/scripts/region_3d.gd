@@ -2296,6 +2296,10 @@ func _stand_near(at: Vector2) -> void:
 				var dx := maxf(maxf(bx.position.x - q.x, q.x - bx.end.x), 0.0)
 				var dz := maxf(maxf(bx.position.z - q.y, q.y - bx.end.z), 0.0)
 				clear = minf(clear, Vector2(dx, dz).length())
+			# steep ground is where the slope rocks stand (Ember opened beside a black outcrop, Nov 22): prefer the flat
+			var rise := maxf(absf(_h(q.x + 3.0, q.y) - _h(q.x - 3.0, q.y)), absf(_h(q.x, q.y + 3.0) - _h(q.x, q.y - 3.0))) / 6.0
+			if rise > 0.45:
+				clear = minf(clear, 1.5)
 			if clear > best_clear:
 				best_clear = clear
 				best = q
