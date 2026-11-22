@@ -697,7 +697,7 @@ func _style_for(id: String) -> Dictionary:
 			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on (Nov 18: the
 			# region_sky sunset deck, streaked cloud lit from below)
 			s.merge({"top": "#2a3866", "hor": "#f0a468", "fog": "#a88468", "fog_d": 0.0016, "sun": 1.1, "sun_col": "#ffb27a", "sun_el": 9.0, "sun_az": 150.0,
-				"amb": 0.5, "night": 0.4, "sat": 1.05, "exp": 0.95, "sky": "sunset", "glow": "#ff8a44", "glow_amt": 0.3}, true)
+				"amb": 0.85, "amb_col": "#8f7f9c", "night": 0.4, "sat": 1.05, "exp": 1.0, "sky": "sunset", "glow": "#ff8a44", "glow_amt": 0.3}, true)   # Nov 22: dusk fill, the shaded streets were near black
 		"goldenreach":
 			# the owner's flower-field photo: late-afternoon gold, the sun low and warm behind haze, a blue sky with cloud
 			s.merge({"top": "#3f7cc8", "hor": "#f2d9ae", "fog": "#d8c49e", "fog_d": 0.0012, "sun": 1.4, "sun_col": "#ffd49a", "sun_el": 20.0, "sun_az": 150.0,
