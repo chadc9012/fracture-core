@@ -148,12 +148,20 @@ func _fight(secs: float) -> int:
 			d.controls.move = Vector2(0, 1)
 		_aim(e.mover.position + Vector3(0, 1.2, 0))
 		d.controls.fire = true
+		# fight the way a player does since the Nov 22 combat balance (troopers 2-3x the hull, a finite bag): down the
+		# sights past arm's length, and the next carried gun when this one is dry — the old loop held one empty rifle on
+		# two Executors until the chapter stalled
+		d.controls._ads_on = near > 8.0
+		var g = d.gunplay.gun()
+		if g.mag <= 0 and g.reserve <= 0 and g.reloading <= 0.0:
+			d.controls._next = true
 		await get_tree().process_frame
 		shots += 1
 		t += minf(get_process_delta_time(), 0.05)
 		if shots > 6000:
 			break
 	d.controls.fire = false
+	d.controls._ads_on = false
 	return shots
 
 func _ready() -> void:
