@@ -515,7 +515,7 @@ func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 		sc.ground_at = func(x: float, z: float) -> float: return tr.height_at(Vector3(x, 0, z))
 	sc.obstacles = obstacles
 	sc.skip = obstacles.size()
-	obstacles.append(sc.box())
+	obstacles.append(AABB(Vector3(0, -1000, 0), Vector3(0.1, 0.1, 0.1)))   # cars meet in _contacts, not the wall list
 	sc.set_meta("box_index", sc.skip)
 	return sc
 
@@ -850,16 +850,37 @@ func _process(dt: float) -> void:
 	player.drive_fx(dt)
 	_step_rider()
 	# the rivals: aim at a point ahead on the centreline, ease off for the corners, skill sets the pace
+	var ri := 0
 	for r in rivals:
 		var sc: RefCounted = r.sc
 		var n: Node3D = sc.node
 		var aim: Vector3 = track.ahead(n.position, 14.0)
+		# each rival keeps its own lane (a fifth of the road's width off the centreline either side), and eases off
+		# and steers wide of a car just ahead in it, so the grid does not converge into one rubbing pack
+		var further: Vector3 = track.ahead(n.position, 24.0)
+		var along := Vector3(further.x - aim.x, 0, further.z - aim.z).normalized()
+		var right := Vector3(-along.z, 0, along.x)
+		var lane: float = track.width * 0.2 * float(ri - 1)
+		var blocked := 0.0
+		for other in [player] + rivals.map(func(q): return q.sc):
+			if other == sc:
+				continue
+			var d: Vector3 = other.node.position - n.position
+			var fwd: float = d.dot(sc.forward())
+			var side: float = d.dot(right)
+			if fwd > 0.0 and fwd < 9.0 and absf(side) < 2.6:
+				blocked = maxf(blocked, 1.0 - fwd / 9.0)
+				lane += (-3.0 if side > 0.0 else 3.0) * (1.0 - fwd / 9.0)
+		aim += right * clampf(lane, -track.width * 0.5 + 1.5, track.width * 0.5 - 1.5)
+		ri += 1
 		var to := aim - n.position
 		var want_yaw := atan2(-to.x, -to.z)
 		var err := wrapf(want_yaw - n.rotation.y, -PI, PI)
 		var curve: float = maxf(track.curvature_ahead(n.position, 26.0), track.curvature_ahead(n.position, 44.0) if track.street() else 0.0)
 		var top: float = float(sc.profile.max_speed) * float(r.skill) * (1.0 - (0.68 if track.street() else 0.55) * curve)
 		var thr := clampf((top - sc.speed) / 4.0, -1.0, 1.0)
+		if blocked > 0.0 and sc.speed > 6.0:
+			thr = minf(thr, 0.6 - blocked * 0.8)
 		var e: Dictionary = r.entry
 		if e.finished_at >= 0.0:
 			thr = -0.2
@@ -892,6 +913,7 @@ func _process(dt: float) -> void:
 	board.text = "\n".join(lines)
 	if me.finished_at >= 0.0 and not _prize_paid:
 		_finish()
+	_contacts(dt)
 	_place_camera(dt)
 
 ## grass slows a car, and the tyre walls stop it (the obstacle list); on a street circuit the barriers are the track's edge:
@@ -906,14 +928,63 @@ func _step_car(sc: RefCounted, dt: float, throttle: float, steer: float, brake: 
 			var out := Vector3(sc.node.position.x - q.x, 0, sc.node.position.z - q.z).normalized()
 			sc.node.position = Vector3(q.x + out.x * lim, sc.node.position.y, q.z + out.z * lim)
 			sc.speed *= pow(0.3, dt)
-		obstacles[int(sc.get_meta("box_index"))] = sc.box()
 		return
 	if track.off_track(sc.node.position):
 		# grass: no grip past a crawl (the rally and the mountain are rougher roads: off them is slower, not a stop)
 		var crawl: float = float(sc.profile.max_speed) * (0.6 if bool(track.def.get("offroad", false)) else 0.35)
 		if absf(sc.speed) > crawl:
 			sc.speed = move_toward(sc.speed, signf(sc.speed) * crawl, (4.0 + absf(sc.speed) * 0.9) * dt)
-	obstacles[int(sc.get_meta("box_index"))] = sc.box()
+
+## car on car is a shove, not a wall: the cars were each other's obstacle boxes, and the grid piled up on the first
+## straight of a narrow street (everyone converging on the centreline at walking pace, each hit killing 60 % of the
+## speed, the three of them stopped dead on one another). Now each car is three discs (nose, middle, tail) pushed
+## apart from every other car's, both move, the faster one keeps most of its speed and takes a nudge of yaw.
+const CAR_DISC := 1.15
+func _contacts(dt: float) -> void:
+	var cars: Array = [player]
+	for r in rivals:
+		cars.append(r.sc)
+	for i in cars.size():
+		for j in range(i + 1, cars.size()):
+			var a: RefCounted = cars[i]
+			var b: RefCounted = cars[j]
+			var pa: Vector3 = a.node.position
+			var pb: Vector3 = b.node.position
+			if Vector2(pa.x - pb.x, pa.z - pb.z).length() > 9.0:
+				continue
+			var fa: Vector3 = a.forward()
+			var fb: Vector3 = b.forward()
+			var hit := false
+			for ka: float in [-1.0, 0.0, 1.0]:
+				var ca: Vector3 = pa + fa * ka * StreetCar.HALF_LENGTH
+				for kb: float in [-1.0, 0.0, 1.0]:
+					var cb: Vector3 = pb + fb * kb * StreetCar.HALF_LENGTH
+					var d := Vector2(ca.x - cb.x, ca.z - cb.z)
+					var dist := d.length()
+					if dist >= CAR_DISC * 2.0:
+						continue
+					var push := (CAR_DISC * 2.0 - dist) * 0.5
+					var n := d / dist if dist > 0.001 else Vector2(1, 0)
+					a.node.position += Vector3(n.x, 0, n.y) * push
+					b.node.position -= Vector3(n.x, 0, n.y) * push
+					pa = a.node.position
+					pb = b.node.position
+					hit = true
+			if hit:
+				# the closing speed decides the cost: a car running into another at more than a jog loses nearly half the
+				# closing speed (never thrown into reverse) and shoves the other on a little; two cars rubbing along
+				# side by side at the same pace, or nosing off the grid together, only get pushed apart
+				var ab := Vector3(pb.x - pa.x, 0, pb.z - pa.z).normalized()
+				var rel: float = (fa * a.speed - fb * b.speed).dot(ab)   # > 0: a closing on b
+				var closing: RefCounted = a if rel > 0.0 else b
+				var other: RefCounted = b if rel > 0.0 else a
+				var r := absf(rel)
+				if r > 2.0:
+					closing.speed = maxf(closing.speed - r * 0.45, minf(closing.speed, 0.0))
+					if other.speed >= 0.0:
+						other.speed += r * 0.15
+					a.hits += 1   # a bump counts as a hit (crash damage, the HUD); rubbing does not
+					b.hits += 1
 
 func _place_camera(dt: float) -> void:
 	var n: Node3D = player.node

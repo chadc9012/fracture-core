@@ -9,6 +9,7 @@ extends SceneTree
 const Track := preload("res://scripts/racing/track.gd")
 const TrackPack := preload("res://scripts/racing/track_pack.gd")
 const PackVenue := preload("res://scripts/racing/pack_venue.gd")
+const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 var failed := 0
 
@@ -66,7 +67,10 @@ func _run() -> void:
 		v.queue_free()
 		await process_frame
 
-	# a race on the shortest, then on the water
+	# a race on the shortest, then on the water — the first in the Nomad Bike, the quickest thing off the line: it used
+	# to run into the rivals' boxes on the narrow street and the whole grid stopped dead on one another (race_view
+	# _contacts); every car must be away down the road
+	SessionStore.save("nomad-bike", 0.0)
 	for id in ["neon-midnight-run", "azure-hover-challenge", "shattered-expanse-gp"]:
 		var rv := RaceView.new()
 		rv.track_id = id
@@ -85,6 +89,10 @@ func _run() -> void:
 		var pp: Vector3 = rv.player.node.position
 		var road_y: float = rv.track.height_at(pp)
 		ok(float(me.frac) > 0.0 and float(me.frac) < 0.5 and rv.player.speed > 10.0, "%s: away down the road (%.0f m, %d km/h)" % [rv.track.def.name, float(me.frac) * rv.track.length, int(rv.player.speed * 3.6)])
+		var slowest := INF
+		for r in rv.rivals:
+			slowest = minf(slowest, r.sc.speed)
+		ok(slowest > 8.0 and rv.vehicle_id == "nomad-bike", "%s: no pile-up on the grid, the slowest rival at %d km/h" % [rv.track.def.name, int(slowest * 3.6)])
 		if id == "azure-hover-challenge":
 			ok(bool(rv.player.profile.get("hover", false)) and pp.y > road_y + 0.5, "on the water the cars hover (%.1f m up)" % (pp.y - road_y))
 		else:
