@@ -26,7 +26,7 @@ func _run() -> void:
 	for i in poses.size():
 		var m: Node3D = Player.new()
 		w.add_child(m)
-		m.civilian = false
+		m.civilian = OS.has_environment("CIV")
 		m.position = Vector3(-gap * (poses.size() - 1) * 0.5 + i * gap, 0, 0)
 		m.heading = yaw
 		m.build(CharacterStore.clean({ "frame": cls, "body": "male" if cls == "goliath" else "female" }))
