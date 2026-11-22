@@ -123,6 +123,7 @@ const GarageView = preload("res://scripts/garage/garage_view.gd")
 const Mall = preload("res://scripts/city/mall_interior.gd")
 const ClothingStore = preload("res://scripts/city/clothing_store.gd")
 const Casino = preload("res://scripts/city/casino_interior.gd")
+const CasinoTower := preload("res://scripts/city/casino_tower.gd")
 const Sports = preload("res://scripts/city/sports_district.gd")
 const OperatorPlayer = preload("res://scripts/player/operator_player.gd")
 const TouchControls = preload("res://scripts/player/touch_controls.gd")
@@ -168,6 +169,8 @@ static var force_armed := false
 var armed := true
 var _area := ""
 var _casino_at := Vector3.INF
+var _casino_tower: Node3D     # the 380 m tower behind the podium; its neon cycles colours (owner, Nov 22)
+var _tower_clock := 0.0
 var civilians: Node3D
 ## the city's named people (scripts/npc/: tier 2 / 3 NPCs with jobs, schedules and memory); Nexus and Neon City
 var npcs: Node3D
@@ -541,7 +544,8 @@ func _after_enemies() -> void:
 	gunplay.killed.connect(func(t: Variant) -> void:
 		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
 		var source := "enemy"
-		if e != null and e.type == "elite":
+		# the Executor (the blade, hull 150) is elite-tough and drops at the elite rate (owner, Nov 22)
+		if e != null and e.type in ["elite", "executor"]:
 			source = "elite"
 		# rolled at the operator's level, like every other mode's drops (it rolled at level 1: a level-20 operator's street
 		# drops came in ~40 power under the band — tests/gear/loot_test.gd)
@@ -1457,6 +1461,8 @@ func _buildings() -> void:
 				b.position.z = z + width * 0.5
 				if String(pick[0]) == "casino.glb":
 					_casino_at = b.position
+					# the tower rises behind the podium, its foot clear of the podium's back
+					_casino_tower = CasinoTower.build(world, Vector3(side * (half + size.z + CasinoTower.RADIUS + 4.0), 0.0, b.position.z))
 				if style == "nexus" and String(pick[0]) == "apartment.glb":
 					# street-level shops on the apartment blocks
 					prop("shopfront.glb", 5.2, Vector3(side * (half + 4.0), 0.18, b.position.z), -90.0 * side)
@@ -1528,7 +1534,10 @@ void fragment() {
 		if style == "nexus":
 			x = side * _rng.randf_range(175.0, 260.0)     # behind the district courts
 		var z := _rng.randf_range(-LENGTH * 0.7, LENGTH * 0.2) - 60.0
-		_box(Vector3(w, h, w * _rng.randf_range(0.8, 1.3)), Vector3(x, h * 0.5, z), m)
+		var deep := w * _rng.randf_range(0.8, 1.3)
+		if _casino_tower and Vector2(x - _casino_tower.position.x, z - _casino_tower.position.z).length() < CasinoTower.RADIUS + w + 6.0:
+			continue   # the casino tower stands here (its random draws are already taken, so the rest of the skyline holds)
+		_box(Vector3(w, h, deep), Vector3(x, h * 0.5, z), m)
 	if style == "nexus":
 		# the landmark is the Tech Faction Central Tower, 420 m, in the Spire end's west court (nexus_districts.gd)
 		world.add_child(Nexus.central_tower(self, world))
@@ -2173,6 +2182,9 @@ func _hub_dressing() -> void:
 		_box(Vector3(2.7, 0.06, 9.0), Vector3(0, 0.1, zc), _neon_mat(cyan, 3.0), _train)
 
 func _step_dressing(dt: float) -> void:
+	if _casino_tower:
+		_tower_clock += dt
+		CasinoTower.step(_casino_tower, _tower_clock)
 	for i in _rings.size():
 		(_rings[i] as MeshInstance3D).rotation.y += dt * (0.12 + 0.05 * i) * (1.0 if i % 2 == 0 else -1.0)
 	if _train:

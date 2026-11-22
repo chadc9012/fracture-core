@@ -211,10 +211,10 @@ describe("Fracture Floor", () => {
 });
 
 describe("map rotation", () => {
-  it("each arena playlist rotates through all eleven maps match to match", () => {
+  it("each arena playlist rotates through all fourteen maps match to match", () => {
     for (const m of ["clash", "dominion", "freefall", "lockdown", "ascendancy"] as const) {
-      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift"]);
-      expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift", "kaiju-complex"]);
+      expect(arenasForMode(m).map((a) => a.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift", "foundry-row", "sanctum", "rig-nine"]);
+      expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((n) => arenaForRun(m, n)?.id)).toEqual(["kaiju-complex", "fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift", "foundry-row", "sanctum", "rig-nine", "kaiju-complex"]);
     }
     expect(arenaForRun("royale", 0)).toBeUndefined();
   });
