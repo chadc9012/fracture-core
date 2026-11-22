@@ -550,6 +550,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	_build_lamps()
 	Flora.landmark_fx(self)
 	Flora.fracture_set(self)
+	preload("res://scripts/region_board.gd").build(self)   # the owner's region boards (Nov 22): their landmarks
 	_build_labels()
 	_apply_season()
 	_weather = Weather.new()
@@ -653,15 +654,21 @@ func _style_for(id: String) -> Dictionary:
 			# the owner's "STORM - EMBER PEAKS" photo (docs/reference/world-photos/storm-ember.jpg, volcano.jpg): a night
 			# storm over black basalt — slate-blue cloud, cold light from the storm, the lava the only warm thing in the land
 			# (it was an orange noon haze, every surface the same rust, the crater blown out to white)
-			s.merge({"top": "#0c1120", "hor": "#3a3448", "fog": "#272433", "fog_d": 0.0019, "sun": 0.42, "sun_col": "#a9b8e0", "sun_el": 32.0,
-				"amb": 0.55, "amb_col": "#4a5276", "night": 0.8, "sat": 1.0, "exp": 1.25, "planet": false, "sky": "storm",
-				"glow": "#ff4a14", "glow_amt": 0.35, "embers": 1.0}, true)
+			# Nov 22, the owner's Ember Peaks / Obsidian Reach boards: a burning dusk — a dark violet zenith over a red-orange
+			# horizon under heavy cloud lit from below, the sun down behind the peaks, black rock and the lava the brightest thing
+			s.merge({"top": "#1a0c26", "hor": "#e0582a", "fog": "#4a2622", "fog_d": 0.0018, "sun": 1.1, "sun_col": "#ff8a4a", "sun_el": 8.0, "sun_az": 150.0,
+				"amb": 0.55, "amb_col": "#6a3a3a", "night": 0.4, "sat": 1.15, "exp": 1.0, "planet": false, "sky": "sunset",
+				"sky_set": {"cover": 0.62, "cloud_dark": Color("#2a1018"), "cloud_lit": Color("#ff7a3a"), "streak": 0.5},
+				"glow": "#ff4a14", "glow_amt": 0.5, "embers": 1.0}, true)
 		"frostspire":
 			# the owner's "NIGHT / MOON - FROSTSPIRE MOUNTAINS" photos: a big moon over the peaks, deep blue night, the snow
 			# lit blue-white, the dark rock showing on the steep faces, the settlements' lights warm in the valleys (it was
 			# a white-out: white sky, white fog, white ground, no shape)
-			s.merge({"top": "#050b22", "hor": "#2a4a86", "fog": "#1e3260", "fog_d": 0.0016, "sun": 0.85, "sun_col": "#b8ccff", "sun_el": 24.0, "sun_az": 120.0,
-				"amb": 0.38, "amb_col": "#3e5590", "night": 0.75, "sat": 1.05, "exp": 1.1, "planet": false, "sky": "moon", "glow": "#3d5ea8", "glow_amt": 0.25}, true)
+			# Nov 22, the owner's Frostspire / Frostveil boards: polar twilight rather than full night — a deep blue zenith
+			# over a lighter horizon, the aurora green across the north, the snow lit blue-white, the Fracture spire glowing
+			s.merge({"top": "#081640", "hor": "#5a7cc4", "fog": "#36508a", "fog_d": 0.0014, "sun": 1.0, "sun_col": "#c4d6ff", "sun_el": 22.0, "sun_az": 120.0,
+				"amb": 0.5, "amb_col": "#5870b0", "night": 0.55, "sat": 1.12, "exp": 1.0, "planet": false, "sky": "moon", "glow": "#4a7ad0", "glow_amt": 0.3,
+				"aurora": 1.0}, true)
 		"swamps":
 			# the Shrouded Swamps (owner's world board: bioluminescent wetlands, mangroves, the sunken temple, a High Risk
 			# Fracture Zone): a misty green twilight under the moon, standing water through the marsh, glowing fungi and
@@ -669,7 +676,13 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#0f2024", "hor": "#4a6e5a", "fog": "#34493f", "fog_d": 0.003, "sun": 0.95, "sun_col": "#c4dccf", "sun_el": 26.0, "sun_az": 60.0,
 				"amb": 1.0, "amb_col": "#4a6c62", "night": 0.7, "sat": 1.0, "exp": 1.45, "planet": false, "sky": "moon", "glow": "#3f8a6a", "glow_amt": 0.3,
 				"bog": 1.0}, true)
-		"veridan", "riverdale":
+		"veridan":
+			# the owner's Verdant Forest / Eldergrove boards (Nov 22, docs/reference/regions): a bright clear day, deep blue
+			# sky with big white cumulus, the sun high and warm, saturated greens, turquoise water
+			s.merge({"top": "#2f6fc4", "hor": "#cfe2ec", "fog": "#9ab6ae", "fog_d": 0.0016, "sun": 1.45, "sun_col": "#fff0d0", "sun_el": 40.0, "sun_az": 140.0,
+				"amb": 0.6, "amb_col": "#6a8a74", "sat": 1.22, "exp": 0.72, "sky": "day", "sky_set": {"cover": 0.42, "cloud_scale": 0.85},
+				"tint": Vector3(0.8, 1.0, 0.68)}, true)
+		"riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
 		"wastelands":
 			# the owner's "SUNSET - THE WASTELANDS" photo: the sun on the horizon, an orange sky under streaked cloud, red
@@ -677,10 +690,12 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#2e3f7a", "hor": "#f08a48", "fog": "#b8704a", "fog_d": 0.0014, "sun": 1.7, "sun_col": "#ffa45c", "sun_el": 8.0, "sun_az": 150.0,
 				"amb": 0.42, "sat": 1.05, "exp": 0.95, "planet": true, "sky": "sunset", "glow": "#ff7a30", "glow_amt": 0.35, "tint": Vector3(0.92, 0.7, 0.52)}, true)
 		"solara":
-			# the owner's "DAY - SOLARA" photo (Nov 18): a deep blue sky with white cloud over golden sand (it read as pale
-			# cream). A lower, warmer sun and less exposure keep the dunes' shading (the noon sun blew them out to white)
-			s.merge({"top": "#2c6cc0", "hor": "#bcd6ec", "fog": "#d9c6a2", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95,
-				"sky": "day", "tint": Vector3(1.0, 0.84, 0.64)}, true)
+			# the owner's Solmara boards (Nov 22, docs/reference/regions/solmara-*.jpg): late golden hour — the sun low
+			# over the dunes, a blue zenith over gold and coral cloud, orange sand and red rock in long shadow (the Nov 18
+			# "DAY - SOLARA" noon read pale next to the boards)
+			s.merge({"top": "#2d5aa8", "hor": "#ffc27a", "fog": "#d8925a", "fog_d": 0.0011, "sun": 1.6, "sun_col": "#ffb468", "sun_el": 13.0, "sun_az": 150.0,
+				"amb": 0.5, "amb_col": "#9a7a7a", "exp": 0.78, "sat": 1.15, "sky": "sunset", "sky_set": {"cover": 0.38, "cloud_lit": Color("#ffcf8a"), "cloud_dark": Color("#8a5a6a"), "streak": 0.5},
+				"glow": "#ff9a48", "glow_amt": 0.3, "tint": Vector3(1.0, 0.74, 0.5)}, true)
 		"storm":
 			# the board's floating islands under a storm at dusk: a heavy cloud deck, the low sun breaking warm along the
 			# horizon, the crystals glowing (Nov 18 pass: the region_sky storm deck with a warm horizon, lightning on)
