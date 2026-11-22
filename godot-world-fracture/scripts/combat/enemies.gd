@@ -13,6 +13,15 @@ const Sound := preload("res://scripts/audio/sound.gd")
 ##   marksman  Grid Marksman       cipher-robot   one hard shot, holds 30 m             hull 30
 ##   drone     Surveillance Drone  built          hovers at 4 m, weak zaps              hull 15
 ##
+## Fighting moves (Nov 22, owner: "enemy melee attacks and defensive behavior"): every hit carries poise; past the type's
+## `poise` the bot STAGGERS (stumbles, stops shooting — a finisher target), a big shove KNOCKS IT DOWN (it lies there, then
+## gets up). It flinches on lesser hits and falls when it dies (combat_clips.gd through the rig's action layer). The
+## Executor fights hand to hand: a telegraphed wind-up (its optics flare), then a chain of up to three swings, the last a
+## heavy; any trooper rifle-butts an operator who walks into arm's reach. Defence: scouts and marksmen side-step out of a
+## held crosshair or away from a live grenade (`evade`), elites BRACE behind their plating under sustained fire (frontal
+## bolts do 40%), Executors BLOCK a light swing (a heavy breaks the guard), and a gunner below 30% hull backs away to
+## recover its shield before it comes back in.
+##
 ## States: PATROL (walks its beat), ALERT (saw you: a beat before it moves), ENGAGE (holds its range and fires), DOWN
 ## (dead; stands again after RESPAWN seconds at its spawn). Sight is 40 m with a clear line past the scene's boxes.
 
@@ -20,13 +29,14 @@ const Player := preload("res://scripts/player/operator_player.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const Weapons := preload("res://scripts/combat/weapons.gd")
+const Clips := preload("res://scripts/character/combat_clips.gd")
 
 const TYPES := {
-	"scout": { "name": "Data Drone Scout", "frame": "cipher", "plating": "graphite", "optics": "cyan", "hull": 30.0, "range": 14.0, "speed": 0.75, "damage": 6.0, "cool": 1.4, "burst": 3, "spread": 0.05, "melee": false, "fly": 0.0, "weapon": "rifle.glb", "scale": 1.0 },
-	"elite": { "name": "Data Drone Elite", "frame": "goliath", "plating": "cobalt", "optics": "amber", "hull": 60.0, "range": 10.0, "speed": 0.55, "damage": 9.0, "cool": 1.8, "burst": 4, "spread": 0.07, "melee": false, "fly": 0.0, "weapon": "rifle-fusion.glb", "scale": 1.08, "shield": 30.0 },
-	"executor": { "name": "Executor", "frame": "nyx", "plating": "crimson", "optics": "red", "hull": 50.0, "range": 1.8, "speed": 1.0, "damage": 16.0, "cool": 1.1, "burst": 1, "spread": 0.0, "melee": true, "fly": 0.0, "weapon": "", "scale": 1.0 },
-	"marksman": { "name": "Grid Marksman", "frame": "cipher", "plating": "ivory", "optics": "violet", "hull": 30.0, "range": 30.0, "speed": 0.6, "damage": 28.0, "cool": 3.2, "burst": 1, "spread": 0.012, "melee": false, "fly": 0.0, "weapon": "rifle-sniper.glb", "scale": 1.0 },
-	"drone": { "name": "Surveillance Drone", "frame": "", "plating": "", "optics": "cyan", "hull": 15.0, "range": 9.0, "speed": 0.9, "damage": 3.0, "cool": 0.9, "burst": 2, "spread": 0.06, "melee": false, "fly": 4.0, "weapon": "", "scale": 1.0 },
+	"scout": { "name": "Data Drone Scout", "frame": "cipher", "plating": "graphite", "optics": "cyan", "hull": 30.0, "range": 14.0, "speed": 0.75, "damage": 6.0, "cool": 1.4, "burst": 3, "spread": 0.05, "melee": false, "fly": 0.0, "weapon": "rifle.glb", "scale": 1.0, "poise": 40.0, "evade": 0.35, "guard": "" },
+	"elite": { "name": "Data Drone Elite", "frame": "goliath", "plating": "cobalt", "optics": "amber", "hull": 60.0, "range": 10.0, "speed": 0.55, "damage": 9.0, "cool": 1.8, "burst": 4, "spread": 0.07, "melee": false, "fly": 0.0, "weapon": "rifle-fusion.glb", "scale": 1.08, "shield": 30.0, "poise": 110.0, "evade": 0.0, "guard": "brace" },
+	"executor": { "name": "Executor", "frame": "nyx", "plating": "crimson", "optics": "red", "hull": 50.0, "range": 1.8, "speed": 1.0, "damage": 16.0, "cool": 1.1, "burst": 1, "spread": 0.0, "melee": true, "fly": 0.0, "weapon": "", "scale": 1.0, "poise": 70.0, "evade": 0.25, "guard": "block", "combo": 3 },
+	"marksman": { "name": "Grid Marksman", "frame": "cipher", "plating": "ivory", "optics": "violet", "hull": 30.0, "range": 30.0, "speed": 0.6, "damage": 28.0, "cool": 3.2, "burst": 1, "spread": 0.012, "melee": false, "fly": 0.0, "weapon": "rifle-sniper.glb", "scale": 1.0, "poise": 35.0, "evade": 0.5, "guard": "" },
+	"drone": { "name": "Surveillance Drone", "frame": "", "plating": "", "optics": "cyan", "hull": 15.0, "range": 9.0, "speed": 0.9, "damage": 3.0, "cool": 0.9, "burst": 2, "spread": 0.06, "melee": false, "fly": 4.0, "weapon": "", "scale": 1.0, "poise": 25.0, "evade": 0.0, "guard": "" },
 }
 const SIGHT := 40.0
 const RESPAWN := 8.0
@@ -67,6 +77,20 @@ class Enemy:
 	var stuck := 0.0
 	var step_off := Vector2.ZERO
 	var step_t := 0.0
+	## fighting moves: poise built by hits, the stagger / knockdown left, the wind-up of a swing and the swings left in the
+	## chain, the brace, the side-step cooldown, the fall after death, the retreat, recent hits (for the brace)
+	var poise := 0.0
+	var stagger_t := 0.0
+	var floor_t := 0.0
+	var windup := 0.0
+	var swing_len := 0.0
+	var combo_left := 0
+	var brace_t := 0.0
+	var evade_cool := 0.0
+	var dying := 0.0
+	var retreat := 0.0
+	var recent_hits := 0.0
+	var guard_cool := 0.0
 
 var player: Node3D
 var gunplay: Node3D
@@ -154,6 +178,7 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 		var look := CharacterStore.clean({ "frame": e.def.frame, "body": "robot", "skin": e.def.plating, "eyes": e.def.optics })
 		e.mover.build(look)
 		e.mover.rig.scale = Vector3.ONE * float(e.def.scale)
+		e.mover.armed_pose = String(e.def.weapon) != ""
 		_arm(e)
 		if team >= 0:
 			e.team = team
@@ -236,12 +261,14 @@ func _drone_body(e: Enemy) -> void:
 
 func step(dt: float) -> void:
 	since_hit += dt
+	spawn_guard = maxf(0.0, spawn_guard - dt)
 	hurt = maxf(0.0, hurt - dt * 3.0)
 	if down > 0.0:
 		down -= dt
 		if down <= 0.0:
 			hull = hull_max
 			shield = shield_max
+			spawn_guard = SPAWN_GUARD
 	elif since_hit > SHIELD_DELAY and shield < shield_max:
 		shield = minf(shield_max, shield + SHIELD_RATE * dt)
 	elif since_hit > 4.0:
@@ -257,6 +284,11 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 	var m: Node3D = e.mover
 	if e.state == State.DOWN:
 		e.fell = true
+		if e.dying > 0.0:
+			# the body falls and lies a moment before it goes
+			e.dying -= dt
+			if e.dying <= 0.0:
+				m.visible = false
 		if e.stays_down:
 			return
 		if respawn_enabled:
@@ -269,11 +301,17 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 			e.target.down = 0.0
 			m.position = e.spawn
 			m.visible = true
+			_reset_moves(e)
 		return
 	if not e.target.alive():
 		e.state = State.DOWN
 		e.timer = RESPAWN
-		m.visible = false
+		if m.rig and m.rig.action and e.def.fly <= 0.0:
+			m.rig.act("death")
+			e.dying = 2.2
+			m.guard = false
+		else:
+			m.visible = false
 		var by: int = int(_last_hitter.get(e, OPERATOR_HIT))
 		var by_player := by == OPERATOR_HIT   # no bot hit it last: the operator's bolt did
 		if by_player:
@@ -284,6 +322,26 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 		bot_down.emit(e, by, by_player)
 		_last_hitter.erase(e)
 		return
+	# the hits it has taken: shoves, poise, staggers and knockdowns (combat_clips.gd moves)
+	_react(e, dt)
+	if e.stagger_t > 0.0 or e.floor_t > 0.0:
+		e.target.set_meta("staggered", true)
+		e.burst_left = 0
+		e.windup = 0.0
+		e.combo_left = 0
+		if e.floor_t > 0.0:
+			e.floor_t -= dt
+			if e.floor_t <= 0.0:
+				# back on its feet
+				if m.rig:
+					m.rig.act("get_up")
+				e.stagger_t = 0.85
+		else:
+			e.stagger_t -= dt
+		if e.def.fly <= 0.0:
+			m.step(dt, Vector2.ZERO, Vector2.ZERO, false, false)
+		return
+	e.target.set_meta("staggered", false)
 	# the hostile it fights: the operator (when on the other team) or the nearest bot of the other team
 	var foe: Variant = _foe(e)
 	var foe_pos: Vector3 = player.position if foe == null else (foe as Enemy).mover.position
@@ -296,6 +354,10 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 	var gr: Node = gunplay.get("grenades") if gunplay else null
 	if gr and not gr.live.is_empty() and (gr.in_smoke(foe_pos) or gr.in_smoke(m.position)):
 		sight = SIGHT * float(gr.SMOKE_SIGHT)
+	# NYX's Shadow Step (abilities.gd): the operator is unseen past arm's reach while it lasts
+	var cl: Node = gunplay.get("close") if gunplay else null
+	if foe == null and cl and cl.abilities and float(cl.abilities.cloaked) > 0.0:
+		sight = minf(sight, 2.5)
 	var sees := dist < sight and foe_up and _clear(m.position + Vector3(0, 1.4, 0), foe_pos + Vector3(0, 1.2, 0))
 	e.set_meta("foe", foe)
 	var move := Vector2.ZERO
@@ -326,12 +388,20 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 			_face(e, to_player)
 			var want: float = float(e.def.range)
 			var fwd := _toward(to_player)
+			_defend(e, dt, sees, dist, to_player)
 			if not sees and e.goal != null:
 				# nothing to shoot at: get to the objective
 				var dg: Vector3 = (e.goal as Vector3) - m.position
 				dg.y = 0.0
 				if dg.length() > 1.5:
 					move = _toward(dg) * 0.8
+			elif e.retreat > 0.0:
+				# hurt: back away (and let the shield come back) before coming in again
+				move = -fwd * 0.9
+				sprint = true
+			elif e.windup > 0.0:
+				# mid-swing: a short step in behind the blow
+				move = fwd * (0.35 if dist > 1.2 else 0.0)
 			elif dist > want + 1.5:
 				move = fwd * float(e.def.speed)
 				sprint = e.def.melee
@@ -344,14 +414,34 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 				if e.timer <= 0.0:
 					e.strafe = -e.strafe
 					e.timer = 1.5 + _rng.randf() * 2.0
-			if sees and e.cool <= 0.0 and dist <= want + 2.5:
+			if sees and e.cool <= 0.0 and dist <= want + 2.5 and e.windup <= 0.0 and e.retreat <= 0.0:
 				_attack(e, dist)
+			# an operator at arm's reach gets the rifle butt from a gunner
+			if sees and not e.def.melee and e.def.fly <= 0.0 and dist < 1.7 and e.windup <= 0.0 and e.swing_len <= 0.0 and e.cool <= 0.4:
+				_swing(e, 0, 10.0, true)
+				e.combo_left = 0
+				e.cool = maxf(e.cool, 1.6)
 	# stunned by a grenade (Concussion, Arc Chain, a Singularity's pull): it stands there and holds its fire
 	if e.target.stun > 0.0:
 		move = Vector2.ZERO
 		sprint = false
 		e.burst_left = 0
 		e.cool = maxf(e.cool, e.target.stun)
+	# a swing in flight: the wind-up runs out, the blow lands if the foe is still in reach, the chain carries on
+	if e.windup > 0.0:
+		e.windup -= dt
+		if e.windup <= 0.0:
+			var reach := float(e.def.range) + 0.9 if e.def.melee else 2.0
+			if dist <= reach and foe_up:
+				var k := int(e.get_meta("swing_k", 0))
+				var dmg := float(e.get_meta("swing_dmg", e.def.damage))
+				_damage_foe(e, dmg * (1.6 if k == 2 else 1.0), true)
+			Sound.sfx_at("swing", m.position, player.position, -8.0)
+	elif e.swing_len > 0.0:
+		e.swing_len -= dt
+		if e.swing_len <= 0.0 and e.combo_left > 0 and e.target.stun <= 0.0:
+			e.combo_left -= 1
+			_swing(e, int(e.get_meta("swing_k", 0)) + 1, float(e.def.damage), false)
 	# bursts in flight
 	if e.burst_left > 0:
 		e.burst_cool -= dt
@@ -446,6 +536,7 @@ func revive_all() -> void:
 			e.timer = 0.0
 			e.mover.position = e.spawn
 			e.mover.visible = true
+			_reset_moves(e)
 
 func alive_on(team: int) -> int:
 	var n := 0
@@ -476,8 +567,10 @@ func _attack(e: Enemy, dist: float) -> void:
 	e.cool = float(e.def.cool) * (0.8 + _rng.randf() * 0.4)
 	e.mover.combat_hold = 1.5
 	if e.def.melee:
-		if dist <= float(e.def.range) + 0.6:
-			_damage_foe(e, float(e.def.damage))
+		# a telegraphed chain: the optics flare, then up to `combo` swings, the last a heavy
+		e.combo_left = int(e.def.get("combo", 1)) - 1
+		_swing(e, 0, float(e.def.damage), true)
+		e.cool += e.swing_len + float(e.def.cool) * 1.5
 		return
 	e.burst_left = int(e.def.burst)
 	e.burst_cool = 0.0
@@ -515,20 +608,23 @@ func _shoot(e: Enemy) -> void:
 		_damage_foe(e, float(e.def.damage))
 
 ## the hit lands on whoever this bot is fighting
-func _damage_foe(e: Enemy, damage: float) -> void:
+func _damage_foe(e: Enemy, damage: float, melee := false) -> void:
 	var foe: Variant = e.get_meta("foe") if e.has_meta("foe") else null
 	if foe == null:
 		for o in enemies:
 			if o.has_meta("hit_operator"):
 				o.remove_meta("hit_operator")
 		e.set_meta("hit_operator", true)
-		_hit_operator(damage)
+		_hit_operator(damage, e.mover.position, melee, e)
 		return
 	var o := foe as Enemy
 	if o.has_meta("remote"):
 		remote_hit.emit(o, damage)
 		return
 	var res: Dictionary = o.target.take(damage)
+	if melee:
+		o.target.impact += damage * 1.5
+		o.target.knock += (o.mover.position - e.mover.position).normalized() * 1.5
 	if float(res.shield) > 0.0:
 		gunplay._shield_flash(o.target, bool(res.broke))
 	_wear_bot(o)
@@ -550,9 +646,16 @@ func burn(damage: float) -> void:
 		Sound.sfx("down", -2.0)
 		operator_down.emit()
 
-func _hit_operator(damage: float) -> void:
-	if down > 0.0:
+func _hit_operator(damage: float, src := Vector3.INF, melee := false, attacker: Variant = null) -> void:
+	if down > 0.0 or spawn_guard > 0.0:
 		return
+	# the dodge's i-frames, the guard and the parry take their share first (close_combat.gd)
+	var close: Node = gunplay.get("close") if gunplay else null
+	if close:
+		damage = close.incoming(damage, src, melee, attacker)
+		if damage <= 0.0:
+			return
+	_operator_flinch(damage, src, melee)
 	since_hit = 0.0
 	operator_hit.emit(damage)
 	var chest: Vector3 = player.position + Vector3(0, 1.2, 0)
@@ -588,9 +691,7 @@ func _on_target_hit(t: Gunplay.Target, _damage: float, head: bool) -> void:
 		var hit_e: Enemy = t.get_meta("enemy")
 		_last_hitter[hit_e] = OPERATOR_HIT
 		_wear_bot(hit_e)
-		# the hit reaction (asset catalog §5): a flinch — the body jolts back and recovers over a third of a second
-		hit_e.flinch = 0.35 if not head else 0.5
-		hit_e.flinch_dir = (hit_e.mover.position - player.position).normalized()
+		_defend_hit(hit_e, t, _damage, head)
 		if head:
 			_tally("headshot", 1)
 
@@ -661,3 +762,192 @@ func _wear_step(dt: float) -> void:
 			_spark_t = 0.35 + randf() * 0.5
 			var at: Vector3 = player.position + Vector3((randf() - 0.5) * 0.5, 0.9 + randf() * 0.7, (randf() - 0.5) * 0.5)
 			gunplay._dot(at, Color(1.0, 0.75, 0.3), 0.03, 0.35, Vector3(randf() - 0.5, 0.6, randf() - 0.5) * 2.5)
+
+# --------------------------------------------------------------------------------------------- fighting moves (Nov 22)
+## the operator stands up guarded for a moment after a respawn (no spawn kills); views set it as they respawn
+const SPAWN_GUARD := 2.0
+var spawn_guard := 0.0
+
+## what the bot does with the hits it took this frame: the shove slides it, poise builds; past its poise it staggers, a
+## heavy blow with a big shove knocks it down, anything less is a flinch
+func _react(e: Enemy, dt: float) -> void:
+	var t := e.target
+	var m: Node3D = e.mover
+	e.poise = maxf(0.0, e.poise - 12.0 * dt)
+	e.recent_hits = maxf(0.0, e.recent_hits - dt)
+	e.brace_t = maxf(0.0, e.brace_t - dt)
+	e.guard_cool = maxf(0.0, e.guard_cool - dt)
+	e.evade_cool = maxf(0.0, e.evade_cool - dt)
+	e.retreat = maxf(0.0, e.retreat - dt)
+	if e.def.fly <= 0.0:
+		m.guard = e.brace_t > 0.0
+	var shove := t.knock.length()
+	if shove > 0.01:
+		if e.def.fly <= 0.0:
+			m.knock(t.knock)
+		else:
+			m.position += t.knock * 0.15
+		t.knock = Vector3.ZERO
+	if t.impact <= 0.0:
+		return
+	e.poise += t.impact
+	var heavy := t.heavy
+	t.impact = 0.0
+	t.heavy = false
+	if e.def.fly > 0.0:
+		if e.poise >= float(e.def.poise):
+			e.poise = 0.0
+			t.stun = maxf(t.stun, 1.0)
+		return
+	if not m.rig or not m.rig.action:
+		return
+	if heavy and shove >= 5.0:
+		e.floor_t = 1.6
+		e.stagger_t = 0.0
+		e.poise = 0.0
+		m.rig.act("knockdown")
+		Sound.sfx_at("stagger", m.position, player.position, -6.0)
+	elif heavy or e.poise >= float(e.def.poise):
+		e.stagger_t = 0.9
+		e.poise = 0.0
+		m.rig.act("stagger")
+		Sound.sfx_at("stagger", m.position, player.position, -8.0)
+	elif not m.rig.action.busy():
+		# a flinch: away from the blow
+		var from_front := (player.position - m.position).dot(Vector3(sin(m.heading), 0, cos(m.heading))) > 0.0
+		m.rig.act("hit" if from_front else "hit_back")
+
+## a bolt or a blow landed (gunplay's hit signal): poise for the bolts (melee carries its own), the elite's brace and the
+## Executor's block
+func _defend_hit(e: Enemy, t: Gunplay.Target, damage: float, head: bool) -> void:
+	var melee := t.impact > 0.0
+	if not melee:
+		t.impact += damage * (1.2 if head else 0.5)
+	if not t.alive():
+		return
+	var front := (player.position - e.mover.position).dot(Vector3(sin(e.mover.heading), 0, cos(e.mover.heading))) > 0.0
+	match String(e.def.get("guard", "")):
+		"brace":
+			e.recent_hits += 1.0
+			if e.recent_hits >= 3.0 and e.brace_t <= 0.0 and e.guard_cool <= 0.0 and e.stagger_t <= 0.0:
+				e.brace_t = 1.8
+				e.guard_cool = 5.0
+			if e.brace_t > 0.0 and front and not melee:
+				# behind the plating: 60% of a frontal bolt comes back off
+				t.hp = minf(t.max_hp, t.hp + damage * 0.6)
+				t.impact *= 0.3
+				gunplay._dot(t.box.get_center() + (player.position - e.mover.position).normalized() * 0.4, Color(1.0, 0.8, 0.4, 0.6), 0.12, 0.12)
+		"block":
+			if melee and front and e.windup <= 0.0 and e.guard_cool <= 0.0 and e.stagger_t <= 0.0:
+				if t.heavy:
+					# a heavy blow breaks the guard: the stagger follows from the poise
+					t.impact += 200.0
+					e.guard_cool = 3.0
+				elif _rng.randf() < 0.45:
+					t.hp = minf(t.max_hp, t.hp + damage * 0.75)
+					t.impact *= 0.2
+					e.guard_cool = 2.5
+					blocks += 1
+					if e.mover.rig:
+						e.mover.rig.act("parry")
+					Sound.sfx_at("block", e.mover.position, player.position, -5.0)
+	# hurt: a gunner backs off once a life to recover
+	if not e.def.melee and t.hp < t.max_hp * 0.3 and not e.has_meta("retreated") and e.def.fly <= 0.0:
+		e.set_meta("retreated", true)
+		e.retreat = 3.0
+
+## the bots' defensive tallies (the tests): side-steps, blocks
+var evades := 0
+var blocks := 0
+
+## the side-step: a scout or marksman (or an Executor closing) steps out of a held crosshair or away from a live grenade
+func _defend(e: Enemy, _dt: float, sees: bool, dist: float, to_foe: Vector3) -> void:
+	if float(e.def.get("evade", 0.0)) <= 0.0 or e.evade_cool > 0.0 or not sees or e.def.fly > 0.0:
+		return
+	if e.windup > 0.0 or (e.mover.rig and e.mover.rig.action and e.mover.rig.action.busy()):
+		return
+	var threat := Vector3.INF
+	var cam: Camera3D = player.get("cam")
+	if cam and is_instance_valid(cam) and gunplay and float(gunplay.warm) < 0.3 and dist < 35.0:
+		var from := cam.global_position
+		var dir := -cam.global_transform.basis.z
+		var c := e.target.box.get_center()
+		var off := (c - from) - dir * (c - from).dot(dir)
+		if off.length() < 1.1:
+			threat = player.position
+	var gr: Node = gunplay.get("grenades") if gunplay else null
+	if threat == Vector3.INF and gr:
+		for g in gr.live:
+			if (g.pos as Vector3).distance_to(e.mover.position) < 5.0:
+				threat = g.pos
+				break
+	if threat == Vector3.INF:
+		e.evade_cool = 0.5
+		return
+	e.evade_cool = 3.5 + _rng.randf() * 2.0
+	if _rng.randf() >= float(e.def.evade):
+		return
+	var away := e.mover.position - threat
+	away.y = 0.0
+	var side := Vector3(-to_foe.z, 0, to_foe.x).normalized() * (1.0 if _rng.randf() < 0.5 else -1.0)
+	var dir2 := (side + away.normalized() * 0.4).normalized() if away.length() > 0.1 else side
+	e.mover.dodge(dir2, 3.4, 0.45, 0.2)
+	e.burst_left = 0
+	evades += 1
+
+## one swing of a chain (k 0..2) or a gunner's butt-strike: the clip, the wind-up to the blow (the first of a chain
+## telegraphed by a flare of the optics), then the recovery before the next
+func _swing(e: Enemy, k: int, dmg: float, telegraph: bool) -> void:
+	var m: Node3D = e.mover
+	var cls: String = m.rig.combat_class() if m.rig and m.rig.has_method("combat_class") else "nyx"
+	var name := "melee_%d" % (clampi(k, 0, 2) + 1)
+	var clip: Dictionary = Clips.variant(cls, name)
+	var len := float(clip.get("len", 0.5)) / Clips.speed_of(cls)
+	var hit_u := 0.5
+	for ev in clip.get("events", []):
+		if String(ev[1]) == "hit":
+			hit_u = float(ev[0])
+	var extra := 0.35 if telegraph else 0.0
+	e.windup = hit_u * len + extra
+	e.swing_len = len * (1.0 - hit_u) * 0.7 + 0.05
+	e.set_meta("swing_k", k)
+	e.set_meta("swing_dmg", dmg)
+	m.combat_hold = 1.5
+	if m.rig:
+		m.rig.act(name, len + extra)
+	if telegraph and m.rig:
+		var head: Vector3 = m.position + Vector3(0, 1.7 * float(e.def.scale), 0) + Vector3(sin(m.heading), 0, cos(m.heading)) * 0.15
+		gunplay._dot(head, Color(1.0, 0.15, 0.1), 0.14, 0.4)
+		gunplay._dot(head, Color(1.0, 0.5, 0.3, 0.5), 0.3, 0.25)
+
+## the operator's own reaction to a blow that got through: a flinch, a shove for a big one
+func _operator_flinch(damage: float, src: Vector3, melee: bool) -> void:
+	if not player or not player.rig or not player.rig.action:
+		return
+	if damage >= 8.0 and not player.rig.action.busy():
+		player.rig.act("hit")
+	if (damage >= 25.0 or melee) and src != Vector3.INF:
+		var away: Vector3 = player.position - src
+		away.y = 0.0
+		if away.length() > 0.05:
+			player.knock(away.normalized() * clampf(damage * 0.15, 1.5, 6.0))
+
+## a bot back from the dead stands clean
+func _reset_moves(e: Enemy) -> void:
+	e.poise = 0.0
+	e.stagger_t = 0.0
+	e.floor_t = 0.0
+	e.windup = 0.0
+	e.swing_len = 0.0
+	e.combo_left = 0
+	e.brace_t = 0.0
+	e.dying = 0.0
+	e.retreat = 0.0
+	if e.has_meta("retreated"):
+		e.remove_meta("retreated")
+	e.target.knock = Vector3.ZERO
+	e.target.impact = 0.0
+	e.target.heavy = false
+	if e.mover.rig and e.mover.rig.action:
+		e.mover.rig.action.stop(0.0)
+	e.mover.guard = false

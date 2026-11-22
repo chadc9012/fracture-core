@@ -26,6 +26,20 @@ var _next := false
 var _grenade := false
 var _cycle_grenade := false
 var _grapple := false
+## close combat (close_combat.gd): MELEE (tap / hold for the heavy), DODGE, BLOCK (held) — F / C or Ctrl / V on the desk
+var _melee := false
+var _melee_held := false
+var _dodge := false
+var _block_held := false
+var _melee_button: Button
+## the class's abilities (abilities.gd): three buttons wearing their names and readiness; 1 / 2 / 3 on the desk
+var _ability := -1
+var _ability_buttons: Array = []
+var _k1_was := false
+var _k2_was := false
+var _k3_was := false
+var _dodge_button: Button
+var _block_button: Button
 var _grenade_button: Button
 var _grapple_button: Button
 var _cycle_button: Button
@@ -198,6 +212,39 @@ func _ready() -> void:
 		bind(nx, func(): _next = true)
 		add_child(nx)
 		_swap_button = nx
+		var ml := _button("MELEE")
+		ml.custom_minimum_size = Vector2(110, 110)
+		ml.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		ml.position = Vector2(-380, -150)
+		ml.add_theme_color_override("font_color", Color(1.0, 0.8, 0.45))
+		bind(ml, func(): _melee = true; _melee_held = true, func(): _melee_held = false, func(rel: Vector2): look_delta += rel)
+		add_child(ml)
+		_melee_button = ml
+		var dg := _button("DODGE")
+		dg.custom_minimum_size = Vector2(104, 76)
+		dg.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		dg.position = Vector2(-500, -110)
+		dg.add_theme_color_override("font_color", Color(0.6, 0.95, 1.0))
+		bind(dg, func(): _dodge = true)
+		add_child(dg)
+		_dodge_button = dg
+		var bl := _button("BLOCK")
+		bl.custom_minimum_size = Vector2(110, 70)
+		bl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		bl.position = Vector2(-500, -200)
+		bind(bl, func(): _block_held = true, func(): _block_held = false, func(rel: Vector2): look_delta += rel)
+		add_child(bl)
+		_block_button = bl
+		for i in 3:
+			var ab := _button(["A1", "A2", "SUPER"][i])
+			ab.custom_minimum_size = Vector2(96, 60) if i < 2 else Vector2(110, 66)
+			ab.add_theme_font_size_override("font_size", 13)
+			ab.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+			ab.position = [Vector2(-500, -280), Vector2(-500, -350), Vector2(-380, -330)][i]
+			var idx := i
+			bind(ab, func(): _ability = idx)
+			add_child(ab)
+			_ability_buttons.append(ab)
 		var gb := _button("GRENADE")
 		gb.custom_minimum_size = Vector2(120, 64)
 		gb.add_theme_font_size_override("font_size", 16)
@@ -420,6 +467,13 @@ func set_mode(m: String) -> void:
 	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button, _grapple_button]:
 		if b:
 			b.visible = not drive and not fly and weapons_out and not simple()
+	# the close-combat buttons stay on the simple screen too (owner, Nov 21: melee, dodge on the phone's combat HUD)
+	for b in [_melee_button, _dodge_button, _block_button] + _ability_buttons:
+		if b:
+			b.visible = not drive and not fly and weapons_out
+	if drive or fly:
+		_melee_held = false
+		_block_held = false
 	var armed_drive := drive and armed_vehicle
 	if _cannon_button:
 		_cannon_button.visible = armed_drive
@@ -481,6 +535,53 @@ func take_grapple() -> bool:
 	var g := _grapple
 	_grapple = false
 	return g
+
+func take_ability() -> int:
+	var a := _ability
+	_ability = -1
+	return a
+
+## the ability read-out: each button wears its name and fills as it readies; on the desk a line under the grenade's
+var _ability_label: Label
+func show_abilities(list: Array) -> void:
+	for i in mini(list.size(), _ability_buttons.size()):
+		var b: Button = _ability_buttons[i]
+		var h: Dictionary = list[i]
+		var r := clampf(float(h.ready), 0.0, 1.0)
+		b.text = "%s\n%s" % [String(h.name).split(" ")[0], "READY" if r >= 1.0 else "%d%%" % int(r * 100.0)]
+		b.modulate = (h.color as Color).lerp(Color.WHITE, 0.35) if r >= 1.0 else Color(0.7, 0.7, 0.75, 0.75)
+	if touch_ui:
+		return
+	if not _ability_label:
+		_ability_label = Label.new()
+		_ability_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_ability_label.position = Vector2(20, 118)
+		_ability_label.add_theme_font_size_override("font_size", 13)
+		_ability_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		_ability_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_ability_label)
+	var parts: Array = []
+	for i in list.size():
+		var h2: Dictionary = list[i]
+		var r2 := clampf(float(h2.ready), 0.0, 1.0)
+		parts.append("%d %s %s" % [i + 1, String(h2.name), "●" if r2 >= 1.0 else "%d%%" % int(r2 * 100.0)])
+	_ability_label.text = "   ".join(parts) if mode == "foot" and weapons_out else ""
+
+func take_melee() -> bool:
+	var m := _melee
+	_melee = false
+	return m
+
+func melee_held() -> bool:
+	return _melee_held
+
+func take_dodge() -> bool:
+	var d := _dodge
+	_dodge = false
+	return d
+
+func block_held() -> bool:
+	return _block_held
 
 func take_grenade() -> bool:
 	var g := _grenade
@@ -627,10 +728,30 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_E) and not _e_was:
 		_enter = true
 	_e_was = Input.is_key_pressed(KEY_E)
-	if Input.is_key_pressed(KEY_F) and not _f_was:
-		_missiles = true
-	_f_was = Input.is_key_pressed(KEY_F)
+	var f_down := Input.is_key_pressed(KEY_F)
+	if f_down and not _f_was:
+		if mode == "foot":
+			_melee = true
+		else:
+			_missiles = true
+	_melee_held = f_down and mode == "foot"
+	_f_was = f_down
+	var dodge_down := Input.is_key_pressed(KEY_C) or Input.is_key_pressed(KEY_CTRL)
+	if dodge_down and not _c_was and mode == "foot":
+		_dodge = true
+	_c_was = dodge_down
+	_block_held = (Input.is_key_pressed(KEY_V) or _mouse4) and mode == "foot"
+	for ki in 3:
+		var down: bool = Input.is_key_pressed([KEY_1, KEY_2, KEY_3][ki])
+		var was: bool = [_k1_was, _k2_was, _k3_was][ki]
+		if down and not was and mode == "foot":
+			_ability = ki
+		if ki == 0: _k1_was = down
+		elif ki == 1: _k2_was = down
+		else: _k3_was = down
 var _e_was := false
+var _c_was := false
+var _mouse4 := false
 var _g_was := false
 var _j_was := false
 var _k_was := false

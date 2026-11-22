@@ -107,6 +107,51 @@ func _step_grapple(dt: float) -> void:
 	if grapple_t > 0.25 and moved < GRAPPLE_V * dt * 0.2 and absf(v.y) < 2.0:
 		_release_grapple()   # stuck on something before the anchor
 
+# ------------------------------------------------------------------------------------------ combat movement (Nov 22)
+## a dodge (close_combat.gd): the body is carried DODGE metres along `dodge_dir` over `dodge_t`, untouchable for the
+## first `iframes` seconds, the class's roll / flip / charge / blink clip playing; the stick is ignored meanwhile
+var dodge_t := 0.0
+var dodge_len := 0.0
+var dodge_dir := Vector3.ZERO
+var dodge_speed := 0.0
+var iframes := 0.0
+## knockback: a shove that slides the body and fades (a heavy hit, a blast, a boss slam)
+var knock_v := Vector3.ZERO
+## seconds the stick and jump are ignored (a stagger, a knockdown, a finisher, a heavy swing)
+var locked := 0.0
+## the guard is up (close_combat.gd): the block pose, and the body walks
+var guard := false
+## a gun in hand (gunplay sets it): the combat stance holds the gun at the ready
+var armed_pose := false
+## aiming down the sights: the tighter stance
+var sights := false
+var _air_t := 0.0
+
+func dodge(dir: Vector3, dist: float, seconds: float, inv: float) -> void:
+	dir.y = 0.0
+	if dir.length() < 0.1:
+		dir = -Vector3(sin(heading), 0, cos(heading))
+	dodge_dir = dir.normalized()
+	dodge_t = seconds
+	dodge_len = seconds
+	dodge_speed = dist / maxf(seconds, 0.05)
+	iframes = maxf(iframes, inv)
+	if rig and rig.has_method("act"):
+		# the variant from the dodge's direction in the body's own frame (x its right, y its front)
+		var fwd := Vector3(sin(heading), 0, cos(heading))
+		var right := Vector3(-cos(heading), 0, sin(heading))   # the body faces +Z with its left at +X
+		var local := Vector2(dodge_dir.dot(right), dodge_dir.dot(fwd))
+		rig.act(preload("res://scripts/character/combat_clips.gd").dodge_name(local), seconds)
+	if cam:
+		Sound.sfx("jump", -9.0, 0.1)
+
+func knock(v: Vector3) -> void:
+	v.y = 0.0
+	knock_v += v
+
+func dodging() -> bool:
+	return dodge_t > 0.0
+
 ## out in the city the operator is in their own clothes, urban streetwear (owner, Nov 10: "regular civilian clothing urban
 ## style"); the armour is for the fights (raids, PvP, Killbox, bosses, Mission 01 after the Fracture)
 var civilian := true
@@ -141,8 +186,26 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	var top := (SPRINT if sprint else RUN) if mag > 0.6 else WALK
 	var target := want.normalized() * top * mag if mag > 0.02 else Vector3.ZERO
 	var rate := ACCEL if mag > 0.02 else DECEL
+	if locked > 0.0:
+		locked = maxf(0.0, locked - dt)
+		target = Vector3.ZERO
+		jump = false
+	elif guard:
+		target = target.limit_length(WALK)
 	var flat := Vector3(velocity.x, 0, velocity.z).move_toward(target, rate * dt)
-	if combat_hold > 0.0 and not sprint:
+	iframes = maxf(0.0, iframes - dt)
+	if dodge_t > 0.0:
+		dodge_t = maxf(0.0, dodge_t - dt)
+		# the dodge carries the body: fast out, easing at the end
+		var k := clampf(dodge_t / maxf(dodge_len, 0.01), 0.0, 1.0)
+		flat = dodge_dir * dodge_speed * (0.55 + 0.9 * k)
+		jump = false
+	if knock_v.length() > 0.05:
+		flat += knock_v
+		knock_v = knock_v.move_toward(Vector3.ZERO, 14.0 * dt)
+	else:
+		knock_v = Vector3.ZERO
+	if (combat_hold > 0.0 and not sprint) or guard:
 		# in a fight the body faces where the camera looks and strafes, the way a shooter plays; it no longer turns to
 		# face the camera when the stick pulls back
 		heading = lerp_angle(heading, cam_yaw + PI, minf(1.0, TURN * dt))
@@ -163,6 +226,9 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	if grounded and jump:
 		y_vel = JUMP_V
 		grounded = false
+		_air_t = 0.0
+		if rig and rig.has_method("act") and not (rig.action and rig.action.busy()):
+			rig.act("jump")
 		if cam:
 			Sound.sfx("jump", -10.0)
 	if not grounded:
@@ -189,6 +255,16 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	velocity = Vector3(flat.x, y_vel, flat.z)
 	position = Vector3(nx, ny, nz)
 	# footsteps and the landing, for the operator the camera follows (walkers and bots share this mover, silently)
+	if not grounded:
+		_air_t += dt
+	if grounded and not was_grounded and rig and rig.action:
+		# the landing: a crouch that absorbs it after a real fall, a let-go of the jump pose after a hop
+		if rig.action.current() == "jump" or (_air_t > 0.45 and not rig.action.busy()):
+			if _air_t > 0.3:
+				rig.act("land")
+			else:
+				rig.action.stop()
+		_air_t = 0.0
 	if cam:
 		if grounded and not was_grounded and y_vel <= 0.0:
 			Sound.sfx("land", -8.0)
@@ -247,6 +323,19 @@ var idle_clip := "idle"
 func _animate(speed: float, sprint: bool) -> void:
 	if not rig or not rig.anim:
 		return
+	if rig.action:
+		# the held pose under the moves: the guard, the gun at the ready (or at the sights) in a fight, the sprint lean
+		var want := ""
+		if guard:
+			want = "block"
+		elif armed_pose and sights:
+			want = "aim_sights"
+		elif armed_pose and combat_hold > 0.0 and not (sprint and speed > RUN):
+			want = "aim"
+		elif sprint and speed > RUN * 0.9:
+			want = "sprint_lean"
+		if want != rig.action.stance_name():
+			rig.hold(want)
 	var clip := idle_clip if rig.anim.has_animation(idle_clip) else "idle"
 	if speed > 3.2:
 		clip = "run"

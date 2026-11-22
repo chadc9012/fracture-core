@@ -10,6 +10,8 @@ const Outfits := preload("res://scripts/character/outfits.gd")
 const HairBuilder := preload("res://scripts/character/hair_builder.gd")
 const StandIdle := preload("res://scripts/character/stand_idle.gd")
 const WorkIdle := preload("res://scripts/character/work_idle.gd")
+const ActionLayer := preload("res://scripts/character/action_layer.gd")
+const CombatClips := preload("res://scripts/character/combat_clips.gd")
 
 var look: Dictionary = {}
 var body_root: Node3D
@@ -18,6 +20,8 @@ var head_mesh: MeshInstance3D
 var hair_mesh: MeshInstance3D
 var _body_meshes: Array = []
 var anim: AnimationPlayer
+## the combat animation layer over the clips (action_layer.gd): swings, dodges, reloads, hits, deaths, the guard
+var action: Node
 ## where the head sits on this body (body skeleton space), for framing a camera
 var head_point := Vector3(0, 1.6, 0)
 
@@ -84,6 +88,9 @@ func build(new_look: Dictionary, animate := true) -> void:
 		anim.play("idle")
 	if not skeleton:
 		return
+	action = ActionLayer.new()
+	action.name = "ActionLayer"
+	skeleton.add_child(action)
 	var hb := _bone(skeleton, "Head")
 	_head_bone = hb
 	if hb >= 0:
@@ -93,6 +100,36 @@ func build(new_look: Dictionary, animate := true) -> void:
 	_attach_head(hb)
 	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
 		dress(String(look.get("outfit", "")))
+
+## the operator's class for the combat clips: goliath / nyx / cipher (robots and civilians fight as their frame)
+func combat_class() -> String:
+	var f := String(look.get("frame", "goliath"))
+	return f if CombatClips.CLASS.has(f) else "goliath"
+
+## plays a combat clip by name: the class's own, else the shared one; `seconds` stretches it (a reload to the gun's time)
+func act(name: String, seconds := -1.0) -> bool:
+	if not action:
+		return false
+	var cls := combat_class()
+	var clip: Dictionary = CombatClips.variant(cls, name)
+	if clip.is_empty():
+		return false
+	action.play(name, clip, CombatClips.speed_of(cls), seconds)
+	return true
+
+## the reload for a gun frame, stretched to its reload time
+func act_reload(frame: String, seconds: float) -> void:
+	if action:
+		action.play("reload", CombatClips.reload_for(frame), 1.0, seconds)
+
+## a held pose under the actions: "block", "aim", "aim_sights", "sprint_lean" or "" to let go
+func hold(name: String) -> void:
+	if not action:
+		return
+	if name == "":
+		action.stance("")
+		return
+	action.stance(name, CombatClips.variant(combat_class(), name))
 
 ## puts the civ body in an outfit (scripts/character/outfits.gd); the bare hands take the skin tone
 func dress(outfit_id: String) -> void:

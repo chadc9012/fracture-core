@@ -43,8 +43,23 @@ const BOSSES := {
 
 ## attack timings (s) and effects: telegraph before, cooldown after; damage in the operator's hull units (enemies.gd damage
 ## scale), `radius` for area hits, `bolts` for volleys
+## Patterns (Nov 22, owner: "boss combat patterns and stagger systems"): from OVERDRIVEN on, an attack chains straight
+## into its FOLLOW-up (every other attack in phase 2, every attack in phase 3), so the fight escalates from single reads
+## to two-move strings; the new SWEEP (a 200° swing — jump it or dodge through it), CHARGE (a run through you along a
+## telegraphed line) and SPIKES (circles erupt where you stood) give the six bosses their combos. A PARRY of a melee
+## attack (LUNGE, SWEEP, CHARGE) knocks PARRY_POISE into the poise bar, so timed counters are the fast way to a stagger;
+## a staggered boss can be finished (close_combat.gd), which ends the stagger early.
+const PARRY_POISE := 45.0
+const FOLLOW := { "LUNGE": "SWEEP", "SWEEP": "LUNGE", "VOLLEY": "SPIKES", "SPIKES": "VOLLEY", "SLAM": "CHARGE", "CHARGE": "SLAM", "BREATH": "SWEEP", "SUMMON": "VOLLEY" }
+## the attacks that can be parried (a swing or a body at arm's reach), the ones a jump clears (low and wide)
+const PARRYABLE := ["LUNGE", "SWEEP", "CHARGE"]
+const JUMPABLE := ["SWEEP", "SLAM"]
+
 const ATTACKS := {
 	"LUNGE": { "telegraph": 0.7, "cooldown": 1.6, "damage": 22.0, "radius": 3.2, "reach": 6.0 },
+	"SWEEP": { "telegraph": 0.8, "cooldown": 1.4, "damage": 26.0, "radius": 5.5, "reach": 5.0, "arc": 1.75 },
+	"CHARGE": { "telegraph": 1.0, "cooldown": 2.2, "damage": 30.0, "radius": 2.2, "reach": 16.0 },
+	"SPIKES": { "telegraph": 1.1, "cooldown": 2.0, "damage": 24.0, "radius": 2.6, "count": 3 },
 	"VOLLEY": { "telegraph": 0.9, "cooldown": 2.0, "damage": 9.0, "bolts": 5, "spread": 0.12 },
 	"SLAM": { "telegraph": 1.1, "cooldown": 2.6, "damage": 30.0, "radius": 9.0 },
 	"BREATH": { "telegraph": 1.0, "cooldown": 2.8, "damage": 6.0, "duration": 2.0, "cone": 0.5, "reach": 22.0 },
@@ -71,6 +86,10 @@ var dead := false
 ## events for the view, drained each frame: {"kind": "phase"|"stagger"|"recover"|"telegraph"|"attack"|"summon"|"dead", ...}
 var events: Array = []
 var summoned := 0
+## the attack chained in next (a phase combo), "" for none; tallies for the tests
+var chained := ""
+var chains := 0
+var parries := 0
 
 func _init(boss_id: String) -> void:
 	id = boss_id
@@ -140,10 +159,11 @@ func tick(dt: float, dist: float) -> void:
 				timer = 0.6
 				events.append({ "kind": "recover" })
 		Step.APPROACH:
-			var next: String = def.attacks[attack_i % (def.attacks as Array).size()]
+			var next: String = chained if chained != "" else def.attacks[attack_i % (def.attacks as Array).size()]
 			var reach: float = float(def.range) if next in ["VOLLEY", "BREATH", "SUMMON"] else float(ATTACKS[next].get("reach", def.range))
-			if dist <= reach or next == "SUMMON":
+			if dist <= reach or next in ["SUMMON", "SPIKES", "CHARGE"] or chained != "":
 				attack = next
+				chained = ""
 				step = Step.TELEGRAPH
 				timer = float(ATTACKS[attack].telegraph) / float(t.speed)
 				events.append({ "kind": "telegraph", "attack": attack, "seconds": timer })
@@ -153,7 +173,7 @@ func tick(dt: float, dist: float) -> void:
 				step = Step.ATTACK
 				attack_t = 0.0
 				var a: Dictionary = ATTACKS[attack]
-				events.append({ "kind": "attack", "attack": attack, "damage": float(a.damage) * float(t.damage), "radius": float(a.get("radius", 0.0)), "bolts": int(a.get("bolts", 0)), "reach": float(a.get("reach", def.range)), "cone": float(a.get("cone", 0.0)) })
+				events.append({ "kind": "attack", "attack": attack, "damage": float(a.damage) * float(t.damage), "radius": float(a.get("radius", 0.0)), "bolts": int(a.get("bolts", 0)), "reach": float(a.get("reach", def.range)), "cone": float(a.get("cone", 0.0)), "arc": float(a.get("arc", 0.0)), "count": int(a.get("count", 0)) })
 				if attack == "SUMMON":
 					var n := int(def.adds[1]) + phase
 					summoned += n
@@ -163,9 +183,16 @@ func tick(dt: float, dist: float) -> void:
 			attack_t += dt
 			timer -= dt
 			if timer <= 0.0:
-				step = Step.COOLDOWN
-				timer = float(ATTACKS[attack].cooldown) * float(t.cooldown)
 				attack_i += 1
+				step = Step.COOLDOWN
+				# the phase combo: OVERDRIVEN chains every other attack into its follow-up, OVERLOADED every one
+				var chain := phase >= 2 or (phase == 1 and attack_i % 2 == 1)
+				if chain and FOLLOW.has(attack) and attack != "SUMMON":
+					chained = String(FOLLOW[attack])
+					chains += 1
+					timer = 0.35
+				else:
+					timer = float(ATTACKS[attack].cooldown) * float(t.cooldown)
 		Step.COOLDOWN:
 			timer -= dt
 			if timer <= 0.0:
@@ -185,6 +212,27 @@ func drain() -> Array:
 	var out := events
 	events = []
 	return out
+
+## a parried melee attack (close_combat.gd): poise in a lump — a stagger comes quicker by counters than by gunfire
+func parried() -> void:
+	if dead or staggered() or clock < stagger_until + POISE_REFRACTORY:
+		return
+	parries += 1
+	poise += PARRY_POISE
+	if poise >= POISE_MAX:
+		poise = 0.0
+		stagger_until = clock + STAGGER
+		weak_until = clock + STAGGER
+		step = Step.STAGGERED
+		timer = STAGGER
+		chained = ""
+		events.append({ "kind": "stagger" })
+
+## a finisher landed on a staggered boss: the stagger ends early (the punish is spent)
+func finished_stagger() -> void:
+	if staggered():
+		stagger_until = clock + 0.6
+		timer = minf(timer, 0.6)
 
 func reward() -> Dictionary:
 	return { "nex": int(def.reward[0]), "xp": int(def.reward[1]) }

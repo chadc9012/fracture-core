@@ -667,3 +667,34 @@ Neon City alley at night (her jobs pay ×3 and add notoriety). The regions have 
 ## Distance LODs for the Meshy models
 
 `blender -b -P tools/make_lod.py -- models/buildings/<name>.glb 7000` writes `<name>-lod.glb` beside the model (a quarter of the triangles, no textures); `street_slice.gd prop()` draws the full model within 70 m and the LOD beyond, wearing the full model's materials. Rebuild a LOD after replacing its model. `tests/tools/prim_breakdown.gd -- neon|nexus` prints where a street's triangles come from.
+
+**Combat animations and close combat** (owner, Nov 21–22: "full GOLIATH, NYX and CIPHER character combat animations;
+running, jumping and dodging; weapon-specific reloads; enemy melee attacks and defensive behavior; boss combat patterns
+and stagger"). The bodies came with four clips, so the rest are authored as key poses on the shared Mixamo skeleton
+(`scripts/character/combat_clips.gd`, 54 clips) and played over the walk / run by a skeleton modifier
+(`action_layer.gd`, `rig.act()` / `rig.hold()`): per class a three-hit chain, a heavy, a finisher, a guard, four
+dodges and a cast — GOLIATH a brawler (straight, hook, two-fisted hammer; ground pound; lift-and-slam; crossed-forearm
+guard; shoulder charges), NYX a blade dancer (slashes, back-hand, spinning kick; lunging stab; leaping downward stab;
+forward roll, backflip, cartwheels), CIPHER an energy caster (palm strikes, double-palm push; charged palm with arc
+chain; palm-to-chest burst; blink-step glides) — and shared jump / air / land, sprint lean, flinch, stagger,
+knockdown, get-up, death, parry, the gun at the ready and at the sights. Every gun frame reloads its own way (rifle and
+SMG mag swap and charging handle, hand cannon mag and slide, shotgun shell by shell and the pump, sniper bolt-mag-bolt,
+LMG top cover and box, launcher loaded from behind, fusion cell swap), stretched to its reload time, the gun tilted
+with the hands. `scripts/combat/close_combat.gd` plays them: MELEE (tap the chain, hold the heavy, near a staggered or
+weak foe the finisher), DODGE (along the stick, i-frames), BLOCK (a guard meter; pressed just before a blow it is a
+parry and the next swing counters at ×2). Enemies stagger past their poise, get knocked down by heavies and fall when
+they die; the Executor telegraphs (its optics flare) and swings a three-hit chain, gunners rifle-butt you at arm's
+reach, scouts and marksmen side-step a held crosshair or a grenade, elites brace under fire, Executors block light
+swings, hurt gunners back off. Bosses chain attacks into follow-ups from phase 2 (every attack in phase 3), add
+SWEEP (jump or dodge it), CHARGE (a telegraphed line) and SPIKES (circles where you stood), take poise from parries and
+can be finished while staggered. Tests: `tests/combat/close_combat_test.gd`. Look-dev: `tests/tools/_combat_lineup.tscn`
+(poses in a row), `tests/tools/_combat_shots.tscn` (a scripted fight with the phone HUD).
+
+**Operator abilities** (`scripts/combat/abilities.gd`, owned by close_combat.gd): two abilities on cooldowns and a super
+filled by the damage you deal, per class, cast through the class's cast clip — GOLIATH BULWARK (a hard-light wall in the
+shared obstacles for 8 s) / SEISMIC SLAM (knocks down all round) / JUGGERNAUT (12 s: 70% less damage taken, melee ×2,
+shield refilled); NYX SHADOW STEP (blink 8 m, unseen past 2.5 m for 3 s) / PHANTOM BLADES (three seeking blades that
+mark) / BLADE DANCE (six dashes through the nearest foes, untouchable); CIPHER ARC SURGE (chains through four, stuns) /
+GRAVITY WELL (a field at the crosshair that pulls and holds) / RESONANCE BLAST (the charge and a 10 m blast). Phone: the
+three ability buttons (A1, A2, SUPER) wear their names and charge; desk: 1 / 2 / 3.
+

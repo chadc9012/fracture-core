@@ -34,6 +34,10 @@ var _killed := false
 var _anim: AnimationPlayer
 var toast: Callable = func(_t: String) -> void: pass
 var size := 3.0
+## the patterns' telegraphs (Nov 22): the CHARGE's line and the SPIKES' circles, fixed when the telegraph starts
+var _charge_dir := Vector3.ZERO
+var _spikes: Array = []
+var _marks: Array = []
 
 func setup(boss_id: String, at: Vector3, op: Node3D, g: Node3D, en: Node3D, ground: Callable) -> void:
 	rules = Boss.new(boss_id)
@@ -90,6 +94,7 @@ func setup(boss_id: String, at: Vector3, op: Node3D, g: Node3D, en: Node3D, grou
 	# the target box: the body's footprint
 	target = Gunplay.Target.new(AABB(at + Vector3(-size * 0.35, 0, -size * 0.35), Vector3(size * 0.7, size, size * 0.7)), rules.hull_max, body)
 	target.set_meta("blood", Color(0.7, 0.3, 1.0))   # Fracture creatures bleed violet
+	target.set_meta("boss", true)
 	gunplay.targets.append(target)
 	gunplay.hit.connect(_on_hit)
 
@@ -116,6 +121,13 @@ func _fit(hull: Node3D, wrap: Node3D, height: float) -> void:
 func _on_hit(t: Gunplay.Target, damage: float, head: bool) -> void:
 	if t != target or rules.dead:
 		return
+	# a finisher on the staggered body spends the stagger (close_combat.gd hands it poise 300)
+	var finisher := target.impact >= 300.0
+	target.impact = 0.0
+	target.knock = Vector3.ZERO
+	target.heavy = false
+	if finisher:
+		rules.finished_stagger()
 	# gunplay already took `damage` off the target's hp; the rules own the real hull, so put it back and apply theirs
 	target.hp = minf(target.max_hp, target.hp + damage)
 	var dealt := rules.hit(damage * (1.3 if head else 1.0))
@@ -147,6 +159,7 @@ func step(dt: float) -> void:
 		if not blocked:
 			position = np
 	position.y = float(ground_at.call(position.x, position.z))
+	target.set_meta("staggered", rules.staggered())
 	target.box = AABB(position + Vector3(-size * 0.35, 0, -size * 0.35), Vector3(size * 0.7, size, size * 0.7))
 	if _anim:
 		var clip := "walk" if sp > 0.5 and _anim.has_animation("walk") else "idle"
@@ -162,6 +175,7 @@ func step(dt: float) -> void:
 				var r: float = float(Boss.ATTACKS[e.attack].get("radius", float(rules.def.range) * 0.5))
 				(_ring.mesh as TorusMesh).inner_radius = maxf(0.5, r - 0.4)
 				(_ring.mesh as TorusMesh).outer_radius = r
+				_telegraph(String(e.attack), float(e.seconds))
 			"attack":
 				_ring.visible = false
 				_apply_attack(e, dist)
@@ -197,7 +211,7 @@ func step(dt: float) -> void:
 		var fwd := Vector3(sin(heading), 0, cos(heading))
 		var flat := to.normalized() if dist > 0.1 else fwd
 		if dist < float(_breath.reach) and fwd.dot(flat) > cos(float(_breath.cone)):
-			enemies._hit_operator(float(_breath.damage) * dt)
+			enemies._hit_operator(float(_breath.damage) * dt, position, false, self)
 		if int(Time.get_ticks_msec() / 90) % 2 == 0:
 			var tip := position + Vector3(0, size * 0.6, 0) + fwd * float(_breath.reach) * (0.4 + randf() * 0.6) + Vector3(randf() - 0.5, randf() * 0.5, randf() - 0.5) * 3.0
 			gunplay.tracer(position + Vector3(0, size * 0.6, 0) + fwd * size * 0.4, tip, Color(1.0, 0.45, 0.1))
@@ -228,11 +242,11 @@ func _apply_attack(e: Dictionary, dist: float) -> void:
 			if d > 0.1:
 				position += to.normalized() * minf(d - 1.0, float(e.reach) * 0.7)
 			if operator.position.distance_to(position) < float(e.radius) + size * 0.3:
-				enemies._hit_operator(dmg)
+				enemies._hit_operator(dmg, position, true, self)
 			gunplay.spark(position + Vector3(0, size * 0.4, 0), false)
 		"SLAM":
-			if dist < float(e.radius):
-				enemies._hit_operator(dmg * (1.0 - 0.5 * dist / float(e.radius)))
+			if dist < float(e.radius) and not _airborne():
+				enemies._hit_operator(dmg * (1.0 - 0.5 * dist / float(e.radius)), position, false, self)
 			# the shockwave ring
 			for i in 16:
 				var a := TAU * i / 16.0
@@ -247,12 +261,132 @@ func _apply_attack(e: Dictionary, dist: float) -> void:
 				var hit_op := _closest(from, from + dir * 60.0, aim) < 0.6
 				gunplay.tracer(from, aim + spread * 20.0 if hit_op else from + dir * 60.0, Color(0.8, 0.3, 1.0))
 				if hit_op:
-					enemies._hit_operator(dmg)
+					enemies._hit_operator(dmg, from, false, self)
 		"BREATH":
 			_breath = e
 			_breath_t = float(Boss.ATTACKS.BREATH.duration)
+		"SWEEP":
+			# a wide swing round the front: a jump clears it, a dodge's i-frames pass through it, a parry counters it
+			var to2 := operator.position - position
+			to2.y = 0.0
+			var fwd := Vector3(sin(heading), 0, cos(heading))
+			if to2.length() < float(e.radius) + size * 0.3 and (to2.length() < 1.0 or fwd.angle_to(to2) < float(e.arc) * 0.5) and not _airborne():
+				enemies._hit_operator(dmg, position, true, self)
+			for i in 11:
+				var a := heading - float(e.arc) * 0.5 + float(e.arc) * i / 10.0
+				gunplay.tracer(position + Vector3(0, size * 0.3, 0), position + Vector3(sin(a), 0.1, cos(a)) * (float(e.radius) + size * 0.3), Color(1.0, 0.35, 0.2))
+			Sound.sfx_at("swing_heavy", position, operator.position, -2.0)
+		"CHARGE":
+			# a run along the telegraphed line, through anything standing on it
+			var from := position
+			var dist2 := float(e.reach)
+			var step_v := _charge_dir * 0.5
+			var p := position
+			for i in int(dist2 / 0.5):
+				var np := p + step_v
+				var blocked := false
+				for b in obstacles:
+					if b.grow(size * 0.3).has_point(Vector3(np.x, b.position.y + 0.5, np.z)):
+						blocked = true
+						break
+				if blocked:
+					break
+				p = np
+			position = p
+			if _closest(from, p, operator.position) < float(e.radius) + size * 0.25:
+				enemies._hit_operator(dmg, from, true, self)
+				operator.knock(_charge_dir * 6.0)
+			gunplay.tracer(from + Vector3(0, 0.4, 0), p + Vector3(0, 0.4, 0), Color(1.0, 0.4, 0.2))
+			Sound.sfx_at("explosion_2", position, operator.position, -6.0)
+		"SPIKES":
+			# the circles laid at the telegraph erupt
+			for at in _spikes:
+				if Vector2(operator.position.x - at.x, operator.position.z - at.z).length() < float(e.radius):
+					enemies._hit_operator(dmg, at, false, self)
+				for k in 6:
+					gunplay.tracer(at, at + Vector3(randf() - 0.5, 2.5 + randf() * 1.5, randf() - 0.5), Color(0.8, 0.35, 1.0))
+				gunplay.debris(at + Vector3(0, 0.3, 0), Vector3(1.5, 0.6, 1.5), Color(0.55, 0.35, 0.75), 6)
+			_spikes.clear()
+			Sound.sfx_at("explosion_3", position, operator.position, -6.0)
+	_clear_marks()
 
 static func _closest(a: Vector3, b: Vector3, p: Vector3) -> float:
 	var ab := b - a
 	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 1e-6), 0.0, 1.0)
 	return (a + ab * t).distance_to(p)
+
+# ------------------------------------------------------------------------------------------ patterns (Nov 22)
+## a parried swing (close_combat.gd): poise in a lump, and the body reels
+func parried() -> void:
+	rules.parried()
+	body.rotation.x = -0.2
+	Sound.sfx_at("stagger", position, operator.position, -6.0)
+
+## the operator is off the ground high enough to clear a low sweep or a slam's shockwave
+func _airborne() -> bool:
+	return operator != null and not bool(operator.get("grounded")) and operator.position.y - float(ground_at.call(operator.position.x, operator.position.z)) > 0.45
+
+## the telegraph's marks: the CHARGE's line toward where the operator stands now, the SPIKES' circles under and around
+## them; both stay where they were laid (move off them), both fade when the attack lands
+func _telegraph(attack: String, _seconds: float) -> void:
+	_clear_marks()
+	match attack:
+		"CHARGE":
+			var to := operator.position - position
+			to.y = 0.0
+			_charge_dir = to.normalized() if to.length() > 0.1 else Vector3(sin(heading), 0, cos(heading))
+			heading = atan2(_charge_dir.x, _charge_dir.z)
+			var len := float(Boss.ATTACKS.CHARGE.reach)
+			_mark_line(position + Vector3(0, 0.12, 0), position + _charge_dir * len + Vector3(0, 0.12, 0), float(Boss.ATTACKS.CHARGE.radius))
+		"SPIKES":
+			_spikes.clear()
+			var n := int(Boss.ATTACKS.SPIKES.count) + rules.phase
+			for i in n:
+				var off := Vector3.ZERO if i == 0 else Vector3(cos(TAU * i / maxf(n - 1, 1)), 0, sin(TAU * i / maxf(n - 1, 1))) * 3.2
+				var at: Vector3 = operator.position + off
+				at.y = float(ground_at.call(at.x, at.z)) + 0.1
+				_spikes.append(at)
+				_mark_circle(at, float(Boss.ATTACKS.SPIKES.radius))
+
+func _mark_mat() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(1.0, 0.25, 0.15, 0.45)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.emission_enabled = true
+	m.emission = Color(1.0, 0.25, 0.15)
+	return m
+
+func _mark_circle(at: Vector3, r: float) -> void:
+	var mi := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = maxf(0.2, r - 0.25)
+	tm.outer_radius = r
+	mi.mesh = tm
+	mi.material_override = _mark_mat()
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	get_parent().add_child(mi)
+	mi.global_position = at
+	mi.scale = Vector3(1, 0.15, 1)
+	_marks.append(mi)
+
+func _mark_line(a: Vector3, b: Vector3, w: float) -> void:
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(w * 2.0, 0.04, a.distance_to(b))
+	mi.mesh = bm
+	mi.material_override = _mark_mat()
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	get_parent().add_child(mi)
+	mi.global_position = (a + b) * 0.5
+	mi.look_at(b, Vector3.UP)
+	_marks.append(mi)
+
+func _clear_marks() -> void:
+	for m in _marks:
+		if is_instance_valid(m):
+			m.queue_free()
+	_marks.clear()
+
+func _exit_tree() -> void:
+	_clear_marks()

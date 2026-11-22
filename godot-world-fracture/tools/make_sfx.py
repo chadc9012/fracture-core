@@ -248,6 +248,12 @@ SOUNDS = {
     # the grapple: a cable whip and a rising reel
     "grapple": lambda: finish(mix(0.6, (0, bp(noise(0.12), 1500, 7000) * env(0.12, 0.002, 0.05), 0.9), (0.05, sweep(0.5, 180, 720, 0.4) * 0.6, 0.7)), peak=0.8),
     "hit": lambda: finish(hit(), peak=0.8),
+    # close combat (Nov 22): a swing's whoosh, the heavy's longer one, a fist / blade landing, the guard taking a blow, the parry's ring
+    "swing": lambda: finish(bp(noise(0.22), 500, 4200) * env(0.22, 0.06, 0.08) * 0.9, peak=0.6),
+    "swing_heavy": lambda: finish(mix(0.4, (0, bp(noise(0.4), 250, 2200) * env(0.4, 0.14, 0.12), 1.0), (0.1, lp(noise(0.3), 300) * env(0.3, 0.05, 0.1), 0.6)), peak=0.7),
+    "punch": lambda: finish(mix(0.25, (0, lp(noise(0.25), 900) * env(0.25, 0.002, 0.05), 1.0), (0, sweep(0.25, 160, 55, 0.08), 1.2), (0, hit(0.12), 0.5)), peak=0.85, drive=1.8),
+    "block": lambda: finish(mix(0.3, (0, metal(420, 0.3, 0.06), 0.7), (0, lp(noise(0.3), 1200) * env(0.3, 0.002, 0.05), 0.8)), peak=0.75),
+    "parry": lambda: finish(mix(0.9, (0, metal(1250, 0.9, 0.35), 0.9), (0, metal(1870, 0.9, 0.25), 0.6), (0, bp(noise(0.9), 3000, 9000) * env(0.9, 0.001, 0.04), 0.7)), peak=0.85),
     "headshot": lambda: finish(hit(0.3, ping=0.6), peak=0.85),
     "reload": lambda: finish(reload(), peak=0.75, drive=1.2),
     "dry": lambda: finish(dry(), peak=0.6),

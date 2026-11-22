@@ -11,6 +11,7 @@ const Sound := preload("res://scripts/audio/sound.gd")
 const SHOT_CUES := { "AUTO": "rifle", "SNIPER": "sniper", "FUSION": "fusion", "SMG": "smg", "SHOTGUN": "shotgun", "SIDEARM": "sidearm", "LMG": "lmg", "HEAVY": "heavy" }
 const Weapons := preload("res://scripts/combat/weapons.gd")
 const Grenades := preload("res://scripts/combat/grenades.gd")
+const CloseCombat := preload("res://scripts/combat/close_combat.gd")
 ## Tracer's mark: a marked Target takes this much more from every bolt and grenade
 const MARK_MULT := 1.33
 const MODELS := "res://models/weapons/"
@@ -30,6 +31,11 @@ class Target:
 	## Operator grenades (grenades.gd): seconds stunned (a bot holds still and holds fire) and marked (takes +33% damage)
 	var stun := 0.0
 	var mark := 0.0
+	## hit reactions (close_combat.gd, Nov 22): the shove and the poise damage of the last hits, consumed by whoever moves
+	## the body (enemies.gd staggers, knocks down or flinches by them); `heavy` marks a guard-breaking blow
+	var knock := Vector3.ZERO
+	var impact := 0.0
+	var heavy := false
 	func _init(b: AABB, h: float, n: Node3D = null) -> void:
 		box = b; hp = h; max_hp = h; node = n
 	func alive() -> bool:
@@ -62,6 +68,8 @@ var player: Node3D            # operator_player.gd
 ## the Operator's grenades (grenades.gd), stepped here so every combat view has them; `roster` is enemies.gd (set by its
 ## setup) for the operator's hull, which the Rift Well heals
 var grenades: Node3D
+## melee, dodge, block and parry (close_combat.gd), stepped here so every combat view has them with no wiring
+var close: Node3D
 var roster: Node = null
 ## off while unarmed (holstered) or in a view that wants no grenades
 var grenades_on := true
@@ -113,6 +121,9 @@ func setup(p: Node3D, boxes: Array[AABB]) -> void:
 	grenades = Grenades.new()
 	add_child(grenades)
 	grenades.setup(self)
+	close = CloseCombat.new()
+	add_child(close)
+	close.setup(self)
 	hit.connect(_hit_feedback)
 	killed.connect(func(t: Target) -> void:
 		if not (t.has_meta("cover_box") or t.has_meta("prop")):
@@ -211,6 +222,13 @@ func _pull_aim(dt: float, cam: Camera3D) -> void:
 func _point_gun(cam: Camera3D) -> void:
 	if not _held or not _hand or holstered or not cam or not is_instance_valid(cam):
 		return
+	# a swing, a dodge or a fall: the gun in hand goes out of sight (Destiny's melee does the same), back when it ends
+	var stow: bool = (close != null and close.phase != "") or (player != null and player.has_method("dodging") and player.dodging()) or (roster != null and float(roster.down) > 0.0)
+	var lm0: Node3D = _models.get(gun().frame)
+	if lm0:
+		lm0.visible = not stow
+	if stow:
+		return
 	var at := _hand.global_position
 	var dir := aim_point(cam) - at
 	if dir.length() < 0.5:
@@ -218,7 +236,16 @@ func _point_gun(cam: Camera3D) -> void:
 	dir = dir.normalized()
 	if absf(dir.y) > 0.98:
 		return
-	_held.global_transform = Transform3D(Basis.looking_at(-dir, Vector3.UP), at)
+	var b := Basis.looking_at(-dir, Vector3.UP)
+	var g := gun()
+	if g.reloading > 0.0:
+		# the reload tilt: the gun rolls onto its side and dips (the LMG lifts) while the hands work, out and back in
+		var u := 1.0 - g.reloading / maxf(float(g.def().reload), 0.01)
+		var w := smoothstep(0.0, 0.15, u) * (1.0 - smoothstep(0.85, 1.0, u))
+		var pitch := (-0.35 if g.frame == "LMG" else (0.2 if g.frame == "SIDEARM" else 0.45)) * w
+		var roll := (0.15 if g.frame in ["HEAVY", "LMG"] else 0.7) * w
+		b = b * Basis(Vector3(0, 0, 1), roll) * Basis(Vector3(1, 0, 0), pitch)
+	_held.global_transform = Transform3D(b, at)
 	# the laser on the gun in hand reaches to where it points, while the gun is in the fight
 	var lm: Node3D = _models.get(gun().frame)
 	if lm and lm.has_meta("laser"):
@@ -284,6 +311,8 @@ func set_loadout(list: Array) -> void:
 	_show_current()
 
 func next_weapon() -> void:
+	if player and player.rig and player.rig.action and player.rig.action.current() == "reload":
+		player.rig.action.stop()
 	current = (current + 1) % guns.size()
 	_show_current()
 
@@ -340,6 +369,8 @@ func aim_point(cam: Camera3D) -> Vector3:
 
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
+	if player and "armed_pose" in player:
+		player.armed_pose = not holstered
 	if trigger and assist_deg > 0.0 and not holstered:
 		_pull_aim(dt, cam)
 	_point_gun(cam)
@@ -356,15 +387,22 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 			t.shield = minf(t.shield_max, t.shield + SHIELD_RATE * dt)
 	var was_reloading := gun().reloading > 0.0
 	var empty_before := gun().mag <= 0
+	if close and close.busy():
+		trigger = false     # a swing, a dodge or the guard holds the trigger
 	var n := gun().step(dt, trigger)
 	if trigger and empty_before and not was_reloading and gun().reloading > 0.0:
 		Sound.sfx("dry", -6.0)
 		Sound.sfx("reload", -4.0)
 	if not was_reloading and gun().reloading > 0.0:
 		_drop_mag()
+		# the gun's own reload on the body (combat_clips.gd RELOADS), stretched to its reload time
+		if player and player.rig and player.rig.has_method("act_reload") and not (player.rig.action and player.rig.action.busy() and player.rig.action.current() != "reload"):
+			player.rig.act_reload(gun().frame, float(gun().def().reload))
 	_place_holsters()
 	_step_grenades(dt, cam)
 	_step_grapple(cam)
+	if close:
+		close.step(dt, cam)
 	for i in n:
 		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
 		_muzzle_flash(cam)
@@ -575,6 +613,31 @@ func grenade_hit(t: Target, dmg: float, at: Vector3) -> void:
 	if float(res.shield) > 0.0:
 		_shield_flash(t, bool(res.broke))
 	hit.emit(t, dmg, false)
+	if t.hp <= 0.0:
+		t.hp = 0.0
+		t.down = 5.0
+		if t.node:
+			t.node.visible = false
+		kills += 1
+		Sound.sfx_at("down", at, player.position if player else at, -4.0)
+		scavenge()
+		killed.emit(t)
+
+## a melee blow (close_combat.gd): the same hit / killed path as a bolt, plus the shove and the poise it carries
+func melee_hit(t: Target, dmg: float, at: Vector3, knock_v: Vector3, poise: float, heavy_blow := false, energy := false) -> void:
+	if not t.alive():
+		return
+	dmg *= MARK_MULT if t.mark > 0.0 else 1.0
+	var res: Dictionary = t.take(dmg, energy)
+	if float(res.shield) > 0.0:
+		_shield_flash(t, bool(res.broke))
+	t.knock += knock_v
+	t.impact += poise
+	t.heavy = t.heavy or heavy_blow
+	hits_landed += 1
+	hit.emit(t, dmg, false)
+	spark(at, true, Color(t.get_meta("blood", Color(0.85, 0.1, 0.08))))
+	Sound.sfx_at("hit", at, player.position if player else at, -2.0)
 	if t.hp <= 0.0:
 		t.hp = 0.0
 		t.down = 5.0
