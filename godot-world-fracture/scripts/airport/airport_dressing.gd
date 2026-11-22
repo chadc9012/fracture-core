@@ -983,6 +983,7 @@ func _city_backdrop() -> void:
 		m.rotation.y = rng.randf_range(0, TAU)
 		var sc: float = spots[i][1]
 		m.scale = Vector3(sc, sc, sc)
+		m.set_meta("skyline", true)
 		v.static_root.add_child(m)
 		var low := INF
 		for c in m.find_children("*", "MeshInstance3D", true, false):
@@ -991,6 +992,11 @@ func _city_backdrop() -> void:
 			low = minf(low, b.position.y)
 		if low < INF:
 			m.position.y -= low
+	# glaze every skyline tower: the models' pale concrete washed out across the field (Nov 21, the owner: "Fix")
+	var glazed := {}
+	for m2 in v.static_root.get_children():
+		if m2 is Node3D and m2.has_meta("skyline"):
+			_glaze(m2, glazed)
 	# the hills behind, hazed blue by distance (no snow: the Nexus sheet's are green-grey, soft)
 	var hill: Material = v._mat(Color(0.36, 0.44, 0.52) if style == "nexus" else Color(0.16, 0.12, 0.24), 0.95)
 	for k in 11:
@@ -1055,3 +1061,37 @@ func _apron_kit() -> void:
 				v._box(Vector3(1.6, 1.5, 1.5), q + Vector3(0, 1.3, 0), uld)
 				v._box(Vector3(1.62, 0.08, 1.52), q + Vector3(0, 1.0, 0), v._mat(v.accent.darkened(0.2), 0.5))
 		v.obstacles.append(AABB(base - Vector3(1.2, 0, 0.9), Vector3(12.0, 2.1, 1.8)))
+
+## a tower's surfaces as the boards' glass city: darker, blue-grey, a glassy sheen that catches the sky; Neon's darker
+## still and violet. Materials are shared, so each original is glazed once (`done` maps old -> new).
+func _glaze(n: Node, done: Dictionary) -> void:
+	var tint := Color(0.4, 0.5, 0.66) if style == "nexus" else Color(0.3, 0.24, 0.44)
+	# the glaze goes into a copy of each mesh (StaticBatch folds meshes by their own surface materials, so an override
+	# on the instance was lost when the field was batched)
+	for c in n.find_children("*", "MeshInstance3D", true, false):
+		var mi := c as MeshInstance3D
+		if not (mi.mesh is ArrayMesh):
+			continue
+		if not done.has(mi.mesh):
+			var am: ArrayMesh = (mi.mesh as ArrayMesh).duplicate()
+			for i in am.get_surface_count():
+				var src: Material = am.surface_get_material(i)
+				if not (src is BaseMaterial3D):
+					continue
+				if not done.has(src):
+					var g: BaseMaterial3D = (src as BaseMaterial3D).duplicate()
+					g.albedo_color = g.albedo_color * tint
+					# the models come fully metallic (1.0): a mirror of the pale sky at this distance, which is what read
+					# washed out; dark tinted glass is a low-metal, fairly smooth dielectric
+					g.roughness = 0.3
+					g.metallic = 0.3
+					g.metallic_specular = 0.45
+					# the day haze lifted them to near-white at 700–1000 m; they keep their own haze-free tone (the hills behind
+					# still fade), which is how a skyline reads against the sky
+					g.disable_fog = true
+					done[src] = g
+				am.surface_set_material(i, done[src])
+			done[mi.mesh] = am
+		mi.mesh = done[mi.mesh]
+		for i in mi.get_surface_override_material_count():
+			mi.set_surface_override_material(i, null)

@@ -1959,6 +1959,7 @@ func _skyline() -> void:
 		m.rotation.y = rng.randf_range(0, TAU)
 		var s := rng.randf_range(2.6, 3.4)
 		m.scale = Vector3(s, s, s)     # its own proportions (the stretched ones read as boxes, Nov 18)
+		m.set_meta("skyline", true)    # airport_dressing.gd glazes it
 		static_root.add_child(m)
 		# stand it on the ground whatever the model's origin
 		var low := INF
