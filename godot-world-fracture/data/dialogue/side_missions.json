@@ -1,0 +1,3127 @@
+{
+ "version": 1,
+ "source": "tools/campaign/side/*.py (character quests, faction missions, world events)",
+ "bosses": {
+  "iron-brute": "colossus",
+  "mangrove-stalker": "rift-hound"
+ },
+ "missions": [
+  {
+   "id": "C01",
+   "title": "The Boy from the Bus",
+   "giver": "DANIEL",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "06",
+   "beat": "Daniel's father needs medicine the evacuation centre ran out of",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC01A",
+     "title": "A Drawing",
+     "location": "EXT. HAVEN-01 — THE TENTS",
+     "kind": "talk",
+     "who": "DANIEL",
+     "start": "nexus-harbor",
+     "label": "Find Daniel in the tents",
+     "open": [
+      "SC01_001",
+      "SC01_002"
+     ],
+     "close": [
+      "SC01_003",
+      "SC01_004",
+      "SC01_005",
+      "SC01_006",
+      "SC01_007",
+      "SC01_008",
+      "SC01_009"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC01B",
+     "title": "The Old Pharmacy",
+     "location": "INT. EASTERN BLOCKS — THE PHARMACY",
+     "kind": "kills",
+     "amount": 6,
+     "label": "Clear the pharmacy",
+     "open": [
+      "SC01_010"
+     ],
+     "close": [
+      "SC01_011"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC01C",
+     "title": "Delivered",
+     "location": "EXT. HAVEN-01 — THE TENTS",
+     "kind": "talk",
+     "who": "DANIEL",
+     "to": "nexus-harbor",
+     "label": "Bring the medicine to Daniel",
+     "open": [],
+     "close": [
+      "SC01_012",
+      "SC01_013",
+      "SC01_014",
+      "SC01_015"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "C02",
+   "title": "Old Funerals",
+   "giver": "VOSS",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "13",
+   "beat": "Voss goes to the graves of the men he buried twice",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC02A",
+     "title": "Two Names",
+     "location": "INT. FRONTIER DEFENSE HEADQUARTERS",
+     "kind": "talk",
+     "who": "VOSS",
+     "to": "nexus-bastion",
+     "start": "nexus-bastion",
+     "label": "Find Voss",
+     "open": [],
+     "close": [
+      "SC02_001",
+      "SC02_002",
+      "SC02_003"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC02B",
+     "title": "Veterans' Hill",
+     "location": "EXT. NEXUS — VETERANS' HILL",
+     "kind": "reach",
+     "label": "Walk Voss to the hill",
+     "open": [
+      "SC02_004"
+     ],
+     "close": [
+      "SC02_005"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC02C",
+     "title": "Mourners",
+     "location": "EXT. VETERANS' HILL",
+     "kind": "kills",
+     "amount": 7,
+     "label": "Fight off the Executors who followed you",
+     "open": [
+      "SC02_006",
+      "SC02_007"
+     ],
+     "close": [
+      "SC02_008",
+      "SC02_009",
+      "SC02_010"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "C03",
+   "title": "Fuel Run",
+   "giver": "KAEL",
+   "region": "The Wastelands",
+   "world": "wastelands",
+   "after": "09",
+   "beat": "Kael's monthly run to the Underground, and why he never misses one",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC03A",
+     "title": "Every Month",
+     "location": "EXT. THE WASTELANDS — THE TRADER'S POST",
+     "kind": "talk",
+     "who": "KAEL",
+     "start": "waste-trader",
+     "label": "Meet Kael at the trader's post",
+     "open": [],
+     "close": [
+      "SC03_001",
+      "SC03_002",
+      "SC03_003"
+     ],
+     "stage": "wasteland"
+    },
+    {
+     "id": "SC03B",
+     "title": "The Highway",
+     "location": "EXT. THE OLD HIGHWAY",
+     "kind": "drive",
+     "to": "vault-gate",
+     "label": "Drive the fuel to the vault gate",
+     "open": [
+      "SC03_004"
+     ],
+     "close": [
+      "SC03_005",
+      "SC03_006",
+      "SC03_007"
+     ],
+     "stage": "wasteland"
+    }
+   ]
+  },
+  {
+   "id": "C04",
+   "title": "Corner of Your Eye",
+   "giver": "NYX",
+   "region": "Verdant Forest — Eldergrove",
+   "world": "eldergrove",
+   "after": "12",
+   "beat": "Nyx hunts the Collector who killed her teacher",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC04A",
+     "title": "The Ranger Who Taught Me",
+     "location": "EXT. ELDERGROVE — THE RANGER STATION",
+     "kind": "talk",
+     "who": "NYX",
+     "start": "eg-ranger",
+     "label": "Find Nyx at the ranger station",
+     "open": [],
+     "close": [
+      "SC04_001",
+      "SC04_002",
+      "SC04_003"
+     ],
+     "stage": "forest"
+    },
+    {
+     "id": "SC04B",
+     "title": "Tracks",
+     "location": "EXT. ELDERGROVE — THE STONES TRAIL",
+     "kind": "trace",
+     "label": "Follow the limping tracks",
+     "open": [
+      "SC04_004"
+     ],
+     "close": [],
+     "stage": "forest"
+    },
+    {
+     "id": "SC04C",
+     "title": "The Limping Man",
+     "location": "EXT. ELDERGROVE — THE LAKE",
+     "kind": "kills",
+     "amount": 5,
+     "to": "eg-lake",
+     "label": "Corner the Collector",
+     "open": [
+      "SC04_005"
+     ],
+     "close": [
+      "SC04_006",
+      "SC04_007",
+      "SC04_008"
+     ],
+     "stage": "forest"
+    }
+   ]
+  },
+  {
+   "id": "C05",
+   "title": "Sitting Down",
+   "giver": "GOLIATH",
+   "region": "Goldenreach",
+   "world": "goldenreach",
+   "after": "14",
+   "beat": "Goliath goes home to the farm he hasn't seen since the Fracture",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC05A",
+     "title": "Home",
+     "location": "EXT. GOLDENREACH — THE FARM",
+     "kind": "talk",
+     "who": "MRS. REYES",
+     "start": "gf-village",
+     "to": "gf-farm",
+     "label": "Drive Goliath to the farm",
+     "open": [
+      "SC05_001",
+      "SC05_002"
+     ],
+     "close": [
+      "SC05_003",
+      "SC05_004",
+      "SC05_005",
+      "SC05_006"
+     ],
+     "stage": "camp"
+    },
+    {
+     "id": "SC05B",
+     "title": "The Goat Thief",
+     "location": "EXT. GOLDENREACH — THE ORCHARDS",
+     "kind": "kills",
+     "amount": 6,
+     "to": "gf-orchards",
+     "label": "Clear the orchard of what's eating the goats",
+     "open": [
+      "SC05_007"
+     ],
+     "close": [
+      "SC05_008",
+      "SC05_009",
+      "SC05_010",
+      "SC05_011"
+     ],
+     "stage": "camp"
+    }
+   ]
+  },
+  {
+   "id": "C06",
+   "title": "Severance",
+   "giver": "CIPHER",
+   "region": "Neon City",
+   "world": "neon-city",
+   "after": "40",
+   "beat": "Cipher takes Tallis's things home to their mother",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC06A",
+     "title": "A Box",
+     "location": "EXT. NEON CITY — THE OLD BLOCKS",
+     "kind": "drive",
+     "to": "neon-underground",
+     "start": "terminal:neon",
+     "label": "Drive Cipher across Neon City",
+     "open": [
+      "SC06_001",
+      "SC06_002",
+      "SC06_003"
+     ],
+     "close": [],
+     "stage": "neon_street"
+    },
+    {
+     "id": "SC06B",
+     "title": "The Door",
+     "location": "INT. A NEON CITY APARTMENT",
+     "kind": "talk",
+     "who": "ANNA VOLK",
+     "label": "Knock on the door",
+     "open": [],
+     "close": [
+      "SC06_004",
+      "SC06_005",
+      "SC06_006",
+      "SC06_007",
+      "SC06_008",
+      "SC06_009"
+     ],
+     "stage": "neon_street"
+    }
+   ]
+  },
+  {
+   "id": "C07",
+   "title": "River Song",
+   "giver": "ILYRA SEN",
+   "region": "Verdant Forest — Eldergrove",
+   "world": "eldergrove",
+   "after": "12",
+   "beat": "Ilyra looks for the river in her oldest song",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC07A",
+     "title": "The Song",
+     "location": "EXT. ELDERGROVE FALLS",
+     "kind": "talk",
+     "who": "ILYRA SEN",
+     "start": "eg-falls",
+     "label": "Sit with Ilyra at the falls",
+     "open": [],
+     "close": [
+      "SC07_001",
+      "SC07_002",
+      "SC07_003"
+     ],
+     "stage": "forest"
+    },
+    {
+     "id": "SC07B",
+     "title": "Upstream",
+     "location": "EXT. ELDERGROVE — THE LAKE",
+     "kind": "reach",
+     "to": "eg-lake",
+     "label": "Follow the water up to the lake",
+     "open": [
+      "SC07_004",
+      "SC07_005"
+     ],
+     "close": [
+      "SC07_006",
+      "SC07_007",
+      "SC07_008"
+     ],
+     "stage": "forest"
+    }
+   ]
+  },
+  {
+   "id": "C08",
+   "title": "Roads Nobody Built",
+   "giver": "AUREN THALE",
+   "region": "Solmara Desert",
+   "world": "solara",
+   "after": "17",
+   "beat": "Auren's map draws a road to a stranded caravan",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC08A",
+     "title": "A New Road",
+     "location": "EXT. DUNEGATE",
+     "kind": "talk",
+     "who": "AUREN THALE",
+     "start": "solara-dunegate",
+     "label": "See what Auren's map drew",
+     "open": [],
+     "close": [
+      "SC08_001",
+      "SC08_002",
+      "SC08_003"
+     ],
+     "stage": "desert_camp"
+    },
+    {
+     "id": "SC08B",
+     "title": "The Caravan",
+     "location": "EXT. THE GLASS FLATS",
+     "kind": "drive",
+     "to": "z-quicksand",
+     "label": "Drive the map's road",
+     "open": [
+      "SC08_004"
+     ],
+     "close": [],
+     "stage": "desert_camp"
+    },
+    {
+     "id": "SC08C",
+     "title": "Stranded",
+     "location": "EXT. THE GLASS FLATS — THE CARAVAN",
+     "kind": "survive",
+     "amount": 45,
+     "label": "Hold the caravan till the axle's fixed",
+     "open": [
+      "SC08_005"
+     ],
+     "close": [
+      "SC08_006",
+      "SC08_007"
+     ],
+     "stage": "desert_camp"
+    }
+   ]
+  },
+  {
+   "id": "C09",
+   "title": "The Word",
+   "giver": "NOVA",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "27",
+   "beat": "NOVA asks for help finding the word for what she feels",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC09A",
+     "title": "A Request",
+     "location": "EXT. NEXUS — THE HARBOUR AT NIGHT",
+     "kind": "cutscene",
+     "start": "nexus-harbor",
+     "open": [
+      "SC09_001",
+      "SC09_002",
+      "SC09_003",
+      "SC09_004",
+      "SC09_005"
+     ],
+     "close": [],
+     "stage": "street"
+    },
+    {
+     "id": "SC09B",
+     "title": "Somewhere Loud",
+     "location": "EXT. NEXUS — THE MALL PLAZA",
+     "kind": "reach",
+     "to": "nexus-mall",
+     "label": "Take NOVA somewhere loud",
+     "open": [],
+     "close": [
+      "SC09_006",
+      "SC09_007",
+      "SC09_008"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC09C",
+     "title": "Somewhere Quiet",
+     "location": "EXT. NEXUS — THE BEACH",
+     "kind": "reach",
+     "to": "nexus-harbor",
+     "label": "Take NOVA somewhere quiet",
+     "open": [],
+     "close": [
+      "SC09_009",
+      "SC09_010",
+      "SC09_011",
+      "SC09_012"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "C10",
+   "title": "Coffee and Ghosts",
+   "giver": "SERAPHINE",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "62",
+   "beat": "Seraphine tries to have one normal day",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC10A",
+     "title": "A Normal Day",
+     "location": "EXT. NEXUS — A CAFÉ",
+     "kind": "talk",
+     "who": "SERAPHINE",
+     "start": "nexus-mall",
+     "to": "nexus-mall",
+     "label": "Meet Seraphine for coffee",
+     "open": [],
+     "close": [
+      "SC10_001",
+      "SC10_002",
+      "SC10_003",
+      "SC10_004",
+      "SC10_005"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC10B",
+     "title": "Loyalists",
+     "location": "EXT. NEXUS — THE MALL PLAZA",
+     "kind": "kills",
+     "amount": 7,
+     "label": "Deal with the Continuum loyalists",
+     "open": [
+      "SC10_006",
+      "SC10_007",
+      "SC10_008"
+     ],
+     "close": [
+      "SC10_009",
+      "SC10_010",
+      "SC10_011"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "C11",
+   "title": "Continuity Reserve",
+   "giver": "WARD",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "21",
+   "until": "43",
+   "beat": "Ward asks you to burn the Continuum's money",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC11A",
+     "title": "The Cache",
+     "location": "INT. WARD'S OFFICE",
+     "kind": "talk",
+     "who": "WARD",
+     "start": "nexus-bastion",
+     "to": "nexus-bastion",
+     "label": "Answer Ward's summons",
+     "open": [],
+     "close": [
+      "SC11_001",
+      "SC11_002",
+      "SC11_003"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC11B",
+     "title": "The Rail Yard",
+     "location": "EXT. NEXUS — THE OLD RAIL YARD",
+     "kind": "hack",
+     "label": "Rig the cache",
+     "open": [
+      "SC11_004"
+     ],
+     "close": [
+      "SC11_005"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SC11C",
+     "title": "Burn",
+     "location": "EXT. THE OLD RAIL YARD",
+     "kind": "survive",
+     "amount": 40,
+     "label": "Hold until the cache burns",
+     "open": [
+      "SC11_006"
+     ],
+     "close": [
+      "SC11_007",
+      "SC11_008",
+      "SC11_009"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "C12",
+   "title": "Pump It Out",
+   "giver": "CHIEF ODA",
+   "region": "Thalassia",
+   "world": "thalassia",
+   "after": "30",
+   "beat": "Oda goes back down to restart Thalassia's pumps",
+   "category": "character",
+   "chapters": [
+    {
+     "id": "SC12A",
+     "title": "Going Back",
+     "location": "INT. THALASSIA — THE PORT",
+     "kind": "talk",
+     "who": "CHIEF ODA",
+     "start": "th-port",
+     "label": "Meet Oda at the port",
+     "open": [],
+     "close": [
+      "SC12_001",
+      "SC12_002",
+      "SC12_003"
+     ],
+     "stage": "dome"
+    },
+    {
+     "id": "SC12B",
+     "title": "The Eastern Ring",
+     "location": "INT. THALASSIA — THE EASTERN RING",
+     "kind": "trace",
+     "label": "Restart the three pump stations",
+     "open": [
+      "SC12_004"
+     ],
+     "close": [
+      "SC12_005",
+      "SC12_006",
+      "SC12_007"
+     ],
+     "stage": "dome"
+    }
+   ]
+  },
+  {
+   "id": "F01",
+   "title": "Perimeter",
+   "faction": "fdi",
+   "giver": "VOSS",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "05",
+   "beat": "Hold a failing outpost on the city's edge",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF01A",
+     "title": "Outpost Nine",
+     "location": "EXT. NEXUS — OUTPOST NINE",
+     "kind": "talk",
+     "who": "SERGEANT IMANI",
+     "start": "nexus-bastion",
+     "label": "Report to Outpost Nine",
+     "open": [
+      "SF01_001"
+     ],
+     "close": [
+      "SF01_002",
+      "SF01_003",
+      "SF01_004"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SF01B",
+     "title": "Sundown",
+     "location": "EXT. OUTPOST NINE — THE WALL",
+     "kind": "survive",
+     "amount": 60,
+     "label": "Hold the outpost through sundown",
+     "open": [
+      "SF01_005"
+     ],
+     "close": [
+      "SF01_006",
+      "SF01_007"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "F02",
+   "title": "Recall",
+   "faction": "fdi",
+   "giver": "VOSS",
+   "region": "Verdant Forest",
+   "world": "veridan",
+   "after": "05",
+   "beat": "A lost FDI squad in the forest",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF02A",
+     "title": "Last Signal",
+     "location": "EXT. VERDANT FOREST — THE VANGUARD OUTPOST",
+     "kind": "cutscene",
+     "start": "vanguard-outpost",
+     "open": [
+      "SF02_001",
+      "SF02_002",
+      "SF02_003"
+     ],
+     "close": [],
+     "stage": "forest"
+    },
+    {
+     "id": "SF02B",
+     "title": "The Grotto",
+     "location": "INT. THE GROTTO",
+     "kind": "kills",
+     "amount": 8,
+     "to": "vf-grotto",
+     "label": "Reach Kestrel Squad",
+     "open": [
+      "SF02_004"
+     ],
+     "close": [
+      "SF02_005",
+      "SF02_006",
+      "SF02_007",
+      "SF02_008"
+     ],
+     "stage": "forest"
+    }
+   ]
+  },
+  {
+   "id": "F03",
+   "title": "Supply Lines",
+   "faction": "fdi",
+   "giver": "VOSS",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "08",
+   "beat": "Escort a medical convoy across the city",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF03A",
+     "title": "The Convoy",
+     "location": "EXT. NEXUS — THE DRIVE HUB",
+     "kind": "drive",
+     "to": "nexus-harbor",
+     "start": "nexus-drive-hub",
+     "label": "Lead the medical convoy to Haven",
+     "open": [
+      "SF03_001"
+     ],
+     "close": [
+      "SF03_002",
+      "SF03_003",
+      "SF03_004"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "F04",
+   "title": "The Iron Line",
+   "faction": "fdi",
+   "giver": "VOSS",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "13",
+   "beat": "A Fracture brute is tearing through the eastern defences",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF04A",
+     "title": "Breakthrough",
+     "location": "EXT. NEXUS — THE EASTERN LINE",
+     "kind": "cutscene",
+     "start": "nexus-university",
+     "open": [
+      "SF04_001",
+      "SF04_002"
+     ],
+     "close": [],
+     "stage": "street"
+    },
+    {
+     "id": "SF04B",
+     "title": "The Brute",
+     "location": "EXT. THE EASTERN LINE",
+     "kind": "boss",
+     "boss": "iron-brute",
+     "boss_name": "Iron-Breaker Brute",
+     "label": "Stop the brute",
+     "open": [
+      "SF04_003"
+     ],
+     "close": [
+      "SF04_004",
+      "SF04_005",
+      "SF04_006"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "F05",
+   "title": "No Masters",
+   "faction": "free",
+   "giver": "KAEL",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "05",
+   "beat": "Civilians trapped behind a Choir line",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF05A",
+     "title": "The Western Blocks",
+     "location": "EXT. NEXUS — THE WESTERN BLOCKS",
+     "kind": "talk",
+     "who": "FREE OPERATOR",
+     "start": "nexus-mall",
+     "label": "Meet Kael's spotter",
+     "open": [
+      "SF05_001"
+     ],
+     "close": [
+      "SF05_002",
+      "SF05_003"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SF05B",
+     "title": "The Garage",
+     "location": "INT. A PARKING GARAGE",
+     "kind": "kills",
+     "amount": 9,
+     "label": "Clear the exits",
+     "open": [
+      "SF05_004"
+     ],
+     "close": [
+      "SF05_005",
+      "SF05_006",
+      "SF05_007"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "F06",
+   "title": "Black Market Medicine",
+   "faction": "free",
+   "giver": "KAEL",
+   "region": "Neon City",
+   "world": "neon-city",
+   "after": "05",
+   "beat": "Buy back stolen medicine from a Neon fence",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF06A",
+     "title": "Vesper's Price",
+     "location": "INT. THE UNDERGROUND",
+     "kind": "talk",
+     "who": "VESPER",
+     "start": "neon-underground",
+     "to": "neon-underground",
+     "label": "Ask Vesper about the stolen medicine",
+     "open": [
+      "SF06_001"
+     ],
+     "close": [
+      "SF06_002",
+      "SF06_003",
+      "SF06_004"
+     ],
+     "stage": "neon_street"
+    },
+    {
+     "id": "SF06B",
+     "title": "The Container",
+     "location": "EXT. NEON — UNDER THE CYAN LOOP",
+     "kind": "kills",
+     "amount": 8,
+     "label": "Take back the clinic",
+     "open": [
+      "SF06_005"
+     ],
+     "close": [
+      "SF06_006"
+     ],
+     "stage": "neon_street"
+    }
+   ]
+  },
+  {
+   "id": "F07",
+   "title": "Radio Free Nexus",
+   "faction": "free",
+   "giver": "KAEL",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "08",
+   "beat": "Put a free radio relay up on the old towers",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF07A",
+     "title": "Three Towers",
+     "location": "EXT. NEXUS — THE RELAY TOWERS",
+     "kind": "trace",
+     "start": "nexus-central-plaza",
+     "label": "Raise the relay on three towers",
+     "open": [
+      "SF07_001"
+     ],
+     "close": [
+      "SF07_002",
+      "SF07_003",
+      "SF07_004"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "F08",
+   "title": "Hunter's Moon",
+   "faction": "free",
+   "giver": "NYX",
+   "region": "Swamps",
+   "world": "swamps",
+   "after": "12",
+   "beat": "A Fracture predator is taking airboat crews",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF08A",
+     "title": "The Ferry",
+     "location": "EXT. THE SWAMPS — THE AIRBOAT HUB",
+     "kind": "talk",
+     "who": "FREE OPERATOR",
+     "start": "airboat-hub",
+     "label": "Talk to the airboat crews",
+     "open": [
+      "SF08_001"
+     ],
+     "close": [
+      "SF08_002",
+      "SF08_003"
+     ],
+     "stage": "camp"
+    },
+    {
+     "id": "SF08B",
+     "title": "The Last Boat",
+     "location": "EXT. THE MANGROVE MAZE",
+     "kind": "boss",
+     "boss": "mangrove-stalker",
+     "boss_name": "The Mangrove Stalker",
+     "to": "ss-mangrove-maze",
+     "label": "Hunt the hunter",
+     "open": [
+      "SF08_004"
+     ],
+     "close": [
+      "SF08_005"
+     ],
+     "stage": "camp"
+    }
+   ]
+  },
+  {
+   "id": "F09",
+   "title": "Samples",
+   "faction": "ascendancy",
+   "giver": "CRANE",
+   "region": "Crystal Badlands",
+   "world": "crystal-badlands",
+   "after": "05",
+   "beat": "Collect Fracture crystal for the Ascendancy's research",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF09A",
+     "title": "The Prism Fields",
+     "location": "EXT. CRYSTAL BADLANDS — THE PRISM FIELDS",
+     "kind": "talk",
+     "who": "RESEARCHER LUNE",
+     "start": "cb-rest",
+     "to": "cb-prism",
+     "label": "Meet the Ascendancy researcher",
+     "open": [
+      "SF09_001"
+     ],
+     "close": [
+      "SF09_002",
+      "SF09_003",
+      "SF09_004"
+     ],
+     "stage": "reef"
+    },
+    {
+     "id": "SF09B",
+     "title": "Harvest",
+     "location": "EXT. THE PRISM FIELDS",
+     "kind": "trace",
+     "label": "Harvest three growing samples",
+     "open": [
+      "SF09_005"
+     ],
+     "close": [
+      "SF09_006"
+     ],
+     "stage": "reef"
+    }
+   ]
+  },
+  {
+   "id": "F10",
+   "title": "Containment",
+   "faction": "ascendancy",
+   "giver": "CRANE",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "05",
+   "beat": "A breach in the Ascendancy's tower labs",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF10A",
+     "title": "Breach",
+     "location": "INT. ASCENDANCY TOWER — LAB FLOOR 12",
+     "kind": "survive",
+     "amount": 50,
+     "start": "nexus-university",
+     "label": "Contain the lab breach",
+     "open": [
+      "SF10_001"
+     ],
+     "close": [
+      "SF10_002",
+      "SF10_003",
+      "SF10_004"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "F11",
+   "title": "Volunteers",
+   "faction": "ascendancy",
+   "giver": "RESEARCHER LUNE",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "08",
+   "beat": "A volunteer wants out of the program",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF11A",
+     "title": "A Note",
+     "location": "INT. ASCENDANCY TOWER",
+     "kind": "talk",
+     "who": "RESEARCHER LUNE",
+     "start": "nexus-university",
+     "to": "nexus-university",
+     "label": "Answer Lune's note",
+     "open": [],
+     "close": [
+      "SF11_001",
+      "SF11_002",
+      "SF11_003"
+     ],
+     "stage": "street"
+    },
+    {
+     "id": "SF11B",
+     "title": "Walk Out",
+     "location": "INT. ASCENDANCY TOWER — THE CELLS",
+     "kind": "reach",
+     "label": "Walk Subject Forty-One out of the tower",
+     "open": [
+      "SF11_004",
+      "SF11_005"
+     ],
+     "close": [
+      "SF11_006",
+      "SF11_007"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "F12",
+   "title": "The Spire's Shield",
+   "faction": "ascendancy",
+   "giver": "CRANE",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "13",
+   "beat": "Turn on the Ascendancy's shield over the eastern districts",
+   "category": "faction",
+   "chapters": [
+    {
+     "id": "SF12A",
+     "title": "Three Pylons",
+     "location": "EXT. NEXUS — THE EASTERN DISTRICTS",
+     "kind": "trace",
+     "start": "nexus-university",
+     "label": "Power the three shield pylons",
+     "open": [
+      "SF12_001"
+     ],
+     "close": [
+      "SF12_002",
+      "SF12_003",
+      "SF12_004",
+      "SF12_005"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "E01",
+   "title": "Glass Rain",
+   "region": "Neon City",
+   "world": "neon-city",
+   "after": "18",
+   "beat": "A Fracture storm rains glass over Neon City",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE01A",
+     "title": "Storm Warning",
+     "location": "EXT. NEON CITY — THE MAGENTA CROSS",
+     "kind": "cutscene",
+     "start": "neon-mods",
+     "open": [
+      "SE01_001",
+      "SE01_002"
+     ],
+     "close": [],
+     "stage": "neon_street"
+    },
+    {
+     "id": "SE01B",
+     "title": "Shelter",
+     "location": "EXT. THE MAGENTA CROSS",
+     "kind": "survive",
+     "amount": 50,
+     "label": "Get people under cover until the storm passes",
+     "open": [
+      "SE01_003"
+     ],
+     "close": [
+      "SE01_004",
+      "SE01_005"
+     ],
+     "stage": "neon_street"
+    }
+   ]
+  },
+  {
+   "id": "E02",
+   "title": "The Silent Hour",
+   "region": "Riverdale",
+   "world": "riverdale",
+   "after": "32",
+   "beat": "A Choir silence spreads over a quiet town",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE02A",
+     "title": "Nobody Answers",
+     "location": "EXT. RIVERDALE — THE SQUARE",
+     "kind": "reach",
+     "start": "riverdale-square",
+     "label": "Walk into the silent square",
+     "open": [
+      "SE02_001",
+      "SE02_002",
+      "SE02_003"
+     ],
+     "close": [],
+     "stage": "harrow"
+    },
+    {
+     "id": "SE02B",
+     "title": "Make Noise",
+     "location": "EXT. RIVERDALE — THE SQUARE",
+     "kind": "kills",
+     "amount": 6,
+     "label": "Break the silence constructs",
+     "open": [
+      "SE02_004"
+     ],
+     "close": [
+      "SE02_005",
+      "SE02_006"
+     ],
+     "stage": "harrow"
+    }
+   ]
+  },
+  {
+   "id": "E03",
+   "title": "Falling Prism",
+   "region": "Crystal Badlands",
+   "world": "crystal-badlands",
+   "after": "15",
+   "beat": "A crystal meteor and everyone racing for it",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE03A",
+     "title": "Impact",
+     "location": "EXT. CRYSTAL BADLANDS — THE RIFTS",
+     "kind": "drive",
+     "to": "cb-rifts",
+     "start": "cb-port",
+     "label": "Race to the crater",
+     "open": [
+      "SE03_001",
+      "SE03_002",
+      "SE03_003"
+     ],
+     "close": [],
+     "stage": "reef"
+    },
+    {
+     "id": "SE03B",
+     "title": "First There",
+     "location": "EXT. THE RIFTS — THE CRATER",
+     "kind": "kills",
+     "amount": 8,
+     "label": "Hold the crater",
+     "open": [
+      "SE03_004"
+     ],
+     "close": [
+      "SE03_005",
+      "SE03_006"
+     ],
+     "stage": "reef"
+    }
+   ]
+  },
+  {
+   "id": "E04",
+   "title": "Ghost Convoy",
+   "region": "The Wastelands",
+   "world": "wastelands",
+   "after": "44",
+   "beat": "A convoy that died years ago is still driving",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE04A",
+     "title": "Headlights",
+     "location": "EXT. THE OLD HIGHWAY — NIGHT",
+     "kind": "cutscene",
+     "start": "wl-old-highway",
+     "open": [
+      "SE04_001",
+      "SE04_002",
+      "SE04_003"
+     ],
+     "close": [],
+     "stage": "wasteland"
+    },
+    {
+     "id": "SE04B",
+     "title": "Last Stop",
+     "location": "EXT. THE VAULT GATE",
+     "kind": "drive",
+     "to": "vault-gate",
+     "label": "Lead the ghost convoy home",
+     "open": [
+      "SE04_004"
+     ],
+     "close": [
+      "SE04_005",
+      "SE04_006",
+      "SE04_007"
+     ],
+     "stage": "wasteland"
+    }
+   ]
+  },
+  {
+   "id": "E05",
+   "title": "The Flickering Light",
+   "region": "Azure Isles",
+   "world": "azure-isles",
+   "after": "25",
+   "beat": "The isles' lighthouse has started flashing a code",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE05A",
+     "title": "The Keeper",
+     "location": "EXT. AZURE ISLES — THE LIGHTHOUSE",
+     "kind": "talk",
+     "who": "LIGHTHOUSE KEEPER",
+     "start": "az-marina",
+     "to": "az-light",
+     "label": "Climb to the lighthouse",
+     "open": [],
+     "close": [
+      "SE05_001",
+      "SE05_002",
+      "SE05_003"
+     ],
+     "stage": "docks"
+    },
+    {
+     "id": "SE05B",
+     "title": "Answer",
+     "location": "EXT. THE LIGHTHOUSE — THE LAMP ROOM",
+     "kind": "hack",
+     "label": "Let NOVA answer through the lamp",
+     "open": [],
+     "close": [
+      "SE05_004",
+      "SE05_005",
+      "SE05_006"
+     ],
+     "stage": "docks"
+    }
+   ]
+  },
+  {
+   "id": "E06",
+   "title": "Floodtide",
+   "region": "Swamps",
+   "world": "swamps",
+   "after": "26",
+   "beat": "The swamps rise and the boardwalk villages go under",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE06A",
+     "title": "Rising",
+     "location": "EXT. THE SWAMPS — THE BOARDWALKS",
+     "kind": "survive",
+     "amount": 55,
+     "start": "ss-boardwalks",
+     "label": "Hold the boardwalks while the villages evacuate",
+     "open": [
+      "SE06_001",
+      "SE06_002"
+     ],
+     "close": [
+      "SE06_003",
+      "SE06_004"
+     ],
+     "stage": "camp"
+    }
+   ]
+  },
+  {
+   "id": "E07",
+   "title": "Skyfall",
+   "region": "Storm Islands",
+   "world": "storm",
+   "after": "23",
+   "beat": "A floating island is falling into the sea",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE07A",
+     "title": "The Falling Isle",
+     "location": "EXT. STORM ISLANDS — THE SKY DOCK",
+     "kind": "cutscene",
+     "start": "storm-sky-dock",
+     "open": [
+      "SE07_001",
+      "SE07_002",
+      "SE07_003"
+     ],
+     "close": [],
+     "stage": "reef"
+    },
+    {
+     "id": "SE07B",
+     "title": "The Temple",
+     "location": "EXT. THE AETHER TEMPLE",
+     "kind": "hack",
+     "to": "storm-aether-temple",
+     "label": "Restart the aether temple",
+     "open": [
+      "SE07_004"
+     ],
+     "close": [
+      "SE07_005",
+      "SE07_006",
+      "SE07_007"
+     ],
+     "stage": "reef"
+    }
+   ]
+  },
+  {
+   "id": "E08",
+   "title": "Ember Eruption",
+   "region": "Obsidian Reach — Ember Peaks",
+   "world": "ember",
+   "after": "39",
+   "beat": "The fire spire erupts over the ash outpost",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE08A",
+     "title": "Ashfall",
+     "location": "EXT. THE ASH OUTPOST",
+     "kind": "survive",
+     "amount": 50,
+     "start": "sp-ash-outpost",
+     "label": "Hold the outpost until the evacuation trucks arrive",
+     "open": [
+      "SE08_001"
+     ],
+     "close": [
+      "SE08_002",
+      "SE08_003"
+     ],
+     "stage": "lava_camp"
+    }
+   ]
+  },
+  {
+   "id": "E09",
+   "title": "Frost Bloom",
+   "region": "Frostveil",
+   "world": "frostveil",
+   "after": "38",
+   "beat": "Flowers growing out of the ice, and something tending them",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE09A",
+     "title": "Flowers",
+     "location": "EXT. FROSTVEIL — THE SHELF",
+     "kind": "reach",
+     "to": "fv-shelf",
+     "start": "fv-camp",
+     "label": "Find the flowers on the shelf",
+     "open": [
+      "SE09_001",
+      "SE09_002",
+      "SE09_003"
+     ],
+     "close": [
+      "SE09_004",
+      "SE09_005",
+      "SE09_006"
+     ],
+     "stage": "snow_camp"
+    }
+   ]
+  },
+  {
+   "id": "E10",
+   "title": "Market Panic",
+   "region": "Nexus City",
+   "world": "nexus",
+   "after": "08",
+   "beat": "A rumour sends the whole city to the market",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE10A",
+     "title": "Rumour",
+     "location": "EXT. NEXUS — THE MALL",
+     "kind": "cutscene",
+     "start": "nexus-mall",
+     "open": [
+      "SE10_001",
+      "SE10_002"
+     ],
+     "close": [],
+     "stage": "street"
+    },
+    {
+     "id": "SE10B",
+     "title": "Calm",
+     "location": "EXT. NEXUS — THE MALL PLAZA",
+     "kind": "survive",
+     "amount": 45,
+     "label": "Keep the peace until the water trucks arrive",
+     "open": [
+      "SE10_003"
+     ],
+     "close": [
+      "SE10_004",
+      "SE10_005",
+      "SE10_006"
+     ],
+     "stage": "street"
+    }
+   ]
+  },
+  {
+   "id": "E11",
+   "title": "Phantom Parade",
+   "region": "Old Harrow",
+   "world": "old-harrow",
+   "after": "42",
+   "beat": "A festival from a world that never happened marches through Old Harrow",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE11A",
+     "title": "The Parade",
+     "location": "EXT. OLD HARROW — THE MARKET",
+     "kind": "cutscene",
+     "start": "oh-market",
+     "open": [
+      "SE11_001",
+      "SE11_002",
+      "SE11_003"
+     ],
+     "close": [],
+     "stage": "harrow"
+    },
+    {
+     "id": "SE11B",
+     "title": "Let It Pass",
+     "location": "EXT. OLD HARROW — THE BRIDGE",
+     "kind": "reach",
+     "to": "oh-bridge",
+     "label": "Walk with the parade to the bridge",
+     "open": [],
+     "close": [
+      "SE11_004",
+      "SE11_005",
+      "SE11_006"
+     ],
+     "stage": "harrow"
+    }
+   ]
+  },
+  {
+   "id": "E12",
+   "title": "The Great Migration",
+   "region": "Verdant Forest",
+   "world": "veridan",
+   "after": "11",
+   "beat": "The forest's herds move all at once, and the poachers move with them",
+   "category": "event",
+   "chapters": [
+    {
+     "id": "SE12A",
+     "title": "Moving",
+     "location": "EXT. VERDANT FOREST — THE NORTH GROVE",
+     "kind": "talk",
+     "who": "RANGER",
+     "start": "vf-north-grove",
+     "label": "Find the rangers",
+     "open": [],
+     "close": [
+      "SE12_001",
+      "SE12_002",
+      "SE12_003"
+     ],
+     "stage": "forest"
+    },
+    {
+     "id": "SE12B",
+     "title": "Poachers",
+     "location": "EXT. THE NORTH GROVE",
+     "kind": "kills",
+     "amount": 7,
+     "label": "Stop the poachers",
+     "open": [
+      "SE12_004"
+     ],
+     "close": [
+      "SE12_005",
+      "SE12_006",
+      "SE12_007"
+     ],
+     "stage": "forest"
+    }
+   ]
+  }
+ ],
+ "lines": [
+  {
+   "id": "SC01_001",
+   "mission": "C01",
+   "speaker": "NOVA",
+   "text": "A child has been asking every soldier in Haven-01 for the person who lifted the bus."
+  },
+  {
+   "id": "SC01_002",
+   "mission": "C01",
+   "speaker": "PLAYER",
+   "text": "Daniel."
+  },
+  {
+   "id": "SC01_003",
+   "mission": "C01",
+   "speaker": "DANIEL",
+   "text": "You came! I drew you. That's you, and that's the bus, and that's the monster. The monster's smaller than it was because you won."
+  },
+  {
+   "id": "SC01_004",
+   "mission": "C01",
+   "speaker": "PLAYER",
+   "text": "It's a good drawing. How's your dad?"
+  },
+  {
+   "id": "SC01_005",
+   "mission": "C01",
+   "speaker": "DANIEL",
+   "text": "His leg's bad. The medic said he needs pills they don't have. They said the old pharmacy in the Eastern blocks might have some. But it's got things in it now."
+  },
+  {
+   "id": "SC01_006",
+   "mission": "C01",
+   "speaker": "PLAYER",
+   "text": "Then I'll go and get them."
+  },
+  {
+   "id": "SC01_007",
+   "mission": "C01",
+   "speaker": "DANIEL",
+   "text": "Promise?"
+  },
+  {
+   "id": "SC01_008",
+   "mission": "C01",
+   "speaker": "PLAYER",
+   "text": "Promise."
+  },
+  {
+   "id": "SC01_009",
+   "mission": "C01",
+   "speaker": "NOVA",
+   "text": "You use that word very easily, for someone it is a title for."
+  },
+  {
+   "id": "SC01_010",
+   "mission": "C01",
+   "speaker": "NOVA",
+   "text": "Fracture growths on the shelves. And things living in them."
+  },
+  {
+   "id": "SC01_011",
+   "mission": "C01",
+   "speaker": "NOVA",
+   "text": "Medicine located. Antibiotics, painkillers. Enough for his leg and three other patients."
+  },
+  {
+   "id": "SC01_012",
+   "mission": "C01",
+   "speaker": "MAN",
+   "text": "You're the one. From the bus. He hasn't stopped talking about you."
+  },
+  {
+   "id": "SC01_013",
+   "mission": "C01",
+   "speaker": "PLAYER",
+   "text": "He's brave. He stayed where I told him."
+  },
+  {
+   "id": "SC01_014",
+   "mission": "C01",
+   "speaker": "MAN",
+   "text": "He's never done what anyone told him in his life. Thank you."
+  },
+  {
+   "id": "SC01_015",
+   "mission": "C01",
+   "speaker": "DANIEL",
+   "text": "Here. You can keep the drawing. So you remember you won."
+  },
+  {
+   "id": "SC02_001",
+   "mission": "C02",
+   "speaker": "VOSS",
+   "text": "Hale and Brennan. The two Executors in Lab Three. I carried Hale's coffin. Brennan's wife sent me a card every Christmas."
+  },
+  {
+   "id": "SC02_002",
+   "mission": "C02",
+   "speaker": "PLAYER",
+   "text": "You want to see the graves."
+  },
+  {
+   "id": "SC02_003",
+   "mission": "C02",
+   "speaker": "VOSS",
+   "text": "I want to see if there's anyone in them."
+  },
+  {
+   "id": "SC02_004",
+   "mission": "C02",
+   "speaker": "NOVA",
+   "text": "The cemetery's records were altered three years ago. By an Observer account."
+  },
+  {
+   "id": "SC02_005",
+   "mission": "C02",
+   "speaker": "VOSS",
+   "text": "Empty. Both of them. They buried sandbags and gave me a flag."
+  },
+  {
+   "id": "SC02_006",
+   "mission": "C02",
+   "speaker": "NOVA",
+   "text": "Executors. They monitor the graves of everyone they take."
+  },
+  {
+   "id": "SC02_007",
+   "mission": "C02",
+   "speaker": "VOSS",
+   "text": "Of course they do."
+  },
+  {
+   "id": "SC02_008",
+   "mission": "C02",
+   "speaker": "VOSS",
+   "text": "Brennan's wife still lives in the Western blocks. I'm going to tell her. The truth. Even if it's worse."
+  },
+  {
+   "id": "SC02_009",
+   "mission": "C02",
+   "speaker": "PLAYER",
+   "text": "Want company?"
+  },
+  {
+   "id": "SC02_010",
+   "mission": "C02",
+   "speaker": "VOSS",
+   "text": "No. This one's mine. But thanks."
+  },
+  {
+   "id": "SC03_001",
+   "mission": "C03",
+   "speaker": "KAEL",
+   "text": "Six years, every month, a fuel truck to the Underground. Raiders, storms, the Fracture. Never missed one."
+  },
+  {
+   "id": "SC03_002",
+   "mission": "C03",
+   "speaker": "PLAYER",
+   "text": "Why?"
+  },
+  {
+   "id": "SC03_003",
+   "mission": "C03",
+   "speaker": "KAEL",
+   "text": "Because the first winter after the dust, nobody brought them anything, and they buried forty people. Ride with me."
+  },
+  {
+   "id": "SC03_004",
+   "mission": "C03",
+   "speaker": "KAEL",
+   "text": "Raiders like this stretch. Keep it moving."
+  },
+  {
+   "id": "SC03_005",
+   "mission": "C03",
+   "speaker": "KAEL",
+   "text": "Made it. Again."
+  },
+  {
+   "id": "SC03_006",
+   "mission": "C03",
+   "speaker": "NOVA",
+   "text": "They're cheering. At the gate."
+  },
+  {
+   "id": "SC03_007",
+   "mission": "C03",
+   "speaker": "KAEL",
+   "text": "They always do. That's the other reason."
+  },
+  {
+   "id": "SC04_001",
+   "mission": "C04",
+   "speaker": "NYX",
+   "text": "Old Teo taught me to see where the leaves move wrong. Three days before you came, a Collector cut his throat for asking it a question."
+  },
+  {
+   "id": "SC04_002",
+   "mission": "C04",
+   "speaker": "PLAYER",
+   "text": "And you know which one."
+  },
+  {
+   "id": "SC04_003",
+   "mission": "C04",
+   "speaker": "NYX",
+   "text": "It walks with a limp. I put an arrow in its knee before it vanished. It's still in the valley. They don't leave until they've finished measuring."
+  },
+  {
+   "id": "SC04_004",
+   "mission": "C04",
+   "speaker": "NOVA",
+   "text": "Light-bent footprints. One leg drags."
+  },
+  {
+   "id": "SC04_005",
+   "mission": "C04",
+   "speaker": "NYX",
+   "text": "There. Corner of your eye."
+  },
+  {
+   "id": "SC04_006",
+   "mission": "C04",
+   "speaker": "NYX",
+   "text": "Done. Teo would have said something wise. Something about the forest remembering."
+  },
+  {
+   "id": "SC04_007",
+   "mission": "C04",
+   "speaker": "PLAYER",
+   "text": "What would you say?"
+  },
+  {
+   "id": "SC04_008",
+   "mission": "C04",
+   "speaker": "NYX",
+   "text": "I'd say I missed his stupid jokes."
+  },
+  {
+   "id": "SC05_001",
+   "mission": "C05",
+   "speaker": "GOLIATH",
+   "text": "My mother's farm. I haven't called. I didn't know what to say. \"Hi, Mum, the world ended, I'm a war machine now.\""
+  },
+  {
+   "id": "SC05_002",
+   "mission": "C05",
+   "speaker": "NOVA",
+   "text": "That is a very honest opening."
+  },
+  {
+   "id": "SC05_003",
+   "mission": "C05",
+   "speaker": "MRS. REYES",
+   "text": "Marcus. You're enormous. You were always enormous. Come here."
+  },
+  {
+   "id": "SC05_004",
+   "mission": "C05",
+   "speaker": "GOLIATH",
+   "text": "Mum."
+  },
+  {
+   "id": "SC05_005",
+   "mission": "C05",
+   "speaker": "MRS. REYES",
+   "text": "The orchard's full of crystals. They hum at night. And something's been taking the goats."
+  },
+  {
+   "id": "SC05_006",
+   "mission": "C05",
+   "speaker": "GOLIATH",
+   "text": "...I'll sort it, Mum."
+  },
+  {
+   "id": "SC05_007",
+   "mission": "C05",
+   "speaker": "GOLIATH",
+   "text": "Nobody eats my mother's goats."
+  },
+  {
+   "id": "SC05_008",
+   "mission": "C05",
+   "speaker": "MRS. REYES",
+   "text": "Stay for dinner. Both of you. And the little light."
+  },
+  {
+   "id": "SC05_009",
+   "mission": "C05",
+   "speaker": "NOVA",
+   "text": "I don't eat."
+  },
+  {
+   "id": "SC05_010",
+   "mission": "C05",
+   "speaker": "MRS. REYES",
+   "text": "Then you can sit and be polite. Marcus, sit down. You make the room nervous standing up."
+  },
+  {
+   "id": "SC05_011",
+   "mission": "C05",
+   "speaker": "GOLIATH",
+   "text": "...Yes, Mum."
+  },
+  {
+   "id": "SC06_001",
+   "mission": "C06",
+   "speaker": "CIPHER",
+   "text": "A watch. A book of terrible poems. His volunteer badge. That's all Crane kept of him."
+  },
+  {
+   "id": "SC06_002",
+   "mission": "C06",
+   "speaker": "PLAYER",
+   "text": "And your mother?"
+  },
+  {
+   "id": "SC06_003",
+   "mission": "C06",
+   "speaker": "CIPHER",
+   "text": "She doesn't know. She thinks he's in a research program. She's proud of him."
+  },
+  {
+   "id": "SC06_004",
+   "mission": "C06",
+   "speaker": "ANNA VOLK",
+   "text": "Ari. You've come home. Where's your brother?"
+  },
+  {
+   "id": "SC06_005",
+   "mission": "C06",
+   "speaker": "CIPHER",
+   "text": "Mum. Sit down. Please."
+  },
+  {
+   "id": "SC06_006",
+   "mission": "C06",
+   "speaker": "ANNA VOLK",
+   "text": "...No. No, don't say it."
+  },
+  {
+   "id": "SC06_007",
+   "mission": "C06",
+   "speaker": "CIPHER",
+   "text": "He held something no one had ever held. For nine seconds. He was brave. He was so brave."
+  },
+  {
+   "id": "SC06_008",
+   "mission": "C06",
+   "speaker": "ANNA VOLK",
+   "text": "He wrote such terrible poems."
+  },
+  {
+   "id": "SC06_009",
+   "mission": "C06",
+   "speaker": "CIPHER",
+   "text": "He did. I brought them."
+  },
+  {
+   "id": "SC07_001",
+   "mission": "C07",
+   "speaker": "ILYRA SEN",
+   "text": "There's a song I've sung every morning for twenty years. It's about a river that runs backwards to the sea it came from."
+  },
+  {
+   "id": "SC07_002",
+   "mission": "C07",
+   "speaker": "PLAYER",
+   "text": "That's not a river anywhere."
+  },
+  {
+   "id": "SC07_003",
+   "mission": "C07",
+   "speaker": "ILYRA SEN",
+   "text": "It was. On the world before. I'd like to find something like it here. Somewhere that remembers going home."
+  },
+  {
+   "id": "SC07_004",
+   "mission": "C07",
+   "speaker": "NOVA",
+   "text": "The lake feeds the falls. And the falls feed the lake. The water is moving in a circle."
+  },
+  {
+   "id": "SC07_005",
+   "mission": "C07",
+   "speaker": "ILYRA SEN",
+   "text": "Oh."
+  },
+  {
+   "id": "SC07_006",
+   "mission": "C07",
+   "speaker": "ILYRA SEN",
+   "text": "It's not the same river. But it's going home. Every day. Thank you."
+  },
+  {
+   "id": "SC07_007",
+   "mission": "C07",
+   "speaker": "NOVA",
+   "text": "Would you sing it? The song?"
+  },
+  {
+   "id": "SC07_008",
+   "mission": "C07",
+   "speaker": "ILYRA SEN",
+   "text": "For you, lighthouse? Always."
+  },
+  {
+   "id": "SC08_001",
+   "mission": "C08",
+   "speaker": "AUREN THALE",
+   "text": "The map drew a road last night. Out past the glass flats. At the end of it, nine people and a broken axle."
+  },
+  {
+   "id": "SC08_002",
+   "mission": "C08",
+   "speaker": "PLAYER",
+   "text": "The trader's caravan."
+  },
+  {
+   "id": "SC08_003",
+   "mission": "C08",
+   "speaker": "AUREN THALE",
+   "text": "He'll be insufferable when you save him. He'll want a discount."
+  },
+  {
+   "id": "SC08_004",
+   "mission": "C08",
+   "speaker": "AUREN THALE",
+   "text": "Follow the line. Even when it looks like sand. Especially then."
+  },
+  {
+   "id": "SC08_005",
+   "mission": "C08",
+   "speaker": "TRADER",
+   "text": "You! Again! Is this a delivery? I didn't order a rescue."
+  },
+  {
+   "id": "SC08_006",
+   "mission": "C08",
+   "speaker": "TRADER",
+   "text": "Fixed. Tell the old man I still want my map."
+  },
+  {
+   "id": "SC08_007",
+   "mission": "C08",
+   "speaker": "AUREN THALE",
+   "text": "Tell him he's standing on it."
+  },
+  {
+   "id": "SC09_001",
+   "mission": "C09",
+   "speaker": "NOVA",
+   "text": "May I ask for something? Not tactically."
+  },
+  {
+   "id": "SC09_002",
+   "mission": "C09",
+   "speaker": "PLAYER",
+   "text": "Anything."
+  },
+  {
+   "id": "SC09_003",
+   "mission": "C09",
+   "speaker": "NOVA",
+   "text": "When you came back for me in Thalassia, I felt something. I've been looking for the word. I'd like to look in places. With you."
+  },
+  {
+   "id": "SC09_004",
+   "mission": "C09",
+   "speaker": "PLAYER",
+   "text": "Where do we start?"
+  },
+  {
+   "id": "SC09_005",
+   "mission": "C09",
+   "speaker": "NOVA",
+   "text": "Somewhere loud."
+  },
+  {
+   "id": "SC09_006",
+   "mission": "C09",
+   "speaker": "NOVA",
+   "text": "Four hundred people. Music from three shops at once. A child laughing at a dog."
+  },
+  {
+   "id": "SC09_007",
+   "mission": "C09",
+   "speaker": "PLAYER",
+   "text": "Is it here?"
+  },
+  {
+   "id": "SC09_008",
+   "mission": "C09",
+   "speaker": "NOVA",
+   "text": "Part of it. The part that is glad other people exist."
+  },
+  {
+   "id": "SC09_009",
+   "mission": "C09",
+   "speaker": "NOVA",
+   "text": "The sea. Nobody here. Just you."
+  },
+  {
+   "id": "SC09_010",
+   "mission": "C09",
+   "speaker": "NOVA",
+   "text": "I think the word isn't one word. I think it's the loud place and the quiet place and knowing you'd come to both."
+  },
+  {
+   "id": "SC09_011",
+   "mission": "C09",
+   "speaker": "PLAYER",
+   "text": "That's a good word."
+  },
+  {
+   "id": "SC09_012",
+   "mission": "C09",
+   "speaker": "NOVA",
+   "text": "I'll keep it."
+  },
+  {
+   "id": "SC10_001",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "I've been alive for longer than this city and I've never just... had a coffee. Without a plan."
+  },
+  {
+   "id": "SC10_002",
+   "mission": "C10",
+   "speaker": "PLAYER",
+   "text": "How is it?"
+  },
+  {
+   "id": "SC10_003",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "Terrible. I love it."
+  },
+  {
+   "id": "SC10_004",
+   "mission": "C10",
+   "speaker": "NOVA",
+   "text": "Two people at the corner table have been watching you for nine minutes. They are not drinking their coffee."
+  },
+  {
+   "id": "SC10_005",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "Of course they aren't."
+  },
+  {
+   "id": "SC10_006",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "Continuum loyalists. They think I betrayed him."
+  },
+  {
+   "id": "SC10_007",
+   "mission": "C10",
+   "speaker": "PLAYER",
+   "text": "Did you?"
+  },
+  {
+   "id": "SC10_008",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "Yes. Beautifully."
+  },
+  {
+   "id": "SC10_009",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "...Let's get another coffee."
+  },
+  {
+   "id": "SC10_010",
+   "mission": "C10",
+   "speaker": "PLAYER",
+   "text": "Another terrible one?"
+  },
+  {
+   "id": "SC10_011",
+   "mission": "C10",
+   "speaker": "SERAPHINE",
+   "text": "The most terrible one they have."
+  },
+  {
+   "id": "SC11_001",
+   "mission": "C11",
+   "speaker": "WARD",
+   "text": "There's a Continuity Reserve cache under the old rail yard. Their money. Their weapons. Waiting for me to need it again."
+  },
+  {
+   "id": "SC11_002",
+   "mission": "C11",
+   "speaker": "PLAYER",
+   "text": "And you want it gone."
+  },
+  {
+   "id": "SC11_003",
+   "mission": "C11",
+   "speaker": "WARD",
+   "text": "I want to not be tempted. I'm too old to trust myself with temptation."
+  },
+  {
+   "id": "SC11_004",
+   "mission": "C11",
+   "speaker": "NOVA",
+   "text": "The cache is guarded by Observers. Quietly."
+  },
+  {
+   "id": "SC11_005",
+   "mission": "C11",
+   "speaker": "NOVA",
+   "text": "Rigged."
+  },
+  {
+   "id": "SC11_006",
+   "mission": "C11",
+   "speaker": "WARD",
+   "text": "Light it."
+  },
+  {
+   "id": "SC11_007",
+   "mission": "C11",
+   "speaker": "WARD",
+   "text": "That's a lot of walls going up in smoke."
+  },
+  {
+   "id": "SC11_008",
+   "mission": "C11",
+   "speaker": "PLAYER",
+   "text": "Regrets?"
+  },
+  {
+   "id": "SC11_009",
+   "mission": "C11",
+   "speaker": "WARD",
+   "text": "Hundreds. Just not this one."
+  },
+  {
+   "id": "SC12_001",
+   "mission": "C12",
+   "speaker": "CHIEF ODA",
+   "text": "Engineers always go back. I told you. The pumps in the eastern ring need hands. Yours are big."
+  },
+  {
+   "id": "SC12_002",
+   "mission": "C12",
+   "speaker": "PLAYER",
+   "text": "What's down there?"
+  },
+  {
+   "id": "SC12_003",
+   "mission": "C12",
+   "speaker": "CHIEF ODA",
+   "text": "Water. Cult leftovers. Eighty years of my grandmother's work."
+  },
+  {
+   "id": "SC12_004",
+   "mission": "C12",
+   "speaker": "CHIEF ODA",
+   "text": "Station by station. Gentle. They're old."
+  },
+  {
+   "id": "SC12_005",
+   "mission": "C12",
+   "speaker": "CHIEF ODA",
+   "text": "Listen to that. She's breathing again."
+  },
+  {
+   "id": "SC12_006",
+   "mission": "C12",
+   "speaker": "NOVA",
+   "text": "The water is falling a centimetre a minute."
+  },
+  {
+   "id": "SC12_007",
+   "mission": "C12",
+   "speaker": "CHIEF ODA",
+   "text": "A centimetre a minute. Give me a month and you'll be able to walk to the palace in your socks."
+  },
+  {
+   "id": "SF01_001",
+   "mission": "F01",
+   "speaker": "VOSS",
+   "text": "Outpost Nine's been calling for relief for two days. I've got nobody to send but you."
+  },
+  {
+   "id": "SF01_002",
+   "mission": "F01",
+   "speaker": "SERGEANT IMANI",
+   "text": "You're the relief? One of you?"
+  },
+  {
+   "id": "SF01_003",
+   "mission": "F01",
+   "speaker": "PLAYER",
+   "text": "One of me."
+  },
+  {
+   "id": "SF01_004",
+   "mission": "F01",
+   "speaker": "SERGEANT IMANI",
+   "text": "...I've heard about you. Fine. Wall's that way. They come at sundown."
+  },
+  {
+   "id": "SF01_005",
+   "mission": "F01",
+   "speaker": "SERGEANT IMANI",
+   "text": "Here they come. Same time every night. They're punctual, I'll give them that."
+  },
+  {
+   "id": "SF01_006",
+   "mission": "F01",
+   "speaker": "SERGEANT IMANI",
+   "text": "Still standing. All of us. First time in a week."
+  },
+  {
+   "id": "SF01_007",
+   "mission": "F01",
+   "speaker": "SERGEANT IMANI",
+   "text": "Tell Voss Outpost Nine says thank you. And that we want more coffee."
+  },
+  {
+   "id": "SF02_001",
+   "mission": "F02",
+   "speaker": "MILITARY RADIO",
+   "text": "...this is Kestrel Squad... we're pinned in the grotto... something in the walls... please..."
+  },
+  {
+   "id": "SF02_002",
+   "mission": "F02",
+   "speaker": "NOVA",
+   "text": "That transmission is eleven hours old."
+  },
+  {
+   "id": "SF02_003",
+   "mission": "F02",
+   "speaker": "PLAYER",
+   "text": "Then we're eleven hours late."
+  },
+  {
+   "id": "SF02_004",
+   "mission": "F02",
+   "speaker": "NOVA",
+   "text": "Survivor signatures. Four. Weak."
+  },
+  {
+   "id": "SF02_005",
+   "mission": "F02",
+   "speaker": "SERGEANT IMANI",
+   "text": "...you came. We'd stopped expecting anyone."
+  },
+  {
+   "id": "SF02_006",
+   "mission": "F02",
+   "speaker": "PLAYER",
+   "text": "Frontier Defense doesn't leave people."
+  },
+  {
+   "id": "SF02_007",
+   "mission": "F02",
+   "speaker": "SERGEANT IMANI",
+   "text": "Since when?"
+  },
+  {
+   "id": "SF02_008",
+   "mission": "F02",
+   "speaker": "PLAYER",
+   "text": "Since today."
+  },
+  {
+   "id": "SF03_001",
+   "mission": "F03",
+   "speaker": "VOSS",
+   "text": "Six trucks. Medicine, blood, surgical kits. Haven's out of all of it. Get them there."
+  },
+  {
+   "id": "SF03_002",
+   "mission": "F03",
+   "speaker": "MEDIC",
+   "text": "Every truck? You got every truck through?"
+  },
+  {
+   "id": "SF03_003",
+   "mission": "F03",
+   "speaker": "PLAYER",
+   "text": "Every truck."
+  },
+  {
+   "id": "SF03_004",
+   "mission": "F03",
+   "speaker": "MEDIC",
+   "text": "I could kiss you. I won't. I've been awake for forty hours."
+  },
+  {
+   "id": "SF04_001",
+   "mission": "F04",
+   "speaker": "MILITARY RADIO",
+   "text": "Eastern line is breaking! Something big! Rounds aren't stopping it!"
+  },
+  {
+   "id": "SF04_002",
+   "mission": "F04",
+   "speaker": "VOSS",
+   "text": "Operator. The Iron Line. If it falls, the university district falls with it."
+  },
+  {
+   "id": "SF04_003",
+   "mission": "F04",
+   "speaker": "NOVA",
+   "text": "Armoured. Fast for its size. Its joints are its weakness."
+  },
+  {
+   "id": "SF04_004",
+   "mission": "F04",
+   "speaker": "SERGEANT IMANI",
+   "text": "The line holds! The line holds!"
+  },
+  {
+   "id": "SF04_005",
+   "mission": "F04",
+   "speaker": "VOSS",
+   "text": "Good work. The Initiative won't forget it."
+  },
+  {
+   "id": "SF04_006",
+   "mission": "F04",
+   "speaker": "NOVA",
+   "text": "He said that very sincerely."
+  },
+  {
+   "id": "SF05_001",
+   "mission": "F05",
+   "speaker": "KAEL",
+   "text": "Forty civilians in a parking garage. The military wrote them off. We don't write people off."
+  },
+  {
+   "id": "SF05_002",
+   "mission": "F05",
+   "speaker": "FREE OPERATOR",
+   "text": "Choir constructs on every exit. They're just... waiting. Like they want the people to come out."
+  },
+  {
+   "id": "SF05_003",
+   "mission": "F05",
+   "speaker": "PLAYER",
+   "text": "Then we make them come to us."
+  },
+  {
+   "id": "SF05_004",
+   "mission": "F05",
+   "speaker": "FREE OPERATOR",
+   "text": "Loud and fast. That's how we do it."
+  },
+  {
+   "id": "SF05_005",
+   "mission": "F05",
+   "speaker": "KAEL",
+   "text": "Forty in, forty out. That's a good day."
+  },
+  {
+   "id": "SF05_006",
+   "mission": "F05",
+   "speaker": "PLAYER",
+   "text": "Do you get many good days?"
+  },
+  {
+   "id": "SF05_007",
+   "mission": "F05",
+   "speaker": "KAEL",
+   "text": "Enough to keep going. That's all you need."
+  },
+  {
+   "id": "SF06_001",
+   "mission": "F06",
+   "speaker": "KAEL",
+   "text": "Someone stole a whole Free Operator clinic. It's for sale in Neon. I want it back."
+  },
+  {
+   "id": "SF06_002",
+   "mission": "F06",
+   "speaker": "VESPER",
+   "text": "The clinic? Yes. It's in a container under the cyan loop. The sellers are... enthusiastic."
+  },
+  {
+   "id": "SF06_003",
+   "mission": "F06",
+   "speaker": "PLAYER",
+   "text": "How enthusiastic?"
+  },
+  {
+   "id": "SF06_004",
+   "mission": "F06",
+   "speaker": "VESPER",
+   "text": "Armed. Very."
+  },
+  {
+   "id": "SF06_005",
+   "mission": "F06",
+   "speaker": "NOVA",
+   "text": "Twelve sellers. One container. I'll keep the price low."
+  },
+  {
+   "id": "SF06_006",
+   "mission": "F06",
+   "speaker": "KAEL",
+   "text": "Back where it belongs. Tell Vesper she gets a crate of antibiotics for the tip. She'll sell it. She always sells it."
+  },
+  {
+   "id": "SF07_001",
+   "mission": "F07",
+   "speaker": "KAEL",
+   "text": "The broadcast only tells people what governments want them to hear. Let's give them something else."
+  },
+  {
+   "id": "SF07_002",
+   "mission": "F07",
+   "speaker": "RADIO FREE NEXUS",
+   "text": "This is Radio Free Nexus. If you can hear this, you're not alone. Water at the harbour. Shelter at Haven. Nobody's coming to save you, so we came instead."
+  },
+  {
+   "id": "SF07_003",
+   "mission": "F07",
+   "speaker": "KAEL",
+   "text": "Good, isn't it?"
+  },
+  {
+   "id": "SF07_004",
+   "mission": "F07",
+   "speaker": "PLAYER",
+   "text": "It's good."
+  },
+  {
+   "id": "SF08_001",
+   "mission": "F08",
+   "speaker": "NYX",
+   "text": "Three crews gone in a week. Something in the mangroves. Kael asked me. I'm asking you."
+  },
+  {
+   "id": "SF08_002",
+   "mission": "F08",
+   "speaker": "FREE OPERATOR",
+   "text": "It hunts under the full moon. Takes the last boat in line. Every time."
+  },
+  {
+   "id": "SF08_003",
+   "mission": "F08",
+   "speaker": "NYX",
+   "text": "Then we'll be the last boat."
+  },
+  {
+   "id": "SF08_004",
+   "mission": "F08",
+   "speaker": "NYX",
+   "text": "Corner of your eye. Always."
+  },
+  {
+   "id": "SF08_005",
+   "mission": "F08",
+   "speaker": "NYX",
+   "text": "Moon's still up. Nobody else gets taken tonight."
+  },
+  {
+   "id": "SF09_001",
+   "mission": "F09",
+   "speaker": "CRANE",
+   "text": "We need living crystal. Not shards. Growing samples. Dr. Lune will show you."
+  },
+  {
+   "id": "SF09_002",
+   "mission": "F09",
+   "speaker": "RESEARCHER LUNE",
+   "text": "The crystal grows toward people. It's attracted to thought. Your thought will be very attractive."
+  },
+  {
+   "id": "SF09_003",
+   "mission": "F09",
+   "speaker": "PLAYER",
+   "text": "Is that a compliment?"
+  },
+  {
+   "id": "SF09_004",
+   "mission": "F09",
+   "speaker": "RESEARCHER LUNE",
+   "text": "It's a warning."
+  },
+  {
+   "id": "SF09_005",
+   "mission": "F09",
+   "speaker": "RESEARCHER LUNE",
+   "text": "Gently. It bites."
+  },
+  {
+   "id": "SF09_006",
+   "mission": "F09",
+   "speaker": "RESEARCHER LUNE",
+   "text": "Three living samples. The Prefect will be thrilled. He's never thrilled. He'll be thrilled."
+  },
+  {
+   "id": "SF10_001",
+   "mission": "F10",
+   "speaker": "CRANE",
+   "text": "Floor twelve. A sample got out. It's... learning. Contain it before it learns the stairs."
+  },
+  {
+   "id": "SF10_002",
+   "mission": "F10",
+   "speaker": "RESEARCHER LUNE",
+   "text": "Contained. Mostly. It learned to open doors."
+  },
+  {
+   "id": "SF10_003",
+   "mission": "F10",
+   "speaker": "PLAYER",
+   "text": "Mostly?"
+  },
+  {
+   "id": "SF10_004",
+   "mission": "F10",
+   "speaker": "RESEARCHER LUNE",
+   "text": "It's in a jar. A very big jar."
+  },
+  {
+   "id": "SF11_001",
+   "mission": "F11",
+   "speaker": "RESEARCHER LUNE",
+   "text": "Subject forty-one wants to leave the program. Crane says he signed a contract. He was dying when he signed it."
+  },
+  {
+   "id": "SF11_002",
+   "mission": "F11",
+   "speaker": "PLAYER",
+   "text": "What do you want me to do?"
+  },
+  {
+   "id": "SF11_003",
+   "mission": "F11",
+   "speaker": "RESEARCHER LUNE",
+   "text": "Get him out. I'll lose my job. I don't care anymore."
+  },
+  {
+   "id": "SF11_004",
+   "mission": "F11",
+   "speaker": "NOVA",
+   "text": "Guards on every floor. They haven't been told. Walk calmly."
+  },
+  {
+   "id": "SF11_005",
+   "mission": "F11",
+   "speaker": "PLAYER",
+   "text": "I'm always calm."
+  },
+  {
+   "id": "SF11_006",
+   "mission": "F11",
+   "speaker": "RESEARCHER LUNE",
+   "text": "He's out. His name is Tomas, by the way. Not forty-one. Tomas."
+  },
+  {
+   "id": "SF11_007",
+   "mission": "F11",
+   "speaker": "NOVA",
+   "text": "I have updated my records."
+  },
+  {
+   "id": "SF12_001",
+   "mission": "F12",
+   "speaker": "CRANE",
+   "text": "A shield. Over twelve blocks. Not just the Spire. Don't look so surprised. I can be generous when it's good publicity."
+  },
+  {
+   "id": "SF12_002",
+   "mission": "F12",
+   "speaker": "NOVA",
+   "text": "Shield up. Twelve blocks under it. Thirty thousand people."
+  },
+  {
+   "id": "SF12_003",
+   "mission": "F12",
+   "speaker": "CRANE",
+   "text": "There. Now they'll think I'm nice."
+  },
+  {
+   "id": "SF12_004",
+   "mission": "F12",
+   "speaker": "PLAYER",
+   "text": "Are you?"
+  },
+  {
+   "id": "SF12_005",
+   "mission": "F12",
+   "speaker": "CRANE",
+   "text": "I'm effective. Some days that looks the same."
+  },
+  {
+   "id": "SE01_001",
+   "mission": "E01",
+   "speaker": "GLOBAL BROADCAST",
+   "text": "Neon City residents: a Fracture storm is forming over the Magenta Cross. Seek shelter. Do not look up."
+  },
+  {
+   "id": "SE01_002",
+   "mission": "E01",
+   "speaker": "NOVA",
+   "text": "It's raining glass. Sharp glass. People are trapped in the open."
+  },
+  {
+   "id": "SE01_003",
+   "mission": "E01",
+   "speaker": "CIVILIAN",
+   "text": "Help! My daughter's under the overpass!"
+  },
+  {
+   "id": "SE01_004",
+   "mission": "E01",
+   "speaker": "NOVA",
+   "text": "Storm passing. Forty-two people sheltered. Three hundred kilos of glass on the street."
+  },
+  {
+   "id": "SE01_005",
+   "mission": "E01",
+   "speaker": "CIVILIAN",
+   "text": "It's beautiful. Isn't that awful? It's beautiful."
+  },
+  {
+   "id": "SE02_001",
+   "mission": "E02",
+   "speaker": "NOVA",
+   "text": "Riverdale has gone silent. Every phone, every radio. A silence field."
+  },
+  {
+   "id": "SE02_002",
+   "mission": "E02",
+   "speaker": "PLAYER",
+   "text": "Choir?"
+  },
+  {
+   "id": "SE02_003",
+   "mission": "E02",
+   "speaker": "NOVA",
+   "text": "A small one. Sent to listen to a town. To see if it's worth ending."
+  },
+  {
+   "id": "SE02_004",
+   "mission": "E02",
+   "speaker": "NOVA",
+   "text": "Make noise. Lots of it."
+  },
+  {
+   "id": "SE02_005",
+   "mission": "E02",
+   "speaker": "CIVILIAN",
+   "text": "...hello? Hello! I can hear myself! Everybody, I can hear myself!"
+  },
+  {
+   "id": "SE02_006",
+   "mission": "E02",
+   "speaker": "NOVA",
+   "text": "The town is shouting. All of it. I think they're going to shout for a while."
+  },
+  {
+   "id": "SE03_001",
+   "mission": "E03",
+   "speaker": "NOVA",
+   "text": "Something fell out of a Fracture into the badlands. A crystal the size of a house. Everyone saw it."
+  },
+  {
+   "id": "SE03_002",
+   "mission": "E03",
+   "speaker": "PLAYER",
+   "text": "Everyone's going for it."
+  },
+  {
+   "id": "SE03_003",
+   "mission": "E03",
+   "speaker": "NOVA",
+   "text": "The Ascendancy, raiders, three Free Operator crews and a man on a horse."
+  },
+  {
+   "id": "SE03_004",
+   "mission": "E03",
+   "speaker": "NOVA",
+   "text": "Raiders first. Then everyone else."
+  },
+  {
+   "id": "SE03_005",
+   "mission": "E03",
+   "speaker": "NOVA",
+   "text": "The crystal is humming. It's... a seed. Not the Seed. A small one. A Fracture growing a garden."
+  },
+  {
+   "id": "SE03_006",
+   "mission": "E03",
+   "speaker": "PLAYER",
+   "text": "Leave it. Let it grow."
+  },
+  {
+   "id": "SE04_001",
+   "mission": "E04",
+   "speaker": "NOVA",
+   "text": "Headlights on the highway. Six trucks. Their registrations belong to a convoy lost in the first dust storm."
+  },
+  {
+   "id": "SE04_002",
+   "mission": "E04",
+   "speaker": "PLAYER",
+   "text": "Ghosts?"
+  },
+  {
+   "id": "SE04_003",
+   "mission": "E04",
+   "speaker": "NOVA",
+   "text": "Echoes. A Fracture replaying a road. The drivers think it's six years ago."
+  },
+  {
+   "id": "SE04_004",
+   "mission": "E04",
+   "speaker": "NOVA",
+   "text": "If they reach the gate, the echo may finish. Let them arrive."
+  },
+  {
+   "id": "SE04_005",
+   "mission": "E04",
+   "speaker": "NOVA",
+   "text": "They're at the gate. The headlights are fading."
+  },
+  {
+   "id": "SE04_006",
+   "mission": "E04",
+   "speaker": "PLAYER",
+   "text": "Six years late."
+  },
+  {
+   "id": "SE04_007",
+   "mission": "E04",
+   "speaker": "NOVA",
+   "text": "But they arrived. I think that's the part the echo was waiting for."
+  },
+  {
+   "id": "SE05_001",
+   "mission": "E05",
+   "speaker": "LIGHTHOUSE KEEPER",
+   "text": "It started on its own. Flashing. Same pattern, over and over. I don't know who it's talking to."
+  },
+  {
+   "id": "SE05_002",
+   "mission": "E05",
+   "speaker": "NOVA",
+   "text": "...It's talking to me. Astryan code. It's saying \"lighthouse\". Over and over. To another lighthouse."
+  },
+  {
+   "id": "SE05_003",
+   "mission": "E05",
+   "speaker": "LIGHTHOUSE KEEPER",
+   "text": "Well, answer it, then."
+  },
+  {
+   "id": "SE05_004",
+   "mission": "E05",
+   "speaker": "NOVA",
+   "text": "I said hello. It said hello back. Then it said goodbye. It was waiting a very long time for one hello."
+  },
+  {
+   "id": "SE05_005",
+   "mission": "E05",
+   "speaker": "LIGHTHOUSE KEEPER",
+   "text": "And now?"
+  },
+  {
+   "id": "SE05_006",
+   "mission": "E05",
+   "speaker": "NOVA",
+   "text": "Now it's just a lighthouse. Which is a fine thing to be."
+  },
+  {
+   "id": "SE06_001",
+   "mission": "E06",
+   "speaker": "NOVA",
+   "text": "A Fracture opened under the lake. The water is rising a metre an hour. And it brought things with it."
+  },
+  {
+   "id": "SE06_002",
+   "mission": "E06",
+   "speaker": "CIVILIAN",
+   "text": "The airboats! Get the children to the airboats!"
+  },
+  {
+   "id": "SE06_003",
+   "mission": "E06",
+   "speaker": "NOVA",
+   "text": "Everyone's out. The boardwalks are under. They'll rebuild."
+  },
+  {
+   "id": "SE06_004",
+   "mission": "E06",
+   "speaker": "CIVILIAN",
+   "text": "We always rebuild. The swamp takes, we build. It's a marriage."
+  },
+  {
+   "id": "SE07_001",
+   "mission": "E07",
+   "speaker": "NOVA",
+   "text": "The Windward isle is losing altitude. Forty metres an hour. Three hundred people live on it."
+  },
+  {
+   "id": "SE07_002",
+   "mission": "E07",
+   "speaker": "PLAYER",
+   "text": "Can we stop it?"
+  },
+  {
+   "id": "SE07_003",
+   "mission": "E07",
+   "speaker": "NOVA",
+   "text": "The aether temple at its heart is failing. If someone restarts it, maybe."
+  },
+  {
+   "id": "SE07_004",
+   "mission": "E07",
+   "speaker": "NOVA",
+   "text": "Something is nesting in it. Something that likes falling."
+  },
+  {
+   "id": "SE07_005",
+   "mission": "E07",
+   "speaker": "NOVA",
+   "text": "The isle is holding. Rising, a little."
+  },
+  {
+   "id": "SE07_006",
+   "mission": "E07",
+   "speaker": "CIVILIAN",
+   "text": "We felt it stop! We felt it! Who are you?"
+  },
+  {
+   "id": "SE07_007",
+   "mission": "E07",
+   "speaker": "PLAYER",
+   "text": "Just passing through."
+  },
+  {
+   "id": "SE08_001",
+   "mission": "E08",
+   "speaker": "NOVA",
+   "text": "The fire spire is erupting. The ash outpost has eight minutes. And the eruption woke the crawlers."
+  },
+  {
+   "id": "SE08_002",
+   "mission": "E08",
+   "speaker": "NOVA",
+   "text": "Trucks away. The outpost is gone. The people aren't."
+  },
+  {
+   "id": "SE08_003",
+   "mission": "E08",
+   "speaker": "PLAYER",
+   "text": "That's the right way round."
+  },
+  {
+   "id": "SE09_001",
+   "mission": "E09",
+   "speaker": "NOVA",
+   "text": "Flowers. Blooming in minus thirty. In the shape of a crown."
+  },
+  {
+   "id": "SE09_002",
+   "mission": "E09",
+   "speaker": "PLAYER",
+   "text": "Seraphine?"
+  },
+  {
+   "id": "SE09_003",
+   "mission": "E09",
+   "speaker": "NOVA",
+   "text": "Something she left. Or something that remembers her."
+  },
+  {
+   "id": "SE09_004",
+   "mission": "E09",
+   "speaker": "NOVA",
+   "text": "A guardian. Small. Made of ice and petals. It's tending them."
+  },
+  {
+   "id": "SE09_005",
+   "mission": "E09",
+   "speaker": "PLAYER",
+   "text": "Hostile?"
+  },
+  {
+   "id": "SE09_006",
+   "mission": "E09",
+   "speaker": "NOVA",
+   "text": "It's watering them with snow. I don't think it has room in its day to be hostile."
+  },
+  {
+   "id": "SE10_001",
+   "mission": "E10",
+   "speaker": "GLOBAL BROADCAST",
+   "text": "Unconfirmed reports that water supplies will be cut tonight. Frontier Defense denies the—"
+  },
+  {
+   "id": "SE10_002",
+   "mission": "E10",
+   "speaker": "NOVA",
+   "text": "Ten thousand people are converging on the market. The rumour is false. The panic is real."
+  },
+  {
+   "id": "SE10_003",
+   "mission": "E10",
+   "speaker": "CIVILIAN",
+   "text": "They're hoarding it! The rich blocks are hoarding the water!"
+  },
+  {
+   "id": "SE10_004",
+   "mission": "E10",
+   "speaker": "NOVA",
+   "text": "Water trucks arriving. Twelve of them. Voss sent everything."
+  },
+  {
+   "id": "SE10_005",
+   "mission": "E10",
+   "speaker": "CIVILIAN",
+   "text": "...There's enough. There's actually enough."
+  },
+  {
+   "id": "SE10_006",
+   "mission": "E10",
+   "speaker": "PLAYER",
+   "text": "There was always enough. There just wasn't enough trust."
+  },
+  {
+   "id": "SE11_001",
+   "mission": "E11",
+   "speaker": "NOVA",
+   "text": "A parade. Lanterns, music, people in costumes. None of them are real. They're from a festival that never happened here."
+  },
+  {
+   "id": "SE11_002",
+   "mission": "E11",
+   "speaker": "CIVILIAN",
+   "text": "Is it dangerous?"
+  },
+  {
+   "id": "SE11_003",
+   "mission": "E11",
+   "speaker": "NOVA",
+   "text": "Only if you try to stop it. Let it pass."
+  },
+  {
+   "id": "SE11_004",
+   "mission": "E11",
+   "speaker": "NOVA",
+   "text": "They've crossed the bridge. They're gone."
+  },
+  {
+   "id": "SE11_005",
+   "mission": "E11",
+   "speaker": "CIVILIAN",
+   "text": "My grandmother used to talk about a lantern festival. Nobody believed her. She said it was from another life."
+  },
+  {
+   "id": "SE11_006",
+   "mission": "E11",
+   "speaker": "NOVA",
+   "text": "Perhaps it was."
+  },
+  {
+   "id": "SE12_001",
+   "mission": "E12",
+   "speaker": "RANGER",
+   "text": "Every herd in the forest is moving north. All at once. They've never done that."
+  },
+  {
+   "id": "SE12_002",
+   "mission": "E12",
+   "speaker": "NOVA",
+   "text": "They're moving away from a Fracture forming in the south. They know before we do."
+  },
+  {
+   "id": "SE12_003",
+   "mission": "E12",
+   "speaker": "RANGER",
+   "text": "And the poachers know they're moving."
+  },
+  {
+   "id": "SE12_004",
+   "mission": "E12",
+   "speaker": "RANGER",
+   "text": "Don't hit the herd. Hit the people with nets."
+  },
+  {
+   "id": "SE12_005",
+   "mission": "E12",
+   "speaker": "RANGER",
+   "text": "The herd's through. Thank you."
+  },
+  {
+   "id": "SE12_006",
+   "mission": "E12",
+   "speaker": "NOVA",
+   "text": "There are calves. Hundreds. Walking north."
+  },
+  {
+   "id": "SE12_007",
+   "mission": "E12",
+   "speaker": "PLAYER",
+   "text": "Good luck to them."
+  }
+ ]
+}

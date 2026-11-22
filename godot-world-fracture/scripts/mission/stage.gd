@@ -35,7 +35,7 @@ const ROOMS := ["zero_point", "choir_hall", "witness_vault", "astryan_hall", "co
 const SKY := ["void"]
 
 ## who speaks without a body in the scene (a radio, a broadcast, a voice in the dark): the camera holds the set
-const VOICES := ["MILITARY RADIO", "UNKNOWN VOICE", "GLOBAL BROADCAST", "ARCHIVE RECORDING", "MEMORY", "ENGINE VOICE", "COUNCILLOR", "CHOIR VOICE", "THE ECHO", "SEVENTH PROTOCOL"]
+const VOICES := ["MILITARY RADIO", "UNKNOWN VOICE", "GLOBAL BROADCAST", "ARCHIVE RECORDING", "MEMORY", "ENGINE VOICE", "COUNCILLOR", "CHOIR VOICE", "THE ECHO", "SEVENTH PROTOCOL", "RADIO FREE NEXUS"]
 ## the people of the story with a roster row (people.gd) — they wear their own look
 const ROSTER := ["VOSS", "SERAPHINE", "RAINER", "WARD", "KAEL", "COLE"]
 ## the looks of everyone else who speaks or stands in a scene: outfit, body, build, scale, and a whole-character model
@@ -55,7 +55,10 @@ const EXTRAS := {
 	"CHIEF ODA": ["npc-engineer", "female", "heavy", 1.0], "HIEROPHANT": ["npc-elder", "male", "slim", 1.0],
 	"DR. HALVARD": ["npc-hivis", "male", "heavy", 1.0], "TALLIS": ["npc-shirtless", "male", "athletic", 1.0],
 	"RAIDER": ["npc-tank-cargo", "male", "athletic", 1.0], "PHANTOM CHILD": ["npc-summer", "female", "slim", 0.6],
-	"ASTRYAN MAKER": ["npc-doctor", "female", "slim", 1.0], "AUREN (MEMORY)": ["npc-hunter", "male", "athletic", 1.0],
+	"ASTRYAN MAKER": ["npc-doctor", "female", "slim", 1.0], "SERGEANT IMANI": ["npc-swat", "female", "athletic", 1.0],
+	"RESEARCHER LUNE": ["npc-doctor", "female", "slim", 1.0], "FREE OPERATOR": ["npc-hunter", "male", "athletic", 1.0],
+	"MRS. REYES": ["npc-elder", "female", "heavy", 1.0], "ANNA VOLK": ["npc-beige-suit", "female", "slim", 1.0],
+	"LIGHTHOUSE KEEPER": ["npc-fisherman", "male", "heavy", 1.0], "AUREN (MEMORY)": ["npc-hunter", "male", "athletic", 1.0],
 	"TUROG (MEMORY)": ["npc-leather", "male", "heavy", 1.0], "UNBOUND ELDER": ["npc-elder", "female", "slim", 1.0],
 }
 

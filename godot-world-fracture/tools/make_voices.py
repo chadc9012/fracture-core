@@ -117,6 +117,16 @@ CAST = {
     "ENGINE VOICE": ("en-us-amy-low", None, "pa"),
     "SEVENTH PROTOCOL": ("en-gb-alan-low", None, "fracture"),
     "MEMORY": (LT, 395, "crown"),
+    # the side missions (tools/campaign/side_missions.py)
+    "SERGEANT IMANI": (LT, 465, "plain"),
+    "RESEARCHER LUNE": (LT, 285, "plain"),
+    "FREE OPERATOR": (LT, 225, "plain"),
+    "RADIO FREE NEXUS": (LT, 615, "radio"),
+    "MRS. REYES": (LT, 690, "plain"),
+    "ANNA VOLK": (LT, 735, "plain"),
+    "LIGHTHOUSE KEEPER": (LT, 780, "plain"),
+    "RANGER": (LT, 375, "plain"),
+    "MEDIC": (LT, 300, "plain"),
 }
 FALLBACK = (LT, 885, "plain")
 
@@ -185,6 +195,11 @@ def load_lines():
     aft = os.path.join(ROOT, "data", "dialogue", "aftershock.json")
     if os.path.exists(aft):
         for l in json.load(open(aft))["lines"]:
+            lines.append({"id": l["id"], "speaker": l["speaker"], "text": l["text"]})
+    # the side missions (tools/campaign/side_missions.py)
+    side = os.path.join(ROOT, "data", "dialogue", "side_missions.json")
+    if os.path.exists(side):
+        for l in json.load(open(side))["lines"]:
             lines.append({"id": l["id"], "speaker": l["speaker"], "text": l["text"]})
     # the people's talk lines (tools/people_lines.py → data/dialogue/people.json), one voice per job
     people = os.path.join(ROOT, "data", "dialogue", "people.json")
@@ -297,10 +312,12 @@ def main():
                     ffmpeg(os.path.join(PROVIDED, prov), out, FX["robot"])
                 else:
                     model, spk, fx = CAST.get(key, person_voice(l) if l.get("body") else FALLBACK)
-                    wav = os.path.join(tmp, "x.wav")
-                    piper(model_dir, model, spk, speakable(text), wav)
-                    if sp in MATCH:
-                        eq_match(model_dir, model, spk, sp, wav)
+                    # the same cast voice saying the same words (PLAYER_m and the robot PLAYER_r share one) is spoken once
+                    wav = os.path.join(tmp, "%s-%s-%d.wav" % (model, spk, abs(hash(text))))
+                    if not os.path.exists(wav):
+                        piper(model_dir, model, spk, speakable(text), wav)
+                        if sp in MATCH:
+                            eq_match(model_dir, model, spk, sp, wav)
                     ffmpeg(wav, out, FX[fx])
                 print("voiced", lid + var, flush=True)
             if os.path.exists(out):

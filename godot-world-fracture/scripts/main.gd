@@ -137,6 +137,10 @@ func _ready() -> void:
 	fd.add_theme_font_size_override("font_size", 18)
 	fd.pressed.connect(_open_descent)
 	_dock_add(fd)
+	var side := Data.button("SIDE MISSIONS · quests, factions, world events", true)
+	side.custom_minimum_size = Vector2(0, 48)
+	side.pressed.connect(_open_side_board)
+	_dock_add(side)
 	var race_button := Data.button("RACE", true)
 	race_button.custom_minimum_size = Vector2(0, 48)
 	race_button.pressed.connect(func(): _open_race())
@@ -446,6 +450,29 @@ func _open_descent() -> void:
 	if descent:
 		return
 	descent = Descent.new()
+	descent.closed.connect(_close_descent)
+	add_child(descent)
+	planet_view.set_process(false)
+
+## the side missions (scripts/mission/side_board.gd → side_mission.gd): the board, then one mission over the globe
+var side_board: Control
+func _open_side_board() -> void:
+	if side_board or descent:
+		return
+	side_board = load("res://scripts/mission/side_board.gd").new()
+	side_board.closed.connect(func(): side_board.queue_free(); side_board = null)
+	side_board.play.connect(_open_side)
+	add_child(side_board)
+
+func _open_side(id: String) -> void:
+	if side_board:
+		side_board.queue_free()
+		side_board = null
+	if descent:
+		return
+	var SideMission = load("res://scripts/mission/side_mission.gd")
+	SideMission.pending = id
+	descent = SideMission.new()
 	descent.closed.connect(_close_descent)
 	add_child(descent)
 	planet_view.set_process(false)
