@@ -411,11 +411,11 @@ func _process(dt: float) -> void:
 		var found := false
 		for frac in [1.0, 0.5]:
 			for off in [0.0, 0.6, -0.6, 1.2, -1.2, 1.9, -1.9, PI]:
-				var b2 := Vector3(sin(_cam_yaw + off), 0, cos(_cam_yaw + off))
-				var c2 := hull.position + b2 * cd.x * frac + Vector3(0, cd.y, 0)
+				var b2 := Vector3(sin(_cam_yaw + float(off)), 0, cos(_cam_yaw + float(off)))
+				var c2: Vector3 = hull.position + b2 * cd.x * float(frac) + Vector3(0, cd.y, 0)
 				if c2.y >= region.ground(c2.x, c2.z) + 1.5 and _clear_cam(hull.position + Vector3(0, 1.5, 0), c2).is_equal_approx(c2):
 					cam_pos = c2
-					_cam_yaw += off * minf(1.0, 4.0 * dt)
+					_cam_yaw += float(off) * minf(1.0, 4.0 * dt)
 					found = true
 					break
 			if found:
