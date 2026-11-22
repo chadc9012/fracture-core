@@ -9,6 +9,10 @@ const Sound := preload("res://scripts/audio/sound.gd")
 ## cutscenes (cutscene.gd) carry the owner's recorded lines — Mara at the crash site, Dr Aris's World Anchor log at the
 ## terminal, Serik Vale's recording at the core, Vaelith's first contact as the act's last word. Progress is
 ## user://quests.json (and rides the cloud save).
+##
+## Online (Nov 22, online_story.gd): the players on the same chapter play it together — the first one in leads and runs
+## it (`authority()`), the others see its troopers, progress, waypoint and boss, and finish the chapter when the leader
+## does. On by default (CO-OP OPEN on the HUD; PRIVATE keeps you alone); alone it plays exactly as it did.
 
 signal closed
 
@@ -39,6 +43,15 @@ const QUESTS := [
 	{ "id": "fd-07", "title": "Full Lockdown", "world": "neon-city", "start": "aegis-quartermaster", "line": "Full lockdown. Every drone in the district is hunting one signature — a Resonant Carrier. You.", "kind": "core", "amount": 3, "label": "Breach the Stitched Neon Core", "xp": 320, "nex": 320 },
 ]
 const ACT_END := "done"
+## story co-op: open to the other players on your chapter (Online pref "story_coop"), the identity to use (tests give
+## each view its own; the shared one when unset), the chapter's co-op node
+var online := true
+var net: Node
+var coop: Node
+var _coop_label: Label
+var _coop_button: Button
+var _boss_to := Vector3.INF
+var _pending_done := ""
 
 var region: Control
 var operator: Node3D
@@ -86,6 +99,18 @@ func _ready() -> void:
 	back.position = Vector2(250, 8)   # right of the hull bar
 	back.pressed.connect(func(): _save(); closed.emit())
 	add_child(back)
+	online = bool(load("res://scripts/net/online.gd").pref("story_coop", true)) and online
+	_coop_button = Button.new()
+	_coop_button.position = Vector2(370, 8)
+	_coop_button.pressed.connect(_toggle_coop)
+	add_child(_coop_button)
+	_coop_label = Label.new()
+	_coop_label.position = Vector2(16, 178)
+	_coop_label.add_theme_font_size_override("font_size", 13)
+	_coop_label.add_theme_color_override("font_color", Color(0.6, 0.9, 1.0))
+	_coop_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	add_child(_coop_label)
+	_coop_paint()
 	cutscene = Cutscene.new()
 	add_child(cutscene)
 	_begin(progress.current)
@@ -193,6 +218,7 @@ func _site(dist: float) -> Vector3:
 
 var _gps: Control
 func _teardown_world() -> void:
+	_coop_stop()
 	if _gps:
 		_gps.queue_free()
 		_gps = null
@@ -230,6 +256,7 @@ func _on_ground(p: Vector3) -> Vector3:
 
 # --------------------------------------------------------------------------------------------- the chain
 func _begin(id: String) -> void:
+	_coop_stop()
 	quest = _quest_def(id)
 	if quest.is_empty():
 		_chapter_done()
@@ -269,6 +296,7 @@ func _begin(id: String) -> void:
 		"reach":
 			_set_waypoint(_edge, true)
 	_refresh()
+	_coop_start()
 
 func _set_waypoint(p: Vector3, on: bool) -> void:
 	waypoint = p
@@ -319,6 +347,8 @@ func _complete() -> void:
 	var id := String(quest.id)
 	if id in progress.done:
 		return
+	if coop and coop.leader:
+		coop.send("done", { "id": id })
 	progress.done.append(id)
 	var p := Gear.profile_load()
 	var res := Progression.grant(p, "quest", int(quest.nex), int(quest.xp), "%s complete" % String(quest.title))
@@ -419,8 +449,15 @@ func _process(dt: float) -> void:
 			boss.step(dt)
 		return
 	enemies.step(dt)
+	if coop:
+		coop.step(dt)
+		if Engine.get_process_frames() % 15 == 0:
+			_coop_label.text = String(coop.hud_lines()).strip_edges()
 	if boss:
+		boss.echo = not authority()
 		boss.step(dt)
+		if boss.echo and _boss_to != Vector3.INF:
+			boss.position = boss.position.lerp(_boss_to, minf(1.0, dt * 8.0))
 	if wildlife:
 		wildlife.step(dt)
 	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
@@ -440,6 +477,15 @@ func _process(dt: float) -> void:
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
 	if quest.is_empty():
 		return
+	if _pending_done != "" and not _busy():
+		var pd := _pending_done
+		_pending_done = ""
+		coop_done(pd)
+	if not authority():
+		# the leader runs the chapter; this screen shows where it stands
+		if Engine.get_process_frames() % 10 == 0:
+			_refresh()
+		return
 	match String(quest.kind):
 		"kills":
 			# patrols come out of the trees two at a time until the count is met
@@ -449,7 +495,7 @@ func _process(dt: float) -> void:
 				_spawn_t = 6.0
 		"trace":
 			var d := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
-			if int(progress.relay) < 3 and d < 6.0:
+			if int(progress.relay) < 3 and _near(waypoint, 6.0):
 				progress.relay = int(progress.relay) + 1
 				controls.toast("Relay %d locked · the signal runs on" % int(progress.relay))
 				if int(progress.relay) < 3:
@@ -466,7 +512,7 @@ func _process(dt: float) -> void:
 			_refresh()
 		"reach":
 			var d2 := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
-			if d2 < 8.0:
+			if _near(waypoint, 8.0):
 				_complete()
 			elif Engine.get_process_frames() % 15 == 0:
 				_refresh()
@@ -492,7 +538,7 @@ func _process(dt: float) -> void:
 				return
 		"hack":
 			var d3 := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
-			if d3 < 9.0:
+			if _near(waypoint, 9.0):
 				progress.timer = float(progress.timer) + dt
 				_wave_t -= dt
 				if _wave_t <= 0.0:
@@ -512,7 +558,7 @@ func _process(dt: float) -> void:
 				_refresh()
 		"core":
 			var d4 := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
-			if boss == null and int(progress.wave) < int(quest.amount) and d4 < 14.0:
+			if boss == null and int(progress.wave) < int(quest.amount) and _near(waypoint, 14.0):
 				_wave_t -= dt
 				if _wave_t <= 0.0 and _alive() == 0:
 					progress.wave = int(progress.wave) + 1
@@ -528,7 +574,7 @@ func _process(dt: float) -> void:
 
 ## the source: a marksman and two scouts guard it (once; they stay down when shot, they don't respawn into it)
 func _spawn_guards() -> void:
-	if not _guards.is_empty():
+	if not _guards.is_empty() or not authority():
 		return
 	# the marker stays over the source until it's broken (picked up after a reload you start back at the crash site)
 	_set_waypoint(_relays[2], true)
@@ -548,11 +594,14 @@ func _guards_down() -> int:
 func _alive() -> int:
 	var n := 0
 	for e in enemies.enemies:
-		if e.state != Enemies.State.DOWN:
+		# the hostiles only: another player's body here (story co-op) is on your side
+		if e.team != 1 and e.state != Enemies.State.DOWN and e.target.alive():
 			n += 1
 	return n
 
 func _spawn_patrol(scout: bool) -> void:
+	if not authority():
+		return
 	var a := _rng.randf() * TAU
 	var at := _on_ground(operator.position + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(28.0, 42.0))
 	var e: RefCounted = enemies.spawn("scout" if scout else "executor", at)
@@ -618,7 +667,7 @@ func _opening(id: String) -> void:
 
 ## the relay's guards (fd-05) stand around the given point: a marksman and two scouts, down for good when shot
 func _spawn_guards_at(at: Vector3) -> void:
-	if not _guards.is_empty():
+	if not _guards.is_empty() or not authority():
 		return
 	for k in 3:
 		var a := k * TAU / 3.0
@@ -691,6 +740,8 @@ func _hack_done() -> void:
 
 ## fd-07: the lockdown's waves at the core, heavier each time
 func _spawn_core_wave(n: int) -> void:
+	if not authority():
+		return
 	var roster: Array = [["drone", "drone", "scout"], ["scout", "scout", "marksman", "drone"], ["elite", "marksman", "scout", "drone", "drone"]]
 	var types: Array = roster[clampi(n - 1, 0, roster.size() - 1)]
 	for k in types.size():
@@ -747,3 +798,111 @@ func _on_vyrak_down(_id: String, reward: Dictionary) -> void:
 		Cutscene.line("M10_002", look, { "orbit": { "radius": 11.0, "height": 3.5, "deg0": 130.0, "deg1": 170.0 }, "look_up": 2.0 }),
 	], region.camera())
 	cutscene.finished.connect(_complete, CONNECT_ONE_SHOT)
+
+# --------------------------------------------------------------------------------------------- story co-op
+## which story this is, for the chapter's room (campaign.gd: "campaign")
+func coop_chain() -> String:
+	return "descent"
+
+## this screen runs the chapter: alone, offline, or the co-op's leader (not while the lead is still being decided)
+func authority() -> bool:
+	return coop == null or (coop.decided and coop.leader)
+
+## somebody in the fireteam stands within `r` of `p` (alone: you)
+func _near(p: Vector3, r: float) -> bool:
+	if coop:
+		return coop.anyone_near(p, r)
+	return enemies.down <= 0.0 and Vector2(operator.position.x - p.x, operator.position.z - p.z).length() < r
+
+## a cutscene (or a choice) is up: a chapter the leader finished waits for it
+func _busy() -> bool:
+	return cutscene != null and cutscene.playing
+
+func _coop_start() -> void:
+	if not online or coop != null or quest.is_empty() or region == null:
+		return
+	coop = load("res://scripts/net/online_story.gd").new()
+	add_child(coop)
+	if not coop.setup(self, net):
+		coop.queue_free()
+		coop = null
+		return
+	coop.remote_kill.connect(_on_kill)
+	_coop_paint()
+
+func _coop_stop() -> void:
+	if coop == null:
+		return
+	coop.shutdown()
+	coop.queue_free()
+	coop = null
+	_boss_to = Vector3.INF
+	_pending_done = ""
+	if _coop_label:
+		_coop_label.text = ""
+
+## the lead is decided (or passed here): the leader puts the chapter's guards out where the counts stand
+func coop_ready(lead: bool, first: bool) -> void:
+	if not lead:
+		controls.toast("Co-op · %s leads this chapter" % coop.name_of(coop.leader_id))
+		return
+	if not first:
+		_guards.clear()
+		controls.toast("Co-op · you lead this chapter now")
+	elif coop and coop.count() > 1:
+		controls.toast("Co-op · you lead · %d players" % coop.count())
+	match String(quest.get("kind", "")):
+		"trace":
+			if int(progress.relay) >= 3:
+				_spawn_guards()
+		"survive":
+			if int(progress.stage) == 1:
+				_spawn_guards_at(waypoint)
+
+## the leader finished the chapter: so does this screen (its own rewards and save), once any scene playing is over
+func coop_done(id: String) -> void:
+	if quest.is_empty() or String(quest.id) != id or id in progress.done:
+		return
+	if _busy():
+		_pending_done = id
+		return
+	if boss and boss.echo and boss.rules and not boss.rules.dead:
+		# the leader's boss fell before its last state reached here: the echo falls now, and its kill (the reward, the
+		# scene) finishes the chapter
+		boss.rules.hit(1e9)
+		return
+	if String(quest.kind) == "hack":
+		_hack_done()
+	else:
+		_complete()
+
+## the leader's boss, here as an echo: where it stands, its hull, down or not
+func coop_boss(at: Vector3, heading: float, hull: float, dead: bool) -> void:
+	if boss == null:
+		_summon_vyrak()
+	if boss == null or boss.rules == null:
+		return
+	boss.echo = true
+	_boss_to = at
+	boss.heading = heading
+	if not boss.rules.dead:
+		boss.rules.hull = minf(boss.rules.hull_max, hull)
+		boss.target.hp = boss.rules.hull
+		if dead:
+			boss.rules.hit(1e9)
+
+func _toggle_coop() -> void:
+	online = not online
+	load("res://scripts/net/online.gd").set_pref("story_coop", online)
+	if online:
+		_coop_start()
+	else:
+		_coop_stop()
+		if not quest.is_empty():
+			# alone again: the chapter's guards come back out on this screen
+			coop_ready(true, true)
+	_coop_paint()
+
+func _coop_paint() -> void:
+	if _coop_button:
+		_coop_button.text = "CO-OP: OPEN" if online else "CO-OP: PRIVATE"

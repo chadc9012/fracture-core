@@ -361,6 +361,13 @@ static func _profile_save(p: Dictionary) -> void:
 	if f:
 		f.store_string(JSON.stringify(p))
 
+## story co-op: the campaign's chapters share rooms of their own; a choice or a story race is busy like a cutscene
+func coop_chain() -> String:
+	return "campaign"
+
+func _busy() -> bool:
+	return super() or (choice_view != null and choice_view.visible) or race_view != null
+
 ## the campaign's state for the title and the globe: the next mission to play, "" when done
 static func next_mission() -> String:
 	var f := FileAccess.open(CAMPAIGN_SAVE, FileAccess.READ)

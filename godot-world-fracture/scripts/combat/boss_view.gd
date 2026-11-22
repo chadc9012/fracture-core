@@ -33,6 +33,9 @@ var _breath := {}
 var _killed := false
 var _anim: AnimationPlayer
 var toast: Callable = func(_t: String) -> void: pass
+## an echo of another player's boss (online story co-op, online_story.gd): it fights this screen's operator where the
+## leader's stands and takes its hull from there; its brood comes from the leader's field, so it summons nothing here
+var echo := false
 var size := 3.0
 ## the patterns' telegraphs (Nov 22): the CHARGE's line and the SPIKES' circles, fixed when the telegraph starts
 var _charge_dir := Vector3.ZERO
@@ -184,6 +187,8 @@ func step(dt: float) -> void:
 				elif String(e.attack) == "BREATH":
 					Sound.sfx_at("jet", position, operator.position, -10.0)
 			"summon":
+				if echo:
+					continue
 				for i in int(e.count):
 					var a := TAU * i / int(e.count)
 					var at := position + Vector3(cos(a), 0, sin(a)) * (size + 3.0)
