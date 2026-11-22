@@ -552,8 +552,14 @@ static func _verdant(r: Node, rng: RandomNumberGenerator) -> void:
 			xf.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * hgt), Vector3(at.x, r._h(at.x, at.y) - 0.8, at.y)))
 			if xf.size() == 1:
 				spot(r, "elder", at, 24.0)
-		# no shadows: crowns this wide roofed the forest floor over in black (Street View, Nov 22)
-		r._multimesh(lods[0][0], xf, null, 1400.0, false)
+		# five of them, each its own instance (the batched tree tiles culled them at 45x scale); no shadows: crowns this
+		# wide roofed the forest floor over in black (Street View, Nov 22)
+		for t in xf:
+			var mi := MeshInstance3D.new()
+			mi.mesh = lods[0][0]
+			mi.transform = t
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			r._world.add_child(mi)
 	# the cliffs with their falls: three mossy bluffs, each with a long fall into a pool of mist
 	for i in 3:
 		var want := Vector2(cos(i * 2.1 + 0.4), sin(i * 2.1 + 0.4)) * half * 0.62
