@@ -86,6 +86,10 @@ var next_ring := 0
 var clock := 0.0
 var finished := false
 var _paid := false
+## an air race (air_race.gd): the ring course against three rival jets, the purse by place
+var air_race := false
+var race: RefCounted
+const AirRace := preload("res://scripts/flying/air_race.gd")
 var _picker: Control
 var _hud: Label
 var _boxes: Array[AABB] = []
@@ -243,8 +247,13 @@ func _start() -> void:
 	hull.rotation.y = state.yaw
 	_cam_yaw = state.yaw
 	_course(water)
+	if air_race and not water:
+		race = AirRace.new(self)
+		race.setup()
 	controls = TouchControls.new()
 	add_child(controls)
+	if race:
+		controls.toast("AIR RACE · lift off and the field lifts with you — eight rings, first through the last wins")
 	controls.set_mode("fly")
 	_hud = Label.new()
 	_hud.position = Vector2(16, 60)
@@ -632,6 +641,9 @@ func _reanchor(p: Vector3) -> void:
 
 ## leaving the starting region ends the ring course (its rings belong to that region's frame)
 func _drop_course() -> void:
+	if race:
+		race.clear()
+		race = null
 	touring = true
 	for r in rings:
 		if is_instance_valid(r.node):
@@ -715,6 +727,8 @@ func _process(dt: float) -> void:
 		want.z = clampf(want.z, -half, half)
 	hull.position = want
 	hull.rotation = Vector3(state.pitch, state.yaw, state.roll)
+	if race:
+		race.step(dt)
 	# rings
 	if not finished and not rings.is_empty():
 		if state.airborne or String(profile.mode) == "WATER":
@@ -759,6 +773,12 @@ func _process(dt: float) -> void:
 	Sound.loop_set("craft", 0.8 + k * 0.7, -12.0 + k * 6.0)
 	Sound.loop_set("wind", 1.0 + k * 0.4, -26.0 + k * 14.0)
 	var line3 := "rings %d / %d   %d:%02d" % [next_ring, rings.size(), int(clock / 60.0), int(fmod(clock, 60.0))]
+	if race:
+		var rows: Array = race.standings()
+		var board := ""
+		for i in rows.size():
+			board += "   %d %s %d/%d" % [i + 1, String(rows[i].name), int(rows[i].rings), rings.size()]
+		line3 = "AIR RACE  P%d / %d%s   %d:%02d" % [race.place(), rows.size(), board, int(clock / 60.0), int(fmod(clock, 60.0))]
 	if touring:
 		line3 = "%s   HDG %03d %s" % [place_name().to_upper(), int(rad_to_deg(Geo.yaw_to_heading(state.yaw))), Geo.compass(Geo.yaw_to_heading(state.yaw))]
 	_hud.text = "%s\nSPD %3d m/s   ALT %4d m   HULL %d%%%s\n%s" % [String(CRAFT[craft_id].name), int(absf(state.speed)), int(maxf(0.0, alt)), int(hull_hp * 100), ("   FUEL %d%%" % int(ceil(fuel))) if from_hangar else "", line3]
@@ -787,8 +807,16 @@ func _finish() -> void:
 	var fast := clock < 150.0
 	var nex := 350 if fast else 200
 	var xp := 250 if fast else 150
+	var label := "Skyways · %d:%02d" % [int(clock / 60.0), int(fmod(clock, 60.0))]
+	if race:
+		# the race's purse by place (first through the last ring wins), a podium's worth of XP
+		var pl: int = race.place()
+		nex = race.purse(pl)
+		xp = [300, 200, 150, 100][clampi(pl - 1, 0, 3)]
+		label = "Air race · P%d · %d:%02d" % [pl, int(clock / 60.0), int(fmod(clock, 60.0))]
+		controls.toast("AIR RACE · P%d of %d" % [pl, race.standings().size()])
 	var p := Gear.profile_load()
-	var res := Progression.grant(p, "skyways", nex, xp, "Skyways · %d:%02d" % [int(clock / 60.0), int(fmod(clock, 60.0))])
+	var res := Progression.grant(p, "skyways", nex, xp, label)
 	Gear.profile_save(p)
 	for l in res.lines:
 		controls.toast(String(l))

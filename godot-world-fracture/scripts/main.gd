@@ -1155,6 +1155,8 @@ func _shoot(path: String, opts: Array) -> void:
 				if String(o).contains(String(pair[0])):
 					skyways.craft_id = String(pair[1])
 			skyways.closed.connect(_close_skyways)
+			if String(o).contains("race"):
+				skyways.air_race = true   # the ring course against three rival jets (air_race.gd)
 			add_child(skyways)
 			if String(o).contains("side"):
 				skyways.look_dev = Vector3(14.0, 1.2, 6.0)   # low, off the right wing: the undercarriage
