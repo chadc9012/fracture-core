@@ -8,6 +8,8 @@ extends SceneTree
 
 const Weapons := preload("res://scripts/combat/weapons.gd")
 const Enemies := preload("res://scripts/combat/enemies.gd")
+const Boss := preload("res://scripts/combat/boss.gd")
+const Gear := preload("res://scripts/gear/gear_store.gd")
 const DT := 1.0 / 60.0
 var failed := 0
 
@@ -21,8 +23,9 @@ func ok(cond: bool, what: String) -> void:
 		failed += 1
 
 ## seconds from the first trigger pull to the kill (INF past 30 s), and the shots it took
-static func ttk(frame: String, hull: float, shield: float, dist: float, energy := false) -> Vector2:
+static func ttk(frame: String, hull: float, shield: float, dist: float, energy := false, mult := 1.0) -> Vector2:
 	var g := Weapons.Gun.new(frame)
+	g.mult = mult
 	g.reserve = 9999
 	var hp := hull
 	var sh := shield
@@ -43,7 +46,7 @@ static func ttk(frame: String, hull: float, shield: float, dist: float, energy :
 		for i in n:
 			shots += 1
 			for p in Weapons.pellets(frame):
-				var d: float = Weapons.damage(frame, dist) * (g.last_charge if bow else 1.0)
+				var d: float = Weapons.damage(frame, dist) * (g.last_charge if bow else 1.0) * g.mult
 				if sh > 0.0:
 					var k := 1.5 if energy else 1.0
 					var on := minf(sh, d * k)
@@ -54,6 +57,42 @@ static func ttk(frame: String, hull: float, shield: float, dist: float, energy :
 			return Vector2(t, shots)
 		t += DT
 	return Vector2(INF, shots)
+
+
+## a boss fight, solo: the operator fires `primary` whenever it can, uptime `uptime` of the time (the rest is spent
+## dodging and moving — the attacks are real), and with `heavy` dumps the heavy weapon's ammo into each stagger and weak
+## point. The boss's own rules (boss.gd: poise → 4 s stagger ×2.25, phase weak points ×1.6) run frame by frame.
+## Seconds to the kill (INF past 10 minutes).
+static func boss_time(id: String, primary: String, heavy := "", mult := 1.0, uptime := 0.6) -> float:
+	var b := Boss.new(id)
+	var g := Weapons.Gun.new(primary)
+	g.reserve = 99999
+	g.mult = mult
+	var h: Weapons.Gun = Weapons.Gun.new(heavy) if heavy != "" else null
+	if h:
+		h.mult = mult
+	var t := 0.0
+	var dist := 15.0
+	while t < 600.0:
+		b.tick(DT, dist)
+		b.events.clear()
+		var on := fmod(t, 5.0) < 5.0 * uptime
+		var use_heavy := h != null and (b.staggered() or b.weak_point()) and (h.mag > 0 or h.reserve > 0)
+		var gun: Weapons.Gun = h if use_heavy else g
+		var n := gun.step(DT, on)
+		if gun.mag <= 0 and gun.reloading <= 0.0:
+			gun.reload()
+		if gun != g:
+			g.step(DT, false)
+		elif h:
+			h.step(DT, false)
+		for i in n:
+			for p in Weapons.pellets(gun.frame):
+				b.hit(Weapons.damage(gun.frame, dist) * gun.mult)
+		if b.dead:
+			return t
+		t += DT
+	return INF
 
 func _init() -> void:
 	var types: Array = ["drone", "scout", "marksman", "executor", "elite"]
@@ -146,5 +185,38 @@ func _init() -> void:
 	by.sort()
 	var squad_t: float = op / (float(by[-1]) + float(by[-2]))
 	ok(squad_t >= 4.0 and squad_t <= 12.0, "a squad on its fire tokens downs a standing operator in 4–12 s (%.1f s): move or die" % squad_t)
+	# the level's hull (Progression: +4 a level, uncapped) must not make a squad harmless by mid-game: level 20 still
+	# falls to a squad in under 15 s standing still
+	var lv20 := op + 4.0 * 19.0
+	var squad20: float = lv20 / (float(by[-1]) + float(by[-2]))
+	ok(squad20 <= 15.0, "at level 20 a squad still downs a standing operator inside 15 s (%.1f s)" % squad20)
+	# 12. gear power: the best gear (×%.1f) speeds kills up but never trivialises them — an automatic still needs a
+	#     few bullets on trash and a real burst on a major
+	var cap: float = Gear.DAMAGE_CAP
+	bad = []
+	for f in autos:
+		var sc := ttk(f, float(Enemies.TYPES.scout.hull), 0.0, float(RANGE_OF[f]), false, cap)
+		var d: Dictionary = Enemies.TYPES.elite
+		var mj := ttk(f, float(d.hull), float(d.get("shield", 0.0)), float(RANGE_OF[f]), false, cap)
+		if show:
+			print("  %-8s at power ×%.1f: scout %.2f s (%d), elite %.2f s (%d)" % [f, cap, sc.x, int(sc.y), mj.x, int(mj.y)])
+		if int(sc.y) < 2 or mj.x < 1.0:
+			bad.append(f)
+	ok(bad.is_empty(), "at the gear cap (×%.1f) trash still takes 2+ bullets and the elite a second or more %s" % [cap, str(bad)])
+	# 13. bosses, solo, 60% uptime (the rest dodging): a regional boss with a rifle in 0.5–2.5 min, the world boss
+	#     (Rust Colossus) 1.5–5 min; a heavy dumped into staggers cuts the time by a fifth or more
+	bad = []
+	for id in Boss.BOSSES:
+		var rifle := boss_time(id, "AUTO")
+		var with_heavy := boss_time(id, "AUTO", "ROCKET")
+		if show:
+			print("  boss %-18s rifle %5.0f s · rifle + rockets %5.0f s · hull %.0f" % [id, rifle, with_heavy, Boss.BASE_HULL * float(Boss.BOSSES[id].hull)])
+		var lo := 90.0 if id == "colossus" else 30.0
+		var hi := 300.0 if id == "colossus" else 150.0
+		if rifle < lo or rifle > hi:
+			bad.append("%s %.0fs" % [id, rifle])
+		if with_heavy > rifle * 0.9:
+			bad.append("%s heavy only ×%.2f" % [id, with_heavy / rifle])
+	ok(bad.is_empty(), "boss fights last 0.5–2.5 min (the Colossus 1.5–5) and heavies in the staggers save 10%%+ %s" % str(bad))
 	print("balance: %d failed" % failed)
 	quit(1 if failed > 0 else 0)
