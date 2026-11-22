@@ -517,44 +517,44 @@ void fragment() {
 ## rounded rectangle whose width and depth wander along the span (thick at the feet, thin at the crown), so it reads as
 ## eroded stone, not a pipe or a stack of blocks.
 static func arch_mesh() -> Mesh:
+	# Nov 22 (the owner's "next step without Meshy"): the span was 24 x 10 flat facets with a random wobble on every
+	# vertex and read as a lumpy tube. Now 56 x 20 smooth-shaded, the section a weathered slab (wider than it is thick)
+	# that swells into buttressed feet and thins over the crown, shaped by broad waves along the span instead of
+	# per-vertex noise, with ledges where the beds step back.
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 9
-	const N := 24      # steps along the band
-	const C := 10      # points round the cross-section
-	var rings: Array = []
+	const N := 56      # steps along the band
+	const C := 20      # points round the cross-section
 	for k in N + 1:
 		var t := float(k) / N
-		# the centreline: legs come straight up from the ground into the half circle
+		# the centreline: a slightly lopsided span, legs coming up out of the ground
 		var a := PI * (1.0 - t)
-		var p := Vector3(cos(a) * 7.0, -2.0 + sin(a) * 9.0, 0)
-		var tang := Vector3(-sin(a) * 7.0, cos(a) * 9.0, 0).normalized() * -1.0
-		var feet := pow(absf(cos(a)), 3.0)
-		var thick := 2.0 + feet * 2.2 + rng.randf() * 0.5    # in the arch's plane
-		var deep := 2.6 + feet * 2.0 + rng.randf() * 0.6     # across it
+		var p := Vector3(cos(a) * 7.4 + sin(a * 2.0) * 0.5, -2.0 + sin(a) * (8.6 + 0.8 * sin(a * 1.0 + 0.6)), sin(a * 3.0) * 0.35)
+		var tang := Vector3(-sin(a) * 7.4, cos(a) * 8.6, 0).normalized() * -1.0
+		var feet := pow(absf(cos(a)), 2.4)
+		var thick := 1.25 + feet * 3.0 + 0.3 * sin(t * 17.0 + 1.0) + 0.18 * sin(t * 41.0)     # in the arch's plane
+		var deep := 2.3 + feet * 2.6 + 0.35 * sin(t * 11.0 + 2.0) + 0.2 * sin(t * 29.0 + 0.5)  # across it
 		var side := tang.cross(Vector3.BACK).normalized()
-		var ring: Array = []
 		for c in C:
 			var u := TAU * c / C
-			# a squared-off ellipse: stone eroded round, not cut square
-			var cx := signf(cos(u)) * pow(absf(cos(u)), 0.6)
-			var cz := signf(sin(u)) * pow(absf(sin(u)), 0.6)
-			var wob := 0.9 + 0.2 * rng.randf()
-			ring.append(p + side * cx * thick * wob + Vector3.BACK * cz * deep * wob)
-		rings.append(ring)
+			# a rounded slab; the beds step in and out round the section (ledges), the same on neighbouring rings
+			var cx := signf(cos(u)) * pow(absf(cos(u)), 0.75)
+			var cz := signf(sin(u)) * pow(absf(sin(u)), 0.55)
+			var ledge := 1.0 + 0.07 * sin(u * 3.0 + t * 9.0) + 0.05 * sin(u * 7.0 - t * 23.0)
+			st.set_uv(Vector2(t, float(c) / C))
+			st.add_vertex(p + side * cx * thick * ledge + Vector3.BACK * cz * deep * ledge)
 	for k in N:
 		for c in C:
-			var a0: Vector3 = rings[k][c]
-			var a1: Vector3 = rings[k][(c + 1) % C]
-			var b0: Vector3 = rings[k + 1][c]
-			var b1: Vector3 = rings[k + 1][(c + 1) % C]
-			st.add_vertex(a0)
-			st.add_vertex(a1)
-			st.add_vertex(b0)
-			st.add_vertex(a1)
-			st.add_vertex(b1)
-			st.add_vertex(b0)
+			var i0 := k * C + c
+			var i1 := k * C + (c + 1) % C
+			var j0 := (k + 1) * C + c
+			var j1 := (k + 1) * C + (c + 1) % C
+			st.add_index(i0)
+			st.add_index(i1)
+			st.add_index(j0)
+			st.add_index(i1)
+			st.add_index(j1)
+			st.add_index(j0)
 	st.generate_normals()
 	return st.commit()
 
@@ -566,9 +566,14 @@ uniform vec3 col = vec3(0.6, 0.4, 0.3);
 varying vec3 lp;
 void vertex() { lp = VERTEX; }
 void fragment() {
-	float strata = 0.88 + 0.12 * sin(lp.y * 3.1 + sin(lp.x * 0.7) * 1.5);
+	// sandstone beds: broad light and dark bands with fine laminae between, dipping a little; dark desert varnish
+	// streaking down from the top; paler dust where the rock faces up
+	float bed = lp.y * 1.1 + sin(lp.x * 0.35 + lp.z * 0.2) * 0.9;
+	float strata = 0.8 + 0.14 * sin(bed) + 0.08 * sin(bed * 4.7 + 1.3) + 0.04 * sin(bed * 13.0);
 	float g = 0.5 + 0.25 * sin(lp.x * 2.3 + sin(lp.z * 1.7)) * sin(lp.z * 2.9 + lp.y * 1.3);   // smooth: cell hash read as square tiles
-	ALBEDO = col * strata * (0.92 + 0.12 * g);
+	float streak = smoothstep(0.55, 0.9, 0.5 + 0.5 * sin(lp.x * 1.9 + sin(lp.z * 2.3) * 1.2)) * smoothstep(-1.0, 6.0, lp.y) * 0.22;
+	vec3 wn = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
+	ALBEDO = col * strata * (0.92 + 0.12 * g) * (1.0 - streak) * (1.0 + 0.16 * smoothstep(0.5, 0.95, wn.y));
 	ROUGHNESS = 0.95;
 }"""
 	mat.shader = sh
