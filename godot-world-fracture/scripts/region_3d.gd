@@ -2204,7 +2204,29 @@ func _stand_near(at: Vector2) -> void:
 			break
 	_eye = Vector3(best.x, _ground(best.x, best.y) + EYE, best.y)
 	_look_yaw = atan2(_eye.x - at.x, _eye.z - at.y)
+	# in a dense town the place can be behind a wall 3 m away (Old Harrow, Nov 22): if the view towards it is blocked
+	# within 10 m, look down the longest open line instead
+	var want := Vector2(at.x - best.x, at.y - best.y).normalized()
+	if _open_run(best, want, boxes) < 10.0:
+		var far := 0.0
+		for k in 16:
+			var d := Vector2(cos(k * TAU / 16.0), sin(k * TAU / 16.0))
+			var run := _open_run(best, d, boxes)
+			if run > far:
+				far = run
+				_look_yaw = atan2(-d.x, -d.y)
 	_look_pitch = 4.0
+
+## how far you can see from p along d before a building (up to 60 m)
+func _open_run(p: Vector2, d: Vector2, boxes: Array[AABB]) -> float:
+	var t := 2.0
+	while t < 60.0:
+		var q := p + d * t
+		for bx in boxes:
+			if q.x > bx.position.x and q.x < bx.end.x and q.y > bx.position.z and q.y < bx.end.z:
+				return t
+		t += 2.0
+	return 60.0
 
 func _in_building(q: Vector2) -> bool:
 	for bd in m.buildings:
