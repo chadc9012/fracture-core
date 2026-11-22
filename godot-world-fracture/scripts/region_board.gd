@@ -532,16 +532,17 @@ static func _verdant(r: Node, rng: RandomNumberGenerator) -> void:
 	if not lods.is_empty():
 		var xf: Array[Transform3D] = []
 		var tries := 0
-		while xf.size() < 9 and tries < 80:
+		while xf.size() < 5 and tries < 80:
 			tries += 1
 			var at := Vector2(rng.randf_range(-0.8, 0.8), rng.randf_range(-0.8, 0.8)) * half
-			if not _clear_of_places(r, at, 34.0) or r.over_water(at.x, at.y):
+			if not _clear_of_places(r, at, 60.0) or r.over_water(at.x, at.y):
 				continue
 			var hgt := rng.randf_range(38.0, 52.0)
 			xf.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * hgt), Vector3(at.x, r._h(at.x, at.y) - 0.8, at.y)))
 			if xf.size() == 1:
 				spot(r, "elder", at, 24.0)
-		r._multimesh(lods[0][0], xf, null, 1400.0)
+		# no shadows: crowns this wide roofed the forest floor over in black (Street View, Nov 22)
+		r._multimesh(lods[0][0], xf, null, 1400.0, false)
 	# the cliffs with their falls: three mossy bluffs, each with a long fall into a pool of mist
 	for i in 3:
 		var want := Vector2(cos(i * 2.1 + 0.4), sin(i * 2.1 + 0.4)) * half * 0.62
