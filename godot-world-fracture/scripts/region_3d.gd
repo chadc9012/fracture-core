@@ -709,10 +709,11 @@ func _style_for(id: String) -> Dictionary:
 			# and rift seams glowing cyan and violet (it was a flat pink-orange dusk)
 			# Nov 22, the owner's Shattered Expanse boards (this land is the Expanse — airport SHX): a violet storm dusk,
 			# heavy cloud lit purple from below, the Fracture spire's light over dark rock
-			s.merge({"top": "#140a30", "hor": "#7a3ab8", "fog": "#2e1a4a", "fog_d": 0.0015, "sun": 0.9, "sun_col": "#c8a0ff", "sun_el": 18.0, "sun_az": 140.0,
-				"amb": 0.5, "amb_col": "#4e3a80", "night": 0.6, "sat": 1.15, "exp": 1.05, "planet": false, "sky": "storm",
+			# (first render: one purple wash — darker grey rock, a deeper haze, the violet left to the light and the crystals)
+			s.merge({"top": "#140a30", "hor": "#7a3ab8", "fog": "#1e1630", "fog_d": 0.0013, "sun": 0.9, "sun_col": "#c8a8ff", "sun_el": 18.0, "sun_az": 140.0,
+				"amb": 0.45, "amb_col": "#40385e", "night": 0.6, "sat": 1.0, "exp": 1.0, "planet": false, "sky": "storm",
 				"sky_set": {"cover": 0.7, "cloud_dark": Color("#140a24"), "cloud_lit": Color("#9a5ad8")}, "glow": "#a040ff", "glow_amt": 0.4,
-				"tint": Vector3(0.55, 0.5, 0.7)}, true)
+				"tint": Vector3(0.42, 0.4, 0.48)}, true)
 		"old-harrow":
 			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on (Nov 18: the
 			# region_sky sunset deck, streaked cloud lit from below)
