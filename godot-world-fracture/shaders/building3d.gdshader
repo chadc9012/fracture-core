@@ -19,6 +19,10 @@ uniform float rust = 0.0;
 
 float hash2(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
 
+// smooth value noise (the rust blooms were square blocks on floor()ed hashes: pixelated up close)
+float vn(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), f.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), f.x), f.y); }
+
 varying float seed;
 void vertex() { seed = UV2.x; }
 void fragment() {
@@ -31,7 +35,7 @@ void fragment() {
 		vec2 f = fract(UV / vec2(2.6, 3.2));
 		float r = hash2(cell + seed * 17.0);
 		float pick = hash2(cell + seed * 41.0);
-		vec3 c = base * (0.92 + 0.12 * hash2(floor(UV * vec2(3.0, 2.0)) + seed));       // patchy limewash
+		vec3 c = base * (0.9 + 0.16 * vn(UV * vec2(1.4, 1.0) + seed * 9.0));       // patchy limewash
 		c *= 1.0 - smoothstep(1.6, 0.0, UV.y) * 0.18 - hash2(vec2(floor(UV.x * 2.0), seed)) * 0.06;
 		vec3 beam = vec3(0.16, 0.11, 0.08) * (0.85 + 0.3 * hash2(floor(UV * 9.0)));
 		bool has_win = pick > 0.3 && UV.y > 3.2 || (pick > 0.55 && UV.y > 1.0);
@@ -71,8 +75,8 @@ void fragment() {
 		float panel = hash2(vec2(floor(UV.x / 1.3), floor(UV.y / 2.4)) + seed * 7.0);
 		vec3 c = mix(base, vec3(0.42, 0.44, 0.45), 0.45) * (0.7 + 0.45 * panel);
 		c *= 0.86 + 0.14 * sin(UV.x * 26.0);
-		float n1 = hash2(floor(UV * 2.3) + seed);
-		float n2 = hash2(floor(UV * 5.1) + seed * 3.0);
+		float n1 = vn(UV * vec2(1.1, 0.7) + seed * 13.0);
+		float n2 = vn(UV * vec2(4.3, 2.1) + seed * 31.0) * 0.6 + vn(UV * 11.0 + seed) * 0.4;
 		float bloom = smoothstep(0.55, 0.95, n1 * 0.6 + n2 * 0.4 + (1.0 - fract(UV.y / 2.4)) * 0.25);
 		c = mix(c, vec3(0.36, 0.17, 0.08) * (0.7 + 0.5 * n2), bloom * 0.85);
 		c *= 1.0 - 0.3 * step(fract(UV.y / 2.4), 0.03) - 0.25 * step(fract(UV.x / 1.3), 0.03);   // panel seams
