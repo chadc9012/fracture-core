@@ -1030,7 +1030,7 @@ func _build_buildings() -> void:
 	mat.set_shader_parameter("night", _style.night)
 	mat.set_shader_parameter("neon", _style.neon)
 	# facade styles drawn in the shader (Nov 22, no new models): a half-timbered town, scrap-built outposts
-	mat.set_shader_parameter("town", 1.0 if map_id in ["old-harrow", "goldenreach"] else 0.0)
+	mat.set_shader_parameter("town", 1.0 if map_id in TOWN_MAPS else 0.0)
 	mat.set_shader_parameter("rust", 1.0 if map_id in ["wastelands", "ember"] else 0.0)
 	mi.material_override = mat
 	_world.add_child(mi)
@@ -1283,7 +1283,13 @@ const PITCH_USES := ["house", "store", "civic", "industrial", "school", "enterta
 func _pitched(use: String, hgt: float, hx: float, hz: float) -> bool:
 	if map_id in ["nexus", "neon-city", "thalassia", "crystal-badlands", "frostveil"]:
 		return false
+	# a market town's taller halls and inns are roofed too (Old Harrow's 26-30 m blocks were flat-topped boxes, Nov 22)
+	if map_id in TOWN_MAPS:
+		return use in PITCH_USES and hgt < 34.0 and maxf(hx, hz) < 22.0
 	return use in PITCH_USES and hgt < 18.0 and maxf(hx, hz) < 16.0
+
+## the half-timbered towns: building3d.gdshader `town` facades, tiled roofs with eaves
+const TOWN_MAPS := ["old-harrow", "goldenreach"]
 
 func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float, wall: Color, seed: float) -> void:
 	const ROOFS := [Color("#8e4a33"), Color("#6b3a2c"), Color("#4b5058"), Color("#5e4a3a"), Color("#9a5a3c")]
@@ -1295,6 +1301,17 @@ func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float
 	var a2: Vector2 = c[2]
 	var a3: Vector2 = c[3]
 	var rise := minf(hx, hz) * 0.75 + 0.3
+	var orig: Array = []
+	if map_id in TOWN_MAPS:
+		# a steeper roof that oversails the walls: push the corners out 0.5 m from the middle for the eaves
+		rise = minf(hx, hz) * 1.05 + 0.4
+		orig = [a0, a1, a2, a3]
+		var mid := (a0 + a1 + a2 + a3) * 0.25
+		var grow := func(v: Vector2) -> Vector2: return v + (v - mid).normalized() * 0.7
+		a0 = grow.call(a0)
+		a1 = grow.call(a1)
+		a2 = grow.call(a2)
+		a3 = grow.call(a3)
 	var r0: Vector2
 	var r1: Vector2
 	var slopes: Array
@@ -1310,6 +1327,20 @@ func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float
 		slopes = [[a1, a2, r1, r0], [a0, r0, r1, a3]]
 		ends = [[a0, a1, r0], [a3, r1, a2]]
 	var y := func(v: Vector2, ridge: bool) -> Vector3: return Vector3(v.x, top + (rise if ridge else 0.0), v.y)
+	if not orig.is_empty():
+		# the gable walls stay on the wall line under the oversailing roof
+		var o0: Vector2 = orig[0]
+		var o1: Vector2 = orig[1]
+		var o2: Vector2 = orig[2]
+		var o3: Vector2 = orig[3]
+		if along_x:
+			r0 = (o0 + o3) * 0.5
+			r1 = (o1 + o2) * 0.5
+			ends = [[o0, r0, o3], [o1, o2, r1]]
+		else:
+			r0 = (o0 + o1) * 0.5
+			r1 = (o3 + o2) * 0.5
+			ends = [[o0, o1, r0], [o3, r1, o2]]
 	for q in slopes:
 		var p0: Vector3 = y.call(q[0], false)
 		var p1: Vector3 = y.call(q[1], false)
