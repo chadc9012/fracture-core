@@ -678,8 +678,9 @@ func _style_for(id: String) -> Dictionary:
 		"storm":
 			# the board's floating islands under a storm at dusk: a heavy cloud deck, the low sun breaking warm along the
 			# horizon, the crystals glowing (Nov 18 pass: the region_sky storm deck with a warm horizon, lightning on)
-			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 10.0, "sun_az": 150.0,
-				"amb": 0.6, "sat": 1.1, "exp": 1.0, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
+			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 18.0, "sun_az": 150.0,
+				# (Nov 21, Street View: the ground and the trees were black in the shade — more violet ambient, a higher sun)
+				"amb": 0.95, "amb_col": "#6c5c92", "sat": 1.1, "exp": 1.1, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
 		"crystal-badlands":
 			# the owner's "MOONLIGHT - FRACTURE ZONE" photo: a full moon over dark rock spires, deep blue night, the crystals
 			# and rift seams glowing cyan and violet (it was a flat pink-orange dusk)
@@ -709,7 +710,7 @@ func _style_for(id: String) -> Dictionary:
 		"shattered-reefs":
 			# the owner's "OCEAN" photo, as Azure Isles
 			s.merge({"top": "#2370c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 45.0, "sun_az": 150.0,
-				"amb": 0.6, "sat": 1.05, "exp": 0.8, "sky": "day"}, true)
+				"amb": 0.5, "sat": 1.12, "exp": 0.6, "sky": "day"}, true)   # Nov 21: the ground washed out at street level
 		"thalassia":
 			# the city inside the dome carries its own lights: a dimmer, bluer deep so they read (it was blown out to white)
 			s.merge({"fog": "#06465e", "fog_d": 0.009, "sun": 0.45, "sun_col": "#a8e6ff", "sun_el": 70.0, "amb": 0.35, "planet": false, "under": true, "night": 0.6, "exp": 0.8}, true)
