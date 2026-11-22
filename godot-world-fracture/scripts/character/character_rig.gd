@@ -211,6 +211,7 @@ func _attach_head(body_head: int) -> void:
 	var mesh := ArrayMesh.new()
 	var head_pts := PackedVector3Array()
 	var src_mesh: Mesh = src.mesh
+	var built: Array = []          # [arrays, custom, surface] per surface, added to the mesh once the skull is fitted
 	for s in src_mesh.get_surface_count():
 		var arr := src_mesh.surface_get_arrays(s)
 		var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
@@ -232,11 +233,23 @@ func _attach_head(body_head: int) -> void:
 			_trim_collar(arr, custom, src_mesh.surface_get_material(s))
 		if sculpt:
 			arr[Mesh.ARRAY_NORMAL] = _normals(vs, arr[Mesh.ARRAY_INDEX], arr[Mesh.ARRAY_NORMAL])
-		arr[Mesh.ARRAY_CUSTOM0] = custom
-		var fmt: int = (src_mesh as ArrayMesh).surface_get_format(s) if src_mesh is ArrayMesh else 0
+		built.append([arr, custom, s])
+	# a built hairstyle or a bald head: the scan's own hair is pressed down onto the fitted skull and flagged (CUSTOM0.w)
+	# for the skin shader to colour as scalp — one smooth surface, where cutting it out texel by texel by colour left
+	# specks, a ragged edge and an egg-shaped cap showing through (GTA pass, Nov 22)
+	var kind := String(Catalog.find("hair", look.hair).get("kind", "authored"))
+	if not robot and kind != "authored":
+		var skull := HairBuilder.new()
+		skull.fit_skull(head_pts)
+		for b in built:
+			_press_hair(b[0], b[1], src_mesh.surface_get_material(b[2]), skull, head_rest.origin, unit, cal)
+	for b in built:
+		var arr: Array = b[0]
+		arr[Mesh.ARRAY_CUSTOM0] = b[1]
+		var fmt: int = (src_mesh as ArrayMesh).surface_get_format(b[2]) if src_mesh is ArrayMesh else 0
 		var flags: int = (Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT) | (fmt & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, flags)
-		mesh.surface_set_material(mesh.get_surface_count() - 1, _head_material(src_mesh.surface_get_material(s), robot))
+		mesh.surface_set_material(mesh.get_surface_count() - 1, _head_material(src_mesh.surface_get_material(b[2]), robot))
 	head_mesh = MeshInstance3D.new()
 	head_mesh.name = "Head"
 	head_mesh.mesh = mesh
@@ -259,7 +272,9 @@ func _attach_head(body_head: int) -> void:
 	var style := Catalog.find("hair", look.hair)
 	var hair_hex: Variant = Catalog.swatch("hairColors", look.hairColor)
 	var hair_col: Color = hair_hex if hair_hex != null else Color("#120f0e")
-	if not robot and style.get("kind", "authored") != "authored":
+	# the scalp cap under a built style is only needed where the scan's hair was not pressed onto the skull (none now: see
+	# _press_hair); it showed through at the nape, so it is off
+	if false and not robot and style.get("kind", "authored") != "authored":
 		var sc := MeshInstance3D.new()
 		sc.mesh = hb.scalp()
 		var sm := StandardMaterial3D.new()
@@ -428,6 +443,75 @@ static func _trim_collar(arr: Array, head_space: PackedFloat32Array, m: Material
 			keep.append(idx[t + 1])
 			keep.append(idx[t + 2])
 	arr[Mesh.ARRAY_INDEX] = keep
+
+## The scan's hair, found by its texture (not skin-coloured) in the hair's region of the head (above the brow, over the
+## temples, behind the ears), the flag smoothed over neighbouring vertices so its edge is a soft line, then pressed onto
+## the skull by that flag. Writes the flag to CUSTOM0.w and the moved positions (head space and mesh space) back.
+static func _press_hair(arr: Array, hs: PackedFloat32Array, m: Material, skull: HairBuilder, origin: Vector3, unit: float, cal: Vector3) -> void:
+	var std := m as StandardMaterial3D
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+	var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV] if arr[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+	if not std or not std.albedo_texture or idx.is_empty() or uvs.is_empty():
+		return
+	var img := std.albedo_texture.get_image()
+	if not img or (img.is_compressed() and img.decompress() != OK):
+		return
+	var w := img.get_width()
+	var h := img.get_height()
+	var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var n := vs.size()
+	var flag := PackedFloat32Array()
+	flag.resize(n)
+	for k in n:
+		var p := Vector3(hs[k * 4], hs[k * 4 + 1], hs[k * 4 + 2])
+		var region := p.y > 0.106 or (p.z < -0.012 and p.y > -0.004) or (absf(p.x) > 0.058 and p.y > 0.072 and p.z < 0.025)
+		if not region:
+			continue
+		var c := img.get_pixel(clampi(int(uvs[k].x * w), 0, w - 1), clampi(int(uvs[k].y * h), 0, h - 1))
+		var mx := maxf(c.r, maxf(c.g, c.b))
+		var mn := minf(c.r, minf(c.g, c.b))
+		var sat := (mx - mn) / (mx + 1e-4)
+		var lum := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
+		var skin := c.r - c.b > 0.06 and sat > 0.15 and sat < 0.8 and lum > 0.12
+		# a lock standing well off the skull is hair whatever its texel says (strands kept sticking up)
+		var d0 := (p - skull.centre)
+		var off := d0.length() > skull.radius_at(d0.normalized()) * 1.07
+		flag[k] = 0.0 if skin and not off else 1.0
+	# smooth the flag over the mesh: neighbours by triangle, a few passes (vertices split at UV seams share by position)
+	var nb: Array = []
+	nb.resize(n)
+	for k in n:
+		nb[k] = PackedInt32Array()
+	for t in range(0, idx.size(), 3):
+		for a in 3:
+			(nb[idx[t + a]] as PackedInt32Array).append(idx[t + (a + 1) % 3])
+			(nb[idx[t + a]] as PackedInt32Array).append(idx[t + (a + 2) % 3])
+	for _pass in 4:
+		var next := flag.duplicate()
+		for k in n:
+			var ns: PackedInt32Array = nb[k]
+			if ns.is_empty():
+				continue
+			var sum := 0.0
+			for j in ns:
+				sum += flag[j]
+			next[k] = flag[k] * 0.4 + sum / ns.size() * 0.6
+		flag = next
+	for k in n:
+		var f := smoothstep(0.25, 0.75, flag[k])
+		hs[k * 4 + 3] = f
+		if f <= 0.0:
+			continue
+		var p := Vector3(hs[k * 4], hs[k * 4 + 1], hs[k * 4 + 2])
+		var d := (p - skull.centre).normalized()
+		var on := skull.centre + d * skull.radius_at(d) * 0.995
+		var q := p.lerp(on, f)
+		hs[k * 4] = q.x
+		hs[k * 4 + 1] = q.y
+		hs[k * 4 + 2] = q.z
+		vs[k] = (q - cal) * unit + origin
+	arr[Mesh.ARRAY_VERTEX] = vs
+	arr[Mesh.ARRAY_NORMAL] = _normals(vs, idx, arr[Mesh.ARRAY_NORMAL])
 
 static func _sample_skin(m: Material) -> Variant:
 	var std := m as StandardMaterial3D
