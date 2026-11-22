@@ -1129,7 +1129,7 @@ func _shoot(path: String, opts: Array) -> void:
 			for mid in ["dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"]:
 				if String(o).contains(mid):
 					killbox.mode_id = mid
-			for id in ["fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift"]:
+			for id in ["fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift", "foundry-row", "sanctum", "rig-nine"]:
 				if String(o).contains(String(id).split("-")[0] if id != "killbox-prime" else "prime"):
 					killbox.arena_id = id
 			killbox.closed.connect(_close_killbox)

@@ -16,6 +16,10 @@ const SCENES := {
 	"solara-outpost": { "kind": "desert", "ground": Color(0.78, 0.63, 0.42), "sun": Color(1.0, 0.93, 0.8), "sun_e": 1.25, "amb": Color(0.6, 0.66, 0.78), "amb_e": 0.6, "stars": 0.0 },
 	"frostveil-ring": { "kind": "ice", "ground": Color(0.62, 0.7, 0.8), "sun": Color(0.6, 0.75, 1.0), "sun_e": 0.9, "amb": Color(0.3, 0.4, 0.6), "amb_e": 1.2, "stars": 1.0 },
 	"thalassia-dome": { "kind": "sea", "ground": Color(0.03, 0.14, 0.18), "sun": Color(0.35, 0.85, 0.9), "sun_e": 0.8, "amb": Color(0.1, 0.35, 0.42), "amb_e": 1.3, "stars": 0.0 },
+	# the lane maps stand on the ground (ground_y: the land is level with the map) or over open water
+	"foundry": { "kind": "town", "day": true, "ledge": "facade", "ground_y": 20.0, "ground": Color(0.3, 0.28, 0.26), "sun": Color(1.0, 0.94, 0.84), "sun_e": 1.2, "amb": Color(0.6, 0.64, 0.72), "amb_e": 0.7, "stars": 0.0 },
+	"sanctum": { "kind": "spires", "ground_y": 20.0, "ground": Color(0.24, 0.21, 0.26), "sun": Color(1.0, 0.72, 0.5), "sun_e": 1.1, "amb": Color(0.42, 0.34, 0.5), "amb_e": 1.1, "stars": 0.7 },
+	"rig": { "kind": "ocean", "day": true, "ledge": "ribbed", "legs": true, "water": true, "ground": Color(0.03, 0.07, 0.1), "sun": Color(1.0, 0.62, 0.38), "sun_e": 1.2, "amb": Color(0.5, 0.36, 0.38), "amb_e": 1.0, "stars": 0.25 },
 	"void-rift": { "kind": "void", "ground": Color(0.02, 0.0, 0.04), "sun": Color(0.7, 0.5, 1.0), "sun_e": 0.8, "amb": Color(0.28, 0.14, 0.42), "amb_e": 1.3, "stars": 1.0 },
 }
 
@@ -31,6 +35,9 @@ const ORBS := {
 	"solara-outpost": [Vector3(0.45, 0.6, -0.65), Color(3.0, 2.7, 2.0), 0.045, 0.0],
 	"frostveil-ring": [Vector3(-0.35, 0.42, -0.85), Color(0.75, 0.82, 1.0), 0.13, 1.0],
 	"void-rift": [Vector3(0.0, 0.45, -0.9), Color(0.1, 0.02, 0.16), 0.16, 0.0],
+	"foundry": [Vector3(0.5, 0.62, -0.6), Color(3.0, 2.8, 2.3), 0.04, 0.0],
+	"sanctum": [Vector3(-0.25, 0.3, -0.92), Color(1.0, 0.82, 0.5), 0.14, 1.0],
+	"rig": [Vector3(0.15, 0.09, -0.98), Color(3.0, 1.5, 0.6), 0.075, 0.0],
 }
 
 static func scene(look_id: String) -> Dictionary:
@@ -104,7 +111,7 @@ static func environment(world: Node3D, look_id: String, look: Dictionary) -> Env
 	var sm := ShaderMaterial.new()
 	sm.shader = _shader(SKY)
 	sm.set_shader_parameter("top", look.sky)
-	var day: bool = sc.kind == "desert"
+	var day := bool(sc.get("day", sc.kind == "desert"))
 	sm.set_shader_parameter("horizon", look.fog if day else (look.fog as Color) * 0.75)
 	sm.set_shader_parameter("glow", Color(0, 0, 0) if day else (look.trim[0] as Color).lerp(look.fog, 0.5))
 	sm.set_shader_parameter("stars", float(sc.stars))
@@ -334,9 +341,16 @@ static func backdrop(world: Node3D, look_id: String, look: Dictionary, keep: Rec
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(3000, 3000)
 	ground.mesh = pm
-	ground.position.y = -0.25
+	var gy := float(sc.get("ground_y", 0.0))
+	ground.position.y = gy - 0.25
 	ground.material_override = flat(sc.ground, 0.25 if sc.get("water", false) else 0.9, 0.3 if sc.get("water", false) else 0.0)
 	world.add_child(ground)
+	if gy > 0.0:
+		# a map on the ground: everything round it stands on the same level
+		var land := Node3D.new()
+		land.position.y = gy
+		world.add_child(land)
+		world = land
 	var c := keep.get_center()
 	var r0 := maxf(keep.size.x, keep.size.y) * 0.5 + 40.0
 	match String(sc.kind):
@@ -350,7 +364,150 @@ static func backdrop(world: Node3D, look_id: String, look: Dictionary, keep: Rec
 			_sea(world, look, c, r0, rng)
 		"void":
 			_shards(world, look, c, r0, rng)
+		"town":
+			_town(world, look, keep, rng)
+		"spires":
+			_spires(world, look, keep, rng)
+		"ocean":
+			_ocean(world, look, keep, rng)
 	_set_piece(world, look_id, look, c, r0)
+
+## an industrial quarter by day: sheds and works hard against the yard wall, chimneys behind, the city in the haze
+static func _town(world: Node3D, look: Dictionary, keep: Rect2, rng: RandomNumberGenerator) -> void:
+	var sheds: Array = []
+	var roofs: Array = []
+	var stacks: Array = []
+	var c := keep.get_center()
+	var hx := keep.size.x * 0.5
+	var hz := keep.size.y * 0.5
+	# a row of works along each side, a street's width back from the wall
+	for side in 4:
+		var along := hx if side < 2 else hz
+		var out := (hz if side < 2 else hx) + 7.0
+		var t := -along - 30.0
+		while t < along + 30.0:
+			var w := rng.randf_range(16.0, 30.0)
+			var d := rng.randf_range(14.0, 26.0)
+			var h := rng.randf_range(7.0, 15.0)
+			var sgn := -1.0 if side % 2 == 0 else 1.0
+			var p := Vector3(c.x + t + w * 0.5, 0, c.y + sgn * (out + d * 0.5)) if side < 2 else Vector3(c.x + sgn * (out + d * 0.5), 0, c.y + t + w * 0.5)
+			var size := Vector3(w, h, d) if side < 2 else Vector3(d, h, w)
+			sheds.append(Transform3D(Basis().scaled(size), p + Vector3(0, h * 0.5, 0)))
+			roofs.append(Transform3D(Basis().scaled(Vector3(size.x + 0.8, 0.5, size.z + 0.8)), p + Vector3(0, h + 0.25, 0)))
+			if rng.randf() < 0.3:
+				var sh := rng.randf_range(26.0, 48.0)
+				stacks.append(Transform3D(Basis().scaled(Vector3(3.2, sh, 3.2)), p + Vector3(0, sh * 0.5, 0) + (Vector3(0, 0, sgn * d * 0.3) if side < 2 else Vector3(sgn * d * 0.3, 0, 0))))
+			t += w + rng.randf_range(2.0, 7.0)
+	# blocks further out, and the city beyond them
+	for i in 90:
+		var a := rng.randf() * TAU
+		var r := maxf(hx, hz) + rng.randf_range(70.0, 520.0)
+		var w2 := rng.randf_range(20.0, 55.0)
+		var h2 := rng.randf_range(8.0, 22.0) + maxf(0.0, r - 300.0) * rng.randf_range(0.0, 0.35)
+		sheds.append(Transform3D(Basis(Vector3.UP, snappedf(rng.randf() * TAU, PI * 0.5)).scaled(Vector3(w2, h2, w2 * rng.randf_range(0.6, 1.2))), _ring(c, r, a) + Vector3(0, h2 * 0.5, 0)))
+	_mm(world, BoxMesh.new(), facade(look, 0.06, 0.4), sheds)
+	_mm(world, BoxMesh.new(), flat(Color(0.2, 0.2, 0.22), 0.7, 0.3), roofs)
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.36
+	cm.bottom_radius = 0.5
+	cm.height = 1.0
+	cm.radial_segments = 12
+	cm.rings = 1
+	_mm(world, cm, flat(Color(0.5, 0.3, 0.24), 0.9), stacks)
+	for st: Transform3D in stacks:
+		if rng.randf() < 0.6:
+			_beam(world, st.origin + Vector3(0, st.basis.y.length() * 0.5, 0), 34.0, 1.6, 12.0, Color(0.7, 0.69, 0.68), 0.22, Vector3(0, 0, 0.5), true)
+
+## the Concord's sanctum at dusk: a colonnade round the court, obelisks in ranks beyond, their crowns lit
+static func _spires(world: Node3D, look: Dictionary, keep: Rect2, rng: RandomNumberGenerator) -> void:
+	var c := keep.get_center()
+	var hx := keep.size.x * 0.5 + 6.0
+	var hz := keep.size.y * 0.5 + 6.0
+	var cols: Array = []
+	var lintels: Array = []
+	var x := -hx
+	while x <= hx + 0.1:
+		for sgn: float in [-1.0, 1.0]:
+			cols.append(Transform3D(Basis().scaled(Vector3(2.0, 13.0, 2.0)), Vector3(c.x + x, 6.5, c.y + sgn * hz)))
+		x += 8.0
+	var z := -hz + 8.0
+	while z <= hz - 7.9:
+		for sgn2: float in [-1.0, 1.0]:
+			cols.append(Transform3D(Basis().scaled(Vector3(2.0, 13.0, 2.0)), Vector3(c.x + sgn2 * hx, 6.5, c.y + z)))
+		z += 8.0
+	for sgn3: float in [-1.0, 1.0]:
+		lintels.append(Transform3D(Basis().scaled(Vector3(hx * 2.0 + 3.0, 1.6, 3.0)), Vector3(c.x, 13.8, c.y + sgn3 * hz)))
+		lintels.append(Transform3D(Basis().scaled(Vector3(3.0, 1.6, hz * 2.0 + 3.0)), Vector3(c.x + sgn3 * hx, 13.8, c.y)))
+	var stone := flat(Color(0.8, 0.76, 0.7), 0.8)
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.42
+	cm.bottom_radius = 0.5
+	cm.height = 1.0
+	cm.radial_segments = 10
+	cm.rings = 1
+	_mm(world, cm, stone, cols)
+	_mm(world, BoxMesh.new(), stone, lintels)
+	var gold := BoxMesh.new()
+	var trims: Array = []
+	for l: Transform3D in lintels:
+		trims.append(Transform3D(l.basis.scaled(Vector3(1.002, 0.12, 1.02)), l.origin + Vector3(0, 0.3, 0)))
+	_mm(world, gold, flat(look.trim[0], 0.4, 0.0, 2.5), trims)
+	var obs: Array = []
+	var caps: Array = []
+	for i in 100:
+		var a := rng.randf() * TAU
+		var r := maxf(hx, hz) + rng.randf_range(40.0, 560.0)
+		var h := rng.randf_range(30.0, 90.0) + r * 0.18
+		var w := h * rng.randf_range(0.1, 0.16)
+		var p := _ring(c, r, a)
+		obs.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(w, h, w)), p + Vector3(0, h * 0.5, 0)))
+		caps.append(Transform3D(Basis().scaled(Vector3(w * 0.5, w * 0.9, w * 0.5)), p + Vector3(0, h + w * 0.3, 0)))
+	var ob := CylinderMesh.new()
+	ob.top_radius = 0.28
+	ob.bottom_radius = 0.5
+	ob.height = 1.0
+	ob.radial_segments = 4
+	ob.rings = 1
+	_mm(world, ob, flat(Color(0.2, 0.17, 0.26), 0.7), obs)
+	var cap := CylinderMesh.new()
+	cap.top_radius = 0.0
+	cap.bottom_radius = 0.5
+	cap.height = 1.0
+	cap.radial_segments = 4
+	cap.rings = 1
+	_mm(world, cap, flat(look.trim[0], 0.4, 0.0, 4.0), caps)
+
+## open sea at sunset: the rig's own legs and bracing under the deck, other platforms on the horizon
+static func _ocean(world: Node3D, _look: Dictionary, keep: Rect2, rng: RandomNumberGenerator) -> void:
+	var c := keep.get_center()
+	var steel := flat(Color(0.5, 0.36, 0.14), 0.6, 0.5)
+	var dark := flat(Color(0.14, 0.14, 0.16), 0.6, 0.5)
+	var hx := keep.size.x * 0.5
+	var hz := keep.size.y * 0.5
+	# the hull under the deck, four legs into the water, cross bracing between them
+	_part(world, _b(Vector3(hx * 2.0, 3.0, hz * 2.0)), Vector3(c.x, 18.0, c.y), dark)
+	for sx: float in [-1.0, 1.0]:
+		for sz: float in [-1.0, 1.0]:
+			_part(world, _cyl(3.0, 20.0), Vector3(c.x + sx * (hx - 5.0), 8.0, c.y + sz * (hz - 5.0)), steel)
+		for sz2: float in [-1.0, 1.0]:
+			var brace := _part(world, _b(Vector3(0.8, 26.0, 0.8)), Vector3(c.x + sx * (hx - 5.0), 8.5, c.y), steel)
+			brace.rotation.x = sz2 * atan2(hz * 2.0 - 10.0, 16.0)
+	for sz3: float in [-1.0, 1.0]:
+		for sx2: float in [-1.0, 1.0]:
+			var brace2 := _part(world, _b(Vector3(0.8, 26.0, 0.8)), Vector3(c.x, 8.5, c.y + sz3 * (hz - 5.0)), steel)
+			brace2.rotation.z = sx2 * atan2(hx * 2.0 - 10.0, 16.0)
+	# other rigs out on the water, each with a flare
+	for i in 5:
+		var a := -PI * 0.5 + (float(i) - 2.0) * 0.55 + rng.randf_range(-0.1, 0.1)
+		var r := rng.randf_range(280.0, 620.0)
+		var p := _ring(c, r, a)
+		_part(world, _b(Vector3(46, 5, 46)), p + Vector3(0, 20, 0), dark)
+		for sx3: float in [-1.0, 1.0]:
+			for sz4: float in [-1.0, 1.0]:
+				_part(world, _cyl(3.0, 20.0), p + Vector3(sx3 * 17.0, 9.0, sz4 * 17.0), dark)
+		_part(world, _cyl(5.0, 46.0, 1.0), p + Vector3(6, 45.5, 0), dark)
+		_part(world, _b(Vector3(1.0, 1.0, 34.0)), p + Vector3(-18, 30, 20), dark).rotation.x = 0.5
+		_beam(world, p + Vector3(-18, 38, 34), 16.0, 1.6, 0.2, Color(1.0, 0.55, 0.15), 2.5)
 
 ## a shaft of light: unshaded, additive, fading to nothing at the top
 const BEAM := """
@@ -534,6 +691,48 @@ static func _set_piece(world: Node3D, look_id: String, look: Dictionary, c: Vect
 				var a4 := TAU * float(k5) / 7.0 + 0.4
 				var rr := (r0 + 5.0) * (0.35 + 0.5 * fmod(k5 * 0.618, 1.0))
 				_beam(world, o + Vector3(cos(a4) * rr, 0, sin(a4) * rr), 190.0, 4.0 + k5 % 3 * 2.0, 16.0, Color(0.5, 1.0, 0.95), 0.16, Vector3(0.12, 0, 0.18))
+		"foundry":
+			# the blast furnace over the north wall: stoves, the stack, the charge burning at its throat
+			var fp := o + Vector3(-12.0, 0, -r0 - 6.0)
+			var iron := flat(Color(0.3, 0.2, 0.16), 0.8, 0.3)
+			_part(world, _cyl(11.0, 40.0, 7.0), fp + Vector3(0, 20, 0), iron)
+			_part(world, _cyl(7.2, 3.0), fp + Vector3(0, 41.5, 0), flat(Color(1.0, 0.45, 0.1), 0.4, 0.0, 5.0))
+			for k6 in 3:
+				_part(world, _cyl(5.0, 30.0), fp + Vector3(20.0 + k6 * 11.5, 15, 4.0), iron)
+				var dome := SphereMesh.new()
+				dome.radius = 5.0
+				dome.height = 10.0
+				dome.radial_segments = 14
+				dome.rings = 6
+				_part(world, dome, fp + Vector3(20.0 + k6 * 11.5, 30, 4.0), iron)
+			_part(world, _b(Vector3(46.0, 2.0, 2.0)), fp + Vector3(20.0, 36.0, 4.0), iron)
+			_part(world, _cyl(2.6, 78.0, 1.8), fp + Vector3(-22.0, 39, 6.0), flat(Color(0.5, 0.3, 0.24), 0.9))
+			_beam(world, fp + Vector3(0, 43, 0), 60.0, 6.0, 30.0, Color(0.8, 0.7, 0.62), 0.25, Vector3(0, 0, 0.45), true)
+			_beam(world, fp + Vector3(-22.0, 78, 6.0), 44.0, 1.8, 16.0, Color(0.7, 0.7, 0.7), 0.22, Vector3(0, 0, 0.5), true)
+		"sanctum":
+			# the Concord Engine: a great ring standing behind the court, a second turned through it, a pillar of light
+			var ep := o + Vector3(0, 78.0, -r0 - 90.0)
+			_torus(world, ep, 70.0, 3.0, Vector3(PI * 0.5, 0, 0), flat(t0, 0.3, 0.0, 4.0))
+			_torus(world, ep, 54.0, 1.2, Vector3(PI * 0.5, 0.7, 0.3), flat(t1, 0.3, 0.0, 4.0))
+			_torus(world, ep, 40.0, 0.8, Vector3(PI * 0.5, -0.9, -0.2), flat(Color(1, 0.95, 0.85), 0.3, 0.0, 4.0))
+			_beam(world, o + Vector3(0, 0, -r0 - 90.0), 600.0, 4.0, 4.0, t0.lerp(Color.WHITE, 0.4), 0.8, Vector3.ZERO, true)
+			for sgn3: float in [-1.0, 1.0]:
+				_beam(world, o + Vector3(sgn3 * (r0 + 4.0), 0, 0), 300.0, 1.2, 1.2, t1, 0.4, Vector3.ZERO, true)
+		"rig":
+			# the flare boom out over the water and the crane on the deck edge; a helideck off the east side
+			var rsteel := flat(Color(0.85, 0.5, 0.12), 0.6, 0.5)
+			var edge := r0 - 40.0
+			var boom := _part(world, _b(Vector3(1.4, 1.4, 44.0)), o + Vector3(-edge * 0.5, 30.0, -edge - 18.0), rsteel)
+			boom.rotation.x = 0.42
+			_beam(world, o + Vector3(-edge * 0.5, 38.5, -edge - 38.0), 22.0, 2.4, 0.2, Color(1.0, 0.55, 0.15), 3.0)
+			_part(world, _b(Vector3(7.0, 2.0, 7.0)), o + Vector3(edge + 3.0, 19.0, -edge * 0.5), flat(Color(0.14, 0.14, 0.16), 0.6, 0.5))
+			_part(world, _cyl(1.6, 16.0), o + Vector3(edge + 3.5, 28.0, -edge * 0.5), rsteel)
+			var jib := _part(world, _b(Vector3(1.0, 1.0, 34.0)), o + Vector3(edge + 3.5, 42.0, -edge * 0.5 + 10.0), rsteel)
+			jib.rotation.x = -0.45
+			_part(world, _b(Vector3(4.0, 3.0, 4.0)), o + Vector3(edge + 3.5, 37.0, -edge * 0.5), flat(Color(0.9, 0.9, 0.88), 0.5))
+			_part(world, _cyl(11.0, 0.6), o + Vector3(edge + 15.0, 22.0, edge * 0.45), flat(Color(0.16, 0.3, 0.2), 0.8))
+			_torus(world, o + Vector3(edge + 15.0, 22.35, edge * 0.45), 8.0, 0.5, Vector3.ZERO, flat(Color(1.0, 0.9, 0.2), 0.5, 0.0, 1.5))
+			_part(world, _b(Vector3(4.0, 1.0, 4.0)), o + Vector3(edge + 5.5, 21.2, edge * 0.45), flat(Color(0.14, 0.14, 0.16), 0.6, 0.5))
 		"void-rift":
 			# the rift itself: a burning ring round a hole in the sky, a second ring tilted through it
 			var rp := o + Vector3(0, 150.0, -r0 - 190.0)
@@ -799,6 +998,19 @@ static func dress(holder: Node3D, kind: String, pos: Vector3, size: Vector3, loo
 			_part(holder, _b(Vector3(size.x + 0.25, 0.2, size.z + 0.25)), pos + Vector3(0, hy - 0.1, 0), dark)
 			for sz5: float in [-1.0, 1.0]:
 				glows.append(_part(holder, _b(Vector3(0.08, size.y * 0.7, 0.02)), pos + Vector3(0, 0, sz5 * (hz + 0.012)), flat(look.trim[0], 0.4, 0.0, 2.6)))
+		"wall":
+			# a cast concrete wall: a coping on top, a kicker at the foot, a hazard band at eye level on both faces
+			var long_x3 := size.x >= size.z
+			_part(holder, _b(Vector3(size.x + 0.16, 0.14, size.z + 0.16)), pos + Vector3(0, hy + 0.07, 0), dark)
+			_part(holder, _b(Vector3(size.x + 0.12, 0.3, size.z + 0.12)), pos + Vector3(0, -hy + 0.15, 0), dark)
+			for sgn4: float in [-1.0, 1.0]:
+				var band := _b(Vector3(size.x * 0.96, 0.16, 0.02) if long_x3 else Vector3(0.02, 0.16, size.z * 0.96))
+				glows.append(_part(holder, band, pos + (Vector3(0, hy * 0.25, sgn4 * (hz + 0.012)) if long_x3 else Vector3(sgn4 * (hx + 0.012), hy * 0.25, 0)), flat(look.trim[0], 0.5, 0.0, 1.4)))
+			# the pour joints
+			var n3 := int(maxf(size.x, size.z) / 3.0)
+			for k7 in range(1, n3):
+				var f4 := float(k7) / float(n3) - 0.5
+				_part(holder, _b(Vector3(0.05, size.y, size.z + 0.02) if long_x3 else Vector3(size.x + 0.02, size.y, 0.05)), pos + (Vector3(f4 * size.x, 0, 0) if long_x3 else Vector3(0, 0, f4 * size.z)), flat(Color(0.2, 0.2, 0.21), 0.9))
 		"monolith":
 			# rift light in cracks round the stone
 			for f3: float in [-0.5, 0.1, 0.6]:
