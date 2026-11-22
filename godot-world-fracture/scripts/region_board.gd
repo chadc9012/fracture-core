@@ -819,8 +819,8 @@ static func _ember(r: Node, rng: RandomNumberGenerator) -> void:
 	var half: float = r.span() * 0.5
 	for i in 2:
 		var ang := atan2(at.y, at.x) + PI + (i * 0.9 - 0.45)
-		var vat := Vector2(cos(ang), sin(ang)) * half * (1.15 + i * 0.25)
-		_volcano(r, vat, 130.0 - i * 30.0, 150.0 - i * 30.0, rng)
+		var vat := Vector2(cos(ang), sin(ang)) * half * (1.75 + i * 0.4)
+		_volcano(r, vat, 150.0 - i * 30.0, 105.0 - i * 20.0, rng)
 		spot(r, "volcano%d" % i, vat, 120.0)
 	# lava falls: molten sheets down three basalt bluffs, pooling at the foot
 	for i in 3:
@@ -1001,10 +1001,10 @@ static func _volcano(r: Node, at: Vector2, h: float, rad: float, rng: RandomNumb
 	var ph := rng.randf() * 10.0
 	for ri in RINGS + 1:
 		var t := float(ri) / RINGS            # 0 at the foot, 1 at the crater lip
-		var y := h * (1.0 - pow(1.0 - t, 1.6))
+		var y := h * pow(t, 0.8)
 		for k in SEG:
 			var a := TAU * k / SEG
-			var rr := rad * (1.0 - t * 0.88) * (1.0 + 0.08 * sin(a * 5.0 + ph) + 0.05 * sin(a * 11.0 + t * 6.0))
+			var rr := rad * (1.0 - t * 0.85) * (1.0 + 0.12 * sin(a * 5.0 + ph) + 0.07 * sin(a * 13.0 + t * 9.0) + rng.randf_range(-0.05, 0.05))
 			st.set_uv(Vector2(float(k) / SEG, t))
 			st.add_vertex(Vector3(cos(a) * rr, y - h * 0.08, sin(a) * rr))
 	for ri in RINGS:
@@ -1029,12 +1029,12 @@ void fragment() {
 	// a few channels winding down from the lip, glowing hot near the crater and cooling to dull red at the foot
 	float x = UV.x * 48.0 + sin(UV.y * 9.0 + seed) * 1.6 + sin(UV.y * 23.0) * 0.4;
 	float ch = 0.0;
-	for (int i = 0; i < 5; i++) {
-		float c = float(i) * 9.6 + seed * 3.0;
+	for (int i = 0; i < 8; i++) {
+		float c = float(i) * 6.0 + seed * 3.0;
 		ch = max(ch, smoothstep(0.55, 0.0, abs(mod(x - c + 24.0, 48.0) - 24.0)) * step(0.15 + 0.12 * float(i % 3), UV.y));
 	}
 	float heat = ch * mix(0.35, 1.0, UV.y);
-	float rock = 0.07 + 0.04 * sin(UV.x * 300.0 + UV.y * 40.0);
+	float rock = 0.13 + 0.05 * sin(UV.x * 300.0 + UV.y * 40.0) + 0.04 * sin(UV.y * 90.0 + UV.x * 60.0);
 	ALBEDO = vec3(rock * 1.1, rock, rock * 0.95);
 	ROUGHNESS = 0.9;
 	EMISSION = vec3(1.0, 0.38, 0.08) * heat * 4.0 + vec3(1.0, 0.45, 0.1) * smoothstep(0.9, 1.0, UV.y) * 3.0;
