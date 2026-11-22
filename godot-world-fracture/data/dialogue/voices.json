@@ -385,7 +385,7 @@
 "M01_011": {
 "speaker": "NOVA",
 "text": "Then we help them. Move. I will guide you.",
-"dur": 2.46,
+"dur": 2.38,
 "variants": [
 ""
 ]
@@ -4613,7 +4613,7 @@
 "A02_006": {
 "speaker": "NOVA",
 "text": "I am detecting an anomalous energy signature across the entire city.",
-"dur": 4.11,
+"dur": 3.92,
 "variants": [
 ""
 ]
@@ -8949,7 +8949,7 @@
 "A08_030": {
 "speaker": "NOVA",
 "text": "Insufficient evidence. The shields they carry match the samples Prefect Crane described.",
-"dur": 4.66,
+"dur": 4.6,
 "variants": [
 ""
 ]
@@ -10341,7 +10341,7 @@
 "A11_001": {
 "speaker": "NOVA",
 "text": "Eldergrove. Population before the Fracture: four thousand. Current estimate: unknown.",
-"dur": 4.91,
+"dur": 5.41,
 "variants": [
 ""
 ]
@@ -12237,7 +12237,7 @@
 "A16_002": {
 "speaker": "NOVA",
 "text": "Murals. Astryan-era pigment. Dragons... standing beside people.",
-"dur": 4.26,
+"dur": 4.31,
 "variants": [
 ""
 ]
@@ -12531,7 +12531,7 @@
 "A17_009": {
 "speaker": "NOVA",
 "text": "The attack is pulling back. Something is clearing a path for itself.",
-"dur": 3.72,
+"dur": 3.75,
 "variants": [
 ""
 ]
@@ -13365,7 +13365,7 @@
 "A20_009": {
 "speaker": "NOVA",
 "text": "Mercenaries. Ascendancy shields. Free Operator rifles. And Continuum armour. Everyone really is guarding it.",
-"dur": 6.9,
+"dur": 6.57,
 "variants": [
 ""
 ]
@@ -15413,7 +15413,7 @@
 "A29_016": {
 "speaker": "NOVA",
 "text": "Signal sent. On a frequency nobody has used since the Engine turned.",
-"dur": 3.76,
+"dur": 3.88,
 "variants": [
 ""
 ]
@@ -19977,7 +19977,7 @@
 "A59_003": {
 "speaker": "NOVA",
 "text": "Not quite. There is something inside me that the field doesn't touch. The Witness called it Origin Memory Zero. I have never been able to open it.",
-"dur": 7.06,
+"dur": 6.99,
 "variants": [
 ""
 ]
@@ -21101,7 +21101,7 @@
 "A67_001": {
 "speaker": "NOVA",
 "text": "Operator. The memories from the pods. They've found you. All of them. They're coming back at once.",
-"dur": 5.53,
+"dur": 5.24,
 "variants": [
 ""
 ]
@@ -21419,7 +21419,7 @@
 "A70_003": {
 "speaker": "NOVA",
 "text": "Both. They argued so long the builders made the gates big enough to drive a wall through.",
-"dur": 4.11,
+"dur": 3.97,
 "variants": [
 ""
 ]
@@ -22930,6 +22930,648 @@
 "speaker": "CHIEF ODA",
 "text": "She believed in eventually. That's what engineers do. We make eventually take a very long time.",
 "dur": 5.51,
+"variants": [
+""
+]
+},
+"SC13_001": {
+"speaker": "NOVA",
+"text": "Operator. The room the Echo left in me has started asking questions.",
+"dur": 3.8,
+"variants": [
+""
+]
+},
+"SC13_002": {
+"speaker": "PLAYER",
+"text": "What kind of questions?",
+"dur": 1.52,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC13_003": {
+"speaker": "THE ECHO",
+"text": "...the lamp says there is a sky... above the water... I have never seen one...",
+"dur": 5.75,
+"variants": [
+""
+]
+},
+"SC13_004": {
+"speaker": "NOVA",
+"text": "It has spent longer than human history in the dark. It would like to see the sky once.",
+"dur": 4.49,
+"variants": [
+""
+]
+},
+"SC13_005": {
+"speaker": "PLAYER",
+"text": "Then let's take it up.",
+"dur": 1.31,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC13_006": {
+"speaker": "THE ECHO",
+"text": "...the water is getting lighter... is that what lighter means...",
+"dur": 3.76,
+"variants": [
+""
+]
+},
+"SC13_007": {
+"speaker": "THE ECHO",
+"text": "...oh...",
+"dur": 1.26,
+"variants": [
+""
+]
+},
+"SC13_008": {
+"speaker": "NOVA",
+"text": "It's looking through me. At the light on the glass.",
+"dur": 2.67,
+"variants": [
+""
+]
+},
+"SC13_009": {
+"speaker": "THE ECHO",
+"text": "...it is not a question... the sky is not a question... it is an answer nobody asked for...",
+"dur": 7.03,
+"variants": [
+""
+]
+},
+"SC13_010": {
+"speaker": "NOVA",
+"text": "I think it's happy. I think I am too. We're sharing it.",
+"dur": 3.15,
+"variants": [
+""
+]
+},
+"SC13_011": {
+"speaker": "PLAYER",
+"text": "That's the best kind.",
+"dur": 1.45,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC14_001": {
+"speaker": "AUREN THALE",
+"text": "The edge of the glass. I've mapped everything else. I want one sheet of the place nobody decided.",
+"dur": 5.45,
+"variants": [
+""
+]
+},
+"SC14_002": {
+"speaker": "PLAYER",
+"text": "Can you map somewhere undecided?",
+"dur": 1.82,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC14_003": {
+"speaker": "AUREN THALE",
+"text": "No. That's why I want to try. Walk with me. Stay close. The ground's still in two minds.",
+"dur": 5.94,
+"variants": [
+""
+]
+},
+"SC14_004": {
+"speaker": "AUREN THALE",
+"text": "Three stakes. I draw between them. Don't let anything knock them over. Especially the ground.",
+"dur": 5.86,
+"variants": [
+""
+]
+},
+"SC14_005": {
+"speaker": "AUREN THALE",
+"text": "There. Look. It's blank.",
+"dur": 2.26,
+"variants": [
+""
+]
+},
+"SC14_006": {
+"speaker": "PLAYER",
+"text": "You drew nothing?",
+"dur": 1.13,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC14_007": {
+"speaker": "AUREN THALE",
+"text": "I drew it exactly. It's the most accurate map I've ever made. Nothing's been decided there yet. Isn't it beautiful?",
+"dur": 6.16,
+"variants": [
+""
+]
+},
+"SC15_001": {
+"speaker": "VESPER",
+"text": "I sold you where the ledger was. Everyone on the ledger knows who sold it. I'd like to keep my head.",
+"dur": 6.11,
+"variants": [
+""
+]
+},
+"SC15_002": {
+"speaker": "PLAYER",
+"text": "Who's coming?",
+"dur": 0.84,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC15_003": {
+"speaker": "VESPER",
+"text": "Everyone who paid into it. Tonight. I'd prefer they find you instead of me.",
+"dur": 4.15,
+"variants": [
+""
+]
+},
+"SC15_004": {
+"speaker": "VESPER",
+"text": "I'll be under the desk. Being brave.",
+"dur": 2.32,
+"variants": [
+""
+]
+},
+"SC15_005": {
+"speaker": "VESPER",
+"text": "Still have my head. Lovely. What do I owe you?",
+"dur": 2.7,
+"variants": [
+""
+]
+},
+"SC15_006": {
+"speaker": "PLAYER",
+"text": "Nothing.",
+"dur": 0.7,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC15_007": {
+"speaker": "VESPER",
+"text": "Nobody in Neon City has ever said that to me. I'm going to have to sit down.",
+"dur": 4.86,
+"variants": [
+""
+]
+},
+"SC16_001": {
+"speaker": "DR. HALVARD",
+"text": "The three who tried to lift the crown. They can hear now. They still can't speak.",
+"dur": 4.13,
+"variants": [
+""
+]
+},
+"SC16_002": {
+"speaker": "NOVA",
+"text": "The Cantor's silence lingers in them. There may be a relay of it under the shelf, still singing.",
+"dur": 5.1,
+"variants": [
+""
+]
+},
+"SC16_003": {
+"speaker": "DR. HALVARD",
+"text": "Then break it. Please. One of them is my son.",
+"dur": 2.98,
+"variants": [
+""
+]
+},
+"SC16_004": {
+"speaker": "NOVA",
+"text": "Small constructs. Humming one note. Over and over.",
+"dur": 3.33,
+"variants": [
+""
+]
+},
+"SC16_005": {
+"speaker": "DR. HALVARD",
+"text": "...He said my name. He said my name. Thank you.",
+"dur": 3.01,
+"variants": [
+""
+]
+},
+"SC16_006": {
+"speaker": "NOVA",
+"text": "The other two are laughing. I think at nothing. I think that's allowed.",
+"dur": 3.87,
+"variants": [
+""
+]
+},
+"SC17_001": {
+"speaker": "PHANTOM CHILD",
+"text": "Vigilance! You came back! Tell me a story. The one about the people before the people.",
+"dur": 4.35,
+"variants": [
+""
+]
+},
+"SC17_002": {
+"speaker": "NOVA",
+"text": "...I don't remember it.",
+"dur": 1.28,
+"variants": [
+""
+]
+},
+"SC17_003": {
+"speaker": "PHANTOM CHILD",
+"text": "You do. You just have to start.",
+"dur": 2.05,
+"variants": [
+""
+]
+},
+"SC17_004": {
+"speaker": "NOVA",
+"text": "Once, before there were people, there was a question. And some very tired, very brave people tried to answer it.",
+"dur": 5.56,
+"variants": [
+""
+]
+},
+"SC17_005": {
+"speaker": "NOVA",
+"text": "They couldn't. So they left a seed instead. A seed that would grow into someone who could ask it properly.",
+"dur": 5.18,
+"variants": [
+""
+]
+},
+"SC17_006": {
+"speaker": "PHANTOM CHILD",
+"text": "Did the seed grow?",
+"dur": 1.34,
+"variants": [
+""
+]
+},
+"SC17_007": {
+"speaker": "NOVA",
+"text": "It did. It's standing right here. It's quite tall now. It crashes trucks.",
+"dur": 4.25,
+"variants": [
+""
+]
+},
+"SC17_008": {
+"speaker": "PLAYER",
+"text": "One truck.",
+"dur": 0.96,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC17_009": {
+"speaker": "PHANTOM CHILD",
+"text": "That's the best ending. Mama said you'd tell it best.",
+"dur": 2.68,
+"variants": [
+""
+]
+},
+"SC17_010": {
+"speaker": "NOVA",
+"text": "She's gone. The Engine's let her rest. I think she was waiting for the end of the story.",
+"dur": 4.7,
+"variants": [
+""
+]
+},
+"SC18_001": {
+"speaker": "RESEARCHER LUNE",
+"text": "Every volunteer is a number in the system. Crane says names make the work harder.",
+"dur": 6.11,
+"variants": [
+""
+]
+},
+"SC18_002": {
+"speaker": "PLAYER",
+"text": "He's right. That's why we're doing it.",
+"dur": 2.03,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SC18_003": {
+"speaker": "NOVA",
+"text": "Files open. Two hundred and twelve volunteers. Two hundred and twelve names.",
+"dur": 4.31,
+"variants": [
+""
+]
+},
+"SC18_004": {
+"speaker": "RESEARCHER LUNE",
+"text": "Tallis Volk. Tomas Arden. Mira Celt. Joan Okafor. Ben and Rosa Lin, twins.",
+"dur": 7.35,
+"variants": [
+""
+]
+},
+"SC18_005": {
+"speaker": "RESEARCHER LUNE",
+"text": "I'm going to read all of them. Out loud. It'll take a while.",
+"dur": 4.37,
+"variants": [
+""
+]
+},
+"SC18_006": {
+"speaker": "CRANE",
+"text": "...Go on, Lune. I'm listening.",
+"dur": 1.84,
+"variants": [
+""
+]
+},
+"SC18_007": {
+"speaker": "NOVA",
+"text": "I am recording every one.",
+"dur": 1.56,
+"variants": [
+""
+]
+},
+"SE13_001": {
+"speaker": "NOVA",
+"text": "There are two moons over Nexus tonight. One of them is the Astryan sky leaking through the Engine.",
+"dur": 4.57,
+"variants": [
+""
+]
+},
+"SE13_002": {
+"speaker": "CIVILIAN",
+"text": "Is it the end of the world?",
+"dur": 1.44,
+"variants": [
+""
+]
+},
+"SE13_003": {
+"speaker": "PLAYER",
+"text": "No. It's just a very old sky saying hello.",
+"dur": 3.54,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SE13_004": {
+"speaker": "NOVA",
+"text": "Riftwalkers are stepping through the reflection. Small numbers. Curious.",
+"dur": 4.3,
+"variants": [
+""
+]
+},
+"SE13_005": {
+"speaker": "NOVA",
+"text": "Moonset. The second one's gone.",
+"dur": 2.23,
+"variants": [
+""
+]
+},
+"SE13_006": {
+"speaker": "CIVILIAN",
+"text": "My kids want to know if it'll come back.",
+"dur": 2.19,
+"variants": [
+""
+]
+},
+"SE13_007": {
+"speaker": "PLAYER",
+"text": "Tell them to keep looking up.",
+"dur": 1.38,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SE14_001": {
+"speaker": "NOVA",
+"text": "Someone has walked out of the old parade's road. Real this time. Carrying a lantern.",
+"dur": 4.56,
+"variants": [
+""
+]
+},
+"SE14_002": {
+"speaker": "CIVILIAN",
+"text": "We followed the singing. Is this... is this where the door is?",
+"dur": 3.0,
+"variants": [
+""
+]
+},
+"SE14_003": {
+"speaker": "PLAYER",
+"text": "It's one of them. Welcome.",
+"dur": 1.49,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SE14_004": {
+"speaker": "CIVILIAN",
+"text": "We didn't know if anyone would be on this side.",
+"dur": 2.48,
+"variants": [
+""
+]
+},
+"SE14_005": {
+"speaker": "NOVA",
+"text": "There always will be, now. That's what kept means.",
+"dur": 2.72,
+"variants": [
+""
+]
+},
+"SE15_001": {
+"speaker": "RADIO FREE NEXUS",
+"text": "...water at the harbour... shelter at — ",
+"dur": 1.76,
+"variants": [
+""
+]
+},
+"SE15_002": {
+"speaker": "NOVA",
+"text": "The broadcast cut out. All three relays. Something is sitting on them.",
+"dur": 3.75,
+"variants": [
+""
+]
+},
+"SE15_003": {
+"speaker": "RADIO FREE NEXUS",
+"text": "...sorry about that, Nexus. A little technical difficulty with a very large bird. We're back. You're not alone.",
+"dur": 5.72,
+"variants": [
+""
+]
+},
+"SE16_001": {
+"speaker": "ELDER MAREN",
+"text": "Every tree flowered at dawn. All of them. Even the dead ones.",
+"dur": 3.61,
+"variants": [
+""
+]
+},
+"SE16_002": {
+"speaker": "ILYRA SEN",
+"text": "The fourth seal sang. The forest heard. It always hears.",
+"dur": 3.51,
+"variants": [
+""
+]
+},
+"SE16_003": {
+"speaker": "ELDER MAREN",
+"text": "Will it happen again?",
+"dur": 1.23,
+"variants": [
+""
+]
+},
+"SE16_004": {
+"speaker": "ILYRA SEN",
+"text": "Every time someone keeps a promise. So, not often. But sometimes.",
+"dur": 4.65,
+"variants": [
+""
+]
+},
+"SE17_001": {
+"speaker": "CHIEF ODA",
+"text": "Eighty of us in a pod built for forty. Nobody complained. Nobody breathed, either.",
+"dur": 5.53,
+"variants": [
+""
+]
+},
+"SE17_002": {
+"speaker": "CHIEF ODA",
+"text": "There. Look. On fire and everywhere. Again.",
+"dur": 3.58,
+"variants": [
+""
+]
+},
+"SE17_003": {
+"speaker": "PLAYER",
+"text": "You've seen it before.",
+"dur": 1.39,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"SE17_004": {
+"speaker": "CHIEF ODA",
+"text": "Once. Once is not enough of anything this good.",
+"dur": 3.6,
+"variants": [
+""
+]
+},
+"SE17_005": {
+"speaker": "NOVA",
+"text": "The engineers are crying. Every one of them.",
+"dur": 2.42,
+"variants": [
+""
+]
+},
+"SE17_006": {
+"speaker": "CHIEF ODA",
+"text": "Salt water. We're used to it.",
+"dur": 1.89,
+"variants": [
+""
+]
+},
+"SE18_001": {
+"speaker": "NOVA",
+"text": "The Choir's last constructs. They've found the loudest place in Neon City and are trying to make it quiet.",
+"dur": 5.29,
+"variants": [
+""
+]
+},
+"SE18_002": {
+"speaker": "VESPER",
+"text": "Over my dead body. And my stall's.",
+"dur": 2.79,
+"variants": [
+""
+]
+},
+"SE18_003": {
+"speaker": "VESPER",
+"text": "Music back on! Everybody, louder! Louder than that!",
+"dur": 3.43,
+"variants": [
+""
+]
+},
+"SE18_004": {
+"speaker": "NOVA",
+"text": "Four hundred people singing very badly. It's perfect.",
+"dur": 2.95,
 "variants": [
 ""
 ]
@@ -26374,6 +27016,838 @@
 "speaker": "CAPTAIN ADRIAN COLE",
 "text": "We held. All of us.",
 "dur": 1.58,
+"variants": [
+""
+]
+},
+"P_ilyra_fracture_1": {
+"speaker": "ILYRA SEN",
+"text": "When I sing, the small cracks close. I never knew why. Now I do, and it doesn't help me sing any better.",
+"dur": 6.4,
+"variants": [
+""
+]
+},
+"P_ilyra_fracture_2": {
+"speaker": "ILYRA SEN",
+"text": "Every crack is a question somebody didn't finish asking.",
+"dur": 3.98,
+"variants": [
+""
+]
+},
+"P_ilyra_place_1": {
+"speaker": "ILYRA SEN",
+"text": "This city is very loud. I like it. Eldergrove was so quiet I could hear the world worrying.",
+"dur": 6.39,
+"variants": [
+""
+]
+},
+"P_ilyra_place_2": {
+"speaker": "ILYRA SEN",
+"text": "The plaza in the morning sounds like a choir that hasn't met yet.",
+"dur": 3.73,
+"variants": [
+""
+]
+},
+"P_ilyra_you_wary": {
+"speaker": "ILYRA SEN",
+"text": "I know you. I don't know from where. That makes me careful.",
+"dur": 3.43,
+"variants": [
+""
+]
+},
+"P_ilyra_you_acquaintance": {
+"speaker": "ILYRA SEN",
+"text": "You walk loudly for someone who keeps being hunted.",
+"dur": 3.42,
+"variants": [
+""
+]
+},
+"P_ilyra_you_friend": {
+"speaker": "ILYRA SEN",
+"text": "I was angry with you for longer than this world has had a name. I'm not anymore.",
+"dur": 4.55,
+"variants": [
+""
+]
+},
+"P_ilyra_you_close": {
+"speaker": "ILYRA SEN",
+"text": "You were our promise. You still are. Promises aren't things you keep. They're things you are.",
+"dur": 4.78,
+"variants": [
+""
+]
+},
+"P_ilyra_news_start": {
+"speaker": "ILYRA SEN",
+"text": "The water at the falls told me you were coming.",
+"dur": 2.36,
+"variants": [
+""
+]
+},
+"P_ilyra_news_allied": {
+"speaker": "ILYRA SEN",
+"text": "Four of us in one city. It hasn't happened since the sanctuary.",
+"dur": 3.82,
+"variants": [
+""
+]
+},
+"P_ilyra_news_masks": {
+"speaker": "ILYRA SEN",
+"text": "The Choir listens for my song. I sing anyway.",
+"dur": 3.17,
+"variants": [
+""
+]
+},
+"P_ilyra_news_unbound": {
+"speaker": "ILYRA SEN",
+"text": "The lighthouse in your ear is brighter every day.",
+"dur": 3.14,
+"variants": [
+""
+]
+},
+"P_ilyra_news_kept": {
+"speaker": "ILYRA SEN",
+"text": "A kept door. Elenya was always the wisest of us.",
+"dur": 3.44,
+"variants": [
+""
+]
+},
+"P_auren_fracture_1": {
+"speaker": "AUREN THALE",
+"text": "Forty years I drew roads that didn't exist. They always arrived. The Fracture's just the world catching up with my maps.",
+"dur": 6.44,
+"variants": [
+""
+]
+},
+"P_auren_fracture_2": {
+"speaker": "AUREN THALE",
+"text": "You can't wall in a road you haven't walked yet.",
+"dur": 2.48,
+"variants": [
+""
+]
+},
+"P_auren_place_1": {
+"speaker": "AUREN THALE",
+"text": "Good coffee. Terrible directions. My kind of café.",
+"dur": 3.77,
+"variants": [
+""
+]
+},
+"P_auren_place_2": {
+"speaker": "AUREN THALE",
+"text": "This avenue's on every map I ever drew. It's never in the same place twice.",
+"dur": 4.73,
+"variants": [
+""
+]
+},
+"P_auren_you_wary": {
+"speaker": "AUREN THALE",
+"text": "You're late. The map said noon.",
+"dur": 1.98,
+"variants": [
+""
+]
+},
+"P_auren_you_acquaintance": {
+"speaker": "AUREN THALE",
+"text": "I drew you this morning. You looked taller.",
+"dur": 2.55,
+"variants": [
+""
+]
+},
+"P_auren_you_friend": {
+"speaker": "AUREN THALE",
+"text": "Every road out of the end of the world goes through you. Lucky roads.",
+"dur": 4.06,
+"variants": [
+""
+]
+},
+"P_auren_you_close": {
+"speaker": "AUREN THALE",
+"text": "I asked you once to map a world where you didn't have to choose. You found a better one. One where you got to.",
+"dur": 5.58,
+"variants": [
+""
+]
+},
+"P_auren_news_start": {
+"speaker": "AUREN THALE",
+"text": "The glass map stopped drawing us. It's drawing the sea.",
+"dur": 3.21,
+"variants": [
+""
+]
+},
+"P_auren_news_allied": {
+"speaker": "AUREN THALE",
+"text": "The trader still wants his map. He's standing on it.",
+"dur": 3.16,
+"variants": [
+""
+]
+},
+"P_auren_news_masks": {
+"speaker": "AUREN THALE",
+"text": "A road past the edge of the glass. Nobody's spilled that ink yet.",
+"dur": 3.98,
+"variants": [
+""
+]
+},
+"P_auren_news_unbound": {
+"speaker": "AUREN THALE",
+"text": "The map drew a road through the Heart and out the other side.",
+"dur": 3.07,
+"variants": [
+""
+]
+},
+"P_auren_news_kept": {
+"speaker": "AUREN THALE",
+"text": "There's an edge again. Isn't that wonderful?",
+"dur": 2.5,
+"variants": [
+""
+]
+},
+"P_nyx_fracture_1": {
+"speaker": "NYX",
+"text": "Fractures smell like ozone and wet stone. You learn it or you don't last.",
+"dur": 4.97,
+"variants": [
+""
+]
+},
+"P_nyx_fracture_2": {
+"speaker": "NYX",
+"text": "Corner of your eye. That's where everything dangerous lives now.",
+"dur": 4.23,
+"variants": [
+""
+]
+},
+"P_nyx_place_1": {
+"speaker": "NYX",
+"text": "Too loud. Too bright. Too many people looking up instead of around.",
+"dur": 4.29,
+"variants": [
+""
+]
+},
+"P_nyx_place_2": {
+"speaker": "NYX",
+"text": "The plaza's fine. The rooftops above it are better.",
+"dur": 3.61,
+"variants": [
+""
+]
+},
+"P_nyx_you_wary": {
+"speaker": "NYX",
+"text": "Kael says you're all right. Kael's been wrong before.",
+"dur": 3.28,
+"variants": [
+""
+]
+},
+"P_nyx_you_acquaintance": {
+"speaker": "NYX",
+"text": "You talk to your machine. It talks back. I've stopped finding it weird.",
+"dur": 4.91,
+"variants": [
+""
+]
+},
+"P_nyx_you_friend": {
+"speaker": "NYX",
+"text": "You'd make a decent tracker if you ever learned to shut up.",
+"dur": 3.4,
+"variants": [
+""
+]
+},
+"P_nyx_you_close": {
+"speaker": "NYX",
+"text": "Teo would have liked you. He liked idiots who walk into things for other people.",
+"dur": 4.86,
+"variants": [
+""
+]
+},
+"P_nyx_news_start": {
+"speaker": "NYX",
+"text": "Strangers in the canopy, asking the trees questions.",
+"dur": 3.84,
+"variants": [
+""
+]
+},
+"P_nyx_news_allied": {
+"speaker": "NYX",
+"text": "Collectors left the valley. All but one. Not anymore.",
+"dur": 3.83,
+"variants": [
+""
+]
+},
+"P_nyx_news_masks": {
+"speaker": "NYX",
+"text": "Bending coats in the market again. I counted six.",
+"dur": 3.44,
+"variants": [
+""
+]
+},
+"P_nyx_news_unbound": {
+"speaker": "NYX",
+"text": "Your lamp looked at me today. Like she knew me.",
+"dur": 3.33,
+"variants": [
+""
+]
+},
+"P_nyx_news_kept": {
+"speaker": "NYX",
+"text": "The herds went north. They're coming back. So am I.",
+"dur": 3.61,
+"variants": [
+""
+]
+},
+"P_goliath_fracture_1": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Bullets didn't work on the first ones. I did. Turns out I'm a type of bullet.",
+"dur": 4.47,
+"variants": [
+""
+]
+},
+"P_goliath_fracture_2": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Things should be on the ground. Fractures disagree. I disagree back.",
+"dur": 4.26,
+"variants": [
+""
+]
+},
+"P_goliath_place_1": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Precinct's quiet. I like quiet. Quiet means my mum's goats are safe.",
+"dur": 4.28,
+"variants": [
+""
+]
+},
+"P_goliath_place_2": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Somebody has to stand at the front. I'm the widest.",
+"dur": 2.96,
+"variants": [
+""
+]
+},
+"P_goliath_you_wary": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Voss sends his regards. And me. Mostly me.",
+"dur": 3.18,
+"variants": [
+""
+]
+},
+"P_goliath_you_acquaintance": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "You're smaller than the recordings. Everybody is.",
+"dur": 2.96,
+"variants": [
+""
+]
+},
+"P_goliath_you_friend": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Stand behind me. That's not an order, that's physics.",
+"dur": 3.15,
+"variants": [
+""
+]
+},
+"P_goliath_you_close": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "My mum asks about you. She wants you to sit down more. So do I.",
+"dur": 3.89,
+"variants": [
+""
+]
+},
+"P_goliath_news_start": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "The desert's trying to kill us. I'm trying harder.",
+"dur": 2.78,
+"variants": [
+""
+]
+},
+"P_goliath_news_allied": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Gertrude the goat is avenged. That's all you need to know.",
+"dur": 3.04,
+"variants": [
+""
+]
+},
+"P_goliath_news_masks": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Bending coats, floating rocks, underground. I hate all of it.",
+"dur": 3.47,
+"variants": [
+""
+]
+},
+"P_goliath_news_unbound": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Your NOVA cried at the sunrise. So did I. Sand in my eye.",
+"dur": 3.83,
+"variants": [
+""
+]
+},
+"P_goliath_news_kept": {
+"speaker": "MARCUS \"GOLIATH\" REYES",
+"text": "Emotional sand. It's a real thing. Ask anyone.",
+"dur": 3.47,
+"variants": [
+""
+]
+},
+"P_cipher_fracture_1": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "I volunteered. They opened a door in my head and left it a little open. It's how I read the map.",
+"dur": 5.12,
+"variants": [
+""
+]
+},
+"P_cipher_fracture_2": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "The Fracture isn't chaos. It's grammar we never learned.",
+"dur": 3.35,
+"variants": [
+""
+]
+},
+"P_cipher_place_1": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "The café has a socket that works and nobody asks what I'm charging.",
+"dur": 3.7,
+"variants": [
+""
+]
+},
+"P_cipher_place_2": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "I used to work up there, in the Spire. The view was better. The company wasn't.",
+"dur": 4.08,
+"variants": [
+""
+]
+},
+"P_cipher_you_wary": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "Don't touch anything with your hands. It remembers fingerprints. So do I.",
+"dur": 4.19,
+"variants": [
+""
+]
+},
+"P_cipher_you_acquaintance": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "Severance comes in many forms. Mine was a truck of Crane's equipment.",
+"dur": 3.97,
+"variants": [
+""
+]
+},
+"P_cipher_you_friend": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "Tallis would have written a terrible poem about you. I'll do it instead. It'll be worse.",
+"dur": 4.58,
+"variants": [
+""
+]
+},
+"P_cipher_you_close": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "You let the memories go instead of taking them back. That's the bravest thing I've seen anyone do with a door.",
+"dur": 4.98,
+"variants": [
+""
+]
+},
+"P_cipher_news_start": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "The glass map has been drawing my face for three days.",
+"dur": 3.19,
+"variants": [
+""
+]
+},
+"P_cipher_news_allied": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "The forge is shut. I hope it stays shut.",
+"dur": 2.54,
+"variants": [
+""
+]
+},
+"P_cipher_news_masks": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "Crane copied everything before we shut it down. Of course he did.",
+"dur": 3.7,
+"variants": [
+""
+]
+},
+"P_cipher_news_unbound": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "Mum reads the bus-stop poem every night. Terrible. She loves it.",
+"dur": 4.2,
+"variants": [
+""
+]
+},
+"P_cipher_news_kept": {
+"speaker": "ARI \"CIPHER\" VOLK",
+"text": "Crane asks people now. I'm almost proud of him.",
+"dur": 2.74,
+"variants": [
+""
+]
+},
+"P_crane_fracture_1": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "Humanity doesn't survive this by hiding behind walls. It survives by becoming something that doesn't need them.",
+"dur": 5.75,
+"variants": [
+""
+]
+},
+"P_crane_fracture_2": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "The Fracture is the first honest thing to happen to our species in a thousand years.",
+"dur": 4.32,
+"variants": [
+""
+]
+},
+"P_crane_place_1": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "I like the plaza. Everyone here is afraid of me. It's restful.",
+"dur": 3.7,
+"variants": [
+""
+]
+},
+"P_crane_place_2": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "The Spire has the best view in Nexus. You should come up. Without a weapon, this time.",
+"dur": 4.76,
+"variants": [
+""
+]
+},
+"P_crane_you_wary": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "Do you follow me, or do I follow you? It's getting hard to tell.",
+"dur": 3.31,
+"variants": [
+""
+]
+},
+"P_crane_you_acquaintance": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "You keep breaking my things. I keep building better ones. A productive relationship.",
+"dur": 4.86,
+"variants": [
+""
+]
+},
+"P_crane_you_friend": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "Everyone comes to me in the end. You came to ask. That was new.",
+"dur": 4.14,
+"variants": [
+""
+]
+},
+"P_crane_you_close": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "A seat at the table. Given, not built. You were right. I hate it when people are right.",
+"dur": 4.69,
+"variants": [
+""
+]
+},
+"P_crane_news_start": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "The core is five names and a sixth nobody wanted remembered.",
+"dur": 3.07,
+"variants": [
+""
+]
+},
+"P_crane_news_allied": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "The shield over the eastern districts. Thirty thousand people. Good publicity.",
+"dur": 4.11,
+"variants": [
+""
+]
+},
+"P_crane_news_masks": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "The volunteers have names now. Lune insists.",
+"dur": 2.83,
+"variants": [
+""
+]
+},
+"P_crane_news_unbound": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "We ask people what they want before we change them. Revolutionary.",
+"dur": 3.46,
+"variants": [
+""
+]
+},
+"P_crane_news_kept": {
+"speaker": "PREFECT LYSANDER CRANE",
+"text": "The Ascendancy stands at the door. Shields up. No cheating.",
+"dur": 3.53,
+"variants": [
+""
+]
+},
+"P_oda_fracture_1": {
+"speaker": "CHIEF ODA",
+"text": "Eighty years under the sea keeping a voice in a box. The Fracture's just the box getting bigger.",
+"dur": 5.62,
+"variants": [
+""
+]
+},
+"P_oda_fracture_2": {
+"speaker": "CHIEF ODA",
+"text": "The sea always wins, eventually. We make eventually take a very long time.",
+"dur": 4.95,
+"variants": [
+""
+]
+},
+"P_oda_place_1": {
+"speaker": "CHIEF ODA",
+"text": "The garage has proper pumps. I like a place with proper pumps.",
+"dur": 4.35,
+"variants": [
+""
+]
+},
+"P_oda_place_2": {
+"speaker": "CHIEF ODA",
+"text": "Surface air is very thin. Nobody warned me.",
+"dur": 3.54,
+"variants": [
+""
+]
+},
+"P_oda_you_wary": {
+"speaker": "CHIEF ODA",
+"text": "Surface people. We don't get many. We don't want many.",
+"dur": 3.29,
+"variants": [
+""
+]
+},
+"P_oda_you_acquaintance": {
+"speaker": "CHIEF ODA",
+"text": "You got every pod out. Every one. I don't forget that.",
+"dur": 4.06,
+"variants": [
+""
+]
+},
+"P_oda_you_friend": {
+"speaker": "CHIEF ODA",
+"text": "You and your lamp. Come down sometime. The palace is dry enough for socks.",
+"dur": 4.69,
+"variants": [
+""
+]
+},
+"P_oda_you_close": {
+"speaker": "CHIEF ODA",
+"text": "My grandmother would have liked you. She liked people who went back.",
+"dur": 3.85,
+"variants": [
+""
+]
+},
+"P_oda_news_start": {
+"speaker": "CHIEF ODA",
+"text": "The voice in the walls got louder nine days ago.",
+"dur": 2.85,
+"variants": [
+""
+]
+},
+"P_oda_news_allied": {
+"speaker": "CHIEF ODA",
+"text": "The cult's gone quiet. Good.",
+"dur": 2.45,
+"variants": [
+""
+]
+},
+"P_oda_news_masks": {
+"speaker": "CHIEF ODA",
+"text": "Somebody cut the eastern pumps. I want a name.",
+"dur": 3.05,
+"variants": [
+""
+]
+},
+"P_oda_news_unbound": {
+"speaker": "CHIEF ODA",
+"text": "A centimetre a minute. The city's breathing again.",
+"dur": 3.36,
+"variants": [
+""
+]
+},
+"P_oda_news_kept": {
+"speaker": "CHIEF ODA",
+"text": "Thalassia's pumped out. I've seen three sunrises now. Still on fire.",
+"dur": 4.7,
+"variants": [
+""
+]
+},
+"P_vesper_fracture_1": {
+"speaker": "VESPER",
+"text": "The Fracture was the best thing that ever happened to my business. I'm not proud. I'm rich.",
+"dur": 5.81,
+"variants": [
+""
+]
+},
+"P_vesper_fracture_2": {
+"speaker": "VESPER",
+"text": "Everybody in this city is wearing something over something. The Fracture just made it obvious.",
+"dur": 6.52,
+"variants": [
+""
+]
+},
+"P_vesper_place_1": {
+"speaker": "VESPER",
+"text": "The night market. Every secret in Neon passes through here eventually. Most of them stop to eat.",
+"dur": 5.43,
+"variants": [
+""
+]
+},
+"P_vesper_place_2": {
+"speaker": "VESPER",
+"text": "My little room. Should I be flattered or should I be running?",
+"dur": 3.07,
+"variants": [
+""
+]
+},
+"P_vesper_you_wary": {
+"speaker": "VESPER",
+"text": "The famous survivor. I've heard prices for you.",
+"dur": 2.78,
+"variants": [
+""
+]
+},
+"P_vesper_you_acquaintance": {
+"speaker": "VESPER",
+"text": "You pay. You don't haggle. You're terrible at this.",
+"dur": 3.03,
+"variants": [
+""
+]
+},
+"P_vesper_you_friend": {
+"speaker": "VESPER",
+"text": "For you, the good secrets. Half price. Don't tell anyone I have a heart.",
+"dur": 4.49,
+"variants": [
+""
+]
+},
+"P_vesper_you_close": {
+"speaker": "VESPER",
+"text": "If anyone ever asks me where you are, I'll sell them the wrong answer. Free.",
+"dur": 4.91,
+"variants": [
+""
+]
+},
+"P_vesper_news_start": {
+"speaker": "VESPER",
+"text": "Silver hair, eyes like a bruise. Paid in Genesis credit.",
+"dur": 4.2,
+"variants": [
+""
+]
+},
+"P_vesper_news_allied": {
+"speaker": "VESPER",
+"text": "The ledger's gone. Everyone's very nervous. Business is wonderful.",
+"dur": 4.09,
+"variants": [
+""
+]
+},
+"P_vesper_news_masks": {
+"speaker": "VESPER",
+"text": "Bending coats asked first. They always ask first.",
+"dur": 3.31,
+"variants": [
+""
+]
+},
+"P_vesper_news_unbound": {
+"speaker": "VESPER",
+"text": "Someone bought every map of the Shattered Expanse in the city. Twice.",
+"dur": 4.52,
+"variants": [
+""
+]
+},
+"P_vesper_news_kept": {
+"speaker": "VESPER",
+"text": "Neon City has a door now. I've already got people selling tickets.",
+"dur": 4.12,
 "variants": [
 ""
 ]
@@ -32662,6 +34136,83 @@
 "CHIEF ODA|My grandmother built the first of these pumps by hand. She said the sea always wins, eventually.": "SC12_008",
 "PLAYER|Did she believe it?": "SC12_009",
 "CHIEF ODA|She believed in eventually. That's what engineers do. We make eventually take a very long time.": "SC12_010",
+"NOVA|Operator. The room the Echo left in me has started asking questions.": "SC13_001",
+"PLAYER|What kind of questions?": "SC13_002",
+"THE ECHO|...the lamp says there is a sky... above the water... I have never seen one...": "SC13_003",
+"NOVA|It has spent longer than human history in the dark. It would like to see the sky once.": "SC13_004",
+"PLAYER|Then let's take it up.": "SC13_005",
+"THE ECHO|...the water is getting lighter... is that what lighter means...": "SC13_006",
+"THE ECHO|...oh...": "SC13_007",
+"NOVA|It's looking through me. At the light on the glass.": "SC13_008",
+"THE ECHO|...it is not a question... the sky is not a question... it is an answer nobody asked for...": "SC13_009",
+"NOVA|I think it's happy. I think I am too. We're sharing it.": "SC13_010",
+"PLAYER|That's the best kind.": "SC13_011",
+"AUREN THALE|The edge of the glass. I've mapped everything else. I want one sheet of the place nobody decided.": "SC14_001",
+"PLAYER|Can you map somewhere undecided?": "SC14_002",
+"AUREN THALE|No. That's why I want to try. Walk with me. Stay close. The ground's still in two minds.": "SC14_003",
+"AUREN THALE|Three stakes. I draw between them. Don't let anything knock them over. Especially the ground.": "SC14_004",
+"AUREN THALE|There. Look. It's blank.": "SC14_005",
+"PLAYER|You drew nothing?": "SC14_006",
+"AUREN THALE|I drew it exactly. It's the most accurate map I've ever made. Nothing's been decided there yet. Isn't it beautiful?": "SC14_007",
+"VESPER|I sold you where the ledger was. Everyone on the ledger knows who sold it. I'd like to keep my head.": "SC15_001",
+"PLAYER|Who's coming?": "SC15_002",
+"VESPER|Everyone who paid into it. Tonight. I'd prefer they find you instead of me.": "SC15_003",
+"VESPER|I'll be under the desk. Being brave.": "SC15_004",
+"VESPER|Still have my head. Lovely. What do I owe you?": "SC15_005",
+"PLAYER|Nothing.": "SC15_006",
+"VESPER|Nobody in Neon City has ever said that to me. I'm going to have to sit down.": "SC15_007",
+"DR. HALVARD|The three who tried to lift the crown. They can hear now. They still can't speak.": "SC16_001",
+"NOVA|The Cantor's silence lingers in them. There may be a relay of it under the shelf, still singing.": "SC16_002",
+"DR. HALVARD|Then break it. Please. One of them is my son.": "SC16_003",
+"NOVA|Small constructs. Humming one note. Over and over.": "SC16_004",
+"DR. HALVARD|...He said my name. He said my name. Thank you.": "SC16_005",
+"NOVA|The other two are laughing. I think at nothing. I think that's allowed.": "SC16_006",
+"PHANTOM CHILD|Vigilance! You came back! Tell me a story. The one about the people before the people.": "SC17_001",
+"NOVA|...I don't remember it.": "SC17_002",
+"PHANTOM CHILD|You do. You just have to start.": "SC17_003",
+"NOVA|Once, before there were people, there was a question. And some very tired, very brave people tried to answer it.": "SC17_004",
+"NOVA|They couldn't. So they left a seed instead. A seed that would grow into someone who could ask it properly.": "SC17_005",
+"PHANTOM CHILD|Did the seed grow?": "SC17_006",
+"NOVA|It did. It's standing right here. It's quite tall now. It crashes trucks.": "SC17_007",
+"PLAYER|One truck.": "SC17_008",
+"PHANTOM CHILD|That's the best ending. Mama said you'd tell it best.": "SC17_009",
+"NOVA|She's gone. The Engine's let her rest. I think she was waiting for the end of the story.": "SC17_010",
+"RESEARCHER LUNE|Every volunteer is a number in the system. Crane says names make the work harder.": "SC18_001",
+"PLAYER|He's right. That's why we're doing it.": "SC18_002",
+"NOVA|Files open. Two hundred and twelve volunteers. Two hundred and twelve names.": "SC18_003",
+"RESEARCHER LUNE|Tallis Volk. Tomas Arden. Mira Celt. Joan Okafor. Ben and Rosa Lin, twins.": "SC18_004",
+"RESEARCHER LUNE|I'm going to read all of them. Out loud. It'll take a while.": "SC18_005",
+"CRANE|...Go on, Lune. I'm listening.": "SC18_006",
+"NOVA|I am recording every one.": "SC18_007",
+"NOVA|There are two moons over Nexus tonight. One of them is the Astryan sky leaking through the Engine.": "SE13_001",
+"CIVILIAN|Is it the end of the world?": "SE13_002",
+"PLAYER|No. It's just a very old sky saying hello.": "SE13_003",
+"NOVA|Riftwalkers are stepping through the reflection. Small numbers. Curious.": "SE13_004",
+"NOVA|Moonset. The second one's gone.": "SE13_005",
+"CIVILIAN|My kids want to know if it'll come back.": "SE13_006",
+"PLAYER|Tell them to keep looking up.": "SE13_007",
+"NOVA|Someone has walked out of the old parade's road. Real this time. Carrying a lantern.": "SE14_001",
+"CIVILIAN|We followed the singing. Is this... is this where the door is?": "SE14_002",
+"PLAYER|It's one of them. Welcome.": "SE14_003",
+"CIVILIAN|We didn't know if anyone would be on this side.": "SE14_004",
+"NOVA|There always will be, now. That's what kept means.": "SE14_005",
+"RADIO FREE NEXUS|...water at the harbour... shelter at — ": "SE15_001",
+"NOVA|The broadcast cut out. All three relays. Something is sitting on them.": "SE15_002",
+"RADIO FREE NEXUS|...sorry about that, Nexus. A little technical difficulty with a very large bird. We're back. You're not alone.": "SE15_003",
+"ELDER MAREN|Every tree flowered at dawn. All of them. Even the dead ones.": "SE16_001",
+"ILYRA SEN|The fourth seal sang. The forest heard. It always hears.": "SE16_002",
+"ELDER MAREN|Will it happen again?": "SE16_003",
+"ILYRA SEN|Every time someone keeps a promise. So, not often. But sometimes.": "SE16_004",
+"CHIEF ODA|Eighty of us in a pod built for forty. Nobody complained. Nobody breathed, either.": "SE17_001",
+"CHIEF ODA|There. Look. On fire and everywhere. Again.": "SE17_002",
+"PLAYER|You've seen it before.": "SE17_003",
+"CHIEF ODA|Once. Once is not enough of anything this good.": "SE17_004",
+"NOVA|The engineers are crying. Every one of them.": "SE17_005",
+"CHIEF ODA|Salt water. We're used to it.": "SE17_006",
+"NOVA|The Choir's last constructs. They've found the loudest place in Neon City and are trying to make it quiet.": "SE18_001",
+"VESPER|Over my dead body. And my stall's.": "SE18_002",
+"VESPER|Music back on! Everybody, louder! Louder than that!": "SE18_003",
+"NOVA|Four hundred people singing very badly. It's perfect.": "SE18_004",
 "VOSS|Outpost Nine's been calling for relief for two days. I've got nobody to send but you.": "SF01_001",
 "SERGEANT IMANI|You're the relief? One of you?": "SF01_002",
 "PLAYER|One of me.": "SF01_003",
@@ -33083,6 +34634,108 @@
 "CAPTAIN ADRIAN COLE|Strange signatures past the perimeter. Too orderly.": "P_cole_news_masks",
 "CAPTAIN ADRIAN COLE|Whatever's in NOVA, she got the evacuation routes right. I'll take it.": "P_cole_news_unbound",
 "CAPTAIN ADRIAN COLE|We held. All of us.": "P_cole_news_kept",
+"ILYRA SEN|When I sing, the small cracks close. I never knew why. Now I do, and it doesn't help me sing any better.": "P_ilyra_fracture_1",
+"ILYRA SEN|Every crack is a question somebody didn't finish asking.": "P_ilyra_fracture_2",
+"ILYRA SEN|This city is very loud. I like it. Eldergrove was so quiet I could hear the world worrying.": "P_ilyra_place_1",
+"ILYRA SEN|The plaza in the morning sounds like a choir that hasn't met yet.": "P_ilyra_place_2",
+"ILYRA SEN|I know you. I don't know from where. That makes me careful.": "P_ilyra_you_wary",
+"ILYRA SEN|You walk loudly for someone who keeps being hunted.": "P_ilyra_you_acquaintance",
+"ILYRA SEN|I was angry with you for longer than this world has had a name. I'm not anymore.": "P_ilyra_you_friend",
+"ILYRA SEN|You were our promise. You still are. Promises aren't things you keep. They're things you are.": "P_ilyra_you_close",
+"ILYRA SEN|The water at the falls told me you were coming.": "P_ilyra_news_start",
+"ILYRA SEN|Four of us in one city. It hasn't happened since the sanctuary.": "P_ilyra_news_allied",
+"ILYRA SEN|The Choir listens for my song. I sing anyway.": "P_ilyra_news_masks",
+"ILYRA SEN|The lighthouse in your ear is brighter every day.": "P_ilyra_news_unbound",
+"ILYRA SEN|A kept door. Elenya was always the wisest of us.": "P_ilyra_news_kept",
+"AUREN THALE|Forty years I drew roads that didn't exist. They always arrived. The Fracture's just the world catching up with my maps.": "P_auren_fracture_1",
+"AUREN THALE|You can't wall in a road you haven't walked yet.": "P_auren_fracture_2",
+"AUREN THALE|Good coffee. Terrible directions. My kind of café.": "P_auren_place_1",
+"AUREN THALE|This avenue's on every map I ever drew. It's never in the same place twice.": "P_auren_place_2",
+"AUREN THALE|I drew you this morning. You looked taller.": "P_auren_you_acquaintance",
+"AUREN THALE|Every road out of the end of the world goes through you. Lucky roads.": "P_auren_you_friend",
+"AUREN THALE|I asked you once to map a world where you didn't have to choose. You found a better one. One where you got to.": "P_auren_you_close",
+"AUREN THALE|The glass map stopped drawing us. It's drawing the sea.": "P_auren_news_start",
+"AUREN THALE|The trader still wants his map. He's standing on it.": "P_auren_news_allied",
+"AUREN THALE|A road past the edge of the glass. Nobody's spilled that ink yet.": "P_auren_news_masks",
+"AUREN THALE|The map drew a road through the Heart and out the other side.": "P_auren_news_unbound",
+"AUREN THALE|There's an edge again. Isn't that wonderful?": "P_auren_news_kept",
+"NYX|Fractures smell like ozone and wet stone. You learn it or you don't last.": "P_nyx_fracture_1",
+"NYX|Corner of your eye. That's where everything dangerous lives now.": "P_nyx_fracture_2",
+"NYX|Too loud. Too bright. Too many people looking up instead of around.": "P_nyx_place_1",
+"NYX|The plaza's fine. The rooftops above it are better.": "P_nyx_place_2",
+"NYX|Kael says you're all right. Kael's been wrong before.": "P_nyx_you_wary",
+"NYX|You talk to your machine. It talks back. I've stopped finding it weird.": "P_nyx_you_acquaintance",
+"NYX|You'd make a decent tracker if you ever learned to shut up.": "P_nyx_you_friend",
+"NYX|Teo would have liked you. He liked idiots who walk into things for other people.": "P_nyx_you_close",
+"NYX|Strangers in the canopy, asking the trees questions.": "P_nyx_news_start",
+"NYX|Collectors left the valley. All but one. Not anymore.": "P_nyx_news_allied",
+"NYX|Bending coats in the market again. I counted six.": "P_nyx_news_masks",
+"NYX|Your lamp looked at me today. Like she knew me.": "P_nyx_news_unbound",
+"NYX|The herds went north. They're coming back. So am I.": "P_nyx_news_kept",
+"MARCUS \"GOLIATH\" REYES|Bullets didn't work on the first ones. I did. Turns out I'm a type of bullet.": "P_goliath_fracture_1",
+"MARCUS \"GOLIATH\" REYES|Things should be on the ground. Fractures disagree. I disagree back.": "P_goliath_fracture_2",
+"MARCUS \"GOLIATH\" REYES|Precinct's quiet. I like quiet. Quiet means my mum's goats are safe.": "P_goliath_place_1",
+"MARCUS \"GOLIATH\" REYES|Somebody has to stand at the front. I'm the widest.": "P_goliath_place_2",
+"MARCUS \"GOLIATH\" REYES|Voss sends his regards. And me. Mostly me.": "P_goliath_you_wary",
+"MARCUS \"GOLIATH\" REYES|You're smaller than the recordings. Everybody is.": "P_goliath_you_acquaintance",
+"MARCUS \"GOLIATH\" REYES|Stand behind me. That's not an order, that's physics.": "P_goliath_you_friend",
+"MARCUS \"GOLIATH\" REYES|My mum asks about you. She wants you to sit down more. So do I.": "P_goliath_you_close",
+"MARCUS \"GOLIATH\" REYES|The desert's trying to kill us. I'm trying harder.": "P_goliath_news_start",
+"MARCUS \"GOLIATH\" REYES|Gertrude the goat is avenged. That's all you need to know.": "P_goliath_news_allied",
+"MARCUS \"GOLIATH\" REYES|Bending coats, floating rocks, underground. I hate all of it.": "P_goliath_news_masks",
+"MARCUS \"GOLIATH\" REYES|Your NOVA cried at the sunrise. So did I. Sand in my eye.": "P_goliath_news_unbound",
+"MARCUS \"GOLIATH\" REYES|Emotional sand. It's a real thing. Ask anyone.": "P_goliath_news_kept",
+"ARI \"CIPHER\" VOLK|I volunteered. They opened a door in my head and left it a little open. It's how I read the map.": "P_cipher_fracture_1",
+"ARI \"CIPHER\" VOLK|The Fracture isn't chaos. It's grammar we never learned.": "P_cipher_fracture_2",
+"ARI \"CIPHER\" VOLK|The café has a socket that works and nobody asks what I'm charging.": "P_cipher_place_1",
+"ARI \"CIPHER\" VOLK|I used to work up there, in the Spire. The view was better. The company wasn't.": "P_cipher_place_2",
+"ARI \"CIPHER\" VOLK|Don't touch anything with your hands. It remembers fingerprints. So do I.": "P_cipher_you_wary",
+"ARI \"CIPHER\" VOLK|Severance comes in many forms. Mine was a truck of Crane's equipment.": "P_cipher_you_acquaintance",
+"ARI \"CIPHER\" VOLK|Tallis would have written a terrible poem about you. I'll do it instead. It'll be worse.": "P_cipher_you_friend",
+"ARI \"CIPHER\" VOLK|You let the memories go instead of taking them back. That's the bravest thing I've seen anyone do with a door.": "P_cipher_you_close",
+"ARI \"CIPHER\" VOLK|The glass map has been drawing my face for three days.": "P_cipher_news_start",
+"ARI \"CIPHER\" VOLK|The forge is shut. I hope it stays shut.": "P_cipher_news_allied",
+"ARI \"CIPHER\" VOLK|Crane copied everything before we shut it down. Of course he did.": "P_cipher_news_masks",
+"ARI \"CIPHER\" VOLK|Mum reads the bus-stop poem every night. Terrible. She loves it.": "P_cipher_news_unbound",
+"ARI \"CIPHER\" VOLK|Crane asks people now. I'm almost proud of him.": "P_cipher_news_kept",
+"PREFECT LYSANDER CRANE|Humanity doesn't survive this by hiding behind walls. It survives by becoming something that doesn't need them.": "P_crane_fracture_1",
+"PREFECT LYSANDER CRANE|The Fracture is the first honest thing to happen to our species in a thousand years.": "P_crane_fracture_2",
+"PREFECT LYSANDER CRANE|I like the plaza. Everyone here is afraid of me. It's restful.": "P_crane_place_1",
+"PREFECT LYSANDER CRANE|The Spire has the best view in Nexus. You should come up. Without a weapon, this time.": "P_crane_place_2",
+"PREFECT LYSANDER CRANE|Do you follow me, or do I follow you? It's getting hard to tell.": "P_crane_you_wary",
+"PREFECT LYSANDER CRANE|You keep breaking my things. I keep building better ones. A productive relationship.": "P_crane_you_acquaintance",
+"PREFECT LYSANDER CRANE|Everyone comes to me in the end. You came to ask. That was new.": "P_crane_you_friend",
+"PREFECT LYSANDER CRANE|A seat at the table. Given, not built. You were right. I hate it when people are right.": "P_crane_you_close",
+"PREFECT LYSANDER CRANE|The core is five names and a sixth nobody wanted remembered.": "P_crane_news_start",
+"PREFECT LYSANDER CRANE|The shield over the eastern districts. Thirty thousand people. Good publicity.": "P_crane_news_allied",
+"PREFECT LYSANDER CRANE|The volunteers have names now. Lune insists.": "P_crane_news_masks",
+"PREFECT LYSANDER CRANE|We ask people what they want before we change them. Revolutionary.": "P_crane_news_unbound",
+"PREFECT LYSANDER CRANE|The Ascendancy stands at the door. Shields up. No cheating.": "P_crane_news_kept",
+"CHIEF ODA|Eighty years under the sea keeping a voice in a box. The Fracture's just the box getting bigger.": "P_oda_fracture_1",
+"CHIEF ODA|The sea always wins, eventually. We make eventually take a very long time.": "P_oda_fracture_2",
+"CHIEF ODA|The garage has proper pumps. I like a place with proper pumps.": "P_oda_place_1",
+"CHIEF ODA|Surface air is very thin. Nobody warned me.": "P_oda_place_2",
+"CHIEF ODA|You got every pod out. Every one. I don't forget that.": "P_oda_you_acquaintance",
+"CHIEF ODA|You and your lamp. Come down sometime. The palace is dry enough for socks.": "P_oda_you_friend",
+"CHIEF ODA|My grandmother would have liked you. She liked people who went back.": "P_oda_you_close",
+"CHIEF ODA|The voice in the walls got louder nine days ago.": "P_oda_news_start",
+"CHIEF ODA|The cult's gone quiet. Good.": "P_oda_news_allied",
+"CHIEF ODA|Somebody cut the eastern pumps. I want a name.": "P_oda_news_masks",
+"CHIEF ODA|A centimetre a minute. The city's breathing again.": "P_oda_news_unbound",
+"CHIEF ODA|Thalassia's pumped out. I've seen three sunrises now. Still on fire.": "P_oda_news_kept",
+"VESPER|The Fracture was the best thing that ever happened to my business. I'm not proud. I'm rich.": "P_vesper_fracture_1",
+"VESPER|Everybody in this city is wearing something over something. The Fracture just made it obvious.": "P_vesper_fracture_2",
+"VESPER|The night market. Every secret in Neon passes through here eventually. Most of them stop to eat.": "P_vesper_place_1",
+"VESPER|My little room. Should I be flattered or should I be running?": "P_vesper_place_2",
+"VESPER|The famous survivor. I've heard prices for you.": "P_vesper_you_wary",
+"VESPER|You pay. You don't haggle. You're terrible at this.": "P_vesper_you_acquaintance",
+"VESPER|For you, the good secrets. Half price. Don't tell anyone I have a heart.": "P_vesper_you_friend",
+"VESPER|If anyone ever asks me where you are, I'll sell them the wrong answer. Free.": "P_vesper_you_close",
+"VESPER|Silver hair, eyes like a bruise. Paid in Genesis credit.": "P_vesper_news_start",
+"VESPER|The ledger's gone. Everyone's very nervous. Business is wonderful.": "P_vesper_news_allied",
+"VESPER|Bending coats asked first. They always ask first.": "P_vesper_news_masks",
+"VESPER|Someone bought every map of the Shattered Expanse in the city. Twice.": "P_vesper_news_unbound",
+"VESPER|Neon City has a door now. I've already got people selling tickets.": "P_vesper_news_kept",
 "GLORIA HAYNES|The crash site landed on my crew's lunch break. Nobody hurt. The sandwiches did not make it.": "P_gloria_fracture_1",
 "GLORIA HAYNES|The Fracture is a twelve-week cleanup job. We're on week thirty. I've stopped counting weeks.": "P_gloria_fracture_2",
 "GLORIA HAYNES|The crash site. Hard hats past the tape. I don't care who you are; the tape doesn't either.": "P_gloria_place_1",
