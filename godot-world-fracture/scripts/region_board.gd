@@ -10,6 +10,9 @@ extends RefCounted
 ##               aurora (style key), frozen falls
 ##   ember       the fortress hold on its ridge with the red banners and warm windows, lava falls off the cliffs, lava
 ##               rivers, the violet Fracture crystal spire
+##   crystal-badlands  (the Shattered Expanse) the giant violet Fracture spire with its swirl, rock islands hanging in
+##               the sky with ruined towers on them, a rift ring standing open
+##   azure-isles overwater bungalows on a pier over the lagoon, a great sea arch off the coast, palms along the beaches
 ##   solara      red sandstone mesas round the desert, the giant broken Fracture ring with its violet tear, an oasis pool
 ##               ringed with palms under a rock ledge and its fall, a ruined aqueduct with the Ashen red banners
 ## Everything is built here in code (no new models): sizes are the board's read at the region's scale (a ~600 m map),
@@ -37,6 +40,10 @@ static func build(r: Node) -> void:
 			_frost(r, rng)
 		"ember":
 			_ember(r, rng)
+		"crystal-badlands":
+			_shattered(r, rng)
+		"azure-isles":
+			_azure(r, rng)
 
 # ------------------------------------------------------------------------------------------------ Solara / Solmara
 
@@ -1045,3 +1052,263 @@ void fragment() {
 	glow.position = mi.position + Vector3(0, h * 1.02, 0)
 	glow.set_meta("not_land", true)
 	r._world.add_child(glow)
+
+# ------------------------------------------------------------------------------------------------ the Shattered Expanse
+
+static func _shattered(r: Node, rng: RandomNumberGenerator) -> void:
+	var Set := preload("res://scripts/vfx/fracture_set.gd")
+	var half: float = r.span() * 0.5
+	# the Fracture spire: a black crystal needle 110 m tall split by violet light, a swirl of light round its crown
+	var at := _open_spot(r, _poi(r, "cb-spire") + Vector2(40, 30), 90.0, 36.0)
+	var gy: float = r._h(at.x, at.y)
+	var root := Node3D.new()
+	root.name = "BoardFractureSpire"
+	root.position = Vector3(at.x, gy - 2.0, at.y)
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.1, 0.06, 0.16)
+	dark.metallic = 0.4
+	dark.roughness = 0.25
+	dark.emission_enabled = true
+	dark.emission = Color(0.55, 0.2, 1.0)
+	dark.emission_energy_multiplier = 0.5
+	for i in 7:
+		var mi := MeshInstance3D.new()
+		var big := i == 0
+		mi.mesh = Set.prism_mesh(7.0 if big else rng.randf_range(2.0, 4.0), 110.0 if big else rng.randf_range(24.0, 55.0))
+		mi.material_override = dark
+		var a := rng.randf() * TAU
+		var d := 0.0 if big else rng.randf_range(7.0, 16.0)
+		mi.position = Vector3(cos(a) * d, 0, sin(a) * d)
+		mi.rotation = Vector3(0 if big else rng.randf_range(-0.3, 0.3), rng.randf() * TAU, 0 if big else rng.randf_range(-0.3, 0.3))
+		root.add_child(mi)
+	var seam := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(22, 90)
+	seam.mesh = q
+	seam.material_override = _tear_material(Color(0.78, 0.35, 1.0))
+	seam.position = Vector3(0, 50, 0)
+	root.add_child(seam)
+	for k in 3:
+		var sw := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 26.0 + k * 9.0
+		tm.outer_radius = 27.0 + k * 9.0
+		tm.rings = 64
+		sw.mesh = tm
+		var sm := StandardMaterial3D.new()
+		sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm.albedo_color = Color(0.8, 0.45, 1.0, 0.6 - k * 0.15)
+		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		sw.material_override = sm
+		sw.position = Vector3(0, 92 + k * 4.0, 0)
+		sw.rotation = Vector3(0.15 * (k - 1), 0, 0.1 * k)
+		root.add_child(sw)
+	var light := OmniLight3D.new()
+	light.light_color = Color(0.7, 0.35, 1.0)
+	light.light_energy = 8.0
+	light.omni_range = 120.0
+	light.position = Vector3(0, 60, 0)
+	root.add_child(light)
+	r._world.add_child(root)
+	spot(r, "spire", at, 60.0)
+	# rock islands hanging in the sky round the spire, ruined towers on some, crystals hanging under them
+	var rock := Flora.rock_material(Color(0.3, 0.26, 0.32))
+	var stone := StandardMaterial3D.new()
+	stone.albedo_color = Color(0.34, 0.32, 0.36)
+	stone.roughness = 0.9
+	for i in 10:
+		var a := TAU * i / 10.0 + rng.randf_range(-0.2, 0.2)
+		var d := rng.randf_range(70.0, half * 0.85)
+		var c := at + Vector2(cos(a), sin(a)) * d
+		var isl := _sky_island(rng.randf_range(9.0, 22.0), rng)
+		isl.material_override = rock
+		isl.position = Vector3(c.x, float(r._h(c.x, c.y)) + rng.randf_range(45.0, 110.0), c.y)
+		isl.rotation.y = rng.randf() * TAU
+		r._world.add_child(isl)
+		if i % 3 == 0:
+			var tw := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 2.2
+			cm.bottom_radius = 3.0
+			cm.height = rng.randf_range(12.0, 22.0)
+			tw.mesh = cm
+			tw.material_override = stone
+			tw.position = isl.position + Vector3(0, cm.height * 0.5 + 1.0, 0)
+			r._world.add_child(tw)
+		Set.crystals(r._world, isl.position + Vector3(0, -6.0, 0), 4.0, 3, Color(0.75, 0.35, 1.0), rng)
+	spot(r, "islands", at + Vector2(80, 0), 40.0)
+	# the rift ring: the Fx portal at giant scale, open on the plain
+	var ring_at := _open_spot(r, at + Vector2(-110, 60), 80.0, 30.0)
+	var po := Fx.portal(16.0, Color(0.78, 0.35, 1.0))
+	po.position = Vector3(ring_at.x, float(r._h(ring_at.x, ring_at.y)) - 0.5, ring_at.y)
+	po.rotation.y = atan2(at.x - ring_at.x, at.y - ring_at.y)
+	r._world.add_child(po)
+	spot(r, "rift", ring_at, 20.0)
+
+## a rock island: a flat top over a long jagged underside tapering to a point
+static func _sky_island(rad: float, rng: RandomNumberGenerator) -> MeshInstance3D:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	const SEG := 18
+	var levels := [[0.0, 1.0], [-rad * 0.35, 0.85], [-rad * 0.8, 0.55], [-rad * 1.3, 0.28], [-rad * 1.8, 0.06]]
+	var ph := rng.randf() * TAU
+	for li in levels.size():
+		for k in SEG:
+			var t := TAU * k / SEG
+			var rr: float = rad * float(levels[li][1]) * (0.85 + 0.15 * sin(t * 3.0 + ph) + rng.randf_range(-0.08, 0.08))
+			st.set_uv(Vector2(float(k) / SEG, float(li) / levels.size()))
+			st.add_vertex(Vector3(cos(t) * rr, float(levels[li][0]) + rng.randf_range(-0.6, 0.6) * li, sin(t) * rr))
+	for li in levels.size() - 1:
+		for k in SEG:
+			var a0 := li * SEG + k
+			var a1 := li * SEG + (k + 1) % SEG
+			var b0 := (li + 1) * SEG + k
+			var b1 := (li + 1) * SEG + (k + 1) % SEG
+			st.add_index(a0)
+			st.add_index(a1)
+			st.add_index(b0)
+			st.add_index(a1)
+			st.add_index(b1)
+			st.add_index(b0)
+	var top := levels.size() * SEG
+	st.set_uv(Vector2(0.5, 0.0))
+	st.add_vertex(Vector3(0, 0.4, 0))
+	for k in SEG:
+		st.add_index(top)
+		st.add_index((k + 1) % SEG)
+		st.add_index(k)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	return mi
+
+# ------------------------------------------------------------------------------------------------ Azure Isles
+
+static func _azure(r: Node, rng: RandomNumberGenerator) -> void:
+	var w: float = r.water_level()
+	# overwater bungalows: a pier out over the water from the bay, thatched huts on stilts either side
+	var bay := _poi(r, "az-bay")
+	var lagoon := _poi(r, "az-lagoon")
+	var start := _shore_from(r, bay, (lagoon - bay).normalized() if lagoon != bay else Vector2(1, 0))
+	var out := _sea_dir(r, start)
+	var root := Node3D.new()
+	root.name = "BoardBungalows"
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.48, 0.34, 0.22)
+	wood.roughness = 0.85
+	var thatch := StandardMaterial3D.new()
+	thatch.albedo_color = Color(0.72, 0.58, 0.36)
+	thatch.roughness = 1.0
+	var plen := 70.0
+	var deck := MeshInstance3D.new()
+	var dm := BoxMesh.new()
+	dm.size = Vector3(3.0, 0.4, plen)
+	deck.mesh = dm
+	deck.material_override = wood
+	var mid := start + out * plen * 0.5
+	deck.position = Vector3(mid.x, w + 2.2, mid.y)
+	deck.rotation.y = atan2(out.x, out.y)
+	root.add_child(deck)
+	var side := Vector2(out.y, -out.x)
+	for i in 6:
+		for sgn in [-1.0, 1.0]:
+			var p: Vector2 = start + out * (14.0 + i * 11.0) + side * sgn * 8.0
+			var hut := Node3D.new()
+			hut.position = Vector3(p.x, w, p.y)
+			hut.rotation.y = atan2(out.x, out.y)
+			var floor_m := MeshInstance3D.new()
+			var fm := BoxMesh.new()
+			fm.size = Vector3(7.0, 0.4, 7.0)
+			floor_m.mesh = fm
+			floor_m.material_override = wood
+			floor_m.position.y = 2.2
+			hut.add_child(floor_m)
+			for cx in [-3.0, 3.0]:
+				for cz in [-3.0, 3.0]:
+					var stilt := MeshInstance3D.new()
+					var sm := CylinderMesh.new()
+					sm.top_radius = 0.15
+					sm.bottom_radius = 0.15
+					sm.height = 5.0
+					stilt.mesh = sm
+					stilt.material_override = wood
+					stilt.position = Vector3(cx, -0.3, cz)
+					hut.add_child(stilt)
+			var walls := MeshInstance3D.new()
+			var wm := BoxMesh.new()
+			wm.size = Vector3(5.0, 2.6, 5.0)
+			walls.mesh = wm
+			var wall := StandardMaterial3D.new()
+			wall.albedo_color = Color(0.86, 0.78, 0.64)
+			walls.material_override = wall
+			walls.position.y = 3.7
+			hut.add_child(walls)
+			var roof := MeshInstance3D.new()
+			var rm := CylinderMesh.new()
+			rm.top_radius = 0.1
+			rm.bottom_radius = 5.2
+			rm.height = 3.2
+			rm.radial_segments = 4
+			roof.mesh = rm
+			roof.material_override = thatch
+			roof.position.y = 6.6
+			roof.rotation.y = PI * 0.25
+			hut.add_child(roof)
+			# the walk from the pier
+			var walk := MeshInstance3D.new()
+			var km := BoxMesh.new()
+			km.size = Vector3(4.5, 0.3, 1.4)
+			walk.mesh = km
+			walk.material_override = wood
+			walk.position = Vector3(-sgn * 4.6, 2.2, 0)
+			hut.add_child(walk)
+			root.add_child(hut)
+	r._world.add_child(root)
+	spot(r, "bungalows", start + out * 35.0, 30.0)
+	# the sea arch: the region's arch at giant scale standing out of the water off the coast
+	var fort := _poi(r, "az-fort")
+	var arch_at := _shore_from(r, fort, _sea_dir(r, fort))
+	arch_at += _sea_dir(r, arch_at) * 40.0
+	var arch := MeshInstance3D.new()
+	arch.mesh = Flora.arch_mesh()
+	arch.material_override = Flora.rock_material(Color(0.62, 0.58, 0.5))
+	arch.scale = Vector3(4.2, 4.6, 1.8)
+	arch.position = Vector3(arch_at.x, w - 4.0, arch_at.y)
+	arch.rotation.y = rng.randf() * TAU
+	r._world.add_child(arch)
+	spot(r, "arch", arch_at, 40.0)
+	# palms along the beaches: points on the shoreline all round the island
+	var pts: Array[Vector2] = []
+	var half: float = r.span() * 0.5
+	for i in 260:
+		var p := Vector2(rng.randf_range(-0.95, 0.95), rng.randf_range(-0.95, 0.95)) * half
+		var y: float = r._h(p.x, p.y)
+		if y > w + 0.6 and y < w + 5.0 and _clear_of_places(r, p, 14.0):
+			pts.append(p)
+		if pts.size() >= 60:
+			break
+	_palms(r, pts, rng)
+
+## the first point over water walking from `p` along `dir` (the shore), or `p` if none within 300 m
+static func _shore_from(r: Node, p: Vector2, dir: Vector2) -> Vector2:
+	for k in 150:
+		var q := p + dir * (k * 2.0)
+		if r.over_water(q.x, q.y):
+			return q
+	return p
+
+## the direction from `p` with the most water within 120 m
+static func _sea_dir(r: Node, p: Vector2) -> Vector2:
+	var best := Vector2(1, 0)
+	var most := -1
+	for k in 16:
+		var d := Vector2(cos(TAU * k / 16.0), sin(TAU * k / 16.0))
+		var n := 0
+		for j in 12:
+			var q := p + d * (10.0 + j * 10.0)
+			if r.over_water(q.x, q.y):
+				n += 1
+		if n > most:
+			most = n
+			best = d
+	return best
