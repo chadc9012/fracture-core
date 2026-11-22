@@ -143,6 +143,7 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 	add_child(e.mover)
 	e.mover.bounds = player.bounds
 	e.mover.ground_at = player.ground_at
+	e.mover.swim_at = player.swim_at
 	e.mover.obstacles = player.obstacles
 	e.mover.position = at
 	e.mover.cam_yaw = 0.0

@@ -983,6 +983,27 @@ func _shoot(path: String, opts: Array) -> void:
 				descent.operator.position.y = descent.region.ground(descent.operator.position.x, descent.operator.position.z)
 				descent.operator.heading = 0.0
 				descent.operator.cam_yaw = 0.0
+			if String(o).contains("swim"):
+				# descent:swim  the operator swimming in the nearest deep water to the crash site, stroking out (shots)
+				var sp2: Vector3 = descent.region.stand_point()
+				var best := Vector3.INF
+				for r in range(4, 400, 4):
+					for k2 in 24:
+						var a := TAU * k2 / 24.0
+						var q := Vector3(sp2.x + cos(a) * r, 0, sp2.z + sin(a) * r)
+						if descent.region.swim_surface(q.x, q.z) > -INF and descent.region.swim_surface(q.x + cos(a) * 8.0, q.z + sin(a) * 8.0) > -INF:
+							best = q
+							descent.operator.heading = atan2(cos(a), sin(a))
+							break
+					if best != Vector3.INF:
+						break
+				if best != Vector3.INF:
+					best.y = descent.region.wade_ground(best.x, best.z)
+					descent.operator.position = best
+					descent.operator.cam_yaw = descent.operator.heading + PI
+					descent.controls.scripted = true
+					descent.controls.move = Vector2(0.0, 0.0 if String(o).contains("still") else 1.0)
+				print("SWIM_AT ", best)
 			if String(o).contains("wild"):
 				# the shot: bring a deer herd, the fox and a wolf to the open ground at the crash site so the bodies show
 				var sp: Vector3 = descent.region.stand_point()

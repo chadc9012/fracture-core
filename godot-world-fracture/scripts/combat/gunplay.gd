@@ -75,6 +75,8 @@ var warm := 0.0               # seconds since the last shot, for the combat clip
 var kills := 0
 ## no weapon in hand: before Mission 01's Fracture arms the operator the street is walked unarmed (owner, Nov 9)
 var holstered := false
+var _swim_stowed := false
+var _was_holstered := false
 ## aim help: shots go to a live foe within this many degrees of the crosshair (on by default on a touch screen)
 var assist_deg := 7.0 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_environment("WF_TOUCH")) else 0.0
 var shots_fired := 0
@@ -340,6 +342,21 @@ func aim_point(cam: Camera3D) -> Vector3:
 
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
+	follow_swim()
+	_aim_step(dt, cam, trigger, reload, moving_speed)
+
+## swimming stows the guns (operator_player.gd `swimming`); they come back as they were on the shore
+func follow_swim() -> void:
+	var swim: bool = player != null and "swimming" in player and player.swimming
+	if swim != _swim_stowed:
+		if swim:
+			_was_holstered = holstered
+			set_holstered(true)
+		else:
+			set_holstered(_was_holstered)
+		_swim_stowed = swim
+
+func _aim_step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	if trigger and assist_deg > 0.0 and not holstered:
 		_pull_aim(dt, cam)
 	_point_gun(cam)

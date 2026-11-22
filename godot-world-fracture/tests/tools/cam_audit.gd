@@ -37,7 +37,18 @@ func _run() -> void:
 	var subject := func() -> Vector3: return Vector3.ZERO
 	var sk = null
 	var st = null
-	if mode == "drive":
+	if mode == "walk":
+		main._open_street(true, "nexus", true)
+		for i in 30:
+			await process_frame
+		st = main.street
+		controls = st.controls
+		controls.scripted = true
+		cam = st.operator.cam
+		boxes = st.operator.obstacles
+		ground = st.operator.ground_at
+		subject = func() -> Vector3: return st.operator.global_position
+	elif mode == "drive":
 		main._open_street(true, "nexus", true)
 		for i in 30:
 			await process_frame
@@ -61,7 +72,7 @@ func _run() -> void:
 		var kind := mode.get_slice(":", 1)
 		main._open_skyways()
 		sk = main.skyways
-		sk.craft_id = {"heli": "rift-helicopter", "jet": "vanguard-jet", "airship": "leviathan"}.get(kind, "rift-helicopter")
+		sk.craft_id = {"heli": "rift-helicopter", "jet": "vanguard-jet", "airship": "leviathan", "boat": "scrap-patrol-boat", "sub": "hydro-sub-skiff"}.get(kind, "rift-helicopter")
 		if sk._picker:
 			sk._picker.queue_free()
 			sk._picker = null
@@ -91,6 +102,10 @@ func _run() -> void:
 		var steer := sin(t * 0.9) * (1.0 if fmod(t, 9.0) < 6.0 else 0.0)
 		controls.move = Vector2(steer, 1.0)
 		# a car that stops (traffic, a kerb, a wall) backs off turning, then carries on (as the recording bot drives)
+		if mode == "walk":
+			# walk and sprint the sidewalk, turning the camera with the look drag now and then
+			controls._sprint_held = fmod(t, 10.0) > 5.0
+			controls.look_delta = Vector2(6.0 * sin(t * 0.7), 0.0)
 		if not sk:
 			if backing > 0.0:
 				backing -= root.get_physics_process_delta_time()

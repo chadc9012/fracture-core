@@ -34,6 +34,17 @@ var bounds := Rect2(-1000, -1000, 2000, 2000)
 var obstacles: Array[AABB] = []
 ## ground height under (x, z); set by the scene
 var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
+## open water deep enough to swim in: the water's surface at a point, or -INF where you wade or stand (regions give
+## region.swim_surface; scenes without open water leave it unset). Over it the operator swims instead of walking on
+## the surface: head and shoulders out, slower, no jump, the guns stowed (gunplay reads `swimming`).
+var swim_at: Callable
+## the lowest the chase camera may go (ground_at when unset; regions keep it above the water's surface)
+var cam_floor: Callable
+var swimming := false
+const SWIM := 1.6
+const SWIM_FAST := 2.6
+const SWIM_SINK := 1.3        # body origin (the feet) below the surface while swimming: head and shoulders out
+var _swim_tilt := 0.0
 
 # camera
 var cam: Camera3D
@@ -89,6 +100,12 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	var want := (fwd * move.y + right * move.x)
 	var mag := minf(want.length(), 1.0)
 	var top := (SPRINT if sprint else RUN) if mag > 0.6 else WALK
+	var surf := -INF
+	if swim_at.is_valid():
+		surf = swim_at.call(position.x, position.z) as float
+	swimming = surf > -INF
+	if swimming:
+		top = SWIM_FAST if sprint else SWIM
 	var target := want.normalized() * top * mag if mag > 0.02 else Vector3.ZERO
 	var rate := ACCEL if mag > 0.02 else DECEL
 	var flat := Vector3(velocity.x, 0, velocity.z).move_toward(target, rate * dt)
@@ -101,6 +118,13 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		heading = lerp_angle(heading, want_heading, minf(1.0, TURN * dt))
 	# vertical
 	var gy := ground_at.call(position.x, position.z) as float
+	if swimming:
+		# float at the surface: settle to the swimming depth (a jump or a fall into the water eases down to it)
+		gy = surf - SWIM_SINK
+		jump = false
+		grounded = true
+		y_vel = 0.0
+		position.y = lerpf(position.y, gy, minf(1.0, 6.0 * dt))
 	var was_grounded := grounded
 	if grounded and jump:
 		y_vel = JUMP_V
@@ -110,7 +134,9 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	if not grounded:
 		y_vel -= GRAVITY * dt
 	var ny := position.y + y_vel * dt
-	if ny <= gy and y_vel <= 0.0:
+	if swimming:
+		ny = position.y
+	elif ny <= gy and y_vel <= 0.0:
 		ny = gy
 		y_vel = 0.0
 		grounded = true
@@ -124,7 +150,14 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	nz = p.y
 	# a kerb or a low ledge is stepped onto; a drop is just a fall
 	var g2 := ground_at.call(nx, nz) as float
-	if grounded and g2 > ny and g2 - ny <= STEP:
+	var s2 := (swim_at.call(nx, nz) as float) if swim_at.is_valid() else -INF
+	if swimming and s2 > -INF:
+		pass                                   # still in deep water
+	elif swimming:
+		# wading out onto the shore or a bank: climb up onto it (the beach rises gently; a quay wall is a ledge you pull
+		# yourself onto)
+		ny = g2
+	elif grounded and g2 > ny and g2 - ny <= STEP:
 		ny = g2
 	elif grounded and g2 < ny - 0.02:
 		grounded = false
@@ -135,7 +168,12 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		if grounded and not was_grounded and y_vel <= 0.0:
 			Sound.sfx("land", -8.0)
 		var sp := flat.length()
-		if grounded and sp > 0.5:
+		if swimming and sp > 0.3:
+			_step_t -= dt * sp
+			if _step_t <= 0.0:
+				_step_t = 1.6
+				Sound.sfx("water", -18.0, 0.2)
+		elif grounded and sp > 0.5:
 			_step_t -= dt * sp
 			if _step_t <= 0.0:
 				_step_t = 2.1
@@ -146,6 +184,7 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	recoil = maxf(0.0, recoil - RECOIL_SETTLE * dt * maxf(recoil, 0.05) * 4.0)
 	if rig:
 		rig.rotation.y = heading
+		_swim_pose(dt, flat.length())
 	_animate(flat.length(), sprint)
 	_place_camera(dt)
 
@@ -184,10 +223,32 @@ func _slide(to: Vector2, from: Vector2, y: float) -> Vector2:
 				p = Vector2(cx, cz) + d / dist * RADIUS
 	return p
 
+## swimming lays the body forward in the water as it moves (upright, treading water, when still); the rig tips about its
+## feet, so it is lifted and drawn back to keep the chest where the upright body's was
+func _swim_pose(dt: float, speed: float) -> void:
+	var want := 0.0
+	if swimming:
+		want = lerpf(0.25, 1.25, clampf(speed / SWIM, 0.0, 1.0))
+	_swim_tilt = lerpf(_swim_tilt, want, minf(1.0, 5.0 * dt))
+	rig.rotation.x = _swim_tilt
+	var lift := sin(_swim_tilt) * 0.95
+	rig.position = Vector3(-sin(heading), 0.0, -cos(heading)) * lift + Vector3(0, (1.0 - cos(_swim_tilt)) * 1.15, 0)
+
 func _animate(speed: float, sprint: bool) -> void:
 	if not rig or not rig.anim:
 		return
 	var clip := "idle"
+	if swimming:
+		# no swim clip on the Mixamo set: the run's arm swing, slowed, reads as a crawl with the body laid forward; the
+		# walk, slow, as treading water
+		clip = "run" if speed > 0.4 else "walk"
+		var a: AnimationPlayer = rig.anim
+		if clip != _clip and a.has_animation(clip):
+			a.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+			a.play(clip, 0.25)
+			_clip = clip
+		a.speed_scale = 0.55 if clip == "run" else 0.35
+		return
 	if speed > 3.2:
 		clip = "run"
 	elif speed > 0.3:
@@ -217,7 +278,7 @@ func _place_camera(dt: float) -> void:
 	# keep the camera out of the walls: pull it in along the bounds, and never below the ground
 	want.x = clampf(want.x, bounds.position.x + 0.3, bounds.end.x - 0.3)
 	want.z = clampf(want.z, bounds.position.y + 0.3, bounds.end.y - 0.3)
-	want.y = maxf(want.y, (ground_at.call(want.x, want.z) as float) + 0.4)
+	want.y = maxf(want.y, ((cam_floor if cam_floor.is_valid() else ground_at).call(want.x, want.z) as float) + 0.4)
 	want = _clear_camera(pivot, want)
 	# pulled in by a box right behind (a pillar, the overpass): never into the operator's head — up and over instead,
 	# looking down past the shoulder (owner, Nov 11: the view was a face filling the screen)

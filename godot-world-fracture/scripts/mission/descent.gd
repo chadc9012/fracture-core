@@ -122,7 +122,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 	region.world().add_child(operator)
 	var half: float = region.span() * 0.5 - 20.0
 	operator.bounds = Rect2(-half, -half, half * 2.0, half * 2.0)
-	operator.ground_at = func(x: float, z: float) -> float: return region.ground(x, z)
+	region.fit_walker(operator)
 	operator.obstacles = region.building_boxes()
 	operator.position = region.stand_point()
 	operator.civilian = false   # the armour is for the fights (streetwear in the city)
