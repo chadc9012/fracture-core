@@ -368,13 +368,16 @@ func _neck_tube(head_bone: int) -> void:
 		_neck_shader.code = NECK_SHADER
 	sm.shader = _neck_shader
 	var top := tone.darkened(0.16 if real_body else 0.3)
-	sm.set_shader_parameter("top", Vector3(top.r, top.g, top.b))
+	# Colors, not Vector3s: a source_color vec3 handed a Vector3 skips the sRGB-to-linear step on the Forward+ and
+	# Mobile renderers, and the neck came out a pale bandage on the phone (seen on the Mobile renderer, Nov 22; the
+	# look-dev ran on Compatibility, which hid it)
+	sm.set_shader_parameter("top", Color(top.r, top.g, top.b))
 	var bot := tone.darkened(0.42)
-	sm.set_shader_parameter("bot", Vector3(bot.r, bot.g, bot.b))
+	sm.set_shader_parameter("bot", Color(bot.r, bot.g, bot.b))
 	var hc: Variant = Catalog.swatch("hairColors", look.hairColor)
 	var hcol: Color = hc if hc != null else Color("#120f0e")
 	var bald := String(look.get("hair", "")) in ["", "none", "bald", "shaved"]
-	sm.set_shader_parameter("hair", Vector3(hcol.r, hcol.g, hcol.b) if not bald else Vector3(top.r, top.g, top.b))
+	sm.set_shader_parameter("hair", Color(hcol.r, hcol.g, hcol.b) if not bald else Color(top.r, top.g, top.b))
 	sm.set_shader_parameter("half_h", up.length() * 0.5)
 	sm.set_shader_parameter("rad", r)
 	mi.material_override = sm

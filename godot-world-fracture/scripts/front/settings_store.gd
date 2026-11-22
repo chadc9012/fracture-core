@@ -4,7 +4,7 @@ extends RefCounted
 
 const PATH := "user://settings.json"
 const DEFAULTS := { "graphics": "auto", "sensitivity": 1.0, "invert_look": false, "master": 0.8, "music": 0.7, "sfx": 0.9, "voices": 1.0, "simple_hud": true, "radio": "", "perf_readout": false, "gore": "reduced", "orientation": "auto" }
-const TIERS := ["low", "medium", "high"]
+const TIERS := ["low", "medium", "high", "ultra"]
 
 static var _cache: Dictionary = {}
 
@@ -39,7 +39,11 @@ static func tier() -> String:
 	var g := String(get_value("graphics"))
 	if g in TIERS:
 		return g
-	return "medium" if (OS.has_feature("mobile") or OS.get_name() in ["Android", "iOS"]) else "high"
+	if OS.has_feature("mobile") or OS.get_name() in ["Android", "iOS"]:
+		return "medium"
+	# a PC on the Forward+ renderer gets the full set (phone.gd ULTRA: GI, screen-space reflections and occlusion, TAA);
+	# the compatibility renderer (web, old GPUs, the look-dev runs) stays on high
+	return "ultra" if RenderingServer.get_current_rendering_method() == "forward_plus" else "high"
 
 static func sensitivity() -> float:
 	return clampf(float(get_value("sensitivity")), 0.3, 3.0)
