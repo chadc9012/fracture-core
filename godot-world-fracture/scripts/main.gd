@@ -69,6 +69,7 @@ func _ready() -> void:
 	# adds later and under the frame-time readout
 	_overlays = CanvasLayer.new()
 	_overlays.layer = 50
+	_overlays.process_mode = Node.PROCESS_MODE_ALWAYS   # the panels the pause menu opens work while the game is paused
 	add_child(_overlays)
 	add_child(PerfHud.new())   # the frame-time readout over everything (settings: perf_hud)
 	planet_view = PlanetView.new()
@@ -659,6 +660,81 @@ func _close_map() -> void:
 		region_map = null
 	planet_view.visible = true
 	planet_view.set_process(true)
+
+# ----------------------------------------------------------------------------------------------------- pause (Esc / Start)
+const PauseMenu := preload("res://scripts/front/pause_menu.gd")
+const ACTIVITY := { "descent": "Story", "campaign": "Campaign", "arena_view": "Killbox", "royale_view": "Fracture Royale",
+	"boss_arena": "Rift Gate", "raid_view": "Raid", "street_slice": "The City", "race_view": "Race", "skyways_view": "Skyways",
+	"mission_01": "Mission 01", "drive_view": "Driving", "speedway_view": "Speedway", "track_view": "Track" }
+var pause_menu: Control
+var _pause_mouse := Input.MOUSE_MODE_VISIBLE
+
+## what is being played now (the view a pause would stop), or null at the globe, the title and the menus
+func _playing() -> Control:
+	if title or creator or settings_view or _overlay_view or journal_view or triumphs_view or profile_view:
+		return null
+	if modes:
+		return modes.view if modes.view and modes.view.has_signal("closed") else null
+	for v in [mission, descent, boss_arena, killbox, royale, race_view, skyways, street, driving]:
+		if v and is_instance_valid(v) and (v as Node).has_signal("closed"):
+			return v
+	return null
+
+func _unhandled_input(e: InputEvent) -> void:
+	var esc := (e is InputEventKey and (e as InputEventKey).pressed and not (e as InputEventKey).echo and (e as InputEventKey).keycode == KEY_ESCAPE) \
+		or (e is InputEventJoypadButton and (e as InputEventJoypadButton).pressed and (e as InputEventJoypadButton).button_index == JOY_BUTTON_START)
+	if esc and pause_menu == null and _playing() != null:
+		get_viewport().set_input_as_handled()
+		open_pause()
+
+## Titanfall 2's pause over the view being played (scripts/front/pause_menu.gd)
+func open_pause() -> void:
+	var v := _playing()
+	if v == null or pause_menu:
+		return
+	pause_menu = PauseMenu.new()
+	var kind := String((v.get_script() as Script).resource_path.get_file().get_basename())
+	var what := String(ACTIVITY.get(kind, kind.capitalize()))
+	var q: Variant = v.get("quest")
+	if q is Dictionary and (q as Dictionary).has("title"):
+		what += "  ·  " + String(q.title)
+	pause_menu.activity = what
+	var tr: Variant = v.get("_objective")
+	if tr is Control and tr.get("text") is String:
+		pause_menu.objective = String(tr.text)
+	pause_menu.live = bool(v.get("online")) if v.get("online") is bool else v.get("online") != null
+	_pause_mouse = Input.mouse_mode
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if not pause_menu.live:
+		get_tree().paused = true
+	pause_menu.resume.connect(close_pause)
+	pause_menu.quit.connect(func():
+		close_pause()
+		if v.has_method("_save"):
+			v._save()
+		v.closed.emit())
+	pause_menu.open.connect(func(what_: String):
+		match what_:
+			"settings": _open_settings()
+			"journal": _open_journal()
+			"skills": _open_overlay("res://scripts/progress/skills_view.gd")
+			"season": _open_overlay("res://scripts/progress/season_view.gd")
+		var panel: Node = { "settings": settings_view, "journal": journal_view }.get(what_, _overlay_view)
+		if panel:
+			# the menu steps aside while the panel is up, and comes back when it closes
+			pause_menu.visible = false
+			panel.tree_exited.connect(func():
+				if pause_menu:
+					pause_menu.visible = true)
+	)
+	_overlays.add_child(pause_menu)
+
+func close_pause() -> void:
+	if pause_menu:
+		pause_menu.queue_free()
+		pause_menu = null
+	get_tree().paused = false
+	Input.mouse_mode = _pause_mouse
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
