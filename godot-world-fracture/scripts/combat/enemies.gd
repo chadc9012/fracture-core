@@ -413,8 +413,16 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 				e.strafe = 1.0 if _rng.randf() < 0.5 else -1.0
 		State.ENGAGE:
 			if not sees and dist > SIGHT * 1.2:
-				e.state = State.PATROL
+				if e.stays_down:
+					# a mission's wave (it stays down when beaten) never gives up the hunt: losing sight it comes looking,
+					# so a fight that runs long cannot leave a wave wandering off and the objective stuck
+					e.set_meta("hunting", true)
+				else:
+					e.state = State.PATROL
 			_face(e, to_player)
+			if sees and e.has_meta("hunting"):
+				e.remove_meta("hunting")
+				e.set_meta("lost_t", 0.0)
 			var want: float = float(e.def.range)
 			var fwd := _toward(to_player)
 			_defend(e, dt, sees, dist, to_player)
@@ -424,11 +432,24 @@ func _step_enemy(e: Enemy, dt: float) -> void:
 				dg.y = 0.0
 				if dg.length() > 1.5:
 					move = _toward(dg) * 0.8
+			elif e.has_meta("hunting") and not sees:
+				move = fwd * float(e.def.speed)
+				sprint = true
+				# a wave member lost a long while far off (caught behind a building with no way round): it comes back in
+				# from the edge of the fight, so an objective can never hang on one bot wedged out of reach
+				var lost: float = float(e.get_meta("lost_t", 0.0)) + dt
+				e.set_meta("lost_t", lost)
+				if lost > 20.0 and dist > 35.0:
+					var a := _rng.randf() * TAU
+					var at: Vector3 = player.position + Vector3(cos(a), 0.0, sin(a)) * _rng.randf_range(18.0, 24.0)
+					at.y = float(m.ground_at.call(at.x, at.z)) + (float(e.def.fly) if e.def.fly > 0.0 else 0.0)
+					m.position = at
+					e.set_meta("lost_t", 0.0)
 			elif e.retreat > 0.0:
 				# hurt: back away (and let the shield come back) before coming in again
 				move = -fwd * 0.9
 				sprint = true
-			elif tactics and foe == null and e.role != "" and e.windup <= 0.0 and _tactical_move(e, dt, dist, to_player, sees) != Vector2.INF:
+			elif tactics and foe == null and e.role != "" and e.windup <= 0.0 and e.def.fly <= 0.0 and _tactical_move(e, dt, dist, to_player, sees) != Vector2.INF:
 				move = e.get_meta("tac_move")
 				sprint = bool(e.get_meta("tac_sprint", false))
 			elif e.windup > 0.0:
@@ -1123,8 +1144,9 @@ func _tactical_move(e: Enemy, dt: float, dist: float, to_op: Vector3, sees: bool
 					m.guard = false
 					return Vector2.ZERO
 		"suppress":
-			# hold well back and keep fire on (fires a little more often, a little wilder)
-			if dist < want * 1.1:
+			# hold back and keep fire on (fires a little more often, a little wilder); it gives ground only when crowded,
+			# never so far it loses the fight
+			if dist < want * 0.7:
 				goal = m.position - to_op.normalized() * 2.0
 			elif dist > want * 1.6:
 				goal = player.position - to_op.normalized() * want * 1.3
