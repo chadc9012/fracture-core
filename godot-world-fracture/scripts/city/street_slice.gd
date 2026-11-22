@@ -544,7 +544,8 @@ func _after_enemies() -> void:
 	gunplay.killed.connect(func(t: Variant) -> void:
 		var e: Variant = t.get_meta("enemy") if t.has_meta("enemy") else null
 		var source := "enemy"
-		if e != null and e.type == "elite":
+		# the Executor (the blade, hull 150) is elite-tough and drops at the elite rate (owner, Nov 22)
+		if e != null and e.type in ["elite", "executor"]:
 			source = "elite"
 		# rolled at the operator's level, like every other mode's drops (it rolled at level 1: a level-20 operator's street
 		# drops came in ~40 power under the band — tests/gear/loot_test.gd)

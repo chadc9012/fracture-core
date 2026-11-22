@@ -152,7 +152,7 @@ func _live() -> void:
 	st.controls.toast_hook = func(t: String) -> void: toasts.append(t)
 	var n0: int = st.gear.items.size()
 	# kill a run of each type through the real path (gunplay.grenade_hit: the bolt's hit / killed signals)
-	var per := { "scout": 160, "elite": 90, "marksman": 40, "drone": 40, "executor": 40 }
+	var per := { "scout": 160, "elite": 90, "marksman": 40, "drone": 40, "executor": 90 }
 	var killed := 0
 	var counts := {}
 	for type in per:
@@ -164,11 +164,13 @@ func _live() -> void:
 				killed += 1
 		counts[type] = st.gear.items.size() - before
 	var total: int = st.gear.items.size() - n0
-	ok(killed == 370, "every spawned enemy went down through the kill path (%d)" % killed)
+	ok(killed == 420, "every spawned enemy went down through the kill path (%d)" % killed)
 	var sc: int = counts.scout
 	var el: int = counts.elite
 	ok(sc >= 16 and sc <= 44, "scouts drop about 18%% (%d of 160)" % sc)
 	ok(el >= 24 and el <= 50, "elites drop about 40%% (%d of 90)" % el)
+	var ex: int = counts.executor
+	ok(ex >= 24 and ex <= 50, "Executors drop at the elite rate, about 40%% (%d of 90)" % ex)
 	print("     drops per type: ", counts)
 	# every drop saved, and toasted
 	var saved := Gear.load_save()
