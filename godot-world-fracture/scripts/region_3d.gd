@@ -1742,7 +1742,13 @@ func _build_floating() -> void:
 			boulders.append(Transform3D(Basis.from_euler(Vector3(rng.randf(), rng.randf() * TAU, rng.randf())).scaled(Vector3(bs, bs * 0.7, bs)),
 				Vector3(p.x + cos(ang2) * d2, top + r * 0.06 * (1.0 - d2 / r) + bs * 0.2, p.y + sin(ang2) * d2)))
 	if not trees.is_empty():
-		_multimesh(_tree_mesh(false), trees, _tree_material(false))
+		# the islands' trees were still the old stacked-cone stand-in (near-black trunks under the storm, Nov 22): the
+		# same pine as the ground forests, its leaf cards beyond
+		var lods := Flora.tree_lods("conifer", 11.0)
+		if lods.is_empty():
+			_multimesh(_tree_mesh(false), trees, _tree_material(false))
+		else:
+			_multimesh_lod(lods, trees, null)
 	if not boulders.is_empty():
 		var sm := SphereMesh.new()
 		sm.radius = 1.0
