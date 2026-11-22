@@ -59,6 +59,9 @@ func dress(view: Control) -> void:
 		_column()
 	_vip()
 	_gate_seats()
+	if style in ["nexus", "neon"]:
+		_city_backdrop()
+	_apron_kit()
 	_hangar()
 	_airside()
 	match style:
@@ -953,3 +956,102 @@ func _market() -> void:
 			var awn: MeshInstance3D = v._box(Vector3(1.0, 0.06, 2.6), at + Vector3(-2.0 + st * 1.0, 3.1, 0.2), v._mat(stripes[k % 3] if st % 2 == 0 else Color(0.96, 0.94, 0.88), 0.8))
 			awn.rotation.x = -0.25
 	v._text("LOCAL MARKET & DINING", Vector3(19.0, 4.6, -10.0), 70, Color(1.0, 0.85, 0.5), 0.0, null, true)
+
+## the boards' city behind the field: a second, taller row of towers beyond the first (the downtown, tallest in the
+## middle), a cluster off to the west as the Nexus sheet has it, and a blue-hazed ridge of hills behind it all.
+## Building models only (models/buildings), each stood on the ground at its own proportions.
+func _city_backdrop() -> void:
+	var files := ["nexus-spire", "nexus-civic-a", "nexus-civic-b", "nexus-civic-c", "nexus-terrace-a", "nexus-terrace-b"] if style == "nexus" else \
+		["neon-tower-a", "neon-tower-b", "neon-tower-c", "neon-v-A", "neon-v-B", "neon-v-C"]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 211
+	var n := 22 if Phone.tier() == "high" else (12 if Phone.tier() == "medium" else 0)
+	var spots: Array = []
+	for k in n:
+		var t := float(k) / maxf(1.0, n - 1)
+		# a downtown: tallest at its middle, thinning out to its edges
+		var x := lerpf(-620.0, 620.0, t) + rng.randf_range(-25, 25)
+		var tall := 1.0 + 1.1 * exp(-pow((x - 80.0) / 260.0, 2.0))
+		spots.append([Vector3(x, 0, -1040.0 - rng.randf_range(0, 180)), rng.randf_range(2.8, 3.4) * tall])
+	for k in (8 if Phone.tier() == "high" else (4 if Phone.tier() == "medium" else 0)):
+		spots.append([Vector3(-760.0 - rng.randf_range(0, 220), 0, -260.0 - k * 70.0), rng.randf_range(2.6, 3.6)])
+	for i in spots.size():
+		var m: Node3D = v._model("res://models/buildings/%s.glb" % files[(i * 5) % files.size()])
+		if m == null:
+			continue
+		m.position = spots[i][0]
+		m.rotation.y = rng.randf_range(0, TAU)
+		var sc: float = spots[i][1]
+		m.scale = Vector3(sc, sc, sc)
+		v.static_root.add_child(m)
+		var low := INF
+		for c in m.find_children("*", "MeshInstance3D", true, false):
+			var mi := c as MeshInstance3D
+			var b: AABB = mi.global_transform * mi.get_aabb()
+			low = minf(low, b.position.y)
+		if low < INF:
+			m.position.y -= low
+	# the hills behind, hazed blue by distance (no snow: the Nexus sheet's are green-grey, soft)
+	var hill: Material = v._mat(Color(0.36, 0.44, 0.52) if style == "nexus" else Color(0.16, 0.12, 0.24), 0.95)
+	for k in 11:
+		var x2 := -1500.0 + k * 300.0 + rng.randf_range(-60, 60)
+		var h := rng.randf_range(180, 360)
+		var base := rng.randf_range(300, 460)
+		var c2: MeshInstance3D = v._cyl(base, h, Vector3(x2, h * 0.5 - 4.0, -1700.0 - rng.randf_range(0, 250)), hill, null, base * 0.08, 9)
+		c2.rotation.y = rng.randf() * TAU
+
+## the apron at work around each parked plane: a ground power unit by the nose, cones at the wingtips and tail, chocks
+## at the nose wheel, a trolley of bags, and more container trains on the service road behind the stands. Equipment
+## only — the tugs and loaders wait for real models.
+func _apron_kit() -> void:
+	var cone: Material = v._mat(Color(1.0, 0.45, 0.08), 0.6)
+	var white: Material = v._mat(Color(0.95, 0.95, 0.93), 0.5)
+	var gpu: Material = v._mat(Color(0.92, 0.78, 0.15), 0.5, 0.3)
+	var dark: Material = v._mat(Color(0.1, 0.1, 0.12), 0.7)
+	var bags := [Color(0.15, 0.2, 0.45), Color(0.6, 0.12, 0.1), Color(0.12, 0.12, 0.14), Color(0.35, 0.5, 0.35), Color(0.75, 0.62, 0.4)]
+	var gates: Array = Air.GATES
+	var stands: Array = []
+	for i in gates.size():
+		if i % 2 == 0:
+			var px := -40.0 + i * 16.0 + 4.0
+			stands.append(Vector3(px, 0, -66.0 - (6.0 if i % 4 == 2 else 0.0)))
+	stands.append(Vector3(-96, 0, -70))
+	stands.append(Vector3(-130, 0, -72))
+	for p in stands:
+		var nose: Vector3 = p + Vector3(0, 0, 19.5)
+		# the ground power unit and its cable to the nose
+		v._box(Vector3(1.6, 1.2, 2.4), nose + Vector3(4.5, 0.6, -2.0), gpu)
+		v._box(Vector3(1.62, 0.25, 2.42), nose + Vector3(4.5, 0.1, -2.0), dark)
+		v._box(Vector3(3.2, 0.08, 0.08), nose + Vector3(2.9, 0.06, -2.0), dark)
+		v.obstacles.append(AABB(nose + Vector3(3.7, 0, -3.2), Vector3(1.6, 1.3, 2.4)))
+		# chocks at the nose wheel
+		for dz in [-0.6, 0.6]:
+			v._box(Vector3(0.9, 0.3, 0.3), nose + Vector3(0, 0.15, -4.2 + dz), gpu)
+		# cones: at each wingtip, the tail and the nose
+		for c in [Vector3(-17.5, 0, -6.0), Vector3(17.5, 0, -6.0), Vector3(0, 0, -22.0), Vector3(-2.5, 0, 2.0)]:
+			var at: Vector3 = p + c + (Vector3(0, 0, 19.5) if c.z == 2.0 else Vector3.ZERO)
+			v._cyl(0.22, 0.75, at + Vector3(0, 0.375, 0), cone, null, 0.03, 8)
+			v._cyl(0.2, 0.12, at + Vector3(0, 0.5, 0), white, null, 0.12, 8)
+			v._box(Vector3(0.45, 0.04, 0.45), at + Vector3(0, 0.02, 0), cone)
+		# a bag trolley by the hold, its bags in a heap
+		var tr: Vector3 = p + Vector3(-5.0, 0, 4.0)
+		v._box(Vector3(2.4, 0.15, 1.5), tr + Vector3(0, 0.55, 0), dark)
+		for w in [-1.0, 1.0]:
+			v._box(Vector3(2.4, 0.9, 0.05), tr + Vector3(0, 0.95, w * 0.74), dark)
+		for b in 6:
+			var bag: MeshInstance3D = v._box(Vector3(0.7, 0.45, 0.35), tr + Vector3(-0.8 + (b % 3) * 0.8, 0.85 + (b / 3) * 0.45, -0.25 + (b % 2) * 0.5), v._mat(bags[b % bags.size()], 0.6))
+			bag.rotation.y = 0.2 * (b - 3)
+		v.obstacles.append(AABB(tr - Vector3(1.2, 0, 0.75), Vector3(2.4, 1.6, 1.5)))
+	# container trains on the service road behind the stands (z -38), and a line of empty dollies
+	var uld: Material = v._mat(Color(0.8, 0.82, 0.85), 0.4, 0.7)
+	for g in 4:
+		var base := Vector3(-150.0 + g * 52.0, 0, -37.5)
+		if base.x < -50.0:
+			base.z = -48.0     # the west wing stands on the road there
+		for k in 5:
+			var q := base + Vector3(k * 2.4, 0, 0)
+			v._box(Vector3(2.0, 0.35, 1.6), q + Vector3(0, 0.35, 0), dark)
+			if k < 3 + (g % 2):
+				v._box(Vector3(1.6, 1.5, 1.5), q + Vector3(0, 1.3, 0), uld)
+				v._box(Vector3(1.62, 0.08, 1.52), q + Vector3(0, 1.0, 0), v._mat(v.accent.darkened(0.2), 0.5))
+		v.obstacles.append(AABB(base - Vector3(1.2, 0, 0.9), Vector3(12.0, 2.1, 1.8)))

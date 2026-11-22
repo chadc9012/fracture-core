@@ -59,7 +59,7 @@ const HANGAR_X := [86.0, 122.0, 158.0]         # bay centres; each 30 m wide (x)
 const RUNWAY_Z := -140.0
 ## each airport's look (airport.gd AIRPORTS style): sky, land, apron, walls, roof, accents, trees, what stands round it
 const LOOKS := {
-	"nexus": { "top": Color(0.16, 0.38, 0.82), "hor": Color(0.62, 0.76, 0.92), "fog": Color(0.7, 0.78, 0.9), "fogd": 0.00035, "sun": 2.1,
+	"nexus": { "top": Color(0.16, 0.38, 0.82), "hor": Color(0.62, 0.76, 0.92), "fog": Color(0.7, 0.78, 0.9), "fogd": 0.00016, "sun": 2.1,
 		"land": Color(0.36, 0.5, 0.3), "apron": Color(0.62, 0.64, 0.67), "wall": Color(0.88, 0.89, 0.92), "roof": Color(0.92, 0.93, 0.95),
 		"a1": Color(0.25, 0.6, 1.0), "a2": Color(1.0, 0.82, 0.35), "tree": "palm", "skyline": "nexus", "airline": "NEXUSAIR", "feature": "palms", "extras": [] },
 	"neon": { "top": Color(0.03, 0.02, 0.08), "hor": Color(0.28, 0.1, 0.32), "fog": Color(0.25, 0.12, 0.3), "fogd": 0.0011,
