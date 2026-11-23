@@ -41,6 +41,86 @@ const BOSSES := {
 		"blurb": "Grid-Iron Flats' world boss, a walking foundry. Every step is a shockwave; the core glows when it staggers." },
 }
 
+## the 18 hidden unique encounters (tools/campaign/unique/encounters.py → unique_encounter.gd): their hulls, on the
+## authored boss models already in models/bosses (no new models). Vyrak and the Abyssal Leviathan fight on the rows
+## above. `reward` here is only the fallback: the encounter pays its own (encounters.gd `clear`).
+const UNIQUE := {
+	"unbroken-glass": { "name": "The Unbroken Glass", "model": "aberration-elite.glb", "size": 4.2, "hull": 0.9, "speed": 3.0, "range": 16.0, "attacks": ["VOLLEY", "SPIKES", "SLAM", "VOLLEY"], "adds": ["drone", 2], "reward": [600, 400],
+		"blurb": "A standing wave of glass that takes a body only to hold its song together." },
+	"system-core": { "name": "The System Core", "model": "aberration-boss.glb", "size": 5.0, "hull": 1.3, "speed": 2.0, "range": 18.0, "attacks": ["VOLLEY", "SUMMON", "SPIKES", "BREATH"], "adds": ["drone", 3], "reward": [1200, 800],
+		"blurb": "The Deepmind's real core, risen from under the Research District." },
+	"rime-alpha": { "name": "Rime Alpha", "model": "frost-wolf.glb", "size": 3.2, "hull": 0.95, "speed": 9.0, "range": 2.6, "attacks": ["LUNGE", "SWEEP", "LUNGE", "CHARGE"], "adds": ["scout", 2], "reward": [900, 600],
+		"blurb": "A crystal-coated alpha that fed on the Frostspire's cryo seams." },
+	"dark-knight": { "name": "The Dark Knight", "model": "dark-knight.glb", "size": 2.9, "hull": 1.0, "speed": 5.0, "range": 3.0, "attacks": ["LUNGE", "SWEEP", "CHARGE", "VOLLEY"], "adds": ["executor", 1], "reward": [1000, 700],
+		"blurb": "Commander Serik Vale, still holding the vault door." },
+	"hollow-saint": { "name": "The Hollow Saint", "model": "aberration-elite.glb", "size": 3.6, "hull": 1.05, "speed": 3.5, "range": 14.0, "attacks": ["VOLLEY", "SUMMON", "BREATH", "SPIKES"], "adds": ["scout", 2], "reward": [1100, 750],
+		"blurb": "A celestial echo wearing a dead sister's name." },
+	"drowned-monarch": { "name": "The Drowned Monarch", "model": "abyssal-boss.glb", "size": 5.5, "hull": 1.25, "speed": 3.2, "range": 9.0, "attacks": ["SLAM", "SWEEP", "BREATH", "CHARGE"], "adds": ["scout", 2], "reward": [1300, 850],
+		"blurb": "A king of the sunken ark, still holding court." },
+	"vaelith": { "name": "Vaelith", "model": "skyborn-boss.glb", "size": 5.5, "hull": 1.4, "speed": 5.0, "range": 18.0, "attacks": ["BREATH", "SLAM", "CHARGE", "BREATH"], "adds": ["scout", 0], "reward": [0, 900],
+		"blurb": "The Dragon Who Remembers. Its first trial cannot be won by killing." },
+	"red-ronin": { "name": "The Red Ronin", "model": "dark-knight.glb", "size": 2.4, "hull": 0.85, "speed": 7.5, "range": 2.6, "attacks": ["CHARGE", "SWEEP", "LUNGE", "CHARGE"], "adds": ["scout", 0], "reward": [1000, 700],
+		"blurb": "A masterless blade that cuts shots out of the air." },
+	"hollow-colossus": { "name": "The Hollow Colossus", "model": "guardian-boss.glb", "size": 10.0, "hull": 1.6, "speed": 2.2, "range": 7.0, "attacks": ["SLAM", "SLAM", "CHARGE", "SPIKES"], "adds": ["executor", 1], "reward": [1500, 900],
+		"blurb": "A sleeper the size of a city block, holding the ruins up." },
+	"exiled-architect": { "name": "The Exiled Architect", "model": "dark-knight.glb", "size": 2.8, "hull": 1.1, "speed": 4.0, "range": 14.0, "attacks": ["SUMMON", "VOLLEY", "SPIKES", "LUNGE"], "adds": ["drone", 2], "reward": [1400, 850],
+		"blurb": "An engineer who redraws walls, doors and constructs." },
+	"verdant-sovereign": { "name": "The Verdant Sovereign", "model": "guardian-boss.glb", "size": 7.0, "hull": 1.2, "speed": 2.6, "range": 12.0, "attacks": ["SPIKES", "SWEEP", "SUMMON", "SLAM"], "adds": ["scout", 3], "reward": [1200, 800],
+		"blurb": "The heart of the oldest forest, still awake." },
+	"black-market-phantom": { "name": "The Black Market Phantom", "model": "dark-knight.glb", "size": 2.3, "hull": 0.9, "speed": 8.5, "range": 12.0, "attacks": ["CHARGE", "VOLLEY", "CHARGE", "SWEEP"], "adds": ["scout", 0], "reward": [1300, 800],
+		"blurb": "A masked rider who runs routes nobody else can see." },
+	"king-beneath": { "name": "The King Beneath the City", "model": "aberration-boss.glb", "size": 5.5, "hull": 1.25, "speed": 2.0, "range": 18.0, "attacks": ["VOLLEY", "SUMMON", "BREATH", "SPIKES"], "adds": ["drone", 3], "reward": [1400, 850],
+		"blurb": "A machine intelligence wired into the Undercity." },
+	"clockwork-saint": { "name": "The Clockwork Saint", "model": "guardian-boss.glb", "size": 6.0, "hull": 1.2, "speed": 3.0, "range": 10.0, "attacks": ["SWEEP", "SPIKES", "SLAM", "VOLLEY"], "adds": ["scout", 2], "reward": [1400, 850],
+		"blurb": "The guardian of a stopped hour." },
+	"eternal-huntress": { "name": "The Eternal Huntress", "model": "aberration-elite.glb", "size": 3.0, "hull": 1.0, "speed": 7.0, "range": 20.0, "attacks": ["VOLLEY", "VOLLEY", "CHARGE", "SPIKES"], "adds": ["scout", 2], "reward": [1300, 800],
+		"blurb": "A phantom archer older than the Mistwood's trees." },
+	"iron-behemoth": { "name": "The Iron Behemoth", "model": "guardian-boss.glb", "size": 9.0, "hull": 1.5, "speed": 2.4, "range": 20.0, "attacks": ["VOLLEY", "SLAM", "VOLLEY", "SUMMON"], "adds": ["executor", 2], "reward": [1500, 900],
+		"blurb": "A siege engine still fighting a war nobody remembers." },
+}
+## a row of either table
+static func row(boss_id: String) -> Dictionary:
+	return BOSSES.get(boss_id, UNIQUE.get(boss_id, {}))
+
+## the unique encounters' gimmicks (web scenario-gimmicks.ts), set by unique_encounter.gd after the summon:
+##   poise    — outside the stagger / weak-point window hits land at POISE_OUTSIDE
+##   adaptive — each damage kind it has been hit by grows familiar (decaying FAMILIAR_DECAY a second); a familiar one lands
+##              for as little as 0.35, a fresh one for up to 1.3, so rotating gun elements, melee and grenades is the way in
+##   attune   — every ATTUNE_EVERY s its halo turns to one of `attune_elements`; that kind lands ×1.5, the rest ×0.35
+##   closing  — hits from farther than CLOSE_RANGE are cut out of the air (×0.15, and they build no poise)
+##   trial    — it cannot be killed: at TRIAL_FLOOR of its hull it yields, which ends the fight as a win
+const POISE_OUTSIDE := 0.5
+const FAMILIAR_DECAY := 0.12
+const ATTUNE_EVERY := 9.0
+const CLOSE_RANGE := 12.0
+const TRIAL_FLOOR := 0.45
+var gimmick := ""
+var attune_elements: Array = ["KINETIC", "MELEE"]
+var attuned := "KINETIC"
+var familiar := {}
+var yielded := false
+var _attune_t := 0.0
+var _attune_i := 0
+
+func gimmick_mult(kind: String, dist: float) -> float:
+	match gimmick:
+		"poise":
+			return 1.0 if staggered() or weak_point() else POISE_OUTSIDE
+		"adaptive":
+			return clampf(1.3 - float(familiar.get(kind, 0.0)) / (hull_max * 0.06), 0.35, 1.3)
+		"attune":
+			return 1.5 if kind == attuned else 0.35
+		"closing":
+			return 1.0 if dist <= CLOSE_RANGE else 0.15
+	return 1.0
+
+func set_gimmick(g: String, kinds: Array = []) -> void:
+	gimmick = g
+	if not kinds.is_empty():
+		attune_elements = kinds
+	attuned = String(attune_elements[0])
+	_attune_t = ATTUNE_EVERY
+
 ## attack timings (s) and effects: telegraph before, cooldown after; damage in the operator's hull units (enemies.gd damage
 ## scale), `radius` for area hits, `bolts` for volleys
 ## Patterns (Nov 22, owner: "boss combat patterns and stagger systems"): from OVERDRIVEN on, an attack chains straight
@@ -93,7 +173,7 @@ var parries := 0
 
 func _init(boss_id: String) -> void:
 	id = boss_id
-	def = BOSSES[boss_id]
+	def = row(boss_id)
 	hull_max = BASE_HULL * float(def.hull)
 	hull = hull_max
 
@@ -114,10 +194,16 @@ static func phase_for(fraction: float) -> int:
 	return 0
 
 ## a hit from the operator: returns the damage dealt after the weak-point / stagger multipliers
-func hit(damage: float) -> float:
+func hit(damage: float, kind := "", dist := 0.0) -> float:
 	if dead:
 		return 0.0
-	var mult := STAGGER_MULT if staggered() else (WEAK_MULT if weak_point() else 1.0)
+	var g := gimmick_mult(kind, dist)
+	if gimmick == "adaptive":
+		familiar[kind] = float(familiar.get(kind, 0.0)) + damage
+	if gimmick == "closing" and dist > CLOSE_RANGE:
+		damage *= g      # cut out of the air: no poise from it either
+		g = 1.0
+	var mult := (STAGGER_MULT if staggered() else (WEAK_MULT if weak_point() else 1.0)) * g
 	var dealt := damage * mult
 	hull = maxf(0.0, hull - dealt)
 	# poise: never during a stagger, nor in the refractory after one
@@ -136,6 +222,14 @@ func hit(damage: float) -> float:
 		phase = want
 		weak_until = maxf(weak_until, clock + WEAK_POINT)
 		events.append({ "kind": "phase", "phase": phase, "label": String(PHASES[phase].label), "telegraph": String(PHASES[phase].telegraph) })
+	if gimmick == "trial" and hull <= hull_max * TRIAL_FLOOR and not dead:
+		# it yields: the trial is won, nothing dies
+		hull = hull_max * TRIAL_FLOOR
+		yielded = true
+		dead = true
+		step = Step.DEAD
+		events.append({ "kind": "dead", "yield": true })
+		return dealt
 	if hull <= 0.0 and not dead:
 		dead = true
 		step = Step.DEAD
@@ -148,6 +242,16 @@ func tick(dt: float, dist: float) -> void:
 	if dead:
 		return
 	clock += dt
+	if gimmick == "adaptive":
+		for k in familiar:
+			familiar[k] = float(familiar[k]) * exp(-FAMILIAR_DECAY * dt)
+	elif gimmick == "attune":
+		_attune_t -= dt
+		if _attune_t <= 0.0:
+			_attune_t = ATTUNE_EVERY
+			_attune_i = (_attune_i + 1) % attune_elements.size()
+			attuned = String(attune_elements[_attune_i])
+			events.append({ "kind": "attune", "element": attuned })
 	if not staggered() and poise > 0.0:
 		poise = maxf(0.0, poise - POISE_DECAY * dt)
 	var t := tuning()

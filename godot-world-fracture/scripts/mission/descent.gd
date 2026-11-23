@@ -29,6 +29,7 @@ const TouchControls := preload("res://scripts/player/touch_controls.gd")
 const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const Enemies := preload("res://scripts/combat/enemies.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
+const Encounters := preload("res://scripts/mission/encounters.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const SAVE := "user://quests.json"
 const REGION := "veridan"
@@ -350,6 +351,7 @@ func _set_waypoint(p: Vector3, on: bool) -> void:
 	waypoint_node.add_child(l)
 
 func _on_kill(_t: Variant) -> void:
+	_clue_on_kill()
 	if quest.is_empty():
 		return
 	if quest.kind == "kills":
@@ -357,6 +359,31 @@ func _on_kill(_t: Variant) -> void:
 		if int(progress.kills) >= int(quest.amount):
 			_complete()
 	_refresh()
+
+## the unique encounters' clues (encounters.gd): a kill can turn up a combat clue, standing near a place a world / site
+## clue; checked against the POIs without the profile, which is read only when one is in reach
+func _clue_on_kill() -> void:
+	if world_id == "" or not gunplay or not Encounters.combat_in(world_id):
+		return
+	var kind := String(gunplay.gun().element) if not gunplay.guns.is_empty() else "KINETIC"
+	var w := world_id
+	for l in Encounters.with_profile(func(p: Dictionary) -> Array: return Encounters.on_kill(p, w, kind)):
+		controls.toast(String(l))
+
+var _clue_seen := {}
+func _clue_sense() -> void:
+	if world_id == "" or not operator or not region:
+		return
+	var o: Vector2 = region.origin()
+	var at := Vector2(operator.position.x + o.x, operator.position.z + o.y)
+	for pl in Encounters.near(world_id, at):
+		var k := "%s:%s" % [pl.e, pl.c]
+		if _clue_seen.has(k):
+			continue
+		_clue_seen[k] = true
+		var w := world_id
+		for l in Encounters.with_profile(func(p: Dictionary) -> Array: return Encounters.sense(p, w, at)):
+			controls.toast(String(l))
 
 var _guards: Array = []      # the source's guards: fd-03 is done when all three are down
 var _respawn_t := 0.0
@@ -484,6 +511,8 @@ func _process(dt: float) -> void:
 		wildlife.step(dt)
 	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
 	_board_objective()
+	if Engine.get_process_frames() % 30 == 0:
+		_clue_sense()
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:

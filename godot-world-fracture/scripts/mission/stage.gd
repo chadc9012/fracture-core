@@ -35,7 +35,14 @@ const ROOMS := ["zero_point", "choir_hall", "witness_vault", "astryan_hall", "co
 const SKY := ["void"]
 
 ## who speaks without a body in the scene (a radio, a broadcast, a voice in the dark): the camera holds the set
-const VOICES := ["MILITARY RADIO", "UNKNOWN VOICE", "GLOBAL BROADCAST", "ARCHIVE RECORDING", "MEMORY", "ENGINE VOICE", "COUNCILLOR", "CHOIR VOICE", "THE ECHO", "SEVENTH PROTOCOL", "RADIO FREE NEXUS"]
+const VOICES := ["MILITARY RADIO", "UNKNOWN VOICE", "GLOBAL BROADCAST", "ARCHIVE RECORDING", "MEMORY", "ENGINE VOICE", "COUNCILLOR", "CHOIR VOICE", "THE ECHO", "SEVENTH PROTOCOL", "RADIO FREE NEXUS",
+	# the unique encounters (tools/campaign/unique/encounters.py): the narrator, logs, transmissions and recordings
+	"NARRATOR", "FORTRESS RECORDING", "ANCHOR CONTINUITY RECORD", "THALASSIAN ARCHIVE", "SURVEY LOG", "UNKNOWN WOMAN (TRANSMISSION)",
+	"UNKNOWN MAN (TRANSMISSION)", "SERIK VALE (RECORDING)", "RESEARCH DIRECTOR (RECORDING)", "RESEARCHER (RECORDING)", "ELIAN (RECORDING)"]
+## street people who speak in a scene under their full name (the unique encounters): their people.gd look
+const PERSONS := { "IDRIS BELLO": "idris", "LARS HOLM": "lars", "OLD MOSS": "moss", "SOL NAVARRO": "sol", "GUS VARGA": "gus",
+	"CORPORAL RUTH MBEKI": "ruth", "RANGER KEST": "kest", "GLORIA HAYNES": "gloria", "ZAHRA HADDAD": "zahra", "WARDEN ILYA": "ilya",
+	"KAI TANAKA": "kai", "FIXER SABLE": "sable", "ANYA VOLKOVA": "anya", "CORAL ADEYEMI": "coral", "MARSHAL DRAEV": "draev" }
 ## the people of the story with a roster row (people.gd) — they wear their own look
 const ROSTER := ["VOSS", "SERAPHINE", "RAINER", "WARD", "KAEL", "COLE"]
 ## the looks of everyone else who speaks or stands in a scene: outfit, body, build, scale, and a whole-character model
@@ -58,6 +65,10 @@ const EXTRAS := {
 	"ASTRYAN MAKER": ["npc-doctor", "female", "slim", 1.0], "SERGEANT IMANI": ["npc-swat", "female", "athletic", 1.0],
 	"RESEARCHER LUNE": ["npc-doctor", "female", "slim", 1.0], "FREE OPERATOR": ["npc-hunter", "male", "athletic", 1.0],
 	"MRS. REYES": ["npc-elder", "female", "heavy", 1.0], "ANNA VOLK": ["npc-beige-suit", "female", "slim", 1.0],
+	"CHILD (MEMORY)": ["npc-hoodie-backpack", "female", "slim", 0.62], "RESEARCHER (MEMORY)": ["npc-doctor", "female", "slim", 1.0],
+	"UNKNOWN SOLDIER": ["npc-swat", "male", "athletic", 1.0], "QUEEN SELENE (RECORDING)": ["npc-beige-suit", "female", "slim", 1.0],
+	"KING AVARON (RECORDING)": ["npc-elder", "male", "heavy", 1.0], "UNKNOWN WOMAN": ["npc-summer", "female", "slim", 1.0],
+	"FALSE SAINT": ["npc-elder", "female", "slim", 1.0],
 	"LIGHTHOUSE KEEPER": ["npc-fisherman", "male", "heavy", 1.0], "AUREN (MEMORY)": ["npc-hunter", "male", "athletic", 1.0],
 	"TUROG (MEMORY)": ["npc-leather", "male", "heavy", 1.0], "UNBOUND ELDER": ["npc-elder", "female", "slim", 1.0],
 }
@@ -67,6 +78,10 @@ static func look_of(s: String) -> Dictionary:
 	if s == "VEILED SOVEREIGN":
 		s = "SERAPHINE"
 	var pid := s.to_lower().get_slice(" ", s.get_slice_count(" ") - 1)
+	if PERSONS.has(s):
+		var prow: Dictionary = People.by_id(String(PERSONS[s]))
+		if not prow.is_empty():
+			return NpcStreet.look_for(prow)
 	if s in ROSTER:
 		var row: Dictionary = People.by_id(pid)
 		if not row.is_empty():
@@ -94,9 +109,18 @@ const FIGURES := {
 	"ENEMY COMMANDER": ["aberration-elite.glb", 3.4, Color(0.9, 0.3, 0.3)], "FRACTURE INFILTRATOR": ["aberration-elite.glb", 2.4, Color(0.5, 0.9, 1.0)],
 	"ARCHIVE WARDEN": ["guardian-boss.glb", 6.0, Color(1.0, 0.8, 0.45)], "VAEL TUROG": ["dark-knight.glb", 3.8, Color(0.75, 0.35, 1.0)],
 	"THE ARCHITECT": ["dark-knight.glb", 3.0, Color(0.95, 0.95, 1.0)],
+	# the unique encounters' bosses when they speak outside their fight (in it, the boss itself speaks: `_cast`)
+	"DARK KNIGHT": ["dark-knight.glb", 2.9, Color(0.6, 0.3, 1.0)], "SERIK VALE": ["dark-knight.glb", 2.9, Color(0.5, 0.5, 0.7)],
+	"DROWNED MONARCH": ["abyssal-boss.glb", 5.5, Color(0.4, 0.8, 1.0)], "HOLLOW SAINT": ["aberration-elite.glb", 3.6, Color(1.0, 0.95, 0.7)],
+	"VAELITH": ["skyborn-boss.glb", 5.5, Color(1.0, 0.5, 0.15)], "VYRAK": ["skyborn-boss.glb", 4.0, Color(1.0, 0.7, 0.3)],
+	"THE RED RONIN": ["dark-knight.glb", 2.4, Color(1.0, 0.2, 0.15)], "THE EXILED ARCHITECT": ["dark-knight.glb", 2.8, Color(0.5, 0.7, 1.0)],
+	"THE VERDANT SOVEREIGN": ["guardian-boss.glb", 7.0, Color(0.4, 1.0, 0.4)], "THE BLACK MARKET PHANTOM": ["dark-knight.glb", 2.3, Color(1.0, 0.2, 0.9)],
+	"THE KING BENEATH THE CITY": ["aberration-boss.glb", 5.5, Color(1.0, 0.15, 0.15)], "THE CLOCKWORK SAINT": ["guardian-boss.glb", 6.0, Color(0.8, 0.9, 1.0)],
+	"THE ETERNAL HUNTRESS": ["aberration-elite.glb", 3.0, Color(0.7, 1.0, 0.8)], "THE IRON BEHEMOTH": ["guardian-boss.glb", 9.0, Color(1.0, 0.6, 0.3)],
 }
 ## recordings play as holograms
-const HOLO := ["SCIENTIST", "DR. CROSS", "PHANTOM CHILD", "ASTRYAN MAKER", "AUREN (MEMORY)", "TUROG (MEMORY)", "UNBOUND ELDER"]
+const HOLO := ["SCIENTIST", "DR. CROSS", "PHANTOM CHILD", "ASTRYAN MAKER", "AUREN (MEMORY)", "TUROG (MEMORY)", "UNBOUND ELDER",
+	"CHILD (MEMORY)", "RESEARCHER (MEMORY)", "UNKNOWN SOLDIER", "QUEEN SELENE (RECORDING)", "KING AVARON (RECORDING)", "UNKNOWN WOMAN", "FALSE SAINT"]
 
 var region: Control           # region_3d.gd (ground, world)
 var operator: Node3D
@@ -1566,7 +1590,7 @@ func _cast(speakers: Array) -> void:
 		if s == "NOVA":
 			_make_nova()
 			continue
-		if boss and is_instance_valid(boss) and boss.rules and s == String(boss.rules.def.name).to_upper():
+		if boss and is_instance_valid(boss) and boss.rules and _is_boss(s, String(boss.rules.def.name).to_upper()):
 			cast[s] = boss
 			continue
 		if _talker and is_instance_valid(_talker) and String(_talker.get_meta("who", "")) == s and _talker.global_position.distance_to(anchor) < 25.0:
@@ -1592,6 +1616,10 @@ func _cast(speakers: Array) -> void:
 		operator.heading = atan2(fwd.x, fwd.z)
 		if operator.rig:
 			operator.rig.rotation.y = operator.heading
+
+## the boss speaking under its script name: "DARK KNIGHT" for "The Dark Knight", "VYRAK" for "Vyrak, the Ashen Covenant"
+static func _is_boss(s: String, bn: String) -> bool:
+	return s == bn or "THE " + s == bn or bn.get_slice(",", 0) == s or (s == "SERIK VALE" and bn == "THE DARK KNIGHT")
 
 func _person(s: String, at: Vector3) -> Node3D:
 	var b := Player.new()
