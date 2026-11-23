@@ -396,7 +396,9 @@ func _ready() -> void:
 		# anything the Warden summons is shot first: its adds are the fight's ammo
 		var adds: Array = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN)
 		if not adds.is_empty():
-			await _fight(0.0)
+			# a short window, counted against the fight's clock: an open-ended _fight(0.0) chased the district's
+			# drones hovering out at ~45 m for hours (the Nov 23 run was cut off at the shell's limit mid-fight)
+			bt += float(await _fight(6.0)) * 0.05
 		await get_tree().process_frame
 		bt += minf(get_process_delta_time(), 0.05)
 		if d.enemies.down > 0.0:
