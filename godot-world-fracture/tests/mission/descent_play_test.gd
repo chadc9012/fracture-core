@@ -88,6 +88,14 @@ func _round(from: Vector3, to: Vector3) -> Vector2:
 		return best_c - a
 	return b - a
 
+## back to the core in Full Lockdown: on foot, or — since the test cannot path through Neon City's blocks, and a
+## checkpoint respawn puts the operator 100+ m off — set down beside it, as the chapter's first approach already is (the
+## Nov 23 full run fought the last wave from 116 m away and never opened the core)
+func _to_core() -> void:
+	if not await _walk_to(d.waypoint, 8.0, "the core"):
+		d.operator.position = d.waypoint + Vector3(4, 0, 4)
+		await _frames(2)
+
 func _walk_to(to: Vector3, near: float, label: String) -> bool:
 	var best := INF
 	var stall := 0.0
@@ -336,7 +344,7 @@ func _ready() -> void:
 	for w in 3:
 		# the next wave comes 14 s after the last is down, while you hold the core: back to it, then wait in sim time
 		if d.waypoint.distance_to(d.operator.position) > 10.0:
-			await _walk_to(d.waypoint, 8.0, "the core")
+			await _to_core()
 		var wt := 0.0
 		while wt < 40.0 and d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN).size() == 0 and not d.cutscene.playing:
 			await get_tree().process_frame
@@ -344,7 +352,7 @@ func _ready() -> void:
 		await _fight(150.0, d.waypoint)    # (troopers take two to three times the bullets since the Nov 22 balance pass)
 		await _frames(3)
 	if d.waypoint.distance_to(d.operator.position) > 10.0:
-		await _walk_to(d.waypoint, 8.0, "the core")
+		await _to_core()
 	# mop up: the last wave's elite and marksman outlast one fight window since the Nov 22 balance pass
 	if d.boss == null and not d.cutscene.playing:
 		await _fight(240.0, d.waypoint)
