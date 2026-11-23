@@ -43,7 +43,7 @@ Rows are the lock; `git fetch` before you claim.
 - Asset catalog gaps (owner's boards, Nov 8; `docs/asset-catalog.md`), in this order once the Godot slice is on the phone:
   2. ~~Extraction in Godot~~ — done Nov 9 (see Done); ~~Fracture Royale~~ — in Godot Nov 16 (`scripts/killbox/royale_view.gd` on the Verdant Forest from the PvP hub; rules in killbox_match.gd kind "royale"; tests/killbox/royale_play.tscn).
   3. Vehicles, remaining: new hulls for a yacht and a true hovercraft (Meshy), then CRAFT rows.
-  4. ~~Wildlife models (Meshy)~~ — all in by Nov 16 (deer, boar, wolf, bear, crocodile, shark, raptor, reptile, rabbit, songbird, fish; the horse herd, pets and city birds) but the panther: every Meshy black panther fails the texture gate, so it keeps the stand-in until one passes.
+  4. ~~Wildlife models (Meshy)~~ — all in by Nov 16 (deer, boar, wolf, bear, crocodile, shark, raptor, reptile, rabbit, songbird, fish; the horse herd, pets and city birds) and, since Nov 23, the panther too (a melanistic leopard made with its rosettes showing passes the gate at 0.072).
   5. Fracture creature models (Meshy): bespoke hulls for the Rift Gate's six bosses (fights are in; swap the `model` in boss.gd BOSSES). **Chapter 1's six story bosses have their own hulls since Nov 23** (boss.gd STORY; MESHY_UPGRADE.md batch 7).
   - ~~Godot Killbox parity with the web clean-up~~ — done Nov 11 (see Done).
   6. City infrastructure and interiors (part 2 §1–2), ~~civilian life props (§3)~~ (done Nov 9), combat details (§5: casings, impacts, flinch, gore, destructible cover + debris done; holsters / magazines / attachments / armour damage / shields open), character appearance (§4: wear slot done Nov 10; shoes / formal clothing wait on clothing meshes).
