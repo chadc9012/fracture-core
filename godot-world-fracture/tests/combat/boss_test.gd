@@ -14,8 +14,8 @@ func _init() -> void:
 		r1 = r1 and ResourceLoader.exists("res://models/bosses/" + String(b.def.model)) and b.hull_max > 1000.0
 		for a in b.def.attacks:
 			r1 = r1 and Boss.ATTACKS.has(a)
-	r1 = r1 and Boss.STORY.size() == 6
-	print("six board bosses and the six Aftershock bosses with models, hulls and known attacks: ", r1)
+	r1 = r1 and Boss.STORY.size() == 10
+	print("six board bosses and the ten story bosses with models, hulls and known attacks: ", r1)
 	ok = ok and r1
 	# phases: 100 % → 0, 60 % → 1 (OVERDRIVEN, weak point opens), 25 % → 2
 	var b := Boss.new("rift-hound")

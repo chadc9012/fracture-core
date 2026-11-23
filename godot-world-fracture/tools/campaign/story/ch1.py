@@ -261,4 +261,4 @@ STAGES = {
 ACTS = {
     "10E": {"...the lock turns... the sanctuary sleeps... the promise forgets...": "seal"},
 }
-BOSSES = {"ascendant-construct": "crystal-stalker", "vael-turog-memory": "astravore"}
+BOSSES = {"ascendant-construct": "ascendant-construct", "vael-turog-memory": "vael-turog-memory"}

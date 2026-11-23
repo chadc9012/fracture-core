@@ -81,6 +81,7 @@ const UNIQUE := {
 ## Chapter 1 — The Aftershock's six (tools/campaign/aftershock.py Missions 2–7), each on a hull of its own: Meshy 7.1
 ## Image-to-3D from an on-brief concept image (Nov 23), decimated to 80k tris (tools/decimate_glb.py) and gate-passed
 ## (scripts/check-meshy-textures.py). Story bosses only: not in the Rift Gate's pick (boss_arena.gd walks BOSSES).
+## Missions 8 and 10 and Vael Turog's later fights followed the same day (ascendant-construct, vael-turog).
 const STORY := {
 	"fracture-commander": { "name": "Fracture Commander", "model": "fracture-commander.glb", "size": 4.2, "hull": 0.7, "speed": 5.5, "range": 14.0, "attacks": ["VOLLEY", "LUNGE", "SWEEP", "SUMMON"], "adds": ["scout", 2], "reward": [700, 450],
 			"blurb": "The checkpoint's big one: black plate split by violet fracture light, crystal spurs on its shoulders. It holds the line with its troopers and comes for you when they fall." },
@@ -94,6 +95,15 @@ const STORY := {
 			"blurb": "The one who comes to reclaim what was taken. Black and gold plate under a torn mantle, a crown of violet crystal; it calls its chosen and burns the ground between you." },
 	"archive-warden": { "name": "Archive Warden", "model": "archive-warden.glb", "size": 5.0, "hull": 1.4, "speed": 3.0, "range": 10.0, "attacks": ["SLAM", "SWEEP", "VOLLEY", "SUMMON"], "adds": ["executor", 2], "reward": [1400, 900],
 			"blurb": "The Archive's keeper on the central dais: a chained stone-and-bronze golem, runes down the arms, a visor slit of violet light. Slow, and nothing it hits gets up quickly." },
+	# Mission 8 and 10 (tools/campaign/story/ch1.py), and Vael Turog's two later fights on the same hull (ch6 41C, ch8 60C)
+	"ascendant-construct": { "name": "The Ascendant Construct", "model": "ascendant-construct.glb", "size": 4.5, "hull": 1.2, "speed": 5.0, "range": 12.0, "attacks": ["VOLLEY", "SLAM", "LUNGE", "SUMMON"], "adds": ["executor", 2], "reward": [1500, 950],
+			"blurb": "Crane's answer to the end of the world: a pearl-white war construct on stolen Genesis designs, a cyan reactor in its chest and shield emitters on its shoulders. Fast for its size, and it calls the tower's guard." },
+	"vael-turog-memory": { "name": "Vael Turog, the Severant", "model": "vael-turog.glb", "size": 3.0, "hull": 1.1, "speed": 6.5, "range": 3.5, "attacks": ["SWEEP", "LUNGE", "CHARGE", "SPIKES"], "adds": ["drone", 0], "reward": [1600, 1000],
+			"blurb": "The fourth keeper as the archive remembers him at the gate of the First Sanctuary: bronze and bone plate under grey-violet robes, a faceless mask, the severing blade. He fights the way the memory says it ended." },
+	"vael-turog": { "name": "Vael Turog, the Severant", "model": "vael-turog.glb", "size": 3.0, "hull": 1.6, "speed": 7.0, "range": 3.5, "attacks": ["SWEEP", "LUNGE", "SPIKES", "CHARGE", "SUMMON"], "adds": ["elite", 2], "reward": [2200, 1300],
+			"blurb": "The Severant himself at the Obsidian Ridge door, no longer a memory: faster than the archive remembered, and the Choir's chosen come when he calls." },
+	"severant-final": { "name": "Vael Turog, the Severant", "model": "vael-turog.glb", "size": 3.0, "hull": 2.0, "speed": 7.5, "range": 4.0, "attacks": ["SWEEP", "CHARGE", "SPIKES", "LUNGE", "BREATH", "SUMMON"], "adds": ["elite", 3], "reward": [3000, 1800],
+			"blurb": "The last stand on the Spire's summit. Everything he has, and the Choir singing behind him." },
 }
 
 ## a row of any table

@@ -22,7 +22,8 @@ const AS_REACH := ["talk", "race", "drive"]
 const BOSS_FOR := { "vyrak": "vyrak", "crownkeeper": "colossus", "fracture-heart": "astravore", "convergence": "abyssal-leviathan",
 	# Chapter 1 — The Aftershock's (aftershock.gd): hulls of their own since Nov 23 (boss.gd STORY)
 	"fracture-commander": "fracture-commander", "subject-zero": "subject-zero", "fracture-executioner": "fracture-executioner",
-	"siege-beast": "siege-beast", "harbinger": "harbinger", "archive-warden": "archive-warden" }
+	"siege-beast": "siege-beast", "harbinger": "harbinger", "archive-warden": "archive-warden",
+	"ascendant-construct": "ascendant-construct", "vael-turog-memory": "vael-turog-memory", "vael-turog": "vael-turog", "severant-final": "severant-final" }
 
 static var _data: Dictionary = {}
 ## story lines that run on this runner with data of their own (aftershock.gd): path -> parsed data

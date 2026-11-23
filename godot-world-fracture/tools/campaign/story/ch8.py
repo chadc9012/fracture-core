@@ -265,4 +265,4 @@ ACTS = {
     "59C": {"Operator. Look at me.": "nova_form"},
     "60D": {"Fifth seal restored. All five stars are bright.": "seal"},
 }
-BOSSES = {"choir-hymnal": "colossus", "severant-final": "astravore"}
+BOSSES = {"choir-hymnal": "colossus", "severant-final": "severant-final"}

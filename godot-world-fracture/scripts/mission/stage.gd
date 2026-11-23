@@ -107,7 +107,7 @@ const FIGURES := {
 	"UNKNOWN FIGURE": ["dark-knight.glb", 3.2, Color(0.6, 0.3, 1.0)], "SECOND FIGURE": ["dark-knight.glb", 2.9, Color(0.9, 0.3, 0.5)],
 	"UNKNOWN RULER": ["dark-knight.glb", 4.2, Color(1.0, 0.75, 0.35)], "THE HARBINGER": ["harbinger.glb", 3.8, Color(0.7, 0.2, 1.0)],
 	"ENEMY COMMANDER": ["fracture-executioner.glb", 3.4, Color(0.9, 0.3, 0.3)], "FRACTURE INFILTRATOR": ["aberration-elite.glb", 2.4, Color(0.5, 0.9, 1.0)],
-	"ARCHIVE WARDEN": ["archive-warden.glb", 5.0, Color(1.0, 0.8, 0.45)], "VAEL TUROG": ["dark-knight.glb", 3.8, Color(0.75, 0.35, 1.0)],
+	"ARCHIVE WARDEN": ["archive-warden.glb", 5.0, Color(1.0, 0.8, 0.45)], "VAEL TUROG": ["vael-turog.glb", 3.0, Color(0.75, 0.35, 1.0)],
 	"THE ARCHITECT": ["dark-knight.glb", 3.0, Color(0.95, 0.95, 1.0)],
 	# the unique encounters' bosses when they speak outside their fight (in it, the boss itself speaks: `_cast`)
 	"DARK KNIGHT": ["dark-knight.glb", 2.9, Color(0.6, 0.3, 1.0)], "SERIK VALE": ["dark-knight.glb", 2.9, Color(0.5, 0.5, 0.7)],

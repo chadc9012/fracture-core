@@ -260,4 +260,4 @@ STAGES = {
     "45A": "underground", "45B": "wasteland", "45C": "wasteland", "45D": "underground",
 }
 ACTS = {}
-BOSSES = {"ascended": "crystal-stalker", "vael-turog": "astravore", "choir-breaker": "colossus"}
+BOSSES = {"ascended": "crystal-stalker", "vael-turog": "vael-turog", "choir-breaker": "colossus"}
