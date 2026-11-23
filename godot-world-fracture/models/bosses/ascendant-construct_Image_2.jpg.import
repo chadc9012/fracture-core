@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dpv8yjmnplnlj"
-path="res://.godot/imported/ascendant-construct_Image_2.jpg-eb472d7fc9821c5d09847f0e3fbca9df.ctex"
+path.s3tc="res://.godot/imported/ascendant-construct_Image_2.jpg-eb472d7fc9821c5d09847f0e3fbca9df.s3tc.ctex"
+path.etc2="res://.godot/imported/ascendant-construct_Image_2.jpg-eb472d7fc9821c5d09847f0e3fbca9df.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "b2d35a3969e07704ff92981cdb94630b"
@@ -14,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://models/bosses/ascendant-construct_Image_2.jpg"
-dest_files=["res://.godot/imported/ascendant-construct_Image_2.jpg-eb472d7fc9821c5d09847f0e3fbca9df.ctex"]
+dest_files=["res://.godot/imported/ascendant-construct_Image_2.jpg-eb472d7fc9821c5d09847f0e3fbca9df.s3tc.ctex", "res://.godot/imported/ascendant-construct_Image_2.jpg-eb472d7fc9821c5d09847f0e3fbca9df.etc2.ctex"]
 
 [params]
 
