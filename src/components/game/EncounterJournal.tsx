@@ -1,7 +1,7 @@
 import { journalFor } from "@/game/encounter-journal";
 import type { PlayerProgression } from "@/game/progression";
 
-/** Unique-encounter journal: what the Operator has found. Undiscovered encounters stay hidden; clues show "???" until found. Vyrak has its own section. */
+/** Unique-encounter journal: what the Operator has found. Undiscovered encounters stay hidden; clues show "???" until found. a Unique (met only) has its own section. */
 export function EncounterJournal({ progression }: { progression: PlayerProgression }) {
   const entries = journalFor(progression, progression.identityClass ?? null);
   const special = entries.filter((e) => e.special), rest = entries.filter((e) => !e.special);
@@ -14,7 +14,7 @@ export function EncounterJournal({ progression }: { progression: PlayerProgressi
   return <section className="mt-6 border border-border p-4" aria-label="Encounter journal">
     <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary">Encounter journal</p>
     {entries.length === 0 ? <p className="mt-2 text-xs text-muted-foreground">Nothing recorded yet. Rumours, scarred ground and strange signals will appear here as you find them.</p> : <>
-      {special.length > 0 && <div className="mt-3"><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">Special unique encounter</p><div className="mt-2 grid gap-3">{special.map(card)}</div></div>}
+      {special.length > 0 && <div className="mt-3"><p className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">Unique</p><div className="mt-2 grid gap-3">{special.map(card)}</div></div>}
       {rest.length > 0 && <div className="mt-3 grid gap-3 md:grid-cols-2">{rest.map(card)}</div>}
     </>}
   </section>;

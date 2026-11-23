@@ -1993,9 +1993,51 @@ func _islet(under: SurfaceTool, cap: SurfaceTool, p: Vector2, r: float, top: flo
 			cap.add_vertex(v)
 
 ## street lights along the roads at night (the wet-neon city frames): a glowing head every 24 m on both kerbs
+## every road's segments (and the buildings) in 32 m buckets, so a lamp post can see it would stand in another road's lanes,
+## a junction, a highway deck or a house (owner, Nov 23: "lightpost ... showing up in the middle of road freeways and roads")
+var _seg_grid := {}
+func _index_segments() -> void:
+	_seg_grid.clear()
+	for r in m.roads:
+		var pts: Array = r.pts
+		var hw := float(r.get("w", 4.0)) * 0.5
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var lo := Vector2i(floori((minf(a.x, b.x) - hw) / 32.0), floori((minf(a.y, b.y) - hw) / 32.0))
+			var hi := Vector2i(floori((maxf(a.x, b.x) + hw) / 32.0), floori((maxf(a.y, b.y) + hw) / 32.0))
+			for gj in range(lo.y, hi.y + 1):
+				for gi in range(lo.x, hi.x + 1):
+					var key := Vector2i(gi, gj)
+					if not _seg_grid.has(key):
+						_seg_grid[key] = []
+					_seg_grid[key].append([a, b, hw])
+	for bd in m.buildings:
+		var c := _loc(bd[0], bd[1])
+		var rr := maxf(float(bd[2]), float(bd[3]))
+		var key2 := Vector2i(floori(c.x / 32.0), floori(c.y / 32.0))
+		if not _seg_grid.has(key2):
+			_seg_grid[key2] = []
+		_seg_grid[key2].append([c, c, rr])
+
+func _lamp_ok(q: Vector2) -> bool:
+	if _h(q.x, q.y) < _water + 0.3:
+		return false      # a post in the river (a bridge's own lamps are its railings)
+	for gj in range(-1, 2):
+		for gi in range(-1, 2):
+			for sg in _seg_grid.get(Vector2i(floori(q.x / 32.0) + gi, floori(q.y / 32.0) + gj), []):
+				var a: Vector2 = sg[0]
+				var b: Vector2 = sg[1]
+				var ab := b - a
+				var t := 0.0 if ab.length_squared() < 0.001 else clampf((q - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+				if q.distance_to(a + ab * t) < float(sg[2]) + 0.5:
+					return false
+	return true
+
 func _build_lamps() -> void:
 	if _style.night < 0.5:
 		return
+	_index_segments()
 	var xf: Array[Transform3D] = []
 	for r in m.roads:
 		if not (r.cls in ["street", "main", "bridge"]) or xf.size() > 3000:
@@ -2015,7 +2057,8 @@ func _build_lamps() -> void:
 			while t < L:
 				for sd in [-1.0, 1.0]:
 					var q: Vector2 = a + d * t + n * off * sd
-					xf.append(Transform3D(Basis(), Vector3(q.x, _h(q.x, q.y) + 6.0, q.y)))
+					if _lamp_ok(q):
+						xf.append(Transform3D(Basis(), Vector3(q.x, _h(q.x, q.y) + 6.0, q.y)))
 				t += 24.0
 			carry = t - L
 	for p in m.pavements:
@@ -2028,7 +2071,8 @@ func _build_lamps() -> void:
 		while t < long:
 			for sd in [-1.0, 1.0]:
 				var q: Vector2 = c + (Vector2(t, sd * (float(p[3]) + 0.6)) if along_x else Vector2(sd * (float(p[2]) + 0.6), t))
-				xf.append(Transform3D(Basis(), Vector3(q.x, _h(q.x, q.y) + 6.0, q.y)))
+				if _lamp_ok(q):
+					xf.append(Transform3D(Basis(), Vector3(q.x, _h(q.x, q.y) + 6.0, q.y)))
 			t += 24.0
 	if xf.is_empty():
 		return
@@ -2708,11 +2752,18 @@ func _build_highways() -> void:
 							_pillar(st, Vector3(c.x, _water - 3.0, c.y), ya - 1.4, 0.9, concrete.darkened(0.15))
 				_decks.append([a, b, ya, yb, hw])
 			if i % 8 == 0:
-				var base_p := Vector3(a.x, ya, a.y)
-				_pillar(st, base_p, ya + 9.0, 0.14, Color(0.3, 0.3, 0.32))
-				for sd4: float in [-1.0, 1.0]:
-					var arm := Vector2(a.x + na.x * sd4 * 2.2, a.y + na.y * sd4 * 2.2)
-					_strip(st, a, arm, ya + 9.0, ya + 8.95, 0.0, 0.1, d, d, Color(0.3, 0.3, 0.32))
+				# the lamps stand outside the barrier on alternate shoulders and reach over the lanes (they stood on the
+				# centreline in the traffic: owner, Nov 23 "lightpost ... in the middle of road freeways"), none at a ramp gap
+				var sd4: float = 1.0 if (i / 8) % 2 == 0 else -1.0
+				var lamp_open := false
+				for gp3 in gaps:
+					if gp3[1] == sd4 and absi(int(gp3[0]) - i) <= 3:
+						lamp_open = true
+				if not lamp_open:
+					var foot := a + na * sd4 * (hw + 0.45)
+					_pillar(st, Vector3(foot.x, ya, foot.y), ya + 9.0, 0.14, Color(0.3, 0.3, 0.32))
+					var arm := a + na * sd4 * (hw - 3.2)
+					_strip(st, foot, arm, ya + 9.0, ya + 8.95, 0.0, 0.1, d, d, Color(0.3, 0.3, 0.32))
 					if night > 0.3:
 						_box_tri(glow, Vector3(arm.x, ya + 8.9, arm.y), Vector3(0.7, 0.18, 0.35), Color(1.0, 0.72, 0.4) * 2.0)
 						any_glow = true

@@ -16,7 +16,6 @@ const ACTIVITY_REGION: Record<string, string> = { veridan: "veridan", ember: "em
 import { nearby as discoveriesNear, triggered as discoveryTriggered } from "@/game/discoveries";
 import { RaceCourse } from "./RaceCourse";
 import { raceById, raceObstacles, raceSpeedFactor, worldPoint, type RaceRun } from "@/game/racing";
-import { novaHint } from "@/game/encounter-journal";
 import { stepRun as stepActivity, currentTarget as activityTarget, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { renderCounts, setterCalls } from "@/game/perf-counters";
 import { createHudGate } from "@/game/hud-gate";
@@ -43,7 +42,7 @@ import { softSprite } from "./softSprite";
 import { REGIONS, SKY, SKY_STOPS, ZONE_COLOR, clockLabel, hourOf, phaseFor, regionAt, WORLD_RADIUS, WORLD_SCALE, NEON_FLAT } from "@/game/world";
 import { BASE_FOOT_SPEED, SPRINT_MULT } from "@/game/foot-speed";
 import { useKeyboard } from "@/game/useKeyboard";
-import { touch, getEquippedBoots, activeBuffs, dashHud, grenadeHud, dragoniteHud } from "@/game/client-input";
+import { touch, getEquippedBoots, activeBuffs, dashHud, grenadeHud } from "@/game/client-input";
 import { buffEffect } from "@/game/stash";
 import { bootStats, SKATE_SHOP_OFFSET, SKATE_SHOP_RADIUS } from "@/game/skate-boots";
 import { walkHeight, slopeAt, heightAt, waterNetwork, WATER_LEVEL } from "@/game/terrain";
@@ -90,11 +89,7 @@ import { backpackFor } from "@/game/backpacks";
 import { createReticle, markHit, stepReticle, type Motion, type ReticleView, EMPTY_RETICLE } from "@/game/crosshair";
 import { createGrind, isGrinding, leaveGrind, stepGrind, tryLatch, worldRails } from "@/game/maggrind";
 import { CLIMB_MAX, createTraversal, MANTLE_MAX, restTraversal, startTraversal, stepTraversal } from "@/game/traversal";
-import { VyrakClueSites } from "./VyrakClueSites";
-import { VYRAK_CLUE_SITES, lairRevealed, nearClueSite, nearHiddenLair } from "@/game/vyrak-site";
-import { createPersonality, furyBonus, maybeIdle, react as vyrakReact, stepMood as vyrakStepMood } from "@/game/vyrak-personality";
-import { createDragoniteRuntime, castDragonite, stepDragonite, statsFor as dragoniteStatsFor } from "@/game/dragonite-cast";
-import { DRAGONITE_IDS, DRAGONITE } from "@/game/dragonite";
+import { VYRAK as SOVEREIGN, ashenRemark, brandAshenMark, BRAND_LINES, createWatch as createSovereignWatch, isMarked as ashenMarked, isSlain as sovereignSlain, MARK_REMARK_COOLDOWN, MARK_REMARK_RADIUS, stepWatch as stepSovereignWatch } from "@/game/sky-sovereign";
 import { DASHES, createDashState, dashHit, dashStats, hoverVy, stepDash, tryDash } from "@/game/dash";
 import { GRENADES, SMOKE_SIGHT, equippedGrenade, nextGrenade } from "@/game/grenades";
 import { newGrenadeRuntime, playerShrouded, setGrenadeKind, stepPlayerGrenades, throwPlayerGrenade } from "@/game/player-grenades";
@@ -253,7 +248,6 @@ import { HorizonRidges } from "./HorizonRidges";
 import { DustTrails } from "./DustTrails";
 import { BrokenHorizon } from "./BrokenHorizon";
 import { NovaDrone } from "./NovaDrone";
-import { Wyrmling } from "./Wyrmling";
 import { GlitchAnomalies } from "./GlitchAnomalies";
 import { GroundCover } from "./GroundCover";
 import { coverDensityFor } from "@/game/ground-cover";
@@ -583,7 +577,6 @@ function SceneImpl({
   onCameraPreference,
   playerClass = "TITAN",
   subclassId = "SHIELD_TITAN",
-  bonded = false,
   appearance: appearanceProp,
   bodyType,
   vehicleId = "scrap-interceptor",
@@ -595,12 +588,10 @@ function SceneImpl({
   onTutorialEvent,
   onDrops,
   onStoryEvent,
-  onEncounterClue,
   activity,
   onActivityChange,
   onDiscovery,
-  vyrakRematch,
-  onVyrakRematch,
+  onAshenMark,
   onLiving,
   onVehicleCondition,
   onStuntPoints,
@@ -647,8 +638,6 @@ function SceneImpl({
   onCameraPreference?: (firstPerson: boolean) => void;
   playerClass?: ClassId;
   subclassId?: SubclassId;
-  /** dragon-covenant.ts: the active class won Vyrak's Covenant — render the Wyrmling companion */
-  bonded?: boolean;
   /** Fully-resolved field colors + callsign (preset or freely customized in the Identity Forge) —
    * session-local only, never synced to player_saves. */
   appearance?: AppearanceDefinition;
@@ -663,16 +652,13 @@ function SceneImpl({
   onDrops?: (drops: WorldSim["drops"]) => void;
   /** story scenarios (vaelith.ts): lair entry, memory pickups, trial survived, lair defence cleared; the handler applies them with pure reducers */
   onStoryEvent?: (event: StoryWorldEvent) => void;
-  /** an encounter clue was found in the world (encounter-journal.ts); the host records it and returns nothing */
-  onEncounterClue?: (encounterId: string, clueId: string) => void;
   /** activities.ts: the run in progress (mutated here each frame) and a notifier when its stage/progress/status changes */
   activity?: { def: ActivityDef; run: ActivityRun } | null;
   onActivityChange?: () => void;
   /** the player walked into a discovery; the host starts it through the same activity pipeline as the board */
   onDiscovery?: ((discoveryId: string) => void) | undefined;
-  /** Vyrak rematch (activities.ts VYRAK_REMATCH): a bonded Operator may re-summon the Sky Sovereign only while this is true; the host spends the attempt */
-  vyrakRematch?: boolean;
-  onVyrakRematch?: () => void;
+  /** sky-sovereign.ts: the Operator went down fighting Vyrak — he leaves and the host brands the Ashen Mark */
+  onAshenMark?: () => void;
   /** Living World outcomes (city kills, event results, survey/stash reached); GameCanvas applies them to progression */
   onLiving?: (event: LivingEmit) => void;
   onVehicleCondition?: (id: string, condition: VehicleCondition) => void;
@@ -1015,7 +1001,7 @@ function SceneImpl({
     for (const site of RESOURCE_SITES) list.push({ ...site, ready: (depleted.current[site.id] ?? 0) <= now });
     for (const lair of BOSS_LAIRS) list.push(lair);
     if (gear) for (const r of ruins()) if (isDiscovered(gear, r.id)) list.push({ id: `ruin-${r.id}`, kind: "RUIN", label: isEvolved(gear, r.id) ? `${r.name} (spent)` : r.name, x: r.x, z: r.z, regionId: r.regionId });
-    for (const lair of SCENARIO_LAIRS) if (!gear || lairRevealed(gear, lair.scenarioId)) list.push(lair);
+    for (const lair of SCENARIO_LAIRS) if (lair.scenarioId !== SOVEREIGN.id) list.push(lair); // a Unique is never on a map
     if (gear) for (const l of LANDMARKS) if (l.id !== "neon-city" && l.id !== "thalassia" && isLandmarkKnown(gear, l.id)) list.push({ id: `lm-${l.id}`, kind: "LANDMARK", label: l.name, x: l.x, z: l.z, regionId: l.regionId });
     for (const m of sim.machines) if (m.alive && m.boss) list.push({ id: `live-${m.profile}`, kind: "BOSS", label: `${m.profile} (engaged)`, x: m.x, z: m.z, regionId: m.zone });
     if (sim.emergencyQuest.state === "WARNING" || sim.emergencyQuest.state === "ACTIVE") list.push({ id: "eq-boss", kind: "BOSS", label: `EQ · ${sim.emergencyQuest.bossName}`, x: sim.emergencyQuest.x, z: sim.emergencyQuest.z, regionId: sim.emergencyQuest.regionId });
@@ -1256,13 +1242,10 @@ function SceneImpl({
   const opDash = useRef({ state: createDashState(playerClass, abilityBranches), held: false, wasActive: false });
   /** Operator grenades (grenades.ts, player-grenades.ts): the equipped one of the Operator's three, its pouch and what is live */
   const grenades = useRef({ rt: newGrenadeRuntime(equippedGrenade(abilityBranches, playerClass).id), equipped: equippedGrenade(abilityBranches, playerClass).id, held: { grenade: false, cycle: false } });
-  /** Dragonite abilities of the bonded Operator (dragonite-cast.ts) */
   /** target lock + shoulder side (target-lock.ts) */
   const lockRt = useRef({ state: newLockState(), keys: {} as Record<string, boolean> });
-  /** Vyrak's mood and banter (vyrak-personality.ts) */
-  const clueSent = useRef(new Set<string>());
-  const vyrakMind = useRef({ p: createPersonality(), kills: 0, hp: 100, clock: 0, lowAt: -99, bosses: 0 });
-  const dragoniteRt = useRef({ rt: createDragoniteRuntime(), held: {} as Record<string, boolean> });
+  /** Vyrak, the Sky Sovereign (sky-sovereign.ts): the secret-condition watch, a summons waiting on his intro, and who has remarked on the Ashen Mark */
+  const sovereign = useRef({ watch: createSovereignWatch(), pending: false, remarked: {} as Record<string, number> });
   const opDashStats = useMemo(() => dashStats(playerClass, abilityBranches), [playerClass, abilityBranches]);
   const wish = useMemo(() => new THREE.Vector3(), []);
   const camTarget = useMemo(() => new THREE.Vector3(), []);
@@ -1354,7 +1337,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       const kb = (settings.bindings ?? DEFAULT_BINDINGS).keyboard;
       if (pw < 1) { mouse.current.fire = false; mouse.current.aim = false; for (const code of [...ASLEEP_BELOW_1, kb.reload, kb.weaponWheel, kb.nextWeapon, kb.prevWeapon]) held.delete(code); }
       if (pw < 2) for (const code of [...ASLEEP_BELOW_2, kb.dash]) held.delete(code);
-      for (const code of [...ASLEEP_BELOW_3, kb.healStim, kb.armorStim, kb.ruinStone, kb.dragonfire, kb.wyrmwing, kb.dragonhide, kb.wyrmcall, kb.roar, kb.scalebreaker, kb.skyfall, kb.lockOn]) held.delete(code);
+      for (const code of [...ASLEEP_BELOW_3, kb.healStim, kb.armorStim, kb.ruinStone, kb.lockOn]) held.delete(code);
     }
     const boots = bootStats(gearLive.current?.earnedRewards ?? [], getEquippedBoots());
     // Safe-state guard: a null/invalid player or world ref (bad hot-reload, a race during a scene
@@ -1566,40 +1549,6 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       if (cyc && !g.held.cycle && !civ) { setGrenadeKind(g.rt, nextGrenade(playerClass, g.rt.pouch.kind)); alert(sim, `Grenade: ${GRENADES[g.rt.pouch.kind].name}`); }
       g.held.grenade = down; g.held.cycle = cyc;
       { const p = g.rt.pouch, d = GRENADES[p.kind]; grenadeHud.current = civ ? null : { name: d.name, color: d.color, charges: p.charges, max: d.charges, fill: p.charges >= d.charges ? 1 : Math.min(1, p.recharge / d.cooldown) }; }
-    }
-    {
-      // Dragonite (dragonite-cast.ts): the bonded Operator's four abilities on rebindable keys
-      const dkeys = normalizeBindings(settings.bindings).keyboard;
-      const dr = dragoniteRt.current, dctx: { earnedRewards: readonly string[]; inventory: PlayerProgression["inventory"]; equippedGear: Partial<Record<string, string>>; cls: ClassId | null; fury?: number } = { earnedRewards: gear?.earnedRewards ?? [], inventory: gear?.inventory ?? [], equippedGear: gear?.equippedGear ?? {}, cls: playerClass };
-      for (const id of DRAGONITE_IDS) {
-        const down = held.has(dkeys[id]);
-        if (down && !dr.held[id]) {
-          const e = { value: live.current.energy };
-          const r = castDragonite(dr.rt, sim, e, id, { x: s.x, z: s.z, yaw: s.yaw }, s.grounded, dctx);
-          if (r.ok) {
-            if (id === "wyrmcall") { const line = vyrakReact(vyrakMind.current.p, "summon", vyrakMind.current.clock); if (line) alert(sim, `VYRAK: ${line.text}`); }
-            live.current.energy = e.value; s.punch += 0.2; sfx.playAbility("ABILITY");
-            if (r.launchVy) { s.vy = Math.max(s.vy, r.launchVy); s.grounded = false; }
-            else if (id === "wyrmwing") { velocity.x += Math.sin(s.yaw) * 18; velocity.z += Math.cos(s.yaw) * 18; }
-          } else if (r.text) alert(sim, r.text);
-        }
-        dr.held[id] = down;
-      }
-      const vm = vyrakMind.current;
-      if (dctx.earnedRewards.includes(`covenant:vyrak:${playerClass}`)) {
-        vm.clock += dt; vyrakStepMood(vm.p, dt);
-        const say = (line: { text: string } | null) => { if (line) alert(sim, `VYRAK: ${line.text}`); };
-        if (sim.kills > vm.kills) say(vyrakReact(vm.p, sim.machines.filter((m) => m.alive && m.boss).length < vm.bosses ? "bossKill" : "kill", vm.clock));
-        if (sim.hp < vm.hp - 0.5) say(vyrakReact(vm.p, "hurt", vm.clock));
-        if (sim.hp < 30 && vm.hp >= 30 && vm.clock - vm.lowAt > 30) { vm.lowAt = vm.clock; say(vyrakReact(vm.p, "lowHp", vm.clock)); }
-        if (sim.hp >= 60 && vm.hp < 30) say(vyrakReact(vm.p, "recover", vm.clock));
-        vm.kills = sim.kills; vm.hp = sim.hp; vm.bosses = sim.machines.filter((m) => m.alive && m.boss).length;
-        say(maybeIdle(vm.p, vm.clock));
-        dctx.fury = furyBonus(vm.p);
-      }
-      const dres = stepDragonite(dr.rt, sim, dt, { x: s.x, z: s.z }, dctx);
-      dragoniteHud.current = playerClass && dctx.earnedRewards.includes(`covenant:vyrak:${playerClass}`) ? DRAGONITE_IDS.map((id) => ({ name: DRAGONITE[id].name, cd: dr.rt.cd[id], max: dragoniteStatsFor(dctx, id).cooldown, key: dkeys[id] })) : null;
-      sim.dragoniteResist = dres.resist;
     }
     /* ---------------- weather cycle (deterministic fronts per region, see weather-cycle.ts) ---------------- */
     // seasons layer on top of the fronts (environment.ts): same deterministic clock, seasonally-adjusted weather
@@ -2725,21 +2674,37 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
         if (inside && !lairsTriggered.current[lair.id] && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonBoss(sim, lair.regionId, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
-      // Vyrak discovery (vyrak-site.ts): walk up to a clue site, or sense the hidden lair; each pays its journal clue once
       // walking into a discovery starts it (consuming one attempt, like any activity); a running activity or the tutorial blocks it
       if (gear && !tutorial && !activity && onDiscovery) { discoveryClock.current += dt; if (discoveryClock.current > 0.3) { discoveryClock.current = 0; const hit = discoveryTriggered(gear, s.x, s.z, Date.now()); if (hit) onDiscovery(hit.id); } }
-      if (gear && !tutorial && onEncounterClue) {
-        const known = (id: string) => gear.earnedRewards.includes(`enc-clue:vyrak:${id}`) || clueSent.current.has(id);
-        // NOVA comments after each new clue (one clue is not a pattern; two or more point at the region), using the keys the journal will hold once this clue is saved
-        const nova = () => { const h = novaHint({ earnedRewards: [...gear.earnedRewards, ...[...clueSent.current].map((c) => `enc-clue:vyrak:${c}`)] }, "vyrak"); if (h) alert(sim, h); };
-        const site = nearClueSite(s.x, s.z);
-        if (site && !known(site.clueId)) { clueSent.current.add(site.clueId); onEncounterClue("vyrak", site.clueId); alert(sim, `CLUE · ${site.found}`); nova(); }
-        if (nearHiddenLair(s.x, s.z) && !known("site")) { clueSent.current.add("site"); onEncounterClue("vyrak", "site"); alert(sim, "CLUE · The air is hot and the stone is scarred here. Something enormous has slept nearby."); nova(); }
+      // Vyrak (sky-sovereign.ts): nothing marks him. He comes down only when the Operator is alone, on foot, level 12+, at night,
+      // and has stood in the Ribcage crater long enough; his intro plays first, then the fight. Once slain he never returns.
+      {
+        const lair = SCENARIO_LAIRS.find((l) => l.scenarioId === SOVEREIGN.id), sv = sovereign.current, scenario = scenarioById(SOVEREIGN.id);
+        const slain = !gear || sovereignSlain(gear);
+        if (lair && scenario && !slain) {
+          const bossUp = sim.machines.some((m) => m.alive && m.boss);
+          const alone = !sim.squad.enabled && !pvp.current && !activity && !tutorial && !bossUp && !s.insideInterior;
+          if (stepSovereignWatch(sv.watch, { dist: Math.hypot(lair.x - s.x, lair.z - s.z), night: nightFactor(time.current), level: gear.level ?? 1, inVehicle: s.inVehicle, alone }, dt, slain)) {
+            sv.pending = true;
+            if (introDue(gear.story ?? EMPTY_STORY, SOVEREIGN.id as BossStoryId)) onStoryEvent?.({ type: "BOSS_LAIR_ENTER", scenarioId: SOVEREIGN.id });
+          }
+          if (sv.pending && !bossUp && !introDue(gear.story ?? EMPTY_STORY, SOVEREIGN.id as BossStoryId)) { sv.pending = false; summonScenarioBoss(sim, scenario, lair.x, lair.z); }
+        }
+        // the Ashen Mark: people notice it (one remark per person, rate-limited)
+        if (gear && ashenMarked(gear) && !s.inVehicle) {
+          const n = npcNear(s.x, s.z), tNow = performance.now() / 1000;
+          if (n && Math.hypot(npcWorld(n).x - s.x, npcWorld(n).z - s.z) <= MARK_REMARK_RADIUS && tNow - (sv.remarked[n.id] ?? -1e9) > MARK_REMARK_COOLDOWN * 20 && tNow - (sv.remarked["*"] ?? -1e9) > MARK_REMARK_COOLDOWN) {
+            sv.remarked[n.id] = tNow; sv.remarked["*"] = tNow;
+            alert(sim, `${n.name.toUpperCase()}: ${ashenRemark(n.id.length * 7 + Math.floor(tNow))}`);
+          }
+        }
       }
       // Unique Scenario lairs (Rime Alpha, Dark Knight, ...): same walk-in trigger, but they summon the scenario boss
       for (const lair of SCENARIO_LAIRS) {
         const inside = Math.hypot(lair.x - s.x, lair.z - s.z) < LAIR_RADIUS;
         const scenario = scenarioById(lair.scenarioId);
+        // Vyrak has no walk-in: the secret-condition watch above summons him
+        if (lair.scenarioId === SOVEREIGN.id) continue;
         // Vaelith is a story scenario: entering asks for the Ashen Gate conversation first; the trial begins once it has been heard
         if (inside && lair.scenarioId === VAELITH && !tutorial && dialogueDue(gear?.story ?? EMPTY_STORY) && !lairsTriggered.current[`${lair.id}-asked`]) { lairsTriggered.current[`${lair.id}-asked`] = true; onStoryEvent?.({ type: "LAIR_ENTER" }); }
         if (!inside) lairsTriggered.current[`${lair.id}-asked`] = false;
@@ -2750,9 +2715,7 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           if (tNow - (beatsAsk.askedAt[lair.id] ?? -99) > 3) { beatsAsk.askedAt[lair.id] = tNow; onStoryEvent?.({ type: "BOSS_LAIR_ENTER", scenarioId: lair.scenarioId }); }
           continue;
         }
-        // unique encounter: the first meeting is hidden-discovery gated; once bonded the Sky Sovereign returns only as a rematch within the real-time daily limit and cooldown
-        if (lair.scenarioId === "vyrak" && ((gear && !lairRevealed(gear, "vyrak")) || (bonded && !vyrakRematch))) continue;
-        if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; if (summonScenarioBoss(sim, scenario, lair.x, lair.z) && lair.scenarioId === "vyrak" && bonded) { onVyrakRematch?.(); alert(sim, "VYRAK REMATCH · No death and a fast kill earn the Covenant ornaments."); } }
+        if (inside && scenario && !lairsTriggered.current[lair.id] && !tutorial && !sim.machines.some((m) => m.alive && m.boss)) { lairsTriggered.current[lair.id] = true; summonScenarioBoss(sim, scenario, lair.x, lair.z); }
         if (!inside && Math.hypot(lair.x - s.x, lair.z - s.z) > LAIR_RADIUS * 4) lairsTriggered.current[lair.id] = false;
       }
       // Story beats (vaelith.ts): the sim decides what happened, these only forward it to the pure reducers
@@ -2767,6 +2730,12 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
           if (e.id <= beats.seenEncounterEvent) continue;
           beats.seenEncounterEvent = e.id;
           if (e.kind === "TRUCE" && e.scenarioId === VAELITH) onStoryEvent?.({ type: "TRIAL_SURVIVED" });
+          // Vyrak (sky-sovereign.ts): an Operator who goes down does not get a reset — he climbs back into the dark and brands them
+          if (e.kind === "RESET" && e.scenarioId === SOVEREIGN.id) {
+            for (const m of sim.machines) if (m.alive && m.scenarioId === SOVEREIGN.id) m.alive = false;
+            for (const line of BRAND_LINES) alert(sim, line);
+            if (gear && brandAshenMark(gear).branded) onAshenMark?.();
+          }
           // boss stories: captions follow the encounter's own phases; BOSS_DEFEATED comes only from the real-kill VICTORY event (never a truce, reset or death)
           if (e.kind === "PHASE" && bossStoryFor(e.scenarioId)) onStoryEvent?.({ type: "BOSS_PHASE", scenarioId: e.scenarioId, phase: e.phase });
           if (e.kind === "VICTORY" && bossStoryFor(e.scenarioId)) onStoryEvent?.({ type: "BOSS_DEFEATED", scenarioId: e.scenarioId });
@@ -3425,7 +3394,6 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       }
       if (!travActive) {
       s.vy -= sim.gravity * dt;
-      if (dragoniteRt.current.rt.glide > 0 && s.vy < -2.5) s.vy = -2.5; // Wyrmwing glide
       if (riftShaft && s.vy < -14) s.vy = -14; // a descent's drop shaft lowers you like a gravity lift
       s.y += s.vy * dt;
       if (s.y <= standY) {
@@ -4000,13 +3968,11 @@ const atmoScratch = useMemo(() => new THREE.Color(), []);
       {settings.zoneLabels && <RegionLabels zones={sim.zones} />}
 
       <NovaDrone held={state} />
-      {bonded && <Wyrmling held={state} hurtAt={audioSeen} />}
-      <VyrakClueSites />
       {activity && activity.def.stages[0]?.kind === "race" && activity.run.race ? <RaceCourse race={raceById((activity.def.stages[0] as { raceId: string }).raceId)!} run={activity.run.race as RaceRun} /> : null}
       {/* player on foot */}
       <group ref={player} position={SPAWN.toArray()}>
         <OperatorModel colorway held={state} gear={gear} bodyType={bodyType} face={gear?.character?.face} skin={gear?.character?.skin} eyes={gear?.character?.eyes} style={gear?.character ?? undefined} classId={playerClass} height={OPERATOR_HEIGHT} feetY={-1.6} color={appearance.armor} trim={appearance.visor} cloth={appearance.cloth} look={worn} pose="locomotion" motion={feel.current.motionRef} fallback={
-  <group scale={OPERATOR_HEIGHT / 2.75} position={[0, -1.55 * (1 - OPERATOR_HEIGHT / 2.75), 0]}><Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} /></group>
+  <group scale={OPERATOR_HEIGHT / 2.75} position={[0, -1.55 * (1 - OPERATOR_HEIGHT / 2.75), 0]}><Operator bodyType={bodyType} armor={appearance.armor} cloth={appearance.cloth} visor={appearance.visor} trim={appearance.trim} classId={playerClass} motion={feel.current.motionRef} visualState={armorState} chestLevel={armorLevels.chest} helmetLevel={armorLevels.helmet} legsLevel={armorLevels.legs} look={worn} ashen={!!gear && ashenMarked(gear)} /></group>
         } />
         {playerClass === "TITAN" && sim.titan.blocking && (
           // Chevron-angled holographic panels + a glowing rim edge instead of one flat box —

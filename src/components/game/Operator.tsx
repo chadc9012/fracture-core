@@ -41,6 +41,7 @@ export function Operator({
   motion,
   bodyType,
   look,
+  ashen = false,
 }: {
   armor?: string;
   cloth?: string;
@@ -63,6 +64,8 @@ export function Operator({
   bodyType?: BodyType | undefined;
   /** worn set pieces' signature motifs (armor-look.ts); body-type fit comes from the same module */
   look?: ArmorLook;
+  /** sky-sovereign.ts: the Ashen Mark — three claw-streaks of warm ash burned across the left pauldron */
+  ashen?: boolean;
 }) {
   const bodyP = bodyProfile(bodyType);
   const robot = bodyP.segmented;
@@ -171,6 +174,9 @@ export function Operator({
           <RoundedBox args={[(titan ? 0.36 : 0.26) * (chestTier >= 2 ? 1.18 : 1), 0.22 * (chestTier >= 2 ? 1.15 : 1), 0.34]} radius={0.1} smoothness={BEVEL} position={[side * 0.04, 0.55, 0]} rotation={[0, 0, side * -0.25]} castShadow>{plate}</RoundedBox>
           {chestTier >= 2 && <RoundedBox args={[0.1, 0.1, 0.36]} radius={0.03} smoothness={BEVEL} position={[side * 0.04, 0.63, 0]} rotation={[0, 0, side * -0.25]} castShadow>{trim}</RoundedBox>}
           {seam(`sh${side}`, [side * 0.1, 0.6, 0.2], [0.14, 0.02, 0.02], [0, 0, side * -0.25])}
+          {ashen && side < 0 && <group position={[side * 0.04, 0.55, 0]} rotation={[0, 0, side * -0.25]} name="ashen-mark">
+            {[-0.09, 0, 0.09].map((z, i) => <mesh key={z} position={[0.02 * (i - 1), 0.115, z]} rotation={[0, 0.5, 0]}><boxGeometry args={[0.03, 0.012, 0.2]} /><meshStandardMaterial color="#2b2420" emissive="#ff5a1a" emissiveIntensity={1.4} roughness={0.95} toneMapped={false} /></mesh>)}
+          </group>}
           <group ref={side < 0 ? armL : armR} position={[0, 0.5, 0]}><group position={[0, -0.5, 0]}>
           <mesh position={[side * 0.06, 0.18, 0]} castShadow><capsuleGeometry args={[0.075, 0.46, 8, 14]} />{suit}</mesh>
           <mesh position={[side * 0.065, -0.07, 0.03]} castShadow><sphereGeometry args={[0.095, 12, 10]} />{plate}</mesh>

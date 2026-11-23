@@ -440,45 +440,32 @@ ENCOUNTERS = [
          + L(N, "He's leaving the blade.")
          + L("THE RED RONIN", "Keep it. It cuts what you are willing to stand close to. Nothing else.")},
      ]},
-    # ------------------------------------------------------------------------------------------------ 9  (The Ashen Covenant — Vyrak; protected)
-    {"id": "vyrak", "mission": "U09", "name": "Covenant: The Sky Sovereign", "boss_name": "Vyrak, the Ashen Covenant",
-     "region": "Solara Desert", "world": "solara", "gimmick": "poise", "hull": "vyrak", "after": "17",
+    # ------------------------------------------------------------------------------------------------ 9  (Vyrak — a Unique)
+    # Owner, Nov 23: "Vyrak needs to be a unique encounter i hate that he keeps being brought up", then "Think Shanghai-la
+    # frontier" (secret conditions, world-first + unique loot, the Ashen Mark on a loss, both games). He has NO clues, no
+    # lead and no journal entry until met: scripts/mission/sky_sovereign.gd brings him down when the operator is alone, on
+    # foot, level 12+, at night (the device's own clock — Solara is drawn in daylight) and has stood in the Ribcage crater for
+    # a while; a loss brands the Ashen Mark, a kill is once per profile. `unique: true` keeps the journal and the trigger
+    # text from ever describing him.
+    {"id": "vyrak", "mission": "U09", "name": "Unique: The Sky Sovereign", "boss_name": "Vyrak, the Sky Sovereign",
+     "region": "Solara Desert", "world": "solara", "gimmick": "poise", "hull": "vyrak", "after": "17", "unique": True,
      "nex": 1500, "xp": 900, "drop": "dragonite", "lair": "ribcage",
      "taunt": "Another small thing with a borrowed spark. Show me why the Fracture chose you.",
-     "tell": "Its wings flare gold before a strafing run, its chest plates glow before they burst, and the whole lair shakes before the Covenant roar.",
-     "briefing": "Vyrak has ruled the thermals over the Glass Flats since before the Fracture. Its scale armor turns almost everything. It only opens in the moments after its own attacks, and again when the chest plates crack. Survive the trial and it may choose you.",
-     "trigger": "Vyrak's lair stays hidden until you have found it twice over. Walk to the crater of fused sand at the end of the Glass Flats, and it comes down to meet you.",
-     # the web's three routes (vyrak-site.ts): the carving in Solara, the ranger's last campfire in the Wastelands, the hidden lair
-     "clues": [
-        {"id": "site", "route": "site", "text": "You stood at the place the rumours describe."},
-        {"id": "inscription", "route": "world", "poi": "colonnade", "text": "An inscription in Solara describes a sky sovereign that tests courage, not strength.",
-         "found": "A carving of a winged shape above a split mountain. Beneath it: \"It tests courage, not strength.\""},
-        {"id": "ember", "route": "world", "world": "wastelands", "poi": "wl-dust-rose", "text": "A ranger remembers a dragon that remembers the world before the Fracture.",
-         "found": "A ranger's journal: \"A dragon that remembers the world before the Fracture. It waits beyond the desert where the mountain is scarred.\""},
-     ],
+     "tell": "Its wings flare gold before a strafing run, its chest plates glow before they burst, and the whole crater shakes before the roar.",
+     "briefing": "Something older than the Fracture has come down out of the dark. Its scale armor turns almost everything. It only opens in the moments after its own attacks, and again when the chest plates crack.",
+     "trigger": "",
+     "clues": [],
      "chapters": [
-        {"id": "U09A", "title": "The Glass Flats", "location": "EXT. SOLARA — THE GLASS FLATS", "kind": "reach", "start": "colonnade",
-         "label": "Find the crater at the end of the Glass Flats",
-         "open": L(N, "The carving and the ranger's journal point the same way: beyond the desert, where the mountain is scarred."),
-         "close": L(NAR, "The Glass Flats end at a crater of fused sand. Something vast circles above it, patient as weather.")
+        {"id": "U09B", "title": "The Sky Sovereign", "location": "EXT. THE CRATER OF FUSED SAND — NIGHT", "kind": "boss", "boss": "vyrak", "start": "ribcage",
+         "label": "Survive Vyrak",
+         "open": L(NAR, "Night, and nobody else for miles. At the end of the Glass Flats something vast is coming down out of the dark.")
          + L("VYRAK", "Another small thing with a borrowed spark. Show me why the Fracture chose you.")
-         + L(O, "I'm not here to steal from a graveyard.")
-         + L("VYRAK", "No. You are here because the sky told you to be. They always come when the sky tells them.")
-         + L(N, "Its armor sheds under heat. Break the chest plates and the core is exposed.")
-         + L(O, "And if I win?")
-         + L("VYRAK", "Then I will stop being a storm, little spark. Win, and we will see what you are worth.")},
-        {"id": "U09B", "title": "The Ashen Covenant", "location": "EXT. THE CRATER OF FUSED SAND", "kind": "boss", "boss": "vyrak",
-         "label": "Face Vyrak",
-         "open": L("VYRAK", "The sky is mine. Convince me to share it."),
-         "close": L(NAR, "The final blow lands. Vyrak does not fall — it folds, wings drawing in like a closing hand.")
-         + L("VYRAK", "Enough. You fight like one who will not be ruled. Then I will not rule you — I will walk beside you.")
-         + L(N, "Its mass is collapsing… it's choosing a smaller form. I think it just joined us.")
-         + L("VYRAK", "Carry my scales. Call my fire. And when the Fracture comes for you, little spark — it will answer to both of us.")
-         + L(NAR, "A wyrmling no longer than your arm settles at your shoulder, and the crater goes quiet.")
-         + L(NAR, "A scorched Aegis survey terminal, half-melted into the glass. One log still plays.")
-         + L("SURVEY LOG", "Day 40. The dragon is not nesting. It is waiting. Every probe we send, it lets one return. It wants to be found by the right one.")
-         + L(N, "It was never guarding the Flats. It was interviewing.")
-         + L(O, "Then I'm glad I passed.")},
+         + L(O, "What are you?")
+         + L("VYRAK", "Older than your sky. They always come alone, in the end. Most of them leave carrying my ash.")
+         + L(N, "I have nothing on this. Nothing. Its armor sheds under heat. Break the chest plates."),
+         "close": L(NAR, "The final blow lands. Vyrak comes down like a falling wall, and does not rise.")
+         + L("VYRAK", "So the sky had an equal after all. Remember that it was you, little spark.")
+         + L(N, "Its signal is gone. Whatever that was, there was only ever one of it.")},
      ]},
     # ------------------------------------------------------------------------------------------------ 10
     {"id": "hollow-colossus", "mission": "U10", "name": "Slumber: The Hollow Colossus", "boss_name": "The Hollow Colossus",

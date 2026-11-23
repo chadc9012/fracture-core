@@ -441,46 +441,23 @@
   {
    "id": "vyrak",
    "mission": "U09",
-   "name": "Covenant: The Sky Sovereign",
-   "boss_name": "Vyrak, the Ashen Covenant",
+   "name": "Unique: The Sky Sovereign",
+   "boss_name": "Vyrak, the Sky Sovereign",
    "region": "Solara Desert",
    "world": "solara",
    "gimmick": "poise",
    "hull": "vyrak",
    "after": "17",
+   "unique": true,
    "nex": 1500,
    "xp": 900,
    "drop": "dragonite",
    "lair": "ribcage",
    "taunt": "Another small thing with a borrowed spark. Show me why the Fracture chose you.",
-   "tell": "Its wings flare gold before a strafing run, its chest plates glow before they burst, and the whole lair shakes before the Covenant roar.",
-   "briefing": "Vyrak has ruled the thermals over the Glass Flats since before the Fracture. Its scale armor turns almost everything. It only opens in the moments after its own attacks, and again when the chest plates crack. Survive the trial and it may choose you.",
-   "trigger": "Vyrak's lair stays hidden until you have found it twice over. Walk to the crater of fused sand at the end of the Glass Flats, and it comes down to meet you.",
-   "clues": [
-    {
-     "id": "site",
-     "route": "site",
-     "text": "You stood at the place the rumours describe.",
-     "world": "solara",
-     "poi": "ribcage"
-    },
-    {
-     "id": "inscription",
-     "route": "world",
-     "poi": "colonnade",
-     "text": "An inscription in Solara describes a sky sovereign that tests courage, not strength.",
-     "found": "A carving of a winged shape above a split mountain. Beneath it: \"It tests courage, not strength.\"",
-     "world": "solara"
-    },
-    {
-     "id": "ember",
-     "route": "world",
-     "world": "wastelands",
-     "poi": "wl-dust-rose",
-     "text": "A ranger remembers a dragon that remembers the world before the Fracture.",
-     "found": "A ranger's journal: \"A dragon that remembers the world before the Fracture. It waits beyond the desert where the mountain is scarred.\""
-    }
-   ],
+   "tell": "Its wings flare gold before a strafing run, its chest plates glow before they burst, and the whole crater shakes before the roar.",
+   "briefing": "Something older than the Fracture has come down out of the dark. Its scale armor turns almost everything. It only opens in the moments after its own attacks, and again when the chest plates crack.",
+   "trigger": "",
+   "clues": [],
    "drop_name": "Dragonite"
   },
   {
@@ -1662,56 +1639,34 @@
   },
   {
    "id": "U09",
-   "title": "Covenant: The Sky Sovereign",
+   "title": "Unique: The Sky Sovereign",
    "region": "Solara Desert",
    "world": "solara",
    "encounter": "vyrak",
-   "beat": "Vyrak's lair stays hidden until you have found it twice over. Walk to the crater of fused sand at the end of the Glass Flats, and it comes down to meet you.",
+   "beat": "",
    "category": "unique",
    "chapters": [
     {
-     "id": "U09A",
-     "title": "The Glass Flats",
-     "location": "EXT. SOLARA — THE GLASS FLATS",
-     "kind": "reach",
-     "start": "colonnade",
-     "label": "Find the crater at the end of the Glass Flats",
+     "id": "U09B",
+     "title": "The Sky Sovereign",
+     "location": "EXT. THE CRATER OF FUSED SAND — NIGHT",
+     "kind": "boss",
+     "boss": "vyrak",
+     "start": "ribcage",
+     "label": "Survive Vyrak",
      "open": [
-      "U09_001"
-     ],
-     "close": [
+      "U09_001",
       "U09_002",
       "U09_003",
       "U09_004",
-      "U09_005",
+      "U09_005"
+     ],
+     "close": [
       "U09_006",
       "U09_007",
       "U09_008"
      ],
-     "stage": "ribcage"
-    },
-    {
-     "id": "U09B",
-     "title": "The Ashen Covenant",
-     "location": "EXT. THE CRATER OF FUSED SAND",
-     "kind": "boss",
-     "boss": "vyrak",
-     "label": "Face Vyrak",
-     "open": [
-      "U09_009"
-     ],
-     "close": [
-      "U09_010",
-      "U09_011",
-      "U09_012",
-      "U09_013",
-      "U09_014",
-      "U09_015",
-      "U09_016",
-      "U09_017",
-      "U09_018"
-     ],
-     "boss_name": "Vyrak, the Ashen Covenant",
+     "boss_name": "Vyrak, the Sky Sovereign",
      "stage": "ribcage"
     }
    ]
@@ -3527,110 +3482,50 @@
   {
    "id": "U09_001",
    "mission": "U09",
-   "speaker": "NOVA",
-   "text": "The carving and the ranger's journal point the same way: beyond the desert, where the mountain is scarred."
+   "speaker": "NARRATOR",
+   "text": "Night, and nobody else for miles. At the end of the Glass Flats something vast is coming down out of the dark."
   },
   {
    "id": "U09_002",
-   "mission": "U09",
-   "speaker": "NARRATOR",
-   "text": "The Glass Flats end at a crater of fused sand. Something vast circles above it, patient as weather."
-  },
-  {
-   "id": "U09_003",
    "mission": "U09",
    "speaker": "VYRAK",
    "text": "Another small thing with a borrowed spark. Show me why the Fracture chose you."
   },
   {
-   "id": "U09_004",
+   "id": "U09_003",
    "mission": "U09",
    "speaker": "PLAYER",
-   "text": "I'm not here to steal from a graveyard."
+   "text": "What are you?"
+  },
+  {
+   "id": "U09_004",
+   "mission": "U09",
+   "speaker": "VYRAK",
+   "text": "Older than your sky. They always come alone, in the end. Most of them leave carrying my ash."
   },
   {
    "id": "U09_005",
    "mission": "U09",
-   "speaker": "VYRAK",
-   "text": "No. You are here because the sky told you to be. They always come when the sky tells them."
+   "speaker": "NOVA",
+   "text": "I have nothing on this. Nothing. Its armor sheds under heat. Break the chest plates."
   },
   {
    "id": "U09_006",
    "mission": "U09",
-   "speaker": "NOVA",
-   "text": "Its armor sheds under heat. Break the chest plates and the core is exposed."
+   "speaker": "NARRATOR",
+   "text": "The final blow lands. Vyrak comes down like a falling wall, and does not rise."
   },
   {
    "id": "U09_007",
    "mission": "U09",
-   "speaker": "PLAYER",
-   "text": "And if I win?"
+   "speaker": "VYRAK",
+   "text": "So the sky had an equal after all. Remember that it was you, little spark."
   },
   {
    "id": "U09_008",
    "mission": "U09",
-   "speaker": "VYRAK",
-   "text": "Then I will stop being a storm, little spark. Win, and we will see what you are worth."
-  },
-  {
-   "id": "U09_009",
-   "mission": "U09",
-   "speaker": "VYRAK",
-   "text": "The sky is mine. Convince me to share it."
-  },
-  {
-   "id": "U09_010",
-   "mission": "U09",
-   "speaker": "NARRATOR",
-   "text": "The final blow lands. Vyrak does not fall — it folds, wings drawing in like a closing hand."
-  },
-  {
-   "id": "U09_011",
-   "mission": "U09",
-   "speaker": "VYRAK",
-   "text": "Enough. You fight like one who will not be ruled. Then I will not rule you — I will walk beside you."
-  },
-  {
-   "id": "U09_012",
-   "mission": "U09",
    "speaker": "NOVA",
-   "text": "Its mass is collapsing… it's choosing a smaller form. I think it just joined us."
-  },
-  {
-   "id": "U09_013",
-   "mission": "U09",
-   "speaker": "VYRAK",
-   "text": "Carry my scales. Call my fire. And when the Fracture comes for you, little spark — it will answer to both of us."
-  },
-  {
-   "id": "U09_014",
-   "mission": "U09",
-   "speaker": "NARRATOR",
-   "text": "A wyrmling no longer than your arm settles at your shoulder, and the crater goes quiet."
-  },
-  {
-   "id": "U09_015",
-   "mission": "U09",
-   "speaker": "NARRATOR",
-   "text": "A scorched Aegis survey terminal, half-melted into the glass. One log still plays."
-  },
-  {
-   "id": "U09_016",
-   "mission": "U09",
-   "speaker": "SURVEY LOG",
-   "text": "Day 40. The dragon is not nesting. It is waiting. Every probe we send, it lets one return. It wants to be found by the right one."
-  },
-  {
-   "id": "U09_017",
-   "mission": "U09",
-   "speaker": "NOVA",
-   "text": "It was never guarding the Flats. It was interviewing."
-  },
-  {
-   "id": "U09_018",
-   "mission": "U09",
-   "speaker": "PLAYER",
-   "text": "Then I'm glad I passed."
+   "text": "Its signal is gone. Whatever that was, there was only ever one of it."
   },
   {
    "id": "U10_001",

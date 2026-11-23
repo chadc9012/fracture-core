@@ -956,6 +956,34 @@ func _wear() -> void:
 						r2.material_override = gold
 						h5.add_child(r2)
 
+## the Ashen Mark (sky_sovereign.gd): three claw-streaks of warm ash across the top of the left shoulder, riding the upper
+## arm through every clip. Off removes them.
+var _ashen: Node3D
+func ashen_mark(on: bool) -> void:
+	if _ashen and is_instance_valid(_ashen):
+		_ashen.get_parent().queue_free()
+	_ashen = null
+	if not on or skeleton == null:
+		return
+	_ashen = _on_bone("LeftArm", Vector3(-0.005, 0.07, 0.0))
+	if _ashen == null:
+		return
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.17, 0.14, 0.12)
+	m.roughness = 0.95
+	m.emission_enabled = true
+	m.emission = Color(1.0, 0.35, 0.1)
+	m.emission_energy_multiplier = 0.7
+	for i in 3:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.009, 0.005, 0.1)
+		mi.mesh = bm
+		mi.material_override = m
+		mi.position = Vector3(0.0, 0.0, -0.04 + 0.04 * i)
+		mi.rotation = Vector3(0.0, 0.45, 0.0)
+		_ashen.add_child(mi)
+
 ## a holder upright in model space at the bone's rest plus `off`, riding the bone
 func _on_bone(suffix: String, off: Vector3) -> Node3D:
 	var idx := _bone(skeleton, suffix)

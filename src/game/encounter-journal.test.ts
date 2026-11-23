@@ -5,8 +5,8 @@ import { cluesFor, discoveryThreshold, isCompleted, isDiscovered, journalFor, kn
 const p0 = { earnedRewards: [] as string[] };
 describe("encounter journal", () => {
   test("every encounter has at least the site clue and the eight special ones have several routes", () => {
-    for (const s of UNIQUE_SCENARIOS) expect(cluesFor(s.id).some((c) => c.id === "site")).toBe(true);
-    for (const id of ["hollow-colossus", "exiled-architect", "verdant-sovereign", "black-market-phantom", "vyrak"]) expect(new Set(cluesFor(id).map((c) => c.route)).size).toBeGreaterThanOrEqual(2);
+    for (const s of UNIQUE_SCENARIOS) if (s.id !== "vyrak") expect(cluesFor(s.id).some((c) => c.id === "site")).toBe(true);
+    for (const id of ["hollow-colossus", "exiled-architect", "verdant-sovereign", "black-market-phantom"]) expect(new Set(cluesFor(id).map((c) => c.route)).size).toBeGreaterThanOrEqual(2);
   });
   test("clues are idempotent and discovery needs the threshold, account-wide", () => {
     const a = recordClue(p0, "hollow-colossus", "site");
@@ -19,6 +19,7 @@ describe("encounter journal", () => {
   test("unknown encounters and clues change nothing", () => {
     expect(recordClue(p0, "nope", "site").progression).toBe(p0);
     expect(recordClue(p0, "vyrak", "nope").progression).toBe(p0);
+    expect(recordClue(p0, "vyrak", "site").progression).toBe(p0); // a Unique has no clues at all
   });
   test("completion and mastery are per Operator while discovery is shared", () => {
     let p = recordEncounterClear(p0, "HUNTER", "exiled-architect");
@@ -48,8 +49,11 @@ describe("encounter journal", () => {
   });
 });
 
-test("Vyrak is flagged as a special journal entry", () => {
-  const p = recordClue({ earnedRewards: [] as string[] }, "vyrak", "inscription").progression;
-  expect(journalFor(p, "HUNTER").find((e) => e.id === "vyrak")?.special).toBe(true);
-  expect(journalFor(recordClue(p, "hollow-colossus", "site").progression, "HUNTER").find((e) => e.id === "hollow-colossus")?.special).toBe(false);
+test("Vyrak (a Unique) is absent until met: the Ashen Mark shows an unnamed entry, the kill names him", () => {
+  expect(journalFor(p0, "HUNTER").some((e) => e.id === "vyrak")).toBe(false);
+  const marked = journalFor({ earnedRewards: ["ashen-mark:vyrak"] }, "HUNTER").find((e) => e.id === "vyrak");
+  expect(marked?.special).toBe(true); expect(marked?.name).toBe("Unknown"); expect(marked?.clues.length).toBe(1); expect(marked?.hint).toBeNull();
+  const slain = journalFor({ earnedRewards: ["ashen-mark:vyrak", "unique-slain:vyrak"] }, "HUNTER").find((e) => e.id === "vyrak");
+  expect(slain?.completed).toBe(true); expect(slain?.name).toBe("Unique: The Sky Sovereign"); expect(slain?.clues.length).toBe(0);
+  expect(journalFor(recordClue(p0, "hollow-colossus", "site").progression, "HUNTER").find((e) => e.id === "hollow-colossus")?.special).toBe(false);
 });

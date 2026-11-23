@@ -13,7 +13,7 @@
 
 import type { Gimmick } from "./scenario-gimmicks";
 import { THALASSIA_CENTER } from "./thalassia-site";
-import { VYRAK } from "./dragon-covenant";
+import { VYRAK } from "./sky-sovereign";
 import { NEON_CENTER } from "./living-world";
 import { HOLLOW_STAR_SITE } from "./hollow-star-site";
 
@@ -158,8 +158,8 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
   {
     id: "vyrak",
     gimmick: "poise",
-    taunt: VYRAK.intro[1]!.text,
-    name: "Covenant: The Sky Sovereign",
+    taunt: VYRAK.intro[0]!.text,
+    name: "Unique: The Sky Sovereign",
     regionId: "solara",
     bossName: VYRAK.name,
     drop: "dragonite",
@@ -167,6 +167,7 @@ export const UNIQUE_SCENARIOS: readonly UniqueScenario[] = [
     tell: VYRAK.tell,
     outsideWindowMult: 0.07,
     rewardCredits: 1500,
+    // no walk-in: Scene summons him only when sky-sovereign.ts's secret conditions hold here (the Ribcage crater)
     lair: { dx: 0.45, dz: 0.5 },
   },
   {

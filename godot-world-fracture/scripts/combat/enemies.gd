@@ -306,6 +306,31 @@ func step(dt: float) -> void:
 	for e in enemies:
 		_step_enemy(e, dt)
 		e.target.box = _box(e)
+		_aim_gun(e)
+
+## the bot's rifle points where it is looking, as gunplay._point_gun does the operator's. Hung off the hand bone at a
+## fixed angle it followed the walk and run clips' arm swing and pointed behind the back or at the sky (owner, Nov 23:
+## "NPCs and other characters gun still flipped backwards"); now it aims at the foe in a fight, else down the heading
+func _aim_gun(e: Enemy) -> void:
+	if not e.held or not e.held.is_inside_tree() or not e.mover.visible or e.state == State.DOWN:
+		return
+	var hand := e.held.get_parent() as Node3D
+	if not hand:
+		return
+	var at := hand.global_position
+	var dir := Vector3.ZERO
+	if e.state == State.ENGAGE or e.state == State.ALERT:
+		var foe: Variant = e.get_meta("foe") if e.has_meta("foe") else null
+		var aim: Vector3 = (player.global_position if foe == null else (foe as Enemy).mover.global_position) + Vector3(0, 1.1, 0)
+		dir = aim - at
+		dir.y = clampf(dir.y, -dir.length() * 0.6, dir.length() * 0.6)
+	if dir.length() < 0.5:
+		var h: float = float(e.mover.get("heading")) if e.mover.get("heading") != null else e.mover.rotation.y
+		dir = Vector3(sin(h), -0.25, cos(h))     # low ready while patrolling
+	dir = dir.normalized()
+	if absf(dir.y) > 0.98:
+		return
+	e.held.global_transform = Transform3D(Basis.looking_at(-dir, Vector3.UP), at)
 
 func _step_enemy(e: Enemy, dt: float) -> void:
 	if e.has_meta("puppet"):
