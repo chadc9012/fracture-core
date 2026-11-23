@@ -188,7 +188,9 @@ func step(dt: float) -> void:
 		var np := position + step_v
 		var blocked := false
 		for b in obstacles:
-			if b.grow(size * 0.3).has_point(Vector3(np.x, b.position.y + 0.5, np.z)):
+			var g: AABB = b.grow(size * 0.3)
+			# a box it already stands in (a big hull dropped against a building) does not hold it: it walks out
+			if g.has_point(Vector3(np.x, b.position.y + 0.5, np.z)) and not g.has_point(Vector3(position.x, b.position.y + 0.5, position.z)):
 				blocked = true
 				break
 		if not blocked:
