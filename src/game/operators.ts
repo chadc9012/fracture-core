@@ -15,6 +15,10 @@ export const LEGACY_ABILITY_IDS: Readonly<Record<string, string>> = {
   "code-pulse": "recon-swarm",
   "reality-field": "disruption-pulse",
   "system-override": "rift-turret",
+  // the Covenant's Wyrmling abilities went with the companion (Nov 23, Vyrak is a Unique now): each class's own tactical
+  "ember-bulwark": "kinetic-slam",
+  "wyrm-dash": "rift-dash",
+  "ash-nova": "disruption-pulse",
 };
 
 export const migrateAbilityId = (id: string): string => LEGACY_ABILITY_IDS[id] ?? id;

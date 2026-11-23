@@ -27,7 +27,7 @@ describe("operators + abilities", () => {
     }
   });
   it("every legacy id maps to an existing node in the same slot and class", () => {
-    expect(Object.keys(LEGACY_ABILITY_IDS)).toHaveLength(9);
+    expect(Object.keys(LEGACY_ABILITY_IDS)).toHaveLength(12); // the 9 roster renames + the 3 retired Covenant abilities (Nov 23)
     for (const [oldId, newId] of Object.entries(LEGACY_ABILITY_IDS)) expect(ABILITY_NODES.some((n) => n.id === newId)).toBe(true);
     expect(ABILITY_NODES.every((n) => n.links.every((l) => ABILITY_NODES.some((m) => m.id === l)))).toBe(true);
     expect(DEFAULT_BUILD.slots.PRIMARY && ABILITY_NODES.some((n) => n.id === DEFAULT_BUILD.slots.TACTICAL)).toBe(true);
@@ -36,6 +36,7 @@ describe("operators + abilities", () => {
     expect(migrateAbilityIds(["fracture-shield", "phase-dash", "siege-mode"])).toEqual(["siege-mode", "phase-veil"]);
     expect(migrateBuild({ mode: "SOLO", slots: { PRIMARY: "code-pulse", TACTICAL: "reality-field", ULTIMATE: "system-override" } }).slots).toEqual({ PRIMARY: "recon-swarm", TACTICAL: "disruption-pulse", ULTIMATE: "rift-turret" });
     expect(migrateBranches({ "fracture-shield": "reflector", "rift-dash": "ghost-step" })).toEqual({ "rift-dash": "ghost-step" });
+    expect(migrateBuild({ mode: "SOLO", slots: { PRIMARY: "phase-veil", TACTICAL: "wyrm-dash", ULTIMATE: "shadow-strike" } }).slots.TACTICAL).toBe("rift-dash");
     const p = normalizeProgression({ ...DEFAULT_PROGRESSION, version: 5, unlockedAbilities: ["phase-dash"], activeBuild: { mode: "SOLO", slots: { PRIMARY: "phase-dash", TACTICAL: "mark-target", ULTIMATE: "time-split" } } });
     expect(p.unlockedAbilities).toEqual(["phase-veil"]);
     expect(p.activeBuild.slots.TACTICAL).toBe("rift-dash");

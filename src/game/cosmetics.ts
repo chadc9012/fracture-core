@@ -25,7 +25,7 @@ export const COSMETICS: readonly Cosmetic[] = [
   c("pack-scout", "back", "Scout Backpack", "A canvas pack with a bedroll.", "common", 600, "Apex Gear", { kind: "backpack", color: "#6b5a3a", accent: "#3a3024" }),
   c("pack-tech", "back", "Tech Pack", "A hard-shell pack with a status light.", "rare", 2000, "Apex Gear", { kind: "backpack", color: "#2a2e36", accent: "#15181e", glow: "#41e6ff" }),
   c("wings-aether", "back", "Aether Wings", "Wings of folded light.", "exotic", null, "Raid: the Hollow Star, first clear", { kind: "wings", color: "#cfe8ff", glow: "#92e9f5" }),
-  c("wings-ember", "back", "Ember Wings", "Wings of banked fire.", "exotic", null, "Vyrak's Covenant Trial", { kind: "wings", color: "#ff7a3a", glow: "#ff4a1a" }),
+  c("wings-ember", "back", "Ember Wings", "Wings of banked fire.", "exotic", null, "A Unique, slain", { kind: "wings", color: "#ff7a3a", glow: "#ff4a1a" }),
   // shoulders
   c("pauldron-steel", "shoulders", "Steel Pauldrons", "Plain plate shoulders.", "common", 700, "Apex Gear", { kind: "pauldrons", color: "#8a929c" }),
   c("pauldron-gold", "shoulders", "Gilded Pauldrons", "Gold-edged shoulder plate.", "rare", 2600, "Apex Gear", { kind: "pauldrons", color: "#c9a24a", accent: "#5a4420" }),
@@ -43,7 +43,7 @@ export const COSMETICS: readonly Cosmetic[] = [
   c("rings-gold", "hands", "Gold Rings", "Three gold rings.", "rare", 1800, "Apex Gear", { kind: "rings", color: "#d4a94a" }),
   c("earrings-hoops", "ears", "Hoops", "Steel hoop earrings.", "common", 350, "Apex Gear", { kind: "earrings", color: "#b8c0c8" }),
   c("earrings-studs", "ears", "Blue Studs", "Small glowing studs.", "rare", 1200, "Apex Gear", { kind: "earrings", color: "#92e9f5", glow: "#41e6ff" }),
-  c("charm-dragonite", "charm", "Dragonite Charm", "A scale on a cord, clipped to the weapon.", "legendary", null, "Vyrak bond", { kind: "charm", color: "#d13a2a", glow: "#ff7a3a" }),
+  c("charm-dragonite", "charm", "Dragonite Charm", "A scale on a cord, clipped to the weapon.", "legendary", null, "A Unique, slain", { kind: "charm", color: "#d13a2a", glow: "#ff7a3a" }),
   c("charm-skull", "charm", "Skull Charm", "A small chrome skull.", "common", 500, "Rusty Trigger", { kind: "charm", color: "#c8d0dc" }),
   // aura
   c("aura-resonance", "aura", "Resonance Aura", "A faint cyan ring at your feet.", "legendary", null, "Raid: the Hollow Star, Resonant End", { kind: "aura", color: "#41e6ff", glow: "#41e6ff" }),

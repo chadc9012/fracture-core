@@ -31,10 +31,9 @@ import type { RenderTier } from "@/game/performance";
 import { PHONE_DPR, gameModeProfile, readOsGameMode, phoneTier, defaultFrameRate, dprDown, dprFloor, dprUp, effectiveTier, frameInterval, monitorBounds, onDecline as governDecline, type FrameRate } from "@/game/quality-governor";
 import { isTouchDevice, markTouchDocument } from "@/game/client-input";
 import { MissionCinematic } from "./MissionCinematic";
-import { recordClue } from "@/game/encounter-journal";
 import { applyRaceResult, difficultyLocked, isRaceActivity, raceById, worldPoint as raceWorldPoint, type Difficulty } from "@/game/racing";
 import { discoveryById, discoveryOfDef, reveal as revealDiscoveries } from "@/game/discoveries";
-import { VYRAK_REMATCH, activityState, activityById, pointWorld, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
+import { activityById, pointWorld, startActivity, completeActivity, abandonRun, type ActivityDef, type Run as ActivityRun } from "@/game/activities";
 import { ActivityTracker, ActivityResultPanel, type ActivityResult } from "./ActivityHud";
 import { CAMPAIGN_CHAIN } from "@/game/campaign-cinematics";
 import { bossCineFor, BOSS_CINE_CHAIN, type BossCineMoment } from "@/game/campaign-cine-triggers";
@@ -59,7 +58,6 @@ import { KillPlaylistPlayer } from "./KillPlaylist";
 import { ConsumableHud } from "./ConsumableHud";
 import { DashHud } from "./DashHud";
 import { GrenadeHud } from "./GrenadeHud";
-import { DragoniteHud } from "./DragoniteHud";
 import { NexChip } from "./NexChip";
 import { activeBuffs } from "@/game/client-input";
 import { useStim, type ConsumableId } from "@/game/stash";
@@ -116,7 +114,7 @@ import { idleAbilityHud } from "@/game/ability-hud";
 import { grantScenarioReward, planScenarioRewardCards, type RewardCard } from "@/game/scenario-loot";
 import { scenarioById } from "@/game/unique-scenarios";
 import { claimDrops } from "@/game/inventory";
-import { claimWyrmlingGift, isBonded } from "@/game/dragon-covenant";
+import { brandAshenMark, markAnnouncementSeen, slainAt, worldAnnouncement, worldFirstBanner, VYRAK as SOVEREIGN, type WorldFirst } from "@/game/sky-sovereign";
 import { ShopWindow } from "./ShopWindow";
 import { HousingPanel } from "./HousingPanel";
 import { interiorById } from "@/game/interiors";
@@ -348,6 +346,16 @@ function rankedResultKey(def: { stages: readonly { kind: string; mode?: string }
   const stage = def.stages.find((o) => o.kind === "pvp"), m = stage?.mode ? PVP_MODES[stage.mode as keyof typeof PVP_MODES] : undefined;
   if (!m?.ranked) return null;
   return rankedKey(run.startedAt, rankedDelta(won, run.progress ?? 0, run.theirScore ?? 0, m.target));
+}
+
+/** the world's first kill of Vyrak (src/routes/api/world-firsts.ts); null offline or on any failure */
+async function fetchWorldFirst(): Promise<WorldFirst> {
+  try {
+    const r = await fetch("/api/world-firsts?id=vyrak");
+    if (!r.ok) return null;
+    const j = (await r.json()) as { first?: WorldFirst };
+    return j.first ?? null;
+  } catch { return null; }
 }
 
 export function GameCanvas() {
@@ -656,9 +664,11 @@ export function GameCanvas() {
     recapped.current = true;
     const line = recapDue(lastPlayed.current, Date.now()) ? recapLine(progression) : null;
     if (line) speakVoice({ id: "return-recap", scope: "recap", speaker: "NOVA", text: line, priority: "story" });
-    // Vyrak's Covenant: the bonded Wyrmling brings its daily Dragonite gift on world entry (once per UTC day)
-    const gifted = claimWyrmlingGift(progression, progression.identityClass ?? null, Date.now());
-    if (gifted) setProgression(gifted);
+    // a Unique slain somewhere in the world (sky-sovereign.ts): the announcement shows once, on entering the world
+    void fetchWorldFirst().then((first) => {
+      const news = worldAnnouncement(progressionRef.current, first);
+      if (news) { setWorldNews(news); setProgression((cur) => markAnnouncementSeen(cur)); }
+    });
   }, [phase, progression]);
   const [introElapsed, setIntroElapsed] = useCountedState("introElapsed", 0);
 
@@ -1263,12 +1273,6 @@ export function GameCanvas() {
   const [activity, setActivity] = useState<{ def: ActivityDef; run: ActivityRun } | null>(null);
   const [activityResult, setActivityResult] = useState<ActivityResult | null>(null);
   const [, setActivityTick] = useState(0);
-  const [rematchReady, setRematchReady] = useState(false);
-  useEffect(() => {
-    const check = () => setRematchReady(activityState(progressionRef.current, VYRAK_REMATCH, Date.now()).available);
-    check(); const t = setInterval(check, 5000); return () => clearInterval(t);
-  }, []);
-  const spendRematch = () => { const res = startActivity(progressionRef.current, VYRAK_REMATCH.id, Date.now()); if (!("error" in res)) { setProgression(res.progression); setRematchReady(false); } };
   const startActivityById = (id: string, difficulty: Difficulty = "standard") => {
     if (activity) return;
     const lockedWhy = isRaceActivity(activityById(id)!) ? difficultyLocked(progressionRef.current, id, difficulty) : null;
@@ -1353,6 +1357,11 @@ export function GameCanvas() {
     let first = false;
     if (plan.some((p) => p.scenarioId === ASTRAVORE_SCENARIO_ID)) { const tierNow = getRaidLaunchTier(); const r = applyAstravoreKill(progressionRef.current, Date.now(), tierNow); first = r.firstKill; const raidNex = nexBalance(r.progress.nexLedger) - nexBalance(progressionRef.current.nexLedger); const had = new Set(progressionRef.current.inventory.map((g) => `${g.id}@${g.power}`)); const dropped = r.progress.inventory.filter((g) => !had.has(`${g.id}@${g.power}`)).map((g) => g.name); if (raidNex > 0 || dropped.length) showLivingToast(`Raid cleared${raidNex > 0 ? ` · NΞ ${raidNex.toLocaleString("en-US")}` : ""}${dropped.length ? ` · dropped ${dropped.join(", ")}` : ""}`); setProgression((current) => applyAstravoreKill(current, Date.now(), tierNow).progress); }
     if (first) setWorldNews(hollowStarNews(classById(progressionRef.current.identityClass ?? cls).name));
+    // Vyrak (sky-sovereign.ts): the kill lands in claimDrops; once the save holds its stamp, ask the world who fell him first
+    if (plan.some((p) => p.scenarioId === SOVEREIGN.id)) window.setTimeout(() => {
+      const mine = slainAt(progressionRef.current);
+      if (mine) void fetchWorldFirst().then((firstKill) => { setWorldNews(worldFirstBanner(firstKill, mine)); setProgression((cur) => markAnnouncementSeen(cur)); });
+    }, 1500);
     if (last) setRewardCards({ title: `${scenarioById(last.scenarioId)?.name ?? "Scenario"}${first ? " · Title earned: Starbreaker" : ""}`, cards: plan.flatMap((p) => p.cards) });
   };
   // Story scenarios (vaelith.ts): branching conversations never block play (Esc / B skips); every effect goes through the pure story reducers
@@ -1717,7 +1726,7 @@ export function GameCanvas() {
       >
         <color attach="background" args={["#bfe4f2"]} />
         <Suspense fallback={<WorldLoading />}>
-            <Profiler id="scene" onRender={onProf}><Scene powers={powers} breach={breach} onBreachEvent={onBreachEvent} onDiscovery={prologue ? undefined : onDiscovery} onStuntPoints={(points) => setProgression((cur) => payStunts(cur, new Date().toISOString().slice(0, 10), points))} onWorldBoss={(id) => setProgression((cur) => payWorldBoss(cur, id))} onArrest={(fine) => setProgression((cur) => ({ ...cur, nexLedger: payFine(cur.nexLedger ?? {}, fine, nexBalance(cur.nexLedger ?? {}), Date.now()) }))} vyrakRematch={rematchReady} onVyrakRematch={spendRematch} activity={activity} onActivityChange={onActivityChange} onEncounterClue={(enc, clue) => setProgression((cur) => recordClue(cur, enc, clue).progression)} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} onDescent={recordFractureDescent} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} bonded={isBonded(progression, cls)} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
+            <Profiler id="scene" onRender={onProf}><Scene powers={powers} breach={breach} onBreachEvent={onBreachEvent} onDiscovery={prologue ? undefined : onDiscovery} onStuntPoints={(points) => setProgression((cur) => payStunts(cur, new Date().toISOString().slice(0, 10), points))} onWorldBoss={(id) => setProgression((cur) => payWorldBoss(cur, id))} onArrest={(fine) => setProgression((cur) => ({ ...cur, nexLedger: payFine(cur.nexLedger ?? {}, fine, nexBalance(cur.nexLedger ?? {}), Date.now()) }))} onAshenMark={() => setProgression((cur) => brandAshenMark(cur).progression)} activity={activity} onActivityChange={onActivityChange} openedCaches={openedToday} onStoryEvent={recordStory} onLiving={recordLiving} onWaste={recordWaste} onDescent={recordFractureDescent} summonNemesis={summonNemesis} onHud={setHud} onDrops={(drops) => { showScenarioRewards(drops); setProgression((current) => claimDrops(current, drops)); }} gear={progression} settings={liveSettings} onCameraPreference={(firstPerson) => { window.localStorage.setItem("world-fracture-camera", firstPerson ? "first" : "third"); setSettings((current) => ({ ...current, firstPersonDefault: firstPerson })); }} playerClass={cls} subclassId={subclass} appearance={appearance} bodyType={bodyType} vehicleId={vehicleId} vehicleUnlocked={vehicleUnlocked} activeBuild={progression.activeBuild} abilityBranches={progression.abilityBranches} tutorial={tutorial} onTutorialEvent={recordTutorial} mission={mission} onMissionEvent={recordMission} relay={relay} onRelayEvent={recordRelay} blackout={blackout} onBlackoutEvent={recordBlackout} neonCore={neonCore} onNeonCoreEvent={recordNeonCore} solarArray={solarArray} onSolarArrayEvent={recordSolarArray} coreNode={coreNode} onCoreNodeEvent={recordCoreNode} zoneRuns={zoneRuns} onZoneEvent={recordZone} descent={descent} onDescentEvent={recordDescent} systemCore={systemCore} onSystemCoreEvent={recordSystemCore} awakening={awakening} onAwakeningEvent={recordAwakening} onXP={recordXP} weaponOrder={carriedWeapons(activeLoadout(progression, progression.identityClass ?? cls).slots)} travelTo={travelTo} introPlayback={showIntro ? { elapsed: introElapsed, totalSeconds: introTotalSeconds() } : cineId ? { elapsed: cineProgress * introTotalSeconds(), totalSeconds: introTotalSeconds() } : null} armorState={hud.hp < 35 ? "FRACTURE" : hud.heat > 65 ? "ASCENDANT" : hud.heat > 15 ? "ACTIVE" : "STABLE"} /></Profiler>
           <WorldMountedSignal onChange={setWorldMounted} />
         </Suspense>
         {post && (
@@ -1852,7 +1861,6 @@ export function GameCanvas() {
        <TouchControls civilian={powers === 0} awake={breach?.state === "ANCHOR"} bindings={settings.bindings} simple={settings.simplePhoneHud ?? true} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight)} />
        {powers >= 2 && !cineId && <DashHud bindings={settings.bindings} />}
       {powers >= 2 && !cineId && <GrenadeHud bindings={settings.bindings} />}
-       {powers >= 3 && !cineId && <DragoniteHud bindings={settings.bindings} />}
       <NexChip ledger={progression.nexLedger} />
       {powers >= 3 && !cineId && <ConsumableHud progression={progression} bindings={settings.bindings} disabled={Boolean(housingOpen || menuOpen || characterOpen || inventoryOpen || atlasOpen || operationsView || shopOpen || skateOpen || npcOpen || forgeOpen || basePanel || ruinOpen || showIntro || cineId || deathInfo || storyGraph || activeDialogue || transit || flight || hud.hp <= 0)} onUse={useConsumable} />}
        <KillPlaylistPlayer volume={(settings.volume ?? 0.7) * (settings.musicVolume ?? 1)} muted={!!settings.mute?.music} />

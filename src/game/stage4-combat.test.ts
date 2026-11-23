@@ -1,7 +1,7 @@
 // @ts-ignore bun:test types
 import { describe, expect, test } from "bun:test";
 import { loadProgression } from "./progression";
-import { claimCovenant, claimWyrmlingGift, isBonded } from "./dragon-covenant";
+import { isMarked, isSlain, slainAt, SLAIN_KEY, TITLE_KEY } from "./sky-sovereign";
 import { spendBudget, impactFor, FRAME_PARTICLE_BUDGET } from "./combat-feedback";
 import { buyShader, applyShader, grantShader, shaderLook } from "./armor-shaders";
 import { cinematicById } from "./cinematics";
@@ -10,28 +10,6 @@ import { ENCOUNTERS } from "./scenario-encounters";
 import { bossStoryFor, bossDialogueDue } from "./boss-stories";
 import { claimDrops } from "./inventory";
 import { EMPTY_STORY } from "./story";
-import { createSim, summonScenarioBoss } from "./sim";
-import { createLiveBuild } from "./live-build";
-import { castAbility } from "./ability-effects";
-
-describe("Vyrak's Covenant", () => {
-  test("bonds only the Operator class that won, once", () => {
-    const r = claimCovenant(loadProgression(), "HUNTER");
-    expect(r.bonded).toBe(true);
-    expect(isBonded(r.progression, "HUNTER")).toBe(true);
-    expect(isBonded(r.progression, "TITAN")).toBe(false);
-    expect(r.progression.inventory.filter((g) => g.setId === "dragons-covenant").length).toBe(5);
-    expect(claimCovenant(r.progression, "HUNTER").bonded).toBe(false);
-  });
-  test("Wyrmling gift is once per day and only for the bonded class", () => {
-    const p = claimCovenant(loadProgression(), "WARLOCK").progression;
-    const day = 86_400_000 * 100;
-    const g = claimWyrmlingGift(p, "WARLOCK", day)!;
-    expect(g.materials.dragonite).toBe(7);
-    expect(claimWyrmlingGift(g, "WARLOCK", day + 1000)).toBeNull();
-    expect(claimWyrmlingGift(p, "TITAN", day)).toBeNull();
-  });
-});
 
 describe("combat feedback", () => {
   test("pistol hit is light, ability and boss scale up", () => {
@@ -70,46 +48,36 @@ test("Neon arrival ends in player control with the objective", () => {
   expect(c.handoff).toMatchObject({ control: "gameplay", objective: "INVESTIGATE THE DISTURBANCE" });
 });
 
-describe("Vyrak in the world", () => {
-  test("registered as a Solara lair scenario with a three-phase encounter and finale", () => {
+describe("Vyrak in the world (a Unique — sky-sovereign.ts)", () => {
+  test("registered as a Solara scenario with a three-phase encounter and finale", () => {
     const sc = scenarioById("vyrak")!;
     expect(sc.regionId).toBe("solara");
     expect(LAIR_SCENARIOS.some((s) => s.id === "vyrak")).toBe(true);
     const enc = ENCOUNTERS["vyrak"]!;
-    expect(enc.phases.map((p) => p.name)).toEqual(["Sky Sovereign", "Scale Shedding", "Covenant Trial"]);
+    expect(enc.phases.map((p) => p.name)).toEqual(["Sky Sovereign", "Scale Shedding", "The Trial"]);
     expect(enc.phases[2]!.finale?.attack).toBe("covenant-roar");
   });
-  test("a confirmed, participated Vyrak kill bonds the Operator through claimDrops", () => {
-    const p = { ...loadProgression(), identityClass: "TITAN" as const };
-    const next = claimDrops(p, [{ id: 1, material: "dragonite", amount: 3, enemy: "Vyrak, the Ashen Covenant", scenarioClaim: { scenarioId: "vyrak", runId: "vyrak-test-run", participated: true, rolls: [] } }]);
-    expect(isBonded(next, "TITAN")).toBe(true);
+  test("a confirmed, participated kill through claimDrops pays the set, the title and the stamp — once per account", () => {
+    const p = { ...loadProgression(), identityClass: "TITAN" as const, earnedRewards: ["ashen-mark:vyrak"] };
+    const next = claimDrops(p, [{ id: 1, material: "dragonite", amount: 3, enemy: "Vyrak, the Sky Sovereign", scenarioClaim: { scenarioId: "vyrak", runId: "vyrak-test-run", participated: true, rolls: [] } }]);
+    expect(isSlain(next)).toBe(true);
+    expect(isMarked(next)).toBe(false); // the mark is lifted by the kill
+    expect(next.earnedRewards).toContain(TITLE_KEY);
+    expect(slainAt(next)).not.toBeNull();
     expect(next.inventory.filter((g) => g.setId === "dragons-covenant").length).toBe(5);
-    expect(next.unlockedAbilities).toContain("ember-bulwark");
-    // no participation, no bond
+    expect(next.unlockedAbilities.some((a) => ["ember-bulwark", "wyrm-dash", "ash-nova"].includes(a))).toBe(false);
+    const again = claimDrops(next, [{ id: 3, material: "dragonite", amount: 3, enemy: "Vyrak", scenarioClaim: { scenarioId: "vyrak", runId: "vyrak-test-run-3", participated: true, rolls: [] } }]);
+    expect(again.earnedRewards.filter((k) => k === SLAIN_KEY).length).toBe(1);
+    // no participation, no kill
     const nope = claimDrops(loadProgression(), [{ id: 2, material: "dragonite", amount: 3, enemy: "Vyrak", scenarioClaim: { scenarioId: "vyrak", runId: "vyrak-test-run-2", participated: false, rolls: [] } }]);
-    expect(nope.earnedRewards.some((r) => r.startsWith("covenant:vyrak:"))).toBe(false);
+    expect(isSlain(nope)).toBe(false);
   });
-  test("boss story: intro at the lair, bond conversation after the kill", () => {
+  test("boss story: intro when he comes down, his last words after the kill, no bond", () => {
     const story = bossStoryFor("vyrak")!;
-    expect(story.title).toBe("The Ashen Covenant");
+    expect(story.title).toBe("The Sky Sovereign");
     expect(bossDialogueDue(EMPTY_STORY, "vyrak", "lair")?.id).toBe("vyrak.intro");
     expect(bossDialogueDue(EMPTY_STORY, "vyrak", "defeat")).toBeNull();
-  });
-  test("covenant abilities cast: wyrm-dash burns and refunds, ash-nova weakens", () => {
-    const sim = createSim();
-    expect(summonScenarioBoss(sim, scenarioById("rime-alpha")!, 0, 4)).toBe(true);
-    const m = sim.machines.find((x) => x.alive)!;
-    Object.assign(m, { hp: 1e6, maxHp: 1e6, cool: 999, x: 0, z: 4 }); // on the dash path (yaw 0 → +z)
-    const hunter = { ...loadProgression(), identityClass: "HUNTER" as const };
-    const bonded = claimCovenant(hunter, "HUNTER").progression;
-    const live = createLiveBuild({ mode: "HYBRID", slots: { PRIMARY: "phase-veil", TACTICAL: "wyrm-dash", ULTIMATE: "shadow-strike" } }, bonded.abilityBranches);
-    const hpBefore = m.hp;
-    const r = castAbility(sim, live, "TACTICAL", { x: 0, z: 0, yaw: 0 }, { environment: "war", inVehicle: false });
-    expect(r.ok).toBe(true);
-    expect(m.hp).toBeLessThan(hpBefore);
-    const warlock = claimCovenant(loadProgression(), "WARLOCK").progression;
-    const live2 = createLiveBuild({ mode: "HYBRID", slots: { PRIMARY: "recon-swarm", TACTICAL: "ash-nova", ULTIMATE: "rift-turret" } }, warlock.abilityBranches);
-    const r2 = castAbility(sim, live2, "TACTICAL", { x: 0, z: 0, yaw: 0 }, { environment: "war", inVehicle: false });
-    expect(r2.ok).toBe(true);
+    expect(Object.keys(story.due)).toEqual(["defeated"]);
+    expect(story.due["defeated"]!.graph.id).toBe("vyrak.fall");
   });
 });

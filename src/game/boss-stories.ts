@@ -254,45 +254,34 @@ const HS_PHASES: StoryLine[][] = [
   [L(NOVA, "The core is no longer maintaining a stable identity."), L("Hollow Saint", "If I let them go, there will be nothing left!"), L(OP, "Then let what's left be real!")],
 ];
 
-/* ============================== 5. THE ASHEN COVENANT - Vyrak ============================== */
+/* ============================== 5. THE SKY SOVEREIGN - Vyrak (a Unique: sky-sovereign.ts) ============================== */
+// He is met only when the secret conditions line up; the intro plays the moment he comes down. A win is the end of him — there
+// is no bond and no companion (owner, Nov 23 2026: "Think Shanghai-la frontier"). The fall sets the terminal "archive" stage so
+// no follow-up objective ever points back at the crater.
 export const VY = "vyrak";
-export const VY_STAGES = ["unmet", "intro", "defeated", "bonded", "archive"] as const;
+export const VY_STAGES = ["unmet", "intro", "defeated", "archive"] as const;
 registerStages(VY, VY_STAGES);
 
 const VY_INTRO = linear("vyrak.intro", [
-  L(LOG, "The Glass Flats end at a crater of fused sand. Something vast circles above it, patient as weather."),
+  L(LOG, "Night, and nobody else for miles. At the end of the Glass Flats something vast is coming down out of the dark."),
   L("Vyrak", "Another small thing with a borrowed spark. Show me why the Fracture chose you."),
-  L(OP, "I'm not here to steal from a graveyard."),
-  L("Vyrak", "No. You are here because the sky told you to be. They always come when the sky tells them."),
-  L(NOVA, "Its armor sheds under heat. Break the chest plates and the core is exposed."),
-  L(OP, "And if I win?"),
-  L("Vyrak", "Then I will stop being a storm, little spark. Win, and we will see what you are worth."),
-], { n6: { effects: [stage(VY, "intro")] } });
+  L(OP, "What are you?"),
+  L("Vyrak", "Older than your sky. They always come alone, in the end. Most of them leave carrying my ash."),
+  L(NOVA, "I have nothing on this. Nothing. Its armor sheds under heat — break the chest plates."),
+], { n4: { effects: [stage(VY, "intro")] } });
 
 const VY_PHASES: readonly (readonly StoryLine[])[] = [
-  [L("Vyrak", "The sky is mine. Convince me to share it.")],
+  [L("Vyrak", "The sky is mine. Take it from me.")],
   [L(NOVA, "Chest plates are cracking — the weak point is open between attacks!"), L("Vyrak", "Good. Again.")],
-  [L("Vyrak", "Enough height. Now we speak on the ground, as equals do."), L(NOVA, "It landed — this is the trial now. Hold your ground.")],
+  [L("Vyrak", "Enough height. Now we finish this on the ground."), L(NOVA, "It landed. Hold your ground.")],
 ];
 
-const VY_BOND: DialogueGraph = {
-  id: "vyrak.bond", start: "n0",
+const VY_FALL: DialogueGraph = {
+  id: "vyrak.fall", start: "n0",
   nodes: {
-    n0: { id: "n0", speaker: LOG, text: "The final blow lands. Vyrak does not fall — it folds, wings drawing in like a closing hand.", next: "n1", effects: [flag("vyrak_defeated")] },
-    n1: { id: "n1", speaker: "Vyrak", text: "Enough. You fight like one who will not be ruled. Then I will not rule you — I will walk beside you.", next: "n2" },
-    n2: { id: "n2", speaker: NOVA, text: "Its mass is collapsing… it's choosing a smaller form. I think it just joined us.", next: "n3" },
-    n3: { id: "n3", speaker: "Vyrak", text: "Carry my scales. Call my fire. And when the Fracture comes for you, little spark — it will answer to both of us.", next: "n4" },
-    n4: { id: "n4", speaker: LOG, text: "A wyrmling no longer than your arm settles at your shoulder, and the crater goes quiet.", effects: [stage(VY, "bonded")] },
-  },
-};
-
-const VY_ARCHIVE: DialogueGraph = {
-  id: "vyrak.archive", start: "n0",
-  nodes: {
-    n0: { id: "n0", speaker: LOG, text: "A scorched Aegis survey terminal, half-melted into the glass. One log still plays.", next: "n1" },
-    n1: { id: "n1", speaker: "Survey Log", text: "Day 40. The dragon is not nesting. It is waiting. Every probe we send, it lets one return. It wants to be found by the right one.", next: "n2" },
-    n2: { id: "n2", speaker: NOVA, text: "It was never guarding the Flats. It was interviewing.", next: "n3" },
-    n3: { id: "n3", speaker: OP, text: "Then I'm glad I passed.", effects: [stage(VY, "archive")] },
+    n0: { id: "n0", speaker: LOG, text: "The final blow lands. Vyrak comes down like a falling wall, and does not rise.", next: "n1", effects: [flag("vyrak_defeated")] },
+    n1: { id: "n1", speaker: "Vyrak", text: "So the sky had an equal after all. Remember that it was you, little spark.", next: "n2" },
+    n2: { id: "n2", speaker: NOVA, text: "Its signal is gone. Whatever that was, there was only ever one of it.", effects: [stage(VY, "archive")] },
   },
 };
 
@@ -324,10 +313,10 @@ export const BOSS_STORIES: Record<BossStoryId, BossStory> = {
     objectives: { defeated: "Search behind the altar for Haven's Rest's archive" },
   }, HS_STAGES),
   vyrak: mk({
-    id: VY, title: "The Ashen Covenant", intro: VY_INTRO, phaseLines: VY_PHASES,
-    due: { defeated: { graph: VY_BOND, place: "defeat" }, bonded: { graph: VY_ARCHIVE, place: "vault" } },
-    vault: { label: "Scorched survey terminal", dx: 0, dz: -16 }, defeatedFlag: "vyrak_defeated",
-    objectives: { defeated: "Read the scorched survey terminal at the crater's edge" },
+    id: VY, title: "The Sky Sovereign", intro: VY_INTRO, phaseLines: VY_PHASES,
+    due: { defeated: { graph: VY_FALL, place: "defeat" } },
+    vault: { label: "Fused crater", dx: 0, dz: -16 }, defeatedFlag: "vyrak_defeated",
+    objectives: { defeated: "Hear the Sky Sovereign's last words" },
   }, VY_STAGES),
 };
 export const BOSS_STORY_IDS = Object.keys(BOSS_STORIES) as BossStoryId[];

@@ -6,8 +6,7 @@ import type { WorldSim } from "./sim";
 import { playerPowerScore, rewardPacing } from "./balance";
 import { ARMOR_LEVEL_MAX, grantSetPiece } from "./armor-sets";
 import { grantScenarioReward } from "./scenario-loot";
-import { challengesMet, recordVyrakClear } from "./dragonite";
-import { VYRAK_REMATCH, markCompleted } from "./activities";
+import { recordSovereignSlain } from "./sky-sovereign";
 import { upgradeGate } from "./upgrade-gates";
 
 export type MaterialId = "scrapMetal" | "reinforcedAlloy" | "microCircuits" | "thermalShards" | "cryoCrystal" | "sporeFiber" | "bioCatalyst" | "vehicleParts" | "anomalyCarbon" | "dataShards" | "magmaCore" | "zeroCore" | "abyssCore" | "aegisCore" | "forgeCatalyst" | "tuningCore" | "anomalyCore" | "fuel" | "fuelKingCore" | "fractureCore" | "glacierFang" | "nullPlate" | "hollowHalo" | "roninEdge" | "tideCrown" | "crownHeart" | "runeDust" | "dataChip" | "energyToken" | "relicFragment" | "ruinStone" | "gearParts" | "armorStim" | "healStim" | "dragonite";
@@ -48,7 +47,7 @@ export const MATERIALS: Record<MaterialId, { name: string; source: string }> = {
   roninEdge: { name: "Ronin Edge", source: "The Red Ronin" },
   tideCrown: { name: "Tide Crown Shard", source: "The Drowned Monarch" },
   crownHeart: { name: "Heart of the Hollow Crown", source: "The Furnace Guardian (godforge.ts)" },
-  dragonite: { name: "Dragonite", source: "Vyrak's Covenant and your Wyrmling's daily gift" },
+  dragonite: { name: "Dragonite", source: "Scale of something that should not exist" },
   runeDust: { name: "Rune Dust", source: "Slain nemeses and secrets; spent at the Godforge" },
 };
 
@@ -111,9 +110,9 @@ export function claimDrops(progress: PlayerProgression, drops: WorldSim["drops"]
     if (drop.weaponDrop && !next.inventory.some((g) => g.id === drop.weaponDrop!.id)) next = { ...next, inventory: [...next.inventory, drop.weaponDrop] };
     if (drop.scenarioClaim) next = grantScenarioReward(next, drop.scenarioClaim).progress;
     if (drop.scenarioClaim?.participated) next = recordEncounterClear(next, next.identityClass, drop.scenarioClaim.scenarioId);
-    // Vyrak pays no gear through scenario-loot: a confirmed, participated kill bonds the winning Operator class
-    // (dragon-covenant.ts — Dragonite set, class ability, Wyrmling). Idempotent per class.
-    if (drop.scenarioClaim?.scenarioId === "vyrak" && drop.scenarioClaim.participated) next = markCompleted(recordVyrakClear(next, next.identityClass, drop.scenarioClaim.runId, challengesMet(drop.scenarioClaim)).progression, VYRAK_REMATCH);
+    // Vyrak (sky-sovereign.ts): a confirmed, participated kill is the end of him for this account — the winning class's Dragonite
+    // set, Dragonite, the title and the world-first stamp. Once only.
+    if (drop.scenarioClaim?.scenarioId === "vyrak" && drop.scenarioClaim.participated) next = recordSovereignSlain(next, next.identityClass, Date.now(), (next.character as { appearance?: { callsign?: string } } | null)?.appearance?.callsign ?? "").progression;
     next = collectDrop(next, drop.material, Math.max(1, Math.round(drop.amount * pacing)));
     next = collectDrop(next, "energyToken", 1);
     if (drop.amount >= 3) next = collectDrop(next, "relicFragment", 1);

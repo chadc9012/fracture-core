@@ -5,6 +5,7 @@
  * Everything is stored as earnedRewards keys (the cloud merge unions them), so the save schema does not change. */
 import type { ClassId, PlayerProgression } from "./progression";
 import { UNIQUE_SCENARIOS } from "./unique-scenarios";
+import { hasMet, isMarked, isSlain, VYRAK } from "./sky-sovereign";
 
 type Store = Pick<PlayerProgression, "earnedRewards">;
 export type Clue = { id: string; text: string; /** how it is found: several routes per encounter so one obscure action is never required */ route: "site" | "world" | "npc" | "combat" };
@@ -53,12 +54,9 @@ const AUTHORED: Record<string, readonly Clue[]> = {
     { id: "engineer", route: "npc", text: "An old Nexus engineer says the city was built on a machine that held the dimensions apart, and that it has started to breathe." },
     { id: "pulse", route: "combat", text: "Something below answers when you fire a heavy weapon out past Nexus: a slow violet pulse in the ground." },
   ],
-  vyrak: [
-    { id: "inscription", route: "world", text: "An inscription in Solara describes a sky sovereign that tests courage, not strength." },
-    { id: "ember", route: "npc", text: "A ranger remembers a dragon that remembers the world before the Fracture." },
-  ],
 };
-export const cluesFor = (encounterId: string): readonly Clue[] => [SITE, ...(AUTHORED[encounterId] ?? [])];
+/** Vyrak (sky-sovereign.ts) is a Unique: no clue exists for him anywhere */
+export const cluesFor = (encounterId: string): readonly Clue[] => (encounterId === VYRAK.id ? [] : [SITE, ...(AUTHORED[encounterId] ?? [])]);
 /** clues needed before the encounter counts as discovered */
 export const discoveryThreshold = (encounterId: string) => Math.min(cluesFor(encounterId).length, 2);
 
@@ -106,10 +104,15 @@ export function recordMastery<T extends Store>(p: T, cls: ClassId | null, encoun
 }
 export const masteryCount = (p: Store, cls: ClassId | null, encounterId: string) => (cls ? p.earnedRewards.filter((r) => r.startsWith(`enc-mastery:${cls}:${encounterId}:`)).length : 0);
 
-export type JournalEntry = { id: string; /** unique story encounters (Vyrak) get their own journal section */ special: boolean; name: string; discovered: boolean; completed: boolean; clues: { text: string; known: boolean }[]; hint: string | null; mastery: number };
+export type JournalEntry = { id: string; /** a Unique (Vyrak) gets its own journal section */ special: boolean; name: string; discovered: boolean; completed: boolean; clues: { text: string; known: boolean }[]; hint: string | null; mastery: number };
 /** The journal view: undiscovered encounters show only the clues already found, with the rest masked. */
 export function journalFor(p: Store, cls: ClassId | null): JournalEntry[] {
-  return UNIQUE_SCENARIOS.filter((s) => isDiscovered(p, s.id) || knownClues(p, s.id).length > 0 || isCompleted(p, cls, s.id)).map((s) => {
+  return UNIQUE_SCENARIOS.filter((s) => (s.id === VYRAK.id ? hasMet(p) : isDiscovered(p, s.id) || knownClues(p, s.id).length > 0 || isCompleted(p, cls, s.id))).map((s) => {
+    // Vyrak appears only once met: the Ashen Mark as an unnamed entry, his name once he has fallen
+    if (s.id === VYRAK.id) {
+      const slain = isSlain(p);
+      return { id: s.id, special: true, name: slain ? s.name : "Unknown", discovered: slain, completed: slain, clues: isMarked(p) ? [{ text: "Ash burned into your armor at the end of the Glass Flats. It will not wipe off.", known: true }] : [], hint: null, mastery: 0 };
+    }
     const known = new Set(knownClues(p, s.id).map((c) => c.id));
     const discovered = isDiscovered(p, s.id);
     return { id: s.id, special: s.id === "vyrak", name: discovered ? s.name : "Unknown encounter", discovered, completed: isCompleted(p, cls, s.id), clues: cluesFor(s.id).map((c) => ({ text: known.has(c.id) ? c.text : "???", known: known.has(c.id) })), hint: novaHint(p, s.id), mastery: masteryCount(p, cls, s.id) };

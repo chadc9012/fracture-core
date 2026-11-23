@@ -79,7 +79,7 @@ const FAMILIES: Record<ArmorFamily, { slots: [string, string, string, string, st
     ["frostveil-knight", "Frostveil Knight", "#9fd8ff", "Ice-crystal plate from the Winter collection.", "CRYO", ["Rime Ward", { resist: 0.08 }], ["Winter's Reign", { resist: 0.07, abilityRecharge: 0.06 }], ["public-event"], null, "royal"],
   ] },
   legend: { slots: ["Crown", "Grasps", "Carapace", "Striders", "Sigil"], specs: [
-    ["dragonite", "Dragonite", "#d13a2a", "Scale plate forged from Vyrak's shed Dragonite.", "THERMAL", ["Dragon Scale", { resist: 0.08 }], ["Dragonfire", { weaponDamage: 0.12 }], ["secret", "elite"], null, "tribal"],
+    ["dragonite", "Dragonite", "#d13a2a", "Scale plate forged from Dragonite. Nobody will say where it came from.", "THERMAL", ["Dragon Scale", { resist: 0.08 }], ["Dragonfire", { weaponDamage: 0.12 }], ["secret", "elite"], null, "tribal"],
     ["voidwalker", "Voidwalker", "#3b1a66", "Armor that phases a step out of the world.", "ARC", ["Phase", { moveSpeed: 0.06 }], ["Void Step", { abilityRecharge: 0.08, moveSpeed: 0.04 }], ["dungeon", "secret"], null, "stealth"],
     ["sungazer", "Sungazer", "#ffd25a", "Gold plate that drinks the Solara sun.", "THERMAL", ["Solar Grace", { weaponDamage: 0.07 }], ["Zenith", { weaponDamage: 0.08, abilityRecharge: 0.05 }], ["public-event", "story"], 4, "royal"],
     ["oceanic", "Oceanic", "#2aa8c8", "Thalassian pressure plate, teal and bright.", "CRYO", ["Tidal Ward", { resist: 0.07 }], ["Deep Current", { regen: 1.2, resist: 0.05 }], ["dungeon"], null, "medium"],
