@@ -360,10 +360,14 @@ func _ready() -> void:
 		var to: Vector3 = d.boss.target.box.get_center() if d.boss.target else d.boss.position + Vector3(0, 2.0, 0)
 		var sees: bool = d.enemies._clear(d.operator.position + Vector3(0, 1.5, 0), to)
 		# aim first (the stick walks where the camera looks), close in past 24 m
-		_aim(to)
 		if not sees:
-			d.controls.move = Vector2(1, 0.35)
+			# no line: walk round whatever is between (the core, a tower) towards it, the way _walk_to does — the old
+			# strafe drifted 230 m off a slow boss (the Warden, Nov 23)
+			var head := _round(d.operator.position, d.boss.position)
+			d.operator.cam_yaw = atan2(-head.x, -head.y)
+			d.controls.move = Vector2(0, 1)
 		else:
+			_aim(to)
 			d.controls.move = Vector2(0, 1) if d.boss.position.distance_to(d.operator.position) > 24.0 else Vector2.ZERO
 		d.controls.fire = sees
 		if d.gunplay.gun().mag <= 0:
