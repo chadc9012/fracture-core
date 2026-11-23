@@ -603,6 +603,19 @@ func alive_on(team: int) -> int:
 static func team_color(team: int) -> Color:
 	return TEAM_COLORS[team % TEAM_COLORS.size()] if team >= 0 else Color(0.6, 0.6, 0.6)
 
+## one downed bot back on its feet at `at` with a share of its health (Fracture Royale's squad revive)
+func revive(e: Enemy, at: Vector3, share := 0.5) -> void:
+	e.state = State.ENGAGE
+	e.target.hp = e.target.max_hp * share
+	e.target.shield = 0.0
+	_set_wear(e.mover, 0)
+	e.target.down = 0.0
+	e.dying = 0.0
+	e.timer = 0.0
+	e.mover.position = at
+	e.mover.visible = true
+	_reset_moves(e)
+
 func _foe(e: Enemy) -> Variant:
 	var best: Variant = null
 	var best_d := INF

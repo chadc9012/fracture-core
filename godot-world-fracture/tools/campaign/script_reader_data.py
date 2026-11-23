@@ -28,6 +28,28 @@ def pack(path, line_key="lines"):
     return out
 
 
-data = {"main": pack("aftershock.json"), "side": pack("side_missions.json")}
+data = {"main": pack("aftershock.json"), "side": pack("side_missions.json"), "unique": pack("unique_encounters.json")}
+# the hidden encounters: how each is found and what it takes (tools/campaign/unique/encounters.py)
+uq = json.load(open(os.path.join(ROOT, "data", "dialogue", "unique_encounters.json")))
+by_mission = {e["mission"]: e for e in uq["encounters"]}
+_names = {}
+
+
+def place(world, poi):
+    if world not in _names:
+        m = json.load(open(os.path.join(ROOT, "generated", "maps", world + ".json")))
+        _names[world] = {q["id"]: q.get("name", q["id"]) for q in m.get("pois", [])}
+    return _names[world].get(poi, poi)
+
+
+def how(e, c):
+    if c["route"] in ("site", "world"):
+        return place(c.get("world", e["world"]), c["poi"])
+    return c.get("npc", c.get("after", c.get("element", "")))
+for rec in data["unique"]:
+    e = by_mission[rec["id"]]
+    rec["enc"] = {"name": e["name"], "gimmick": e["gimmick"], "trigger": e["trigger"], "after": e["after"], "lair": e["lair"],
+                  "reward": [e["nex"], e["xp"], e["drop_name"]], "briefing": e["briefing"], "tell": e["tell"],
+                  "clues": [[c["route"], c["text"], how(e, c)] for c in e["clues"]]}
 json.dump(data, open(sys.argv[1], "w"), ensure_ascii=False, separators=(",", ":"))
-print(len(data["main"]), "main,", len(data["side"]), "side,", os.path.getsize(sys.argv[1]) // 1024, "KB")
+print(len(data["main"]), "main,", len(data["side"]), "side,", len(data["unique"]), "unique,", os.path.getsize(sys.argv[1]) // 1024, "KB")

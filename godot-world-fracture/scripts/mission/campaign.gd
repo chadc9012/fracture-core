@@ -276,6 +276,9 @@ func _mission_done(mission: String, title: String) -> void:
 	p[_done_key()] = done
 	_profile_save(p)
 	controls.toast("MISSION %s COMPLETE · %s" % [mission, title])
+	# the story hands over the unique encounters' story clues it has reached (encounters.gd)
+	for l in Encounters.with_profile(func(pp: Dictionary) -> Array: return Encounters.on_story(pp)):
+		controls.toast(String(l))
 
 func _chapter_done() -> void:
 	_set_waypoint(Vector3.ZERO, false)

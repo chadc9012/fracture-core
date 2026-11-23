@@ -127,6 +127,20 @@ CAST = {
     "LIGHTHOUSE KEEPER": (LT, 780, "plain"),
     "RANGER": (LT, 375, "plain"),
     "MEDIC": (LT, 300, "plain"),
+    # the unique encounters (tools/campaign/unique/encounters.py)
+    "NARRATOR": (LT, 330, "plain"),
+    "DARK KNIGHT": (LT, 765, "crown"), "SERIK VALE": (LT, 765, "plain"), "SERIK VALE (RECORDING)": (LT, 765, "radio"),
+    "FORTRESS RECORDING": ("en-us-amy-low", None, "radio"), "UNKNOWN SOLDIER": (LT, 405, "radio"),
+    "ANCHOR CONTINUITY RECORD": ("en-gb-alan-low", None, "radio"), "THALASSIAN ARCHIVE": ("en-us-amy-low", None, "tv"),
+    "SURVEY LOG": (LT, 75, "radio"), "CHILD (MEMORY)": (LT, 240, "child"),
+    "RESEARCHER (MEMORY)": (LT, 315, "crown"), "RESEARCHER (RECORDING)": (LT, 315, "radio"), "RESEARCH DIRECTOR (RECORDING)": (LT, 570, "radio"),
+    "DROWNED MONARCH": (LT, 346, "deep"), "KING AVARON (RECORDING)": (LT, 346, "radio"), "QUEEN SELENE (RECORDING)": (LT, 860, "radio"),
+    "HOLLOW SAINT": (LT, 525, "crown"), "FALSE SAINT": (LT, 525, "fracture"), "ELIAN (RECORDING)": (LT, 525, "radio"),
+    "UNKNOWN WOMAN": (LT, 230, "plain"), "UNKNOWN WOMAN (TRANSMISSION)": (LT, 230, "radio"), "UNKNOWN MAN (TRANSMISSION)": (LT, 135, "radio"),
+    "VAELITH": (LT, 270, "vyrak"), "THE RED RONIN": (LT, 380, "plain"), "THE BLACK MARKET PHANTOM": (LT, 15, "comms"),
+    "THE CLOCKWORK SAINT": ("en-gb-alan-low", None, "tv"), "THE ETERNAL HUNTRESS": (LT, 255, "crown"),
+    "THE EXILED ARCHITECT": (LT, 750, "plain"), "THE IRON BEHEMOTH": ("en-gb-alan-low", None, "robot"),
+    "THE KING BENEATH THE CITY": (LT, 645, "robot"), "THE VERDANT SOVEREIGN": (LT, 690, "fracture"),
 }
 FALLBACK = (LT, 885, "plain")
 
@@ -201,6 +215,11 @@ def load_lines():
     if os.path.exists(side):
         for l in json.load(open(side))["lines"]:
             lines.append({"id": l["id"], "speaker": l["speaker"], "text": l["text"]})
+    # the unique encounters (tools/campaign/unique_encounters.py)
+    uniq = os.path.join(ROOT, "data", "dialogue", "unique_encounters.json")
+    if os.path.exists(uniq):
+        for l in json.load(open(uniq))["lines"]:
+            lines.append(dict(l))
     # the people's talk lines (tools/people_lines.py → data/dialogue/people.json), one voice per job
     people = os.path.join(ROOT, "data", "dialogue", "people.json")
     if os.path.exists(people):

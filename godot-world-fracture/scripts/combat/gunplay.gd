@@ -69,6 +69,9 @@ const SHIELD_RATE := 18.0
 const GONE_BOX := AABB(Vector3(0, -1000, 0), Vector3(0.01, 0.01, 0.01))
 
 signal hit(target: Target, damage: float, head: bool)
+## what landed the hit being emitted, when it was not the gun in hand: "MELEE" (melee_hit), "GRENADE" (grenade_hit), else ""
+## (the unique encounters' adaptive and attuned bosses tell damage apart by it: boss.gd `gimmick_mult`)
+var hit_kind := ""
 signal killed(target: Target)
 ## a piece of destructible cover went (not a kill: no drop, no scavenge)
 signal cover_broken(target: Target)
@@ -907,7 +910,9 @@ func grenade_hit(t: Target, dmg: float, at: Vector3) -> void:
 	var res: Dictionary = t.take(dmg, false)
 	if float(res.shield) > 0.0:
 		_shield_flash(t, bool(res.broke))
+	hit_kind = "GRENADE"
 	hit.emit(t, dmg, false)
+	hit_kind = ""
 	if t.hp <= 0.0:
 		t.hp = 0.0
 		t.down = 5.0
@@ -930,7 +935,9 @@ func melee_hit(t: Target, dmg: float, at: Vector3, knock_v: Vector3, poise: floa
 	t.impact += poise
 	t.heavy = t.heavy or heavy_blow
 	hits_landed += 1
+	hit_kind = "MELEE"
 	hit.emit(t, dmg, false)
+	hit_kind = ""
 	spark(at, true, Color(t.get_meta("blood", Color(0.85, 0.1, 0.08))))
 	Sound.sfx_at("hit", at, player.position if player else at, -2.0)
 	if t.hp <= 0.0:

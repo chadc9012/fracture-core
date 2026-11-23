@@ -138,10 +138,37 @@ func _on_hit(t: Gunplay.Target, damage: float, head: bool) -> void:
 		rules.finished_stagger()
 	# gunplay already took `damage` off the target's hp; the rules own the real hull, so put it back and apply theirs
 	target.hp = minf(target.max_hp, target.hp + damage)
-	var dealt := rules.hit(damage * (1.3 if head else 1.0))
+	# what landed it (a melee blow, a grenade, else the gun in hand's element) and from how far: the unique encounters'
+	# gimmicks (boss.gd `gimmick_mult`) read both
+	var kind := String(gunplay.get("hit_kind")) if gunplay.get("hit_kind") else ""
+	if kind == "" and gunplay.has_method("gun"):
+		kind = String(gunplay.gun().element)
+	var away := Vector2(operator.position.x - position.x, operator.position.z - position.z).length() - size * 0.3
+	var dealt := rules.hit(damage * (1.3 if head else 1.0), kind, away)
+	_gimmick_hint(kind, away)
 	target.hp = rules.hull
 	if rules.dead:
 		target.hp = 0.0
+
+## the gimmick said out loud, at most every few seconds: too far from a closing boss, an element it has learned
+var _hint_t := 0.0
+func _gimmick_hint(kind: String, away: float) -> void:
+	if Time.get_ticks_msec() / 1000.0 < _hint_t:
+		return
+	var say := ""
+	match rules.gimmick:
+		"closing":
+			if away > Boss.CLOSE_RANGE:
+				say = "Cut out of the air — close the distance"
+		"adaptive":
+			if rules.gimmick_mult(kind, away) < 0.6:
+				say = "%s has learned %s — switch your damage" % [String(rules.def.name), kind.capitalize()]
+		"attune":
+			if kind != rules.attuned:
+				say = "Turned aside — its halo is %s" % rules.attuned.capitalize()
+	if say != "":
+		_hint_t = Time.get_ticks_msec() / 1000.0 + 4.0
+		toast.call(say)
 
 func step(dt: float) -> void:
 	if not rules or rules.dead and _killed:
@@ -204,6 +231,9 @@ func step(dt: float) -> void:
 			"phase":
 				toast.call("%s — %s" % [String(e.label), String(e.telegraph)])
 				_resupply(2)
+			"attune":
+				Sound.sfx("confirm", -8.0)
+				toast.call("%s's halo turns %s" % [String(rules.def.name), String(e.element).capitalize()])
 			"stagger":
 				_resupply(1)
 				Sound.sfx("stagger", -4.0)
@@ -213,7 +243,8 @@ func step(dt: float) -> void:
 			"dead":
 				if not _killed:
 					_killed = true
-					Sound.sfx("explosion", -2.0)
+					if not e.get("yield", false):
+						Sound.sfx("explosion", -2.0)
 					Sound.sfx("confirm", -4.0)
 					_ring.visible = false
 					killed.emit(rules.id, rules.reward())
@@ -233,15 +264,30 @@ func step(dt: float) -> void:
 	var punish := rules.staggered() or rules.weak_point()
 	cm.emission_energy_multiplier = (4.0 + sin(Time.get_ticks_msec() * 0.01) * 1.5) if punish else 0.4
 	cm.albedo_color = Color(0.4, 1.0, 1.0) if rules.staggered() else (Color(1.0, 0.8, 0.3) if rules.weak_point() else Color(0.3, 0.9, 1.0))
+	if rules.gimmick == "attune" and not punish:
+		# the halo: the attuned element's colour, always lit
+		cm.albedo_color = _kind_color(rules.attuned)
+		cm.emission_energy_multiplier = 2.5
 	cm.emission = cm.albedo_color
 	_ring.position = Vector3(0, 0.1, 0)
 	if rules.staggered():
 		body.rotation.x = lerpf(body.rotation.x, -0.25, 3.0 * dt)
 	else:
 		body.rotation.x = lerpf(body.rotation.x, 0.0, 3.0 * dt)
-	if rules.dead:
+	if rules.dead and rules.yielded:
+		body.rotation.x = lerpf(body.rotation.x, 0.0, 3.0 * dt)   # it yields: it stands, and stops
+	elif rules.dead:
 		body.rotation.x = lerpf(body.rotation.x, PI * 0.45, 2.0 * dt)
 		body.position.y = lerpf(body.position.y, -size * 0.2, 2.0 * dt)
+
+static func _kind_color(kind: String) -> Color:
+	match kind:
+		"MELEE":
+			return Color(1.0, 1.0, 1.0)
+		"GRENADE":
+			return Color(1.0, 0.75, 0.2)
+	var el: Dictionary = preload("res://scripts/combat/weapons.gd").ELEMENTS.get(kind, {})
+	return el.get("color", Color(0.95, 0.9, 0.8))
 
 func _apply_attack(e: Dictionary, dist: float) -> void:
 	var dmg := float(e.damage)

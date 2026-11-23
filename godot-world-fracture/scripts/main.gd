@@ -141,6 +141,10 @@ func _ready() -> void:
 	side.custom_minimum_size = Vector2(0, 48)
 	side.pressed.connect(_open_side_board)
 	_dock_add(side)
+	var enc := Data.button("ENCOUNTER JOURNAL · the hidden unique encounters", true)
+	enc.custom_minimum_size = Vector2(0, 48)
+	enc.pressed.connect(_open_journal)
+	_dock_add(enc)
 	var race_button := Data.button("RACE", true)
 	race_button.custom_minimum_size = Vector2(0, 48)
 	race_button.pressed.connect(func(): _open_race())
@@ -473,6 +477,30 @@ func _open_side(id: String) -> void:
 	var SideMission = load("res://scripts/mission/side_mission.gd")
 	SideMission.pending = id
 	descent = SideMission.new()
+	descent.closed.connect(_close_descent)
+	add_child(descent)
+	planet_view.set_process(false)
+
+## the hidden unique encounters (scripts/mission/encounter_journal.gd → unique_encounter.gd)
+var journal: Control
+func _open_journal() -> void:
+	if journal or descent:
+		return
+	journal = load("res://scripts/mission/encounter_journal.gd").new()
+	journal.closed.connect(func(): journal.queue_free(); journal = null)
+	journal.play.connect(_open_unique)
+	add_child(journal)
+
+func _open_unique(mission: String, rematch := false) -> void:
+	if journal:
+		journal.queue_free()
+		journal = null
+	if descent:
+		return
+	var Unique = load("res://scripts/mission/unique_encounter.gd")
+	Unique.pending = mission
+	Unique.rematch = rematch
+	descent = Unique.new()
 	descent.closed.connect(_close_descent)
 	add_child(descent)
 	planet_view.set_process(false)
@@ -1059,6 +1087,18 @@ func _shoot(path: String, opts: Array) -> void:
 			if beat > 0 and aft.cutscene.playing:
 				aft.cutscene._i = beat - 2
 				aft.cutscene._next()
+		# unique:<chapter id>[:scene]  a hidden encounter's mission (scripts/mission/unique_encounter.gd) standing in a chapter
+		# (U01A … U18D) with its opening skipped, or :scene with it playing; journal  the Encounter Journal
+		if String(o).begins_with("unique:"):
+			var uid := String(o).split(":")[1]
+			var fu := FileAccess.open("user://unique_%s.json" % uid.substr(0, 3), FileAccess.WRITE)
+			fu.store_string(JSON.stringify({ "done": [], "current": uid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 0, "stage": 0 }))
+			fu.close()
+			_open_unique(uid.substr(0, 3))
+			if not String(o).contains("scene") and descent.cutscene and descent.cutscene.playing:
+				descent.cutscene._end()
+		if String(o) == "journal":
+			_open_journal()
 		# campaign[:<chapter id>][:scene]  the campaign's chapters (scripts/mission/campaign.gd) standing in a chapter (02A …
 		# 25C) with its opening skipped, or :scene with it playing
 		if String(o).begins_with("campaign"):

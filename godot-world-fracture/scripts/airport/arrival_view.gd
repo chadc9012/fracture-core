@@ -17,6 +17,7 @@ const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const StreetSlice := preload("res://scripts/city/street_slice.gd")
 const NpcStreet := preload("res://scripts/npc/npc_street.gd")
 const People := preload("res://scripts/npc/people.gd")
+const Encounters := preload("res://scripts/mission/encounters.gd")
 
 var dest := "THA"
 var region: Control
@@ -120,6 +121,8 @@ func _process(dt: float) -> void:
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if beacon:
 		beacon.step(dt, operator)
+	if Engine.get_process_frames() % 30 == 0:
+		_clue_sense()
 	if npcs:
 		var who: String = npcs.near(operator.position)
 		if who != _near:
@@ -136,6 +139,20 @@ func _process(dt: float) -> void:
 	var g = gunplay.gun()
 	controls.weapon_name.text = g.display_name() if armed else "UNARMED"
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text()) if armed else ""
+
+## the unique encounters' world and site clues (encounters.gd): walking near one of this region's places records it
+var _clue_seen := {}
+func _clue_sense() -> void:
+	var o: Vector2 = region.origin()
+	var at := Vector2(operator.position.x + o.x, operator.position.z + o.y)
+	for pl in Encounters.near(map_id, at):
+		var k := "%s:%s" % [pl.e, pl.c]
+		if _clue_seen.has(k):
+			continue
+		_clue_seen[k] = true
+		var w := map_id
+		for l in Encounters.with_profile(func(p: Dictionary) -> Array: return Encounters.sense(p, w, at)):
+			controls.toast(String(l))
 
 ## the return desk: a ticket home, paid and boarded in one press
 func _flights() -> void:

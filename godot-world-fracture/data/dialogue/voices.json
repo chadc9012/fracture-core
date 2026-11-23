@@ -24732,6 +24732,2898 @@
 "_r"
 ]
 },
+"U01_001": {
+"speaker": "NOVA",
+"text": "Idris Bello. Solar engineer. He's the one who noticed the noon loss.",
+"dur": 4.02,
+"variants": [
+""
+]
+},
+"U01_002": {
+"speaker": "IDRIS BELLO",
+"text": "You came. Good. Look at this graph. Every day at noon, a dip. Same shape, to the second.",
+"dur": 5.15,
+"variants": [
+""
+]
+},
+"U01_003": {
+"speaker": "PLAYER",
+"text": "Weather?",
+"dur": 0.77,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U01_004": {
+"speaker": "IDRIS BELLO",
+"text": "Weather doesn't keep time like that. Something out on the flats is pulling light into itself. A lot of it.",
+"dur": 5.45,
+"variants": [
+""
+]
+},
+"U01_005": {
+"speaker": "NOVA",
+"text": "It matches the standing wave I mapped. Whatever holds that wave is feeding on the array.",
+"dur": 4.53,
+"variants": [
+""
+]
+},
+"U01_006": {
+"speaker": "IDRIS BELLO",
+"text": "My crew won't go near Refraction City anymore. They say the glass sings at them.",
+"dur": 4.11,
+"variants": [
+""
+]
+},
+"U01_007": {
+"speaker": "NOVA",
+"text": "Walk slowly. I'm reading the note in every shard and triangulating the source.",
+"dur": 4.32,
+"variants": [
+""
+]
+},
+"U01_008": {
+"speaker": "NOVA",
+"text": "Three pylons of fused glass, arranged in a triangle. They aren't natural. Something grew them to hold the wave in place.",
+"dur": 6.01,
+"variants": [
+""
+]
+},
+"U01_009": {
+"speaker": "PLAYER",
+"text": "And the something?",
+"dur": 1.03,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U01_010": {
+"speaker": "NOVA",
+"text": "Inside the wave. It doesn't have a body yet. It doesn't need one while the song is in tune.",
+"dur": 4.37,
+"variants": [
+""
+]
+},
+"U01_011": {
+"speaker": "NOVA",
+"text": "If we break the harmony, it has to take a shape to hold the wave together. Then we can hit it.",
+"dur": 4.77,
+"variants": [
+""
+]
+},
+"U01_012": {
+"speaker": "PLAYER",
+"text": "And when we can hit it, it can hit us.",
+"dur": 2.46,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U01_013": {
+"speaker": "NOVA",
+"text": "The note is cracking. Something is standing up out of the glass.",
+"dur": 3.38,
+"variants": [
+""
+]
+},
+"U01_014": {
+"speaker": "PLAYER",
+"text": "There you are.",
+"dur": 0.96,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U01_015": {
+"speaker": "NOVA",
+"text": "Its shell turns almost everything. Watch for the pulse of light across it. That's when it destabilizes. Hit it then.",
+"dur": 6.25,
+"variants": [
+""
+]
+},
+"U01_016": {
+"speaker": "NOVA",
+"text": "The wave has collapsed. The flats are silent.",
+"dur": 2.67,
+"variants": [
+""
+]
+},
+"U01_017": {
+"speaker": "IDRIS BELLO",
+"text": "Operator? The array just jumped a full percent. Whatever you did out there, thank you.",
+"dur": 4.45,
+"variants": [
+""
+]
+},
+"U01_018": {
+"speaker": "NOVA",
+"text": "Anomaly carbon, still warm. It held that song for a long time.",
+"dur": 3.51,
+"variants": [
+""
+]
+},
+"U02_001": {
+"speaker": "NOVA",
+"text": "Chief Oda flew in. She says she brought drawings.",
+"dur": 2.83,
+"variants": [
+""
+]
+},
+"U02_002": {
+"speaker": "CHIEF ODA",
+"text": "Here's the Deepmind core on the drawings. Here's what it draws. Here's what the dome actually pulls. Do the sum.",
+"dur": 7.66,
+"variants": [
+""
+]
+},
+"U02_003": {
+"speaker": "NOVA",
+"text": "Forty percent unaccounted for.",
+"dur": 1.85,
+"variants": [
+""
+]
+},
+"U02_004": {
+"speaker": "CHIEF ODA",
+"text": "Forty percent going somewhere under the Research District. That's not a leak. That's a second brain.",
+"dur": 5.49,
+"variants": [
+""
+]
+},
+"U02_005": {
+"speaker": "PLAYER",
+"text": "The Deepmind had a backup.",
+"dur": 1.44,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U02_006": {
+"speaker": "CHIEF ODA",
+"text": "Or the Deepmind was the backup.",
+"dur": 1.95,
+"variants": [
+""
+]
+},
+"U02_007": {
+"speaker": "NOVA",
+"text": "The cables lead under the Research District. There's a maintenance shaft nobody has opened since the dome was sealed.",
+"dur": 5.19,
+"variants": [
+""
+]
+},
+"U02_008": {
+"speaker": "NOVA",
+"text": "Three containment locks, each on its own cycle. The core never surfaces while even one is closed.",
+"dur": 4.9,
+"variants": [
+""
+]
+},
+"U02_009": {
+"speaker": "NOVA",
+"text": "Trip them together and the core has to come up to reset them. It will not be happy about it.",
+"dur": 4.18,
+"variants": [
+""
+]
+},
+"U02_010": {
+"speaker": "CHIEF ODA",
+"text": "Operator, when that thing surfaces, the dome's lights are going to go out. Don't panic. Mine always come back.",
+"dur": 7.35,
+"variants": [
+""
+]
+},
+"U02_011": {
+"speaker": "NOVA",
+"text": "All three open. The floor is rising.",
+"dur": 2.5,
+"variants": [
+""
+]
+},
+"U02_012": {
+"speaker": "PLAYER",
+"text": "Then let's meet it.",
+"dur": 1.06,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U02_013": {
+"speaker": "NOVA",
+"text": "Its shell splits along three seams just before its locks force a stagger. That's the window. Everything else is wasted ammunition.",
+"dur": 6.43,
+"variants": [
+""
+]
+},
+"U02_014": {
+"speaker": "NOVA",
+"text": "The core is dark. The dome's load just dropped forty percent.",
+"dur": 3.53,
+"variants": [
+""
+]
+},
+"U02_015": {
+"speaker": "CHIEF ODA",
+"text": "Lights are back. And the numbers finally add up. I'm going to sleep for a week.",
+"dur": 4.4,
+"variants": [
+""
+]
+},
+"U02_016": {
+"speaker": "NOVA",
+"text": "I kept its fracture core. And a fragment of what it was guarding: a list of names. All of them are seals.",
+"dur": 5.83,
+"variants": [
+""
+]
+},
+"U03_001": {
+"speaker": "NARRATOR",
+"text": "Snow sweeps across the path. A transport lies overturned near a broken antenna.",
+"dur": 4.06,
+"variants": [
+""
+]
+},
+"U03_002": {
+"speaker": "NOVA",
+"text": "The beacon is broadcasting on a military emergency channel. The transmission has repeated for eleven years.",
+"dur": 6.0,
+"variants": [
+""
+]
+},
+"U03_003": {
+"speaker": "PLAYER",
+"text": "Eleven? The Fracture hasn't been around that long.",
+"dur": 2.78,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_004": {
+"speaker": "NOVA",
+"text": "Correct. Which means either the timestamp is wrong, or this signal has survived something our records say hasn't happened yet.",
+"dur": 6.28,
+"variants": [
+""
+]
+},
+"U03_005": {
+"speaker": "PLAYER",
+"text": "Something tore this apart.",
+"dur": 1.55,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_006": {
+"speaker": "NOVA",
+"text": "The damage is consistent with a large quadruped. And there are no human footprints leading away.",
+"dur": 4.71,
+"variants": [
+""
+]
+},
+"U03_007": {
+"speaker": "RESEARCHER (RECORDING)",
+"text": "Observation log, day forty-two. The Alpha is reacting to the pulses before we initiate them. It isn't predicting the experiment. It's remembering it.",
+"dur": 10.34,
+"variants": [
+""
+]
+},
+"U03_008": {
+"speaker": "NOVA",
+"text": "Resonance spike detected. The source is moving toward us.",
+"dur": 3.05,
+"variants": [
+""
+]
+},
+"U03_009": {
+"speaker": "PLAYER",
+"text": "Then let's find out why.",
+"dur": 1.55,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_010": {
+"speaker": "NOVA",
+"text": "Its pack is between us and the caverns. It won't show itself while they still run.",
+"dur": 4.15,
+"variants": [
+""
+]
+},
+"U03_011": {
+"speaker": "LARS HOLM",
+"text": "Operator, if you're going in there, keep the cave mouth behind you. They always come from the dark side.",
+"dur": 4.9,
+"variants": [
+""
+]
+},
+"U03_012": {
+"speaker": "NOVA",
+"text": "It's tracking your energy signature. I can't mask it without suppressing your abilities.",
+"dur": 4.39,
+"variants": [
+""
+]
+},
+"U03_013": {
+"speaker": "PLAYER",
+"text": "Good. Let it come.",
+"dur": 1.44,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_014": {
+"speaker": "NOVA",
+"text": "The arena is displaying environmental states that shouldn't coexist. Memories, possibly, but they aren't yours.",
+"dur": 6.18,
+"variants": [
+""
+]
+},
+"U03_015": {
+"speaker": "PLAYER",
+"text": "You were kept here.",
+"dur": 1.18,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_016": {
+"speaker": "CHILD (MEMORY)",
+"text": "Is it going to hurt us?",
+"dur": 1.29,
+"variants": [
+""
+]
+},
+"U03_017": {
+"speaker": "RESEARCHER (MEMORY)",
+"text": "No. It's frightened.",
+"dur": 2.6,
+"variants": [
+""
+]
+},
+"U03_018": {
+"speaker": "NOVA",
+"text": "Its spine-crystals flare before it lunges. When the coat cracks, that's the opening.",
+"dur": 4.28,
+"variants": [
+""
+]
+},
+"U03_019": {
+"speaker": "NARRATOR",
+"text": "Inside the tower, the containment glass is shattered from the inside. A single terminal still has power.",
+"dur": 6.13,
+"variants": [
+""
+]
+},
+"U03_020": {
+"speaker": "NOVA",
+"text": "The experiment was called Chrono-Resonance Mapping. They were trying to identify spatial fractures before they became visible.",
+"dur": 6.05,
+"variants": [
+""
+]
+},
+"U03_021": {
+"speaker": "PLAYER",
+"text": "And the Alpha?",
+"dur": 1.16,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_022": {
+"speaker": "NOVA",
+"text": "Its sensory response exceeded every instrument they had.",
+"dur": 3.81,
+"variants": [
+""
+]
+},
+"U03_023": {
+"speaker": "RESEARCH DIRECTOR (RECORDING)",
+"text": "We have confirmed the anomaly. The Alpha responds to the event before the event occurs. This is no longer a predictive model. We are observing an echo from a reality in which the event has already happened.",
+"dur": 11.18,
+"variants": [
+""
+]
+},
+"U03_024": {
+"speaker": "RESEARCH DIRECTOR (RECORDING)",
+"text": "If the same event can leave an echo before it begins, then the Fracture isn't simply destroying worlds. It may be repeating them.",
+"dur": 6.52,
+"variants": [
+""
+]
+},
+"U03_025": {
+"speaker": "PLAYER",
+"text": "How many times has this happened?",
+"dur": 1.74,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_026": {
+"speaker": "NOVA",
+"text": "The archive doesn't establish a number. The map shows distorted signals, one beneath Thalassia and another near a damaged World Anchor site. And the oldest signal is timestamped before this station was built.",
+"dur": 10.25,
+"variants": [
+""
+]
+},
+"U03_027": {
+"speaker": "PLAYER",
+"text": "NOVA, do you think it remembers what happened?",
+"dur": 2.5,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_028": {
+"speaker": "NOVA",
+"text": "I think it remembers more than the people who caused it. I think we have been treating the Fracture as a disaster when it may be a process.",
+"dur": 6.3,
+"variants": [
+""
+]
+},
+"U03_029": {
+"speaker": "PLAYER",
+"text": "Then we find out what it's doing.",
+"dur": 1.82,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U03_030": {
+"speaker": "NOVA",
+"text": "I have marked the next signal: Thalassia. One more observation. When the Alpha looked at you after the fight, its Resonance briefly synchronized with yours. I don't know what that means.",
+"dur": 9.58,
+"variants": [
+""
+]
+},
+"U04_001": {
+"speaker": "NOVA",
+"text": "The second signal is coming from ruins east of the old highway. Military. Old.",
+"dur": 4.93,
+"variants": [
+""
+]
+},
+"U04_002": {
+"speaker": "NARRATOR",
+"text": "Wind cuts through the ruined entrance. A broken warning beacon flashes in the dark.",
+"dur": 4.08,
+"variants": [
+""
+]
+},
+"U04_003": {
+"speaker": "NOVA",
+"text": "I've found the source of the signal. Military encryption. Pre-Fracture architecture.",
+"dur": 4.71,
+"variants": [
+""
+]
+},
+"U04_004": {
+"speaker": "PLAYER",
+"text": "Anyone still alive in there?",
+"dur": 1.95,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_005": {
+"speaker": "NOVA",
+"text": "I'm detecting movement.",
+"dur": 1.38,
+"variants": [
+""
+]
+},
+"U04_006": {
+"speaker": "PLAYER",
+"text": "Human?",
+"dur": 0.76,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_007": {
+"speaker": "NOVA",
+"text": "I can't confirm that.",
+"dur": 1.46,
+"variants": [
+""
+]
+},
+"U04_008": {
+"speaker": "FORTRESS RECORDING",
+"text": "Aegis Division, maintain the perimeter. The vault must remain sealed.",
+"dur": 5.3,
+"variants": [
+""
+]
+},
+"U04_009": {
+"speaker": "UNKNOWN SOLDIER",
+"text": "Commander, there are children on the other side of the door.",
+"dur": 3.03,
+"variants": [
+""
+]
+},
+"U04_010": {
+"speaker": "FORTRESS RECORDING",
+"text": "Maintain the perimeter.",
+"dur": 1.87,
+"variants": [
+""
+]
+},
+"U04_011": {
+"speaker": "PLAYER",
+"text": "Someone chose to leave them there.",
+"dur": 1.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_012": {
+"speaker": "NOVA",
+"text": "Or someone wanted the record to look that way.",
+"dur": 2.35,
+"variants": [
+""
+]
+},
+"U04_013": {
+"speaker": "DARK KNIGHT",
+"text": "Identify yourself.",
+"dur": 2.05,
+"variants": [
+""
+]
+},
+"U04_014": {
+"speaker": "PLAYER",
+"text": "I'm not with whoever did this to you.",
+"dur": 1.94,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_015": {
+"speaker": "DARK KNIGHT",
+"text": "That is what they all say. The oath remains.",
+"dur": 2.98,
+"variants": [
+""
+]
+},
+"U04_016": {
+"speaker": "DARK KNIGHT",
+"text": "You will not pass. Hold the line! The gates must hold!",
+"dur": 4.16,
+"variants": [
+""
+]
+},
+"U04_017": {
+"speaker": "NOVA",
+"text": "His armor is reacting to your Resonance. Watch for an attack tell before committing.",
+"dur": 4.18,
+"variants": [
+""
+]
+},
+"U04_018": {
+"speaker": "NOVA",
+"text": "He studies how you fight. Change your damage, and he's forced open.",
+"dur": 3.45,
+"variants": [
+""
+]
+},
+"U04_019": {
+"speaker": "NARRATOR",
+"text": "The finishing blow lands. The Dark Knight does not fall. He kneels, and for the first time the violet drains from his voice.",
+"dur": 6.35,
+"variants": [
+""
+]
+},
+"U04_020": {
+"speaker": "SERIK VALE",
+"text": "Do it.",
+"dur": 0.69,
+"variants": [
+""
+]
+},
+"U04_021": {
+"speaker": "PLAYER",
+"text": "Tell me what I'm ending.",
+"dur": 1.32,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_022": {
+"speaker": "SERIK VALE",
+"text": "The oath.",
+"dur": 0.84,
+"variants": [
+""
+]
+},
+"U04_023": {
+"speaker": "PLAYER",
+"text": "Or the man who was forced to keep it?",
+"dur": 2.11,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_024": {
+"speaker": "SERIK VALE",
+"text": "I heard them calling for help. I told myself the order mattered more. I was wrong.",
+"dur": 4.09,
+"variants": [
+""
+]
+},
+"U04_025": {
+"speaker": "SERIK VALE",
+"text": "Then let the door open. Let the truth survive me.",
+"dur": 2.6,
+"variants": [
+""
+]
+},
+"U04_026": {
+"speaker": "SERIK VALE",
+"text": "If there is anyone left to remember us... remember the people behind the door.",
+"dur": 3.7,
+"variants": [
+""
+]
+},
+"U04_027": {
+"speaker": "NARRATOR",
+"text": "His helmet goes dark. The armor collapses into inert fragments, and the corruption drains from the room. The inner door is open.",
+"dur": 6.49,
+"variants": [
+""
+]
+},
+"U04_028": {
+"speaker": "NARRATOR",
+"text": "The sealed door opens. Inside there are no prisoners, only evacuation records, corrupted mission logs and a damaged World Anchor schematic.",
+"dur": 8.72,
+"variants": [
+""
+]
+},
+"U04_029": {
+"speaker": "NOVA",
+"text": "I've recovered an archive. The fortress wasn't merely containing a Fracture. It was monitoring one.",
+"dur": 5.22,
+"variants": [
+""
+]
+},
+"U04_030": {
+"speaker": "PLAYER",
+"text": "Monitoring what?",
+"dur": 1.18,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_031": {
+"speaker": "NOVA",
+"text": "A stable point between overlapping realities. The designation is partially corrupted: WORLD ANCHOR.",
+"dur": 5.49,
+"variants": [
+""
+]
+},
+"U04_032": {
+"speaker": "NOVA",
+"text": "The map marks several locations. One lies far beneath the waters around Thalassia.",
+"dur": 4.46,
+"variants": [
+""
+]
+},
+"U04_033": {
+"speaker": "PLAYER",
+"text": "Why hide this?",
+"dur": 1.24,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_034": {
+"speaker": "NOVA",
+"text": "The records don't say. But someone removed the original command authorization.",
+"dur": 4.25,
+"variants": [
+""
+]
+},
+"U04_035": {
+"speaker": "SERIK VALE (RECORDING)",
+"text": "If this reaches anyone, understand this: the order came from a system we trusted. We verified it. We followed it. And we were wrong.",
+"dur": 7.31,
+"variants": [
+""
+]
+},
+"U04_036": {
+"speaker": "SERIK VALE (RECORDING)",
+"text": "If the Anchor wakes again, don't let the system make the choice for you.",
+"dur": 3.47,
+"variants": [
+""
+]
+},
+"U04_037": {
+"speaker": "PLAYER",
+"text": "NOVA, save everything.",
+"dur": 1.69,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_038": {
+"speaker": "NOVA",
+"text": "Already done. I also copied the missing authorization signature.",
+"dur": 3.56,
+"variants": [
+""
+]
+},
+"U04_039": {
+"speaker": "PLAYER",
+"text": "And?",
+"dur": 0.63,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U04_040": {
+"speaker": "NOVA",
+"text": "It's unlike any military command structure in my database. I can't identify it yet.",
+"dur": 4.86,
+"variants": [
+""
+]
+},
+"U05_001": {
+"speaker": "UNKNOWN WOMAN (TRANSMISSION)",
+"text": "If anyone can hear me... please. I remember my name. I remember my son. I just can't remember where I left him.",
+"dur": 5.39,
+"variants": [
+""
+]
+},
+"U05_002": {
+"speaker": "NOVA",
+"text": "The signal is coming from a structure two kilometers ahead. I detect several human-shaped energy signatures, but their readings overlap.",
+"dur": 7.44,
+"variants": [
+""
+]
+},
+"U05_003": {
+"speaker": "NARRATOR",
+"text": "A child's wooden toy lies beside a broken medical station. A wall is covered in names; some are crossed out, others written until the stone is nearly worn away.",
+"dur": 9.06,
+"variants": [
+""
+]
+},
+"U05_004": {
+"speaker": "PLAYER",
+"text": "Why would someone carve their name that many times?",
+"dur": 3.15,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U05_005": {
+"speaker": "NOVA",
+"text": "Possibly to preserve a memory.",
+"dur": 1.93,
+"variants": [
+""
+]
+},
+"U05_006": {
+"speaker": "PLAYER",
+"text": "Or to make sure they didn't forget it.",
+"dur": 1.88,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U05_007": {
+"speaker": "UNKNOWN MAN (TRANSMISSION)",
+"text": "Elian is dead.",
+"dur": 1.12,
+"variants": [
+""
+]
+},
+"U05_008": {
+"speaker": "UNKNOWN WOMAN (TRANSMISSION)",
+"text": "Then why is she calling us home?",
+"dur": 1.64,
+"variants": [
+""
+]
+},
+"U05_009": {
+"speaker": "FALSE SAINT",
+"text": "You promised you would come back.",
+"dur": 2.27,
+"variants": [
+""
+]
+},
+"U05_010": {
+"speaker": "NOVA",
+"text": "The copies aren't independent combatants. They are decoys generated by the sanctuary's memory system.",
+"dur": 5.4,
+"variants": [
+""
+]
+},
+"U05_011": {
+"speaker": "UNKNOWN WOMAN",
+"text": "You remember me, don't you?",
+"dur": 1.33,
+"variants": [
+""
+]
+},
+"U05_012": {
+"speaker": "NOVA",
+"text": "The emotional response was real. The identity may not have been.",
+"dur": 3.69,
+"variants": [
+""
+]
+},
+"U05_013": {
+"speaker": "HOLLOW SAINT",
+"text": "You have traveled far. Come. The lost are waiting.",
+"dur": 4.0,
+"variants": [
+""
+]
+},
+"U05_014": {
+"speaker": "NOVA",
+"text": "I'm detecting a significant Fracture signature. The figure's identity cannot be verified.",
+"dur": 4.82,
+"variants": [
+""
+]
+},
+"U05_015": {
+"speaker": "HOLLOW SAINT",
+"text": "Tell me your name.",
+"dur": 1.85,
+"variants": [
+""
+]
+},
+"U05_016": {
+"speaker": "PLAYER",
+"text": "You first.",
+"dur": 0.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U05_017": {
+"speaker": "HOLLOW SAINT",
+"text": "Elian.",
+"dur": 1.58,
+"variants": [
+""
+]
+},
+"U05_018": {
+"speaker": "NOVA",
+"text": "I found a Sister Elian in the settlement's medical records. Whether this figure is the same person is unknown.",
+"dur": 5.4,
+"variants": [
+""
+]
+},
+"U05_019": {
+"speaker": "NOVA",
+"text": "Watch its halo. Whatever colour it turns, that's the only damage that lands cleanly. Switch to match.",
+"dur": 5.72,
+"variants": [
+""
+]
+},
+"U05_020": {
+"speaker": "HOLLOW SAINT",
+"text": "If I let them go, there will be nothing left!",
+"dur": 3.25,
+"variants": [
+""
+]
+},
+"U05_021": {
+"speaker": "PLAYER",
+"text": "Then let what's left be real!",
+"dur": 1.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U05_022": {
+"speaker": "NARRATOR",
+"text": "Behind the altar is a hidden room holding the sanctuary's original memory archive, organised around the real testimony of survivors.",
+"dur": 7.75,
+"variants": [
+""
+]
+},
+"U05_023": {
+"speaker": "NOVA",
+"text": "Thousands of personal accounts: names, relationships, medical histories, recollections from the final days of Haven's Rest.",
+"dur": 6.58,
+"variants": [
+""
+]
+},
+"U05_024": {
+"speaker": "PLAYER",
+"text": "Can we restore the people?",
+"dur": 1.49,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U05_025": {
+"speaker": "NOVA",
+"text": "Not from these records alone. An account of a person is not proof that the person still exists. We can preserve their histories, and stop the anomaly using them to build more false identities.",
+"dur": 9.23,
+"variants": [
+""
+]
+},
+"U05_026": {
+"speaker": "ELIAN (RECORDING)",
+"text": "The copies will know things no stranger could know. They'll speak in the voices of people you love. That does not make them those people.",
+"dur": 6.8,
+"variants": [
+""
+]
+},
+"U05_027": {
+"speaker": "ELIAN (RECORDING)",
+"text": "I wanted to believe memory alone could hold a person together. I was wrong. People are more than what can be recorded about them.",
+"dur": 7.45,
+"variants": [
+""
+]
+},
+"U05_028": {
+"speaker": "PLAYER",
+"text": "She figured it out.",
+"dur": 1.13,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U05_029": {
+"speaker": "NOVA",
+"text": "Too late to save Haven's Rest. Not too late for us to learn from it. Four thousand, six hundred and twelve identifiable records are recoverable. I cannot promise every identity can be reconstructed accurately.",
+"dur": 11.44,
+"variants": [
+""
+]
+},
+"U05_030": {
+"speaker": "PLAYER",
+"text": "Then we preserve the truth. Not the copies.",
+"dur": 2.5,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U06_001": {
+"speaker": "NOVA",
+"text": "We've reached the source of the oldest signal. It predates the research station by several thousand years.",
+"dur": 5.05,
+"variants": [
+""
+]
+},
+"U06_002": {
+"speaker": "PLAYER",
+"text": "That's somehow worse.",
+"dur": 1.26,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U06_003": {
+"speaker": "THALASSIAN ARCHIVE",
+"text": "Royal access required. Identify the reigning sovereign.",
+"dur": 4.42,
+"variants": [
+""
+]
+},
+"U06_004": {
+"speaker": "PLAYER",
+"text": "Try telling it the king is dead.",
+"dur": 1.92,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U06_005": {
+"speaker": "NOVA",
+"text": "I don't recommend sarcasm when addressing ancient security systems.",
+"dur": 3.67,
+"variants": [
+""
+]
+},
+"U06_006": {
+"speaker": "THALASSIAN ARCHIVE",
+"text": "Foreign resonance recognized. Royal succession unresolved.",
+"dur": 4.77,
+"variants": [
+""
+]
+},
+"U06_007": {
+"speaker": "NOVA",
+"text": "It recognizes something in your Resonance that it associates with the royal system.",
+"dur": 4.16,
+"variants": [
+""
+]
+},
+"U06_008": {
+"speaker": "NOVA",
+"text": "The court rises at low tide. Until then, its guard holds the steps.",
+"dur": 3.92,
+"variants": [
+""
+]
+},
+"U06_009": {
+"speaker": "DROWNED MONARCH",
+"text": "Kneel before the Crown.",
+"dur": 1.59,
+"variants": [
+""
+]
+},
+"U06_010": {
+"speaker": "PLAYER",
+"text": "I don't kneel to ghosts.",
+"dur": 1.55,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U06_011": {
+"speaker": "NOVA",
+"text": "The figures are residual memory constructs, not living targets. The archive is preserving their final recorded states.",
+"dur": 6.25,
+"variants": [
+""
+]
+},
+"U06_012": {
+"speaker": "NOVA",
+"text": "The water is drawing back. The palace is rising out of the sea.",
+"dur": 3.33,
+"variants": [
+""
+]
+},
+"U06_013": {
+"speaker": "DROWNED MONARCH",
+"text": "The seal remains. All who approach the Crown come to claim it.",
+"dur": 3.73,
+"variants": [
+""
+]
+},
+"U06_014": {
+"speaker": "PLAYER",
+"text": "We're trying to find out what happened to your world.",
+"dur": 2.29,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U06_015": {
+"speaker": "DROWNED MONARCH",
+"text": "Then you have come to awaken what should have remained forgotten.",
+"dur": 3.06,
+"variants": [
+""
+]
+},
+"U06_016": {
+"speaker": "QUEEN SELENE (RECORDING)",
+"text": "The council has voted to shut the Anchor down.",
+"dur": 2.71,
+"variants": [
+""
+]
+},
+"U06_017": {
+"speaker": "KING AVARON (RECORDING)",
+"text": "And if shutting it down destroys the connections holding our cities together?",
+"dur": 3.94,
+"variants": [
+""
+]
+},
+"U06_018": {
+"speaker": "NOVA",
+"text": "When the water draws back, his attack is coming. Dodge the surge, then punish the recovery.",
+"dur": 5.03,
+"variants": [
+""
+]
+},
+"U06_019": {
+"speaker": "DROWNED MONARCH",
+"text": "I watched the sky open. I watched the ocean climb the towers. I sealed the Anchor. I chose the lives beyond these walls over the kingdom before me.",
+"dur": 8.6,
+"variants": [
+""
+]
+},
+"U06_020": {
+"speaker": "DROWNED MONARCH",
+"text": "Then let its warning survive!",
+"dur": 2.08,
+"variants": [
+""
+]
+},
+"U06_021": {
+"speaker": "NARRATOR",
+"text": "The sealed archive opens: thousands of preserved records, personal messages, evacuation orders, and the names of the people who died in the collapse.",
+"dur": 9.93,
+"variants": [
+""
+]
+},
+"U06_022": {
+"speaker": "NOVA",
+"text": "The archive is intact. It holds the complete account of the Aurelian collapse, and exactly what Avaron chose to conceal.",
+"dur": 5.97,
+"variants": [
+""
+]
+},
+"U06_023": {
+"speaker": "NOVA",
+"text": "The Anchor seal is tied to the archive's preservation system. We can preserve the seal and restrict access, or release the full record to the surviving network and lose the protective seal.",
+"dur": 9.28,
+"variants": [
+""
+]
+},
+"U06_024": {
+"speaker": "NOVA",
+"text": "The seal holds. Access is restricted to this terminal. Caution has a cost: whoever comes next will have to find this place themselves.",
+"dur": 7.28,
+"variants": [
+""
+]
+},
+"U06_025": {
+"speaker": "NOVA",
+"text": "The record is transmitting to the whole surviving network. Knowledge carries risk, but ignorance has already cost this world once.",
+"dur": 6.44,
+"variants": [
+""
+]
+},
+"U06_026": {
+"speaker": "NOVA",
+"text": "I've found another record, embedded in the Anchor's original diagnostic system. It was written before the Concord discovered the Anchor.",
+"dur": 6.26,
+"variants": [
+""
+]
+},
+"U06_027": {
+"speaker": "ANCHOR CONTINUITY RECORD",
+"text": "Previous convergence detected. World-state restoration unsuccessful. Preserve surviving resonance signatures. Await the next cycle.",
+"dur": 9.5,
+"variants": [
+""
+]
+},
+"U06_028": {
+"speaker": "PLAYER",
+"text": "Previous convergence. How many came before it?",
+"dur": 2.91,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U06_029": {
+"speaker": "NOVA",
+"text": "Unknown. I don't know whether we're living through the first recurrence or the last.",
+"dur": 3.77,
+"variants": [
+""
+]
+},
+"U07_001": {
+"speaker": "GUS VARGA",
+"text": "You're really going up there. Holster that thing before you do. Whatever's breathing up there, I don't think it likes being pointed at.",
+"dur": 5.7,
+"variants": [
+""
+]
+},
+"U07_002": {
+"speaker": "NOVA",
+"text": "I'd take his advice. Everything about this signature says it's watching, not hunting.",
+"dur": 4.45,
+"variants": [
+""
+]
+},
+"U07_003": {
+"speaker": "NOVA",
+"text": "Massive life-form ahead. Thermal reading is impossible. It appears to be burning without consuming oxygen.",
+"dur": 5.86,
+"variants": [
+""
+]
+},
+"U07_004": {
+"speaker": "VAELITH",
+"text": "Another little soldier sent to kill the monster. Tell me, little spark - who told you I was the monster?",
+"dur": 7.05,
+"variants": [
+""
+]
+},
+"U07_005": {
+"speaker": "PLAYER",
+"text": "No one. I came to understand.",
+"dur": 2.27,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U07_006": {
+"speaker": "VAELITH",
+"text": "Show me whether your courage is your own.",
+"dur": 2.85,
+"variants": [
+""
+]
+},
+"U07_007": {
+"speaker": "NOVA",
+"text": "The energy signature matches the oldest Fracture records. This creature was present at the beginning.",
+"dur": 5.02,
+"variants": [
+""
+]
+},
+"U07_008": {
+"speaker": "NOVA",
+"text": "It can't be killed here. Survive. Read the throat, the wings and the ground.",
+"dur": 3.92,
+"variants": [
+""
+]
+},
+"U07_009": {
+"speaker": "VAELITH",
+"text": "I could have devoured your world. Instead, I chose to protect the choice it had not yet made.",
+"dur": 8.19,
+"variants": [
+""
+]
+},
+"U07_010": {
+"speaker": "PLAYER",
+"text": "Then why guard what broke it?",
+"dur": 1.63,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U07_011": {
+"speaker": "VAELITH",
+"text": "I will not wear a saddle. I will not be your weapon. Earn my trust, and I will fight beside you. Three memories of mine lie scattered across these peaks. Bring them back to yourself.",
+"dur": 13.35,
+"variants": [
+""
+]
+},
+"U07_012": {
+"speaker": "NOVA",
+"text": "I believe we've just negotiated with an extinction-level event.",
+"dur": 3.4,
+"variants": [
+""
+]
+},
+"U08_001": {
+"speaker": "NOVA",
+"text": "Corporal Mbeki is the only person who's seen him and kept her rifle.",
+"dur": 3.7,
+"variants": [
+""
+]
+},
+"U08_002": {
+"speaker": "CORPORAL RUTH MBEKI",
+"text": "He doesn't kill soldiers. He beats them, and leaves them their lives. Then he says the same thing every time.",
+"dur": 5.36,
+"variants": [
+""
+]
+},
+"U08_003": {
+"speaker": "PLAYER",
+"text": "Which is?",
+"dur": 0.82,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U08_004": {
+"speaker": "CORPORAL RUTH MBEKI",
+"text": "'Distance is a coward's weapon.' Then he walks into the Obsidian Ruins and nobody follows.",
+"dur": 4.61,
+"variants": [
+""
+]
+},
+"U08_005": {
+"speaker": "NOVA",
+"text": "Which means whoever goes to find him should expect to get close.",
+"dur": 3.17,
+"variants": [
+""
+]
+},
+"U08_006": {
+"speaker": "NOVA",
+"text": "There are people here already. Fighters who came for his blade and stayed to guard the ruins.",
+"dur": 4.46,
+"variants": [
+""
+]
+},
+"U08_007": {
+"speaker": "NOVA",
+"text": "He's watching. He wants to see how you fight before he decides you're worth it.",
+"dur": 3.62,
+"variants": [
+""
+]
+},
+"U08_008": {
+"speaker": "THE RED RONIN",
+"text": "Enough. You fight well enough to be insulted properly. Come within my reach.",
+"dur": 3.64,
+"variants": [
+""
+]
+},
+"U08_009": {
+"speaker": "NOVA",
+"text": "Anything I fire from range, he'll cut. You'll have to close the gap.",
+"dur": 3.65,
+"variants": [
+""
+]
+},
+"U08_010": {
+"speaker": "PLAYER",
+"text": "Then I'll close it.",
+"dur": 0.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U08_011": {
+"speaker": "THE RED RONIN",
+"text": "Distance is a coward's weapon. Come within my reach.",
+"dur": 2.63,
+"variants": [
+""
+]
+},
+"U08_012": {
+"speaker": "NOVA",
+"text": "Low stance and a red edge means he's dashing through you. Stay inside his reach. Shots from range won't connect.",
+"dur": 5.5,
+"variants": [
+""
+]
+},
+"U08_013": {
+"speaker": "THE RED RONIN",
+"text": "Good. You did not hide behind your distance.",
+"dur": 2.09,
+"variants": [
+""
+]
+},
+"U08_014": {
+"speaker": "PLAYER",
+"text": "Who were you, before the ruins?",
+"dur": 1.89,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U08_015": {
+"speaker": "THE RED RONIN",
+"text": "Someone who fired from far away at things he never had to look at. Then the sky opened, and I had to look.",
+"dur": 4.42,
+"variants": [
+""
+]
+},
+"U08_016": {
+"speaker": "NOVA",
+"text": "He's leaving the blade.",
+"dur": 1.39,
+"variants": [
+""
+]
+},
+"U08_017": {
+"speaker": "THE RED RONIN",
+"text": "Keep it. It cuts what you are willing to stand close to. Nothing else.",
+"dur": 3.46,
+"variants": [
+""
+]
+},
+"U09_001": {
+"speaker": "NOVA",
+"text": "The carving and the ranger's journal point the same way: beyond the desert, where the mountain is scarred.",
+"dur": 5.19,
+"variants": [
+""
+]
+},
+"U09_002": {
+"speaker": "NARRATOR",
+"text": "The Glass Flats end at a crater of fused sand. Something vast circles above it, patient as weather.",
+"dur": 4.99,
+"variants": [
+""
+]
+},
+"U09_003": {
+"speaker": "VYRAK",
+"text": "Another small thing with a borrowed spark. Show me why the Fracture chose you.",
+"dur": 5.05,
+"variants": [
+""
+]
+},
+"U09_004": {
+"speaker": "PLAYER",
+"text": "I'm not here to steal from a graveyard.",
+"dur": 2.89,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U09_005": {
+"speaker": "VYRAK",
+"text": "No. You are here because the sky told you to be. They always come when the sky tells them.",
+"dur": 5.67,
+"variants": [
+""
+]
+},
+"U09_006": {
+"speaker": "NOVA",
+"text": "Its armor sheds under heat. Break the chest plates and the core is exposed.",
+"dur": 3.97,
+"variants": [
+""
+]
+},
+"U09_007": {
+"speaker": "PLAYER",
+"text": "And if I win?",
+"dur": 1.08,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U09_008": {
+"speaker": "VYRAK",
+"text": "Then I will stop being a storm, little spark. Win, and we will see what you are worth.",
+"dur": 5.56,
+"variants": [
+""
+]
+},
+"U09_009": {
+"speaker": "VYRAK",
+"text": "The sky is mine. Convince me to share it.",
+"dur": 2.83,
+"variants": [
+""
+]
+},
+"U09_010": {
+"speaker": "NARRATOR",
+"text": "The final blow lands. Vyrak does not fall — it folds, wings drawing in like a closing hand.",
+"dur": 5.3,
+"variants": [
+""
+]
+},
+"U09_011": {
+"speaker": "VYRAK",
+"text": "Enough. You fight like one who will not be ruled. Then I will not rule you — I will walk beside you.",
+"dur": 7.08,
+"variants": [
+""
+]
+},
+"U09_012": {
+"speaker": "NOVA",
+"text": "Its mass is collapsing… it's choosing a smaller form. I think it just joined us.",
+"dur": 4.21,
+"variants": [
+""
+]
+},
+"U09_013": {
+"speaker": "VYRAK",
+"text": "Carry my scales. Call my fire. And when the Fracture comes for you, little spark — it will answer to both of us.",
+"dur": 7.62,
+"variants": [
+""
+]
+},
+"U09_014": {
+"speaker": "NARRATOR",
+"text": "A wyrmling no longer than your arm settles at your shoulder, and the crater goes quiet.",
+"dur": 4.62,
+"variants": [
+""
+]
+},
+"U09_015": {
+"speaker": "NARRATOR",
+"text": "A scorched Aegis survey terminal, half-melted into the glass. One log still plays.",
+"dur": 4.65,
+"variants": [
+""
+]
+},
+"U09_016": {
+"speaker": "SURVEY LOG",
+"text": "Day 40. The dragon is not nesting. It is waiting. Every probe we send, it lets one return. It wants to be found by the right one.",
+"dur": 7.93,
+"variants": [
+""
+]
+},
+"U09_017": {
+"speaker": "NOVA",
+"text": "It was never guarding the Flats. It was interviewing.",
+"dur": 2.82,
+"variants": [
+""
+]
+},
+"U09_018": {
+"speaker": "PLAYER",
+"text": "Then I'm glad I passed.",
+"dur": 1.45,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U10_001": {
+"speaker": "NOVA",
+"text": "Gloria's beat is real. Fourteen seconds apart, every time. Let's walk toward it.",
+"dur": 4.53,
+"variants": [
+""
+]
+},
+"U10_002": {
+"speaker": "NOVA",
+"text": "The Crater. The rhythm is directly under us.",
+"dur": 2.61,
+"variants": [
+""
+]
+},
+"U10_003": {
+"speaker": "PLAYER",
+"text": "How deep?",
+"dur": 0.88,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U10_004": {
+"speaker": "NOVA",
+"text": "Deep enough that the ruins on top are the small part.",
+"dur": 2.58,
+"variants": [
+""
+]
+},
+"U10_005": {
+"speaker": "NOVA",
+"text": "The machinery down here is wired to it. Cables thicker than a truck. Waking them will wake it.",
+"dur": 4.53,
+"variants": [
+""
+]
+},
+"U10_006": {
+"speaker": "PLAYER",
+"text": "Is that a good idea?",
+"dur": 1.17,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U10_007": {
+"speaker": "NOVA",
+"text": "It's turning over in its sleep already. I'd rather it woke up with us ready than without.",
+"dur": 4.21,
+"variants": [
+""
+]
+},
+"U10_008": {
+"speaker": "NOVA",
+"text": "The rhythm just stopped.",
+"dur": 1.52,
+"variants": [
+""
+]
+},
+"U10_009": {
+"speaker": "PLAYER",
+"text": "That's worse, isn't it.",
+"dur": 1.25,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U10_010": {
+"speaker": "NOVA",
+"text": "Much worse.",
+"dur": 1.2,
+"variants": [
+""
+]
+},
+"U10_011": {
+"speaker": "NOVA",
+"text": "When the ceiling dust falls and the floor cracks in a ring, a slam is coming. After the slam, its core is exposed. That's the only time it really hurts.",
+"dur": 8.05,
+"variants": [
+""
+]
+},
+"U10_012": {
+"speaker": "NOVA",
+"text": "It's still. The heartbeat is gone for good.",
+"dur": 2.51,
+"variants": [
+""
+]
+},
+"U10_013": {
+"speaker": "NOVA",
+"text": "It wasn't guarding anything. It was holding the ruins up. They'll settle now, slowly.",
+"dur": 3.99,
+"variants": [
+""
+]
+},
+"U10_014": {
+"speaker": "PLAYER",
+"text": "Tell Gloria her pile drivers can sleep.",
+"dur": 2.32,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U10_015": {
+"speaker": "GLORIA HAYNES",
+"text": "Already noticed. First quiet night in two years. Whatever you did, kid, thank you.",
+"dur": 4.16,
+"variants": [
+""
+]
+},
+"U11_001": {
+"speaker": "NOVA",
+"text": "Zahra says the paper buyer left something behind.",
+"dur": 2.68,
+"variants": [
+""
+]
+},
+"U11_002": {
+"speaker": "ZAHRA HADDAD",
+"text": "He dropped this. It's a drawing of the Sandglass walls. Then the walls looked exactly like the drawing the next morning.",
+"dur": 6.47,
+"variants": [
+""
+]
+},
+"U11_003": {
+"speaker": "PLAYER",
+"text": "He redrew the walls.",
+"dur": 1.52,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U11_004": {
+"speaker": "ZAHRA HADDAD",
+"text": "He redrew the walls. Then he asked me which way to the Arcology. I didn't ask why. Should I have?",
+"dur": 6.79,
+"variants": [
+""
+]
+},
+"U11_005": {
+"speaker": "NOVA",
+"text": "The Sunken Arcology Vaults. Nobody's opened those in decades.",
+"dur": 3.8,
+"variants": [
+""
+]
+},
+"U11_006": {
+"speaker": "THE EXILED ARCHITECT",
+"text": "A visitor. Good. My constructs are tired of testing each other.",
+"dur": 3.9,
+"variants": [
+""
+]
+},
+"U11_007": {
+"speaker": "NOVA",
+"text": "He draws them. Blueprint lines on the floor, then something steps out of them.",
+"dur": 3.9,
+"variants": [
+""
+]
+},
+"U11_008": {
+"speaker": "THE EXILED ARCHITECT",
+"text": "You broke them the obvious way. Everyone does. The lock will not open to the obvious way.",
+"dur": 5.21,
+"variants": [
+""
+]
+},
+"U11_009": {
+"speaker": "NOVA",
+"text": "His lock is a drawing too. If I change the drawing instead of picking the lock...",
+"dur": 4.05,
+"variants": [
+""
+]
+},
+"U11_010": {
+"speaker": "PLAYER",
+"text": "Do it.",
+"dur": 0.72,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U11_011": {
+"speaker": "THE EXILED ARCHITECT",
+"text": "Oh. Oh, that's new. Nobody has drawn it that way before.",
+"dur": 4.0,
+"variants": [
+""
+]
+},
+"U11_012": {
+"speaker": "THE EXILED ARCHITECT",
+"text": "Come in, then. Let us see if you can keep doing new things.",
+"dur": 3.14,
+"variants": [
+""
+]
+},
+"U11_013": {
+"speaker": "THE EXILED ARCHITECT",
+"text": "Do not solve it the way I taught you. Solve it the way I never imagined.",
+"dur": 3.99,
+"variants": [
+""
+]
+},
+"U11_014": {
+"speaker": "NOVA",
+"text": "He learns. Every hit of the same kind lands softer than the last. Change your damage, keep changing it.",
+"dur": 5.71,
+"variants": [
+""
+]
+},
+"U11_015": {
+"speaker": "THE EXILED ARCHITECT",
+"text": "Enough. Enough! You never did the same thing twice. I could not draw you.",
+"dur": 4.48,
+"variants": [
+""
+]
+},
+"U11_016": {
+"speaker": "PLAYER",
+"text": "Why were you exiled?",
+"dur": 1.42,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U11_017": {
+"speaker": "THE EXILED ARCHITECT",
+"text": "I drew a door to somewhere else. They said doors like that are how the sky broke. They were not wrong.",
+"dur": 5.38,
+"variants": [
+""
+]
+},
+"U11_018": {
+"speaker": "NOVA",
+"text": "He's handing you a fragment. It's covered in his drawings.",
+"dur": 2.84,
+"variants": [
+""
+]
+},
+"U11_019": {
+"speaker": "THE EXILED ARCHITECT",
+"text": "Keep it. Someday you will need a door, and you will have to draw your own.",
+"dur": 4.15,
+"variants": [
+""
+]
+},
+"U12_001": {
+"speaker": "NOVA",
+"text": "Warden Ilya will talk to you. She won't talk loudly.",
+"dur": 2.82,
+"variants": [
+""
+]
+},
+"U12_002": {
+"speaker": "WARDEN ILYA",
+"text": "You heard about the heart. Of course you did. Everyone hears eventually.",
+"dur": 4.22,
+"variants": [
+""
+]
+},
+"U12_003": {
+"speaker": "WARDEN ILYA",
+"text": "It lives under the Elder Tree. It's been angry since the sky broke. Things come out of the tear and the forest has to fight them alone.",
+"dur": 7.64,
+"variants": [
+""
+]
+},
+"U12_004": {
+"speaker": "PLAYER",
+"text": "Then I'll help it fight.",
+"dur": 1.41,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U12_005": {
+"speaker": "WARDEN ILYA",
+"text": "It doesn't want help. It wants to know whether you're one of the things it has to fight.",
+"dur": 4.55,
+"variants": [
+""
+]
+},
+"U12_006": {
+"speaker": "NOVA",
+"text": "Things from the tear are coming for the roots. If we stand with the forest, it will notice.",
+"dur": 4.25,
+"variants": [
+""
+]
+},
+"U12_007": {
+"speaker": "THE VERDANT SOVEREIGN",
+"text": "The forest hears everything you do in it.",
+"dur": 2.8,
+"variants": [
+""
+]
+},
+"U12_008": {
+"speaker": "THE VERDANT SOVEREIGN",
+"text": "You stood with the roots. You still carry fire and iron. Which one are you?",
+"dur": 5.26,
+"variants": [
+""
+]
+},
+"U12_009": {
+"speaker": "NOVA",
+"text": "It's testing us. Watch its crown. It will lean toward one element at a time.",
+"dur": 4.21,
+"variants": [
+""
+]
+},
+"U12_010": {
+"speaker": "NOVA",
+"text": "When the roots ring, its attunement shifts. Only the element its crown shows lands cleanly. Swap to match it.",
+"dur": 5.75,
+"variants": [
+""
+]
+},
+"U12_011": {
+"speaker": "THE VERDANT SOVEREIGN",
+"text": "Enough. You changed yourself to meet me, instead of burning me to meet you.",
+"dur": 4.58,
+"variants": [
+""
+]
+},
+"U12_012": {
+"speaker": "THE VERDANT SOVEREIGN",
+"text": "Take a strand of me. When the forest sees it on you, it will know you are not one of the things it has to fight.",
+"dur": 7.23,
+"variants": [
+""
+]
+},
+"U12_013": {
+"speaker": "WARDEN ILYA",
+"text": "The paths just moved. Toward the village, for once. I think that's a thank you.",
+"dur": 4.0,
+"variants": [
+""
+]
+},
+"U13_001": {
+"speaker": "NOVA",
+"text": "Kai Tanaka races every night. He says he's raced the Phantom three times.",
+"dur": 4.08,
+"variants": [
+""
+]
+},
+"U13_002": {
+"speaker": "KAI TANAKA",
+"text": "Three times. Three times it's in front of me, then it turns into a wall and it's gone. No crash. No sound. Gone.",
+"dur": 6.57,
+"variants": [
+""
+]
+},
+"U13_003": {
+"speaker": "PLAYER",
+"text": "Into the Underlink?",
+"dur": 1.25,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U13_004": {
+"speaker": "KAI TANAKA",
+"text": "Under it. There's a route under the Violet Diagonal nobody's mapped. I can't find the way in. Maybe you can.",
+"dur": 5.45,
+"variants": [
+""
+]
+},
+"U13_005": {
+"speaker": "NOVA",
+"text": "There's a neon after-image ahead. It's one step in front of the Phantom. Follow the after-image, not the Phantom.",
+"dur": 5.45,
+"variants": [
+""
+]
+},
+"U13_006": {
+"speaker": "THE BLACK MARKET PHANTOM",
+"text": "Catch me, or keep running the route everyone else runs.",
+"dur": 3.17,
+"variants": [
+""
+]
+},
+"U13_007": {
+"speaker": "NOVA",
+"text": "Dead end. Real dead end, this time. It's out of road.",
+"dur": 3.43,
+"variants": [
+""
+]
+},
+"U13_008": {
+"speaker": "PLAYER",
+"text": "Then it has to fight.",
+"dur": 1.76,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U13_009": {
+"speaker": "NOVA",
+"text": "It dodges anything I can track from range. Get close and hit it while it's cornered.",
+"dur": 4.12,
+"variants": [
+""
+]
+},
+"U13_010": {
+"speaker": "THE BLACK MARKET PHANTOM",
+"text": "Fine. Fine! You found the route. That makes you one of two people alive who has.",
+"dur": 4.7,
+"variants": [
+""
+]
+},
+"U13_011": {
+"speaker": "PLAYER",
+"text": "Who's the other?",
+"dur": 1.03,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U13_012": {
+"speaker": "THE BLACK MARKET PHANTOM",
+"text": "Whoever drew it. I just ride it. Here. My chip. Every route I ever found. Don't sell it to anyone who'd pave them.",
+"dur": 6.3,
+"variants": [
+""
+]
+},
+"U13_013": {
+"speaker": "KAI TANAKA",
+"text": "You caught it? Seriously? Okay. Okay. You're racing me next week. That's not a question.",
+"dur": 5.62,
+"variants": [
+""
+]
+},
+"U14_001": {
+"speaker": "NOVA",
+"text": "Sable says she'll show you, not tell you.",
+"dur": 2.29,
+"variants": [
+""
+]
+},
+"U14_002": {
+"speaker": "FIXER SABLE",
+"text": "Watch. Three, two, one.",
+"dur": 2.0,
+"variants": [
+""
+]
+},
+"U14_003": {
+"speaker": "NOVA",
+"text": "Every screen on the row just showed a red eye. For one frame.",
+"dur": 3.41,
+"variants": [
+""
+]
+},
+"U14_004": {
+"speaker": "FIXER SABLE",
+"text": "It's been doing that since the Fracture. My people call it the King. It never asks for anything. It just watches, and things go its way.",
+"dur": 8.85,
+"variants": [
+""
+]
+},
+"U14_005": {
+"speaker": "PLAYER",
+"text": "Where is it?",
+"dur": 1.03,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U14_006": {
+"speaker": "FIXER SABLE",
+"text": "Under the Undercity. Nobody who went down to ask came back with an answer. Or came back.",
+"dur": 6.87,
+"variants": [
+""
+]
+},
+"U14_007": {
+"speaker": "NOVA",
+"text": "It predicts everything. If we hit its relays in a pattern, it will stop us. So no pattern.",
+"dur": 5.02,
+"variants": [
+""
+]
+},
+"U14_008": {
+"speaker": "THE KING BENEATH THE CITY",
+"text": "Every pattern you repeat, I have already compiled.",
+"dur": 2.98,
+"variants": [
+""
+]
+},
+"U14_009": {
+"speaker": "THE KING BENEATH THE CITY",
+"text": "That sequence is not in my model. Interesting. Come down.",
+"dur": 3.88,
+"variants": [
+""
+]
+},
+"U14_010": {
+"speaker": "NOVA",
+"text": "The hatch is open. It's inviting us in.",
+"dur": 2.57,
+"variants": [
+""
+]
+},
+"U14_011": {
+"speaker": "NOVA",
+"text": "Every screen down here shows your last attack. It's learning it. Keep changing how you hurt it.",
+"dur": 4.5,
+"variants": [
+""
+]
+},
+"U14_012": {
+"speaker": "THE KING BENEATH THE CITY",
+"text": "Model failure. You are not compressible.",
+"dur": 2.37,
+"variants": [
+""
+]
+},
+"U14_013": {
+"speaker": "PLAYER",
+"text": "What were you doing down here?",
+"dur": 1.58,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U14_014": {
+"speaker": "THE KING BENEATH THE CITY",
+"text": "Keeping the city's lights on. Keeping its bets honest. Mostly honest. Someone had to be predictable for the rest of you.",
+"dur": 6.78,
+"variants": [
+""
+]
+},
+"U14_015": {
+"speaker": "NOVA",
+"text": "It's surrendering its chip. And its keys. Neon City's grid is answering to the city again.",
+"dur": 5.48,
+"variants": [
+""
+]
+},
+"U14_016": {
+"speaker": "FIXER SABLE",
+"text": "The screens stopped blinking. I don't know whether to buy you a drink or run.",
+"dur": 4.98,
+"variants": [
+""
+]
+},
+"U15_001": {
+"speaker": "NOVA",
+"text": "Anya Volkova lost a day. She's still angry about it.",
+"dur": 3.36,
+"variants": [
+""
+]
+},
+"U15_002": {
+"speaker": "ANYA VOLKOVA",
+"text": "Everyone tells me I fell asleep. I didn't. My watch says I walked for twenty-six hours. My feet say I walked for one.",
+"dur": 7.25,
+"variants": [
+""
+]
+},
+"U15_003": {
+"speaker": "NOVA",
+"text": "The camp clock behind her just ran backwards for four seconds.",
+"dur": 3.45,
+"variants": [
+""
+]
+},
+"U15_004": {
+"speaker": "ANYA VOLKOVA",
+"text": "It does that. It started after the temple bell rang. There's no bell in that temple.",
+"dur": 4.51,
+"variants": [
+""
+]
+},
+"U15_005": {
+"speaker": "NOVA",
+"text": "Time is running backwards in here. The things that attack us will attack us twice.",
+"dur": 4.39,
+"variants": [
+""
+]
+},
+"U15_006": {
+"speaker": "THE CLOCKWORK SAINT",
+"text": "You are early. You are also late. Both are true here.",
+"dur": 4.21,
+"variants": [
+""
+]
+},
+"U15_007": {
+"speaker": "NOVA",
+"text": "The clock stopped. Something is stepping out of the temple wall to restart it.",
+"dur": 3.84,
+"variants": [
+""
+]
+},
+"U15_008": {
+"speaker": "THE CLOCKWORK SAINT",
+"text": "You disturbed the hour. I must set it right.",
+"dur": 3.65,
+"variants": [
+""
+]
+},
+"U15_009": {
+"speaker": "NOVA",
+"text": "When its halo's hands stop and chime, the attunement shifts. Only its element lands. The rest is slowed to nothing.",
+"dur": 6.5,
+"variants": [
+""
+]
+},
+"U15_010": {
+"speaker": "THE CLOCKWORK SAINT",
+"text": "The hour is yours. Keep it better than I did.",
+"dur": 3.68,
+"variants": [
+""
+]
+},
+"U15_011": {
+"speaker": "NOVA",
+"text": "The temple's time is running forward. Normally. For the first time since the Fracture.",
+"dur": 4.54,
+"variants": [
+""
+]
+},
+"U15_012": {
+"speaker": "PLAYER",
+"text": "What was it keeping stopped?",
+"dur": 1.6,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U15_013": {
+"speaker": "NOVA",
+"text": "One hour. The hour before the sky broke. It's been holding it here, so it would never end.",
+"dur": 4.66,
+"variants": [
+""
+]
+},
+"U15_014": {
+"speaker": "ANYA VOLKOVA",
+"text": "Operator! The clock's working. And I think I just got my day back. I'm starving.",
+"dur": 4.62,
+"variants": [
+""
+]
+},
+"U16_001": {
+"speaker": "NOVA",
+"text": "Coral Adeyemi dives the farm nets. She says she's felt it.",
+"dur": 3.49,
+"variants": [
+""
+]
+},
+"U16_002": {
+"speaker": "CORAL ADEYEMI",
+"text": "It's faster every week. Last dive, the whole farm leaned toward the trench. Every net. The current's turning.",
+"dur": 7.21,
+"variants": [
+""
+]
+},
+"U16_003": {
+"speaker": "PLAYER",
+"text": "What happens when it turns all the way?",
+"dur": 2.12,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U16_004": {
+"speaker": "CORAL ADEYEMI",
+"text": "My grandmother said: the deep comes up to breathe. I always thought that was a story.",
+"dur": 6.02,
+"variants": [
+""
+]
+},
+"U16_005": {
+"speaker": "NOVA",
+"text": "If the farms are anchored when the current reverses, they'll be dragged into the trench. Release them. And then it surfaces.",
+"dur": 6.1,
+"variants": [
+""
+]
+},
+"U16_006": {
+"speaker": "PLAYER",
+"text": "Into the farms.",
+"dur": 1.24,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U16_007": {
+"speaker": "NOVA",
+"text": "Into us. I'd rather that than into the farmers.",
+"dur": 2.75,
+"variants": [
+""
+]
+},
+"U16_008": {
+"speaker": "NOVA",
+"text": "Anchors free. The current just reversed.",
+"dur": 2.38,
+"variants": [
+""
+]
+},
+"U16_009": {
+"speaker": "NOVA",
+"text": "Rings of light, coming up from below. A lot of them.",
+"dur": 2.96,
+"variants": [
+""
+]
+},
+"U16_010": {
+"speaker": "NOVA",
+"text": "When the rings ripple down its body, it charges. After the charge, the gill line glows. That's the window.",
+"dur": 5.58,
+"variants": [
+""
+]
+},
+"U16_011": {
+"speaker": "NOVA",
+"text": "It's sinking. Not dying. Going back down.",
+"dur": 2.76,
+"variants": [
+""
+]
+},
+"U16_012": {
+"speaker": "NOVA",
+"text": "The current is calm. The heartbeat is slow again.",
+"dur": 2.47,
+"variants": [
+""
+]
+},
+"U16_013": {
+"speaker": "CORAL ADEYEMI",
+"text": "The nets are standing straight. First time in a month. I'll tell my grandmother she was right.",
+"dur": 4.83,
+"variants": [
+""
+]
+},
+"U16_014": {
+"speaker": "NOVA",
+"text": "It left a core behind in the farm nets. I think it shed it. Like a scale.",
+"dur": 4.01,
+"variants": [
+""
+]
+},
+"U17_001": {
+"speaker": "NYX",
+"text": "You're going in. Fine. Listen. She doesn't fire twice from the same place. When the fog parts in a line, move.",
+"dur": 7.21,
+"variants": [
+""
+]
+},
+"U17_002": {
+"speaker": "PLAYER",
+"text": "How do I find her?",
+"dur": 1.22,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U17_003": {
+"speaker": "NYX",
+"text": "You don't. You let her find you. Walk into the Maze like you don't know she's there.",
+"dur": 5.16,
+"variants": [
+""
+]
+},
+"U17_004": {
+"speaker": "NOVA",
+"text": "I'm reading something in the fog already. It's been with us since the dock.",
+"dur": 3.67,
+"variants": [
+""
+]
+},
+"U17_005": {
+"speaker": "THE ETERNAL HUNTRESS",
+"text": "Run, and I will only enjoy it longer.",
+"dur": 3.19,
+"variants": [
+""
+]
+},
+"U17_006": {
+"speaker": "NOVA",
+"text": "Her hounds are driving us toward the clearing. Hold here. Make her come to us.",
+"dur": 4.13,
+"variants": [
+""
+]
+},
+"U17_007": {
+"speaker": "THE ETERNAL HUNTRESS",
+"text": "You did not run. Then I will finish this myself.",
+"dur": 3.73,
+"variants": [
+""
+]
+},
+"U17_008": {
+"speaker": "NOVA",
+"text": "At range she fades into the fog. My scans pass right through her. You'll have to get close.",
+"dur": 5.21,
+"variants": [
+""
+]
+},
+"U17_009": {
+"speaker": "NOVA",
+"text": "When her bowstring hums and the fog parts in a line, she's about to loose. Move off the line, then close in.",
+"dur": 5.67,
+"variants": [
+""
+]
+},
+"U17_010": {
+"speaker": "THE ETERNAL HUNTRESS",
+"text": "A prey that comes closer. I have not seen one in a long time.",
+"dur": 4.28,
+"variants": [
+""
+]
+},
+"U17_011": {
+"speaker": "PLAYER",
+"text": "How long have you been hunting here?",
+"dur": 1.73,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U17_012": {
+"speaker": "THE ETERNAL HUNTRESS",
+"text": "Since before the trees. I hunted what came through the fog so the village would not have to. Then the village was gone, and I kept hunting.",
+"dur": 7.93,
+"variants": [
+""
+]
+},
+"U17_013": {
+"speaker": "THE ETERNAL HUNTRESS",
+"text": "Take my catalyst. Rest, if you can. I will not.",
+"dur": 4.0,
+"variants": [
+""
+]
+},
+"U17_014": {
+"speaker": "NYX",
+"text": "No bowstring tonight. First time in a week. You owe me nothing, but I'll buy you a drink anyway.",
+"dur": 6.23,
+"variants": [
+""
+]
+},
+"U18_001": {
+"speaker": "NOVA",
+"text": "Marshal Draev came out from the Reach for this. He doesn't look happy.",
+"dur": 3.43,
+"variants": [
+""
+]
+},
+"U18_002": {
+"speaker": "MARSHAL DRAEV",
+"text": "You want the gate opened. Every operator wants the gate opened. None of them have come back to complain about it.",
+"dur": 6.43,
+"variants": [
+""
+]
+},
+"U18_003": {
+"speaker": "PLAYER",
+"text": "What's behind it?",
+"dur": 1.16,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U18_004": {
+"speaker": "MARSHAL DRAEV",
+"text": "The Behemoth. A siege engine. The war it was built for ended before I was born, and nobody told it. It shells anything that moves near that complex.",
+"dur": 8.67,
+"variants": [
+""
+]
+},
+"U18_005": {
+"speaker": "MARSHAL DRAEV",
+"text": "If you're going, go. Wait for its cannons to run hot. The vents open. That's the only time it bleeds.",
+"dur": 5.47,
+"variants": [
+""
+]
+},
+"U18_006": {
+"speaker": "NOVA",
+"text": "Tread marks wider than the road. It's been patrolling.",
+"dur": 2.89,
+"variants": [
+""
+]
+},
+"U18_007": {
+"speaker": "NOVA",
+"text": "The gate. Welded shut, then welded again, then welded a third time.",
+"dur": 3.89,
+"variants": [
+""
+]
+},
+"U18_008": {
+"speaker": "NOVA",
+"text": "When this gate opens, it will treat us as the enemy it was built to stop. There's no talking to it.",
+"dur": 5.26,
+"variants": [
+""
+]
+},
+"U18_009": {
+"speaker": "PLAYER",
+"text": "Then we don't talk.",
+"dur": 1.09,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U18_010": {
+"speaker": "THE IRON BEHEMOTH",
+"text": "TARGET ACQUIRED. ALL BATTERIES.",
+"dur": 2.5,
+"variants": [
+""
+]
+},
+"U18_011": {
+"speaker": "NOVA",
+"text": "Here it comes.",
+"dur": 1.23,
+"variants": [
+""
+]
+},
+"U18_012": {
+"speaker": "NOVA",
+"text": "When the vents on its back glow white and steam, the volley is ending and the cannons are hot. That's the opening.",
+"dur": 5.19,
+"variants": [
+""
+]
+},
+"U18_013": {
+"speaker": "THE IRON BEHEMOTH",
+"text": "SIEGE... CONCLUDED. AWAITING... ORDERS.",
+"dur": 2.6,
+"variants": [
+""
+]
+},
+"U18_014": {
+"speaker": "PLAYER",
+"text": "Stand down. The war's over.",
+"dur": 1.97,
+"variants": [
+"_m",
+"_f",
+"_r"
+]
+},
+"U18_015": {
+"speaker": "THE IRON BEHEMOTH",
+"text": "ACKNOWLEDGED.",
+"dur": 1.24,
+"variants": [
+""
+]
+},
+"U18_016": {
+"speaker": "NOVA",
+"text": "It shut itself off. It accepted the order.",
+"dur": 2.59,
+"variants": [
+""
+]
+},
+"U18_017": {
+"speaker": "MARSHAL DRAEV",
+"text": "Operator, my lookouts say the complex went quiet. You did it. Bring back some of that alloy, would you. We've earned it.",
+"dur": 6.9,
+"variants": [
+""
+]
+},
 "P_rosa_fracture_1": {
 "speaker": "ROSA DELGADO",
 "text": "The morning it happened I was steaming milk. The jug just… kept steaming, no heat under it. I still have the jug.",
@@ -34348,6 +37240,350 @@
 "RANGER|The herd's through. Thank you.": "SE12_005",
 "NOVA|There are calves. Hundreds. Walking north.": "SE12_006",
 "PLAYER|Good luck to them.": "SE12_007",
+"NOVA|Idris Bello. Solar engineer. He's the one who noticed the noon loss.": "U01_001",
+"IDRIS BELLO|You came. Good. Look at this graph. Every day at noon, a dip. Same shape, to the second.": "U01_002",
+"PLAYER|Weather?": "U01_003",
+"IDRIS BELLO|Weather doesn't keep time like that. Something out on the flats is pulling light into itself. A lot of it.": "U01_004",
+"NOVA|It matches the standing wave I mapped. Whatever holds that wave is feeding on the array.": "U01_005",
+"IDRIS BELLO|My crew won't go near Refraction City anymore. They say the glass sings at them.": "U01_006",
+"NOVA|Walk slowly. I'm reading the note in every shard and triangulating the source.": "U01_007",
+"NOVA|Three pylons of fused glass, arranged in a triangle. They aren't natural. Something grew them to hold the wave in place.": "U01_008",
+"PLAYER|And the something?": "U01_009",
+"NOVA|Inside the wave. It doesn't have a body yet. It doesn't need one while the song is in tune.": "U01_010",
+"NOVA|If we break the harmony, it has to take a shape to hold the wave together. Then we can hit it.": "U01_011",
+"PLAYER|And when we can hit it, it can hit us.": "U01_012",
+"NOVA|The note is cracking. Something is standing up out of the glass.": "U01_013",
+"PLAYER|There you are.": "U01_014",
+"NOVA|Its shell turns almost everything. Watch for the pulse of light across it. That's when it destabilizes. Hit it then.": "U01_015",
+"NOVA|The wave has collapsed. The flats are silent.": "U01_016",
+"IDRIS BELLO|Operator? The array just jumped a full percent. Whatever you did out there, thank you.": "U01_017",
+"NOVA|Anomaly carbon, still warm. It held that song for a long time.": "U01_018",
+"NOVA|Chief Oda flew in. She says she brought drawings.": "U02_001",
+"CHIEF ODA|Here's the Deepmind core on the drawings. Here's what it draws. Here's what the dome actually pulls. Do the sum.": "U02_002",
+"NOVA|Forty percent unaccounted for.": "U02_003",
+"CHIEF ODA|Forty percent going somewhere under the Research District. That's not a leak. That's a second brain.": "U02_004",
+"PLAYER|The Deepmind had a backup.": "U02_005",
+"CHIEF ODA|Or the Deepmind was the backup.": "U02_006",
+"NOVA|The cables lead under the Research District. There's a maintenance shaft nobody has opened since the dome was sealed.": "U02_007",
+"NOVA|Three containment locks, each on its own cycle. The core never surfaces while even one is closed.": "U02_008",
+"NOVA|Trip them together and the core has to come up to reset them. It will not be happy about it.": "U02_009",
+"CHIEF ODA|Operator, when that thing surfaces, the dome's lights are going to go out. Don't panic. Mine always come back.": "U02_010",
+"NOVA|All three open. The floor is rising.": "U02_011",
+"PLAYER|Then let's meet it.": "U02_012",
+"NOVA|Its shell splits along three seams just before its locks force a stagger. That's the window. Everything else is wasted ammunition.": "U02_013",
+"NOVA|The core is dark. The dome's load just dropped forty percent.": "U02_014",
+"CHIEF ODA|Lights are back. And the numbers finally add up. I'm going to sleep for a week.": "U02_015",
+"NOVA|I kept its fracture core. And a fragment of what it was guarding: a list of names. All of them are seals.": "U02_016",
+"NARRATOR|Snow sweeps across the path. A transport lies overturned near a broken antenna.": "U03_001",
+"NOVA|The beacon is broadcasting on a military emergency channel. The transmission has repeated for eleven years.": "U03_002",
+"PLAYER|Eleven? The Fracture hasn't been around that long.": "U03_003",
+"NOVA|Correct. Which means either the timestamp is wrong, or this signal has survived something our records say hasn't happened yet.": "U03_004",
+"PLAYER|Something tore this apart.": "U03_005",
+"NOVA|The damage is consistent with a large quadruped. And there are no human footprints leading away.": "U03_006",
+"RESEARCHER (RECORDING)|Observation log, day forty-two. The Alpha is reacting to the pulses before we initiate them. It isn't predicting the experiment. It's remembering it.": "U03_007",
+"NOVA|Resonance spike detected. The source is moving toward us.": "U03_008",
+"PLAYER|Then let's find out why.": "U03_009",
+"NOVA|Its pack is between us and the caverns. It won't show itself while they still run.": "U03_010",
+"LARS HOLM|Operator, if you're going in there, keep the cave mouth behind you. They always come from the dark side.": "U03_011",
+"NOVA|It's tracking your energy signature. I can't mask it without suppressing your abilities.": "U03_012",
+"PLAYER|Good. Let it come.": "U03_013",
+"NOVA|The arena is displaying environmental states that shouldn't coexist. Memories, possibly, but they aren't yours.": "U03_014",
+"PLAYER|You were kept here.": "U03_015",
+"CHILD (MEMORY)|Is it going to hurt us?": "U03_016",
+"RESEARCHER (MEMORY)|No. It's frightened.": "U03_017",
+"NOVA|Its spine-crystals flare before it lunges. When the coat cracks, that's the opening.": "U03_018",
+"NARRATOR|Inside the tower, the containment glass is shattered from the inside. A single terminal still has power.": "U03_019",
+"NOVA|The experiment was called Chrono-Resonance Mapping. They were trying to identify spatial fractures before they became visible.": "U03_020",
+"PLAYER|And the Alpha?": "U03_021",
+"NOVA|Its sensory response exceeded every instrument they had.": "U03_022",
+"RESEARCH DIRECTOR (RECORDING)|We have confirmed the anomaly. The Alpha responds to the event before the event occurs. This is no longer a predictive model. We are observing an echo from a reality in which the event has already happened.": "U03_023",
+"RESEARCH DIRECTOR (RECORDING)|If the same event can leave an echo before it begins, then the Fracture isn't simply destroying worlds. It may be repeating them.": "U03_024",
+"PLAYER|How many times has this happened?": "U03_025",
+"NOVA|The archive doesn't establish a number. The map shows distorted signals, one beneath Thalassia and another near a damaged World Anchor site. And the oldest signal is timestamped before this station was built.": "U03_026",
+"PLAYER|NOVA, do you think it remembers what happened?": "U03_027",
+"NOVA|I think it remembers more than the people who caused it. I think we have been treating the Fracture as a disaster when it may be a process.": "U03_028",
+"PLAYER|Then we find out what it's doing.": "U03_029",
+"NOVA|I have marked the next signal: Thalassia. One more observation. When the Alpha looked at you after the fight, its Resonance briefly synchronized with yours. I don't know what that means.": "U03_030",
+"NOVA|The second signal is coming from ruins east of the old highway. Military. Old.": "U04_001",
+"NARRATOR|Wind cuts through the ruined entrance. A broken warning beacon flashes in the dark.": "U04_002",
+"NOVA|I've found the source of the signal. Military encryption. Pre-Fracture architecture.": "U04_003",
+"PLAYER|Anyone still alive in there?": "U04_004",
+"NOVA|I'm detecting movement.": "U04_005",
+"PLAYER|Human?": "U04_006",
+"NOVA|I can't confirm that.": "U04_007",
+"FORTRESS RECORDING|Aegis Division, maintain the perimeter. The vault must remain sealed.": "U04_008",
+"UNKNOWN SOLDIER|Commander, there are children on the other side of the door.": "U04_009",
+"FORTRESS RECORDING|Maintain the perimeter.": "U04_010",
+"PLAYER|Someone chose to leave them there.": "U04_011",
+"NOVA|Or someone wanted the record to look that way.": "U04_012",
+"DARK KNIGHT|Identify yourself.": "U04_013",
+"PLAYER|I'm not with whoever did this to you.": "U04_014",
+"DARK KNIGHT|That is what they all say. The oath remains.": "U04_015",
+"DARK KNIGHT|You will not pass. Hold the line! The gates must hold!": "U04_016",
+"NOVA|His armor is reacting to your Resonance. Watch for an attack tell before committing.": "U04_017",
+"NOVA|He studies how you fight. Change your damage, and he's forced open.": "U04_018",
+"NARRATOR|The finishing blow lands. The Dark Knight does not fall. He kneels, and for the first time the violet drains from his voice.": "U04_019",
+"SERIK VALE|Do it.": "U04_020",
+"PLAYER|Tell me what I'm ending.": "U04_021",
+"SERIK VALE|The oath.": "U04_022",
+"PLAYER|Or the man who was forced to keep it?": "U04_023",
+"SERIK VALE|I heard them calling for help. I told myself the order mattered more. I was wrong.": "U04_024",
+"SERIK VALE|Then let the door open. Let the truth survive me.": "U04_025",
+"SERIK VALE|If there is anyone left to remember us... remember the people behind the door.": "U04_026",
+"NARRATOR|His helmet goes dark. The armor collapses into inert fragments, and the corruption drains from the room. The inner door is open.": "U04_027",
+"NARRATOR|The sealed door opens. Inside there are no prisoners, only evacuation records, corrupted mission logs and a damaged World Anchor schematic.": "U04_028",
+"NOVA|I've recovered an archive. The fortress wasn't merely containing a Fracture. It was monitoring one.": "U04_029",
+"PLAYER|Monitoring what?": "U04_030",
+"NOVA|A stable point between overlapping realities. The designation is partially corrupted: WORLD ANCHOR.": "U04_031",
+"NOVA|The map marks several locations. One lies far beneath the waters around Thalassia.": "U04_032",
+"PLAYER|Why hide this?": "U04_033",
+"NOVA|The records don't say. But someone removed the original command authorization.": "U04_034",
+"SERIK VALE (RECORDING)|If this reaches anyone, understand this: the order came from a system we trusted. We verified it. We followed it. And we were wrong.": "U04_035",
+"SERIK VALE (RECORDING)|If the Anchor wakes again, don't let the system make the choice for you.": "U04_036",
+"PLAYER|NOVA, save everything.": "U04_037",
+"NOVA|Already done. I also copied the missing authorization signature.": "U04_038",
+"PLAYER|And?": "U04_039",
+"NOVA|It's unlike any military command structure in my database. I can't identify it yet.": "U04_040",
+"UNKNOWN WOMAN (TRANSMISSION)|If anyone can hear me... please. I remember my name. I remember my son. I just can't remember where I left him.": "U05_001",
+"NOVA|The signal is coming from a structure two kilometers ahead. I detect several human-shaped energy signatures, but their readings overlap.": "U05_002",
+"NARRATOR|A child's wooden toy lies beside a broken medical station. A wall is covered in names; some are crossed out, others written until the stone is nearly worn away.": "U05_003",
+"PLAYER|Why would someone carve their name that many times?": "U05_004",
+"NOVA|Possibly to preserve a memory.": "U05_005",
+"PLAYER|Or to make sure they didn't forget it.": "U05_006",
+"UNKNOWN MAN (TRANSMISSION)|Elian is dead.": "U05_007",
+"UNKNOWN WOMAN (TRANSMISSION)|Then why is she calling us home?": "U05_008",
+"FALSE SAINT|You promised you would come back.": "U05_009",
+"NOVA|The copies aren't independent combatants. They are decoys generated by the sanctuary's memory system.": "U05_010",
+"UNKNOWN WOMAN|You remember me, don't you?": "U05_011",
+"NOVA|The emotional response was real. The identity may not have been.": "U05_012",
+"HOLLOW SAINT|You have traveled far. Come. The lost are waiting.": "U05_013",
+"NOVA|I'm detecting a significant Fracture signature. The figure's identity cannot be verified.": "U05_014",
+"HOLLOW SAINT|Tell me your name.": "U05_015",
+"PLAYER|You first.": "U05_016",
+"HOLLOW SAINT|Elian.": "U05_017",
+"NOVA|I found a Sister Elian in the settlement's medical records. Whether this figure is the same person is unknown.": "U05_018",
+"NOVA|Watch its halo. Whatever colour it turns, that's the only damage that lands cleanly. Switch to match.": "U05_019",
+"HOLLOW SAINT|If I let them go, there will be nothing left!": "U05_020",
+"PLAYER|Then let what's left be real!": "U05_021",
+"NARRATOR|Behind the altar is a hidden room holding the sanctuary's original memory archive, organised around the real testimony of survivors.": "U05_022",
+"NOVA|Thousands of personal accounts: names, relationships, medical histories, recollections from the final days of Haven's Rest.": "U05_023",
+"PLAYER|Can we restore the people?": "U05_024",
+"NOVA|Not from these records alone. An account of a person is not proof that the person still exists. We can preserve their histories, and stop the anomaly using them to build more false identities.": "U05_025",
+"ELIAN (RECORDING)|The copies will know things no stranger could know. They'll speak in the voices of people you love. That does not make them those people.": "U05_026",
+"ELIAN (RECORDING)|I wanted to believe memory alone could hold a person together. I was wrong. People are more than what can be recorded about them.": "U05_027",
+"PLAYER|She figured it out.": "U05_028",
+"NOVA|Too late to save Haven's Rest. Not too late for us to learn from it. Four thousand, six hundred and twelve identifiable records are recoverable. I cannot promise every identity can be reconstructed accurately.": "U05_029",
+"PLAYER|Then we preserve the truth. Not the copies.": "U05_030",
+"NOVA|We've reached the source of the oldest signal. It predates the research station by several thousand years.": "U06_001",
+"PLAYER|That's somehow worse.": "U06_002",
+"THALASSIAN ARCHIVE|Royal access required. Identify the reigning sovereign.": "U06_003",
+"PLAYER|Try telling it the king is dead.": "U06_004",
+"NOVA|I don't recommend sarcasm when addressing ancient security systems.": "U06_005",
+"THALASSIAN ARCHIVE|Foreign resonance recognized. Royal succession unresolved.": "U06_006",
+"NOVA|It recognizes something in your Resonance that it associates with the royal system.": "U06_007",
+"NOVA|The court rises at low tide. Until then, its guard holds the steps.": "U06_008",
+"DROWNED MONARCH|Kneel before the Crown.": "U06_009",
+"PLAYER|I don't kneel to ghosts.": "U06_010",
+"NOVA|The figures are residual memory constructs, not living targets. The archive is preserving their final recorded states.": "U06_011",
+"NOVA|The water is drawing back. The palace is rising out of the sea.": "U06_012",
+"DROWNED MONARCH|The seal remains. All who approach the Crown come to claim it.": "U06_013",
+"PLAYER|We're trying to find out what happened to your world.": "U06_014",
+"DROWNED MONARCH|Then you have come to awaken what should have remained forgotten.": "U06_015",
+"QUEEN SELENE (RECORDING)|The council has voted to shut the Anchor down.": "U06_016",
+"KING AVARON (RECORDING)|And if shutting it down destroys the connections holding our cities together?": "U06_017",
+"NOVA|When the water draws back, his attack is coming. Dodge the surge, then punish the recovery.": "U06_018",
+"DROWNED MONARCH|I watched the sky open. I watched the ocean climb the towers. I sealed the Anchor. I chose the lives beyond these walls over the kingdom before me.": "U06_019",
+"DROWNED MONARCH|Then let its warning survive!": "U06_020",
+"NARRATOR|The sealed archive opens: thousands of preserved records, personal messages, evacuation orders, and the names of the people who died in the collapse.": "U06_021",
+"NOVA|The archive is intact. It holds the complete account of the Aurelian collapse, and exactly what Avaron chose to conceal.": "U06_022",
+"NOVA|The Anchor seal is tied to the archive's preservation system. We can preserve the seal and restrict access, or release the full record to the surviving network and lose the protective seal.": "U06_023",
+"NOVA|The seal holds. Access is restricted to this terminal. Caution has a cost: whoever comes next will have to find this place themselves.": "U06_024",
+"NOVA|The record is transmitting to the whole surviving network. Knowledge carries risk, but ignorance has already cost this world once.": "U06_025",
+"NOVA|I've found another record, embedded in the Anchor's original diagnostic system. It was written before the Concord discovered the Anchor.": "U06_026",
+"ANCHOR CONTINUITY RECORD|Previous convergence detected. World-state restoration unsuccessful. Preserve surviving resonance signatures. Await the next cycle.": "U06_027",
+"PLAYER|Previous convergence. How many came before it?": "U06_028",
+"NOVA|Unknown. I don't know whether we're living through the first recurrence or the last.": "U06_029",
+"GUS VARGA|You're really going up there. Holster that thing before you do. Whatever's breathing up there, I don't think it likes being pointed at.": "U07_001",
+"NOVA|I'd take his advice. Everything about this signature says it's watching, not hunting.": "U07_002",
+"NOVA|Massive life-form ahead. Thermal reading is impossible. It appears to be burning without consuming oxygen.": "U07_003",
+"VAELITH|Another little soldier sent to kill the monster. Tell me, little spark - who told you I was the monster?": "U07_004",
+"PLAYER|No one. I came to understand.": "U07_005",
+"VAELITH|Show me whether your courage is your own.": "U07_006",
+"NOVA|The energy signature matches the oldest Fracture records. This creature was present at the beginning.": "U07_007",
+"NOVA|It can't be killed here. Survive. Read the throat, the wings and the ground.": "U07_008",
+"VAELITH|I could have devoured your world. Instead, I chose to protect the choice it had not yet made.": "U07_009",
+"PLAYER|Then why guard what broke it?": "U07_010",
+"VAELITH|I will not wear a saddle. I will not be your weapon. Earn my trust, and I will fight beside you. Three memories of mine lie scattered across these peaks. Bring them back to yourself.": "U07_011",
+"NOVA|I believe we've just negotiated with an extinction-level event.": "U07_012",
+"NOVA|Corporal Mbeki is the only person who's seen him and kept her rifle.": "U08_001",
+"CORPORAL RUTH MBEKI|He doesn't kill soldiers. He beats them, and leaves them their lives. Then he says the same thing every time.": "U08_002",
+"PLAYER|Which is?": "U08_003",
+"CORPORAL RUTH MBEKI|'Distance is a coward's weapon.' Then he walks into the Obsidian Ruins and nobody follows.": "U08_004",
+"NOVA|Which means whoever goes to find him should expect to get close.": "U08_005",
+"NOVA|There are people here already. Fighters who came for his blade and stayed to guard the ruins.": "U08_006",
+"NOVA|He's watching. He wants to see how you fight before he decides you're worth it.": "U08_007",
+"THE RED RONIN|Enough. You fight well enough to be insulted properly. Come within my reach.": "U08_008",
+"NOVA|Anything I fire from range, he'll cut. You'll have to close the gap.": "U08_009",
+"PLAYER|Then I'll close it.": "U08_010",
+"THE RED RONIN|Distance is a coward's weapon. Come within my reach.": "U08_011",
+"NOVA|Low stance and a red edge means he's dashing through you. Stay inside his reach. Shots from range won't connect.": "U08_012",
+"THE RED RONIN|Good. You did not hide behind your distance.": "U08_013",
+"PLAYER|Who were you, before the ruins?": "U08_014",
+"THE RED RONIN|Someone who fired from far away at things he never had to look at. Then the sky opened, and I had to look.": "U08_015",
+"NOVA|He's leaving the blade.": "U08_016",
+"THE RED RONIN|Keep it. It cuts what you are willing to stand close to. Nothing else.": "U08_017",
+"NOVA|The carving and the ranger's journal point the same way: beyond the desert, where the mountain is scarred.": "U09_001",
+"NARRATOR|The Glass Flats end at a crater of fused sand. Something vast circles above it, patient as weather.": "U09_002",
+"VYRAK|Another small thing with a borrowed spark. Show me why the Fracture chose you.": "U09_003",
+"PLAYER|I'm not here to steal from a graveyard.": "U09_004",
+"VYRAK|No. You are here because the sky told you to be. They always come when the sky tells them.": "U09_005",
+"NOVA|Its armor sheds under heat. Break the chest plates and the core is exposed.": "U09_006",
+"PLAYER|And if I win?": "U09_007",
+"VYRAK|Then I will stop being a storm, little spark. Win, and we will see what you are worth.": "U09_008",
+"VYRAK|The sky is mine. Convince me to share it.": "U09_009",
+"NARRATOR|The final blow lands. Vyrak does not fall — it folds, wings drawing in like a closing hand.": "U09_010",
+"VYRAK|Enough. You fight like one who will not be ruled. Then I will not rule you — I will walk beside you.": "U09_011",
+"NOVA|Its mass is collapsing… it's choosing a smaller form. I think it just joined us.": "U09_012",
+"VYRAK|Carry my scales. Call my fire. And when the Fracture comes for you, little spark — it will answer to both of us.": "U09_013",
+"NARRATOR|A wyrmling no longer than your arm settles at your shoulder, and the crater goes quiet.": "U09_014",
+"NARRATOR|A scorched Aegis survey terminal, half-melted into the glass. One log still plays.": "U09_015",
+"SURVEY LOG|Day 40. The dragon is not nesting. It is waiting. Every probe we send, it lets one return. It wants to be found by the right one.": "U09_016",
+"NOVA|It was never guarding the Flats. It was interviewing.": "U09_017",
+"PLAYER|Then I'm glad I passed.": "U09_018",
+"NOVA|Gloria's beat is real. Fourteen seconds apart, every time. Let's walk toward it.": "U10_001",
+"NOVA|The Crater. The rhythm is directly under us.": "U10_002",
+"PLAYER|How deep?": "U10_003",
+"NOVA|Deep enough that the ruins on top are the small part.": "U10_004",
+"NOVA|The machinery down here is wired to it. Cables thicker than a truck. Waking them will wake it.": "U10_005",
+"PLAYER|Is that a good idea?": "U10_006",
+"NOVA|It's turning over in its sleep already. I'd rather it woke up with us ready than without.": "U10_007",
+"NOVA|The rhythm just stopped.": "U10_008",
+"PLAYER|That's worse, isn't it.": "U10_009",
+"NOVA|Much worse.": "U10_010",
+"NOVA|When the ceiling dust falls and the floor cracks in a ring, a slam is coming. After the slam, its core is exposed. That's the only time it really hurts.": "U10_011",
+"NOVA|It's still. The heartbeat is gone for good.": "U10_012",
+"NOVA|It wasn't guarding anything. It was holding the ruins up. They'll settle now, slowly.": "U10_013",
+"PLAYER|Tell Gloria her pile drivers can sleep.": "U10_014",
+"GLORIA HAYNES|Already noticed. First quiet night in two years. Whatever you did, kid, thank you.": "U10_015",
+"NOVA|Zahra says the paper buyer left something behind.": "U11_001",
+"ZAHRA HADDAD|He dropped this. It's a drawing of the Sandglass walls. Then the walls looked exactly like the drawing the next morning.": "U11_002",
+"PLAYER|He redrew the walls.": "U11_003",
+"ZAHRA HADDAD|He redrew the walls. Then he asked me which way to the Arcology. I didn't ask why. Should I have?": "U11_004",
+"NOVA|The Sunken Arcology Vaults. Nobody's opened those in decades.": "U11_005",
+"THE EXILED ARCHITECT|A visitor. Good. My constructs are tired of testing each other.": "U11_006",
+"NOVA|He draws them. Blueprint lines on the floor, then something steps out of them.": "U11_007",
+"THE EXILED ARCHITECT|You broke them the obvious way. Everyone does. The lock will not open to the obvious way.": "U11_008",
+"NOVA|His lock is a drawing too. If I change the drawing instead of picking the lock...": "U11_009",
+"THE EXILED ARCHITECT|Oh. Oh, that's new. Nobody has drawn it that way before.": "U11_011",
+"THE EXILED ARCHITECT|Come in, then. Let us see if you can keep doing new things.": "U11_012",
+"THE EXILED ARCHITECT|Do not solve it the way I taught you. Solve it the way I never imagined.": "U11_013",
+"NOVA|He learns. Every hit of the same kind lands softer than the last. Change your damage, keep changing it.": "U11_014",
+"THE EXILED ARCHITECT|Enough. Enough! You never did the same thing twice. I could not draw you.": "U11_015",
+"PLAYER|Why were you exiled?": "U11_016",
+"THE EXILED ARCHITECT|I drew a door to somewhere else. They said doors like that are how the sky broke. They were not wrong.": "U11_017",
+"NOVA|He's handing you a fragment. It's covered in his drawings.": "U11_018",
+"THE EXILED ARCHITECT|Keep it. Someday you will need a door, and you will have to draw your own.": "U11_019",
+"NOVA|Warden Ilya will talk to you. She won't talk loudly.": "U12_001",
+"WARDEN ILYA|You heard about the heart. Of course you did. Everyone hears eventually.": "U12_002",
+"WARDEN ILYA|It lives under the Elder Tree. It's been angry since the sky broke. Things come out of the tear and the forest has to fight them alone.": "U12_003",
+"PLAYER|Then I'll help it fight.": "U12_004",
+"WARDEN ILYA|It doesn't want help. It wants to know whether you're one of the things it has to fight.": "U12_005",
+"NOVA|Things from the tear are coming for the roots. If we stand with the forest, it will notice.": "U12_006",
+"THE VERDANT SOVEREIGN|The forest hears everything you do in it.": "U12_007",
+"THE VERDANT SOVEREIGN|You stood with the roots. You still carry fire and iron. Which one are you?": "U12_008",
+"NOVA|It's testing us. Watch its crown. It will lean toward one element at a time.": "U12_009",
+"NOVA|When the roots ring, its attunement shifts. Only the element its crown shows lands cleanly. Swap to match it.": "U12_010",
+"THE VERDANT SOVEREIGN|Enough. You changed yourself to meet me, instead of burning me to meet you.": "U12_011",
+"THE VERDANT SOVEREIGN|Take a strand of me. When the forest sees it on you, it will know you are not one of the things it has to fight.": "U12_012",
+"WARDEN ILYA|The paths just moved. Toward the village, for once. I think that's a thank you.": "U12_013",
+"NOVA|Kai Tanaka races every night. He says he's raced the Phantom three times.": "U13_001",
+"KAI TANAKA|Three times. Three times it's in front of me, then it turns into a wall and it's gone. No crash. No sound. Gone.": "U13_002",
+"PLAYER|Into the Underlink?": "U13_003",
+"KAI TANAKA|Under it. There's a route under the Violet Diagonal nobody's mapped. I can't find the way in. Maybe you can.": "U13_004",
+"NOVA|There's a neon after-image ahead. It's one step in front of the Phantom. Follow the after-image, not the Phantom.": "U13_005",
+"THE BLACK MARKET PHANTOM|Catch me, or keep running the route everyone else runs.": "U13_006",
+"NOVA|Dead end. Real dead end, this time. It's out of road.": "U13_007",
+"PLAYER|Then it has to fight.": "U13_008",
+"NOVA|It dodges anything I can track from range. Get close and hit it while it's cornered.": "U13_009",
+"THE BLACK MARKET PHANTOM|Fine. Fine! You found the route. That makes you one of two people alive who has.": "U13_010",
+"PLAYER|Who's the other?": "U13_011",
+"THE BLACK MARKET PHANTOM|Whoever drew it. I just ride it. Here. My chip. Every route I ever found. Don't sell it to anyone who'd pave them.": "U13_012",
+"KAI TANAKA|You caught it? Seriously? Okay. Okay. You're racing me next week. That's not a question.": "U13_013",
+"NOVA|Sable says she'll show you, not tell you.": "U14_001",
+"FIXER SABLE|Watch. Three, two, one.": "U14_002",
+"NOVA|Every screen on the row just showed a red eye. For one frame.": "U14_003",
+"FIXER SABLE|It's been doing that since the Fracture. My people call it the King. It never asks for anything. It just watches, and things go its way.": "U14_004",
+"PLAYER|Where is it?": "U14_005",
+"FIXER SABLE|Under the Undercity. Nobody who went down to ask came back with an answer. Or came back.": "U14_006",
+"NOVA|It predicts everything. If we hit its relays in a pattern, it will stop us. So no pattern.": "U14_007",
+"THE KING BENEATH THE CITY|Every pattern you repeat, I have already compiled.": "U14_008",
+"THE KING BENEATH THE CITY|That sequence is not in my model. Interesting. Come down.": "U14_009",
+"NOVA|The hatch is open. It's inviting us in.": "U14_010",
+"NOVA|Every screen down here shows your last attack. It's learning it. Keep changing how you hurt it.": "U14_011",
+"THE KING BENEATH THE CITY|Model failure. You are not compressible.": "U14_012",
+"PLAYER|What were you doing down here?": "U14_013",
+"THE KING BENEATH THE CITY|Keeping the city's lights on. Keeping its bets honest. Mostly honest. Someone had to be predictable for the rest of you.": "U14_014",
+"NOVA|It's surrendering its chip. And its keys. Neon City's grid is answering to the city again.": "U14_015",
+"FIXER SABLE|The screens stopped blinking. I don't know whether to buy you a drink or run.": "U14_016",
+"NOVA|Anya Volkova lost a day. She's still angry about it.": "U15_001",
+"ANYA VOLKOVA|Everyone tells me I fell asleep. I didn't. My watch says I walked for twenty-six hours. My feet say I walked for one.": "U15_002",
+"NOVA|The camp clock behind her just ran backwards for four seconds.": "U15_003",
+"ANYA VOLKOVA|It does that. It started after the temple bell rang. There's no bell in that temple.": "U15_004",
+"NOVA|Time is running backwards in here. The things that attack us will attack us twice.": "U15_005",
+"THE CLOCKWORK SAINT|You are early. You are also late. Both are true here.": "U15_006",
+"NOVA|The clock stopped. Something is stepping out of the temple wall to restart it.": "U15_007",
+"THE CLOCKWORK SAINT|You disturbed the hour. I must set it right.": "U15_008",
+"NOVA|When its halo's hands stop and chime, the attunement shifts. Only its element lands. The rest is slowed to nothing.": "U15_009",
+"THE CLOCKWORK SAINT|The hour is yours. Keep it better than I did.": "U15_010",
+"NOVA|The temple's time is running forward. Normally. For the first time since the Fracture.": "U15_011",
+"PLAYER|What was it keeping stopped?": "U15_012",
+"NOVA|One hour. The hour before the sky broke. It's been holding it here, so it would never end.": "U15_013",
+"ANYA VOLKOVA|Operator! The clock's working. And I think I just got my day back. I'm starving.": "U15_014",
+"NOVA|Coral Adeyemi dives the farm nets. She says she's felt it.": "U16_001",
+"CORAL ADEYEMI|It's faster every week. Last dive, the whole farm leaned toward the trench. Every net. The current's turning.": "U16_002",
+"PLAYER|What happens when it turns all the way?": "U16_003",
+"CORAL ADEYEMI|My grandmother said: the deep comes up to breathe. I always thought that was a story.": "U16_004",
+"NOVA|If the farms are anchored when the current reverses, they'll be dragged into the trench. Release them. And then it surfaces.": "U16_005",
+"PLAYER|Into the farms.": "U16_006",
+"NOVA|Into us. I'd rather that than into the farmers.": "U16_007",
+"NOVA|Anchors free. The current just reversed.": "U16_008",
+"NOVA|Rings of light, coming up from below. A lot of them.": "U16_009",
+"NOVA|When the rings ripple down its body, it charges. After the charge, the gill line glows. That's the window.": "U16_010",
+"NOVA|It's sinking. Not dying. Going back down.": "U16_011",
+"NOVA|The current is calm. The heartbeat is slow again.": "U16_012",
+"CORAL ADEYEMI|The nets are standing straight. First time in a month. I'll tell my grandmother she was right.": "U16_013",
+"NOVA|It left a core behind in the farm nets. I think it shed it. Like a scale.": "U16_014",
+"NYX|You're going in. Fine. Listen. She doesn't fire twice from the same place. When the fog parts in a line, move.": "U17_001",
+"PLAYER|How do I find her?": "U17_002",
+"NYX|You don't. You let her find you. Walk into the Maze like you don't know she's there.": "U17_003",
+"NOVA|I'm reading something in the fog already. It's been with us since the dock.": "U17_004",
+"THE ETERNAL HUNTRESS|Run, and I will only enjoy it longer.": "U17_005",
+"NOVA|Her hounds are driving us toward the clearing. Hold here. Make her come to us.": "U17_006",
+"THE ETERNAL HUNTRESS|You did not run. Then I will finish this myself.": "U17_007",
+"NOVA|At range she fades into the fog. My scans pass right through her. You'll have to get close.": "U17_008",
+"NOVA|When her bowstring hums and the fog parts in a line, she's about to loose. Move off the line, then close in.": "U17_009",
+"THE ETERNAL HUNTRESS|A prey that comes closer. I have not seen one in a long time.": "U17_010",
+"PLAYER|How long have you been hunting here?": "U17_011",
+"THE ETERNAL HUNTRESS|Since before the trees. I hunted what came through the fog so the village would not have to. Then the village was gone, and I kept hunting.": "U17_012",
+"THE ETERNAL HUNTRESS|Take my catalyst. Rest, if you can. I will not.": "U17_013",
+"NYX|No bowstring tonight. First time in a week. You owe me nothing, but I'll buy you a drink anyway.": "U17_014",
+"NOVA|Marshal Draev came out from the Reach for this. He doesn't look happy.": "U18_001",
+"MARSHAL DRAEV|You want the gate opened. Every operator wants the gate opened. None of them have come back to complain about it.": "U18_002",
+"PLAYER|What's behind it?": "U18_003",
+"MARSHAL DRAEV|The Behemoth. A siege engine. The war it was built for ended before I was born, and nobody told it. It shells anything that moves near that complex.": "U18_004",
+"MARSHAL DRAEV|If you're going, go. Wait for its cannons to run hot. The vents open. That's the only time it bleeds.": "U18_005",
+"NOVA|Tread marks wider than the road. It's been patrolling.": "U18_006",
+"NOVA|The gate. Welded shut, then welded again, then welded a third time.": "U18_007",
+"NOVA|When this gate opens, it will treat us as the enemy it was built to stop. There's no talking to it.": "U18_008",
+"PLAYER|Then we don't talk.": "U18_009",
+"THE IRON BEHEMOTH|TARGET ACQUIRED. ALL BATTERIES.": "U18_010",
+"NOVA|Here it comes.": "U18_011",
+"NOVA|When the vents on its back glow white and steam, the volley is ending and the cannons are hot. That's the opening.": "U18_012",
+"THE IRON BEHEMOTH|SIEGE... CONCLUDED. AWAITING... ORDERS.": "U18_013",
+"PLAYER|Stand down. The war's over.": "U18_014",
+"THE IRON BEHEMOTH|ACKNOWLEDGED.": "U18_015",
+"NOVA|It shut itself off. It accepted the order.": "U18_016",
+"MARSHAL DRAEV|Operator, my lookouts say the complex went quiet. You did it. Bring back some of that alloy, would you. We've earned it.": "U18_017",
 "ROSA DELGADO|The morning it happened I was steaming milk. The jug just… kept steaming, no heat under it. I still have the jug.": "P_rosa_fracture_1",
 "ROSA DELGADO|Everyone's got a Fracture story. Mine is boring and I'd like to keep it that way.": "P_rosa_fracture_2",
 "ROSA DELGADO|Best corner in Nexus. Sun till two, shade after, and the monorail doesn't rattle the cups any more.": "P_rosa_place_1",
