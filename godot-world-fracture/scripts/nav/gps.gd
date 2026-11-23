@@ -25,6 +25,8 @@ var place_name: Callable = Callable()      # -> String
 ## hosts without a region map: [{a: Vector2, b: Vector2, w: float, color: Color}] and [{p: Vector2, color, label}]
 var lines: Array = []
 var marks: Array = []
+## circles drawn on the dial: { p: Vector2 (world x, z), r: metres, color } — Fracture Royale's closing circle
+var rings: Array = []
 var area := ""                             # the line under the dial when there is no region
 var land_bg := false                       # the ground beyond the host's lines is land (dark slate), not sea
 var offset := Vector2(-DIAM - 14.0, 70.0)  # from the top-right corner
@@ -260,6 +262,11 @@ func _draw_dial() -> void:
 				_dial.draw_circle(dp, 4.0 if cat == "airport" else 3.0, Color(0.55, 0.9, 1.0) if cat == "airport" else Color(0.95, 0.9, 0.75, 0.9))
 				if cat == "airport":
 					_dial.draw_arc(dp, 7.0, 0, TAU, 16, Color(0.55, 0.9, 1.0), 1.5)
+	for rg in rings:
+		var rp := to_dial(rg.p)
+		var rr := float(rg.r) * k
+		if rr > 2.0 and rp.distance_to(c) < rr + r:
+			_dial.draw_arc(rp, rr, 0, TAU, 72, rg.get("color", Color(0.9, 0.5, 1.0)), 2.0)
 	# only the three nearest marks within their reach are named, so a busy strip stays readable
 	var named := {}
 	var cands: Array = []
