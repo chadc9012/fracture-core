@@ -521,6 +521,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 			return
 	_build_roads()
 	_build_highways()
+	_dress_bridges()
 	if CITY_ROAD_MARKINGS:
 		_build_road_markings_batch_19_43()
 	_build_rings()
@@ -542,6 +543,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 		if _world != w:
 			return
 	Flora.floor(self, _clearings())
+	_build_grass_field()
 	_build_floating()
 	_build_ruins()
 	if id == "thalassia":
@@ -966,6 +968,11 @@ func _build_water() -> void:
 	elif _style.night > 0.5:
 		mat.set_shader_parameter("deep_col", Color(0.02, 0.03, 0.08))
 		mat.set_shader_parameter("shallow_col", Color(0.05, 0.08, 0.16))
+	# what the water reflects: the night sky, or the day's blue
+	mat.set_shader_parameter("sky_col", Color(0.06, 0.08, 0.16) if _style.night > 0.5 else Color(0.55, 0.68, 0.82))
+	if map_id == "swamps":
+		mat.set_shader_parameter("wave", 0.25)
+		mat.set_shader_parameter("foam", 0.3)
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_world.add_child(mi)
@@ -2420,6 +2427,54 @@ func _index_decks() -> void:
 					_deck_grid[key] = []
 				_deck_grid[key].append(k)
 
+## real 3D grass round the camera on every grassy cover (scripts/vfx/grass_field.gd; owner, Nov 23 "make the grass look
+## real"), kept off every road and bridge by a 2 m road mask; autumn turns the tips gold, winter has none
+var _road_mask := PackedByteArray()
+var _road_mask_n := 0
+func _build_grass_field() -> void:
+	if map_id in ["thalassia", "storm"] or season == 3:
+		return
+	_road_mask_n = int(ceil(_span / 2.0)) + 1
+	_road_mask.resize(_road_mask_n * _road_mask_n)
+	_road_mask.fill(0)
+	for r in m.roads:
+		var pts: Array = r.pts
+		var hw := float(r.get("w", 4.0)) * 0.5 + 1.2
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var steps := maxi(1, int(a.distance_to(b) / 1.5))
+			for k in steps + 1:
+				var c := a.lerp(b, float(k) / steps)
+				var ci := int((c.x / _span + 0.5) * (_road_mask_n - 1))
+				var cj := int((c.y / _span + 0.5) * (_road_mask_n - 1))
+				var rr := int(ceil(hw / 2.0))
+				for dj in range(-rr, rr + 1):
+					for di in range(-rr, rr + 1):
+						var ii := ci + di
+						var jj := cj + dj
+						if ii >= 0 and jj >= 0 and ii < _road_mask_n and jj < _road_mask_n:
+							_road_mask[jj * _road_mask_n + ii] = 1
+	var g := preload("res://scripts/vfx/grass_field.gd").new()
+	_world.add_child(g)
+	var tip := Color(0.44, 0.5, 0.22)
+	var base := Color(0.07, 0.12, 0.035)
+	if season == 2:
+		tip = Color(0.75, 0.6, 0.25)
+	elif map_id in ["solara", "wastelands", "horizon-gate", "crystal-badlands"]:
+		tip = Color(0.68, 0.62, 0.34)
+		base = Color(0.2, 0.2, 0.08)
+	g.setup(_grass_here, func(x: float, z: float) -> float: return _ground(x, z), base, tip)
+
+func _grass_here(lx: float, lz: float) -> bool:
+	if _off_map(lx, lz):
+		return false
+	var ii := int((lx / _span + 0.5) * (_road_mask_n - 1))
+	var jj := int((lz / _span + 0.5) * (_road_mask_n - 1))
+	if ii < 0 or jj < 0 or ii >= _road_mask_n or jj >= _road_mask_n or _road_mask[jj * _road_mask_n + ii] == 1:
+		return false
+	return surface(lx, lz) == "step_grass" and _h(lx, lz) > _water + 0.25
+
 ## the generated road network (tools/gen_road_net.gd → data/road_net.json; owner, Nov 23 "Generate roads and highway"):
 ## roads to every place and an expressway across the bigger regions, added to the region's own roads
 static var _road_net: Dictionary = {}
@@ -2451,6 +2506,7 @@ func _build_highways() -> void:
 	var yellow := Color(0.9, 0.72, 0.2)
 	var concrete := Color(0.55, 0.55, 0.53)
 	var wall := Color(0.42, 0.42, 0.41)
+	var sign_green := Color(0.05, 0.36, 0.18)
 	for r in m.roads:
 		if r.cls != "highway":
 			continue
@@ -2469,6 +2525,17 @@ func _build_highways() -> void:
 		var n := line.size()
 		if n < 2:
 			continue
+		# a normal at every point (mitred between the two segments) so the deck, paint and barriers run on through curves
+		var nrms: Array[Vector2] = []
+		for i in n:
+			var d0 := (line[i] - line[maxi(i - 1, 0)]).normalized() if i > 0 else (line[1] - line[0]).normalized()
+			var d1 := (line[mini(i + 1, n - 1)] - line[i]).normalized() if i < n - 1 else d0
+			var avg := (d0 + d1).normalized()
+			if avg == Vector2.ZERO:
+				avg = d0
+			var miter := avg.orthogonal()
+			var k := 1.0 / maxf(0.5, miter.dot(d0.orthogonal()))
+			nrms.append(miter * k)
 		# the profile: ground, raised over water; averaged over ±36 m; never below the ground (fills, no cuttings)
 		var gnd := PackedFloat32Array()
 		var base := PackedFloat32Array()
@@ -2478,6 +2545,7 @@ func _build_highways() -> void:
 			var h := _h(line[i].x, line[i].y)
 			gnd[i] = h
 			base[i] = h if h > _water + 0.3 else _water + 6.0
+		var hw := w * 0.5
 		var deck := PackedFloat32Array()
 		deck.resize(n)
 		for i in n:
@@ -2486,72 +2554,167 @@ func _build_highways() -> void:
 			for k in range(maxi(0, i - 6), mini(n, i + 7)):
 				sum += base[k]
 				cnt += 1
-			# the deck rides at least 0.35 m above the ground under its whole width
-			var side := Vector2.ZERO
-			if i < n - 1:
-				side = (line[i + 1] - line[i]).normalized().orthogonal() * w * 0.5
-			elif i > 0:
-				side = (line[i] - line[i - 1]).normalized().orthogonal() * w * 0.5
+			var side := nrms[i] * hw
 			var under := maxf(gnd[i], maxf(_h(line[i].x + side.x, line[i].y + side.y), _h(line[i].x - side.x, line[i].y - side.y)))
 			deck[i] = maxf(sum / cnt, under + 0.35)
-		var hw := w * 0.5
+		# junctions: where another road ends at the highway, the barrier opens on that side, a ramp brings it up to the
+		# deck if the deck stands high, and a green sign 60 m before names the place
+		var gaps: Array = []        # [index, side]
+		for o in m.roads:
+			if o == r or not (String(o.cls) in ["main", "street", "track", "bridge"]):
+				continue
+			var opts: Array = o.pts
+			for e in [0, opts.size() - 1]:
+				var ep := _loc(opts[e][0], opts[e][1])
+				var best := -1
+				var bd := 16.0
+				for i in n:
+					var dd := line[i].distance_to(ep)
+					if dd < bd:
+						bd = dd
+						best = i
+				if best < 0:
+					continue
+				var sd := signf((ep - line[best]).dot(nrms[best]))
+				if sd == 0.0:
+					sd = 1.0
+				gaps.append([best, sd])
+				var inner: Array = opts[1 if e == 0 else opts.size() - 2]
+				var away := (_loc(inner[0], inner[1]) - ep).normalized()
+				var edge := line[best] + nrms[best].normalized() * sd * hw
+				var lift := deck[best] - _h(edge.x, edge.y)
+				if lift > 0.6:
+					# the ramp: 8 m wide, from the deck edge down to the ground at 1 in 12
+					var run := clampf(lift * 12.0, 12.0, 60.0)
+					var foot := edge + away * run
+					var rn := away.orthogonal() * 4.0
+					var y0 := deck[best]
+					var y1 := _h(foot.x, foot.y) + 0.2
+					_quad(st, Vector3(edge.x - rn.x, y0, edge.y - rn.y), Vector3(edge.x + rn.x, y0, edge.y + rn.y), Vector3(foot.x + rn.x, y1, foot.y + rn.y), Vector3(foot.x - rn.x, y1, foot.y - rn.y), asphalt)
+					for sd5: float in [-1.0, 1.0]:
+						var pa5 := Vector3(edge.x + rn.x * sd5, y0, edge.y + rn.y * sd5)
+						var pb5 := Vector3(foot.x + rn.x * sd5, y1, foot.y + rn.y * sd5)
+						_quad(st, pa5, pb5, Vector3(pb5.x, _h(pb5.x, pb5.z) - 0.3, pb5.z), Vector3(pa5.x, _h(pa5.x, pa5.z) - 0.3, pa5.z), wall)
+					_decks.append([edge, foot, y0, y1, 4.0])
+				# the green sign, 60 m before the junction (10 steps of 6 m) on the junction's side
+				var si := maxi(best - 10, 0)
+				var sp := line[si] + nrms[si].normalized() * sd * (hw + 1.6)
+				var sy := deck[si]
+				var dir2 := (line[mini(si + 1, n - 1)] - line[si]).normalized()
+				var face := atan2(dir2.x, dir2.y)
+				for po: float in [-1.6, 1.6]:
+					var pp := sp + dir2.orthogonal() * po
+					_pillar(st, Vector3(pp.x, sy, pp.y), sy + 5.8, 0.09, Color(0.55, 0.56, 0.58))
+				var panel := Vector3(sp.x, sy + 5.0, sp.y)
+				var pm := MeshInstance3D.new()
+				var bm := BoxMesh.new()
+				bm.size = Vector3(4.6, 1.8, 0.12)
+				pm.mesh = bm
+				var gm := StandardMaterial3D.new()
+				gm.albedo_color = sign_green
+				gm.roughness = 0.4
+				gm.metallic = 0.2
+				pm.material_override = gm
+				pm.position = panel
+				pm.rotation.y = face
+				_world.add_child(pm)
+				var lbl := Label3D.new()
+				var dest := String(o.get("name", "")).replace("Road to ", "")
+				lbl.text = ("EXIT  %s\n%s" % ["↖" if sd > 0 else "↗", dest.to_upper()]) if dest != "" else "EXIT"
+				lbl.font_size = 64
+				lbl.pixel_size = 0.012
+				lbl.outline_size = 0
+				lbl.modulate = Color(0.97, 0.97, 0.95)
+				lbl.position = panel + Vector3(sin(face), 0, cos(face)) * -0.08
+				lbl.rotation.y = face + PI
+				lbl.width = 360.0
+				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+				lbl.double_sided = false
+				_world.add_child(lbl)
+		# the gantry over the start, with the highway's name
+		var g0 := line[0]
+		var gd := (line[1] - line[0]).normalized()
+		var gn := gd.orthogonal()
+		for sd6: float in [-1.0, 1.0]:
+			var gp := g0 + gn * sd6 * (hw + 0.8) + gd * 8.0
+			_pillar(st, Vector3(gp.x, deck[1], gp.y), deck[1] + 7.2, 0.18, Color(0.55, 0.56, 0.58))
+		var gc := g0 + gd * 8.0
+		var gantry := MeshInstance3D.new()
+		var gbm := BoxMesh.new()
+		gbm.size = Vector3(w + 1.6, 1.9, 0.14)
+		gantry.mesh = gbm
+		var ggm := StandardMaterial3D.new()
+		ggm.albedo_color = sign_green
+		ggm.roughness = 0.4
+		gantry.material_override = ggm
+		gantry.position = Vector3(gc.x, deck[1] + 6.4, gc.y)
+		gantry.rotation.y = atan2(gd.x, gd.y)
+		_world.add_child(gantry)
+		var gl := Label3D.new()
+		gl.text = String(r.get("name", "EXPRESSWAY")).to_upper()
+		gl.font_size = 72
+		gl.pixel_size = 0.014
+		gl.modulate = Color(0.97, 0.97, 0.95)
+		gl.position = gantry.position - Vector3(gd.x, 0, gd.y) * 0.09
+		gl.rotation.y = atan2(gd.x, gd.y) + PI
+		gl.double_sided = false
+		_world.add_child(gl)
 		var dash := 0.0
 		for i in n - 1:
 			var a := line[i]
 			var b := line[i + 1]
 			var d := (b - a).normalized()
-			var nrm := d.orthogonal()
+			var na := nrms[i]
+			var nb := nrms[i + 1]
 			var ya := deck[i]
 			var yb := deck[i + 1]
 			var seg := a.distance_to(b)
 			var high := maxf(ya - gnd[i], yb - gnd[i + 1])
 			var wet := gnd[i] < _water + 0.3 or gnd[i + 1] < _water + 0.3
 			# deck top
-			_quad(st, Vector3(a.x - nrm.x * hw, ya, a.y - nrm.y * hw), Vector3(a.x + nrm.x * hw, ya, a.y + nrm.y * hw), Vector3(b.x + nrm.x * hw, yb, b.y + nrm.y * hw), Vector3(b.x - nrm.x * hw, yb, b.y - nrm.y * hw), asphalt)
-			# paint: solid yellow centre pair, white edge lines, dashed lane lines between
+			_quad(st, Vector3(a.x - na.x * hw, ya, a.y - na.y * hw), Vector3(a.x + na.x * hw, ya, a.y + na.y * hw), Vector3(b.x + nb.x * hw, yb, b.y + nb.y * hw), Vector3(b.x - nb.x * hw, yb, b.y - nb.y * hw), asphalt)
 			for off: float in [-0.18, 0.18]:
-				_strip(st, a, b, ya + 0.03, yb + 0.03, off, 0.12, nrm, yellow)
+				_strip(st, a, b, ya + 0.03, yb + 0.03, off, 0.12, na, nb, yellow)
 			for off2: float in [-hw + 0.9, hw - 0.9]:
-				_strip(st, a, b, ya + 0.03, yb + 0.03, off2, 0.15, nrm, paint)
+				_strip(st, a, b, ya + 0.03, yb + 0.03, off2, 0.15, na, nb, paint)
 			if fmod(dash, 12.0) < 4.0:
 				for off3: float in [-hw * 0.5, hw * 0.5]:
-					_strip(st, a, b, ya + 0.03, yb + 0.03, off3, 0.13, nrm, paint)
+					_strip(st, a, b, ya + 0.03, yb + 0.03, off3, 0.13, na, nb, paint)
 			dash += seg
-			# jersey barriers on both edges (0.85 m), with the glow strip on their tops at night
 			for sd: float in [-1.0, 1.0]:
+				var open := false
+				for gp2 in gaps:
+					if gp2[1] == sd and absi(int(gp2[0]) - i) <= 2:
+						open = true
+				if open:
+					continue
 				var o := sd * (hw - 0.2)
-				_wall(st, a + nrm * o, b + nrm * o, ya, yb, 0.85, 0.4, concrete)
+				_wall(st, a, b, ya, yb, 0.85, 0.4, na, nb, o, concrete)
 				if night > 0.3:
-					_strip(glow, a, b, ya + 0.87, yb + 0.87, o, 0.12, nrm, neon_col)
+					_strip(glow, a, b, ya + 0.87, yb + 0.87, o, 0.12, na, nb, neon_col)
 					any_glow = true
-			# fill: retaining walls down to the ground where the deck stands above it; piers and a slab over water
 			if high > 0.5:
 				for sd2: float in [-1.0, 1.0]:
-					var e := nrm * sd2 * hw
-					var pa := Vector3(a.x + e.x, ya, a.y + e.y)
-					var pb := Vector3(b.x + e.x, yb, b.y + e.y)
-					var ga := (_water - 1.0) if wet else _h(pa.x, pa.z) - 0.3
-					var gb := (_water - 1.0) if wet else _h(pb.x, pb.z) - 0.3
-					if wet:
-						ga = ya - 1.4
-						gb = yb - 1.4
+					var pa := Vector3(a.x + na.x * sd2 * hw, ya, a.y + na.y * sd2 * hw)
+					var pb := Vector3(b.x + nb.x * sd2 * hw, yb, b.y + nb.y * sd2 * hw)
+					var ga := ya - 1.4 if wet else _h(pa.x, pa.z) - 0.3
+					var gb := yb - 1.4 if wet else _h(pb.x, pb.z) - 0.3
 					_quad(st, pa, pb, Vector3(pb.x, gb, pb.z), Vector3(pa.x, ga, pa.z), wall)
 				if wet:
-					_quad(st, Vector3(a.x - nrm.x * hw, ya - 1.4, a.y - nrm.y * hw), Vector3(b.x - nrm.x * hw, yb - 1.4, b.y - nrm.y * hw), Vector3(b.x + nrm.x * hw, yb - 1.4, b.y + nrm.y * hw), Vector3(a.x + nrm.x * hw, ya - 1.4, a.y + nrm.y * hw), wall.darkened(0.3))
+					_quad(st, Vector3(a.x - na.x * hw, ya - 1.4, a.y - na.y * hw), Vector3(b.x - nb.x * hw, yb - 1.4, b.y - nb.y * hw), Vector3(b.x + nb.x * hw, yb - 1.4, b.y + nb.y * hw), Vector3(a.x + na.x * hw, ya - 1.4, a.y + na.y * hw), wall.darkened(0.3))
 					if i % 5 == 0:
 						for sd3: float in [-0.55, 0.55]:
-							var c := a + nrm * sd3 * hw
+							var c := a + na * sd3 * hw
 							_pillar(st, Vector3(c.x, _water - 3.0, c.y), ya - 1.4, 0.9, concrete.darkened(0.15))
 				_decks.append([a, b, ya, yb, hw])
-			# median lamps every 48 m: a pole with twin arms; the heads glow at night
 			if i % 8 == 0:
 				var base_p := Vector3(a.x, ya, a.y)
 				_pillar(st, base_p, ya + 9.0, 0.14, Color(0.3, 0.3, 0.32))
 				for sd4: float in [-1.0, 1.0]:
-					var head := base_p + Vector3(nrm.x * sd4 * 2.2, 8.9, nrm.y * sd4 * 2.2)
-					_strip(st, Vector2(a.x, a.y), Vector2(a.x + nrm.x * sd4 * 2.2, a.y + nrm.y * sd4 * 2.2), ya + 9.0, ya + 8.95, 0.0, 0.1, d, Color(0.3, 0.3, 0.32))
+					var arm := Vector2(a.x + na.x * sd4 * 2.2, a.y + na.y * sd4 * 2.2)
+					_strip(st, a, arm, ya + 9.0, ya + 8.95, 0.0, 0.1, d, d, Color(0.3, 0.3, 0.32))
 					if night > 0.3:
-						_box_tri(glow, head, Vector3(0.7, 0.18, 0.35), Color(1.0, 0.72, 0.4) * 2.0)
+						_box_tri(glow, Vector3(arm.x, ya + 8.9, arm.y), Vector3(0.7, 0.18, 0.35), Color(1.0, 0.72, 0.4) * 2.0)
 						any_glow = true
 			any = true
 	if any:
@@ -2566,43 +2729,142 @@ func _build_highways() -> void:
 		mi.name = "Highways"
 		_world.add_child(mi)
 	if any_glow:
-		var gm := StandardMaterial3D.new()
-		gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		gm.vertex_color_use_as_albedo = true
-		gm.albedo_color = Color(2.2, 2.2, 2.2)
+		var gm2 := StandardMaterial3D.new()
+		gm2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		gm2.vertex_color_use_as_albedo = true
+		gm2.albedo_color = Color(2.2, 2.2, 2.2)
 		var gi := MeshInstance3D.new()
 		gi.mesh = glow.commit()
-		gi.material_override = gm
+		gi.material_override = gm2
 		gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		gi.name = "HighwayGlow"
 		_world.add_child(gi)
+
+## the bridges (exported and generated `bridge` roads): the deck the ribbon already draws gets a slab edge under it,
+## railings with posts, piers down to the bed every ~16 m and, over a span longer than 36 m, a steel arch each side
+## with hangers down to the deck (owner, Nov 23: "add … bridges"). One mesh for every bridge.
+func _dress_bridges() -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	var slab := Color(0.5, 0.5, 0.49)
+	var steel := Color(0.32, 0.36, 0.42) if _style.night < 0.5 else Color(0.25, 0.27, 0.33)
+	var rail := Color(0.62, 0.63, 0.65)
+	for r in m.roads:
+		if r.cls != "bridge":
+			continue
+		var pts: Array = r.pts
+		if pts.size() < 2:
+			continue
+		var w := maxf(1.2, float(r.w))
+		var hw := w * 0.5
+		var line: Array[Vector2] = []
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var steps := maxi(1, int(a.distance_to(b) / 6.0))
+			for s in steps:
+				line.append(a.lerp(b, float(s) / steps))
+		line.append(_loc(pts[-1][0], pts[-1][1]))
+		var n := line.size()
+		# the same deck heights the ribbon uses (_build_roads)
+		var deck_a := maxf(_h(line[0].x, line[0].y), _water + 2.5)
+		var deck_b := maxf(_h(line[-1].x, line[-1].y), _water + 2.5)
+		var ys := PackedFloat32Array()
+		ys.resize(n)
+		for i in n:
+			ys[i] = maxf(_h(line[i].x, line[i].y) + 0.18, lerpf(deck_a, deck_b, float(i) / maxf(n - 1, 1)) + 0.3)
+		var length := 0.0
+		for i in n - 1:
+			length += line[i].distance_to(line[i + 1])
+		var walked := 0.0
+		for i in n - 1:
+			var a := line[i]
+			var b := line[i + 1]
+			var d := (b - a).normalized()
+			var nrm := d.orthogonal()
+			var ya := ys[i]
+			var yb := ys[i + 1]
+			for sd: float in [-1.0, 1.0]:
+				var ea := a + nrm * sd * hw
+				var eb := b + nrm * sd * hw
+				# the slab's edge, 0.9 m deep
+				_quad(st, Vector3(ea.x, ya, ea.y), Vector3(eb.x, yb, eb.y), Vector3(eb.x, yb - 0.9, eb.y), Vector3(ea.x, ya - 0.9, ea.y), slab)
+				# railing: top rail and a mid rail, posts every 3 m
+				var ra := a + nrm * sd * (hw - 0.15)
+				var rb := b + nrm * sd * (hw - 0.15)
+				_strip(st, ra, rb, ya + 1.05, yb + 1.05, 0.0, 0.1, nrm, nrm, rail)
+				_quad(st, Vector3(ra.x, ya + 1.05, ra.y), Vector3(rb.x, yb + 1.05, rb.y), Vector3(rb.x, yb + 0.95, rb.y), Vector3(ra.x, ya + 0.95, ra.y), rail)
+				_quad(st, Vector3(ra.x, ya + 0.55, ra.y), Vector3(rb.x, yb + 0.55, rb.y), Vector3(rb.x, yb + 0.48, rb.y), Vector3(ra.x, ya + 0.48, ra.y), rail)
+				var seg := a.distance_to(b)
+				var k := 0.0
+				while k < seg:
+					var pp := ra + d * k
+					_pillar(st, Vector3(pp.x, lerpf(ya, yb, k / seg), pp.y), lerpf(ya, yb, k / seg) + 1.05, 0.04, rail)
+					k += 3.0
+			# underside
+			_quad(st, Vector3(a.x - nrm.x * hw, ya - 0.9, a.y - nrm.y * hw), Vector3(b.x - nrm.x * hw, yb - 0.9, b.y - nrm.y * hw), Vector3(b.x + nrm.x * hw, yb - 0.9, b.y + nrm.y * hw), Vector3(a.x + nrm.x * hw, ya - 0.9, a.y + nrm.y * hw), slab.darkened(0.35))
+			# piers where the deck stands well clear of the bed (one each ~16 m)
+			if i > 0 and i % 3 == 0 and ya - _h(a.x, a.y) > 2.0:
+				var foot := minf(_h(a.x, a.y), _water) - 2.0
+				for sd2: float in [-0.6, 0.6]:
+					var c := a + nrm * sd2 * hw
+					_pillar(st, Vector3(c.x, foot, c.y), ya - 0.9, 0.45 + w * 0.02, slab.darkened(0.15))
+				_quad(st, Vector3(a.x - nrm.x * hw * 0.8, ya - 0.9, a.y - nrm.y * hw * 0.8), Vector3(a.x + nrm.x * hw * 0.8, ya - 0.9, a.y + nrm.y * hw * 0.8), Vector3(a.x + nrm.x * hw * 0.8, ya - 1.5, a.y + nrm.y * hw * 0.8), Vector3(a.x - nrm.x * hw * 0.8, ya - 1.5, a.y - nrm.y * hw * 0.8), slab.darkened(0.2))
+			# the arches over a long span: a parabola each side, hangers every 6 m
+			if length > 36.0:
+				var u0 := walked / length
+				var u1 := (walked + a.distance_to(b)) / length
+				var rise := minf(length * 0.18, 16.0)
+				var ha := ya + 1.0 + rise * 4.0 * u0 * (1.0 - u0)
+				var hb := yb + 1.0 + rise * 4.0 * u1 * (1.0 - u1)
+				for sd3: float in [-1.0, 1.0]:
+					var aa := a + nrm * sd3 * (hw + 0.3)
+					var bb := b + nrm * sd3 * (hw + 0.3)
+					_quad(st, Vector3(aa.x, ha + 0.35, aa.y), Vector3(bb.x, hb + 0.35, bb.y), Vector3(bb.x, hb - 0.35, bb.y), Vector3(aa.x, ha - 0.35, aa.y), steel)
+					_strip(st, aa, bb, ha + 0.35, hb + 0.35, 0.0, 0.5, nrm, nrm, steel)
+					if ha - ya > 1.6:
+						_pillar(st, Vector3(aa.x, ya, aa.y), ha - 0.35, 0.05, steel)
+				walked += a.distance_to(b)
+			any = true
+	if not any:
+		return
+	st.generate_normals()
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.7
+	mat.metallic = 0.15
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	mi.name = "Bridges"
+	_world.add_child(mi)
 
 func _quad(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, col: Color) -> void:
 	for v in [p0, p1, p2, p0, p2, p3]:
 		st.set_color(col)
 		st.add_vertex(v)
 
-## a flat strip along a→b at `off` across, `w` wide, at heights ya..yb
-func _strip(st: SurfaceTool, a: Vector2, b: Vector2, ya: float, yb: float, off: float, w: float, nrm: Vector2, col: Color) -> void:
-	var a0 := a + nrm * (off - w * 0.5)
-	var a1 := a + nrm * (off + w * 0.5)
-	var b0 := b + nrm * (off - w * 0.5)
-	var b1 := b + nrm * (off + w * 0.5)
+## a flat strip along a→b at `off` across, `w` wide, at heights ya..yb (normals na at a, nb at b: mitred through curves)
+func _strip(st: SurfaceTool, a: Vector2, b: Vector2, ya: float, yb: float, off: float, w: float, na: Vector2, nb: Vector2, col: Color) -> void:
+	var a0 := a + na * (off - w * 0.5)
+	var a1 := a + na * (off + w * 0.5)
+	var b0 := b + nb * (off - w * 0.5)
+	var b1 := b + nb * (off + w * 0.5)
 	_quad(st, Vector3(a0.x, ya, a0.y), Vector3(a1.x, ya, a1.y), Vector3(b1.x, yb, b1.y), Vector3(b0.x, yb, b0.y), col)
 
-## a barrier: two sloped faces and a top, `h` high, `w` wide at the foot
-func _wall(st: SurfaceTool, a: Vector2, b: Vector2, ya: float, yb: float, h: float, w: float, col: Color) -> void:
-	var d := (b - a).normalized()
-	var nrm := d.orthogonal()
+## a barrier at `off` across: two sloped faces and a top, `h` high, `w` wide at the foot (mitred like _strip)
+func _wall(st: SurfaceTool, a: Vector2, b: Vector2, ya: float, yb: float, h: float, w: float, na: Vector2, nb: Vector2, off: float, col: Color) -> void:
 	var lo := w * 0.5
 	var hi := w * 0.2
 	for sd: float in [-1.0, 1.0]:
-		var fa := a + nrm * sd * lo
-		var fb := b + nrm * sd * lo
-		var ta := a + nrm * sd * hi
-		var tb := b + nrm * sd * hi
+		var fa := a + na * (off + sd * lo)
+		var fb := b + nb * (off + sd * lo)
+		var ta := a + na * (off + sd * hi)
+		var tb := b + nb * (off + sd * hi)
 		_quad(st, Vector3(fa.x, ya, fa.y), Vector3(fb.x, yb, fb.y), Vector3(tb.x, yb + h, tb.y), Vector3(ta.x, ya + h, ta.y), col)
-	_strip(st, a, b, ya + h, yb + h, 0.0, hi * 2.0, nrm, col.lightened(0.1))
+	_strip(st, a, b, ya + h, yb + h, off, hi * 2.0, na, nb, col.lightened(0.1))
 
 ## a square column from `foot` up to height `top`
 func _pillar(st: SurfaceTool, foot: Vector3, top: float, r: float, col: Color) -> void:
