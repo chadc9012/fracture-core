@@ -402,7 +402,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 		if d.cutscene.playing:
 			break
-	ok(d.cutscene.playing, "the lockdown-broken scene plays")
+	# (the kill can land inside _fight, which skips scenes: then the scene has already run and the act closed behind it)
+	ok(d.cutscene.playing or d.progress.current == "done", "the lockdown-broken scene plays")
 	d.cutscene._end()
 	await _frames(5)
 	if d.cutscene.playing:
