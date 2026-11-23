@@ -23,6 +23,7 @@ const RoyaleView := preload("res://scripts/killbox/royale_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
 const BossArena := preload("res://scripts/combat/boss_arena.gd")
+const Boss := preload("res://scripts/combat/boss.gd")
 const Airport := preload("res://scripts/airport/airport.gd")
 const AirportView := preload("res://scripts/airport/airport_view.gd")
 const ArrivalView := preload("res://scripts/airport/arrival_view.gd")
@@ -1173,11 +1174,12 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_creator()
 			if String(o).contains(":"):
 				creator.show_tab(String(o).get_slice(":", 1).to_upper())
-		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default); :fight holds fire
+		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default; any BOSSES / STORY / UNIQUE
+		# id); :fight holds fire
 		if String(o).begins_with("boss"):
 			boss_arena = BossArena.new()
 			boss_arena.boss_id = "rift-hound"
-			for id in ["crystal-stalker", "abyssal-leviathan", "vyrak", "astravore", "colossus"]:
+			for id in Boss.BOSSES.keys() + Boss.STORY.keys() + Boss.UNIQUE.keys():
 				if String(o).contains(id):
 					boss_arena.boss_id = id
 			boss_arena.closed.connect(_close_boss)

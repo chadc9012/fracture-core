@@ -240,7 +240,7 @@ telegraph (red ring on the ground, the row's seconds ÷ phase speed), then LUNGE
 (a burning cone) or SUMMON (adds through enemies.gd, more per phase), then a cooldown. The HUD carries the boss bar with
 hull, phase and poise; the core glows cyan in a punish window. A first clear pays the row's Nex / XP (600 / 400 for the
 Hound up to 2500 / 1500 for the Colossus), repeats a third; `profile.boss_clears` remembers. Tests:
-tests/combat/boss_test.gd. Shots: `boss[:<id>][:fight]`.
+tests/combat/boss_test.gd. Shots: `boss[:<id>][:fight]` (any BOSSES / STORY / UNIQUE id). **Chapter 1's bosses** (Nov 23) are the `STORY` rows — Fracture Commander, Subject Zero, Fracture Executioner, Fracture Siege Beast, The Harbinger, Archive Warden — on hulls of their own (`models/bosses/<id>.glb`, Meshy 7.1 image-to-3D decimated to 80k tris by `tools/decimate_glb.py`), fought in their Aftershock missions (campaign.gd BOSS_FOR) and not in the Rift Gate's pick; look-dev `OUT=x.png … res://tests/tools/_boss_lineup.tscn`.
 
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two

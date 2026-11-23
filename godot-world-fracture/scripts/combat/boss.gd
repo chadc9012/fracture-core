@@ -78,9 +78,27 @@ const UNIQUE := {
 	"iron-behemoth": { "name": "The Iron Behemoth", "model": "guardian-boss.glb", "size": 9.0, "hull": 1.5, "speed": 2.4, "range": 20.0, "attacks": ["VOLLEY", "SLAM", "VOLLEY", "SUMMON"], "adds": ["executor", 2], "reward": [1500, 900],
 		"blurb": "A siege engine still fighting a war nobody remembers." },
 }
-## a row of either table
+## Chapter 1 — The Aftershock's six (tools/campaign/aftershock.py Missions 2–7), each on a hull of its own: Meshy 7.1
+## Image-to-3D from an on-brief concept image (Nov 23), decimated to 80k tris (tools/decimate_glb.py) and gate-passed
+## (scripts/check-meshy-textures.py). Story bosses only: not in the Rift Gate's pick (boss_arena.gd walks BOSSES).
+const STORY := {
+	"fracture-commander": { "name": "Fracture Commander", "model": "fracture-commander.glb", "size": 4.2, "hull": 0.7, "speed": 5.5, "range": 14.0, "attacks": ["VOLLEY", "LUNGE", "SWEEP", "SUMMON"], "adds": ["scout", 2], "reward": [700, 450],
+			"blurb": "The checkpoint's big one: black plate split by violet fracture light, crystal spurs on its shoulders. It holds the line with its troopers and comes for you when they fall." },
+	"subject-zero": { "name": "Subject Zero", "model": "subject-zero.glb", "size": 2.2, "hull": 0.65, "speed": 7.5, "range": 3.0, "attacks": ["LUNGE", "CHARGE", "SPIKES", "LUNGE"], "adds": ["drone", 0], "reward": [750, 480],
+			"blurb": "The research wing's first subject, still in the grey scrubs, crystal growing out of the chest and the left arm. Fast, close, and the floor erupts where it stands." },
+	"fracture-executioner": { "name": "Fracture Executioner", "model": "fracture-executioner.glb", "size": 3.4, "hull": 0.9, "speed": 7.0, "range": 3.0, "attacks": ["SWEEP", "LUNGE", "CHARGE", "SWEEP"], "adds": ["executor", 1], "reward": [900, 600],
+			"blurb": "The subway's hooded hunter, violet blades grown from both forearms. Sweeps, then closes on whoever is still standing." },
+	"siege-beast": { "name": "Fracture Siege Beast", "model": "siege-beast.glb", "size": 6.5, "hull": 1.5, "speed": 4.0, "range": 8.0, "attacks": ["SLAM", "CHARGE", "SLAM", "SPIKES"], "adds": ["scout", 2], "reward": [1100, 700],
+			"blurb": "The thing that came over the northern wall: a quadruped of cracked stone and crystal spines. Every slam is a shockwave; the charge takes the wall with it." },
+	"harbinger": { "name": "The Harbinger", "model": "harbinger.glb", "size": 3.8, "hull": 1.3, "speed": 5.0, "range": 18.0, "attacks": ["VOLLEY", "SUMMON", "BREATH", "SPIKES"], "adds": ["elite", 2], "reward": [1300, 850],
+			"blurb": "The one who comes to reclaim what was taken. Black and gold plate under a torn mantle, a crown of violet crystal; it calls its chosen and burns the ground between you." },
+	"archive-warden": { "name": "Archive Warden", "model": "archive-warden.glb", "size": 5.0, "hull": 1.4, "speed": 3.0, "range": 10.0, "attacks": ["SLAM", "SWEEP", "VOLLEY", "SUMMON"], "adds": ["executor", 2], "reward": [1400, 900],
+			"blurb": "The Archive's keeper on the central dais: a chained stone-and-bronze golem, runes down the arms, a visor slit of violet light. Slow, and nothing it hits gets up quickly." },
+}
+
+## a row of any table
 static func row(boss_id: String) -> Dictionary:
-	return BOSSES.get(boss_id, UNIQUE.get(boss_id, {}))
+	return BOSSES.get(boss_id, STORY.get(boss_id, UNIQUE.get(boss_id, {})))
 
 ## the unique encounters' gimmicks (web scenario-gimmicks.ts), set by unique_encounter.gd after the summon:
 ##   poise    — outside the stagger / weak-point window hits land at POISE_OUTSIDE
