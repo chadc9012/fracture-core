@@ -633,6 +633,63 @@ for s_ in SIDES:
     if rows:
         add("cargo", solid_strip(rows, 0.004 * H))
 
+# formal wear (asset catalog §4 "formal clothing", Nov 23): a suit jacket's lapels and a tie, laid on the chest where
+# outfit.gdshader paints an open jacket's shirt panel (|lat| < 0.045 H under the neck). The lapels are two slabs down the
+# panel's edges, wide at the collar and sweeping out toward the shoulders, narrowing to the button point; the tie a flat
+# strip down the middle: a knot under the collar, a narrow neck, the blade widening and ending in a point.
+chest_f = hips_f + 0.5 * H
+
+
+def chest_rows(edges, off):
+    """rows of (point, normal) on the chest: `edges` is [(hh, lat_in, lat_out)] from the top down, columns across each"""
+    rows = []
+    for hh, l0, l1 in edges:
+        row = []
+        for t_ in np.linspace(0.0, 1.0, 5):
+            lat_ = (l0 + (l1 - l0) * t_) * H
+            hit = BVH.ray_cast(world(lat_, chest_f, zat(hh)), -FV, 2.0 * H)
+            if hit[0] is None:
+                return None
+            nn = hit[1].normalized()
+            if nn.dot(-FV) > 0:
+                nn = -nn
+            row.append((hit[0] + nn * off, nn))
+        rows.append(row)
+    return rows
+
+
+lapel_top = LM["neck"] - 0.012
+lapel_bot = 0.115                                       # the button: outfits.gd "button" 0.12 closes the shirt panel there
+for sx in (-1.0, 1.0):
+    edges = []
+    for j in range(9):
+        t_ = j / 8.0
+        hh = lapel_top + (lapel_bot - lapel_top) * t_
+        inner = 0.014 + 0.031 * t_                       # the shirt shows more the lower you go (the V of the jacket)
+        width = 0.046 * (1.0 - t_) ** 0.7 + 0.012        # broad at the collar, a sliver at the button
+        edges.append((hh, sx * inner, sx * (inner + width)))
+    rows = chest_rows(edges, 0.004 * H)
+    if rows:
+        add("lapels", solid_strip(rows, 0.005 * H))
+tie_top = LM["neck"] - 0.03
+tie_tip = max(0.1, LM["neck"] * 0.34)
+edges = []
+for j in range(11):
+    t_ = j / 10.0
+    hh = tie_top + (tie_tip - tie_top) * t_
+    if t_ < 0.08:
+        w = 0.013                                        # the knot
+    elif t_ < 0.18:
+        w = 0.007                                        # the neck under it
+    elif t_ < 0.82:
+        w = 0.007 + 0.013 * (t_ - 0.18) / 0.64           # the blade widening
+    else:
+        w = 0.02 * (1.0 - (t_ - 0.82) / 0.18) + 0.001    # to the point
+    edges.append((hh, -w, w))
+rows = chest_rows(edges, 0.0045 * H)
+if rows:
+    add("tie", solid_strip(rows, 0.0035 * H))
+
 # the hood, down (scripts/civ_body_sdf.py meshes it): only hoodies wear it
 add("hood", ([Vector(x) for x in HOOD_VF[0].tolist()], [tuple(int(i) for i in f_) for f_ in HOOD_VF[1].tolist()]))
 

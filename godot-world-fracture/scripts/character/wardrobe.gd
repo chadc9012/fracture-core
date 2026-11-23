@@ -8,7 +8,7 @@ const Outfits := preload("res://scripts/character/outfits.gd")
 
 const STORES := {
 	"nova": { "name": "NOVA THREADS", "color": Color(0.95, 0.4, 0.75), "line": "Everyday streetwear. Hoodies, tracksuits, tees, caps." },
-	"lumen": { "name": "LUMEN LUXE", "color": Color(1.0, 0.85, 0.4), "line": "Premium jackets, gold and glass." },
+	"lumen": { "name": "LUMEN LUXE", "color": Color(1.0, 0.85, 0.4), "line": "Premium jackets, tailoring, gold and glass." },
 	"block": { "name": "BLOCK SUPPLY", "color": Color(0.35, 1.0, 0.75), "line": "The avenue's own: streetwear, headwear and chains." },
 }
 
@@ -33,6 +33,11 @@ const ITEMS := [
 	{ "id": "midnight-varsity", "kind": "outfit", "price": 1200, "stores": ["lumen"] },
 	{ "id": "olive-utility", "kind": "outfit", "price": 1300, "stores": ["lumen", "block"] },
 	{ "id": "techwear", "kind": "outfit", "price": 1400, "stores": ["lumen"] },
+	# formal wear (Nov 23): Lumen Luxe's tailoring
+	{ "id": "burgundy-blazer", "kind": "outfit", "price": 1500, "stores": ["lumen"] },
+	{ "id": "navy-suit", "kind": "outfit", "price": 1800, "stores": ["lumen"] },
+	{ "id": "charcoal-suit", "kind": "outfit", "price": 1800, "stores": ["lumen"] },
+	{ "id": "ivory-suit", "kind": "outfit", "price": 2000, "stores": ["lumen"] },
 	{ "id": "headband", "kind": "hat", "name": "Sweatband", "price": 90, "stores": ["nova"] },
 	{ "id": "bandana", "kind": "hat", "name": "Bandana", "price": 120, "stores": ["nova", "block"] },
 	{ "id": "beanie", "kind": "hat", "name": "Charcoal Beanie", "price": 150, "stores": ["nova", "block"] },

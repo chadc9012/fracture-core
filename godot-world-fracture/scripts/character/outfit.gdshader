@@ -22,6 +22,7 @@ uniform float armpit = 0.1;
 uniform int pieces = 0;
 // a crop top: the torso is bare below this height above the hip line (-1: covered)
 uniform float crop = -1.0;
+uniform float button = -9.0;      // a buttoned jacket: the shirt panel shows only above this height (formal wear, Nov 23)
 
 varying flat int zone;
 varying float jit;
@@ -56,7 +57,7 @@ int part_of(float lat, float hh, float front, float outn) {
 		return SHOE;
 	}
 	if (zone == 2) {
-		if (front > -0.1 && abs(lat) < 0.045 && hh < neck - 0.02 && distance(pal[INNER], pal[TOP]) > 0.002) return INNER;   // an open jacket's shirt, up to the collar
+		if (front > -0.1 && abs(lat) < 0.045 && hh < neck - 0.02 && hh > button && distance(pal[INNER], pal[TOP]) > 0.002) return INNER;   // an open jacket's shirt, up to the collar
 		return hh > neck - 0.035 ? HOOD_OPEN : HOOD;
 	}
 	if (zone == 3) {
