@@ -1,4 +1,5 @@
 extends Node3D
+const Weapons := preload("res://scripts/combat/weapons.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 const Lines := preload("res://scripts/cinema/lines.gd")
 ## A Fracture boss on the field (boss.gd rules): the authored hull scaled to the row's size, walking the ground toward the
@@ -49,6 +50,10 @@ func setup(boss_id: String, at: Vector3, op: Node3D, g: Node3D, en: Node3D, grou
 	enemies = en
 	ground_at = ground
 	size = float(rules.def.size)
+	# a boss is more hull than the whole bag (Vyrak: 4320 against a starter's ~300 rounds — found by the story test, Nov
+	# 23: both guns at 0/0 with 8% of it left, and nothing but its brood to scavenge): the fight opens on a full bag, and
+	# every stagger and phase it is driven through shakes ammunition loose, so it is paced by how well you fight
+	_resupply(99)
 	position = at
 	body = Node3D.new()
 	add_child(body)
@@ -198,7 +203,9 @@ func step(dt: float) -> void:
 				toast.call("%s calls its brood" % String(rules.def.name))
 			"phase":
 				toast.call("%s — %s" % [String(e.label), String(e.telegraph)])
+				_resupply(2)
 			"stagger":
+				_resupply(1)
 				Sound.sfx("stagger", -4.0)
 				toast.call("STAGGERED — hit the core")
 				if rules.id == "vyrak":
@@ -395,3 +402,11 @@ func _clear_marks() -> void:
 
 func _exit_tree() -> void:
 	_clear_marks()
+
+## magazines back into every carried gun's reserve (to the frame's full reserve)
+func _resupply(mags: int) -> void:
+	if gunplay == null or not ("guns" in gunplay):
+		return
+	for g in gunplay.guns:
+		var f: Dictionary = Weapons.FRAMES.get(g.frame, {})
+		g.reserve = mini(int(g.reserve) + int(f.get("mag", 10)) * mags, int(f.get("reserve", 0)))
