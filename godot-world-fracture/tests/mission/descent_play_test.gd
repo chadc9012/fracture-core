@@ -327,7 +327,7 @@ func _ready() -> void:
 	ok(d.progress.current == "fd-07", "fd-06 cleared: Full Lockdown (%s)" % d.progress.current)
 	if d.cutscene.playing:
 		d.cutscene._end()
-	# fd-07: three waves at the core, Serik Vale's recording, then Vyrak
+	# fd-07: three waves at the core, Serik Vale's recording, then the Lockdown Warden
 	await _frames(3)
 	ok(d._terminal != null and d.quest.get("kind", "") == "core", "the Stitched Neon Core stands ahead")
 	var at_core := await _walk_to(d.waypoint, 10.0, "the core")
@@ -357,12 +357,12 @@ func _ready() -> void:
 		ct += minf(get_process_delta_time(), 0.05)
 	ok(int(d.progress.wave) >= 3, "three lockdown waves fought (%d)" % int(d.progress.wave))
 	# (the recording can have played out already when the last wave fell while the operator was walking back to the
-	# core: the breach is Vyrak standing there — the old check also wanted the scene still running, and failed two runs
+	# core: the breach is the act boss standing there — the old check also wanted the scene still running, and failed two runs
 	# in three)
-	ok(d.boss != null, "the core breached: Serik Vale's recording plays and Vyrak drops in")
+	ok(d.boss != null, "the core breached: Serik Vale's recording plays and the Lockdown Warden wakes")
 	if d.cutscene.playing:
 		d.cutscene._end()
-	# Vyrak: shot through the gunplay path until the Covenant
+	# the Warden: shot through the gunplay path until it falls
 	var bt := 0.0
 	while d.boss and not d.boss.rules.dead and bt < 400.0:
 		# the middle of its hit box, and only with a clear line: with the core or a building between them the whole
@@ -370,10 +370,14 @@ func _ready() -> void:
 		var to: Vector3 = d.boss.target.box.get_center() if d.boss.target else d.boss.position + Vector3(0, 2.0, 0)
 		var sees: bool = d.enemies._clear(d.operator.position + Vector3(0, 1.5, 0), to)
 		# aim first (the stick walks where the camera looks), close in past 24 m
-		_aim(to)
 		if not sees:
-			d.controls.move = Vector2(1, 0.35)
+			# no line: walk round whatever is between (the core, a tower) towards it, the way _walk_to does — the old
+			# strafe drifted 230 m off a slow boss (the Warden, Nov 23)
+			var head := _round(d.operator.position, d.boss.position)
+			d.operator.cam_yaw = atan2(-head.x, -head.y)
+			d.controls.move = Vector2(0, 1)
 		else:
+			_aim(to)
 			d.controls.move = Vector2(0, 1) if d.boss.position.distance_to(d.operator.position) > 24.0 else Vector2.ZERO
 		d.controls.fire = sees
 		if d.gunplay.gun().mag <= 0:
@@ -381,7 +385,7 @@ func _ready() -> void:
 				d.controls._next = true     # dry: the next carried gun
 			else:
 				d.controls._reload = true
-		# anything Vyrak summons is shot first: its adds are the fight's ammo
+		# anything the Warden summons is shot first: its adds are the fight's ammo
 		var adds: Array = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN)
 		if not adds.is_empty():
 			await _fight(0.0)
@@ -392,13 +396,13 @@ func _ready() -> void:
 			d.enemies.down = 0.0
 	d.controls.fire = false
 	if d.boss and not d.boss.rules.dead:
-		print("     Vyrak hull %s, %.0f m off, operator at %s, guns %s, shots %d hits %d, deaths %d" % [str(d.boss.rules.get("hull")), d.boss.position.distance_to(d.operator.position), str(d.operator.position.round()), str(d.gunplay.guns.map(func(g): return "%s %d/%d" % [g.frame, g.mag, g.reserve])), d.gunplay.shots_fired, d.gunplay.hits_landed, d.enemies.deaths])
-	ok(d.boss != null and d.boss.rules.dead, "Vyrak broken (%.0f s)" % bt)
+		print("     Warden hull %s, %.0f m off, operator at %s, guns %s, shots %d hits %d, deaths %d" % [str(d.boss.rules.get("hull")), d.boss.position.distance_to(d.operator.position), str(d.operator.position.round()), str(d.gunplay.guns.map(func(g): return "%s %d/%d" % [g.frame, g.mag, g.reserve])), d.gunplay.shots_fired, d.gunplay.hits_landed, d.enemies.deaths])
+	ok(d.boss != null and d.boss.rules.dead, "the Lockdown Warden broken (%.0f s)" % bt)
 	for i in 10:
 		await get_tree().process_frame
 		if d.cutscene.playing:
 			break
-	ok(d.cutscene.playing, "the Covenant plays")
+	ok(d.cutscene.playing, "the lockdown-broken scene plays")
 	d.cutscene._end()
 	await _frames(5)
 	if d.cutscene.playing:
@@ -406,7 +410,7 @@ func _ready() -> void:
 		await _frames(5)
 	ok(d.progress.current == "done" and d._done_panel != null, "Act 1 complete (%s)" % d.progress.current)
 	var clears: Dictionary = Gear.profile_load().get("boss_clears", {})
-	ok(clears.has("vyrak"), "Vyrak counts as a Rift Gate clear")
+	ok(clears.has("lockdown-warden"), "the Lockdown Warden counts as a boss clear")
 	await _close()
 
 	# a chapter left at the source (all relays locked, guards not yet down) must still be finishable after a reload

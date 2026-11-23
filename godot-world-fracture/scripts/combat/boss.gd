@@ -1,5 +1,6 @@
 extends RefCounted
-## Fracture creatures & bosses (asset catalog): the six on the owner's board as one rule set, pure and headless-testable,
+## Fracture creatures & bosses (asset catalog): the Rift Gate's five (the owner's board less Vyrak, a
+## unique encounter only since Nov 23), the story and the unique bosses as one rule set, pure and headless-testable,
 ## with the web game's boss systems ported — three escalating phases (boss-phases.ts: ENGAGED / OVERDRIVEN / OVERLOADED by
 ## hull fraction, speed / damage / cooldown multipliers), poise and the stagger punish window (boss-poise.ts: sustained hits
 ## build poise at POISE_PER_DAMAGE, decaying 4/s; POISE_MAX breaks it into a 4 s stagger where hits do ×2.25; a phase change
@@ -23,28 +24,28 @@ const PHASES := [
 	{ "label": "OVERLOADED", "telegraph": "Critical overload — maximum output, slower recovery.", "speed": 1.4, "damage": 1.6, "cooldown": 1.3 },
 ]
 
-## the board's six. `model` under models/bosses (the authored boss / elite hulls — see docs/asset-catalog.md for which
-## family each reads as); `size` metres tall; `attacks` cycle in order; `adds` the enemies.gd type the SUMMON brings and
+## the Rift Gate's five. `model` under models/bosses (bespoke Meshy 7.1 hulls since Nov 23 for all but the Astravore, which
+## still rides the authored aberration-boss until its download lands — see docs/reference/MESHY_UPGRADE.md batch 8); `size` metres tall; `attacks` cycle in order; `adds` the enemies.gd type the SUMMON brings and
 ## how many; `reward` Nex / XP on a first clear (the web's regional boss pays 900 / 600, the world boss 2500 / 1500)
 const BOSSES := {
-	"rift-hound": { "name": "Rift Hound", "model": "frost-wolf.glb", "size": 2.6, "hull": 0.6, "speed": 8.5, "range": 2.4, "attacks": ["LUNGE", "LUNGE", "VOLLEY"], "adds": ["scout", 0], "reward": [600, 400],
+	"rift-hound": { "name": "Rift Hound", "model": "rift-hound.glb", "size": 2.6, "hull": 0.6, "speed": 8.5, "range": 2.4, "attacks": ["LUNGE", "LUNGE", "VOLLEY"], "adds": ["scout", 0], "reward": [600, 400],
 		"blurb": "A pack hunter from the first rifts, all teeth and speed. It lunges, circles and lunges again." },
-	"crystal-stalker": { "name": "Crystal Stalker", "model": "aberration-elite.glb", "size": 3.2, "hull": 0.8, "speed": 5.5, "range": 14.0, "attacks": ["VOLLEY", "LUNGE", "VOLLEY", "SLAM"], "adds": ["drone", 2], "reward": [800, 500],
+	"crystal-stalker": { "name": "Crystal Stalker", "model": "crystal-stalker.glb", "size": 3.2, "hull": 0.8, "speed": 5.5, "range": 14.0, "attacks": ["VOLLEY", "LUNGE", "VOLLEY", "SLAM"], "adds": ["drone", 2], "reward": [800, 500],
 		"blurb": "Grown from the Crystal Badlands. It fires shards from range and shatters the ground when you close." },
-	"abyssal-leviathan": { "name": "Abyssal Leviathan", "model": "abyssal-boss.glb", "size": 7.0, "hull": 1.4, "speed": 4.0, "range": 18.0, "attacks": ["BREATH", "SLAM", "VOLLEY", "SUMMON"], "adds": ["scout", 3], "reward": [1200, 800],
+	"abyssal-leviathan": { "name": "Abyssal Leviathan", "model": "abyssal-leviathan.glb", "size": 7.0, "hull": 1.4, "speed": 4.0, "range": 18.0, "attacks": ["BREATH", "SLAM", "VOLLEY", "SUMMON"], "adds": ["scout", 3], "reward": [1200, 800],
 		"blurb": "The Drowned Crown's keeper, dragged up from the Thalassia trenches. A tide of pressure and brine." },
-	"vyrak": { "name": "Vyrak, the Ashen Covenant", "model": "skyborn-boss.glb", "size": 4.0, "hull": 1.2, "speed": 6.5, "range": 16.0, "attacks": ["BREATH", "VOLLEY", "LUNGE", "SUMMON"], "adds": ["marksman", 2], "reward": [1400, 900],
-		"blurb": "The Covenant's winged herald. Fire from above, then it drops onto you with its blades." },
 	"astravore": { "name": "Astravore", "model": "aberration-boss.glb", "size": 6.0, "hull": 1.8, "speed": 3.5, "range": 20.0, "attacks": ["SUMMON", "VOLLEY", "SLAM", "BREATH"], "adds": ["elite", 2], "reward": [2000, 1200],
 		"blurb": "The Hollow Star raid's heart. It calls its brood, then bathes the ground in starfire." },
-	"colossus": { "name": "Rust Colossus", "model": "guardian-boss.glb", "size": 9.0, "hull": 2.4, "speed": 2.6, "range": 6.0, "attacks": ["SLAM", "LUNGE", "SLAM", "SUMMON"], "adds": ["executor", 2], "reward": [2500, 1500],
+	"colossus": { "name": "Rust Colossus", "model": "colossus.glb", "size": 9.0, "hull": 2.4, "speed": 2.6, "range": 6.0, "attacks": ["SLAM", "LUNGE", "SLAM", "SUMMON"], "adds": ["executor", 2], "reward": [2500, 1500],
 		"blurb": "Grid-Iron Flats' world boss, a walking foundry. Every step is a shockwave; the core glows when it staggers." },
 }
 
 ## the 18 hidden unique encounters (tools/campaign/unique/encounters.py → unique_encounter.gd): their hulls, on the
-## authored boss models already in models/bosses (no new models). Vyrak and the Abyssal Leviathan fight on the rows
-## above. `reward` here is only the fallback: the encounter pays its own (encounters.gd `clear`).
+## authored boss models already in models/bosses (no new models). The Abyssal Leviathan fights on its row above.
+## Vyrak is here and nowhere else (owner, Nov 23: a hidden unique encounter only — not the Rift Gate, not the story). `reward` here is only the fallback: the encounter pays its own (encounters.gd `clear`).
 const UNIQUE := {
+	"vyrak": { "name": "Vyrak, the Ashen Covenant", "model": "vyrak.glb", "size": 4.0, "hull": 1.2, "speed": 6.5, "range": 16.0, "attacks": ["BREATH", "VOLLEY", "LUNGE", "SUMMON"], "adds": ["marksman", 2], "reward": [1400, 900],
+		"blurb": "The Covenant's winged herald. Fire from above, then it drops onto you with its blades." },
 	"unbroken-glass": { "name": "The Unbroken Glass", "model": "aberration-elite.glb", "size": 4.2, "hull": 0.9, "speed": 3.0, "range": 16.0, "attacks": ["VOLLEY", "SPIKES", "SLAM", "VOLLEY"], "adds": ["drone", 2], "reward": [600, 400],
 		"blurb": "A standing wave of glass that takes a body only to hold its song together." },
 	"system-core": { "name": "The System Core", "model": "aberration-boss.glb", "size": 5.0, "hull": 1.3, "speed": 2.0, "range": 18.0, "attacks": ["VOLLEY", "SUMMON", "SPIKES", "BREATH"], "adds": ["drone", 3], "reward": [1200, 800],
@@ -95,6 +96,9 @@ const STORY := {
 			"blurb": "The one who comes to reclaim what was taken. Black and gold plate under a torn mantle, a crown of violet crystal; it calls its chosen and burns the ground between you." },
 	"archive-warden": { "name": "Archive Warden", "model": "archive-warden.glb", "size": 5.0, "hull": 1.4, "speed": 3.0, "range": 10.0, "attacks": ["SLAM", "SWEEP", "VOLLEY", "SUMMON"], "adds": ["executor", 2], "reward": [1400, 900],
 			"blurb": "The Archive's keeper on the central dais: a chained stone-and-bronze golem, runes down the arms, a visor slit of violet light. Slow, and nothing it hits gets up quickly." },
+	# fd-07's act boss at the Stitched Neon Core (descent.gd), on the guardian hull (Nov 23, in Vyrak's old place)
+	"lockdown-warden": { "name": "The Lockdown Warden", "model": "guardian-boss.glb", "size": 5.5, "hull": 1.2, "speed": 4.0, "range": 16.0, "attacks": ["VOLLEY", "SUMMON", "SLAM", "CHARGE"], "adds": ["drone", 3], "reward": [1400, 900],
+			"blurb": "The Stitched Neon Core's last lock: a riveted guardian frame the lockdown wakes when the core opens. It calls the district's drones, then walks through the wall to you." },
 	# Mission 8 and 10 (tools/campaign/story/ch1.py), and Vael Turog's two later fights on the same hull (ch6 41C, ch8 60C)
 	"ascendant-construct": { "name": "The Ascendant Construct", "model": "ascendant-construct.glb", "size": 4.5, "hull": 1.2, "speed": 5.0, "range": 12.0, "attacks": ["VOLLEY", "SLAM", "LUNGE", "SUMMON"], "adds": ["executor", 2], "reward": [1500, 950],
 			"blurb": "Crane's answer to the end of the world: a pearl-white war construct on stolen Genesis designs, a cyan reactor in its chest and shield emitters on its shoulders. Fast for its size, and it calls the tower's guard." },

@@ -19,7 +19,7 @@ const PROFILE := "user://profile.json"
 ## the campaign's own kinds mapped onto the descent's loop
 const AS_REACH := ["talk", "race", "drive"]
 ## the bosses the campaign's beats name, on the bosses the build has (scripts/combat/boss.gd BOSSES)
-const BOSS_FOR := { "vyrak": "vyrak", "crownkeeper": "colossus", "fracture-heart": "astravore", "convergence": "abyssal-leviathan",
+const BOSS_FOR := { "crownkeeper": "colossus", "fracture-heart": "astravore", "convergence": "abyssal-leviathan",
 	# Chapter 1 — The Aftershock's (aftershock.gd): hulls of their own since Nov 23 (boss.gd STORY)
 	"fracture-commander": "fracture-commander", "subject-zero": "subject-zero", "fracture-executioner": "fracture-executioner",
 	"siege-beast": "siege-beast", "harbinger": "harbinger", "archive-warden": "archive-warden",
@@ -127,7 +127,7 @@ func _begin(id: String) -> void:
 		_set_waypoint(_on_ground(operator.position + _dir * 80.0), true)
 	# the boss and the talker are up before the opening plays, so the set can frame them
 	if kind == "boss":
-		_summon_boss(String(def.get("boss", "vyrak")))
+		_summon_boss(String(def.get("boss", "colossus")))
 	elif kind == "talk":
 		_place_talker(String(def.get("who", "")), waypoint)
 	_opening(id)
@@ -410,8 +410,8 @@ func _core_breached() -> void:
 	else:
 		_complete()
 
-func _summon_vyrak() -> void:
-	_summon_boss(String(quest.get("boss", "vyrak")))
+func _summon_warden() -> void:
+	_summon_boss(String(quest.get("boss", "colossus")))
 
 func _hack_done() -> void:
 	if _seen.has(String(quest.id) + "-hack"):

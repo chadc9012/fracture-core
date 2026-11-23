@@ -457,106 +457,6 @@
    ]
   },
   {
-   "id": "09",
-   "title": "The Ashen Covenant",
-   "region": "Solara Desert",
-   "beat": "Vyrak boss introduction and phases",
-   "world": "solara",
-   "chapters": [
-    {
-     "id": "09A",
-     "title": "The covenant of ash",
-     "location": "EXT. THE RIBCAGE — DUSK, ASH ON THE WIND",
-     "kind": "reach",
-     "start": "solara-garage",
-     "to": "ribcage",
-     "amount": 1,
-     "label": "Walk into the Ribcage",
-     "open": [
-      "M09_D01",
-      "M09_D02",
-      "M09_D03",
-      "M09_D04"
-     ],
-     "close": [
-      "M09_001",
-      "M09_002",
-      "M09_003"
-     ]
-    },
-    {
-     "id": "09B",
-     "title": "The Sky Sovereign",
-     "location": "EXT. THE RIBCAGE — THE FIGHT",
-     "kind": "boss",
-     "boss": "vyrak",
-     "amount": 1,
-     "label": "Face Vyrak",
-     "open": [
-      "M09_004",
-      "M09_005"
-     ],
-     "mid": [
-      "M09_006",
-      "M09_007",
-      "M09_008",
-      "M09_009",
-      "M09_010"
-     ],
-     "close": [
-      "M09_011",
-      "M09_D05",
-      "M09_D06"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "10",
-   "title": "The Wyrmling Oath",
-   "region": "Solara Desert",
-   "beat": "Bond and trust progression",
-   "world": "solara",
-   "chapters": [
-    {
-     "id": "10A",
-     "title": "Form and strength",
-     "location": "EXT. THE RIBCAGE — DAWN AFTER",
-     "kind": "cutscene",
-     "open": [
-      "M10_001",
-      "M10_002",
-      "M10_003",
-      "M10_004",
-      "M10_005",
-      "M10_006",
-      "M10_007"
-     ],
-     "close": []
-    },
-    {
-     "id": "10B",
-     "title": "Learning to work together",
-     "location": "EXT. THE COLONNADE — RAIDER GROUND",
-     "kind": "kills",
-     "to": "colonnade",
-     "amount": 8,
-     "label": "Clear the colonnade with Vyrak beside you",
-     "open": [
-      "M10_D01",
-      "M10_D02",
-      "M10_D03"
-     ],
-     "close": [
-      "M10_D04",
-      "M10_D05",
-      "M10_D06",
-      "M10_D07"
-     ]
-    }
-   ]
-  },
-  {
    "id": "11",
    "title": "The Neon Divide",
    "region": "Neon City",
@@ -1414,8 +1314,7 @@
      "open": [
       "M24_D01",
       "M24_D02",
-      "M24_D03",
-      "M24_D04"
+      "M24_D03"
      ],
      "close": [
       "M24_001",
@@ -1438,9 +1337,9 @@
      ],
      "close": [
       "M24_007",
+      "M24_D04",
       "M24_D05",
-      "M24_D06",
-      "M24_D07"
+      "M24_D06"
      ]
     }
    ]
@@ -1481,7 +1380,6 @@
       "M25_001",
       "M25_002",
       "M25_003",
-      "M25_004",
       "M25_005",
       "M25_006",
       "M25_007",
@@ -1905,84 +1803,6 @@
    "mission": "08",
    "speaker": "NOVA",
    "text": "He is proud of you. He will deny it under any questioning."
-  },
-  {
-   "id": "M09_D01",
-   "mission": "09",
-   "speaker": "MECHANIC ROOK",
-   "text": "Nobody drives into the Ribcage. The sand there is bone, and the bone is somebody's."
-  },
-  {
-   "id": "M09_D02",
-   "mission": "09",
-   "speaker": "PLAYER",
-   "text": "The signal is in there."
-  },
-  {
-   "id": "M09_D03",
-   "mission": "09",
-   "speaker": "MECHANIC ROOK",
-   "text": "So is the thing that makes the signal."
-  },
-  {
-   "id": "M09_D04",
-   "mission": "09",
-   "speaker": "NOVA",
-   "text": "Thermal bloom ahead, airborne, forty metres across. Rook is understating it."
-  },
-  {
-   "id": "M09_D05",
-   "mission": "09",
-   "speaker": "NOVA",
-   "text": "Its hull is at four percent and it is kneeling. That is not a surrender. It is a decision."
-  },
-  {
-   "id": "M09_D06",
-   "mission": "09",
-   "speaker": "PLAYER",
-   "text": "Then we honour it."
-  },
-  {
-   "id": "M10_D01",
-   "mission": "10",
-   "speaker": "VYRAK",
-   "text": "RAIDERS NEST IN THE OLD COLONNADE. THEY HAVE NOT LEARNED TO WALK LIGHTLY."
-  },
-  {
-   "id": "M10_D02",
-   "mission": "10",
-   "speaker": "PLAYER",
-   "text": "You fly, I walk. Call the ones I cannot see."
-  },
-  {
-   "id": "M10_D03",
-   "mission": "10",
-   "speaker": "VYRAK",
-   "text": "I CALL. YOU LISTEN. THAT IS THE OATH, LITTLE OPERATOR."
-  },
-  {
-   "id": "M10_D04",
-   "mission": "10",
-   "speaker": "VYRAK",
-   "text": "YOU DID NOT STAND IN MY SHADOW ONCE."
-  },
-  {
-   "id": "M10_D05",
-   "mission": "10",
-   "speaker": "PLAYER",
-   "text": "You said watch the shadow before the dive."
-  },
-  {
-   "id": "M10_D06",
-   "mission": "10",
-   "speaker": "VYRAK",
-   "text": "I SAID IT TO MY ENEMIES."
-  },
-  {
-   "id": "M10_D07",
-   "mission": "10",
-   "speaker": "NOVA",
-   "text": "Bond strengthened. No reward granted. Both of you seem to prefer it that way."
   },
   {
    "id": "M11_D01",
@@ -2881,35 +2701,29 @@
   {
    "id": "M24_D02",
    "mission": "24",
-   "speaker": "VYRAK",
-   "text": "I FLY ABOVE. I DO NOT LIKE WHAT IS BELOW."
-  },
-  {
-   "id": "M24_D03",
-   "mission": "24",
    "speaker": "SCOUT MIRA",
    "text": "The forest sent me. It does not send people."
   },
   {
-   "id": "M24_D04",
+   "id": "M24_D03",
    "mission": "24",
    "speaker": "PLAYER",
    "text": "Then we go in together."
   },
   {
-   "id": "M24_D05",
+   "id": "M24_D04",
    "mission": "24",
    "speaker": "NOVA",
    "text": "The heart is open. What it was protecting is a machine, and the machine has a door with your apartment number on it."
   },
   {
-   "id": "M24_D06",
+   "id": "M24_D05",
    "mission": "24",
    "speaker": "PLAYER",
    "text": "12-04."
   },
   {
-   "id": "M24_D07",
+   "id": "M24_D06",
    "mission": "24",
    "speaker": "NOVA",
    "text": "It knew you before you did. Home, then. We finish this where it started."

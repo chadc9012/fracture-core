@@ -1,36 +1,10 @@
-"""Campaign script, Act II — Vyrak and the bond (M09–M10), Neon City (M11), Thalassia (M12–M13), Frostveil (M14–M15)."""
+"""Campaign script, Act II — Neon City (M11), Thalassia (M12–M13), Frostveil (M14–M15)."""
 
 from act1 import L, N, P
 
+# Missions 09–10 (Vyrak, the Covenant and the bond) were cut Nov 23 — the owner: Vyrak is a hidden unique encounter only
+# (tools/campaign/unique/encounters.py U09), never the main story. Their draft lines stay in campaign_draft1.json, unplayed here.
 MISSIONS = [
-    {
-        "id": "09", "title": "The Ashen Covenant", "region": "Solara Desert", "beat": "Vyrak boss introduction and phases",
-        "world": "solara", "chapters": [
-            {"id": "09A", "title": "The covenant of ash", "location": "EXT. THE RIBCAGE — DUSK, ASH ON THE WIND", "kind": "reach", "start": "solara-garage", "to": "ribcage", "amount": 1,
-             "label": "Walk into the Ribcage",
-             "open": [L("MECHANIC ROOK", "Nobody drives into the Ribcage. The sand there is bone, and the bone is somebody's."),
-                      L(P, "The signal is in there."), L("MECHANIC ROOK", "So is the thing that makes the signal."),
-                      L(N, "Thermal bloom ahead, airborne, forty metres across. Rook is understating it.")],
-             "close": ["M09_001", "M09_002", "M09_003"]},
-            {"id": "09B", "title": "The Sky Sovereign", "location": "EXT. THE RIBCAGE — THE FIGHT", "kind": "boss", "boss": "vyrak", "amount": 1,
-             "label": "Face Vyrak",
-             "open": ["M09_004", "M09_005"],
-             "mid": ["M09_006", "M09_007", "M09_008", "M09_009", "M09_010"],
-             "close": ["M09_011", L(N, "Its hull is at four percent and it is kneeling. That is not a surrender. It is a decision."),
-                       L(P, "Then we honour it.")]},
-        ]},
-    {
-        "id": "10", "title": "The Wyrmling Oath", "region": "Solara Desert", "beat": "Bond and trust progression",
-        "world": "solara", "chapters": [
-            {"id": "10A", "title": "Form and strength", "location": "EXT. THE RIBCAGE — DAWN AFTER", "kind": "cutscene",
-             "open": ["M10_001", "M10_002", "M10_003", "M10_004", "M10_005", "M10_006", "M10_007"], "close": []},
-            {"id": "10B", "title": "Learning to work together", "location": "EXT. THE COLONNADE — RAIDER GROUND", "kind": "kills", "to": "colonnade", "amount": 8,
-             "label": "Clear the colonnade with Vyrak beside you",
-             "open": [L("VYRAK", "RAIDERS NEST IN THE OLD COLONNADE. THEY HAVE NOT LEARNED TO WALK LIGHTLY."),
-                      L(P, "You fly, I walk. Call the ones I cannot see."), L("VYRAK", "I CALL. YOU LISTEN. THAT IS THE OATH, LITTLE OPERATOR.")],
-             "close": [L("VYRAK", "YOU DID NOT STAND IN MY SHADOW ONCE."), L(P, "You said watch the shadow before the dive."),
-                       L("VYRAK", "I SAID IT TO MY ENEMIES."), L(N, "Bond strengthened. No reward granted. Both of you seem to prefer it that way.")]},
-        ]},
     {
         "id": "11", "title": "The Neon Divide", "region": "Neon City", "beat": "Investigate tech faction and street race",
         "world": "neon-city", "chapters": [

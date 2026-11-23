@@ -1119,16 +1119,16 @@ func _shoot(path: String, opts: Array) -> void:
 				camp.cutscene._end()
 		# descent[:fight|:wild]  the Fracture Descent in the Verdant Forest; :fight sprints and fires; :wild stands by the deer herd
 		if String(o).begins_with("descent"):
-			# descent[:wild] [:fd-05|:fd-06|:fd-07] [:vyrak]: the quest to stand in (the chain is set to it), vyrak summons the boss
+			# descent[:wild] [:fd-05|:fd-06|:fd-07] [:boss]: the quest to stand in (the chain is set to it), boss summons fd-07's act boss
 			for qid in ["fd-05", "fd-06", "fd-07"]:
 				if String(o).contains(qid):
 					var f := FileAccess.open("user://quests.json", FileAccess.WRITE)
-					f.store_string(JSON.stringify({ "done": [], "current": qid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 3 if String(o).contains("vyrak") else 0, "stage": 1 if qid == "fd-05" else 0 }))
+					f.store_string(JSON.stringify({ "done": [], "current": qid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 3 if String(o).contains("boss") else 0, "stage": 1 if qid == "fd-05" else 0 }))
 					f.close()
 			_open_descent()
 			if descent.cutscene and descent.cutscene.playing:
 				descent.cutscene._end()
-			if String(o).contains("vyrak") and descent.quest.get("id", "") == "fd-07":
+			if String(o).contains("boss") and descent.quest.get("id", "") == "fd-07":
 				descent.operator.position = descent.waypoint + Vector3(6, 0, 10)
 				descent.operator.position.y = descent.region.ground(descent.operator.position.x, descent.operator.position.z)
 				descent.operator.heading = 0.0

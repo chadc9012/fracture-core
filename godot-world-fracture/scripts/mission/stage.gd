@@ -112,7 +112,7 @@ const FIGURES := {
 	# the unique encounters' bosses when they speak outside their fight (in it, the boss itself speaks: `_cast`)
 	"DARK KNIGHT": ["dark-knight.glb", 2.9, Color(0.6, 0.3, 1.0)], "SERIK VALE": ["dark-knight.glb", 2.9, Color(0.5, 0.5, 0.7)],
 	"DROWNED MONARCH": ["abyssal-boss.glb", 5.5, Color(0.4, 0.8, 1.0)], "HOLLOW SAINT": ["aberration-elite.glb", 3.6, Color(1.0, 0.95, 0.7)],
-	"VAELITH": ["skyborn-boss.glb", 5.5, Color(1.0, 0.5, 0.15)], "VYRAK": ["skyborn-boss.glb", 4.0, Color(1.0, 0.7, 0.3)],
+	"VAELITH": ["skyborn-boss.glb", 5.5, Color(1.0, 0.5, 0.15)], "VYRAK": ["vyrak.glb", 4.0, Color(1.0, 0.7, 0.3)],
 	"THE RED RONIN": ["dark-knight.glb", 2.4, Color(1.0, 0.2, 0.15)], "THE EXILED ARCHITECT": ["dark-knight.glb", 2.8, Color(0.5, 0.7, 1.0)],
 	"THE VERDANT SOVEREIGN": ["guardian-boss.glb", 7.0, Color(0.4, 1.0, 0.4)], "THE BLACK MARKET PHANTOM": ["dark-knight.glb", 2.3, Color(1.0, 0.2, 0.9)],
 	"THE KING BENEATH THE CITY": ["aberration-boss.glb", 5.5, Color(1.0, 0.15, 0.15)], "THE CLOCKWORK SAINT": ["guardian-boss.glb", 6.0, Color(0.8, 0.9, 1.0)],
