@@ -652,6 +652,18 @@ func _process(dt: float) -> void:
 				return
 			if Engine.get_process_frames() % 10 == 0:
 				_refresh()
+			# the lockdown is fought at the core: a hostile that has ended up far from it (lost behind the city's
+			# blocks — an elite idled 117 m off and the core never opened, Nov 23) is dropped back in at its edge
+			if boss == null and Engine.get_process_frames() % 90 == 0 and authority():
+				var k := 0
+				for e in enemies.enemies:
+					if e.team != 1 and e.state != Enemies.State.DOWN and e.target.alive():
+						var off: Vector3 = e.mover.position - waypoint
+						if Vector2(off.x, off.z).length() > 70.0:
+							var a := atan2(off.z, off.x) + k * 0.5
+							e.mover.position = _on_ground(waypoint + Vector3(cos(a), 0, sin(a)) * 30.0)
+							e.state = Enemies.State.ENGAGE
+							k += 1
 
 ## the source: a marksman and two scouts guard it (once; they stay down when shot, they don't respawn into it)
 func _spawn_guards() -> void:
