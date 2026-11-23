@@ -63,7 +63,7 @@ static func swatch(key: String, id: String) -> Variant:
 	return Color(hex) if hex != "" else null
 
 const REAL_BODIES := true
-const REAL_FOR := ["male"]
+const REAL_FOR := ["male", "female"]
 
 static func is_real_body(path: String) -> bool:
 	return path.get_file().begins_with("real-")
@@ -75,8 +75,8 @@ static func body_path(frame: String, body: String, civ := false, real_ok := true
 		# a real person in real clothes from the neck down (tools/headless_person.py, from the city's Meshy people):
 		# the painted-on clothes read as a bodysuit (owner, Nov 18)
 		var real := "res://models/operators/bodies/real-%s.glb" % body
-		# only the man for now: the one woman the city has (civ-business) has long hair fused into her jacket, and cut
-		# away it left jagged spikes over her shoulders; the women keep the painted body until a clean one is made
+		# the woman's is her own Meshy person (Nov 23: grey zip hoodie, black joggers, white trainers, hair tied back so
+		# nothing falls over the shoulders), made for this — the city's civ-business had long hair fused into her jacket
 		if REAL_BODIES and real_ok and body in REAL_FOR and ResourceLoader.exists(real):
 			return real
 		return "res://models/operators/bodies/civ-%s-%s.glb" % [frame, body]

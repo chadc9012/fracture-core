@@ -117,17 +117,24 @@ uniform bool has_normal = false;
 uniform vec3 from_tone = vec3(0.5, 0.35, 0.28);
 uniform vec3 to_tone = vec3(0.5, 0.35, 0.28);
 void fragment() {
-	vec3 c = texture(albedo_tex, UV).rgb;
+	// a sharper mip: Meshy's atlas is hundreds of small islands, and the blurred mips mixed hair and skin islands into
+	// the dark fabric next to them (flecks down the joggers at creator distance, Nov 23)
+	vec3 c = texture(albedo_tex, UV, -0.75).rgb;
 	float mx = max(c.r, max(c.g, c.b));
 	float mn = min(c.r, min(c.g, c.b));
 	float sat = (mx - mn) / (mx + 1e-4);
 	float l = dot(c, vec3(0.3, 0.59, 0.11));
 	float k = smoothstep(0.015, 0.05, c.r - c.b) * smoothstep(0.1, 0.2, sat) * (1.0 - smoothstep(0.8, 0.9, sat)) * smoothstep(0.012, 0.035, l) * step(c.b, c.g + 0.04);
+	// and no darker than a deep shadow on the body's own skin: near-black fabric with a warm cast (dark joggers) took the
+	// skin ratio and came out in orange flecks (Nov 23)
+	float own_l = dot(from_tone, vec3(0.3, 0.59, 0.11));
+	k *= smoothstep(0.25 * own_l, 0.45 * own_l, l);
 	vec3 ratio = to_tone / max(from_tone, vec3(0.01));
 	ALBEDO = mix(c, clamp(c * ratio, 0.0, 1.0), k);
 	ROUGHNESS = mix(0.8, 0.55, k);
 	SPECULAR = mix(0.3, 0.5, k);
-	if (has_normal) { NORMAL_MAP = texture(normal_tex, UV).rgb; }
+	// cloth at half depth: Meshy's fabric normals glinted in white streaks down dark joggers on the phone (Nov 23)
+	if (has_normal) { NORMAL_MAP = texture(normal_tex, UV).rgb; NORMAL_MAP_DEPTH = mix(0.45, 0.8, k); }
 }
 """
 static var _real_shader: Shader
