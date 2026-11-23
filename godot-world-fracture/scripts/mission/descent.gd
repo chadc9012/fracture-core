@@ -95,6 +95,7 @@ func _ready() -> void:
 	_objective.modulate = Color(0.95, 0.85, 0.5)
 	add_child(_objective)
 	var back := Button.new()
+	_back_button = back
 	back.text = "← GLOBE"
 	back.position = Vector2(250, 8)   # right of the hull bar
 	back.pressed.connect(func(): _save(); closed.emit())
@@ -153,6 +154,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 	var half: float = region.span() * 0.5 - 20.0
 	operator.bounds = Rect2(-half, -half, half * 2.0, half * 2.0)
 	operator.ground_at = func(x: float, z: float) -> float: return region.ground(x, z)
+	operator.surface_at = func(x: float, z: float) -> String: return region.surface(x, z)
 	operator.obstacles = region.building_boxes()
 	operator.position = region.stand_point()
 	operator.civilian = false   # the armour is for the fights (streetwear in the city)
@@ -217,6 +219,22 @@ func _site(dist: float) -> Vector3:
 	return best
 
 var _gps: Control
+var _back_button: Button
+var _hud_hidden := false
+
+func _scene_on() -> bool:
+	return cutscene != null and cutscene.playing
+
+## a cutscene is a film: the HUD (hull, ammo, objective, the GPS, the buttons, the touch pad) steps out while it plays
+## and comes back when it ends (owner, Nov 22: "Stage everything" — the shots had the minimap over the faces)
+func _hud_for_scene() -> void:
+	var on := _scene_on()
+	if on == _hud_hidden:
+		return
+	_hud_hidden = on
+	for n in [controls, _objective, _coop_button, _coop_label, _gps, _back_button, beacon]:
+		if n != null and is_instance_valid(n):
+			n.visible = not on
 func _teardown_world() -> void:
 	_coop_stop()
 	if _gps:
@@ -442,6 +460,7 @@ func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
 	if region == null or enemies == null:
 		return
+	_hud_for_scene()
 	if cutscene and cutscene.playing:
 		# the scene plays; the world idles under it
 		enemies.step(dt)
@@ -456,11 +475,15 @@ func _process(dt: float) -> void:
 	if boss:
 		boss.echo = not authority()
 		boss.step(dt)
-		if boss.echo and _boss_to != Vector3.INF:
+		if region == null or enemies == null:
+			# the boss went down in that step and the next chapter moved the story to another world
+			return
+		if boss and boss.echo and _boss_to != Vector3.INF:
 			boss.position = boss.position.lerp(_boss_to, minf(1.0, dt * 8.0))
 	if wildlife:
 		wildlife.step(dt)
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
+	_board_objective()
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:
@@ -906,3 +929,29 @@ func _toggle_coop() -> void:
 func _coop_paint() -> void:
 	if _coop_button:
 		_coop_button.text = "CO-OP: OPEN" if online else "CO-OP: PRIVATE"
+
+## the boards' quest panel (board_hud.gd) carries the objective: first line the title, the rest its steps; the old label
+## keeps the text (tests and co-op read it) but no longer draws
+var _board_obj_was := ""
+func _board_objective() -> void:
+	if not controls or not controls.hud or not _objective:
+		return
+	_objective.self_modulate.a = 0.0
+	var t := _objective.text
+	if t == _board_obj_was:
+		return
+	_board_obj_was = t
+	var rows := t.split("\n", false)
+	if rows.is_empty():
+		controls.hud.call("set_quest", "", [])
+		return
+	var lines: Array = []
+	for i in range(1, rows.size()):
+		lines.append({ "text": rows[i], "done": false })
+	if lines.is_empty():
+		lines.append({ "text": rows[0], "done": true })
+	controls.hud.call("set_quest", rows[0], lines)
+	var w := String(quest.get("world", "")) if quest is Dictionary else ""
+	var names := { "veridan": "Verdant Forest", "neon": "Neon City", "nexus": "Nexus City", "swamps": "Shrouded Swamps", "solara": "Solara Desert", "ember": "Ember Peaks", "frostspire": "Frost Spire", "wastelands": "The Wastelands", "thalassia": "Thalassia" }
+	controls.hud.set("place", String(names.get(w, w.capitalize())) + ("  •  " + String(quest.get("title", "")) if quest is Dictionary and quest.has("title") else ""))
+

@@ -600,7 +600,7 @@
   {
    "id": "M04_001",
    "scene": "04A",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Weapon down. State your affiliation.",
    "emotion": "controlled, protective",
    "camera": "Handheld street-level track from broken barricade to Vale; weapon held low"
@@ -616,7 +616,7 @@
   {
    "id": "M04_003",
    "scene": "04A",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Not if you can explain how you survived the breach.",
    "emotion": "controlled, protective",
    "camera": "Handheld street-level track from broken barricade to Vale; weapon held low"
@@ -640,7 +640,7 @@
   {
    "id": "M04_006",
    "scene": "04B",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "That is not possible. NOVA was decommissioned.",
    "emotion": "controlled, protective",
    "camera": "Tight over-shoulder to player, then cut to Vale reaction; NOVA remains noncorporeal"
@@ -656,7 +656,7 @@
   {
    "id": "M04_008",
    "scene": "04C",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Come with us. We can keep civilians safe.",
    "emotion": "controlled, protective",
    "camera": "Wide shot through gate to civilian aid line; hold on player choice"
@@ -672,7 +672,7 @@
   {
    "id": "M05_001",
    "scene": "05A",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "We need people who can withstand the Fractures.",
    "emotion": "controlled, protective",
    "camera": "Slow orbit around map table; preserve player custom appearance"
@@ -688,7 +688,7 @@
   {
    "id": "M05_003",
    "scene": "05A",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Then be something better. Make your own choice.",
    "emotion": "controlled, protective",
    "camera": "Slow orbit around map table; preserve player custom appearance"
@@ -712,7 +712,7 @@
   {
    "id": "M05_006",
    "scene": "05B",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Fair. Prove you can protect this district, and we talk again.",
    "emotion": "controlled, protective",
    "camera": "Two-shot; focus rack from civilian queue to Vale"
@@ -728,7 +728,7 @@
   {
    "id": "M05_cooperate_002",
    "scene": "05C_COOPERATE",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Agreed. You answer to your conscience before you answer to me.",
    "emotion": "controlled, protective",
    "camera": "Medium close-ups; neutral, respectful eyelines"
@@ -744,7 +744,7 @@
   {
    "id": "M05_independent_002",
    "scene": "05C_INDEPENDENT",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Then prove that independence is not indifference.",
    "emotion": "controlled, protective",
    "camera": "Medium close-ups; Vale steps aside to let player pass"

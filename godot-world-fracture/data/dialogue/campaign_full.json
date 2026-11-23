@@ -133,7 +133,7 @@
      "location": "EXT. NEXUS BASTION CHECKPOINT — DUSK",
      "kind": "talk",
      "start": "nexus-bastion",
-     "who": "CAPTAIN VALE",
+     "who": "CAPTAIN ROURKE",
      "amount": 1,
      "label": "Approach the checkpoint",
      "open": [
@@ -217,7 +217,7 @@
      "title": "The choice",
      "location": "EXT. BASTION WALL — DAWN",
      "kind": "choice",
-     "prompt": "Captain Vale is waiting for an answer.",
+     "prompt": "Captain Rourke is waiting for an answer.",
      "options": [
       [
        "cooperate",
@@ -916,9 +916,9 @@
      "location": "EXT. NEXUS BASTION — THE WALL, MORNING",
      "kind": "talk",
      "start": "nexus-bastion",
-     "who": "CAPTAIN VALE",
+     "who": "CAPTAIN ROURKE",
      "amount": 1,
-     "label": "Report to Captain Vale",
+     "label": "Report to Captain Rourke",
      "open": [
       "M16_D01",
       "M16_D02",
@@ -1350,7 +1350,7 @@
       [
        "negotiate",
        "Open a ceasefire channel",
-       "Ten minutes of Vale's patience; everybody listens"
+       "Ten minutes of Rourke's patience; everybody listens"
       ],
       [
        "evacuate",
@@ -1651,7 +1651,7 @@
   {
    "id": "M04_D04",
    "mission": "04",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "That is more than most people decide in a week."
   },
   {
@@ -1663,7 +1663,7 @@
   {
    "id": "M04_D06",
    "mission": "04",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Armory. Draw what you can carry. Nobody gets issued more than they can explain."
   },
   {
@@ -1675,7 +1675,7 @@
   {
    "id": "M04_D08",
    "mission": "04",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Good. Explain the rest to me tomorrow."
   },
   {
@@ -1700,7 +1700,7 @@
    "id": "M05_D04",
    "mission": "05",
    "speaker": "NOVA",
-   "text": "District clear. Vale watched the whole thing from the wall."
+   "text": "District clear. Rourke watched the whole thing from the wall."
   },
   {
    "id": "M05_D05",
@@ -1711,7 +1711,7 @@
   {
    "id": "M05_D06",
    "mission": "05",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "You held the district. So. Where do you stand?"
   },
   {
@@ -2431,7 +2431,7 @@
   {
    "id": "M16_D07",
    "mission": "16",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Nobody died. In this city, today, that is a political statement."
   },
   {
@@ -2443,7 +2443,7 @@
   {
    "id": "M16_D09",
    "mission": "16",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "That is why it worked."
   },
   {
@@ -2828,7 +2828,7 @@
    "id": "M23_D01",
    "mission": "23",
    "speaker": "NOVA",
-   "text": "Draev's line, Vale's line, the Warden's rangers in the scrub. One of them fires in the next minute unless you do something."
+   "text": "Draev's line, Rourke's line, the Warden's rangers in the scrub. One of them fires in the next minute unless you do something."
   },
   {
    "id": "M23_D02",
@@ -2851,7 +2851,7 @@
   {
    "id": "M23_D05",
    "mission": "23",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "The ridge is quiet. My people are alive. So are Draev's."
   },
   {
@@ -2947,7 +2947,7 @@
   {
    "id": "M25_D06",
    "mission": "25",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "So. What do you do with a world you kept?"
   },
   {

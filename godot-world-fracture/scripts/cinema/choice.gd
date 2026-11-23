@@ -1,6 +1,6 @@
 extends Control
 ## A story choice between cutscenes (owner's Phase 3 package: Mission 05's "cooperate" or "remain independent" with
-## Captain Vale). A prompt over a dimmed screen and one big button per option (tap or click; 1 / 2 on a keyboard). It
+## Captain Rourke). A prompt over a dimmed screen and one big button per option (tap or click; 1 / 2 on a keyboard). It
 ## never times out: the story waits for the player. `ask(prompt, options)` shows it and emits `chosen(key)`.
 ## options: [[key, label, hint], …]
 

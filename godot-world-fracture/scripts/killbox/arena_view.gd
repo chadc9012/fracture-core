@@ -34,6 +34,9 @@ const LOOKS := {
 	"solara-outpost": { "trim": [Color(1.0, 0.6, 0.2), Color(0.95, 0.95, 0.9), Color(0.3, 0.6, 1.0)], "facade": Color(0.82, 0.72, 0.55), "roof": Color(0.8, 0.68, 0.48), "sky": Color(0.45, 0.68, 0.9), "fog": Color(0.92, 0.84, 0.7), "sign": "SOLARA", "sign_color": Color(1.0, 0.6, 0.2) },
 	"frostveil-ring": { "trim": [Color(0.37, 0.88, 1.0), Color(1.0, 0.76, 0.48), Color(0.3, 0.95, 0.6)], "facade": Color(0.23, 0.27, 0.33), "roof": Color(0.75, 0.8, 0.86), "sky": Color(0.05, 0.09, 0.2), "fog": Color(0.55, 0.65, 0.78), "sign": "FROSTVEIL", "sign_color": Color(0.37, 0.88, 1.0) },
 	"thalassia-dome": { "trim": [Color(0.16, 1.0, 0.82), Color(0.62, 0.96, 1.0), Color(1.0, 0.23, 0.16)], "facade": Color(0.23, 0.27, 0.31), "roof": Color(0.82, 0.85, 0.88), "sky": Color(0.01, 0.1, 0.15), "fog": Color(0.05, 0.28, 0.36), "sign": "THALASSIA", "sign_color": Color(0.16, 1.0, 0.82) },
+	"foundry": { "trim": [Color(1.0, 0.55, 0.15), Color(1.0, 0.85, 0.3), Color(0.95, 0.25, 0.15)], "facade": Color(0.42, 0.33, 0.28), "roof": Color(0.34, 0.33, 0.32), "sky": Color(0.3, 0.46, 0.68), "fog": Color(0.78, 0.76, 0.72), "sign": "FOUNDRY ROW", "sign_color": Color(1.0, 0.55, 0.15) },
+	"sanctum": { "trim": [Color(1.0, 0.8, 0.35), Color(0.3, 0.95, 0.85), Color(0.95, 0.9, 1.0)], "facade": Color(0.5, 0.46, 0.42), "roof": Color(0.46, 0.43, 0.42), "sky": Color(0.07, 0.06, 0.26), "fog": Color(0.5, 0.3, 0.42), "sign": "SANCTUM", "sign_color": Color(1.0, 0.8, 0.35) },
+	"rig": { "trim": [Color(1.0, 0.5, 0.1), Color(1.0, 0.85, 0.2), Color(0.3, 0.85, 1.0)], "facade": Color(0.25, 0.27, 0.3), "roof": Color(0.3, 0.31, 0.33), "sky": Color(0.12, 0.1, 0.3), "fog": Color(0.95, 0.5, 0.28), "sign": "RIG NINE", "sign_color": Color(1.0, 0.5, 0.1) },
 	"void-rift": { "trim": [Color(0.78, 0.42, 1.0), Color(0.5, 0.96, 1.0), Color(1.0, 0.23, 0.85)], "facade": Color(0.23, 0.19, 0.25), "roof": Color(0.17, 0.17, 0.19), "sky": Color(0.05, 0.0, 0.1), "fog": Color(0.2, 0.06, 0.3), "sign": "VOID RIFT", "sign_color": Color(0.78, 0.42, 1.0) },
 	"prime-roof": { "trim": [Color(0.75, 0.3, 1.0), Color(1.0, 0.3, 0.5), Color(0.4, 0.5, 1.0)], "facade": Color(0.09, 0.07, 0.13), "roof": Color(0.11, 0.1, 0.15), "sky": Color(0.04, 0.01, 0.07), "fog": Color(0.22, 0.1, 0.32), "sign": "KILLBOX PRIME", "sign_color": Color(0.75, 0.3, 1.0) },
 }
@@ -331,13 +334,22 @@ func _street() -> void:
 		for s: float in [-1.0, 1.0]:
 			_box(Vector3(0.15, 0.02, 140), Vector3(s * 6.5, 0.01, 0), paint)
 	# the blocks under the roofs: storeys of windows, some lit (few and faint by day)
-	var day: bool = Look.scene(String(arena.def.look)).kind == "desert"
+	var sc := Look.scene(String(arena.def.look))
+	var day := bool(sc.get("day", sc.kind == "desert"))
 	var facade := Look.facade(look, 0.12 if day else 0.42, 0.5 if day else 1.7)
+	# a map on the ground (or a rig's deck on legs) has no block below its floor: only what stands on it is built up
+	var base := float(sc.get("ground_y", 0.0))
+	if sc.get("legs", false):
+		base = INF
+		for r0 in arena.def.roofs:
+			base = minf(base, float(r0.top))
 	for r in arena.def.roofs:
 		var w := float(r.x1) - float(r.x0)
 		var d := float(r.z1) - float(r.z0)
 		var top := float(r.top)
-		_box(Vector3(w, top, d), Vector3((float(r.x0) + float(r.x1)) / 2.0, top / 2.0, (float(r.z0) + float(r.z1)) / 2.0), facade)
+		if top - base < 0.5:
+			continue
+		_box(Vector3(w, top - base, d), Vector3((float(r.x0) + float(r.x1)) / 2.0, (top + base) / 2.0, (float(r.z0) + float(r.z1)) / 2.0), facade)
 
 func _roofs() -> void:
 	var wet := Look.deck(look, String(arena.def.look))   # panels, seams and standing water in the shader
@@ -353,10 +365,21 @@ func _roofs() -> void:
 		for edge in [[Vector3(c.x, 0, float(r.z0)), Vector3(w, 0.05, 0.08)], [Vector3(c.x, 0, float(r.z1)), Vector3(w, 0.05, 0.08)], [Vector3(float(r.x0), 0, c.z), Vector3(0.08, 0.05, d)], [Vector3(float(r.x1), 0, c.z), Vector3(0.08, 0.05, d)]]:
 			var mi := _box(edge[1], Vector3((edge[0] as Vector3).x, float(r.top) + 1.1, (edge[0] as Vector3).z), _mat(neon, 0.4, 0.0, 3.5))
 			signs.append(mi)
+	var concrete := _mat(Color(0.3, 0.3, 0.33), 0.8)
+	var ledge_skin := String(Look.scene(String(arena.def.look)).get("ledge", ""))
+	var shed := Look.facade(look, 0.1, 0.5)
+	shed.set_shader_parameter("floor_h", 3.6)
+	var ribbed := Look.ribbed(Color(0.5, 0.36, 0.14))
 	for b in arena.boxes():
 		# the parapets and ledges from the data, drawn as concrete
 		if b.size.y > 0.9 and (b.size.x < 0.5 or b.size.z < 0.5) and b.size.y < 5.0:
-			_box(b.size, b.get_center(), _mat(Color(0.3, 0.3, 0.33), 0.8))
+			# a tall face is the side of a building on the lane maps: brick and windows (Foundry Row), ribbed steel (Rig Nine)
+			var face: Material = concrete
+			if b.size.y > 3.0 and ledge_skin == "facade":
+				face = shed
+			elif b.size.y > 3.0 and ledge_skin == "ribbed":
+				face = ribbed
+			_box(b.size, b.get_center(), face)
 
 func _walks() -> void:
 	var steel := _mat(Color(0.35, 0.37, 0.4), 0.5, 0.6)
@@ -379,7 +402,7 @@ func _walks() -> void:
 				rail.rotation = mi.rotation
 
 func _cover() -> void:
-	var mats := { "hvac": _mat(Color(0.6, 0.62, 0.65), 0.5, 0.5), "tank": _mat(Color(0.5, 0.35, 0.25), 0.7), "vent": _mat(Color(0.4, 0.42, 0.45), 0.6, 0.5), "crate": _mat(Color(0.45, 0.4, 0.3), 0.8), "sign": _mat(Color(0.15, 0.15, 0.18), 0.5, 0.3), "container": Look.ribbed(Color(0.2, 0.35, 0.5)), "console": _mat(Color(0.18, 0.2, 0.25), 0.4, 0.6), "barrier": _mat(Color(0.85, 0.3, 0.2), 0.7), "pillar": _mat(Color(0.5, 0.5, 0.55), 0.7), "monolith": _mat(Color(0.1, 0.08, 0.13), 0.35, 0.3), "planter": _mat(Color(0.36, 0.36, 0.4), 0.8), "dropship": _mat(Color(0.3, 0.33, 0.38), 0.4, 0.7) }
+	var mats := { "hvac": _mat(Color(0.6, 0.62, 0.65), 0.5, 0.5), "tank": _mat(Color(0.5, 0.35, 0.25), 0.7), "vent": _mat(Color(0.4, 0.42, 0.45), 0.6, 0.5), "crate": _mat(Color(0.45, 0.4, 0.3), 0.8), "sign": _mat(Color(0.15, 0.15, 0.18), 0.5, 0.3), "container": Look.ribbed(Color(0.2, 0.35, 0.5)), "console": _mat(Color(0.18, 0.2, 0.25), 0.4, 0.6), "barrier": _mat(Color(0.85, 0.3, 0.2), 0.7), "pillar": _mat(Color(0.5, 0.5, 0.55), 0.7), "monolith": _mat(Color(0.1, 0.08, 0.13), 0.35, 0.3), "planter": _mat(Color(0.36, 0.36, 0.4), 0.8), "dropship": _mat(Color(0.3, 0.33, 0.38), 0.4, 0.7), "wall": _mat(Color(0.5, 0.5, 0.5), 0.85) }
 	for c in arena.def.cover:
 		var top: float = arena.surface_at(float(c.x), float(c.z))
 		if top == -INF:
@@ -757,7 +780,7 @@ func _process(dt: float) -> void:
 	if _obj_ring:
 		_obj_ring.visible = match_state.objective_open()
 		_obj_label.visible = _obj_ring.visible
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:

@@ -45,7 +45,7 @@ var busy := false
 var hour_override := -1.0      # tests and shots set an hour; -1 is the device clock
 var city := "nexus"            # whose people (people.gd ROSTERS): "nexus" / "neon" on the avenue, an airport code, "VRD"
 var origin := Vector3.ZERO     # added to `at` places (a region on foot: where you landed)
-var profile: Dictionary        # the story gates tier 3 people (Captain Vale after Mission 01's chapters 04-05)
+var profile: Dictionary        # the story gates tier 3 people (Captain Rourke after Mission 01's chapters 04-05)
 var _boxes: Array[AABB]
 var _bounds: Rect2
 var _ground: Callable

@@ -1394,9 +1394,9 @@ func _on_phase() -> void:
 		await _play_checkpoint()
 		_mission_complete()
 
-## Missions 04 and 05 (the owner's Phase 3 scenes, scripts/cinema/scenes.gd): Captain Vale's Vanguard checkpoint at the
+## Missions 04 and 05 (the owner's Phase 3 scenes, scripts/cinema/scenes.gd): Captain Rourke's Vanguard checkpoint at the
 ## Breach once the street is clear — the checkpoint, NOVA in the medical tent, the terms of protection, then the temporary
-## command and the relief line, where the player chooses to work with Vale's team or stay independent. The choice is kept in
+## command and the relief line, where the player chooses to work with Rourke's team or stay independent. The choice is kept in
 ## the profile (`m05_choice`, synced with the cloud save) and the scenes play once; a replay of Mission 01 skips them.
 func _play_checkpoint() -> void:
 	if skip_cinema or String(profile.get("m05_choice", "")) != "":
@@ -1411,8 +1411,8 @@ func _play_checkpoint() -> void:
 	var ask := Choice.new()
 	add_child(ask)
 	_release_mouse()
-	ask.ask("Captain Vale is waiting for an answer.", [
-		["cooperate", "Work with Vale's team", "Civilians first — but you take the Vanguard's support."],
+	ask.ask("Captain Rourke is waiting for an answer.", [
+		["cooperate", "Work with Rourke's team", "Civilians first — but you take the Vanguard's support."],
 		["independent", "Stay independent", "You help the district on your own terms."],
 	])
 	var key: String = await ask.chosen

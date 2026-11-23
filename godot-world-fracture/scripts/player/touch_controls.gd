@@ -1,5 +1,9 @@
 extends Control
 const Settings := preload("res://scripts/front/settings_store.gd")
+const BoardHud := preload("res://scripts/player/board_hud.gd")
+## the game screen from the owner's boards (board_hud.gd): weapon card, compass + place + quest, operator plate.
+## Views set `hud.place`, `hud.set_quest(...)`, `hud.hull_max` / `hud.shield_max`; the old readouts stay as data.
+var hud: Control
 ## On-foot input for the phone and the desk, one overlay over the 3D view: a virtual stick where the thumb lands on the left
 ## half of the screen, look-drag anywhere on the right half, JUMP, SPRINT, FIRE, RELOAD and SWAP buttons (phone), WASD / arrows + Space + Shift,
 ## left mouse to fire, right-drag look, R and Q on a keyboard, J / K (GRENADE / ⟳) for the Operator's grenades; a crosshair and the magazine read-out. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
@@ -357,6 +361,15 @@ func _hud() -> void:
 	hull_fill.size = Vector2(216, 10)
 	hull_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hull_fill)
+	hud = BoardHud.new()
+	hud.source = self
+	add_child(hud)
+	move_child(hud, 1)
+	# the board's plates draw these now; the labels keep their text for the plates (and the swap tap stays)
+	hull_back.visible = false
+	hull_fill.visible = false
+	weapon_name.self_modulate.a = 0.0
+	ammo.self_modulate.a = 0.0
 	_prompt_label = Label.new()
 	_prompt_label.set_anchors_preset(Control.PRESET_CENTER)
 	_prompt_label.position = Vector2(-80, 120)
@@ -371,7 +384,7 @@ func _hud() -> void:
 	add_child(status)
 
 ## the hull read-out: `frac` 0..1, `hurt` 0..1 fades the wash, `down_left` seconds until the operator stands (0 = up)
-func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> void:
+func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0, hull_max := -1.0, shield_max := -1.0) -> void:
 	hull_fill.size.x = 216.0 * clampf(frac, 0.0, 1.0)
 	# the energy shield: a thin cyan bar over the hull's (asset catalog §5)
 	if shield >= 0.0:
@@ -386,6 +399,13 @@ func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> vo
 		_shield_fill.size.x = 216.0 * clampf(shield, 0.0, 1.0)
 		_shield_fill.visible = hull_fill.visible
 	hull_fill.color = Color(0.35, 0.95, 0.75) if frac > 0.35 else Color(0.95, 0.4, 0.3)
+	if hud:
+		hud.hull = frac
+		hud.shield = shield
+		if hull_max > 0.0:
+			hud.hull_max = hull_max
+		if shield_max > 0.0:
+			hud.shield_max = shield_max
 	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
 	status.text = ("DOWN · %d" % ceili(down_left)) if down_left > 0.0 else ""
 
@@ -573,8 +593,24 @@ func show_abilities(list: Array) -> void:
 		var b: Button = _ability_buttons[i]
 		var h: Dictionary = list[i]
 		var r := clampf(float(h.ready), 0.0, 1.0)
-		b.text = "%s\n%s" % [String(h.name).split(" ")[0], "READY" if r >= 1.0 else "%d%%" % int(r * 100.0)]
-		b.modulate = (h.color as Color).lerp(Color.WHITE, 0.35) if r >= 1.0 else Color(0.7, 0.7, 0.75, 0.75)
+		# the boards' ability tile, drawn on the button (its text stays empty)
+		b.text = ""
+		b.modulate = Color(1, 1, 1, 1)
+		b.set_meta("tile", h)
+		b.set_meta("tile_i", i)
+		if not b.has_meta("tile_hooked"):
+			b.set_meta("tile_hooked", true)
+			for st in ["normal", "hover", "pressed"]:
+				var sb := StyleBoxEmpty.new()
+				b.add_theme_stylebox_override(st, sb)
+			b.draw.connect(func():
+				var hh: Dictionary = b.get_meta("tile", {})
+				var side := minf(b.size.x, b.size.y)
+				var rr := Rect2((b.size.x - side) * 0.5, (b.size.y - side) * 0.5, side, side)
+				BoardHud.tile(b, rr, hh, int(b.get_meta("tile_i", 0)), "", ThemeDB.fallback_font))
+		b.queue_redraw()
+	if hud:
+		hud.set("abilities", list if (not touch_ui and mode == "foot" and weapons_out) else [])
 	if touch_ui:
 		return
 	if not _ability_label:
@@ -590,7 +626,7 @@ func show_abilities(list: Array) -> void:
 		var h2: Dictionary = list[i]
 		var r2 := clampf(float(h2.ready), 0.0, 1.0)
 		parts.append("%d %s %s" % [i + 1, String(h2.name), "●" if r2 >= 1.0 else "%d%%" % int(r2 * 100.0)])
-	_ability_label.text = "   ".join(parts) if mode == "foot" and weapons_out else ""
+	_ability_label.text = ""   # the board's tiles (board_hud.gd) show them now
 
 ## the sights are up: the phone's toggle, the right mouse button, the left trigger
 func ads() -> bool:
@@ -728,7 +764,21 @@ func take_look() -> Vector2:
 	look_delta = Vector2.ZERO
 	return d
 
+## the horn (Nov 22 audio pass): H on a keyboard, the left stick's click on a pad, while driving
+var _horn_was := false
+func _horn() -> void:
+	if mode != "drive":
+		_horn_was = false
+		return
+	var on := Input.is_physical_key_pressed(KEY_H)
+	for id in Input.get_connected_joypads():
+		on = on or Input.is_joy_button_pressed(id, JOY_BUTTON_LEFT_STICK)
+	if on and not _horn_was:
+		preload("res://scripts/audio/sound.gd").sfx("horn", -4.0, 0.02)
+	_horn_was = on
+
 func _process(_dt: float) -> void:
+	_horn()
 	if _hit_t > 0.0:
 		_hit_t -= _dt
 		if _hitmark:

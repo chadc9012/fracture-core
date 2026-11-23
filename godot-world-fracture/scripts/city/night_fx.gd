@@ -301,25 +301,31 @@ static func grade(env: Environment, sun: DirectionalLight3D, sky: Sky, neon_city
 	# lifted Nov 15 evening (owner: "why is the night image so dark"): the boards average 45-85 of 255 in luminance
 	# with lit wet roads at 48-85; the street measured 25 overall and 15 on the road. Moonlight, the navy ambient and
 	# the exposure all up — still night, but a night you can see the road in
-	sun.light_energy = 1.2
+	sun.light_energy = 0.55   # Nov 22 benchmark: the moon lit the pale walls and pavers lilac (was 1.2)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	# Neon City (Nov 18 pass): navy rather than violet — the boards' walls are dark neutral under the moon, the colour
 	# comes from the signs, the windows and the lamps; the violet ambient tinted every surface the same purple
 	env.ambient_light_color = Color(0.24, 0.26, 0.48) if not neon_city else Color(0.23, 0.23, 0.45)
-	env.ambient_light_energy = 2.9
+	# Nov 22 benchmark (owner's plan: one Nexus street to target-nexus-night first): the street measured mean 103 / median
+	# 110 / ground 135 of 255 against the frame's 46 / 31 / 30 — pastel, the white blocks and pale pavers glowing. The
+	# ambient comes down so the light is the lamps', the signs' and the windows'; the exposure stays (the lights keep
+	# their punch, the night is not darker where it is lit)
+	env.ambient_light_energy = 1.05
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_exposure = 2.5
 	env.glow_enabled = true
-	env.glow_intensity = 1.25
-	env.glow_strength = 1.15
-	env.glow_bloom = 0.2
-	env.glow_hdr_threshold = 0.9
+	# Nov 22 benchmark: the bloom washed whole facades white behind the signs (bloom 0.2 over five levels); the frame's
+	# glow is tight round the lights, so only what is truly bright blooms, and less of it
+	env.glow_intensity = 0.95
+	env.glow_strength = 1.0
+	env.glow_bloom = 0.03
+	env.glow_hdr_threshold = 1.25
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 	for lv in 7:
-		env.set_glow_level(lv, 1.0 if lv in [1, 2, 3, 4, 5] else 0.0)
+		env.set_glow_level(lv, 1.0 if lv in [1, 2, 3, 4] else 0.0)
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.06, 0.05, 0.14)
-	env.fog_density = 0.0022
+	env.fog_density = 0.0011   # Nov 22: the skyline down the avenue (street_slice _vista, ~1 km) reads through the haze
 	env.fog_sun_scatter = 0.0
 	env.fog_aerial_perspective = 0.25
 	env.volumetric_fog_density = 0.008

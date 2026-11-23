@@ -440,7 +440,17 @@ func _races() -> void:
 		var body := "Neon City's blocks at night: barriers, right-angle corners, the market jog. Win: %d Nex." % int(tr.def.prize[0]) if street else "Stands, pit lane and start lights; a grand-prix lap with a hairpin and esses. Win: %d Nex." % int(tr.def.prize[0])
 		row.add_child(_tile("race-" + tid, String(tr.def.name).to_upper(), sub, body, Color(0.3, 0.9, 1.0), func(): _launch_race(tid), true, 28))
 	v.add_child(_track_pack())
-	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "✓ Motorcycle", "✓ Off-road / mud", "Air races · soon"], Color(0.3, 0.9, 1.0)))
+	# the air race (air_race.gd): the Skyways ring course over Nexus City against three rival jets
+	var air := _row()
+	v.add_child(air)
+	air.add_child(_tile("race-air", "AIR RACE · NEXUS SKYLINE", "Skyways · 8 rings · the F-39 Jupiter", "Lift off the runway and the field lifts with you: three rival jets fly the rings at their own pace. First through the last ring wins %d Nex." % int(load("res://scripts/flying/air_race.gd").PURSE[0]), Color(0.3, 0.9, 1.0), _launch_air_race, true, 28))
+	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "✓ Motorcycle", "✓ Off-road / mud", "✓ Air races"], Color(0.3, 0.9, 1.0)))
+
+func _launch_air_race() -> void:
+	var sv: Control = load("res://scripts/flying/skyways_view.gd").new()
+	sv.craft_id = "vanguard-jet"
+	sv.air_race = true
+	_host(sv)
 
 ## Track Pack 01 (the owner's eight long tracks, track_pack.gd): a button each, and how many laps — one, the board's
 ## shortest race, or its longest

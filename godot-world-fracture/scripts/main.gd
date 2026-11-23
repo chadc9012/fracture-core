@@ -137,6 +137,10 @@ func _ready() -> void:
 	fd.add_theme_font_size_override("font_size", 18)
 	fd.pressed.connect(_open_descent)
 	_dock_add(fd)
+	var side := Data.button("SIDE MISSIONS · quests, factions, world events", true)
+	side.custom_minimum_size = Vector2(0, 48)
+	side.pressed.connect(_open_side_board)
+	_dock_add(side)
 	var race_button := Data.button("RACE", true)
 	race_button.custom_minimum_size = Vector2(0, 48)
 	race_button.pressed.connect(func(): _open_race())
@@ -330,7 +334,16 @@ func _airport_view(code: String, arriving: bool) -> Control:
 
 ## the story the crash-site door opens: Chapter 1 until it is done, then Act 1, then missions 02–25
 func _story_view() -> Control:
-	if not Aftershock.finished():
+	# the main story until it is done — unless the player stepped out into the original campaign from a chapter card
+	# (profile `story_line`), which then plays until it is done
+	var line := ""
+	var pf := FileAccess.open("user://profile.json", FileAccess.READ)
+	if pf:
+		var pd: Variant = JSON.parse_string(pf.get_as_text())
+		if pd is Dictionary:
+			line = String(pd.get("story_line", ""))
+	var original_done := FileAccess.file_exists("user://campaign.json") and Campaign.next_mission() == ""
+	if not Aftershock.finished() and (line != "original" or original_done):
 		return Aftershock.new()
 	return Campaign.new() if Descent.chapter_cleared() else Descent.new()
 
@@ -437,6 +450,29 @@ func _open_descent() -> void:
 	if descent:
 		return
 	descent = Descent.new()
+	descent.closed.connect(_close_descent)
+	add_child(descent)
+	planet_view.set_process(false)
+
+## the side missions (scripts/mission/side_board.gd → side_mission.gd): the board, then one mission over the globe
+var side_board: Control
+func _open_side_board() -> void:
+	if side_board or descent:
+		return
+	side_board = load("res://scripts/mission/side_board.gd").new()
+	side_board.closed.connect(func(): side_board.queue_free(); side_board = null)
+	side_board.play.connect(_open_side)
+	add_child(side_board)
+
+func _open_side(id: String) -> void:
+	if side_board:
+		side_board.queue_free()
+		side_board = null
+	if descent:
+		return
+	var SideMission = load("res://scripts/mission/side_mission.gd")
+	SideMission.pending = id
+	descent = SideMission.new()
 	descent.closed.connect(_close_descent)
 	add_child(descent)
 	planet_view.set_process(false)
@@ -993,12 +1029,16 @@ func _shoot(path: String, opts: Array) -> void:
 		if String(o) == "cloud":
 			_open_cloud()
 		# aftershock[:<chapter id>][:scene]  Chapter 1 — The Aftershock (scripts/mission/aftershock.gd) standing in a chapter
-		# (A02A … A07G), its opening skipped, or :scene with it playing
+		# (A02A … A07G), its opening skipped, or :scene with it playing (:b<n> jumps to its n-th line; :close plays the
+		# chapter's closing lines on its set)
 		if String(o).begins_with("aftershock"):
 			var aid := "A02A"
+			var beat := -1
 			for part in String(o).split(":"):
-				if part.length() == 4 and part.begins_with("A0"):
+				if part.length() == 4 and part.begins_with("A") and part.substr(1, 2).is_valid_int():
 					aid = part
+				if part.begins_with("b") and part.substr(1).is_valid_int():
+					beat = int(part.substr(1))
 			var fa := FileAccess.open("user://aftershock.json", FileAccess.WRITE)
 			fa.store_string(JSON.stringify({ "done": [], "current": aid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 0, "stage": 0 }))
 			fa.close()
@@ -1009,6 +1049,16 @@ func _shoot(path: String, opts: Array) -> void:
 			planet_view.set_process(false)
 			if not String(o).contains("scene") and aft.cutscene and aft.cutscene.playing:
 				aft.cutscene._end()
+			if String(o).contains("close"):
+				if aft.cutscene.playing:
+					aft.cutscene._end()
+				var cdef: Dictionary = aft._quest_def(aid)
+				var cb: Array = aft._scene(cdef, cdef.get("close", []), 200.0)
+				if not cb.is_empty():
+					aft.cutscene.play(cb, aft.region.camera())
+			if beat > 0 and aft.cutscene.playing:
+				aft.cutscene._i = beat - 2
+				aft.cutscene._next()
 		# campaign[:<chapter id>][:scene]  the campaign's chapters (scripts/mission/campaign.gd) standing in a chapter (02A …
 		# 25C) with its opening skipped, or :scene with it playing
 		if String(o).begins_with("campaign"):
@@ -1105,6 +1155,8 @@ func _shoot(path: String, opts: Array) -> void:
 				if String(o).contains(String(pair[0])):
 					skyways.craft_id = String(pair[1])
 			skyways.closed.connect(_close_skyways)
+			if String(o).contains("race"):
+				skyways.air_race = true   # the ring course against three rival jets (air_race.gd)
 			add_child(skyways)
 			if String(o).contains("side"):
 				skyways.look_dev = Vector3(14.0, 1.2, 6.0)   # low, off the right wing: the undercarriage
@@ -1129,7 +1181,7 @@ func _shoot(path: String, opts: Array) -> void:
 			for mid in ["dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"]:
 				if String(o).contains(mid):
 					killbox.mode_id = mid
-			for id in ["fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift"]:
+			for id in ["fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift", "foundry-row", "sanctum", "rig-nine"]:
 				if String(o).contains(String(id).split("-")[0] if id != "killbox-prime" else "prime"):
 					killbox.arena_id = id
 			killbox.closed.connect(_close_killbox)

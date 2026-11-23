@@ -156,11 +156,14 @@ func _fight(secs: float) -> int:
 			var off := Vector2(e.mover.position.x - d.operator.position.x, e.mover.position.z - d.operator.position.z)
 			d.operator.cam_yaw = atan2(-off.x, -off.y)
 			d.controls.move = Vector2(0, 1)
-		_aim(e.mover.position + Vector3(0, 1.2, 0))
-		d.controls.fire = true
-		# fight the way a player does since the Nov 22 combat balance (troopers 2-3x the hull, a finite bag): down the
-		# sights past arm's length, and the next carried gun when this one is dry — the old loop held one empty rifle on
-		# two Executors until the chapter stalled
+		# the middle of its hit box (a drone hovers at 4 m: aiming 1.2 m over its mover sails the shots over it)
+		_aim(e.target.box.get_center())
+		# fire only with a clear line (a player does not empty the rifle into the box a marksman is crouched behind;
+		# since the Nov 22 balance pass a wave is long enough that spraying cover ran the rifle dry)
+		var eye: Vector3 = d.operator.position + Vector3(0, 1.5, 0)
+		d.controls.fire = d.enemies._clear(eye, e.target.box.get_center())
+		# and fight the way a player does: down the sights past arm's length, the next carried gun when this one is dry
+		# (the old loop held one empty rifle on two Executors until the chapter stalled)
 		d.controls._ads_on = near > 8.0
 		var g = d.gunplay.gun()
 		if g.mag <= 0 and g.reserve <= 0 and g.reloading <= 0.0:
@@ -278,7 +281,7 @@ func _ready() -> void:
 		while wt < 40.0 and d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN).size() == 0 and not d.cutscene.playing:
 			await get_tree().process_frame
 			wt += minf(get_process_delta_time(), 0.05)
-		await _fight(90.0)
+		await _fight(150.0)    # (troopers take two to three times the bullets since the Nov 22 balance pass)
 		await _frames(3)
 	if d.waypoint.distance_to(d.operator.position) > 10.0:
 		await _walk_to(d.waypoint, 8.0, "the core")

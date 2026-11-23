@@ -120,10 +120,19 @@ var _mags := 0
 
 ## a kill resupplies: every carried gun gets half a magazine back into its reserve (to the frame's full reserve), so a
 ## long fight — a Fracture boss, a lockdown — is paced by kills rather than ended by an empty bag
-func scavenge() -> void:
+## a kill's ammo back to every carried gun: what that foe took to drop (its hull and shield over the gun's body-shot
+## damage) with a third again for misses, never less than half a magazine nor more than two (the Nov 22 balance pass
+## made troopers tougher; a flat half-mag ran the rifle dry by the second lockdown wave)
+func scavenge(t: Target = null) -> void:
 	for g in guns:
 		var f: Dictionary = Weapons.FRAMES.get(g.frame, {})
-		g.reserve = mini(int(g.reserve) + maxi(1, int(f.get("mag", 10)) / 2), int(f.get("reserve", 0)))
+		var mag := int(f.get("mag", 10))
+		var back := maxi(1, mag / 2)
+		if t != null and t.max_hp > 0.0:
+			var per := Weapons.BASE_DAMAGE * float(f.get("damage", 1.0)) * Weapons.pellets(g.frame) * maxf(g.mult, 0.1)
+			var needed := (t.max_hp + t.shield_max) / maxf(per, 0.1)
+			back = clampi(int(ceil(needed * 1.35)), maxi(1, mag / 2), mag * 2)
+		g.reserve = mini(int(g.reserve) + back, int(f.get("reserve", 0)))
 
 func gun() -> Weapons.Gun:
 	return guns[current]
@@ -733,7 +742,7 @@ func _down_target(t: Target, at: Vector3, head: bool) -> void:
 		t.node.visible = false
 	kills += 1
 	Sound.sfx_at("down", at, player.position if player else at, -4.0)
-	scavenge()
+	scavenge(t)
 	if not guns.is_empty():
 		var g: Weapons.Gun = gun()
 		g.on_kill(head)
@@ -906,7 +915,7 @@ func grenade_hit(t: Target, dmg: float, at: Vector3) -> void:
 			t.node.visible = false
 		kills += 1
 		Sound.sfx_at("down", at, player.position if player else at, -4.0)
-		scavenge()
+		scavenge(t)
 		killed.emit(t)
 
 ## a melee blow (close_combat.gd): the same hit / killed path as a bolt, plus the shove and the poise it carries
@@ -931,7 +940,7 @@ func melee_hit(t: Target, dmg: float, at: Vector3, knock_v: Vector3, poise: floa
 			t.node.visible = false
 		kills += 1
 		Sound.sfx_at("down", at, player.position if player else at, -4.0)
-		scavenge()
+		scavenge(t)
 		if not guns.is_empty():
 			gun().on_kill(false, true)
 		killed.emit(t)
