@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://vbk2nb0ahbeg"
-path="res://.godot/imported/panther_Image_2.jpg-29b7d5aaae4acb4abb76fb42e441a19b.ctex"
+path.s3tc="res://.godot/imported/panther_Image_2.jpg-29b7d5aaae4acb4abb76fb42e441a19b.s3tc.ctex"
+path.etc2="res://.godot/imported/panther_Image_2.jpg-29b7d5aaae4acb4abb76fb42e441a19b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "f895ce9f42e130910d679f5ecfa53d0d"
@@ -14,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://models/animals/panther_Image_2.jpg"
-dest_files=["res://.godot/imported/panther_Image_2.jpg-29b7d5aaae4acb4abb76fb42e441a19b.ctex"]
+dest_files=["res://.godot/imported/panther_Image_2.jpg-29b7d5aaae4acb4abb76fb42e441a19b.s3tc.ctex", "res://.godot/imported/panther_Image_2.jpg-29b7d5aaae4acb4abb76fb42e441a19b.etc2.ctex"]
 
 [params]
 
