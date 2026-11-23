@@ -796,6 +796,8 @@ func _process(dt: float) -> void:
 			_respawn_timer -= dt
 			if _respawn_timer <= 0.0:
 				operator.position = enemies.respawn_point(_spawn) if enemies else _spawn
+				if gunplay:
+					gunplay.resupply()
 				operator.velocity = Vector3.ZERO
 				if enemies and enemies.checkpoint != Vector3.INF:
 					controls.toast("Back at the last checkpoint")

@@ -1161,8 +1161,8 @@ func _tactical_move(e: Enemy, dt: float, dist: float, to_op: Vector3, sees: bool
 			# never so far it loses the fight
 			if dist < want * 0.7:
 				goal = m.position - to_op.normalized() * 2.0
-			elif dist > want * 1.6:
-				goal = player.position - to_op.normalized() * want * 1.3
+			elif dist > want * 1.25:
+				goal = player.position - to_op.normalized() * want
 			else:
 				return Vector2.INF
 		"assault":
@@ -1209,7 +1209,7 @@ func _find_cover(e: Enemy) -> Vector3:
 		var spot := c + away * (half + 0.6)
 		spot.y = float(m.ground_at.call(spot.x, spot.z))
 		var dop := Vector2(spot.x - op.x, spot.z - op.z).length()
-		if dop < float(e.def.range) * 0.5 or dop > float(e.def.range) * 1.8 + 6.0:
+		if dop < float(e.def.range) * 0.5 or dop > float(e.def.range) * 1.3 + 3.0:
 			continue
 		# a crouching body there is hidden from the operator by this box
 		var low := spot + Vector3(0, 0.9, 0)

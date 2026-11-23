@@ -133,7 +133,8 @@ func _walk_until(to: Vector3, near: float, label: String, stop: Callable) -> boo
 	return false
 
 ## shoot every live enemy within reach until none are left or `secs` passes (0: only while one is close and alive)
-func _fight(secs: float) -> int:
+## `hold`: an objective to stay by (the core's waves) — chase no further than 20 m from it, walk back when drawn off
+func _fight(secs: float, hold := Vector3.INF) -> int:
 	var shots := 0
 	var t := 0.0
 	while true:
@@ -151,6 +152,11 @@ func _fight(secs: float) -> int:
 			var away: Vector2 = Vector2(d.operator.position.x - e.mover.position.x, d.operator.position.z - e.mover.position.z)
 			d.operator.cam_yaw = atan2(away.x, away.y)
 			d.controls.move = Vector2(0, -1)
+		# drawn off the objective: walk back to it
+		elif hold != Vector3.INF and Vector2(d.operator.position.x - hold.x, d.operator.position.z - hold.z).length() > 20.0:
+			var back := Vector2(hold.x - d.operator.position.x, hold.z - d.operator.position.z)
+			d.operator.cam_yaw = atan2(-back.x, -back.y)
+			d.controls.move = Vector2(0, 1)
 		# close in on a target that is out of range or behind cover
 		elif near > 30.0:
 			var off := Vector2(e.mover.position.x - d.operator.position.x, e.mover.position.z - d.operator.position.z)
@@ -281,10 +287,16 @@ func _ready() -> void:
 		while wt < 40.0 and d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN).size() == 0 and not d.cutscene.playing:
 			await get_tree().process_frame
 			wt += minf(get_process_delta_time(), 0.05)
-		await _fight(150.0)    # (troopers take two to three times the bullets since the Nov 22 balance pass)
+		await _fight(150.0, d.waypoint)    # (troopers take two to three times the bullets since the Nov 22 balance pass)
 		await _frames(3)
 	if d.waypoint.distance_to(d.operator.position) > 10.0:
 		await _walk_to(d.waypoint, 8.0, "the core")
+	# mop up: the last wave's elite and marksman outlast one fight window since the Nov 22 balance pass
+	if d.boss == null and not d.cutscene.playing:
+		await _fight(240.0, d.waypoint)
+	var survivors: Array = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN)
+	if not survivors.is_empty():
+		print("  left standing: %s · ammo %s" % [str(survivors.map(func(e): return "%s %.0f hp at %.0f m" % [e.type, e.target.hp, e.mover.position.distance_to(d.operator.position)])), d.gunplay.gun().ammo_text()])
 	var ct := 0.0
 	while ct < 30.0 and not d.cutscene.playing:
 		await get_tree().process_frame
