@@ -1564,6 +1564,19 @@ func _in_mouth(side: float, z: float) -> bool:
 		return true
 	return _court_here(side) and absf(z) < Nexus.MOUTH_HALF + 2.5
 
+## nothing on the kerb line here: a side street's mouth or a lot's drive, the zebra crossing, the hub's garage door, a door or
+## a stop on the walk
+func _kerb_clear(side: float, z: float) -> bool:
+	if _in_mouth(side, z) or absf(z - Infra.CROSS_LZ) < 6.0:
+		return false
+	if _tile_k == 0:
+		if side > 0 and absf(z - GARAGE_Z) < 14.0:
+			return false
+		for d: Dictionary in DOORS:
+			if float(d.x) == side and absf(float(d.z) - z) < 5.0:
+				return false
+	return true
+
 ## a building that would stand over a lot (gas station, bus terminal, building site, parking garage) isn't built:
 ## the lot's far end to carry on from, or -INF where there's no lot
 func _lot_cut(side: float, z: float) -> float:
@@ -1767,6 +1780,12 @@ func _props() -> void:
 		var i := 0
 		while z < LENGTH * 0.5 - 6.0:
 			var edge := side * (half + 1.3)
+			if not _kerb_clear(side, z):
+				# a side street, a lot's drive, the crossing, the garage door or a stop: the kerb stays open (owner, Nov 23:
+				# lamp posts stood in the mouths of side streets and drives); the next post keeps the rhythm
+				z += 12.0
+				i += 1
+				continue
 			# palms and lamp posts take turns on Nexus and Neon (the Neon boards light the avenue with sodium lamps between
 			# the palms; Neon had palms only, so its street had no lamp light at all — Nov 18 pass); the coast is all palms
 			if i % 2 == 0 or style == "coast":
@@ -1789,7 +1808,7 @@ func _props() -> void:
 					_root().add_child(lamp)
 			else:
 				_lamp_fallback(Vector3(edge, 0.18, z), side)
-			if i % 3 == 1:
+			if i % 3 == 1 and _kerb_clear(side, z + 5.5):
 				prop("planter.glb", 2.2, Vector3(edge, 0.18, z + 5.5), 0.0)
 			z += 12.0
 			i += 1
