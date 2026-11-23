@@ -88,6 +88,14 @@ func _round(from: Vector3, to: Vector3) -> Vector2:
 		return best_c - a
 	return b - a
 
+## back to the core in Full Lockdown: on foot, or — since the test cannot path through Neon City's blocks, and a
+## checkpoint respawn puts the operator 100+ m off — set down beside it, as the chapter's first approach already is (the
+## Nov 23 full run fought the last wave from 116 m away and never opened the core)
+func _to_core() -> void:
+	if not await _walk_to(d.waypoint, 8.0, "the core"):
+		d.operator.position = d.waypoint + Vector3(4, 0, 4)
+		await _frames(2)
+
 func _walk_to(to: Vector3, near: float, label: String) -> bool:
 	var best := INF
 	var stall := 0.0
@@ -336,7 +344,7 @@ func _ready() -> void:
 	for w in 3:
 		# the next wave comes 14 s after the last is down, while you hold the core: back to it, then wait in sim time
 		if d.waypoint.distance_to(d.operator.position) > 10.0:
-			await _walk_to(d.waypoint, 8.0, "the core")
+			await _to_core()
 		var wt := 0.0
 		while wt < 40.0 and d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN).size() == 0 and not d.cutscene.playing:
 			await get_tree().process_frame
@@ -344,7 +352,7 @@ func _ready() -> void:
 		await _fight(150.0, d.waypoint)    # (troopers take two to three times the bullets since the Nov 22 balance pass)
 		await _frames(3)
 	if d.waypoint.distance_to(d.operator.position) > 10.0:
-		await _walk_to(d.waypoint, 8.0, "the core")
+		await _to_core()
 	# mop up: the last wave's elite and marksman outlast one fight window since the Nov 22 balance pass
 	if d.boss == null and not d.cutscene.playing:
 		await _fight(240.0, d.waypoint)
@@ -386,9 +394,13 @@ func _ready() -> void:
 			else:
 				d.controls._reload = true
 		# anything the Warden summons is shot first: its adds are the fight's ammo
-		var adds: Array = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN)
+		# (only the ones on top of the operator: the district's heat drones keep coming and hover 35-150 m out — chasing
+		# them spent the whole bag while the Warden stood untouched 91 m off, Nov 23)
+		var adds: Array = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN and e.type != "drone" and e.mover.position.distance_to(d.operator.position) < 25.0)
 		if not adds.is_empty():
-			await _fight(0.0)
+			# a short window, counted against the fight's clock: an open-ended _fight(0.0) chased the district's
+			# drones hovering out at ~45 m for hours (the Nov 23 run was cut off at the shell's limit mid-fight)
+			bt += float(await _fight(6.0)) * 0.05
 		await get_tree().process_frame
 		bt += minf(get_process_delta_time(), 0.05)
 		if d.enemies.down > 0.0:
