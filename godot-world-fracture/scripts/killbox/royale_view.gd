@@ -303,15 +303,25 @@ func _open_kit() -> void:
 	var p := Gear.profile_load()
 	_kit_panel = PanelContainer.new()
 	_kit_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_kit_panel.custom_minimum_size = Vector2(620, 0)
-	_kit_panel.position = Vector2(-310, -210)
+	_kit_panel.custom_minimum_size = Vector2(820, 0)
+	_kit_panel.position = Vector2(-410, -250)
+	var skin := StyleBoxFlat.new()
+	skin.bg_color = Color(0.04, 0.05, 0.08, 0.94)     # solid: the dropship behind it was showing through the title
+	skin.border_color = Color(0.75, 0.3, 1.0)
+	skin.set_border_width_all(2)
+	skin.set_corner_radius_all(8)
+	_kit_panel.add_theme_stylebox_override("panel", skin)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	_kit_panel.add_child(v)
+	v.add_theme_constant_override("separation", 14)
+	var pad := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, 18)
+	pad.add_child(v)
+	_kit_panel.add_child(pad)
 	var title := Label.new()
 	title.text = "DROP KIT   ·   %d Nex" % int(p.get("nex", 0))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 32)
 	v.add_child(title)
 	for id: String in Kit.ORDER:
 		var it: Dictionary = Kit.ITEMS[id]
@@ -321,10 +331,11 @@ func _open_kit() -> void:
 		text.text = "%s\n%s" % [String(it.name).to_upper(), String(it.blurb)]
 		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		text.add_theme_font_size_override("font_size", 16)
+		text.add_theme_font_size_override("font_size", 21)
 		row.add_child(text)
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(170, 56)
+		b.custom_minimum_size = Vector2(230, 72)
+		b.add_theme_font_size_override("font_size", 22)
 		b.focus_mode = Control.FOCUS_NONE
 		if Kit.owns(kit, id):
 			b.text = "OWNED"
@@ -346,9 +357,9 @@ func _open_kit() -> void:
 		v.add_child(row)
 	var go := Button.new()
 	go.text = "DEPLOY"
-	go.custom_minimum_size = Vector2(0, 60)
+	go.custom_minimum_size = Vector2(0, 76)
 	go.focus_mode = Control.FOCUS_NONE
-	go.add_theme_font_size_override("font_size", 24)
+	go.add_theme_font_size_override("font_size", 30)
 	go.pressed.connect(func():
 		_kit_panel.queue_free()
 		_kit_panel = null
@@ -371,10 +382,12 @@ func _build_wings() -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var tris := [
-		Vector3(0.2, 1.45, 0), Vector3(1.15, 1.4, 0), Vector3(0.2, 0.9, 0),
-		Vector3(-0.2, 1.45, 0), Vector3(-0.2, 0.9, 0), Vector3(-1.15, 1.4, 0),
-		Vector3(-0.2, 0.9, 0), Vector3(0.2, 0.9, 0), Vector3(0.38, 0.08, 0),
-		Vector3(-0.2, 0.9, 0), Vector3(0.38, 0.08, 0), Vector3(-0.38, 0.08, 0),
+		# a wing each side, shoulder out to the tip and back in to the hip (wider than the arms: it reads from far behind)
+		Vector3(0.15, 1.5, 0), Vector3(1.55, 1.15, 0), Vector3(0.2, 0.8, 0),
+		Vector3(-0.15, 1.5, 0), Vector3(-0.2, 0.8, 0), Vector3(-1.55, 1.15, 0),
+		# the tail wing between the legs
+		Vector3(-0.22, 0.9, 0), Vector3(0.22, 0.9, 0), Vector3(0.5, 0.02, 0),
+		Vector3(-0.22, 0.9, 0), Vector3(0.5, 0.02, 0), Vector3(-0.5, 0.02, 0),
 	]
 	for v: Vector3 in tris:
 		st.set_normal(Vector3(0, 0, -1))

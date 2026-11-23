@@ -46,6 +46,16 @@ func _ready() -> void:
 	note.add_theme_font_size_override("font_size", 13)
 	note.modulate = Color(0.65, 0.7, 0.78)
 	box.add_child(note)
+	var full := CheckButton.new()
+	full.text = "Full resolution (every pixel of the screen; uses more battery)"
+	full.button_pressed = bool(s.get("full_res", false))
+	full.toggled.connect(func(on: bool): Store.set_value("full_res", on))
+	box.add_child(full)
+	var hd := CheckButton.new()
+	hd.text = "HD textures (4K weapons; needs a recent phone)"
+	hd.button_pressed = bool(s.get("hd_textures", false))
+	hd.toggled.connect(func(on: bool): Store.set_value("hd_textures", on))
+	box.add_child(hd)
 	# screen orientation
 	box.add_child(_label("SCREEN"))
 	var orow := HBoxContainer.new()

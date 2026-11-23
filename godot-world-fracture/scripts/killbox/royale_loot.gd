@@ -138,7 +138,7 @@ func _gun_node(frame: String, rarity: String) -> Node3D:
 	holder.name = "spin"
 	holder.position.y = 0.75
 	n.add_child(holder)
-	var path := "res://models/weapons/" + String(Weapons.FRAMES[frame].model)
+	var path: String = preload("res://scripts/phone.gd").model_path("res://models/weapons/" + String(Weapons.FRAMES[frame].model))
 	if not _models.has(frame) and ResourceLoader.exists(path):
 		_models[frame] = load(path)
 	if _models.has(frame):

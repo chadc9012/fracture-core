@@ -206,5 +206,6 @@ func _ready() -> void:
 	d.controls._enter = true
 	d._process(0.05)
 	check("ENTER when stopped gets out", not d.rides.driving() and d.operator.rig.visible)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://royale_kit.json"))   # the test's purchases are not this machine's
 	print("royale play: ", "0 failed" if ok else "FAILED")
 	get_tree().quit(0 if ok else 1)

@@ -60,11 +60,14 @@ func _process(_d: float) -> void:
 		elif _what == "wing":
 			_v._jump()
 			_v.controls.sprint = true
+			_v.operator.cam_pitch = -0.75     # from above and behind: the suit's shape, not its edge
+			_v.operator.cam_dist = 6.0
 		else:
 			_snap("ship")
 			_v._jump()
 	if _n == WARM + 55:
 		if _what == "wing":
+			print("rig rotation ", _v.operator.rig.rotation, " wingsuit ", _v.wingsuit)
 			_snap("wingsuit")
 			_v.controls.sprint = false
 			_v._open_canopy()

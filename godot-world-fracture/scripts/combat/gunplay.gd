@@ -17,6 +17,7 @@ const HeavyWeapons := preload("res://scripts/combat/heavy_weapons.gd")
 ## Tracer's mark: a marked Target takes this much more from every bolt and grenade
 const MARK_MULT := 1.33
 const MODELS := "res://models/weapons/"
+const Phone := preload("res://scripts/phone.gd")
 
 ## something a bolt can hit: a world box, hull points, and the node that shows it (optional)
 class Target:
@@ -234,7 +235,7 @@ func _ensure_model(f: String) -> void:
 	if f == "BOW":
 		m = _make_bow()
 	else:
-		var path: String = MODELS + String(Weapons.FRAMES[f].model)
+		var path: String = Phone.model_path(MODELS + String(Weapons.FRAMES[f].model))
 		if not ResourceLoader.exists(path):
 			return
 		m = (load(path) as PackedScene).instantiate() as Node3D
