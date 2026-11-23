@@ -467,6 +467,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	if m.is_empty():
 		return
 	_split_ruins()
+	_add_road_net(id)
 	_title.text = "%s · 3D" % m.name
 	var b: Dictionary = m.bounds
 	_span = b.span
@@ -478,6 +479,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 		_flatten_city_dome()
 	_style = _style_for(id)
 	_decks.clear()
+	_deck_grid_n = -1
 	if _style.under:
 		# under the sea (Thalassia): no surface over the city, so "water level" sits below the seabed and everything that
 		# clamps to it (street view, docks, labels) stands on the floor instead of 30-odd metres up at the surface
@@ -518,6 +520,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 		if _world != w:
 			return
 	_build_roads()
+	_build_highways()
 	if CITY_ROAD_MARKINGS:
 		_build_road_markings_batch_19_43()
 	_build_rings()
@@ -1158,8 +1161,8 @@ func _build_roads() -> void:
 	var any := false
 	for r in m.roads:
 		var cls: String = r.cls
-		if not ROAD.has(cls):
-			continue
+		if not ROAD.has(cls) or cls == "highway":
+			continue   # highways: _build_highways (raised deck, barriers, paint)
 		var pts: Array = r.pts
 		if pts.size() < 2:
 			continue
@@ -1988,7 +1991,7 @@ func _build_lamps() -> void:
 		return
 	var xf: Array[Transform3D] = []
 	for r in m.roads:
-		if not (r.cls in ["street", "main", "highway", "bridge"]) or xf.size() > 3000:
+		if not (r.cls in ["street", "main", "bridge"]) or xf.size() > 3000:
 			continue
 		var pts: Array = r.pts
 		var off := float(r.w) / 2.0 + 0.8
@@ -2385,8 +2388,12 @@ func _ground(lx: float, lz: float) -> float:
 	if fl > -INF:
 		return fl
 	var g := maxf(_h(lx, lz), _water + 0.4)
-	# a bridge's deck carries you over the river (or the gap between Skyhaven's pinnacles)
-	for b in _decks:
+	# a bridge's deck carries you over the river (or the gap between Skyhaven's pinnacles); highways add hundreds of
+	# deck pieces, so look only at the pieces bucketed in this 32 m cell
+	if _deck_grid_n != _decks.size():
+		_index_decks()
+	for di in _deck_grid.get(Vector2i(floori(lx / 32.0), floori(lz / 32.0)), []):
+		var b: Array = _decks[di]
 		var a: Vector2 = b[0]
 		var e: Vector2 = b[1]
 		var ab := e - a
@@ -2396,6 +2403,220 @@ func _ground(lx: float, lz: float) -> float:
 	return g
 ## bridge decks you can walk: [from, to, deck y at each end, half width] in local metres (the bridge roads)
 var _decks: Array = []
+var _deck_grid := {}
+var _deck_grid_n := -1
+
+func _index_decks() -> void:
+	_deck_grid.clear()
+	_deck_grid_n = _decks.size()
+	for k in _decks.size():
+		var a: Vector2 = _decks[k][0]
+		var e: Vector2 = _decks[k][1]
+		var r := float(_decks[k][4])
+		for j in range(floori((minf(a.y, e.y) - r) / 32.0), floori((maxf(a.y, e.y) + r) / 32.0) + 1):
+			for i in range(floori((minf(a.x, e.x) - r) / 32.0), floori((maxf(a.x, e.x) + r) / 32.0) + 1):
+				var key := Vector2i(i, j)
+				if not _deck_grid.has(key):
+					_deck_grid[key] = []
+				_deck_grid[key].append(k)
+
+## the generated road network (tools/gen_road_net.gd → data/road_net.json; owner, Nov 23 "Generate roads and highway"):
+## roads to every place and an expressway across the bigger regions, added to the region's own roads
+static var _road_net: Dictionary = {}
+func _add_road_net(id: String) -> void:
+	if _road_net.is_empty():
+		var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/road_net.json")) if FileAccess.file_exists("res://data/road_net.json") else null
+		_road_net = d if d is Dictionary else { "_": [] }
+	var extra: Array = _road_net.get(id, [])
+	if extra.is_empty():
+		return
+	m = m.duplicate()
+	m.roads = (m.get("roads", []) as Array) + extra
+
+## the highways (exported and generated): a deck that rides the ground but never dips with it — dips and water are
+## crossed on fill (retaining walls) or a bridge (piers), never in a cutting — with jersey barriers, lane paint, a
+## median of lamps and, at night, neon trim along the barrier tops (the boards' lit expressway). The deck is walkable
+## and drivable where it stands above the ground (_decks). Two draws: the concrete/asphalt mesh and the glowing trim.
+func _build_highways() -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var glow := SurfaceTool.new()
+	glow.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	var any_glow := false
+	var night: float = _style.night
+	var neon_col := Color(0.62, 0.25, 1.0) if float(_style.neon) > 0.0 or map_id == "neon-city" else Color(0.25, 0.75, 1.0)
+	var asphalt := Color("#3a3d42")
+	var paint := Color(0.86, 0.86, 0.82)
+	var yellow := Color(0.9, 0.72, 0.2)
+	var concrete := Color(0.55, 0.55, 0.53)
+	var wall := Color(0.42, 0.42, 0.41)
+	for r in m.roads:
+		if r.cls != "highway":
+			continue
+		var pts: Array = r.pts
+		if pts.size() < 2:
+			continue
+		var w := maxf(10.0, float(r.w))
+		var line: Array[Vector2] = []
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var steps := maxi(1, int(a.distance_to(b) / 6.0))
+			for k in steps:
+				line.append(a.lerp(b, float(k) / steps))
+		line.append(_loc(pts[-1][0], pts[-1][1]))
+		var n := line.size()
+		if n < 2:
+			continue
+		# the profile: ground, raised over water; averaged over ±36 m; never below the ground (fills, no cuttings)
+		var gnd := PackedFloat32Array()
+		var base := PackedFloat32Array()
+		gnd.resize(n)
+		base.resize(n)
+		for i in n:
+			var h := _h(line[i].x, line[i].y)
+			gnd[i] = h
+			base[i] = h if h > _water + 0.3 else _water + 6.0
+		var deck := PackedFloat32Array()
+		deck.resize(n)
+		for i in n:
+			var sum := 0.0
+			var cnt := 0
+			for k in range(maxi(0, i - 6), mini(n, i + 7)):
+				sum += base[k]
+				cnt += 1
+			# the deck rides at least 0.35 m above the ground under its whole width
+			var side := Vector2.ZERO
+			if i < n - 1:
+				side = (line[i + 1] - line[i]).normalized().orthogonal() * w * 0.5
+			elif i > 0:
+				side = (line[i] - line[i - 1]).normalized().orthogonal() * w * 0.5
+			var under := maxf(gnd[i], maxf(_h(line[i].x + side.x, line[i].y + side.y), _h(line[i].x - side.x, line[i].y - side.y)))
+			deck[i] = maxf(sum / cnt, under + 0.35)
+		var hw := w * 0.5
+		var dash := 0.0
+		for i in n - 1:
+			var a := line[i]
+			var b := line[i + 1]
+			var d := (b - a).normalized()
+			var nrm := d.orthogonal()
+			var ya := deck[i]
+			var yb := deck[i + 1]
+			var seg := a.distance_to(b)
+			var high := maxf(ya - gnd[i], yb - gnd[i + 1])
+			var wet := gnd[i] < _water + 0.3 or gnd[i + 1] < _water + 0.3
+			# deck top
+			_quad(st, Vector3(a.x - nrm.x * hw, ya, a.y - nrm.y * hw), Vector3(a.x + nrm.x * hw, ya, a.y + nrm.y * hw), Vector3(b.x + nrm.x * hw, yb, b.y + nrm.y * hw), Vector3(b.x - nrm.x * hw, yb, b.y - nrm.y * hw), asphalt)
+			# paint: solid yellow centre pair, white edge lines, dashed lane lines between
+			for off: float in [-0.18, 0.18]:
+				_strip(st, a, b, ya + 0.03, yb + 0.03, off, 0.12, nrm, yellow)
+			for off2: float in [-hw + 0.9, hw - 0.9]:
+				_strip(st, a, b, ya + 0.03, yb + 0.03, off2, 0.15, nrm, paint)
+			if fmod(dash, 12.0) < 4.0:
+				for off3: float in [-hw * 0.5, hw * 0.5]:
+					_strip(st, a, b, ya + 0.03, yb + 0.03, off3, 0.13, nrm, paint)
+			dash += seg
+			# jersey barriers on both edges (0.85 m), with the glow strip on their tops at night
+			for sd: float in [-1.0, 1.0]:
+				var o := sd * (hw - 0.2)
+				_wall(st, a + nrm * o, b + nrm * o, ya, yb, 0.85, 0.4, concrete)
+				if night > 0.3:
+					_strip(glow, a, b, ya + 0.87, yb + 0.87, o, 0.12, nrm, neon_col)
+					any_glow = true
+			# fill: retaining walls down to the ground where the deck stands above it; piers and a slab over water
+			if high > 0.5:
+				for sd2: float in [-1.0, 1.0]:
+					var e := nrm * sd2 * hw
+					var pa := Vector3(a.x + e.x, ya, a.y + e.y)
+					var pb := Vector3(b.x + e.x, yb, b.y + e.y)
+					var ga := (_water - 1.0) if wet else _h(pa.x, pa.z) - 0.3
+					var gb := (_water - 1.0) if wet else _h(pb.x, pb.z) - 0.3
+					if wet:
+						ga = ya - 1.4
+						gb = yb - 1.4
+					_quad(st, pa, pb, Vector3(pb.x, gb, pb.z), Vector3(pa.x, ga, pa.z), wall)
+				if wet:
+					_quad(st, Vector3(a.x - nrm.x * hw, ya - 1.4, a.y - nrm.y * hw), Vector3(b.x - nrm.x * hw, yb - 1.4, b.y - nrm.y * hw), Vector3(b.x + nrm.x * hw, yb - 1.4, b.y + nrm.y * hw), Vector3(a.x + nrm.x * hw, ya - 1.4, a.y + nrm.y * hw), wall.darkened(0.3))
+					if i % 5 == 0:
+						for sd3: float in [-0.55, 0.55]:
+							var c := a + nrm * sd3 * hw
+							_pillar(st, Vector3(c.x, _water - 3.0, c.y), ya - 1.4, 0.9, concrete.darkened(0.15))
+				_decks.append([a, b, ya, yb, hw])
+			# median lamps every 48 m: a pole with twin arms; the heads glow at night
+			if i % 8 == 0:
+				var base_p := Vector3(a.x, ya, a.y)
+				_pillar(st, base_p, ya + 9.0, 0.14, Color(0.3, 0.3, 0.32))
+				for sd4: float in [-1.0, 1.0]:
+					var head := base_p + Vector3(nrm.x * sd4 * 2.2, 8.9, nrm.y * sd4 * 2.2)
+					_strip(st, Vector2(a.x, a.y), Vector2(a.x + nrm.x * sd4 * 2.2, a.y + nrm.y * sd4 * 2.2), ya + 9.0, ya + 8.95, 0.0, 0.1, d, Color(0.3, 0.3, 0.32))
+					if night > 0.3:
+						_box_tri(glow, head, Vector3(0.7, 0.18, 0.35), Color(1.0, 0.72, 0.4) * 2.0)
+						any_glow = true
+			any = true
+	if any:
+		st.generate_normals()
+		var mat := StandardMaterial3D.new()
+		mat.vertex_color_use_as_albedo = true
+		mat.roughness = lerpf(0.85, 0.25, _style.wet)
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = mat
+		mi.name = "Highways"
+		_world.add_child(mi)
+	if any_glow:
+		var gm := StandardMaterial3D.new()
+		gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		gm.vertex_color_use_as_albedo = true
+		gm.albedo_color = Color(2.2, 2.2, 2.2)
+		var gi := MeshInstance3D.new()
+		gi.mesh = glow.commit()
+		gi.material_override = gm
+		gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		gi.name = "HighwayGlow"
+		_world.add_child(gi)
+
+func _quad(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, col: Color) -> void:
+	for v in [p0, p1, p2, p0, p2, p3]:
+		st.set_color(col)
+		st.add_vertex(v)
+
+## a flat strip along a→b at `off` across, `w` wide, at heights ya..yb
+func _strip(st: SurfaceTool, a: Vector2, b: Vector2, ya: float, yb: float, off: float, w: float, nrm: Vector2, col: Color) -> void:
+	var a0 := a + nrm * (off - w * 0.5)
+	var a1 := a + nrm * (off + w * 0.5)
+	var b0 := b + nrm * (off - w * 0.5)
+	var b1 := b + nrm * (off + w * 0.5)
+	_quad(st, Vector3(a0.x, ya, a0.y), Vector3(a1.x, ya, a1.y), Vector3(b1.x, yb, b1.y), Vector3(b0.x, yb, b0.y), col)
+
+## a barrier: two sloped faces and a top, `h` high, `w` wide at the foot
+func _wall(st: SurfaceTool, a: Vector2, b: Vector2, ya: float, yb: float, h: float, w: float, col: Color) -> void:
+	var d := (b - a).normalized()
+	var nrm := d.orthogonal()
+	var lo := w * 0.5
+	var hi := w * 0.2
+	for sd: float in [-1.0, 1.0]:
+		var fa := a + nrm * sd * lo
+		var fb := b + nrm * sd * lo
+		var ta := a + nrm * sd * hi
+		var tb := b + nrm * sd * hi
+		_quad(st, Vector3(fa.x, ya, fa.y), Vector3(fb.x, yb, fb.y), Vector3(tb.x, yb + h, tb.y), Vector3(ta.x, ya + h, ta.y), col)
+	_strip(st, a, b, ya + h, yb + h, 0.0, hi * 2.0, nrm, col.lightened(0.1))
+
+## a square column from `foot` up to height `top`
+func _pillar(st: SurfaceTool, foot: Vector3, top: float, r: float, col: Color) -> void:
+	var c := [Vector2(-r, -r), Vector2(r, -r), Vector2(r, r), Vector2(-r, r)]
+	for k in 4:
+		var p: Vector2 = c[k]
+		var q: Vector2 = c[(k + 1) % 4]
+		_quad(st, Vector3(foot.x + p.x, foot.y, foot.z + p.y), Vector3(foot.x + q.x, foot.y, foot.z + q.y), Vector3(foot.x + q.x, top, foot.z + q.y), Vector3(foot.x + p.x, top, foot.z + p.y), col)
+
+## a small box (lamp heads)
+func _box_tri(st: SurfaceTool, c: Vector3, s: Vector3, col: Color) -> void:
+	var h := s * 0.5
+	_quad(st, c + Vector3(-h.x, -h.y, -h.z), c + Vector3(h.x, -h.y, -h.z), c + Vector3(h.x, -h.y, h.z), c + Vector3(-h.x, -h.y, h.z), col)
+	_quad(st, c + Vector3(-h.x, h.y, -h.z), c + Vector3(h.x, h.y, -h.z), c + Vector3(h.x, h.y, h.z), c + Vector3(-h.x, h.y, h.z), col)
 
 func _apply_cam() -> void:
 	if _cam == null:
@@ -2781,8 +3002,8 @@ func _build_road_markings_batch_19_43() -> void:
 	var edge_count := 0
 	for r in m.roads:
 		var cls: String = r.cls
-		if cls != "main" and cls != "highway":
-			continue
+		if cls != "main":
+			continue   # highways paint their own lanes on the deck (_build_highways)
 		var pts: Array = r.pts
 		if pts.size() < 2:
 			continue

@@ -1347,6 +1347,29 @@ func _shoot(path: String, opts: Array) -> void:
 					region_3d._look_pitch = float(lk[3]) if lk.size() > 3 else 6.0
 					region_3d._apply_cam()
 				continue
+			if String(o).begins_with("eye:highway"):
+				# eye:highway[:t][:side]  stands on the region's first highway at fraction t of its length (default 0.4), on
+				# the deck or (side) 30 m off it, looking along it
+				var hk := String(o).split(":")
+				var ht := float(hk[2]) if hk.size() > 2 else 0.4
+				for r in region_3d.m.roads:
+					if r.cls != "highway":
+						continue
+					var pts: Array = r.pts
+					var k := clampi(int(ht * (pts.size() - 1)), 0, pts.size() - 2)
+					var a2: Vector2 = region_3d._loc(pts[k][0], pts[k][1])
+					var b2: Vector2 = region_3d._loc(pts[k + 1][0], pts[k + 1][1])
+					var dir := (b2 - a2).normalized()
+					var at := a2
+					var yaw := atan2(-dir.x, -dir.y)
+					if hk.size() > 3:
+						at = a2 + dir.orthogonal() * 34.0 - dir * 20.0
+						yaw = atan2(-(dir.x * 0.8 - dir.orthogonal().x * 0.6), -(dir.y * 0.8 - dir.orthogonal().y * 0.6))
+					region_3d.set_eye(at.x, at.y, yaw)
+					region_3d._look_pitch = -4.0
+					region_3d._apply_cam()
+					break
+				continue
 			if String(o).begins_with("eye:board:"):
 				# eye:board:<name>[:dist]  stands in front of one of the board landmarks (region_board.gd), between it and the
 				# middle of the land, facing it (the land's edge behind it, as the owner's key art frames them)
