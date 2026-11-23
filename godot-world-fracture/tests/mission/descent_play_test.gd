@@ -181,6 +181,7 @@ func _walk_until(to: Vector3, near: float, label: String, stop: Callable) -> boo
 func _fight(secs: float, hold := Vector3.INF) -> int:
 	var shots := 0
 	var t := 0.0
+	var blocked := 0.0
 	while true:
 		var live: Array = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN)
 		live.sort_custom(func(a, b) -> bool: return a.mover.position.distance_to(d.operator.position) < b.mover.position.distance_to(d.operator.position))
@@ -211,7 +212,16 @@ func _fight(secs: float, hold := Vector3.INF) -> int:
 		# fire only with a clear line (a player does not empty the rifle into the box a marksman is crouched behind;
 		# since the Nov 22 balance pass a wave is long enough that spraying cover ran the rifle dry)
 		var eye: Vector3 = d.operator.position + Vector3(0, 1.5, 0)
-		d.controls.fire = d.enemies._clear(eye, e.target.box.get_center())
+		var sees: bool = d.enemies._clear(eye, e.target.box.get_center())
+		d.controls.fire = sees
+		# no line for a while (it sits behind a block, 15 m off, and the fight window ran out with both at full health —
+		# the lockdown's last two, Nov 23): go round to it, as a player does, instead of holding the spot
+		blocked = 0.0 if sees else blocked + minf(get_process_delta_time(), 0.05)
+		if blocked > 1.5 and near >= 6.0:
+			var way := _round(d.operator.position, e.mover.position)
+			d.operator.cam_yaw = atan2(-way.x, -way.y)
+			d.controls.move = Vector2(0, 1)
+			d.controls.fire = false
 		# and fight the way a player does: down the sights past arm's length, the next carried gun when this one is dry
 		# (the old loop held one empty rifle on two Executors until the chapter stalled)
 		d.controls._ads_on = near > 8.0
