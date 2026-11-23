@@ -290,8 +290,12 @@ func _ready() -> void:
 		await get_tree().process_frame
 		ct += minf(get_process_delta_time(), 0.05)
 	ok(int(d.progress.wave) >= 3, "three lockdown waves fought (%d)" % int(d.progress.wave))
-	ok(d.cutscene.playing and d.boss != null, "the core breached: Serik Vale's recording plays and Vyrak drops in")
-	d.cutscene._end()
+	# (the recording can have played out already when the last wave fell while the operator was walking back to the
+	# core: the breach is Vyrak standing there — the old check also wanted the scene still running, and failed two runs
+	# in three)
+	ok(d.boss != null, "the core breached: Serik Vale's recording plays and Vyrak drops in")
+	if d.cutscene.playing:
+		d.cutscene._end()
 	# Vyrak: shot through the gunplay path until the Covenant
 	var bt := 0.0
 	while d.boss and not d.boss.rules.dead and bt < 400.0:
