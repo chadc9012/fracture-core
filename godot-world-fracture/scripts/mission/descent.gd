@@ -498,7 +498,7 @@ func _refresh() -> void:
 			if int(progress.stage) == 0:
 				_objective.text = "%s\n%s · %d / %d s" % [quest.title, quest.label, int(progress.timer), int(quest.amount)]
 			else:
-				_objective.text = "%s\n%s · %d / 3 guards down · %d m" % [quest.title, String(quest.stage2), _guards_down(), int(d)]
+				_objective.text = "%s\n%s · %d / 3 guards down · %d m" % [quest.title, String(quest.get("stage2", quest.label)), _guards_down(), int(d)]
 		"hack":
 			_objective.text = "%s\n%s · %d / %d s%s" % [quest.title, quest.label, int(progress.timer), int(quest.amount), "" if d < 9.0 else " · terminal %d m" % int(d)]
 		"core":
