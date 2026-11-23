@@ -52,6 +52,31 @@ func add(world: Node3D, k: int, at: Vector3, yaw: float) -> Node3D:
 	parked.append(n)
 	return n
 
+## any fleet model by file, `length` metres long (Fort Kessler's tanks and trucks): parked, and drivable while in `parked`
+func add_spec(world: Node3D, file: String, id: String, length: float, at: Vector3, yaw: float) -> Node3D:
+	var path: String = Catalog.street_cut(FLEET + file)
+	if not ResourceLoader.exists(path):
+		path = FLEET + file
+		if not ResourceLoader.exists(path):
+			return null
+	var n := (load(path) as PackedScene).instantiate() as Node3D
+	world.add_child(n)
+	StreetCar.face_forward(n)
+	var box := AABB()
+	var first := true
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		var b: AABB = n.global_transform.affine_inverse() * (mi as MeshInstance3D).global_transform * (mi as MeshInstance3D).get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	var longest := maxf(box.size.x, box.size.z)
+	if longest > 0.01:
+		n.scale = Vector3.ONE * (length / longest)
+	n.position = at
+	n.rotation.y = yaw
+	n.set_meta("vehicle", id)
+	parked.append(n)
+	return n
+
 ## vehicles spread through the first circle, clear of the buildings
 func scatter(world: Node3D, centre: Vector2, radius: float, rng: RandomNumberGenerator, ground_at: Callable, obstacles: Array, n := 8) -> void:
 	var tries := 0

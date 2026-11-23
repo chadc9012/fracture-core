@@ -33,6 +33,8 @@ const Clips := preload("res://scripts/character/combat_clips.gd")
 
 const TYPES := {
 	"scout": { "name": "Data Drone Scout", "frame": "cipher", "plating": "graphite", "optics": "cyan", "hull": 55.0, "range": 14.0, "speed": 0.75, "damage": 6.0, "cool": 1.4, "burst": 3, "spread": 0.05, "melee": false, "fly": 0.0, "weapon": "rifle.glb", "scale": 1.0, "poise": 40.0, "evade": 0.35, "guard": "", "role": "flank", "aggro": 0.6 },
+	# a person, not a drone (Fort Kessler's garrison, owner Nov 23: "soldiers ... military"): a human body in `outfit`
+	"soldier": { "name": "Soldier", "frame": "cipher", "outfit": "npc-army", "plating": "", "optics": "", "hull": 70.0, "range": 22.0, "speed": 0.8, "damage": 7.0, "cool": 1.3, "burst": 3, "spread": 0.045, "melee": false, "fly": 0.0, "weapon": "rifle.glb", "scale": 1.0, "poise": 45.0, "evade": 0.25, "guard": "", "role": "assault", "aggro": 0.7 },
 	"elite": { "name": "Data Drone Elite", "frame": "goliath", "plating": "cobalt", "optics": "amber", "hull": 160.0, "range": 10.0, "speed": 0.55, "damage": 9.0, "cool": 1.8, "burst": 4, "spread": 0.07, "melee": false, "fly": 0.0, "weapon": "rifle-fusion.glb", "scale": 1.08, "shield": 30.0, "poise": 110.0, "evade": 0.0, "guard": "brace", "role": "assault", "aggro": 0.8 },
 	"executor": { "name": "Executor", "frame": "nyx", "plating": "crimson", "optics": "red", "hull": 150.0, "range": 1.8, "speed": 1.0, "damage": 16.0, "cool": 1.1, "burst": 1, "spread": 0.0, "melee": true, "fly": 0.0, "weapon": "", "scale": 1.0, "poise": 70.0, "evade": 0.25, "guard": "block", "combo": 3, "role": "assault", "aggro": 1.0 },
 	"marksman": { "name": "Grid Marksman", "frame": "cipher", "plating": "ivory", "optics": "violet", "hull": 45.0, "range": 30.0, "speed": 0.6, "damage": 28.0, "cool": 3.2, "burst": 1, "spread": 0.012, "melee": false, "fly": 0.0, "weapon": "rifle-sniper.glb", "scale": 1.0, "poise": 35.0, "evade": 0.5, "guard": "", "role": "cover", "aggro": 0.2 },
@@ -199,6 +201,9 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 	e.mover.cam_yaw = 0.0
 	if e.def.frame != "":
 		var look := CharacterStore.clean({ "frame": e.def.frame, "body": "robot", "skin": e.def.plating, "eyes": e.def.optics })
+		if e.def.has("outfit"):
+			look = CharacterStore.clean({ "frame": e.def.frame, "body": "male", "outfit": String(e.def.outfit),
+				"skin": ["natural", "tan", "brown", "deep", "fair"][_rng.randi() % 5] })
 		e.mover.build(look)
 		e.mover.rig.scale = Vector3.ONE * float(e.def.scale)
 		e.mover.armed_pose = String(e.def.weapon) != ""
@@ -213,6 +218,8 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 	e.target.shield = e.target.shield_max
 	# what it bleeds (gunplay.spark): machines coolant, people red
 	e.target.set_meta("blood", Color(0.2, 0.9, 1.0) if type in ["drone", "sentinel", "turret"] else Color(0.85, 0.1, 0.08))
+	if e.def.has("outfit"):
+		e.target.set_meta("blood", Color(0.6, 0.04, 0.03))
 	e.target.set_meta("enemy", e)
 	e.target.set_meta("roster", self)     # gunplay's aim help skips the operator's own team
 	gunplay.targets.append(e.target)
