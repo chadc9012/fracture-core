@@ -295,11 +295,17 @@ func _ready() -> void:
 	# Vyrak: shot through the gunplay path until the Covenant
 	var bt := 0.0
 	while d.boss and not d.boss.rules.dead and bt < 400.0:
-		var to: Vector3 = d.boss.position + Vector3(0, 2.0, 0)
+		# the middle of its hit box, and only with a clear line: with the core or a building between them the whole
+		# bag went into the wall (Nov 23: 568 shots, Vyrak untouched) — a player steps round, so the test circles
+		var to: Vector3 = d.boss.target.box.get_center() if d.boss.target else d.boss.position + Vector3(0, 2.0, 0)
+		var sees: bool = d.enemies._clear(d.operator.position + Vector3(0, 1.5, 0), to)
 		# aim first (the stick walks where the camera looks), close in past 24 m
 		_aim(to)
-		d.controls.move = Vector2(0, 1) if d.boss.position.distance_to(d.operator.position) > 24.0 else Vector2.ZERO
-		d.controls.fire = true
+		if not sees:
+			d.controls.move = Vector2(1, 0.35)
+		else:
+			d.controls.move = Vector2(0, 1) if d.boss.position.distance_to(d.operator.position) > 24.0 else Vector2.ZERO
+		d.controls.fire = sees
 		if d.gunplay.gun().mag <= 0:
 			if d.gunplay.gun().reserve <= 0:
 				d.controls._next = true     # dry: the next carried gun
