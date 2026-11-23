@@ -3,7 +3,7 @@ const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## The Fracture Descent after Mission 01 — Act 1 (schedule step 11): fd-02 to fd-04 in the Verdant Forest (clear the patrols,
 ## trace the signal, walk to the treeline), fd-05 across the Shrouded Swamps (hold out in the fog, purge the Drowned Relay),
-## fd-06 and fd-07 in Neon City (the Blackout Protocol terminal, then the Stitched Neon Core and Vyrak, the act boss). The
+## fd-06 and fd-07 in Neon City (the Blackout Protocol terminal, then the Stitched Neon Core and the Lockdown Warden, the act boss). The
 ## chain, words and rewards are the web game's (src/game/quests.ts; shards 1:1 as XP and Nex). Each quest names its world:
 ## moving on rebuilds the region (region_3d.gd in PLAY mode) under the same operator, guns, troopers and gear; the
 ## cutscenes (cutscene.gd) carry the owner's recorded lines — Mara at the crash site, Dr Aris's World Anchor log at the
@@ -330,7 +330,7 @@ func _begin(id: String) -> void:
 			_set_waypoint(_site(60.0), true)
 			_place_terminal(waypoint, true)
 			if int(progress.wave) >= int(quest.amount) and boss == null:
-				_summon_vyrak()
+				_summon_warden()
 		"kills":
 			_set_waypoint(Vector3.ZERO, false)
 			_spawn_t = 1.0
@@ -471,7 +471,7 @@ func _chapter_done() -> void:
 	var v := VBoxContainer.new()
 	_done_panel.add_child(v)
 	var t := Label.new()
-	t.text = "ACT 1 COMPLETE\nfd-02 to fd-07 cleared · Vyrak walks beside you\nAct 2: the Ember Peaks"
+	t.text = "ACT 1 COMPLETE\nfd-02 to fd-07 cleared · the lockdown is broken\nAct 2: the Ember Peaks"
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_font_size_override("font_size", 20)
 	v.add_child(t)
@@ -505,7 +505,7 @@ func _refresh() -> void:
 			_objective.text = "%s\n%s · %d / %d s%s" % [quest.title, quest.label, int(progress.timer), int(quest.amount), "" if d < 9.0 else " · terminal %d m" % int(d)]
 		"core":
 			if boss:
-				_objective.text = "%s\nVYRAK, THE ASHEN COVENANT · break the plates" % quest.title
+				_objective.text = "%s\nTHE LOCKDOWN WARDEN · break its frame" % quest.title
 			else:
 				_objective.text = "%s\n%s · wave %d / %d%s" % [quest.title, quest.label, mini(int(progress.wave) + 1, int(quest.amount)), int(quest.amount), "" if d < 14.0 else " · core %d m" % int(d)]
 
@@ -831,7 +831,8 @@ func _spawn_core_wave(n: int) -> void:
 		e.state = Enemies.State.ENGAGE
 		e.stays_down = true      # a wave is beaten when it is down, it does not stand again
 
-## the core breached: Serik Vale's recording (the owner's), then Vyrak drops in — the act boss
+## the core breached: Serik Vale's recording (the owner's), then the Lockdown Warden wakes — the act boss. (Vyrak was
+## the act boss until Nov 23; the owner: he is a hidden unique encounter only, unique_encounters.json U09.)
 func _core_breached() -> void:
 	if _seen.has("fd-07-core"):
 		return
@@ -841,42 +842,42 @@ func _core_breached() -> void:
 		Cutscene.beat("NOVA", "Core open. There is a recording wired into it — Vanguard, old. Serik Vale.", 4.0, look, { "orbit": { "radius": 12.0, "height": 4.0, "deg0": 160.0, "deg1": 200.0 }, "look_up": 3.0 }),
 		Cutscene.beat("Serik Vale · recording", "", 9.0, look, { "voice": "serik-vale-warning", "orbit": { "radius": 9.0, "height": 3.5, "deg0": 200.0, "deg1": 250.0 }, "look_up": 3.0 }),
 		Cutscene.beat("Serik Vale · recording", "If the Anchor wakes again, don't let the system make the choice for you.", 4.0, look, { "orbit": { "radius": 9.0, "height": 3.5, "deg0": 250.0, "deg1": 280.0 }, "look_up": 3.0 }),
-		Cutscene.line("M09_001", look + Vector3(0, 0, -20), { "orbit": { "radius": 16.0, "height": 5.0, "deg0": 60.0, "deg1": 110.0 }, "look_up": 2.5 }),
-		Cutscene.line("M09_003", look + Vector3(0, 0, -20), { "orbit": { "radius": 13.0, "height": 4.5, "deg0": 110.0, "deg1": 130.0 }, "look_up": 2.5 }),
-		Cutscene.line("M09_004", look + Vector3(0, 0, -20), { "orbit": { "radius": 12.0, "height": 4.0, "deg0": 130.0, "deg1": 150.0 }, "look_up": 2.5 }),
+		Cutscene.beat("NOVA", "Something under the core just powered up. The lockdown has a warden, and it has your signature.", 4.0, look + Vector3(0, 0, -20), { "orbit": { "radius": 16.0, "height": 5.0, "deg0": 60.0, "deg1": 110.0 }, "look_up": 2.5 }),
+		Cutscene.beat("NOVA", "It is calling every drone in the district. Break the frame and the lockdown dies with it.", 4.0, look + Vector3(0, 0, -20), { "orbit": { "radius": 13.0, "height": 4.5, "deg0": 110.0, "deg1": 150.0 }, "look_up": 2.5 }),
 	], region.camera())
-	_summon_vyrak()
-	cutscene.finished.connect(func(): controls.toast("VYRAK, THE ASHEN COVENANT"), CONNECT_ONE_SHOT)
+	_summon_warden()
+	cutscene.finished.connect(func(): controls.toast("THE LOCKDOWN WARDEN"), CONNECT_ONE_SHOT)
 
-func _summon_vyrak() -> void:
+const ACT_BOSS := "lockdown-warden"
+
+func _summon_warden() -> void:
 	if boss:
 		return
 	boss = BossView.new()
 	region.world().add_child(boss)
 	var at := _on_ground(waypoint + Vector3(0, 0, -20.0))
-	boss.setup("vyrak", at, operator, gunplay, enemies, operator.ground_at)
+	boss.setup(ACT_BOSS, at, operator, gunplay, enemies, operator.ground_at)
 	boss.obstacles = operator.obstacles
 	boss.heading = PI
 	boss.toast = func(t: String) -> void: controls.toast(t)
-	boss.killed.connect(_on_vyrak_down)
+	boss.killed.connect(_on_warden_down)
 	Sound.sfx("roar", -2.0)
 
-## Vyrak down: the Covenant — it chooses to walk beside you (dragon-covenant.ts); the boss pays as a Rift Gate clear too
-func _on_vyrak_down(_id: String, reward: Dictionary) -> void:
+## the Warden down: the lockdown breaks; the boss pays as a story clear (boss_clears, like a Rift Gate clear)
+func _on_warden_down(_id: String, reward: Dictionary) -> void:
 	var p := Gear.profile_load()
 	var clears: Dictionary = p.get("boss_clears", {})
-	var first: bool = not clears.has("vyrak")
-	var res := Progression.grant(p, "boss", int(reward.nex) / (1 if first else 3), int(reward.xp) / (1 if first else 3), "Vyrak, the Ashen Covenant")
-	clears["vyrak"] = int(clears.get("vyrak", 0)) + 1
+	var first: bool = not clears.has(ACT_BOSS)
+	var res := Progression.grant(p, "boss", int(reward.nex) / (1 if first else 3), int(reward.xp) / (1 if first else 3), "The Lockdown Warden")
+	clears[ACT_BOSS] = int(clears.get(ACT_BOSS, 0)) + 1
 	p.boss_clears = clears
 	Gear.profile_save(p)
 	for l in res.lines:
 		controls.toast(String(l))
 	var look: Vector3 = boss.position
 	cutscene.play([
-		Cutscene.line("M09_011", look, { "orbit": { "radius": 14.0, "height": 5.0, "deg0": 40.0, "deg1": 100.0 }, "look_up": 2.0 }),
-		Cutscene.line("M10_003", look, { "orbit": { "radius": 10.0, "height": 3.5, "deg0": 100.0, "deg1": 130.0 }, "look_up": 2.0 }),
-		Cutscene.line("M10_002", look, { "orbit": { "radius": 11.0, "height": 3.5, "deg0": 130.0, "deg1": 170.0 }, "look_up": 2.0 }),
+		Cutscene.beat("NOVA", "Frame down. The lockdown is losing the thread — drones are dropping out of the hunt one by one.", 4.0, look, { "orbit": { "radius": 14.0, "height": 5.0, "deg0": 40.0, "deg1": 100.0 }, "look_up": 2.0 }),
+		Cutscene.beat("NOVA", "Neon City just forgot your signature. Let us not give it a reason to remember.", 4.0, look, { "orbit": { "radius": 11.0, "height": 3.5, "deg0": 100.0, "deg1": 170.0 }, "look_up": 2.0 }),
 	], region.camera())
 	cutscene.finished.connect(_complete, CONNECT_ONE_SHOT)
 
@@ -960,7 +961,7 @@ func coop_done(id: String) -> void:
 ## the leader's boss, here as an echo: where it stands, its hull, down or not
 func coop_boss(at: Vector3, heading: float, hull: float, dead: bool) -> void:
 	if boss == null:
-		_summon_vyrak()
+		_summon_warden()
 	if boss == null or boss.rules == null:
 		return
 	boss.echo = true

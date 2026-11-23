@@ -2352,7 +2352,7 @@ func _hub_dressing() -> void:
 	lines.shaded = false
 	sign.add_child(lines)
 	# billboards with the owner's concept art high on the facades
-	var art := ["wf-nexus", "enlist", "vyrak", "nova-tech", "arc-face"]
+	var art := ["wf-nexus", "enlist", "nova-tech", "arc-face"]
 	for i in art.size():
 		var path := "res://textures/billboards/%s.jpg" % art[i]
 		if not ResourceLoader.exists(path):

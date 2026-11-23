@@ -1,7 +1,7 @@
 extends SceneTree
 ## Boss rules (scripts/combat/boss.gd, the web's boss-phases / boss-poise): phases by hull, poise → stagger → ×2.25 window
 ## and the refractory, a phase change opens the weak point, the attack cycle telegraphs then fires, SUMMON calls adds,
-## the six board bosses load with their hulls. Run: godot --headless --path . --script res://tests/combat/boss_test.gd
+## the five Rift Gate bosses load with their hulls (Vyrak is a unique encounter only). Run: godot --headless --path . --script res://tests/combat/boss_test.gd
 
 const Boss := preload("res://scripts/combat/boss.gd")
 
@@ -14,8 +14,8 @@ func _init() -> void:
 		r1 = r1 and ResourceLoader.exists("res://models/bosses/" + String(b.def.model)) and b.hull_max > 1000.0
 		for a in b.def.attacks:
 			r1 = r1 and Boss.ATTACKS.has(a)
-	r1 = r1 and Boss.STORY.size() == 10
-	print("six board bosses and the ten story bosses with models, hulls and known attacks: ", r1)
+	r1 = r1 and Boss.STORY.size() == 11 and Boss.BOSSES.size() == 5 and not Boss.BOSSES.has("vyrak") and Boss.UNIQUE.has("vyrak")
+	print("five Rift Gate bosses and the eleven story bosses with models, hulls and known attacks: ", r1)
 	ok = ok and r1
 	# phases: 100 % → 0, 60 % → 1 (OVERDRIVEN, weak point opens), 25 % → 2
 	var b := Boss.new("rift-hound")

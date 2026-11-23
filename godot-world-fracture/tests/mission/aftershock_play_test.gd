@@ -59,7 +59,7 @@ func _data_checks() -> void:
 			sets.append(c.stage)
 	st.free()
 	ok(sets.is_empty(), "every chapter's set is built by stage.gd" + ("" if sets.is_empty() else ": missing " + str(sets)))
-	ok(Campaign.new().chapters.size() == 61, "the original campaign still has its 61 chapters (a story line of its own)")
+	ok(Campaign.new().chapters.size() == 57, "the original campaign still has its 57 chapters (61 less Vyrak's Missions 09–10, cut Nov 23) (a story line of its own)")
 	var lines := 0
 	var unvoiced: Array = []
 	var people: Array = []

@@ -2,7 +2,7 @@ extends "res://tests/mission/descent_play_test.gd"
 ## Plays the campaign runner (scripts/mission/campaign.gd) without a window: Mission 02 end to end (the opening lines
 ## as a voiced cutscene, the walk to the stairwell, the twenty-second hold, the walk to the street, the mission going
 ## to the profile), Mission 05's choice (the choice view, the chosen branch's lines, the next mission's world), and
-## every one of the 61 chapters beginning on its world with its objective — so no chapter can be reached and not play.
+## every one of the 57 chapters beginning on its world with its objective — so no chapter can be reached and not play.
 ##   godot --headless --path godot-world-fracture res://tests/mission/campaign_play.tscn
 const Campaign := preload("res://scripts/mission/campaign.gd")
 const Lines := preload("res://scripts/cinema/lines.gd")
@@ -39,7 +39,7 @@ func _ready() -> void:
 
 func _mission_02() -> void:
 	await _open()
-	ok(d.chapters.size() == 61, "61 chapters loaded: %d" % d.chapters.size())
+	ok(d.chapters.size() == 57, "57 chapters loaded: %d" % d.chapters.size())
 	ok(String(d.quest.id) == "02A" and d.world_id == "nexus", "a new campaign opens on 02A in Nexus City")
 	ok(d.cutscene.playing and d.cutscene._beats.size() >= 3, "02A opens on its lines as a cutscene: %d beats" % d.cutscene._beats.size())
 	var voiced := 0

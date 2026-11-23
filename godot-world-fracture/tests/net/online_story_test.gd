@@ -2,7 +2,7 @@ extends Node
 ## Story co-op (descent.gd `online`, online_story.gd, online_coop.gd) against the local stand-in (realtime_mock.py, 4501):
 ## Alice and Bob on the same chapter of the Fracture Descent. The first in leads; Bob sees Alice's patrols, his kill
 ## counts for the chapter, and when Alice's chapter is done so is his (his own rewards) and both move on to the next
-## room together; Bob standing at a relay locks it for Alice; Vyrak's echo on Bob's screen takes its hull from Alice's
+## room together; Bob standing at a relay locks it for Alice; the act boss's echo on Bob's screen takes its hull from Alice's
 ## and Bob's rounds hurt Alice's; when Alice goes, Bob leads the chapter. The player's saves are put back afterwards.
 ##   python3 tests/net/realtime_mock.py 4501 &   godot --headless --path godot-world-fracture res://tests/net/online_story.tscn
 const Online := preload("res://scripts/net/online.gd")
@@ -112,19 +112,19 @@ func _run() -> void:
 	ok(await _wait(func(): return b._guards.size() == 3), "and the source's guards stand on his field (%d)" % b._guards.size())
 	b.queue_free()
 	await _wait(func(): return false, 0.5)
-	# ---------------------------------------------------------------- fd-07: Vyrak, together
+	# ---------------------------------------------------------------- fd-07: the Lockdown Warden, together
 	var a2 := await _view("alice", "Alice", "fd-07", { "wave": 3 })
-	ok(await _wait(func(): return a2.coop and a2.coop.decided and a2.boss != null), "Alice leads fd-07 with Vyrak up")
+	ok(await _wait(func(): return a2.coop and a2.coop.decided and a2.boss != null), "Alice leads fd-07 with the Warden up")
 	var b2 := await _view("bob", "Bob", "fd-07", { "wave": 3 })
 	ok(await _wait(func(): return b2.coop and b2.coop.decided and not b2.coop.leader), "Bob follows her into the core")
-	ok(await _wait(func(): return b2.boss != null and b2.boss.echo), "Vyrak stands on Bob's screen as an echo of Alice's")
+	ok(await _wait(func(): return b2.boss != null and b2.boss.echo), "the Warden stands on Bob's screen as an echo of Alice's")
 	var h0: float = a2.boss.rules.hull
 	b2.gunplay.hit.emit(b2.boss.target, 300.0, false)
-	ok(await _wait(func(): return a2.boss.rules.hull < h0 - 100.0), "Bob's rounds come off Alice's Vyrak (%.0f → %.0f)" % [h0, a2.boss.rules.hull])
+	ok(await _wait(func(): return a2.boss.rules.hull < h0 - 100.0), "Bob's rounds come off Alice's Warden (%.0f → %.0f)" % [h0, a2.boss.rules.hull])
 	ok(await _wait(func(): return absf(b2.boss.rules.hull - a2.boss.rules.hull) < 1.0), "and his echo shows the same hull")
 	ok(await _wait(func(): return b2.boss.position.distance_to(a2.boss.position) < 3.0), "where Alice's stands")
 	a2.boss.rules.hit(1e9)
-	ok(await _wait(func(): return b2.boss.rules.dead), "Alice's Vyrak down: Bob's echo falls too")
+	ok(await _wait(func(): return b2.boss.rules.dead), "Alice's Warden down: Bob's echo falls too")
 	ok(await _wait(func(): return "fd-07" in b2.progress.done, 30.0), "and Bob's fd-07 is done")
 	a2.queue_free()
 	b2.queue_free()
