@@ -394,7 +394,9 @@ func _ready() -> void:
 			else:
 				d.controls._reload = true
 		# anything the Warden summons is shot first: its adds are the fight's ammo
-		var adds: Array = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN)
+		# (only the ones on top of the operator: the district's heat drones keep coming and hover 35-150 m out — chasing
+		# them spent the whole bag while the Warden stood untouched 91 m off, Nov 23)
+		var adds: Array = d.enemies.enemies.filter(func(e) -> bool: return e.state != Enemies.State.DOWN and e.type != "drone" and e.mover.position.distance_to(d.operator.position) < 25.0)
 		if not adds.is_empty():
 			# a short window, counted against the fight's clock: an open-ended _fight(0.0) chased the district's
 			# drones hovering out at ~45 m for hours (the Nov 23 run was cut off at the shell's limit mid-fight)
