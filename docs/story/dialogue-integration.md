@@ -72,9 +72,9 @@ over-the-shoulder / tracking, handheld shake); they are directions, not authored
 
 What plays now:
 
-- **Missions 04 and 05** — after Mission 01's "new world" reveal, the first time it is cleared: Captain Vale (a Vanguard
+- **Missions 04 and 05** — after Mission 01's "new world" reveal, the first time it is cleared: Captain Rourke (a Vanguard
   captain, standing at the Breach) — 04A checkpoint, 04B NOVA, 04C terms of protection; 05A temporary command, 05B the relief
-  line; then the choice **Work with Vale's team** / **Stay independent**, and only that branch's scene (05C_COOPERATE or
+  line; then the choice **Work with Rourke's team** / **Stay independent**, and only that branch's scene (05C_COOPERATE or
   05C_INDEPENDENT). The choice is kept in the profile as `m05_choice`; with a choice made, replays skip the scenes.
 - **Mission 06** — the descent's Verdant Forest openings: 06A at the tree line when fd-02 starts (was M06_001 and M06_003
   only), 06B + 06C on the root path and at the ancient roots when fd-03 starts (was M06_006 and M06_007 only).

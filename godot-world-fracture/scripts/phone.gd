@@ -83,6 +83,22 @@ static func fit_viewport(vp: SubViewport) -> void:
 			vp.mesh_lod_threshold = 2.0
 		_:
 			vp.msaa_3d = Viewport.MSAA_4X
+	# how sharply textures are sampled at a slant (the road ahead, a wall seen along its length): 2× blurred them
+	vp.anisotropic_filtering_level = Viewport.ANISOTROPY_2X if tier() == "low" else (Viewport.ANISOTROPY_8X if tier() == "medium" else Viewport.ANISOTROPY_16X)
+	if Settings.full_res():
+		# every pixel of the screen, whatever the tier's render scale, and textures a notch sharper
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+		vp.scaling_3d_scale = 1.0
+		vp.texture_mipmap_bias = -0.35
+		vp.anisotropic_filtering_level = Viewport.ANISOTROPY_16X
+
+## the model to load for `path`: its 4K version under res://models/hd/ when HD TEXTURES is on and one exists
+static func model_path(path: String) -> String:
+	if Settings.hd_textures() and path.begins_with("res://models/"):
+		var hd := "res://models/hd/" + path.trim_prefix("res://models/")
+		if ResourceLoader.exists(hd):
+			return hd
+	return path
 
 static func fit_sun(sun: DirectionalLight3D, phone_distance := 120.0) -> void:
 	var t := tier()

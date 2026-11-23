@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
+import { Route as ApiWorldFirstsRouteImport } from './routes/api/world-firsts'
 import { Route as DevAssetsRouteImport } from './routes/dev.assets'
 import { Route as DevMapsRouteImport } from './routes/dev.maps'
 import { Route as DevShowroomRouteImport } from './routes/dev.showroom'
@@ -29,6 +30,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ApiVoiceRoute = ApiVoiceRouteImport.update({
   id: '/api/voice',
   path: '/api/voice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorldFirstsRoute = ApiWorldFirstsRouteImport.update({
+  id: '/api/world-firsts',
+  path: '/api/world-firsts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DevAssetsRoute = DevAssetsRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/api/world-firsts': typeof ApiWorldFirstsRoute
   '/dev/assets': typeof DevAssetsRoute
   '/dev/maps': typeof DevMapsRoute
   '/dev/showroom': typeof DevShowroomRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/api/world-firsts': typeof ApiWorldFirstsRoute
   '/dev/assets': typeof DevAssetsRoute
   '/dev/maps': typeof DevMapsRoute
   '/dev/showroom': typeof DevShowroomRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/api/world-firsts': typeof ApiWorldFirstsRoute
   '/dev/assets': typeof DevAssetsRoute
   '/dev/maps': typeof DevMapsRoute
   '/dev/showroom': typeof DevShowroomRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/reset-password'
     | '/api/voice'
+    | '/api/world-firsts'
     | '/dev/assets'
     | '/dev/maps'
     | '/dev/showroom'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/reset-password'
     | '/api/voice'
+    | '/api/world-firsts'
     | '/dev/assets'
     | '/dev/maps'
     | '/dev/showroom'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/reset-password'
     | '/api/voice'
+    | '/api/world-firsts'
     | '/dev/assets'
     | '/dev/maps'
     | '/dev/showroom'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
+  ApiWorldFirstsRoute: typeof ApiWorldFirstsRoute
   DevAssetsRoute: typeof DevAssetsRoute
   DevMapsRoute: typeof DevMapsRoute
   DevShowroomRoute: typeof DevShowroomRoute
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/api/voice'
       fullPath: '/api/voice'
       preLoaderRoute: typeof ApiVoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/world-firsts': {
+      id: '/api/world-firsts'
+      path: '/api/world-firsts'
+      fullPath: '/api/world-firsts'
+      preLoaderRoute: typeof ApiWorldFirstsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dev/assets': {
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiVoiceRoute: ApiVoiceRoute,
+  ApiWorldFirstsRoute: ApiWorldFirstsRoute,
   DevAssetsRoute: DevAssetsRoute,
   DevMapsRoute: DevMapsRoute,
   DevShowroomRoute: DevShowroomRoute,

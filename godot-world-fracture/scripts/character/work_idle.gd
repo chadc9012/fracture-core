@@ -7,11 +7,12 @@ extends RefCounted
 ##   sit           sat down: thighs forward, shins down, hands on the lap, the hips dropped to a bench
 ##   busk          the street musician: a guitar held across the body, the right hand strumming
 ##   wait          a phone to the ear, the head tipped to it
+##   ride          astride a bike: knees up on the pegs, leaning into the bars (street_slice on the bikes)
 ## operator_player.gd plays `idle_clip` in place of "idle" when the mover stands still; npc_street.gd picks the clip by
 ## activity and job (clip_for). Every clip loops; walking and running blend out of them as they do out of the stand.
 
 const StandIdle := preload("res://scripts/character/stand_idle.gd")
-const CLIPS := ["work_counter", "work_tool", "sit", "busk", "wait"]
+const CLIPS := ["work_counter", "work_tool", "sit", "busk", "wait", "ride"]
 const LOOP := 4.0
 const KEYS := 13
 const SIT_DROP := 0.42   # how far the hips come down onto a bench, metres
@@ -202,6 +203,25 @@ static func _moves(sk: Skeleton3D, i: int, clip: String) -> Callable:
 			if head:
 				return func(t: float) -> Quaternion:
 					return StandIdle._turned(sk, i, Quaternion(Vector3(1, 0, 0), deg_to_rad(12.0)) * Quaternion(Vector3(0, 0, 1), deg_to_rad(6.0) * sin(t * w)))
+		"ride":
+			if upleg:
+				return func(_t: float) -> Quaternion:
+					return StandIdle._turned(sk, i, _bend(_dir(sk, i), 68.0) * Quaternion(Vector3(0, 1, 0), (0.14 if left else -0.14)))
+			if leg:
+				return func(_t: float) -> Quaternion:
+					return StandIdle._turned(sk, i, _bend(_dir(sk, i), -78.0))
+			if spine1:
+				return func(t: float) -> Quaternion:
+					return _rx(sk, i, 18.0 + 0.8 * sin(t * w * 2.0))
+			if arm:
+				return func(t: float) -> Quaternion:
+					return _arm(sk, i, t, 48.0, 6.0)
+			if fore:
+				return func(_t: float) -> Quaternion:
+					return _elbow(sk, i, 22.0)
+			if head:
+				return func(_t: float) -> Quaternion:
+					return _rx(sk, i, -14.0)
 		"wait":
 			if fore and right:
 				# the phone to the ear

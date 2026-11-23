@@ -9,6 +9,7 @@ extends SceneTree
 const Track := preload("res://scripts/racing/track.gd")
 const TrackPack := preload("res://scripts/racing/track_pack.gd")
 const PackVenue := preload("res://scripts/racing/pack_venue.gd")
+const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 var failed := 0
 
@@ -66,7 +67,10 @@ func _run() -> void:
 		v.queue_free()
 		await process_frame
 
-	# a race on the shortest, then on the water
+	# a race on the shortest, then on the water — the first in the Nomad Bike, the quickest thing off the line: it used
+	# to run into the rivals' boxes on the narrow street and the whole grid stopped dead on one another (race_view
+	# _contacts); every car must be away down the road
+	SessionStore.save("nomad-bike", 0.0)
 	for id in ["neon-midnight-run", "azure-hover-challenge", "shattered-expanse-gp"]:
 		var rv := RaceView.new()
 		rv.track_id = id
@@ -85,6 +89,10 @@ func _run() -> void:
 		var pp: Vector3 = rv.player.node.position
 		var road_y: float = rv.track.height_at(pp)
 		ok(float(me.frac) > 0.0 and float(me.frac) < 0.5 and rv.player.speed > 10.0, "%s: away down the road (%.0f m, %d km/h)" % [rv.track.def.name, float(me.frac) * rv.track.length, int(rv.player.speed * 3.6)])
+		var slowest := INF
+		for r in rv.rivals:
+			slowest = minf(slowest, r.sc.speed)
+		ok(slowest > 8.0 and rv.vehicle_id == "nomad-bike", "%s: no pile-up on the grid, the slowest rival at %d km/h" % [rv.track.def.name, int(slowest * 3.6)])
 		if id == "azure-hover-challenge":
 			ok(bool(rv.player.profile.get("hover", false)) and pp.y > road_y + 0.5, "on the water the cars hover (%.1f m up)" % (pp.y - road_y))
 		else:
@@ -111,5 +119,48 @@ func _run() -> void:
 	ok(hub.pack_laps(Track.def_of("nexus-grand-prix")) == 5, "BOARD: the Grand Prix runs its 5")
 	hub.lap_mode = 2
 	ok(hub.pack_laps(Track.def_of("nexus-grand-prix")) == 10, "ENDURANCE: 10")
+	# race classes (owner, Nov 1: cars, motorcycles, off-road and mud): on a bike the rivals ride bikes, with riders;
+	# in an off-roader on the rally the rivals are off-roaders and the road has wallows of mud that slow a car to a slither
+	var rv2 := RaceView.new()
+	rv2.track_id = "glass-flats-rally"
+	rv2.laps = 1
+	root.add_child(rv2)
+	await process_frame
+	await process_frame
+	ok(rv2.race_class() == "bike" and rv2.riders.size() == 4, "the Nomad Bike races in the bike class")
+	var bikes := true
+	for r in rv2.rivals:
+		var f := String(r.sc.node.scene_file_path)
+		bikes = bikes and (f.contains("shadow") or f.contains("tempest") or f.contains("ravager"))
+	ok(bikes and rv2.riders.size() == 4 and Array(rv2.riders[0].rider.rig.look.wear).has("helmet"), "the rivals ride the showroom's bikes, every one with a rider in a helmet")
+	ok(rv2.mud.is_empty(), "no mud for the bikes")
+	rv2.queue_free()
+	await process_frame
+	SessionStore.save("offroad-truck", 0.0)
+	var rv3 := RaceView.new()
+	rv3.track_id = "glass-flats-rally"
+	rv3.laps = 1
+	root.add_child(rv3)
+	await process_frame
+	await process_frame
+	ok(rv3.race_class() == "offroad" and rv3.riders.is_empty(), "the 4x4 on the rally races off-road")
+	var offr := true
+	for r in rv3.rivals:
+		var f := String(r.sc.node.scene_file_path)
+		offr = offr and (f.contains("sandstalker") or f.contains("raider"))
+	ok(offr, "the rivals are off-roaders (the ATV, the Raider, the buggy)")
+	ok(rv3.mud.size() >= 20, "the rally has wallows of mud across it (%d)" % rv3.mud.size())
+	var m: Dictionary = rv3.mud[0]
+	rv3.player.node.position = m.p
+	rv3.player.speed = 40.0
+	for i in 40:
+		rv3._step_mud(0.05)
+	ok(rv3.player.speed < float(rv3.player.profile.max_speed) * rv3.MUD_CRAWL + 0.5 and rv3._mud_spray.has(rv3.player) and rv3._mud_spray[rv3.player].emitting, "in a wallow the 4x4 slithers (%.0f km/h) and sprays" % (rv3.player.speed * 3.6))
+	ok(int(rv3.player.node.get_meta("mud", 0)) > 0, "and comes out caked")
+	rv3.player.node.position = m.p + Vector3(float(m.r) + 6.0, 0, 0)
+	rv3._step_mud(0.05)
+	ok(not rv3._mud_spray[rv3.player].emitting, "out of it the spray stops")
+	rv3.queue_free()
+	await process_frame
 	print("track pack: %d failed" % failed)
 	quit(1 if failed > 0 else 0)

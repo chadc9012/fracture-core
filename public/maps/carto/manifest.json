@@ -86,6 +86,26 @@
    "url": "/maps/carto/old-harrow.png",
    "data": "/maps/carto/old-harrow.data.png",
    "size": 1536
+  },
+  "eldergrove": {
+   "url": "/maps/carto/eldergrove.png",
+   "data": "/maps/carto/eldergrove.data.png",
+   "size": 1536
+  },
+  "skyhaven": {
+   "url": "/maps/carto/skyhaven.png",
+   "data": "/maps/carto/skyhaven.data.png",
+   "size": 1536
+  },
+  "aurora-gate": {
+   "url": "/maps/carto/aurora-gate.png",
+   "data": "/maps/carto/aurora-gate.data.png",
+   "size": 1536
+  },
+  "horizon-gate": {
+   "url": "/maps/carto/horizon-gate.png",
+   "data": "/maps/carto/horizon-gate.data.png",
+   "size": 1536
   }
  }
 }

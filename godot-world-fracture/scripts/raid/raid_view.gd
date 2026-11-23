@@ -10,6 +10,11 @@ const Progression := preload("res://scripts/progress/progression.gd")
 ##                     shockwave rings, guardians; Phase II's three conduits; Phase III's split reality (half the floor
 ##                     is the wrong reality and burns); Phase IV's exposed core and the floor collapsing inward.
 ##
+## Online (`online`, online_raid.gd; Nov 22): the fireteam is the players in the encounter's room, the bots fill the
+## empty slots. The first one in leads: their client runs the rules, the void army, the boss's attacks and the bots, and
+## sends the state; the others draw it, send their hits and their downs to the leader, and take the beams and rings on
+## their own screen. Alone online it plays as before, you and five bots.
+##
 ## A cleared gate is the checkpoint; DESCEND asks the host for the boss (signal `next`). The first full clear pays the
 ## Hollow Star Lens into the bag and the Starbreaker title into the profile.
 
@@ -32,6 +37,10 @@ const ALLY_DPS := 7.0
 const ARENA_R := 34.0
 
 var start_at := "broken-gate"
+## an online fireteam (online_raid.gd); the identity to use (tests give each view its own), the shared one when unset
+var online := false
+var net: Node
+var net_raid: Node
 ## shots and tests: the operator holds still and the fireteam does the work
 var autopilot := false
 
@@ -139,13 +148,15 @@ func _ready() -> void:
 	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
 	enemies.hull = enemies.hull_max
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
-	# the fireteam: five bots, each holding a pylon or a conduit between fights
-	for i in ALLY_TYPES.size():
-		var at := spawn_point + Vector3(-7.0 + i * 3.5, 0, -4.0 - (i % 2) * 2.0)
-		var hold: Vector3 = pylon_pos[i % pylon_pos.size()] if not pylon_pos.is_empty() else at
-		var e: RefCounted = enemies.spawn(ALLY_TYPES[i], at, [hold + Vector3(1.5, 0, 0), hold + Vector3(-1.5, 0, 1.0)], 1)
-		e.set_meta("name", ALLY_NAMES[i])
-		allies.append(e)
+	# the fireteam: five bots, each holding a pylon or a conduit between fights (online: the leader's, once it is known)
+	if online:
+		net_raid = load("res://scripts/net/online_raid.gd").new()
+		add_child(net_raid)
+		if not net_raid.setup(self, net):
+			net_raid.queue_free()
+			net_raid = null
+	if net_raid == null:
+		spawn_bots()
 	if _boss():
 		_build_boss()
 	_hud()
@@ -154,6 +165,25 @@ func _ready() -> void:
 
 func _boss() -> bool:
 	return start_at == "hollow-star-boss"
+
+## this screen runs the rules: offline, or the online fireteam's leader
+func authority() -> bool:
+	return net_raid == null or net_raid.leader
+
+## the five bots (online: the leader spawns them all and benches one per other player)
+func spawn_bots() -> void:
+	if not allies.is_empty():
+		return
+	for i in ALLY_TYPES.size():
+		var at := spawn_point + Vector3(-7.0 + i * 3.5, 0, -4.0 - (i % 2) * 2.0)
+		var hold: Vector3 = pylon_pos[i % pylon_pos.size()] if not pylon_pos.is_empty() else at
+		var e: RefCounted = enemies.spawn(ALLY_TYPES[i], at, [hold + Vector3(1.5, 0, 0), hold + Vector3(-1.5, 0, 1.0)], 1)
+		e.set_meta("name", ALLY_NAMES[i])
+		allies.append(e)
+
+## the fireteam standing: bots on the field and the other players' bodies here (benched bots and downed players out)
+func team_up() -> Array:
+	return enemies.enemies.filter(func(e): return e.team == 1 and e.target.alive() and not e.has_meta("benched"))
 
 func _ground_at(x: float, z: float) -> float:
 	if _boss():
@@ -702,12 +732,18 @@ func _on_bot_down(e: RefCounted, _by_team: int, _by_player: bool) -> void:
 
 func _on_operator_down() -> void:
 	_respawn_t = 5.0
+	if not authority():
+		net_raid.send("down", {})
+		controls.toast("You're down · the fireteam loses a life")
+		return
 	if raid.lose_life():
 		_wiped("The fireteam is out of lives")
 	else:
 		controls.toast("You're down · %d lives left" % raid.lives)
 
 func _wiped(why: String) -> void:
+	if net_raid and net_raid.leader:
+		net_raid.send("wipe", { "why": why })
 	controls.toast("WIPE — %s. Back to the start of the encounter." % why)
 	for e in enemies.enemies:
 		if e.team == 0:
@@ -741,15 +777,20 @@ func _wiped(why: String) -> void:
 
 func _on_hit(t: Gunplay.Target, damage: float, _head: bool) -> void:
 	if t == boss_target:
-		var dealt := raid.hit_boss(damage / BOSS_HP_EQUIV)
-		_flash = 0.6 if dealt > 0.0 else _flash
+		if not authority():
+			# the leader's star takes it; the flash shows here at once
+			net_raid.send("boss", { "d": snappedf(damage, 0.1) })
+			_flash = 0.6 if not raid.shielded else _flash
+		else:
+			var dealt := raid.hit_boss(damage / BOSS_HP_EQUIV)
+			_flash = 0.6 if dealt > 0.0 else _flash
 		boss_target.hp = 1e9
 
 func _friendly_near(p: Vector3, r: float) -> bool:
 	if enemies.down <= 0.0 and Vector2(operator.position.x - p.x, operator.position.z - p.z).length() < r:
 		return true
-	for a in allies:
-		if a.target.alive() and Vector2(a.mover.position.x - p.x, a.mover.position.z - p.z).length() < r:
+	for a in team_up():
+		if Vector2(a.mover.position.x - p.x, a.mover.position.z - p.z).length() < r:
 			return true
 	return false
 
@@ -766,7 +807,7 @@ func _process(dt: float) -> void:
 		# shots and tests: the operator can't go down
 		enemies.hull = enemies.hull_max
 		enemies.down = 0.0
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:
@@ -794,6 +835,8 @@ func _process(dt: float) -> void:
 	var g = gunplay.gun()
 	controls.weapon_name.text = g.display_name()
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
+	if net_raid:
+		net_raid.step(dt)
 	if _boss():
 		_step_boss(dt)
 	else:
@@ -826,10 +869,13 @@ func _hold_posts(dt: float) -> void:
 			a.mover.position = Vector3(post.x + back.x, a.mover.position.y, post.z + back.z)
 
 func _step_gate(dt: float) -> void:
-	raid.tick(dt)
-	_hold_posts(dt)
+	var auth := authority()
+	if auth:
+		raid.tick(dt)
+		_hold_posts(dt)
 	for i in 3:
-		raid.tick_pylon(i, dt, _friendly_near(pylon_pos[i], 4.0), _hostile_near(pylon_pos[i], 4.0))
+		if auth:
+			raid.tick_pylon(i, dt, _friendly_near(pylon_pos[i], 4.0), _hostile_near(pylon_pos[i], 4.0))
 		var p: float = raid.pylons[i]
 		var ring: MeshInstance3D = pylon_rings[i][0]
 		var m := ring.material_override as StandardMaterial3D
@@ -842,7 +888,7 @@ func _step_gate(dt: float) -> void:
 			controls.toast("Pylon %d online" % (i + 1))
 	# the waves, out of the rift
 	_wave_t -= dt
-	if not raid.cleared and (_wave_t <= 0.0 or (_hostiles_alive() <= 1 and _wave_t < 22.0)) and raid.wave < HollowStar.GATE_WAVES.size():
+	if auth and not raid.cleared and (_wave_t <= 0.0 or (_hostiles_alive() <= 1 and _wave_t < 22.0)) and raid.wave < HollowStar.GATE_WAVES.size():
 		var w := raid.next_wave()
 		for k in w.size():
 			_spawn_void(String(w[k]), rift_at + Vector3(-6.0 + k * 2.4, 0, _rng.randf_range(-2.0, 2.0)))
@@ -854,9 +900,9 @@ func _step_gate(dt: float) -> void:
 	var line := ""
 	for i in 3:
 		line += "PYLON %d  %s %3d%%\n" % [i + 1, _bar(raid.pylons[i]), int(raid.pylons[i] * 100.0)]
-	bars.text = line + "WAVE %d / %d   ·   HOSTILES %d\nLIVES  %s" % [raid.wave, HollowStar.GATE_WAVES.size(), _hostiles_alive(), "◆".repeat(raid.lives)]
+	bars.text = line + "WAVE %d / %d   ·   HOSTILES %d\nLIVES  %s" % [raid.wave, HollowStar.GATE_WAVES.size(), _hostiles_alive(), "◆".repeat(raid.lives)] + (net_raid.hud_lines() if net_raid else "")
 	gauge.text = ""
-	if raid.gate_check(_hostiles_alive()) and not _ended:
+	if (raid.gate_check(_hostiles_alive()) if auth else raid.cleared) and not _ended:
 		_gate_cleared()
 
 static func _bar(f: float) -> String:
@@ -864,8 +910,10 @@ static func _bar(f: float) -> String:
 	return "▰".repeat(n) + "▱".repeat(10 - n)
 
 func _step_boss(dt: float) -> void:
-	var res := raid.tick(dt)
-	_hold_posts(dt)
+	var auth := authority()
+	var res := raid.tick(dt) if auth else ""
+	if auth:
+		_hold_posts(dt)
 	if res == "wipe":
 		_wiped("The machine overloaded" if raid.phase == 0 else "The overload took everyone")
 	_flash = maxf(0.0, _flash - dt * 4.0)
@@ -890,7 +938,7 @@ func _step_boss(dt: float) -> void:
 	var sp := _star()
 	boss_target.box = AABB(sp - Vector3(3.6, 3.6, 3.6), Vector3(7.2, 7.2, 7.2))
 	# the fireteam shoots the star when it can
-	if not raid.shielded and not raid.cleared:
+	if auth and not raid.shielded and not raid.cleared:
 		for a in allies:
 			if a.target.alive() and a.mover.position.distance_to(_star()) < 70.0:
 				raid.hit_boss(ALLY_DPS * dt / BOSS_HP_EQUIV)
@@ -903,14 +951,15 @@ func _step_boss(dt: float) -> void:
 		if raid.phase == 1:
 			for i in 3:
 				_conduit_visible(i, true)
-			for k in 3:
+			for k in (3 if auth else 0):
 				_spawn_void("Void Vanguard", pylon_pos[k] * 0.7)
 		if raid.phase == 3:
 			boss_mat.set_shader_parameter("exposed", 1.0)
 	# Phase II: hold the conduits
 	if raid.phase == 1:
 		for i in 3:
-			raid.tick_conduit(i, dt, _friendly_near(pylon_pos[i], 4.0))
+			if auth:
+				raid.tick_conduit(i, dt, _friendly_near(pylon_pos[i], 4.0))
 			var c: float = raid.conduits[i]
 			var m := (pylon_rings[i][0] as MeshInstance3D).material_override as StandardMaterial3D
 			m.albedo_color = Color(0.35, 0.3, 0.3).lerp(Color(1.0, 0.7, 0.25), c)
@@ -925,7 +974,7 @@ func _step_boss(dt: float) -> void:
 	split_plane.visible = raid.phase == 2
 	if raid.phase == 2:
 		_split_t -= dt
-		if _split_t <= 0.0:
+		if auth and _split_t <= 0.0:
 			_split_t = 8.0
 			_split_side = -_split_side
 			split_plane.position = Vector3(0, 0.05, ARENA_R * 0.5 * _split_side)
@@ -958,8 +1007,9 @@ func _step_boss(dt: float) -> void:
 		gauge.text = ""
 	var line := ""
 	for a in allies:
-		line += "%s  %s\n" % [String(a.get_meta("name")), "▮" if a.target.alive() else "✕ reviving"]
-	bars.text = line + "LIVES  %s" % "◆".repeat(raid.lives)
+		if not a.has_meta("benched"):
+			line += "%s  %s\n" % [String(a.get_meta("name")), "▮" if a.target.alive() else "✕ reviving"]
+	bars.text = line + "LIVES  %s" % "◆".repeat(raid.lives) + (net_raid.hud_lines() if net_raid else "")
 	if raid.cleared and not _ended:
 		_raid_cleared()
 
@@ -967,27 +1017,52 @@ func _step_boss(dt: float) -> void:
 func _attacks(dt: float) -> void:
 	if raid.cleared:
 		return
+	var auth := authority()
 	var rate := 1.0 + raid.phase * 0.25
 	_beam_t -= dt * rate
-	if _beam_t <= 0.0:
+	if auth and _beam_t <= 0.0:
 		_beam_t = 7.0
 		var who: Vector3 = operator.position
-		if _rng.randf() < 0.45:
-			var live: Array = allies.filter(func(a): return a.target.alive())
+		if _rng.randf() < 0.45 + (0.2 if net_raid and not net_raid.players.is_empty() else 0.0):
+			var live: Array = team_up()
 			if not live.is_empty():
 				who = (live[_rng.randi() % live.size()] as RefCounted).mover.position
 		var from := Vector3(_star().x, 0.06, -ARENA_R)
 		var dir := Vector3(who.x - from.x, 0, who.z - from.z).normalized()
-		var to := from + dir * 60.0
-		var line := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(1.6, 0.02, 60.0)
-		line.mesh = bm
-		line.position = (from + to) * 0.5
-		line.rotation.y = atan2(dir.x, dir.z)
-		line.material_override = _mat(Color(1.0, 0.2, 0.15), 0.5, 0.0, 2.0)
-		world.add_child(line)
-		_beams.append({ "mesh": line, "t": 1.3, "from": from, "dir": dir, "fired": false, "beam": null })
+		beam_start(from, dir)
+		if net_raid:
+			net_raid.send("beam", { "f": [snappedf(from.x, 0.01), snappedf(from.z, 0.01)], "d": [snappedf(dir.x, 0.001), snappedf(dir.z, 0.001)] })
+	_step_beams(dt)
+	_ring_t -= dt * rate
+	if auth and _ring_t <= 0.0:
+		_ring_t = 11.0
+		ring_start()
+		if net_raid:
+			net_raid.send("ring", {})
+	_step_rings(dt)
+	if auth and (raid.phase == 0 or raid.phase == 2):
+		_summon_t -= dt
+		if _summon_t <= 0.0 and _hostiles_alive() < 4:
+			_summon_t = 24.0
+			controls.toast("Astravore calls its guardians")
+			for k in 2:
+				var a := _rng.randf() * TAU
+				_spawn_void("Void Vanguard" if k == 0 else "Void Reaver", Vector3(cos(a) * 10.0, 0, sin(a) * 10.0))
+
+## a beam's warning line along the floor (every screen; the leader picks where)
+func beam_start(from: Vector3, dir: Vector3) -> void:
+	var to := from + dir * 60.0
+	var line := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(1.6, 0.02, 60.0)
+	line.mesh = bm
+	line.position = (from + to) * 0.5
+	line.rotation.y = atan2(dir.x, dir.z)
+	line.material_override = _mat(Color(1.0, 0.2, 0.15), 0.5, 0.0, 2.0)
+	world.add_child(line)
+	_beams.append({ "mesh": line, "t": 1.3, "from": from, "dir": dir, "fired": false, "beam": null })
+
+func _step_beams(dt: float) -> void:
 	for b in _beams.duplicate():
 		b.t -= dt
 		if b.t <= 0.0 and not b.fired:
@@ -1015,7 +1090,7 @@ func _attacks(dt: float) -> void:
 			lm.emission_energy_multiplier = 4.0
 			if _in_beam(operator.position, b) and enemies.down <= 0.0:
 				enemies._hit_operator(38.0)
-			for a in allies:
+			for a in (allies if authority() else []):
 				if a.target.alive() and _in_beam(a.mover.position, b):
 					a.target.hp -= 45.0
 		if b.t < -0.35:
@@ -1023,19 +1098,21 @@ func _attacks(dt: float) -> void:
 			if b.get("beam") != null:
 				(b.beam as MeshInstance3D).queue_free()
 			_beams.erase(b)
-	_ring_t -= dt * rate
-	if _ring_t <= 0.0:
-		_ring_t = 11.0
-		var ring := MeshInstance3D.new()
-		var tm := TorusMesh.new()
-		tm.inner_radius = 0.92
-		tm.outer_radius = 1.0
-		ring.mesh = tm
-		ring.position = Vector3(0, 0.4, -ARENA_R + 2.0)
-		ring.material_override = _mat(Color(1.0, 0.45, 0.85), 0.4, 0.0, 3.5)
-		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		world.add_child(ring)
-		_rings.append({ "mesh": ring, "r": 1.0, "hit": false })
+
+## a shockwave ring out from under the star (every screen; each takes it on its own operator)
+func ring_start() -> void:
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.92
+	tm.outer_radius = 1.0
+	ring.mesh = tm
+	ring.position = Vector3(0, 0.4, -ARENA_R + 2.0)
+	ring.material_override = _mat(Color(1.0, 0.45, 0.85), 0.4, 0.0, 3.5)
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(ring)
+	_rings.append({ "mesh": ring, "r": 1.0, "hit": false })
+
+func _step_rings(dt: float) -> void:
 	for r in _rings.duplicate():
 		r.r += 11.0 * dt
 		var mi: MeshInstance3D = r.mesh
@@ -1048,14 +1125,6 @@ func _attacks(dt: float) -> void:
 		if r.r > ARENA_R * 2.0 + 4.0:
 			mi.queue_free()
 			_rings.erase(r)
-	if raid.phase == 0 or raid.phase == 2:
-		_summon_t -= dt
-		if _summon_t <= 0.0 and _hostiles_alive() < 4:
-			_summon_t = 24.0
-			controls.toast("Astravore calls its guardians")
-			for k in 2:
-				var a := _rng.randf() * TAU
-				_spawn_void("Void Vanguard" if k == 0 else "Void Reaver", Vector3(cos(a) * 10.0, 0, sin(a) * 10.0))
 
 func _in_beam(p: Vector3, b: Dictionary) -> bool:
 	var rel := Vector3(p.x, 0, p.z) - (b.from as Vector3)

@@ -18,6 +18,7 @@ const Player := preload("res://scripts/player/operator_player.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 const Catalog := preload("res://scripts/character/catalog.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
+const Encounters := preload("res://scripts/mission/encounters.gd")
 const Phone := preload("res://scripts/phone.gd")
 
 const TALK_R := 2.4
@@ -45,7 +46,7 @@ var busy := false
 var hour_override := -1.0      # tests and shots set an hour; -1 is the device clock
 var city := "nexus"            # whose people (people.gd ROSTERS): "nexus" / "neon" on the avenue, an airport code, "VRD"
 var origin := Vector3.ZERO     # added to `at` places (a region on foot: where you landed)
-var profile: Dictionary        # the story gates tier 3 people (Captain Vale after Mission 01's chapters 04-05)
+var profile: Dictionary        # the story gates tier 3 people (Captain Rourke after Mission 01's chapters 04-05)
 var _boxes: Array[AABB]
 var _bounds: Rect2
 var _ground: Callable
@@ -399,6 +400,11 @@ func _open(id: String, text: String, law: bool) -> void:
 	if not law:
 		_button(row, "How's work?", func(): _say(Talk.work_line(p, today())))
 		_button(row, "Heard anything?", func(): _say(Talk.rumour(p, today())))
+		# a rumour of a hidden unique encounter (encounters.gd), once the story has reached it: asking records the clue
+		var pr := Gear.profile_load()
+		var rum: Dictionary = Encounters.npc_rumour(pr, id)
+		if not rum.is_empty():
+			_button(row, "Strange stories?", func(): _strange(id))
 		# asking them (people.json): the Fracture, this place, what they think of you, what is happening — voiced
 		for ask in Talk.asks():
 			var lid := Talk.topic_id(p, String(ask[0]), state, today(), profile)
@@ -412,6 +418,23 @@ func _open(id: String, text: String, law: bool) -> void:
 		elif String(e.from) == id:
 			_button(row, "About that errand…", func(): _say("%s is waiting on %s. Thanks for doing this." % [String(People.by_id(String(e.to)).name).get_slice(" ", 0), String(e.item)]))
 	_button(row, "Bye" if not law else "Understood", _close)
+
+func _strange(id: String) -> void:
+	var says := [""]
+	var lines := Encounters.with_profile(func(p: Dictionary) -> Array:
+		var got: Dictionary = Encounters.npc_clue(p, id)
+		if got.is_empty():
+			got = Encounters.npc_rumour(p, id)
+			says[0] = String(got.c.says) if not got.is_empty() else ""
+			return []
+		says[0] = String(got.c.says)
+		return Encounters.record_clue(p, String(got.e), String(got.c.id)).toast)
+	_say(String(says[0]))
+	if not lines.is_empty() and _panel:
+		var l := _panel.find_child("Say", true, false) as Label
+		l.text += "\n\n" + "\n".join(PackedStringArray(lines))
+	if not lines.is_empty():
+		Sound.sfx("confirm", -6.0)
 
 func _button(row: Control, text: String, f: Callable) -> void:
 	var b := Button.new()

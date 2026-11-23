@@ -90,5 +90,57 @@ func _ready() -> void:
 	await get_tree().process_frame
 	pr = Gear.profile_load()
 	check("closing the flight writes the hull and the tank back (%d%%, %d%%)" % [Air.condition(pr, "vanguard-jet"), Air.fuel(pr, "vanguard-jet")], Air.condition(pr, "vanguard-jet") == 55 and Air.fuel(pr, "vanguard-jet") == 0)
+	# the air race (air_race.gd): three rival jets on the apron lift when you do and fly the rings; placings by rings
+	# then time; the purse by place
+	v = SkywaysView.new()
+	v.craft_id = "vanguard-jet"
+	v.air_race = true
+	add_child(v)
+	for i in 3:
+		await get_tree().process_frame
+	check("an air race fields three rival jets on the apron", v.race != null and v.race.rivals.size() == 3 and not v.race.launched)
+	var apron := true
+	var where := []
+	for r in v.race.rivals:
+		var d: float = Vector2(r.pos.x - v.pad.x, r.pos.z - v.pad.z).length()
+		where.append("%.0f m, dy %.1f" % [d, r.pos.y - v.pad.y])
+		apron = apron and d > 15.0 and d < 90.0 and absf(r.pos.y - (v.pad.y + Handling.RIDE)) < 0.5
+	check("the rivals wait beside the pad, on the ground (%s)" % [where], apron)
+	v.race.step(0.05)
+	check("nobody moves before you lift off", not v.race.launched and v.race.rivals[0].speed == 0.0)
+	check("on the line everyone has 0 rings and you are P1 of 4 by the tie", v.race.place() == 1 and v.race.standings().size() == 4)
+	v.controls.scripted = true
+	v.controls.move = Vector2(0.0, 1.0)
+	v.controls._brake_held = true
+	for i in 40:
+		v._process(0.05)
+	check("you lift off and the field launches", v.state.airborne and v.race.launched)
+	for i in 160:   # 8 s (any longer wide open and the scripted jet leaves the region, which ends the course)
+		v._process(0.05)
+	check("the course is still on (the jet is over its region)", v.race != null and not v.rings.is_empty())
+	var high := true
+	var moving := true
+	for r in v.race.rivals:
+		high = high and r.pos.y > v.region.ground(r.pos.x, r.pos.z) + 5.0
+		moving = moving and float(r.speed) > 20.0 and r.pos.distance_to(v.pad) > 100.0
+	check("8 s in the rivals are up and away toward the first ring (%.0f m/s)" % float(v.race.rivals[0].speed), high and moving)
+	# a rival through more rings than you places ahead of you
+	v.race.rivals[1].next = 3
+	check("rivals ahead of you on rings place ahead (P%d)" % v.race.place(), v.race.place() > 1 and String(v.race.standings()[0].name) == String(v.race.rivals[1].name))
+	# the finish: you through the last ring while one rival has the lot — second place money
+	v.race.rivals[0].next = v.rings.size()
+	v.race.rivals[0].done_at = 1.0   # through the lot long before you
+	v.race.rivals[1].next = 3
+	v.race.rivals[2].next = 1
+	v.next_ring = v.rings.size() - 1
+	var pr0 := Gear.profile_load()
+	var nex0 := int(pr0.get("nex", 0))
+	var last: Vector3 = v.rings[v.rings.size() - 1].pos
+	v.hull.position = last   # the frame moves the hull on from here by state.speed (zeroed), at state.y
+	v.state.y = last.y
+	v.state.speed = 0.0
+	v._process(0.05)
+	var pr1 := Gear.profile_load()
+	check("through the last ring behind one rival: P2 and the P2 purse (%d Nex)" % v.race.purse(2), v.finished and v.race.place() == 2 and int(pr1.get("nex", 0)) - nex0 == v.race.purse(2))
 	print("skyways play: ", "0 failed" if ok else "FAILED")
 	get_tree().quit(0 if ok else 1)

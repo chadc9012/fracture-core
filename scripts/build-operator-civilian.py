@@ -115,34 +115,145 @@ def decimate(ob, faces):
         p_.use_smooth = True
 
 
-new = from_arrays("civilian", D["body_v"], D["body_f"])
-decimate(new, 24000)                               # enough vertices to cut seams and logos on
-hands = from_arrays("hands", D["hands_v"], D["hands_f"])
-decimate(hands, 5000)
+# The body itself is MakeHuman's (scripts/mh_body.py, owner Nov 22: "You're still using this bullshit body type"): its
+# base mesh shaped for the cut and build, fitted bone by bone onto this rig and skinned with its own Mixamo weights.
+# The ellipsoid anatomy above now only gives the hood. MPFB_DATA is MPFB2's src/mpfb/data (github.com/makehumancommunity/mpfb2).
+mpfb = os.environ.get("MPFB_DATA", "")
+if not mpfb or not os.path.isdir(mpfb):
+    raise SystemExit("set MPFB_DATA to MPFB2's src/mpfb/data (git clone github.com/makehumancommunity/mpfb2)")
+full = {b.name: [list((AW @ b.head_local)[:]), list((AW @ b.tail_local)[:])] for b in arm.data.bones}
+with open(os.path.join(tmp, "mh_bones.json"), "w") as fh:
+    json.dump({"bones": full, "F": F.tolist(), "UP": UPV.tolist(), "H": stature, "floor": floor0, "sex": sex, "build": BUILD}, fh)
+subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "mh_body.py"), mpfb,
+                os.path.join(tmp, "mh_bones.json"), os.path.join(tmp, "mh.npz")], check=True)
+MH = np.load(os.path.join(tmp, "mh.npz"))
+me = bpy.data.meshes.new("civilian")
+me.from_pydata([tuple(x) for x in MH["body_v"].tolist()], [], [tuple(int(i) for i in x) for x in MH["body_f"].tolist()])
+me.update()
+new = bpy.data.objects.new("civilian", me)
+bpy.context.collection.objects.link(new)
+for p_ in new.data.polygons:
+    p_.use_smooth = True
 HOOD_VF = (D["hood_v"], D["hood_f"])
-# the body's own surface, before the hands join (the garment pieces in part 4 are measured against it)
-from mathutils.bvhtree import BVHTree
-BVH = BVHTree.FromPolygons([v.co.copy() for v in new.data.vertices], [tuple(p_.vertices) for p_ in new.data.polygons])
-bpy.ops.object.select_all(action="DESELECT")
-bpy.context.view_layer.objects.active = new
-new.select_set(True)
-hands.select_set(True)
-bpy.ops.object.join()
-new = bpy.context.view_layer.objects.active
 
-# 2. skinned by bone heat to the rig's deforming body bones (not the armour's coat bones or the end markers)
+# 2. skinned with MakeHuman's weights (only the rig's deforming body bones)
 for b in arm.data.bones:
     if any(k in b.name for k in ("Bone_", "HeadTop", "headfront", "_End")):
         b.use_deform = False
+WTS = MH["weights"]
+for j, bn in enumerate(MH["bones"].tolist()):
+    g = new.vertex_groups.new(name=str(bn))
+    col = WTS[:, j]
+    for i in np.nonzero(col > 1e-4)[0].tolist():
+        g.add([i], float(col[i]), "REPLACE")
+# cloth over the body: where clothes go, the muscle under them is smoothed out and the surface stands a little off it
+# (painted straight on the anatomy, every outfit read as body paint). Amounts per bone, blended by the skin weights, so
+# it fades out smoothly at the wrists and the neck: (smoothing 0..1, stand-off in body heights)
+CLOTH = {"Hips": (1.0, 0.0085), "Spine": (1.0, 0.0085), "Spine1": (1.0, 0.009), "Spine2": (1.0, 0.009), "Shoulder": (0.9, 0.008),
+         "Arm": (0.85, 0.0075), "ForeArm": (0.5, 0.004), "Neck": (0.15, 0.0), "UpLeg": (0.9, 0.0095), "Leg": (0.7, 0.0065)}
+gsm = new.vertex_groups.new(name="_cloth_smooth")
+gpf = new.vertex_groups.new(name="_cloth_puff")
+bnames = MH["bones"].tolist()
+for i in range(WTS.shape[0]):
+    sm_, pf_ = 0.0, 0.0
+    for j, bn in enumerate(bnames):
+        w = WTS[i, j]
+        if w <= 1e-4:
+            continue
+        key = str(bn).replace("mixamorig:", "").replace("Left", "").replace("Right", "")
+        a, b = CLOTH.get(key, (0.0, 0.0))
+        sm_ += w * a
+        pf_ += w * b
+    gsm.add([i], min(1.0, sm_), "REPLACE")
+    gpf.add([i], min(1.0, pf_ / 0.01), "REPLACE")
+bpy.context.view_layer.objects.active = new
+for kind, kw in (("SMOOTH", {"factor": 1.0, "iterations": 10, "vertex_group": "_cloth_smooth"}),
+                 ("DISPLACE", {"strength": 0.01 * stature, "mid_level": 0.0, "direction": "NORMAL", "vertex_group": "_cloth_puff"})):
+    mm = new.modifiers.new(kind, kind)
+    for k_, v_ in kw.items():
+        setattr(mm, k_, v_)
+    bpy.ops.object.select_all(action="DESELECT")
+    new.select_set(True)
+    bpy.ops.object.modifier_apply(modifier=mm.name)
+for gname in ("_cloth_smooth", "_cloth_puff"):
+    new.vertex_groups.remove(new.vertex_groups[gname])
+# the body's own surface (the garment pieces in part 4 are measured against it)
+from mathutils.bvhtree import BVHTree
+BVH = BVHTree.FromPolygons([v.co.copy() for v in new.data.vertices], [tuple(p_.vertices) for p_ in new.data.polygons])
+
+# trainers: MakeHuman's feet are bare, toes and all (painted, they read as socks). Each foot becomes a closed shoe
+# shell: the hull of the foot with a flat, slightly wider sole under it, voxel-remeshed and smoothed, skinned from the
+# foot; the bare foot inside it goes.
+from mathutils.kdtree import KDTree
+P_new = np.array([v.co[:] for v in new.data.vertices])
+dom_bone = [new.vertex_groups[max(v.groups, key=lambda g: g.weight).group].name if v.groups else "" for v in new.data.vertices]
+shoe_objs = []
+for s_ in ("Left", "Right"):
+    ank = AW @ arm.data.bones["mixamorig:%sFoot" % s_].head_local
+    idx = [i for i, n in enumerate(dom_bone) if (n.endswith(s_ + "Foot") or n.endswith(s_ + "ToeBase")) and P_new[i, 2] < ank.z + 0.02 * stature]
+    if not idx:
+        continue
+    pts = P_new[idx]
+    cen = pts.mean(axis=0)
+    shell = []
+    for p_ in pts:
+        d = p_ - cen
+        d[2] = 0.0
+        q = p_ + d * 0.06                                     # a little roomier than the foot
+        shell.append(q)
+        if p_[2] < floor0 + 0.05 * stature:                   # the sole: flat on the floor, a touch wider
+            shell.append(np.array([cen[0] + d[0] * 1.1, cen[1] + d[1] * 1.1, floor0]))
+    bm_ = bmesh.new()
+    for q in shell:
+        bm_.verts.new(Vector(q.tolist()))
+    bmesh.ops.convex_hull(bm_, input=bm_.verts)
+    sme = bpy.data.meshes.new("shoe_" + s_)
+    bm_.to_mesh(sme)
+    bm_.free()
+    so = bpy.data.objects.new("shoe_" + s_, sme)
+    bpy.context.collection.objects.link(so)
+    bpy.context.view_layer.objects.active = so
+    for md_, kw in (("REMESH", {"mode": "VOXEL", "voxel_size": 0.006 * stature}), ("SMOOTH", {"factor": 0.8, "iterations": 6})):
+        mm = so.modifiers.new(md_, md_)
+        for k_, v_ in kw.items():
+            setattr(mm, k_, v_)
+        bpy.ops.object.select_all(action="DESELECT")
+        so.select_set(True)
+        bpy.ops.object.modifier_apply(modifier=mm.name)
+    decimate(so, 1400)
+    # skinned like the nearest foot vertex
+    kd = KDTree(len(idx))
+    for k_, i in enumerate(idx):
+        kd.insert(Vector(P_new[i].tolist()), i)
+    kd.balance()
+    for g in new.vertex_groups:
+        so.vertex_groups.new(name=g.name)
+    src_w = {i: [(new.vertex_groups[g.group].name, g.weight) for g in new.data.vertices[i].groups] for i in idx}
+    for v in so.data.vertices:
+        _co, i, _d = kd.find(v.co)
+        for gn, w in src_w[i]:
+            so.vertex_groups[gn].add([v.index], w, "REPLACE")
+    shoe_objs.append(so)
+    # the bare foot inside goes (everything of it below the shoe's collar)
+    gone = [new.data.vertices[i] for i in idx if P_new[i, 2] < ank.z - 0.004 * stature]
+    bm_ = bmesh.new()
+    bm_.from_mesh(new.data)
+    bm_.verts.ensure_lookup_table()
+    bmesh.ops.delete(bm_, geom=[bm_.verts[v.index] for v in gone], context="VERTS")
+    bm_.to_mesh(new.data)
+    bm_.free()
+    P_new = np.array([v.co[:] for v in new.data.vertices])
+    dom_bone = [new.vertex_groups[max(v.groups, key=lambda g: g.weight).group].name if v.groups else "" for v in new.data.vertices]
+N_BODY = len(new.data.vertices)          # the shoes' vertices come after the body's when joined: all of them are shoe
 bpy.ops.object.select_all(action="DESELECT")
+for so in shoe_objs:
+    so.select_set(True)
 new.select_set(True)
-arm.select_set(True)
-bpy.context.view_layer.objects.active = arm
-bpy.ops.object.parent_set(type="ARMATURE_AUTO")
-for md in list(new.modifiers):
-    new.modifiers.remove(md)
-new.parent = None
-new.matrix_world = new.matrix_world.copy()
+bpy.context.view_layer.objects.active = new
+bpy.ops.object.join()
+new = bpy.context.view_layer.objects.active
+for p_ in new.data.polygons:
+    p_.use_smooth = True
 bpy.context.view_layer.objects.active = new
 new.data.validate(clean_customdata=False)
 print("unweighted verts:", sum(1 for v in new.data.vertices if not v.groups), "of", len(new.data.vertices))
@@ -205,6 +316,8 @@ def zone_of(i, n):
     z = p[up]
     if is_hand(n):
         return 0
+    if i >= N_BODY:
+        return 1
     hood = float((p - neck0) @ F) < -0.01 * H and any(np.linalg.norm(p - hc) < hr * 1.3 for hc, hr in HOOD)
     if ("Neck" in n or "Head" in n) and not hood:
         return 0
@@ -519,6 +632,63 @@ for s_ in SIDES:
     rows = patch(org, -out_d, list(np.linspace(-0.036, 0.036, 9)), list(np.linspace(0.028, 0.05, 4)), 0.0075 * H)
     if rows:
         add("cargo", solid_strip(rows, 0.004 * H))
+
+# formal wear (asset catalog §4 "formal clothing", Nov 23): a suit jacket's lapels and a tie, laid on the chest where
+# outfit.gdshader paints an open jacket's shirt panel (|lat| < 0.045 H under the neck). The lapels are two slabs down the
+# panel's edges, wide at the collar and sweeping out toward the shoulders, narrowing to the button point; the tie a flat
+# strip down the middle: a knot under the collar, a narrow neck, the blade widening and ending in a point.
+chest_f = hips_f + 0.5 * H
+
+
+def chest_rows(edges, off):
+    """rows of (point, normal) on the chest: `edges` is [(hh, lat_in, lat_out)] from the top down, columns across each"""
+    rows = []
+    for hh, l0, l1 in edges:
+        row = []
+        for t_ in np.linspace(0.0, 1.0, 5):
+            lat_ = (l0 + (l1 - l0) * t_) * H
+            hit = BVH.ray_cast(world(lat_, chest_f, zat(hh)), -FV, 2.0 * H)
+            if hit[0] is None:
+                return None
+            nn = hit[1].normalized()
+            if nn.dot(-FV) > 0:
+                nn = -nn
+            row.append((hit[0] + nn * off, nn))
+        rows.append(row)
+    return rows
+
+
+lapel_top = LM["neck"] - 0.012
+lapel_bot = 0.115                                       # the button: outfits.gd "button" 0.12 closes the shirt panel there
+for sx in (-1.0, 1.0):
+    edges = []
+    for j in range(9):
+        t_ = j / 8.0
+        hh = lapel_top + (lapel_bot - lapel_top) * t_
+        inner = 0.014 + 0.031 * t_                       # the shirt shows more the lower you go (the V of the jacket)
+        width = 0.046 * (1.0 - t_) ** 0.7 + 0.012        # broad at the collar, a sliver at the button
+        edges.append((hh, sx * inner, sx * (inner + width)))
+    rows = chest_rows(edges, 0.004 * H)
+    if rows:
+        add("lapels", solid_strip(rows, 0.005 * H))
+tie_top = LM["neck"] - 0.03
+tie_tip = max(0.1, LM["neck"] * 0.34)
+edges = []
+for j in range(11):
+    t_ = j / 10.0
+    hh = tie_top + (tie_tip - tie_top) * t_
+    if t_ < 0.08:
+        w = 0.013                                        # the knot
+    elif t_ < 0.18:
+        w = 0.007                                        # the neck under it
+    elif t_ < 0.82:
+        w = 0.007 + 0.013 * (t_ - 0.18) / 0.64           # the blade widening
+    else:
+        w = 0.02 * (1.0 - (t_ - 0.82) / 0.18) + 0.001    # to the point
+    edges.append((hh, -w, w))
+rows = chest_rows(edges, 0.0045 * H)
+if rows:
+    add("tie", solid_strip(rows, 0.0035 * H))
 
 # the hood, down (scripts/civ_body_sdf.py meshes it): only hoodies wear it
 add("hood", ([Vector(x) for x in HOOD_VF[0].tolist()], [tuple(int(i) for i in f_) for f_ in HOOD_VF[1].tolist()]))

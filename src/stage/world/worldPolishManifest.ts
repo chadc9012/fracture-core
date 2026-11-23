@@ -33,7 +33,7 @@ const regionTargets = [
  ['verdant-forest','Verdant Forest','Moss, layered canopy, shafts of sunlight, ferns, flowers, roots, creeks, birds and dense but budgeted vegetation.'],
  ['shrouded-swamps','Shrouded Swamps','Blackwater, reeds, cypress roots, floating plants, mist, wet mud, insects, amphibians and muffled ambience.'],
  ['ember-peaks','Ember Peaks','Volcanic rock, ash deposits, heat shimmer, lava-lit cracks where authored, wind-carved ridges and falling ash.'],
- ['solara-desert','Solara Desert / Glass Flats','Dunes, hardpan, wind ripples, glassy fracture fields, dust devils, heat haze and Vyrak arena readability.'],
+ ['solara-desert','Solara Desert / Glass Flats','Dunes, hardpan, wind ripples, glassy fracture fields, dust devils, heat haze and crater arena readability.'],
  ['frost-spire','Frost Spire Mountains','Snow layers, ice, exposed rock, wind gusts, blizzards, icicles, frozen lakes and snow-crunch audio.'],
  ['wastelands','Wastelands','Eroded roads, wreckage, scrap towns, dust, dry gullies, underground exits and faction silhouettes.'],
  ['neon-city','Neon City / Neon Core District','Rain-slick roads, verticality, emissive signage, trains/rails, traffic, rooftop routes, parkour lines and underground racing culture.'],

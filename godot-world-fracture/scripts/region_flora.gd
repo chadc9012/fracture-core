@@ -17,15 +17,25 @@ static func mix_for(id: String) -> Dictionary:
 			return {"oak": 0.3, "cherry": 0.08}
 		"old-harrow":
 			return {"oak": 0.5, "cherry": 0.1}
+		"eldergrove":
+			return {"oak": 0.55, "cherry": 0.06}
+		"skyhaven":
+			return {"oak": 0.4, "cherry": 0.15}
+		"horizon-gate":
+			return {"baobab": 0.6}
 		"goldenreach":
 			return {"oak": 0.65, "cherry": 0.1}
 		"swamps":
 			return {"oak": 0.55}
 		"solara":
-			return {"baobab": 1.0}
+			# the Solmara boards: date palms through the desert, the odd baobab (Nov 22)
+			return {"palm": 0.45, "baobab": 0.55}
 		"wastelands":
 			return {"baobab": 0.45}
-		"azure-isles", "shattered-reefs":
+		"azure-isles":
+			# the Azure Isles boards: palms along every beach and up the slopes, a little bamboo (Nov 22; it was 60% pine)
+			return {"palm": 0.8, "bamboo": 0.12}
+		"shattered-reefs":
 			return {"bamboo": 0.4}
 		"crystal-badlands":
 			return {"alien": 1.0}
@@ -149,6 +159,22 @@ static func plant(r: Node, trees: Array[Transform3D]) -> Array[Transform3D]:
 				r._multimesh(baobab(), _rescale(list, 1.1), baobab_material())
 			"bamboo":
 				r._multimesh(bamboo(), list, bamboo_material(), 600.0)
+			"palm":
+				# the three Meshy palms (models/foliage/palm-a, -b, -c), dealt out in turn
+				var parts := [[], [], []]
+				for i in list.size():
+					parts[i % 3].append(list[i])
+				# the Meshy palms are 4-7 MB each: full detail only up close, the light city palm (palm-lod) beyond
+				var far := glb_mesh("res://models/city/palm-lod.glb", 11.0, glb_mesh("res://models/city/palm.glb", 11.0))   # the LOD file has no textures: the city palm lends its own
+				for j in 3:
+					var mesh := glb_mesh("res://models/foliage/palm-%s.glb" % ["a", "b", "c"][j], 11.0)
+					var xs: Array[Transform3D] = []
+					xs.assign(parts[j])
+					if mesh != null and not xs.is_empty():
+						if far != null:
+							r._multimesh_lod([[mesh, Phone.tree_detail_range() * 2.0], [far, 800.0]], xs, null)
+						else:
+							r._multimesh(mesh, xs, null, 800.0)
 			"alien":
 				var parts := alien()
 				r._multimesh(parts[0], list, alien_material(false), 700.0)
@@ -332,12 +358,12 @@ static func _cyl(st: SurfaceTool, top: float, bottom: float, h: float, seg: int,
 	c.cap_bottom = false
 	st.append_from(c, 0, xf)
 
-static func _blob(st: SurfaceTool, r: float, xf: Transform3D, seg := 7) -> void:
+static func _blob(st: SurfaceTool, r: float, xf: Transform3D, seg := 7, rings := 4) -> void:
 	var s := SphereMesh.new()
 	s.radius = r
 	s.height = r * 2.0
 	s.radial_segments = seg
-	s.rings = 4
+	s.rings = rings
 	st.append_from(s, 0, xf)
 
 ## an oak (also the cherry): a stout trunk and a lumpy crown of five blobs. The trunk stays under 2.6 m, where
@@ -348,8 +374,13 @@ static func broadleaf() -> Mesh:
 	_cyl(st, 0.22, 0.38, 3.4, 6, Transform3D(Basis(), Vector3(0, 1.7, 0)))
 	_cyl(st, 0.08, 0.16, 2.2, 5, Transform3D(Basis(Vector3.BACK, 0.7), Vector3(-0.7, 3.4, 0)))
 	_cyl(st, 0.08, 0.16, 2.2, 5, Transform3D(Basis(Vector3.RIGHT, -0.7), Vector3(0, 3.5, -0.7)))
+	# rounder, denser blobs and a ring of small ones round the rim: five 7x4 spheres read as faceted lumps (polish, Nov 21)
 	for b in [[0.0, 5.2, 0.0, 2.3], [1.5, 4.6, 0.6, 1.7], [-1.4, 4.7, -0.5, 1.8], [0.4, 4.5, -1.5, 1.6], [-0.5, 6.4, 0.6, 1.5]]:
-		_blob(st, b[3], Transform3D(Basis().scaled(Vector3(1.0, 0.82, 1.0)), Vector3(b[0], b[1], b[2])))
+		_blob(st, b[3], Transform3D(Basis().scaled(Vector3(1.0, 0.82, 1.0)), Vector3(b[0], b[1], b[2])), 10, 6)
+	for k in 7:
+		var a := k * TAU / 7.0 + 0.4
+		var rr := 2.35 + 0.35 * sin(k * 2.3)
+		_blob(st, 0.75 + 0.2 * cos(k * 1.7), Transform3D(Basis(), Vector3(sin(a) * rr, 4.4 + 0.9 * sin(k * 1.3 + 1.0), cos(a) * rr)), 7, 4)
 	st.generate_normals()
 	return st.commit()
 
@@ -418,14 +449,22 @@ static func cherry_material(r: Node) -> ShaderMaterial:
 	sh.code = """shader_type spatial;
 uniform int season = 1;
 varying float hy;
-void vertex() { hy = VERTEX.y; }
+varying vec3 lp;
+void vertex() { hy = VERTEX.y; lp = VERTEX; }
+float h3(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+// smooth value noise: the old per-cell hash painted hard square patches on the crowns (polish, Nov 21)
+float vn(vec3 p) {
+	vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
+		mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
 void fragment() {
 	float n = fract(sin(dot(floor(NODE_POSITION_WORLD.xz), vec2(12.9898, 78.233))) * 43758.5453);
-	float spot = fract(sin(dot(floor(VERTEX.xz * 3.0 + VERTEX.y * 2.0), vec2(4.1, 7.7))) * 912.3);
+	float spot = vn(lp * 1.6) * 0.65 + vn(lp * 4.3 + 7.1) * 0.35;
 	vec3 pink = mix(vec3(0.93, 0.56, 0.7), vec3(0.99, 0.82, 0.89), n) * (0.85 + 0.2 * spot);
 	vec3 leaf = pink;
 	if (season == 1) leaf = mix(pink, vec3(0.32, 0.45, 0.2), 0.35 + 0.3 * spot);
-	if (season == 2) leaf = mix(vec3(0.7, 0.2, 0.12), vec3(0.88, 0.45, 0.18), spot);
+	if (season == 2) leaf = mix(mix(vec3(0.52, 0.2, 0.1), vec3(0.72, 0.42, 0.16), spot), vec3(0.42, 0.4, 0.16), 0.25 * n) * (0.85 + 0.15 * spot);
 	if (season == 3) leaf = vec3(0.3, 0.24, 0.22);
 	vec3 c = hy < 2.6 ? vec3(0.26, 0.16, 0.14) : leaf;
 	ALBEDO = c;
@@ -504,44 +543,44 @@ void fragment() {
 ## rounded rectangle whose width and depth wander along the span (thick at the feet, thin at the crown), so it reads as
 ## eroded stone, not a pipe or a stack of blocks.
 static func arch_mesh() -> Mesh:
+	# Nov 22 (the owner's "next step without Meshy"): the span was 24 x 10 flat facets with a random wobble on every
+	# vertex and read as a lumpy tube. Now 56 x 20 smooth-shaded, the section a weathered slab (wider than it is thick)
+	# that swells into buttressed feet and thins over the crown, shaped by broad waves along the span instead of
+	# per-vertex noise, with ledges where the beds step back.
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 9
-	const N := 24      # steps along the band
-	const C := 10      # points round the cross-section
-	var rings: Array = []
+	const N := 56      # steps along the band
+	const C := 20      # points round the cross-section
 	for k in N + 1:
 		var t := float(k) / N
-		# the centreline: legs come straight up from the ground into the half circle
+		# the centreline: a slightly lopsided span, legs coming up out of the ground
 		var a := PI * (1.0 - t)
-		var p := Vector3(cos(a) * 7.0, -2.0 + sin(a) * 9.0, 0)
-		var tang := Vector3(-sin(a) * 7.0, cos(a) * 9.0, 0).normalized() * -1.0
-		var feet := pow(absf(cos(a)), 3.0)
-		var thick := 2.0 + feet * 2.2 + rng.randf() * 0.5    # in the arch's plane
-		var deep := 2.6 + feet * 2.0 + rng.randf() * 0.6     # across it
+		var p := Vector3(cos(a) * 7.4 + sin(a * 2.0) * 0.5, -2.0 + sin(a) * (8.6 + 0.8 * sin(a * 1.0 + 0.6)), sin(a * 3.0) * 0.35)
+		var tang := Vector3(-sin(a) * 7.4, cos(a) * 8.6, 0).normalized() * -1.0
+		var feet := pow(absf(cos(a)), 2.4)
+		var thick := 1.25 + feet * 3.0 + 0.3 * sin(t * 17.0 + 1.0) + 0.18 * sin(t * 41.0)     # in the arch's plane
+		var deep := 2.3 + feet * 2.6 + 0.35 * sin(t * 11.0 + 2.0) + 0.2 * sin(t * 29.0 + 0.5)  # across it
 		var side := tang.cross(Vector3.BACK).normalized()
-		var ring: Array = []
 		for c in C:
 			var u := TAU * c / C
-			# a squared-off ellipse: stone eroded round, not cut square
-			var cx := signf(cos(u)) * pow(absf(cos(u)), 0.6)
-			var cz := signf(sin(u)) * pow(absf(sin(u)), 0.6)
-			var wob := 0.9 + 0.2 * rng.randf()
-			ring.append(p + side * cx * thick * wob + Vector3.BACK * cz * deep * wob)
-		rings.append(ring)
+			# a rounded slab; the beds step in and out round the section (ledges), the same on neighbouring rings
+			var cx := signf(cos(u)) * pow(absf(cos(u)), 0.75)
+			var cz := signf(sin(u)) * pow(absf(sin(u)), 0.55)
+			var ledge := 1.0 + 0.07 * sin(u * 3.0 + t * 9.0) + 0.05 * sin(u * 7.0 - t * 23.0)
+			st.set_uv(Vector2(t, float(c) / C))
+			st.add_vertex(p + side * cx * thick * ledge + Vector3.BACK * cz * deep * ledge)
 	for k in N:
 		for c in C:
-			var a0: Vector3 = rings[k][c]
-			var a1: Vector3 = rings[k][(c + 1) % C]
-			var b0: Vector3 = rings[k + 1][c]
-			var b1: Vector3 = rings[k + 1][(c + 1) % C]
-			st.add_vertex(a0)
-			st.add_vertex(a1)
-			st.add_vertex(b0)
-			st.add_vertex(a1)
-			st.add_vertex(b1)
-			st.add_vertex(b0)
+			var i0 := k * C + c
+			var i1 := k * C + (c + 1) % C
+			var j0 := (k + 1) * C + c
+			var j1 := (k + 1) * C + (c + 1) % C
+			st.add_index(i0)
+			st.add_index(i1)
+			st.add_index(j0)
+			st.add_index(i1)
+			st.add_index(j1)
+			st.add_index(j0)
 	st.generate_normals()
 	return st.commit()
 
@@ -553,9 +592,14 @@ uniform vec3 col = vec3(0.6, 0.4, 0.3);
 varying vec3 lp;
 void vertex() { lp = VERTEX; }
 void fragment() {
-	float strata = 0.88 + 0.12 * sin(lp.y * 3.1 + sin(lp.x * 0.7) * 1.5);
-	float g = fract(sin(dot(floor(lp * 2.0), vec3(12.9, 78.2, 37.7))) * 4375.5);
-	ALBEDO = col * strata * (0.92 + 0.12 * g);
+	// sandstone beds: broad light and dark bands with fine laminae between, dipping a little; dark desert varnish
+	// streaking down from the top; paler dust where the rock faces up
+	float bed = lp.y * 1.1 + sin(lp.x * 0.35 + lp.z * 0.2) * 0.9;
+	float strata = 0.8 + 0.14 * sin(bed) + 0.08 * sin(bed * 4.7 + 1.3) + 0.04 * sin(bed * 13.0);
+	float g = 0.5 + 0.25 * sin(lp.x * 2.3 + sin(lp.z * 1.7)) * sin(lp.z * 2.9 + lp.y * 1.3);   // smooth: cell hash read as square tiles
+	float streak = smoothstep(0.55, 0.9, 0.5 + 0.5 * sin(lp.x * 1.9 + sin(lp.z * 2.3) * 1.2)) * smoothstep(-1.0, 6.0, lp.y) * 0.22;
+	vec3 wn = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
+	ALBEDO = col * strata * (0.92 + 0.12 * g) * (1.0 - streak) * (1.0 + 0.16 * smoothstep(0.5, 0.95, wn.y));
 	ROUGHNESS = 0.95;
 }"""
 	mat.shader = sh

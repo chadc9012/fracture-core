@@ -92,8 +92,12 @@ func step(dt: float, throttle: float, steer: float, brake: float, boost := false
 	var moved := before + dir * speed * dt
 	var p := _resolve(moved)
 	if p != moved:
-		# a kerb, a wall or another car: the car stops short and loses most of its speed
-		speed = move_toward(speed, 0.0, absf(speed) * 0.6 + 2.0 * dt)
+		# a kerb or a wall: head-on the car stops short and loses most of its speed; a glancing scrape along it only
+		# bleeds speed (a car pinned at a shallow angle crawled at a walking pace for as long as it touched)
+		var push := (p - moved)
+		push.y = 0.0
+		var head_on := clampf(-push.normalized().dot(dir), 0.0, 1.0) if push.length() > 0.001 else 1.0
+		speed = move_toward(speed, 0.0, absf(speed) * (0.6 * head_on * head_on + 1.2 * dt * (1.0 - head_on)) + 2.0 * dt * head_on)
 		hits += 1
 	p.y = (ground_at.call(p.x, p.z) as float) + (0.9 + sin(Time.get_ticks_msec() * 0.003) * 0.08 if bool(profile.get("hover", false)) else 0.0)
 	node.position = p

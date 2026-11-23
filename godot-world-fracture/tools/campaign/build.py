@@ -14,6 +14,10 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import act1, act2, act3  # noqa: E402
 
+## owner lines deliberately not played: Vyrak's, outside Missions 09–10 (cut whole) — owner, Nov 23: he is a hidden
+## unique encounter only and never comes up in the main story
+CUT = {"M25_004"}
+
 KINDS = {"reach", "kills", "survive", "trace", "hack", "core", "talk", "choice", "boss", "race", "drive", "cutscene"}
 
 
@@ -68,11 +72,11 @@ def main():
               [i for c in mo["chapters"] for i in c["close"] if i in owner]
         # order check is per chapter stream (open → mid → by_choice → close); the draft's order is the id order
         played = [i for c in mo["chapters"] for part in ("open", "mid", "close") for i in c.get(part, []) if i in owner]
-        mains = [i for i in by_mission.get(m["id"], []) if "_" in i and i.split("_")[1].isdigit()]
+        mains = [i for i in by_mission.get(m["id"], []) if "_" in i and i.split("_")[1].isdigit() and i not in CUT]
         missing = [i for i in mains if i not in played]
         assert not missing, "mission %s misses owner lines %s" % (m["id"], missing)
         assert played == [i for i in played if True] and [i for i in played if i in mains] == mains, "mission %s plays the draft out of order" % m["id"]
-        branches = [i for i in by_mission.get(m["id"], []) if i not in mains]
+        branches = [i for i in by_mission.get(m["id"], []) if i not in mains and i not in CUT]
         got = [i for c in mo["chapters"] for v in c.get("by_choice", {}).values() for i in v]
         assert sorted(got) == sorted(branches), "mission %s branch lines %s vs %s" % (m["id"], got, branches)
     out["lines"] = new_lines

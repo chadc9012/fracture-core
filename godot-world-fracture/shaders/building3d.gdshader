@@ -11,16 +11,104 @@ uniform float facade_detail = 1.0;
 uniform float facade_weathering : hint_range(0.0, 1.0) = 0.45;
 uniform float window_reflection : hint_range(0.0, 1.0) = 0.55;
 uniform float window_light_strength : hint_range(0.0, 2.0) = 0.85;
+// Nov 22 (owner: "next step without Meshy"): facade styles in the shader, no new models. town = half-timbered market
+// town (Old Harrow, Goldenreach): plaster between dark beams, small paned windows with shutters, a stone footing.
+// rust = scrap-built Wastelands / Ember outposts: corrugated sheet, rust blooms, few and boarded windows.
+uniform float town = 0.0;
+uniform float rust = 0.0;
 
 float hash2(vec2 p) { p = fract(p * vec2(0.1031, 0.1030)); p += dot(p, p.yx + 33.33); return fract((p.x + p.y) * p.x); }
 
+// smooth value noise (the rust blooms were square blocks on floor()ed hashes: pixelated up close)
+float vn(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), f.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), f.x), f.y); }
+
 varying float seed;
-void vertex() { seed = UV2.x; }
+varying vec3 mp;   // model position and normal: the merged building mesh is unrotated, so these are the world's
+varying vec3 mn;
+void vertex() { seed = UV2.x; mp = VERTEX; mn = NORMAL; }
 void fragment() {
 	vec3 base = COLOR.rgb;
 	if (COLOR.a > 0.5) {
 		ALBEDO = base * 0.82;
 		ROUGHNESS = 0.9;
+		float slope = normalize(mn).y;
+		if (town > 0.5 && slope > 0.3 && slope < 0.97) {
+			// a pitched roof in clay tile: courses down the slope, the tiles staggered course to course, each one a
+			// touch different, moss and soot towards the eaves (Nov 22, no new models)
+			float along = dot(mp.xz, normalize(vec2(-mn.z, mn.x) + vec2(1e-5)));
+			float course = mp.y * 3.6;
+			float row = floor(course);
+			float col = along * 2.4 + mod(row, 2.0) * 0.5;
+			float tile = hash2(vec2(floor(col), row) + seed * 3.0);
+			vec3 c = base * (0.78 + 0.34 * tile);
+			c *= 0.72 + 0.28 * smoothstep(0.0, 0.35, fract(course));             // each course shades the one below
+			c *= 1.0 - 0.22 * smoothstep(0.42, 0.5, abs(fract(col) - 0.5));       // the gaps between tiles
+			c = mix(c, vec3(0.22, 0.27, 0.16), 0.35 * smoothstep(0.55, 0.9, vn(mp.xz * 0.6 + seed * 20.0)));
+			ALBEDO = c;
+			ROUGHNESS = 0.85;
+		}
+	} else if (town > 0.5) {
+		vec2 cell = floor(UV / vec2(2.6, 3.2));
+		vec2 f = fract(UV / vec2(2.6, 3.2));
+		float r = hash2(cell + seed * 17.0);
+		float pick = hash2(cell + seed * 41.0);
+		vec3 c = base * (0.9 + 0.16 * vn(UV * vec2(1.4, 1.0) + seed * 9.0));       // patchy limewash
+		c *= 1.0 - smoothstep(1.6, 0.0, UV.y) * 0.18 - hash2(vec2(floor(UV.x * 2.0), seed)) * 0.06;
+		vec3 beam = vec3(0.16, 0.11, 0.08) * (0.85 + 0.3 * hash2(floor(UV * 9.0)));
+		bool has_win = pick > 0.3 && UV.y > 3.2 || (pick > 0.55 && UV.y > 1.0);
+		bool win = has_win && f.x > 0.32 && f.x < 0.68 && f.y > 0.34 && f.y < 0.76;
+		bool shutter = has_win && f.y > 0.34 && f.y < 0.76 && ((f.x > 0.2 && f.x <= 0.32) || (f.x >= 0.68 && f.x < 0.8));
+		// the frame: posts at the bay lines, rails at the floors, a brace across the blank bays
+		float post = step(f.x, 0.055) + step(0.945, f.x);
+		float rail = step(f.y, 0.07) + step(0.93, f.y);
+		float brace = (!has_win && pick < 0.16) ? step(abs(f.y - (pick < 0.08 ? f.x : 1.0 - f.x)), 0.045) : 0.0;
+		ROUGHNESS = 0.9;
+		if (UV.y < 0.9) {
+			// a stone footing: coursed blocks
+			vec2 st = UV * vec2(1.6, 3.4) + vec2(floor(UV.y * 3.4) * 0.5, 0.0);
+			c = vec3(0.42, 0.40, 0.37) * (0.75 + 0.35 * hash2(floor(st) + seed));
+			vec2 sf = fract(st);
+			c *= 1.0 - 0.35 * step(min(sf.x, sf.y), 0.07);
+		} else if (win) {
+			// small panes behind a cross of glazing bars
+			vec2 wf = vec2((f.x - 0.32) / 0.36, (f.y - 0.34) / 0.42);
+			float bars = step(abs(wf.x - 0.5), 0.04) + step(abs(wf.y - 0.5), 0.035) + step(min(min(wf.x, 1.0 - wf.x), min(wf.y, 1.0 - wf.y)), 0.07);
+			float lit = step(1.0 - mix(0.0, 0.85, night), r);
+			c = mix(vec3(0.10, 0.13, 0.16), beam, min(bars, 1.0));
+			EMISSION = vec3(1.0, 0.66, 0.32) * lit * (1.0 - min(bars, 1.0)) * (0.6 + 0.6 * hash2(cell + 3.0)) * min(night * 3.0, 1.4);
+			ROUGHNESS = 0.2;
+		} else if (shutter) {
+			vec3 paint = pick > 0.7 ? vec3(0.22, 0.33, 0.28) : (pick > 0.5 ? vec3(0.36, 0.17, 0.14) : vec3(0.20, 0.25, 0.36));
+			c = paint * (0.8 + 0.25 * step(0.5, fract(f.y * 14.0)));
+		} else if (post + rail + brace > 0.5) {
+			c = beam;
+		}
+		ALBEDO = c;
+	} else if (rust > 0.5) {
+		vec2 cell = floor(UV / vec2(2.6, 3.2));
+		vec2 f = fract(UV / vec2(2.6, 3.2));
+		float r = hash2(cell + seed * 17.0);
+		// corrugated sheet in mismatched panels, rust blooming from the seams and running down from the fixings
+		float panel = hash2(vec2(floor(UV.x / 1.3), floor(UV.y / 2.4)) + seed * 7.0);
+		vec3 c = mix(base, vec3(0.42, 0.44, 0.45), 0.45) * (0.7 + 0.45 * panel);
+		c *= 0.86 + 0.14 * sin(UV.x * 26.0);
+		float n1 = vn(UV * vec2(1.1, 0.7) + seed * 13.0);
+		float n2 = vn(UV * vec2(4.3, 2.1) + seed * 31.0) * 0.6 + vn(UV * 11.0 + seed) * 0.4;
+		float bloom = smoothstep(0.55, 0.95, n1 * 0.6 + n2 * 0.4 + (1.0 - fract(UV.y / 2.4)) * 0.25);
+		c = mix(c, vec3(0.36, 0.17, 0.08) * (0.7 + 0.5 * n2), bloom * 0.85);
+		c *= 1.0 - 0.3 * step(fract(UV.y / 2.4), 0.03) - 0.25 * step(fract(UV.x / 1.3), 0.03);   // panel seams
+		bool win = r > 0.72 && f.x > 0.25 && f.x < 0.75 && f.y > 0.4 && f.y < 0.75 && UV.y > 2.4;
+		ROUGHNESS = 0.75;
+		METALLIC = 0.35 * (1.0 - bloom);
+		if (win) {
+			float boarded = step(0.86, r);
+			float lit = step(1.0 - mix(0.0, 0.6, night), hash2(cell + seed * 5.0)) * (1.0 - boarded);
+			c = mix(vec3(0.07, 0.08, 0.09), vec3(0.30, 0.22, 0.14) * (0.8 + 0.3 * step(0.5, fract(f.y * 9.0))), boarded);
+			EMISSION = vec3(1.0, 0.55, 0.22) * lit * night * 1.2;
+			METALLIC = 0.0;
+		}
+		ALBEDO = c;
 	} else {
 		vec2 cell = floor(UV / vec2(2.6, 3.2));
 		vec2 f = fract(UV / vec2(2.6, 3.2));

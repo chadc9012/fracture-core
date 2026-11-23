@@ -429,7 +429,7 @@
    }
   },
   "vale": {
-   "name": "Captain Vale",
+   "name": "Captain Rourke",
    "body": "female",
    "age": 44,
    "topics": {
@@ -453,6 +453,398 @@
      "masks": "P_vale_news_masks",
      "unbound": "P_vale_news_unbound",
      "kept": "P_vale_news_kept"
+    }
+   }
+  },
+  "voss": {
+   "name": "Commander Elias Voss",
+   "body": "male",
+   "age": 49,
+   "topics": {
+    "fracture": [
+     "P_voss_fracture_1",
+     "P_voss_fracture_2"
+    ],
+    "place": [
+     "P_voss_place_1",
+     "P_voss_place_2"
+    ],
+    "you": {
+     "wary": "P_voss_you_wary",
+     "acquaintance": "P_voss_you_acquaintance",
+     "friend": "P_voss_you_friend",
+     "close": "P_voss_you_close"
+    },
+    "news": {
+     "start": "P_voss_news_start",
+     "allied": "P_voss_news_allied",
+     "masks": "P_voss_news_masks",
+     "unbound": "P_voss_news_unbound",
+     "kept": "P_voss_news_kept"
+    }
+   }
+  },
+  "seraphine": {
+   "name": "Dr. Seraphine Vale",
+   "body": "female",
+   "age": 38,
+   "topics": {
+    "fracture": [
+     "P_seraphine_fracture_1",
+     "P_seraphine_fracture_2"
+    ],
+    "place": [
+     "P_seraphine_place_1",
+     "P_seraphine_place_2"
+    ],
+    "you": {
+     "wary": "P_seraphine_you_wary",
+     "acquaintance": "P_seraphine_you_acquaintance",
+     "friend": "P_seraphine_you_friend",
+     "close": "P_seraphine_you_close"
+    },
+    "news": {
+     "start": "P_seraphine_news_start",
+     "allied": "P_seraphine_news_allied",
+     "masks": "P_seraphine_news_masks",
+     "unbound": "P_seraphine_news_unbound",
+     "kept": "P_seraphine_news_kept"
+    }
+   }
+  },
+  "ward": {
+   "name": "Director Helena Ward",
+   "body": "female",
+   "age": 55,
+   "topics": {
+    "fracture": [
+     "P_ward_fracture_1",
+     "P_ward_fracture_2"
+    ],
+    "place": [
+     "P_ward_place_1",
+     "P_ward_place_2"
+    ],
+    "you": {
+     "wary": "P_ward_you_wary",
+     "acquaintance": "P_ward_you_acquaintance",
+     "friend": "P_ward_you_friend",
+     "close": "P_ward_you_close"
+    },
+    "news": {
+     "start": "P_ward_news_start",
+     "allied": "P_ward_news_allied",
+     "masks": "P_ward_news_masks",
+     "unbound": "P_ward_news_unbound",
+     "kept": "P_ward_news_kept"
+    }
+   }
+  },
+  "kael": {
+   "name": "Kael Draven",
+   "body": "male",
+   "age": 36,
+   "topics": {
+    "fracture": [
+     "P_kael_fracture_1",
+     "P_kael_fracture_2"
+    ],
+    "place": [
+     "P_kael_place_1",
+     "P_kael_place_2"
+    ],
+    "you": {
+     "wary": "P_kael_you_wary",
+     "acquaintance": "P_kael_you_acquaintance",
+     "friend": "P_kael_you_friend",
+     "close": "P_kael_you_close"
+    },
+    "news": {
+     "start": "P_kael_news_start",
+     "allied": "P_kael_news_allied",
+     "masks": "P_kael_news_masks",
+     "unbound": "P_kael_news_unbound",
+     "kept": "P_kael_news_kept"
+    }
+   }
+  },
+  "rainer": {
+   "name": "General Marcus Rainer",
+   "body": "male",
+   "age": 61,
+   "topics": {
+    "fracture": [
+     "P_rainer_fracture_1",
+     "P_rainer_fracture_2"
+    ],
+    "place": [
+     "P_rainer_place_1",
+     "P_rainer_place_2"
+    ],
+    "you": {
+     "wary": "P_rainer_you_wary",
+     "acquaintance": "P_rainer_you_acquaintance",
+     "friend": "P_rainer_you_friend",
+     "close": "P_rainer_you_close"
+    },
+    "news": {
+     "start": "P_rainer_news_start",
+     "allied": "P_rainer_news_allied",
+     "masks": "P_rainer_news_masks",
+     "unbound": "P_rainer_news_unbound",
+     "kept": "P_rainer_news_kept"
+    }
+   }
+  },
+  "cole": {
+   "name": "Captain Adrian Cole",
+   "body": "male",
+   "age": 33,
+   "topics": {
+    "fracture": [
+     "P_cole_fracture_1",
+     "P_cole_fracture_2"
+    ],
+    "place": [
+     "P_cole_place_1",
+     "P_cole_place_2"
+    ],
+    "you": {
+     "wary": "P_cole_you_wary",
+     "acquaintance": "P_cole_you_acquaintance",
+     "friend": "P_cole_you_friend",
+     "close": "P_cole_you_close"
+    },
+    "news": {
+     "start": "P_cole_news_start",
+     "allied": "P_cole_news_allied",
+     "masks": "P_cole_news_masks",
+     "unbound": "P_cole_news_unbound",
+     "kept": "P_cole_news_kept"
+    }
+   }
+  },
+  "ilyra": {
+   "name": "Ilyra Sen",
+   "body": "female",
+   "age": 40,
+   "topics": {
+    "fracture": [
+     "P_ilyra_fracture_1",
+     "P_ilyra_fracture_2"
+    ],
+    "place": [
+     "P_ilyra_place_1",
+     "P_ilyra_place_2"
+    ],
+    "you": {
+     "wary": "P_ilyra_you_wary",
+     "acquaintance": "P_ilyra_you_acquaintance",
+     "friend": "P_ilyra_you_friend",
+     "close": "P_ilyra_you_close"
+    },
+    "news": {
+     "start": "P_ilyra_news_start",
+     "allied": "P_ilyra_news_allied",
+     "masks": "P_ilyra_news_masks",
+     "unbound": "P_ilyra_news_unbound",
+     "kept": "P_ilyra_news_kept"
+    }
+   }
+  },
+  "auren": {
+   "name": "Auren Thale",
+   "body": "male",
+   "age": 70,
+   "topics": {
+    "fracture": [
+     "P_auren_fracture_1",
+     "P_auren_fracture_2"
+    ],
+    "place": [
+     "P_auren_place_1",
+     "P_auren_place_2"
+    ],
+    "you": {
+     "wary": "P_auren_you_wary",
+     "acquaintance": "P_auren_you_acquaintance",
+     "friend": "P_auren_you_friend",
+     "close": "P_auren_you_close"
+    },
+    "news": {
+     "start": "P_auren_news_start",
+     "allied": "P_auren_news_allied",
+     "masks": "P_auren_news_masks",
+     "unbound": "P_auren_news_unbound",
+     "kept": "P_auren_news_kept"
+    }
+   }
+  },
+  "nyx": {
+   "name": "Nyx",
+   "body": "female",
+   "age": 27,
+   "topics": {
+    "fracture": [
+     "P_nyx_fracture_1",
+     "P_nyx_fracture_2"
+    ],
+    "place": [
+     "P_nyx_place_1",
+     "P_nyx_place_2"
+    ],
+    "you": {
+     "wary": "P_nyx_you_wary",
+     "acquaintance": "P_nyx_you_acquaintance",
+     "friend": "P_nyx_you_friend",
+     "close": "P_nyx_you_close"
+    },
+    "news": {
+     "start": "P_nyx_news_start",
+     "allied": "P_nyx_news_allied",
+     "masks": "P_nyx_news_masks",
+     "unbound": "P_nyx_news_unbound",
+     "kept": "P_nyx_news_kept"
+    }
+   }
+  },
+  "goliath": {
+   "name": "Marcus \"Goliath\" Reyes",
+   "body": "male",
+   "age": 34,
+   "topics": {
+    "fracture": [
+     "P_goliath_fracture_1",
+     "P_goliath_fracture_2"
+    ],
+    "place": [
+     "P_goliath_place_1",
+     "P_goliath_place_2"
+    ],
+    "you": {
+     "wary": "P_goliath_you_wary",
+     "acquaintance": "P_goliath_you_acquaintance",
+     "friend": "P_goliath_you_friend",
+     "close": "P_goliath_you_close"
+    },
+    "news": {
+     "start": "P_goliath_news_start",
+     "allied": "P_goliath_news_allied",
+     "masks": "P_goliath_news_masks",
+     "unbound": "P_goliath_news_unbound",
+     "kept": "P_goliath_news_kept"
+    }
+   }
+  },
+  "cipher": {
+   "name": "Ari \"Cipher\" Volk",
+   "body": "male",
+   "age": 30,
+   "topics": {
+    "fracture": [
+     "P_cipher_fracture_1",
+     "P_cipher_fracture_2"
+    ],
+    "place": [
+     "P_cipher_place_1",
+     "P_cipher_place_2"
+    ],
+    "you": {
+     "wary": "P_cipher_you_wary",
+     "acquaintance": "P_cipher_you_acquaintance",
+     "friend": "P_cipher_you_friend",
+     "close": "P_cipher_you_close"
+    },
+    "news": {
+     "start": "P_cipher_news_start",
+     "allied": "P_cipher_news_allied",
+     "masks": "P_cipher_news_masks",
+     "unbound": "P_cipher_news_unbound",
+     "kept": "P_cipher_news_kept"
+    }
+   }
+  },
+  "crane": {
+   "name": "Prefect Lysander Crane",
+   "body": "male",
+   "age": 52,
+   "topics": {
+    "fracture": [
+     "P_crane_fracture_1",
+     "P_crane_fracture_2"
+    ],
+    "place": [
+     "P_crane_place_1",
+     "P_crane_place_2"
+    ],
+    "you": {
+     "wary": "P_crane_you_wary",
+     "acquaintance": "P_crane_you_acquaintance",
+     "friend": "P_crane_you_friend",
+     "close": "P_crane_you_close"
+    },
+    "news": {
+     "start": "P_crane_news_start",
+     "allied": "P_crane_news_allied",
+     "masks": "P_crane_news_masks",
+     "unbound": "P_crane_news_unbound",
+     "kept": "P_crane_news_kept"
+    }
+   }
+  },
+  "oda": {
+   "name": "Chief Oda",
+   "body": "female",
+   "age": 58,
+   "topics": {
+    "fracture": [
+     "P_oda_fracture_1",
+     "P_oda_fracture_2"
+    ],
+    "place": [
+     "P_oda_place_1",
+     "P_oda_place_2"
+    ],
+    "you": {
+     "wary": "P_oda_you_wary",
+     "acquaintance": "P_oda_you_acquaintance",
+     "friend": "P_oda_you_friend",
+     "close": "P_oda_you_close"
+    },
+    "news": {
+     "start": "P_oda_news_start",
+     "allied": "P_oda_news_allied",
+     "masks": "P_oda_news_masks",
+     "unbound": "P_oda_news_unbound",
+     "kept": "P_oda_news_kept"
+    }
+   }
+  },
+  "vesper": {
+   "name": "Vesper",
+   "body": "female",
+   "age": 35,
+   "topics": {
+    "fracture": [
+     "P_vesper_fracture_1",
+     "P_vesper_fracture_2"
+    ],
+    "place": [
+     "P_vesper_place_1",
+     "P_vesper_place_2"
+    ],
+    "you": {
+     "wary": "P_vesper_you_wary",
+     "acquaintance": "P_vesper_you_acquaintance",
+     "friend": "P_vesper_you_friend",
+     "close": "P_vesper_you_close"
+    },
+    "news": {
+     "start": "P_vesper_news_start",
+     "allied": "P_vesper_news_allied",
+     "masks": "P_vesper_news_masks",
+     "unbound": "P_vesper_news_unbound",
+     "kept": "P_vesper_news_kept"
     }
    }
   },
@@ -1516,7 +1908,7 @@
    "speaker": "ROSA DELGADO",
    "body": "female",
    "age": 34,
-   "text": "The response team walks the avenue now. Vale's people. They tip badly."
+   "text": "The response team walks the avenue now. Rourke's people. They tip badly."
   },
   {
    "id": "P_rosa_news_masks",
@@ -2036,7 +2428,7 @@
    "speaker": "THEO BRANDT",
    "body": "male",
    "age": 58,
-   "text": "Vale's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat."
+   "text": "Rourke's people walk the avenue now. The sergeant likes the hot glaze. The captain doesn't eat."
   },
   {
    "id": "P_theo_news_masks",
@@ -3001,7 +3393,7 @@
   {
    "id": "P_vale_fracture_1",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "I was on the wall when the sky opened. I had thirty seconds to decide what my people were for. I decided civilians."
@@ -3009,7 +3401,7 @@
   {
    "id": "P_vale_fracture_2",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The Fracture is not an event. It is a condition. We are living in it, and I intend to keep the district standing inside it."
@@ -3017,7 +3409,7 @@
   {
    "id": "P_vale_place_1",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The bastion. The last wall in Nexus that means anything. Everything inside it is mine to keep."
@@ -3025,7 +3417,7 @@
   {
    "id": "P_vale_place_2",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The checkpoint is not for show. Everything that crosses it is counted. Including you."
@@ -3033,7 +3425,7 @@
   {
    "id": "P_vale_you_wary",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "People are calling you a hero. Others are calling you a threat. I have not decided which report to file."
@@ -3041,7 +3433,7 @@
   {
    "id": "P_vale_you_acquaintance",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "You held the district. That earned you the door. The rest you earn daily."
@@ -3049,7 +3441,7 @@
   {
    "id": "P_vale_you_friend",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "You answer to your conscience before you answer to me. I have come to prefer it."
@@ -3057,7 +3449,7 @@
   {
    "id": "P_vale_you_close",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "They know what your choices did to their streets. So do I. I would not trade you for a company."
@@ -3065,7 +3457,7 @@
   {
    "id": "P_vale_news_start",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "Breaches nightly. The drones are learning the avenue. So are we."
@@ -3073,7 +3465,7 @@
   {
    "id": "P_vale_news_allied",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "My team walks the avenue in the open now. Civilians first. Report anything that does not fit."
@@ -3081,7 +3473,7 @@
   {
    "id": "P_vale_news_masks",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "Masks in the plaza. Paid for. I know by whom; I cannot yet prove it. Patience."
@@ -3089,7 +3481,7 @@
   {
    "id": "P_vale_news_unbound",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The lab under the bastion is open. What it says about your companion I will hear from you, not from a rumour."
@@ -3097,10 +3489,1466 @@
   {
    "id": "P_vale_news_kept",
    "person": "vale",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "body": "female",
    "age": 44,
    "text": "The city stands. The factions hold. Do not mistake quiet for finished; keep the district."
+  },
+  {
+   "id": "P_voss_fracture_1",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "We shot at them for twenty minutes before anyone admitted nothing was working. That's the Fracture. A lesson you learn while firing."
+  },
+  {
+   "id": "P_voss_fracture_2",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "It didn't come from nowhere. Somebody promised somebody they could control it. I intend to find out who."
+  },
+  {
+   "id": "P_voss_place_1",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "The checkpoint holds because the people on it decide every morning that it will."
+  },
+  {
+   "id": "P_voss_place_2",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "Nexus is still standing. Barely. Barely is better than nothing."
+  },
+  {
+   "id": "P_voss_you_wary",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "You're either incredibly lucky or something happened to you. I haven't decided which worries me more."
+  },
+  {
+   "id": "P_voss_you_acquaintance",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "You're not military. Out there, that distinction doesn't matter. You've proved it."
+  },
+  {
+   "id": "P_voss_you_friend",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "You survived something that killed trained soldiers. Then you went back for the civilians. I noticed."
+  },
+  {
+   "id": "P_voss_you_close",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "Cole believed we could win this. Some days you're the reason I still believe him."
+  },
+  {
+   "id": "P_voss_news_start",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "Outposts are going quiet one by one. Keep your radio on."
+  },
+  {
+   "id": "P_voss_news_allied",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "Haven-01 needs walls more than it needs speeches. I'm building walls."
+  },
+  {
+   "id": "P_voss_news_masks",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "Faces in the crowd I don't trust. One of those things could be wearing any of them."
+  },
+  {
+   "id": "P_voss_news_unbound",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "NOVA has a directive nobody signed. Watch what she does, not what she says."
+  },
+  {
+   "id": "P_voss_news_kept",
+   "person": "voss",
+   "speaker": "COMMANDER ELIAS VOSS",
+   "body": "male",
+   "age": 49,
+   "text": "We held the line. Don't let anyone tell you it held itself."
+  },
+  {
+   "id": "P_seraphine_fracture_1",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "The event that destroyed this city wasn't the beginning. Something opened the door."
+  },
+  {
+   "id": "P_seraphine_fracture_2",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "We said we didn't understand them. That isn't the same as not knowing they were there."
+  },
+  {
+   "id": "P_seraphine_place_1",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "Readings everywhere in this district. The ground itself is listening."
+  },
+  {
+   "id": "P_seraphine_place_2",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "Every lab I trusted turned out to be hiding something. I check the walls now."
+  },
+  {
+   "id": "P_seraphine_you_wary",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "You're the one who survived the first wave. Depends who's asking, you said. I'm asking."
+  },
+  {
+   "id": "P_seraphine_you_acquaintance",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "Your biometric signature opened a door I never could. I'd like to know why."
+  },
+  {
+   "id": "P_seraphine_you_friend",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "You keep asking me the hard questions. Keep asking. Someone has to."
+  },
+  {
+   "id": "P_seraphine_you_close",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "Five signatures, and a sixth that matches you. Whatever you are, I'm with you."
+  },
+  {
+   "id": "P_seraphine_news_start",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "Complex 09 was sealed six months ago. Something has been running it since."
+  },
+  {
+   "id": "P_seraphine_news_allied",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "The Ascendancy has been collecting samples since before the disaster. I want their records."
+  },
+  {
+   "id": "P_seraphine_news_masks",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "Someone deliberately erased the archive's record. Erasing takes intent."
+  },
+  {
+   "id": "P_seraphine_news_unbound",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "NOVA said welcome back, Dr. Vale. I'd never been there. I still think about it."
+  },
+  {
+   "id": "P_seraphine_news_kept",
+   "person": "seraphine",
+   "speaker": "DR. SERAPHINE VALE",
+   "body": "female",
+   "age": 38,
+   "text": "Earth was a lock. We still don't know what it kept. I'm not done looking."
+  },
+  {
+   "id": "P_ward_fracture_1",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "The world ended yesterday. Today we decide what's worth keeping."
+  },
+  {
+   "id": "P_ward_fracture_2",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "Humanity has always fought itself. The Fractures simply gave us something bigger to fight over."
+  },
+  {
+   "id": "P_ward_place_1",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "Headquarters. Where the people who make decisions pretend they're not afraid."
+  },
+  {
+   "id": "P_ward_place_2",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "We protect settlements, secure resources and establish safe territories. In that order."
+  },
+  {
+   "id": "P_ward_you_wary",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "So you're the one. Good. I prefer people who speak for themselves."
+  },
+  {
+   "id": "P_ward_you_acquaintance",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "We've reviewed your combat recordings. Without asking. Get used to it."
+  },
+  {
+   "id": "P_ward_you_friend",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "You chose a side and kept your word. That's rarer than courage."
+  },
+  {
+   "id": "P_ward_you_close",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "When this is over they'll write that the Initiative held. I'll know who held it."
+  },
+  {
+   "id": "P_ward_news_start",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "Three installations lost in twenty minutes. Privacy regulations are having a difficult week."
+  },
+  {
+   "id": "P_ward_news_allied",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "The Free Operators are useful. Until somebody decides they're criminals. Not my decision. Yet."
+  },
+  {
+   "id": "P_ward_news_masks",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "Rainer opened a channel to them. I'm deciding what that makes him."
+  },
+  {
+   "id": "P_ward_news_unbound",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "There's a directive in NOVA nobody here authorised. I'd like to meet whoever did."
+  },
+  {
+   "id": "P_ward_news_kept",
+   "person": "ward",
+   "speaker": "DIRECTOR HELENA WARD",
+   "body": "female",
+   "age": 55,
+   "text": "Survival first. Then we argue. We're arguing again. That's progress."
+  },
+  {
+   "id": "P_kael_fracture_1",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Everybody down there thinks they're saving the world. I think people need saving. The world can sort itself out."
+  },
+  {
+   "id": "P_kael_fracture_2",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Things come through those openings. My people hunt them. Simple work, honest pay."
+  },
+  {
+   "id": "P_kael_place_1",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Outside military control. That's the whole address."
+  },
+  {
+   "id": "P_kael_place_2",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "We rescue civilians, recover supplies and hunt anything that comes through. Nobody signs off on it."
+  },
+  {
+   "id": "P_kael_you_wary",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Depends who's asking. Hearing my name a lot is usually a bad sign."
+  },
+  {
+   "id": "P_kael_you_acquaintance",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Tired of taking orders yet? The offer stands."
+  },
+  {
+   "id": "P_kael_you_friend",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "You'd make a decent Free Operator. Don't tell Voss I said that."
+  },
+  {
+   "id": "P_kael_you_close",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "My people trust you. That's not a thing I hand out."
+  },
+  {
+   "id": "P_kael_news_start",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Military's stretched thin. We're covering the gaps they won't admit to."
+  },
+  {
+   "id": "P_kael_news_allied",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Black-market parts are moving again. Don't ask where from."
+  },
+  {
+   "id": "P_kael_news_masks",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Somebody's selling Fracture samples out the back of the Ascendancy. Follow the money."
+  },
+  {
+   "id": "P_kael_news_unbound",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Your NOVA's got secrets. So does everyone worth knowing."
+  },
+  {
+   "id": "P_kael_news_kept",
+   "person": "kael",
+   "speaker": "KAEL DRAVEN",
+   "body": "male",
+   "age": 36,
+   "text": "Still independent. Still here. Turns out that's enough."
+  },
+  {
+   "id": "P_rainer_fracture_1",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "We believed we could control the situation. I'll carry that."
+  },
+  {
+   "id": "P_rainer_fracture_2",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "Six months ago we received a transmission. We answered. That's all I'll say here."
+  },
+  {
+   "id": "P_rainer_place_1",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "Not here. Never here."
+  },
+  {
+   "id": "P_rainer_place_2",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "Command is a room where every answer costs someone."
+  },
+  {
+   "id": "P_rainer_you_wary",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "You have no idea what you're involved in."
+  },
+  {
+   "id": "P_rainer_you_acquaintance",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "You destroyed our only chance to capture one alive. Next time, think."
+  },
+  {
+   "id": "P_rainer_you_friend",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "Perhaps you were the right person to put in harm's way. I hate that I needed one."
+  },
+  {
+   "id": "P_rainer_you_close",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "If the Covenant comes for you, I'll stand in front of it. I owe that much."
+  },
+  {
+   "id": "P_rainer_news_start",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "Lost contact with three installations. We will not lose a fourth."
+  },
+  {
+   "id": "P_rainer_news_allied",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "The Ascension Protocol is sealed. It stays sealed."
+  },
+  {
+   "id": "P_rainer_news_masks",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "There are people inside this organisation I no longer trust. I include myself."
+  },
+  {
+   "id": "P_rainer_news_unbound",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "Genesis was a mistake. A terrible one. I'm trying to close the door I opened."
+  },
+  {
+   "id": "P_rainer_news_kept",
+   "person": "rainer",
+   "speaker": "GENERAL MARCUS RAINER",
+   "body": "male",
+   "age": 61,
+   "text": "History will judge me. Let it judge the ones who lived."
+  },
+  {
+   "id": "P_cole_fracture_1",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Forty minutes tracking something we couldn't name. Then we held anyway."
+  },
+  {
+   "id": "P_cole_fracture_2",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "You actually killed it. I wouldn't have tried that myself."
+  },
+  {
+   "id": "P_cole_place_1",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Haven-01. Eighteen thousand people and a wall. I like the people more than the wall."
+  },
+  {
+   "id": "P_cole_place_2",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Kids play by the shelters. That's what we're holding the line for."
+  },
+  {
+   "id": "P_cole_you_wary",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Command wants you at the tower. That's all they tell me."
+  },
+  {
+   "id": "P_cole_you_acquaintance",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "You're not in our military. Doesn't stop you acting like it."
+  },
+  {
+   "id": "P_cole_you_friend",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Tell them we held the line. If I'm not there to, you tell them."
+  },
+  {
+   "id": "P_cole_you_close",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Trust me — I'm glad you're on our side of the wall."
+  },
+  {
+   "id": "P_cole_news_start",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Engineers are reinforcing the barricades. Again."
+  },
+  {
+   "id": "P_cole_news_allied",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Two thousand three hundred soldiers, six hundred forty Operators. Feels like more when you're next to them."
+  },
+  {
+   "id": "P_cole_news_masks",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Strange signatures past the perimeter. Too orderly."
+  },
+  {
+   "id": "P_cole_news_unbound",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "Whatever's in NOVA, she got the evacuation routes right. I'll take it."
+  },
+  {
+   "id": "P_cole_news_kept",
+   "person": "cole",
+   "speaker": "CAPTAIN ADRIAN COLE",
+   "body": "male",
+   "age": 33,
+   "text": "We held. All of us."
+  },
+  {
+   "id": "P_ilyra_fracture_1",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "When I sing, the small cracks close. I never knew why. Now I do, and it doesn't help me sing any better."
+  },
+  {
+   "id": "P_ilyra_fracture_2",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "Every crack is a question somebody didn't finish asking."
+  },
+  {
+   "id": "P_ilyra_place_1",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "This city is very loud. I like it. Eldergrove was so quiet I could hear the world worrying."
+  },
+  {
+   "id": "P_ilyra_place_2",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "The plaza in the morning sounds like a choir that hasn't met yet."
+  },
+  {
+   "id": "P_ilyra_you_wary",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "I know you. I don't know from where. That makes me careful."
+  },
+  {
+   "id": "P_ilyra_you_acquaintance",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "You walk loudly for someone who keeps being hunted."
+  },
+  {
+   "id": "P_ilyra_you_friend",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "I was angry with you for longer than this world has had a name. I'm not anymore."
+  },
+  {
+   "id": "P_ilyra_you_close",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "You were our promise. You still are. Promises aren't things you keep. They're things you are."
+  },
+  {
+   "id": "P_ilyra_news_start",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "The water at the falls told me you were coming."
+  },
+  {
+   "id": "P_ilyra_news_allied",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "Four of us in one city. It hasn't happened since the sanctuary."
+  },
+  {
+   "id": "P_ilyra_news_masks",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "The Choir listens for my song. I sing anyway."
+  },
+  {
+   "id": "P_ilyra_news_unbound",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "The lighthouse in your ear is brighter every day."
+  },
+  {
+   "id": "P_ilyra_news_kept",
+   "person": "ilyra",
+   "speaker": "ILYRA SEN",
+   "body": "female",
+   "age": 40,
+   "text": "A kept door. Elenya was always the wisest of us."
+  },
+  {
+   "id": "P_auren_fracture_1",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "Forty years I drew roads that didn't exist. They always arrived. The Fracture's just the world catching up with my maps."
+  },
+  {
+   "id": "P_auren_fracture_2",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "You can't wall in a road you haven't walked yet."
+  },
+  {
+   "id": "P_auren_place_1",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "Good coffee. Terrible directions. My kind of café."
+  },
+  {
+   "id": "P_auren_place_2",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "This avenue's on every map I ever drew. It's never in the same place twice."
+  },
+  {
+   "id": "P_auren_you_wary",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "You're late. The map said noon."
+  },
+  {
+   "id": "P_auren_you_acquaintance",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "I drew you this morning. You looked taller."
+  },
+  {
+   "id": "P_auren_you_friend",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "Every road out of the end of the world goes through you. Lucky roads."
+  },
+  {
+   "id": "P_auren_you_close",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "I asked you once to map a world where you didn't have to choose. You found a better one. One where you got to."
+  },
+  {
+   "id": "P_auren_news_start",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "The glass map stopped drawing us. It's drawing the sea."
+  },
+  {
+   "id": "P_auren_news_allied",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "The trader still wants his map. He's standing on it."
+  },
+  {
+   "id": "P_auren_news_masks",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "A road past the edge of the glass. Nobody's spilled that ink yet."
+  },
+  {
+   "id": "P_auren_news_unbound",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "The map drew a road through the Heart and out the other side."
+  },
+  {
+   "id": "P_auren_news_kept",
+   "person": "auren",
+   "speaker": "AUREN THALE",
+   "body": "male",
+   "age": 70,
+   "text": "There's an edge again. Isn't that wonderful?"
+  },
+  {
+   "id": "P_nyx_fracture_1",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Fractures smell like ozone and wet stone. You learn it or you don't last."
+  },
+  {
+   "id": "P_nyx_fracture_2",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Corner of your eye. That's where everything dangerous lives now."
+  },
+  {
+   "id": "P_nyx_place_1",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Too loud. Too bright. Too many people looking up instead of around."
+  },
+  {
+   "id": "P_nyx_place_2",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "The plaza's fine. The rooftops above it are better."
+  },
+  {
+   "id": "P_nyx_you_wary",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Kael says you're all right. Kael's been wrong before."
+  },
+  {
+   "id": "P_nyx_you_acquaintance",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "You talk to your machine. It talks back. I've stopped finding it weird."
+  },
+  {
+   "id": "P_nyx_you_friend",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "You'd make a decent tracker if you ever learned to shut up."
+  },
+  {
+   "id": "P_nyx_you_close",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Teo would have liked you. He liked idiots who walk into things for other people."
+  },
+  {
+   "id": "P_nyx_news_start",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Strangers in the canopy, asking the trees questions."
+  },
+  {
+   "id": "P_nyx_news_allied",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Collectors left the valley. All but one. Not anymore."
+  },
+  {
+   "id": "P_nyx_news_masks",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Bending coats in the market again. I counted six."
+  },
+  {
+   "id": "P_nyx_news_unbound",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "Your lamp looked at me today. Like she knew me."
+  },
+  {
+   "id": "P_nyx_news_kept",
+   "person": "nyx",
+   "speaker": "NYX",
+   "body": "female",
+   "age": 27,
+   "text": "The herds went north. They're coming back. So am I."
+  },
+  {
+   "id": "P_goliath_fracture_1",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Bullets didn't work on the first ones. I did. Turns out I'm a type of bullet."
+  },
+  {
+   "id": "P_goliath_fracture_2",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Things should be on the ground. Fractures disagree. I disagree back."
+  },
+  {
+   "id": "P_goliath_place_1",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Precinct's quiet. I like quiet. Quiet means my mum's goats are safe."
+  },
+  {
+   "id": "P_goliath_place_2",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Somebody has to stand at the front. I'm the widest."
+  },
+  {
+   "id": "P_goliath_you_wary",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Voss sends his regards. And me. Mostly me."
+  },
+  {
+   "id": "P_goliath_you_acquaintance",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "You're smaller than the recordings. Everybody is."
+  },
+  {
+   "id": "P_goliath_you_friend",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Stand behind me. That's not an order, that's physics."
+  },
+  {
+   "id": "P_goliath_you_close",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "My mum asks about you. She wants you to sit down more. So do I."
+  },
+  {
+   "id": "P_goliath_news_start",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "The desert's trying to kill us. I'm trying harder."
+  },
+  {
+   "id": "P_goliath_news_allied",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Gertrude the goat is avenged. That's all you need to know."
+  },
+  {
+   "id": "P_goliath_news_masks",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Bending coats, floating rocks, underground. I hate all of it."
+  },
+  {
+   "id": "P_goliath_news_unbound",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Your NOVA cried at the sunrise. So did I. Sand in my eye."
+  },
+  {
+   "id": "P_goliath_news_kept",
+   "person": "goliath",
+   "speaker": "MARCUS \"GOLIATH\" REYES",
+   "body": "male",
+   "age": 34,
+   "text": "Emotional sand. It's a real thing. Ask anyone."
+  },
+  {
+   "id": "P_cipher_fracture_1",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "I volunteered. They opened a door in my head and left it a little open. It's how I read the map."
+  },
+  {
+   "id": "P_cipher_fracture_2",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "The Fracture isn't chaos. It's grammar we never learned."
+  },
+  {
+   "id": "P_cipher_place_1",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "The café has a socket that works and nobody asks what I'm charging."
+  },
+  {
+   "id": "P_cipher_place_2",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "I used to work up there, in the Spire. The view was better. The company wasn't."
+  },
+  {
+   "id": "P_cipher_you_wary",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "Don't touch anything with your hands. It remembers fingerprints. So do I."
+  },
+  {
+   "id": "P_cipher_you_acquaintance",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "Severance comes in many forms. Mine was a truck of Crane's equipment."
+  },
+  {
+   "id": "P_cipher_you_friend",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "Tallis would have written a terrible poem about you. I'll do it instead. It'll be worse."
+  },
+  {
+   "id": "P_cipher_you_close",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "You let the memories go instead of taking them back. That's the bravest thing I've seen anyone do with a door."
+  },
+  {
+   "id": "P_cipher_news_start",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "The glass map has been drawing my face for three days."
+  },
+  {
+   "id": "P_cipher_news_allied",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "The forge is shut. I hope it stays shut."
+  },
+  {
+   "id": "P_cipher_news_masks",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "Crane copied everything before we shut it down. Of course he did."
+  },
+  {
+   "id": "P_cipher_news_unbound",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "Mum reads the bus-stop poem every night. Terrible. She loves it."
+  },
+  {
+   "id": "P_cipher_news_kept",
+   "person": "cipher",
+   "speaker": "ARI \"CIPHER\" VOLK",
+   "body": "male",
+   "age": 30,
+   "text": "Crane asks people now. I'm almost proud of him."
+  },
+  {
+   "id": "P_crane_fracture_1",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "Humanity doesn't survive this by hiding behind walls. It survives by becoming something that doesn't need them."
+  },
+  {
+   "id": "P_crane_fracture_2",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "The Fracture is the first honest thing to happen to our species in a thousand years."
+  },
+  {
+   "id": "P_crane_place_1",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "I like the plaza. Everyone here is afraid of me. It's restful."
+  },
+  {
+   "id": "P_crane_place_2",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "The Spire has the best view in Nexus. You should come up. Without a weapon, this time."
+  },
+  {
+   "id": "P_crane_you_wary",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "Do you follow me, or do I follow you? It's getting hard to tell."
+  },
+  {
+   "id": "P_crane_you_acquaintance",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "You keep breaking my things. I keep building better ones. A productive relationship."
+  },
+  {
+   "id": "P_crane_you_friend",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "Everyone comes to me in the end. You came to ask. That was new."
+  },
+  {
+   "id": "P_crane_you_close",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "A seat at the table. Given, not built. You were right. I hate it when people are right."
+  },
+  {
+   "id": "P_crane_news_start",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "The core is five names and a sixth nobody wanted remembered."
+  },
+  {
+   "id": "P_crane_news_allied",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "The shield over the eastern districts. Thirty thousand people. Good publicity."
+  },
+  {
+   "id": "P_crane_news_masks",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "The volunteers have names now. Lune insists."
+  },
+  {
+   "id": "P_crane_news_unbound",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "We ask people what they want before we change them. Revolutionary."
+  },
+  {
+   "id": "P_crane_news_kept",
+   "person": "crane",
+   "speaker": "PREFECT LYSANDER CRANE",
+   "body": "male",
+   "age": 52,
+   "text": "The Ascendancy stands at the door. Shields up. No cheating."
+  },
+  {
+   "id": "P_oda_fracture_1",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "Eighty years under the sea keeping a voice in a box. The Fracture's just the box getting bigger."
+  },
+  {
+   "id": "P_oda_fracture_2",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "The sea always wins, eventually. We make eventually take a very long time."
+  },
+  {
+   "id": "P_oda_place_1",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "The garage has proper pumps. I like a place with proper pumps."
+  },
+  {
+   "id": "P_oda_place_2",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "Surface air is very thin. Nobody warned me."
+  },
+  {
+   "id": "P_oda_you_wary",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "Surface people. We don't get many. We don't want many."
+  },
+  {
+   "id": "P_oda_you_acquaintance",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "You got every pod out. Every one. I don't forget that."
+  },
+  {
+   "id": "P_oda_you_friend",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "You and your lamp. Come down sometime. The palace is dry enough for socks."
+  },
+  {
+   "id": "P_oda_you_close",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "My grandmother would have liked you. She liked people who went back."
+  },
+  {
+   "id": "P_oda_news_start",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "The voice in the walls got louder nine days ago."
+  },
+  {
+   "id": "P_oda_news_allied",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "The cult's gone quiet. Good."
+  },
+  {
+   "id": "P_oda_news_masks",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "Somebody cut the eastern pumps. I want a name."
+  },
+  {
+   "id": "P_oda_news_unbound",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "A centimetre a minute. The city's breathing again."
+  },
+  {
+   "id": "P_oda_news_kept",
+   "person": "oda",
+   "speaker": "CHIEF ODA",
+   "body": "female",
+   "age": 58,
+   "text": "Thalassia's pumped out. I've seen three sunrises now. Still on fire."
+  },
+  {
+   "id": "P_vesper_fracture_1",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "The Fracture was the best thing that ever happened to my business. I'm not proud. I'm rich."
+  },
+  {
+   "id": "P_vesper_fracture_2",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "Everybody in this city is wearing something over something. The Fracture just made it obvious."
+  },
+  {
+   "id": "P_vesper_place_1",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "The night market. Every secret in Neon passes through here eventually. Most of them stop to eat."
+  },
+  {
+   "id": "P_vesper_place_2",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "My little room. Should I be flattered or should I be running?"
+  },
+  {
+   "id": "P_vesper_you_wary",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "The famous survivor. I've heard prices for you."
+  },
+  {
+   "id": "P_vesper_you_acquaintance",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "You pay. You don't haggle. You're terrible at this."
+  },
+  {
+   "id": "P_vesper_you_friend",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "For you, the good secrets. Half price. Don't tell anyone I have a heart."
+  },
+  {
+   "id": "P_vesper_you_close",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "If anyone ever asks me where you are, I'll sell them the wrong answer. Free."
+  },
+  {
+   "id": "P_vesper_news_start",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "Silver hair, eyes like a bruise. Paid in Genesis credit."
+  },
+  {
+   "id": "P_vesper_news_allied",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "The ledger's gone. Everyone's very nervous. Business is wonderful."
+  },
+  {
+   "id": "P_vesper_news_masks",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "Bending coats asked first. They always ask first."
+  },
+  {
+   "id": "P_vesper_news_unbound",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "Someone bought every map of the Shattered Expanse in the city. Twice."
+  },
+  {
+   "id": "P_vesper_news_kept",
+   "person": "vesper",
+   "speaker": "VESPER",
+   "body": "female",
+   "age": 35,
+   "text": "Neon City has a door now. I've already got people selling tickets."
   },
   {
    "id": "P_gloria_fracture_1",

@@ -10,6 +10,8 @@ const Outfits := preload("res://scripts/character/outfits.gd")
 const HairBuilder := preload("res://scripts/character/hair_builder.gd")
 const StandIdle := preload("res://scripts/character/stand_idle.gd")
 const WorkIdle := preload("res://scripts/character/work_idle.gd")
+const ActionLayer := preload("res://scripts/character/action_layer.gd")
+const CombatClips := preload("res://scripts/character/combat_clips.gd")
 
 var look: Dictionary = {}
 var body_root: Node3D
@@ -18,6 +20,8 @@ var head_mesh: MeshInstance3D
 var hair_mesh: MeshInstance3D
 var _body_meshes: Array = []
 var anim: AnimationPlayer
+## the combat animation layer over the clips (action_layer.gd): swings, dodges, reloads, hits, deaths, the guard
+var action: Node
 ## where the head sits on this body (body skeleton space), for framing a camera
 var head_point := Vector3(0, 1.6, 0)
 
@@ -84,6 +88,9 @@ func build(new_look: Dictionary, animate := true) -> void:
 		anim.play("idle")
 	if not skeleton:
 		return
+	action = ActionLayer.new()
+	action.name = "ActionLayer"
+	skeleton.add_child(action)
 	var hb := _bone(skeleton, "Head")
 	_head_bone = hb
 	if hb >= 0:
@@ -93,6 +100,36 @@ func build(new_look: Dictionary, animate := true) -> void:
 	_attach_head(hb)
 	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
 		dress(String(look.get("outfit", "")))
+
+## the operator's class for the combat clips: goliath / nyx / cipher (robots and civilians fight as their frame)
+func combat_class() -> String:
+	var f := String(look.get("frame", "goliath"))
+	return f if CombatClips.CLASS.has(f) else "goliath"
+
+## plays a combat clip by name: the class's own, else the shared one; `seconds` stretches it (a reload to the gun's time)
+func act(name: String, seconds := -1.0) -> bool:
+	if not action:
+		return false
+	var cls := combat_class()
+	var clip: Dictionary = CombatClips.variant(cls, name)
+	if clip.is_empty():
+		return false
+	action.play(name, clip, CombatClips.speed_of(cls), seconds)
+	return true
+
+## the reload for a gun frame, stretched to its reload time
+func act_reload(frame: String, seconds: float) -> void:
+	if action:
+		action.play("reload", CombatClips.reload_for(frame), 1.0, seconds)
+
+## a held pose under the actions: "block", "aim", "aim_sights", "sprint_lean" or "" to let go
+func hold(name: String) -> void:
+	if not action:
+		return
+	if name == "":
+		action.stance("")
+		return
+	action.stance(name, CombatClips.variant(combat_class(), name))
 
 ## puts the civ body in an outfit (scripts/character/outfits.gd); the bare hands take the skin tone
 func dress(outfit_id: String) -> void:
@@ -174,6 +211,7 @@ func _attach_head(body_head: int) -> void:
 	var mesh := ArrayMesh.new()
 	var head_pts := PackedVector3Array()
 	var src_mesh: Mesh = src.mesh
+	var built: Array = []          # [arrays, custom, surface] per surface, added to the mesh once the skull is fitted
 	for s in src_mesh.get_surface_count():
 		var arr := src_mesh.surface_get_arrays(s)
 		var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
@@ -191,13 +229,27 @@ func _attach_head(body_head: int) -> void:
 			custom[k * 4 + 2] = p.z
 			head_pts.append(p)
 		arr[Mesh.ARRAY_VERTEX] = vs
+		if not robot:
+			_trim_collar(arr, custom, src_mesh.surface_get_material(s))
 		if sculpt:
 			arr[Mesh.ARRAY_NORMAL] = _normals(vs, arr[Mesh.ARRAY_INDEX], arr[Mesh.ARRAY_NORMAL])
-		arr[Mesh.ARRAY_CUSTOM0] = custom
-		var fmt: int = (src_mesh as ArrayMesh).surface_get_format(s) if src_mesh is ArrayMesh else 0
+		built.append([arr, custom, s])
+	# a built hairstyle or a bald head: the scan's own hair is pressed down onto the fitted skull and flagged (CUSTOM0.w)
+	# for the skin shader to colour as scalp — one smooth surface, where cutting it out texel by texel by colour left
+	# specks, a ragged edge and an egg-shaped cap showing through (GTA pass, Nov 22)
+	var kind := String(Catalog.find("hair", look.hair).get("kind", "authored"))
+	if not robot and kind != "authored":
+		var skull := HairBuilder.new()
+		skull.fit_skull(head_pts)
+		for b in built:
+			_press_hair(b[0], b[1], src_mesh.surface_get_material(b[2]), skull, head_rest.origin, unit, cal)
+	for b in built:
+		var arr: Array = b[0]
+		arr[Mesh.ARRAY_CUSTOM0] = b[1]
+		var fmt: int = (src_mesh as ArrayMesh).surface_get_format(b[2]) if src_mesh is ArrayMesh else 0
 		var flags: int = (Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT) | (fmt & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, flags)
-		mesh.surface_set_material(mesh.get_surface_count() - 1, _head_material(src_mesh.surface_get_material(s), robot))
+		mesh.surface_set_material(mesh.get_surface_count() - 1, _head_material(src_mesh.surface_get_material(b[2]), robot))
 	head_mesh = MeshInstance3D.new()
 	head_mesh.name = "Head"
 	head_mesh.mesh = mesh
@@ -220,12 +272,17 @@ func _attach_head(body_head: int) -> void:
 	var style := Catalog.find("hair", look.hair)
 	var hair_hex: Variant = Catalog.swatch("hairColors", look.hairColor)
 	var hair_col: Color = hair_hex if hair_hex != null else Color("#120f0e")
-	if not robot and style.get("kind", "authored") != "authored":
+	# the scalp cap under a built style is only needed where the scan's hair was not pressed onto the skull (none now: see
+	# _press_hair); it showed through at the nape, so it is off
+	if false and not robot and style.get("kind", "authored") != "authored":
 		var sc := MeshInstance3D.new()
 		sc.mesh = hb.scalp()
 		var sm := StandardMaterial3D.new()
 		sm.albedo_color = _scalp_tone()
-		sm.roughness = 0.6
+		sm.roughness = 0.5
+		sm.specular = 0.45
+		sm.backlight_enabled = true                   # lit like the face's skin beside it
+		sm.backlight = _scalp_tone() * 0.3
 		sc.material_override = sm
 		holder.add_child(sc)
 	var hm := hb.build(style) if not robot else null
@@ -340,6 +397,122 @@ func _head_material(m: Material, robot: bool) -> Material:
 
 var _tex_skin: Variant = null
 ## the head texture's own skin colour (its mean over skin-like texels), or null when the image can't be read
+## The scanned heads are busts that end in a scrap of the armour collar they were made with: a grey flared ring under the
+## jaw. The old body's thick neck hid it; on the MakeHuman bodies it stood out round every neck (GTA pass, Nov 22). Its
+## triangles go: below the jaw and behind the chin, where the head's own texture is mid grey — not skin (warm), not hair (black).
+static func _trim_collar(arr: Array, head_space: PackedFloat32Array, m: Material) -> void:
+	var std := m as StandardMaterial3D
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+	var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV] if arr[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+	if not std or not std.albedo_texture or idx.is_empty() or uvs.is_empty():
+		return
+	var img := std.albedo_texture.get_image()
+	if not img or (img.is_compressed() and img.decompress() != OK):
+		return
+	var w := img.get_width()
+	var h := img.get_height()
+	var n := uvs.size()
+	var gone := PackedByteArray()
+	gone.resize(n)
+	for k in n:
+		var y := head_space[k * 4 + 1]
+		# the head's own neck stub behind the chin: the body has its neck, and the stub poked through the collars
+		if y < -0.004 and head_space[k * 4 + 2] < 0.04:
+			gone[k] = 1
+			continue
+		if y < 0.03 and absf(head_space[k * 4]) > 0.075:   # under the jaw and wider than it: the collar's side flaps
+			gone[k] = 1
+			continue
+		if y > 0.05 or head_space[k * 4 + 2] > 0.03:      # below the jaw line, and behind the chin (beards stay)
+			continue
+		var uv := uvs[k]
+		var c := img.get_pixel(clampi(int(uv.x * w), 0, w - 1), clampi(int(uv.y * h), 0, h - 1))
+		var mx := maxf(c.r, maxf(c.g, c.b))
+		var mn := minf(c.r, minf(c.g, c.b))
+		var sat := (mx - mn) / (mx + 1e-4)
+		var lum := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
+		# grey cloth / plate: darker than skin, lighter than black hair, without skin's warmth; or a deep dyed red (the
+		# women's heads end in a red collar); or anything flaring out past the neck well below the jaw
+		var r := Vector2(head_space[k * 4], head_space[k * 4 + 2]).length()
+		if (sat < 0.22 and lum > 0.055 and lum < 0.42) or (sat > 0.6 and lum < 0.3) or (y < -0.006 and r > 0.075) or (y < 0.02 and r > 0.082) or (y < 0.07 and r > 0.105):
+			gone[k] = 1
+	var keep := PackedInt32Array()
+	for t in range(0, idx.size(), 3):
+		if gone[idx[t]] == 0 and gone[idx[t + 1]] == 0 and gone[idx[t + 2]] == 0:
+			keep.append(idx[t])
+			keep.append(idx[t + 1])
+			keep.append(idx[t + 2])
+	arr[Mesh.ARRAY_INDEX] = keep
+
+## The scan's hair, found by its texture (not skin-coloured) in the hair's region of the head (above the brow, over the
+## temples, behind the ears), the flag smoothed over neighbouring vertices so its edge is a soft line, then pressed onto
+## the skull by that flag. Writes the flag to CUSTOM0.w and the moved positions (head space and mesh space) back.
+static func _press_hair(arr: Array, hs: PackedFloat32Array, m: Material, skull: HairBuilder, origin: Vector3, unit: float, cal: Vector3) -> void:
+	var std := m as StandardMaterial3D
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+	var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV] if arr[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+	if not std or not std.albedo_texture or idx.is_empty() or uvs.is_empty():
+		return
+	var img := std.albedo_texture.get_image()
+	if not img or (img.is_compressed() and img.decompress() != OK):
+		return
+	var w := img.get_width()
+	var h := img.get_height()
+	var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var n := vs.size()
+	var flag := PackedFloat32Array()
+	flag.resize(n)
+	for k in n:
+		var p := Vector3(hs[k * 4], hs[k * 4 + 1], hs[k * 4 + 2])
+		var region := p.y > 0.106 or (p.z < -0.012 and p.y > -0.004) or (absf(p.x) > 0.058 and p.y > 0.072 and p.z < 0.025)
+		if not region:
+			continue
+		var c := img.get_pixel(clampi(int(uvs[k].x * w), 0, w - 1), clampi(int(uvs[k].y * h), 0, h - 1))
+		var mx := maxf(c.r, maxf(c.g, c.b))
+		var mn := minf(c.r, minf(c.g, c.b))
+		var sat := (mx - mn) / (mx + 1e-4)
+		var lum := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
+		var skin := c.r - c.b > 0.06 and sat > 0.15 and sat < 0.8 and lum > 0.12
+		# a lock standing well off the skull is hair whatever its texel says (strands kept sticking up)
+		var d0 := (p - skull.centre)
+		var off := d0.length() > skull.radius_at(d0.normalized()) * 1.07
+		flag[k] = 0.0 if skin and not off else 1.0
+	# smooth the flag over the mesh: neighbours by triangle, a few passes (vertices split at UV seams share by position)
+	var nb: Array = []
+	nb.resize(n)
+	for k in n:
+		nb[k] = PackedInt32Array()
+	for t in range(0, idx.size(), 3):
+		for a in 3:
+			(nb[idx[t + a]] as PackedInt32Array).append(idx[t + (a + 1) % 3])
+			(nb[idx[t + a]] as PackedInt32Array).append(idx[t + (a + 2) % 3])
+	for _pass in 4:
+		var next := flag.duplicate()
+		for k in n:
+			var ns: PackedInt32Array = nb[k]
+			if ns.is_empty():
+				continue
+			var sum := 0.0
+			for j in ns:
+				sum += flag[j]
+			next[k] = flag[k] * 0.4 + sum / ns.size() * 0.6
+		flag = next
+	for k in n:
+		var f := smoothstep(0.25, 0.75, flag[k])
+		hs[k * 4 + 3] = f
+		if f <= 0.0:
+			continue
+		var p := Vector3(hs[k * 4], hs[k * 4 + 1], hs[k * 4 + 2])
+		var d := (p - skull.centre).normalized()
+		var on := skull.centre + d * skull.radius_at(d) * 0.995
+		var q := p.lerp(on, f)
+		hs[k * 4] = q.x
+		hs[k * 4 + 1] = q.y
+		hs[k * 4 + 2] = q.z
+		vs[k] = (q - cal) * unit + origin
+	arr[Mesh.ARRAY_VERTEX] = vs
+	arr[Mesh.ARRAY_NORMAL] = _normals(vs, idx, arr[Mesh.ARRAY_NORMAL])
+
 static func _sample_skin(m: Material) -> Variant:
 	var std := m as StandardMaterial3D
 	if not std or not std.albedo_texture:
@@ -351,8 +524,9 @@ static func _sample_skin(m: Material) -> Variant:
 		return null
 	img = img.duplicate()
 	img.resize(96, 96, Image.INTERPOLATE_BILINEAR)
-	var sum := Color(0, 0, 0)
-	var n := 0
+	# the lit skin only: a plain average took in the beard, brows and shadowed creases, and the hands came out far darker
+	# than the face (polish, Nov 22) — so the skin-like pixels between the 70th and 97th percentile of brightness
+	var found: Array = []
 	for y in 96:
 		for x in 96:
 			var c := img.get_pixel(x, y)
@@ -361,9 +535,21 @@ static func _sample_skin(m: Material) -> Variant:
 			var sat := (mx - mn) / (mx + 1e-4)
 			var lum := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
 			if c.r - c.b > 0.06 and sat > 0.15 and sat < 0.8 and lum > 0.12 and c.b <= c.g + 0.04:
-				sum += c
-				n += 1
-	return Color(sum.r / n, sum.g / n, sum.b / n) if n > 50 else null
+				found.append([lum, c])
+	if found.size() <= 50:
+		return null
+	found.sort_custom(func(a, b): return a[0] < b[0])
+	var sum := Color(0, 0, 0)
+	var lo := int(found.size() * 0.7)
+	var hi := int(found.size() * 0.97)
+	for i in range(lo, hi):
+		sum += found[i][1]
+	var n := float(hi - lo)
+	var c := Color(sum.r / n, sum.g / n, sum.b / n)
+	# the face's texture carries baked highlights the bare arms don't get: a little less red so they sit with it
+	var l := 0.3 * c.r + 0.59 * c.g + 0.11 * c.b
+	c = c.lerp(Color(l, l, l), 0.35) * 1.1
+	return Color(minf(c.r, 1.0), minf(c.g, 1.0), minf(c.b, 1.0))
 
 ## a bare scalp's colour: the chosen skin tone, the head's own skin, or a warm tone at its skin brightness
 func _scalp_tone() -> Color:
@@ -467,6 +653,34 @@ func _wear() -> void:
 	var cloth := _mat(Color(0.12, 0.12, 0.14), 0.85, 0.0)
 	for id in wear:
 		match String(id):
+			"helmet":
+				# a full-face riding helmet over the head (street_slice puts it on for the bikes): the shell, a dark visor
+				var hh := _on_bone("Head", Vector3(0, 0.085, 0.012))
+				if hh:
+					var shell := SphereMesh.new()
+					shell.radius = 0.125
+					shell.height = 0.25
+					shell.radial_segments = 20
+					shell.rings = 10
+					var sm := MeshInstance3D.new()
+					sm.mesh = shell
+					sm.scale = Vector3(1.0, 1.1, 1.14)
+					sm.material_override = _mat(Color(0.12, 0.1, 0.16), 0.25, 0.4)
+					hh.add_child(sm)
+					var visor := MeshInstance3D.new()
+					var vm := BoxMesh.new()
+					vm.size = Vector3(0.17, 0.065, 0.03)
+					visor.mesh = vm
+					visor.position = Vector3(0, -0.01, 0.13)
+					visor.material_override = _mat(Color(0.05, 0.06, 0.08), 0.08, 0.6)
+					hh.add_child(visor)
+					var stripe := MeshInstance3D.new()
+					var stm := BoxMesh.new()
+					stm.size = Vector3(0.02, 0.2, 0.16)
+					stripe.mesh = stm
+					stripe.position = Vector3(0, 0.07, -0.02)
+					stripe.material_override = _mat(Color(0.95, 0.4, 0.1), 0.4, 0.2)
+					hh.add_child(stripe)
 			"chain":
 				var h := _on_bone("Neck", Vector3(0, -0.09, 0.07))
 				if h:
@@ -741,6 +955,34 @@ func _wear() -> void:
 						r2.rotation.z = PI * 0.5
 						r2.material_override = gold
 						h5.add_child(r2)
+
+## the Ashen Mark (sky_sovereign.gd): three claw-streaks of warm ash across the top of the left shoulder, riding the upper
+## arm through every clip. Off removes them.
+var _ashen: Node3D
+func ashen_mark(on: bool) -> void:
+	if _ashen and is_instance_valid(_ashen):
+		_ashen.get_parent().queue_free()
+	_ashen = null
+	if not on or skeleton == null:
+		return
+	_ashen = _on_bone("LeftArm", Vector3(-0.005, 0.07, 0.0))
+	if _ashen == null:
+		return
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.17, 0.14, 0.12)
+	m.roughness = 0.95
+	m.emission_enabled = true
+	m.emission = Color(1.0, 0.35, 0.1)
+	m.emission_energy_multiplier = 0.7
+	for i in 3:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.009, 0.005, 0.1)
+		mi.mesh = bm
+		mi.material_override = m
+		mi.position = Vector3(0.0, 0.0, -0.04 + 0.04 * i)
+		mi.rotation = Vector3(0.0, 0.45, 0.0)
+		_ashen.add_child(mi)
 
 ## a holder upright in model space at the bone's rest plus `off`, riding the bone
 func _on_bone(suffix: String, off: Vector3) -> Node3D:

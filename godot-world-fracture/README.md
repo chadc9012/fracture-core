@@ -152,7 +152,7 @@ crowd, the pit lane with its wall and garages, and a start-light gantry. You rac
 build) from the back of the grid against three rivals who follow the centreline and ease off for the corners; five
 lights, three laps, live positions and lap times, grass that cuts your grip, the best lap into `drive_records.json`
 and the prize Nex (900 / 500 / 250 / 100) plus 150 XP into the profile. Rules are tested headless
-(`--script res://tests/racing/race_test.gd`); the shot `race:go` skips the lights and lets the car drive itself.
+(`--script res://tests/racing/race_test.gd`); the shot `race:go` skips the lights and lets the car drive itself, and `race:<track>:go:in=<vehicle id>` races that vehicle. Race classes (owner, Nov 1; `race_view.race_class`, Nov 22): the class is what you bring — on a **bike** the rivals ride the showroom's bikes, every one with a rider in a helmet; in an **off-roader**, or on the rally, the mountain and the volcano run whatever you bring, the rivals are off-roaders (the ATV, the Raider, the buggy) and wallows of **mud** lie across the road every 140 m or so (`_mud`): a car in one slithers at 45 % of its top speed, throws up brown spray and comes out caked; otherwise the street grid. Cars shove rather than stop on each other (`_contacts`), rivals keep their own lane and ease off behind a car, and a glancing scrape along a wall bleeds speed instead of halting. **Air races** (`scripts/flying/air_race.gd`, the AIR RACE tile on the Races page; shot `skyways:jet:race[:go]`): the Skyways ring course over Nexus City against three rival jets — they wait on the apron beside your pad, lift when you do, and fly ring to ring on their own line at their own pace (the Skyhawk, the Riftwing, the Thunderbolt); placings by rings flown, then by time; first through the last ring wins the 900 / 500 / 250 / 100 purse through Progression. tests/flying/skyways_play.tscn covers the field, the launch, the standings and the purse.
 
 **Mall shops** (`scripts/gear/shop_view.gd`, from the Galleria's NOVA THREADS and HAVEN HOME buttons): Nova Threads sells
 the web game's outfits (gear.json) for the profile's Nex — owned ones are free to wear again, event outfits only during
@@ -231,8 +231,8 @@ Shot: `descent:wild`.
 
 **Rift Gate — Fracture bosses** (`scripts/combat/boss.gd`, `boss_view.gd`, `boss_arena.gd`; the RIFT GATE button; asset
 catalog gap 5): the six creatures on the owner's board — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak the Ashen
-Covenant, Astravore, Rust Colossus — as boss fights at the Verdant Forest crash-site clearing on the authored boss / elite
-hulls (models/bosses: frost-wolf, aberration-elite, abyssal-boss, skyborn-boss, aberration-boss, guardian-boss, scaled to
+Covenant, Astravore, Rust Colossus — as boss fights at the Verdant Forest crash-site clearing on bespoke Meshy hulls since
+Nov 23 (models/bosses/<id>.glb; the Astravore still on the authored aberration-boss until its download lands; scaled to
 2.6–9 m). `boss.gd` is the web game's boss systems ported pure: three phases by hull (ENGAGED / OVERDRIVEN / OVERLOADED,
 speed / damage / cooldown multipliers), poise from sustained fire (×1.6 per damage, 4/s decay) breaking into a 4 s stagger
 at ×2.25 damage with a 6 s refractory, a weak point (×1.6) for 5 s on every phase flare, and an attack cycle per boss —
@@ -240,7 +240,7 @@ telegraph (red ring on the ground, the row's seconds ÷ phase speed), then LUNGE
 (a burning cone) or SUMMON (adds through enemies.gd, more per phase), then a cooldown. The HUD carries the boss bar with
 hull, phase and poise; the core glows cyan in a punish window. A first clear pays the row's Nex / XP (600 / 400 for the
 Hound up to 2500 / 1500 for the Colossus), repeats a third; `profile.boss_clears` remembers. Tests:
-tests/combat/boss_test.gd. Shots: `boss[:<id>][:fight]`.
+tests/combat/boss_test.gd. Shots: `boss[:<id>][:fight]` (any BOSSES / STORY / UNIQUE id). **Chapter 1's bosses** (Nov 23) are the `STORY` rows — Fracture Commander, Subject Zero, Fracture Executioner, Fracture Siege Beast, The Harbinger, Archive Warden — and, from Missions 8 and 10, The Ascendant Construct and Vael Turog, the Severant (one `vael-turog.glb` for his memory fight, his Chapter 6 and 8 fights and his cutscene figure) — on hulls of their own (`models/bosses/<id>.glb`, Meshy 7.1 image-to-3D decimated to 80k tris by `tools/decimate_glb.py`), fought in their Aftershock missions (campaign.gd BOSS_FOR) and not in the Rift Gate's pick; look-dev `OUT=x.png … res://tests/tools/_boss_lineup.tscn`.
 
 **Killbox** (`scripts/killbox/`, the KILLBOX button on the globe): the web game's arenas (`data/killbox.json`, from
 `scripts/export-godot-killbox.ts` over `src/game/killbox-arenas.ts`) in Godot — Kaiju Complex first: six rooftops in two
@@ -659,7 +659,7 @@ officer walking over when notoriety is high: a warning, then a 150 Nex fine). Th
 OperatorPlayer looks as everyone, so the realistic bodies, faces and outfits show on them. Standing at their place they do the job (`scripts/character/work_idle.gd`, Nov 18): five clips built from the rest pose the way stand_idle.gd builds the stand — `work_counter` (hands up on the counter, wiping), `work_tool` (bent over the job, the right arm pumping), `sit`, `busk` (the guitar across the body, strumming) and `wait` (a phone to the ear); `WorkIdle.clip_for(activity, job)` picks one and `operator_player.idle_clip` plays it in place of "idle" when the mover stands still (walking blends out of it as usual). Lineup: `OUT=x.png godot … res://tests/tools/_job_lineup.tscn`. Neon City has its own fifteen
 (`NEON`, `NEON_PLACES`: a street racer, the casino door and pit boss, a promoter, the night market's tech stall and noodle
 stall, two officers, a hacker, a mechanic, a courier, an arcade attendant, a street preacher — mostly out at night). Tier 3
-are the dialogue draft's own people speaking its lines (`tier: 3`, talk.gd `CANON`, ★ on the tag): Captain Vale on the
+are the dialogue draft's own people speaking its lines (`tier: 3`, talk.gd `CANON`, ★ on the tag): Captain Rourke on the
 Nexus plaza once Mission 05's choice is made (`needs: m05_choice`; she greets you by that choice) and Fixer Sable in a
 Neon City alley at night (her jobs pay ×3 and add notoriety). The regions have people too (`people.gd` REGIONS, met in each airport's halls and forecourt, the Verdant Forest on arrival): Pilot Neri, dock hand Coral and vendor Mae at Thalassia Coast; Mechanic Rook, Zahra and Idris at Solmara; Ranger Kest, Anya and Lars at Frostveil; Marshal Draev (who patrols), Ruth and Gus at Obsidian Reach; Kiri, Leilani and Sol at the Azure Isles; the Wanderer, Brann and Ines at the Shattered Expanse; Warden Ilya and Scout Mira in the Verdant Forest. ★ characters speak the dialogue draft's lines by band. Shot: `--shot <png> airport:<code>:land:<s>[:x,y,z:tx,ty,tz]`. Tests: `--script res://tests/npc/npc_test.gd`, `res://tests/npc/npc_play.tscn`. Shots:
 `--shot <png> slicedaywalk:npc=<id>:hour=<h>[:talk]`.
@@ -667,3 +667,34 @@ Neon City alley at night (her jobs pay ×3 and add notoriety). The regions have 
 ## Distance LODs for the Meshy models
 
 `blender -b -P tools/make_lod.py -- models/buildings/<name>.glb 7000` writes `<name>-lod.glb` beside the model (a quarter of the triangles, no textures); `street_slice.gd prop()` draws the full model within 70 m and the LOD beyond, wearing the full model's materials. Rebuild a LOD after replacing its model. `tests/tools/prim_breakdown.gd -- neon|nexus` prints where a street's triangles come from.
+
+**Combat animations and close combat** (owner, Nov 21–22: "full GOLIATH, NYX and CIPHER character combat animations;
+running, jumping and dodging; weapon-specific reloads; enemy melee attacks and defensive behavior; boss combat patterns
+and stagger"). The bodies came with four clips, so the rest are authored as key poses on the shared Mixamo skeleton
+(`scripts/character/combat_clips.gd`, 54 clips) and played over the walk / run by a skeleton modifier
+(`action_layer.gd`, `rig.act()` / `rig.hold()`): per class a three-hit chain, a heavy, a finisher, a guard, four
+dodges and a cast — GOLIATH a brawler (straight, hook, two-fisted hammer; ground pound; lift-and-slam; crossed-forearm
+guard; shoulder charges), NYX a blade dancer (slashes, back-hand, spinning kick; lunging stab; leaping downward stab;
+forward roll, backflip, cartwheels), CIPHER an energy caster (palm strikes, double-palm push; charged palm with arc
+chain; palm-to-chest burst; blink-step glides) — and shared jump / air / land, sprint lean, flinch, stagger,
+knockdown, get-up, death, parry, the gun at the ready and at the sights. Every gun frame reloads its own way (rifle and
+SMG mag swap and charging handle, hand cannon mag and slide, shotgun shell by shell and the pump, sniper bolt-mag-bolt,
+LMG top cover and box, launcher loaded from behind, fusion cell swap), stretched to its reload time, the gun tilted
+with the hands. `scripts/combat/close_combat.gd` plays them: MELEE (tap the chain, hold the heavy, near a staggered or
+weak foe the finisher), DODGE (along the stick, i-frames), BLOCK (a guard meter; pressed just before a blow it is a
+parry and the next swing counters at ×2). Enemies stagger past their poise, get knocked down by heavies and fall when
+they die; the Executor telegraphs (its optics flare) and swings a three-hit chain, gunners rifle-butt you at arm's
+reach, scouts and marksmen side-step a held crosshair or a grenade, elites brace under fire, Executors block light
+swings, hurt gunners back off. Bosses chain attacks into follow-ups from phase 2 (every attack in phase 3), add
+SWEEP (jump or dodge it), CHARGE (a telegraphed line) and SPIKES (circles where you stood), take poise from parries and
+can be finished while staggered. Tests: `tests/combat/close_combat_test.gd`. Look-dev: `tests/tools/_combat_lineup.tscn`
+(poses in a row), `tests/tools/_combat_shots.tscn` (a scripted fight with the phone HUD).
+
+**Operator abilities** (`scripts/combat/abilities.gd`, owned by close_combat.gd): two abilities on cooldowns and a super
+filled by the damage you deal, per class, cast through the class's cast clip — GOLIATH BULWARK (a hard-light wall in the
+shared obstacles for 8 s) / SEISMIC SLAM (knocks down all round) / JUGGERNAUT (12 s: 70% less damage taken, melee ×2,
+shield refilled); NYX SHADOW STEP (blink 8 m, unseen past 2.5 m for 3 s) / PHANTOM BLADES (three seeking blades that
+mark) / BLADE DANCE (six dashes through the nearest foes, untouchable); CIPHER ARC SURGE (chains through four, stuns) /
+GRAVITY WELL (a field at the crosshair that pulls and holds) / RESONANCE BLAST (the charge and a 10 m blast). Phone: the
+three ability buttons (A1, A2, SUPER) wear their names and charge; desk: 1 / 2 / 3.
+

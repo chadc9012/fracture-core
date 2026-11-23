@@ -41,13 +41,13 @@ import type { SolidBox } from "./environment-collision";
 import type { PvpModeId } from "./pvp";
 import type { Wall } from "./walls";
 
-export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome" | "void-rift";
+export type ArenaId = "kaiju-complex" | "fracture-floor" | "killbox-prime" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome" | "void-rift" | "foundry-row" | "sanctum" | "rig-nine";
 /** an axis-aligned roof: x0..x1 by z0..z1 in arena space (m), its surface `top` m above the arena base */
 export type ArenaRoof = { id: string; name: string; x0: number; x1: number; z0: number; z1: number; top: number };
 /** a straight walkway along z (bridges cross the street) or x (stairs between roofs): from `top` at the low-coordinate end to `topB` */
 export type ArenaWalk = { id: string; x: number; z: number; along: "x" | "z"; length: number; width: number; top: number; topB: number; rails: boolean };
 /** a solid prop standing on a roof (HVAC unit, water tank, sign base): blocks movement and line of sight; you can mantle onto it */
-export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier" | "dropship" | "planter" | "pillar" | "monolith"; x: number; z: number; w: number; d: number; h: number };
+export type ArenaCover = { id: string; kind: "hvac" | "tank" | "vent" | "crate" | "sign" | "container" | "console" | "barrier" | "dropship" | "planter" | "pillar" | "monolith" | "wall"; x: number; z: number; w: number; d: number; h: number };
 /** a cover wall that rises and sinks with the fracture event: "up" stands until the event sinks it, "down" lies flush until the
  * event raises it. Solid (movement and sight) while more than half raised. */
 export type ArenaShifter = { id: string; x: number; z: number; w: number; d: number; h: number; phase: "up" | "down" };
@@ -60,7 +60,7 @@ export type KillboxArena = {
   /** where it hangs in the world (x, z) and the height of its street level */
   site: { x: number; z: number }; base: number;
   /** how KillboxArena.tsx dresses it */
-  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome" | "void-rift";
+  look: "neon-rooftops" | "nexus-grid" | "prime-roof" | "skydock" | "neon-yard" | "glass-spire" | "riverfront" | "solara-outpost" | "frostveil-ring" | "thalassia-dome" | "void-rift" | "foundry" | "sanctum" | "rig";
   roofs: readonly ArenaRoof[]; walks: readonly ArenaWalk[]; cover: readonly ArenaCover[]; ledges: readonly ArenaWall[];
   shifters: readonly ArenaShifter[];
   /** team spawns (arena space): "us" is the player's side; free-for-all uses both */
@@ -719,7 +719,189 @@ export const VOID_RIFT: KillboxArena = {
   modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
 };
 
-export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST, "frostveil-ring": FROSTVEIL_RING, "thalassia-dome": THALASSIA_DOME, "void-rift": VOID_RIFT };
+/* ---------------- the lane maps (owner, Nov 22: "maps that look like destiny crucible and call of duty multi-player") ---------------- */
+
+/** the faces of a raised block as ledges: all four sides from `base` to `top`, open at the `gaps` (a side and the span left open) */
+function ledgeRing(x0: number, x1: number, z0: number, z1: number, base: number, top: number, gaps: readonly { side: "n" | "s" | "w" | "e"; from: number; to: number }[] = []): ArenaWall[] {
+  const out: ArenaWall[] = [];
+  const run = (side: "n" | "s" | "w" | "e", a: number, b: number) => {
+    const cuts = gaps.filter((g) => g.side === side).sort((p, q) => p.from - q.from);
+    let at = a;
+    const seg = (u: number, v: number) => { if (v - u > 0.01) out.push(side === "n" ? { ax: u, az: z0, bx: v, bz: z0, base, top } : side === "s" ? { ax: u, az: z1, bx: v, bz: z1, base, top } : side === "w" ? { ax: x0, az: u, bx: x0, bz: v, base, top } : { ax: x1, az: u, bx: x1, bz: v, base, top }); };
+    for (const g of cuts) { seg(at, g.from); at = g.to; }
+    seg(at, b);
+  };
+  run("n", x0, x1); run("s", x0, x1); run("w", z0, z1); run("e", z0, z1);
+  return out;
+}
+
+// Foundry Row: a three-lane map in the classic mould. Two long sheds stand between the lanes; the mid lane runs spawn to
+// spawn between them, broken by containers, and the outer lanes run round the outside. Each shed's roof (3.5 m up) is a
+// power position over two lanes, reached by one steel stair on its owner's side. Tall walls screen the spawns.
+const FD_ROOFS: ArenaRoof[] = [
+  { id: "yard", name: "Foundry Yard", x0: -38, x1: 38, z0: -36, z1: 36, top: 20 },
+  { id: "west-shed", name: "West Shed Roof", x0: -24, x1: -12, z0: -13, z1: 13, top: 23.5 },
+  { id: "east-shed", name: "East Shed Roof", x0: 12, x1: 24, z0: -13, z1: 13, top: 23.5 },
+];
+const FD_WALKS: ArenaWalk[] = [
+  { id: "west-stair", x: -18, z: 16.5, along: "z", length: 7, width: 3, top: 23.5, topB: 20, rails: true },
+  { id: "east-stair", x: 18, z: -16.5, along: "z", length: 7, width: 3, top: 20, topB: 23.5, rails: true },
+];
+const FD_LEDGES: ArenaWall[] = [
+  ...ledgeRing(-24, -12, -13, 13, 19.5, 23.5, [{ side: "s", from: -19.5, to: -16.5 }]),
+  ...ledgeRing(12, 24, -13, 13, 19.5, 23.5, [{ side: "n", from: 16.5, to: 19.5 }]),
+];
+const FD_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  // the walls that screen the spawn from the lanes: you leave through the gaps
+  { id: "spawn-wall-w", kind: "wall", x: -30, z: 24, w: 12, d: 0.8, h: 4 },
+  { id: "spawn-wall-c", kind: "wall", x: 0, z: 26, w: 10, d: 0.8, h: 4 },
+  { id: "spawn-wall-e", kind: "wall", x: 30, z: 24, w: 12, d: 0.8, h: 4 },
+  // the mid lane
+  { id: "mid-box", kind: "container", x: -4, z: 5, w: 2.4, d: 6, h: 2.6 },
+  { id: "mid-crates", kind: "crate", x: 5, z: 10, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "mid-barrier", kind: "barrier", x: 0, z: 16, w: 4, d: 1.2, h: 1.2 },
+  // the outer lanes
+  { id: "lane-w-box", kind: "container", x: -31, z: 6, w: 2.4, d: 6, h: 2.6 },
+  { id: "lane-w-crate", kind: "crate", x: -28, z: -4, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "lane-e-barrier", kind: "barrier", x: 31, z: 8, w: 3, d: 1.2, h: 1.2 },
+  { id: "lane-e-tank", kind: "tank", x: 34, z: 18, w: 2.4, d: 2.4, h: 3 },
+  // on the shed roofs
+  { id: "shed-hvac", kind: "hvac", x: -18, z: -6, w: 2.5, d: 2, h: 1.4 },
+  { id: "shed-crate", kind: "crate", x: -15, z: 6, w: 1.6, d: 1.6, h: 1.2 },
+]);
+const FD_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // blast doors standing across the lane mouths, that drop when the furnace vents…
+  { id: "door-e", x: 10, z: 20, w: 6, d: 1, h: 3, phase: "up" },
+  // …and the slag shields that rise in the open lanes
+  { id: "shield-w", x: -30, z: 14, w: 5, d: 1, h: 2.4, phase: "down" },
+  { id: "shield-mid", x: 0, z: 8, w: 1, d: 4, h: 2.4, phase: "down" },
+]);
+
+export const FOUNDRY_ROW: KillboxArena = {
+  id: "foundry-row", name: "Foundry Row", region: "Neon City · Iron Quarter", size: "medium",
+  blurb: "Three lanes through a foundry yard by day. Two long sheds divide the lanes and their roofs are the power positions, one stair each. Hold mid between the containers or run the outside. When the furnace vents, smoke rolls in and the blast doors drop.",
+  site: { x: 2000, z: 1180 }, base: ARENA_ALTITUDE, look: "foundry",
+  roofs: FD_ROOFS, walks: FD_WALKS, cover: FD_COVER, ledges: FD_LEDGES, shifters: FD_SHIFTERS,
+  spawns: {
+    us: [[-12, 31], [0, 32], [12, 31], [-30, 31], [30, 31], [-20, 33]],
+    them: [[12, -31], [0, -32], [-12, -31], [30, -31], [-30, -31], [20, -33]],
+  },
+  zones: [{ id: "A", dx: -31, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 31, dz: 0 }], objective: [0, 0],
+  killPlane: 10,
+  fracture: { name: "Furnace Vent", brief: "The furnace vents: smoke rolls through the yard (sight drops), the blast doors drop and slag shields rise in the open lanes.", first: 75, every: 130, length: 25, warn: 10, visibility: 0.6 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
+};
+
+// Sanctum: an arena in the Crucible mould. A raised dais in the middle of an open court (1.5 m up, a ramp on every side)
+// is the fight everyone comes to; a gallery 3 m up along each flank looks down on it, a ramp at each end so either team can
+// take it. Pillars and screen walls break the long lines.
+const SC_ROOFS: ArenaRoof[] = [
+  { id: "court", name: "Sanctum Court", x0: -36, x1: 36, z0: -36, z1: 36, top: 20 },
+  { id: "dais", name: "The Dais", x0: -7, x1: 7, z0: -7, z1: 7, top: 21.5 },
+  { id: "west-gallery", name: "West Gallery", x0: -36, x1: -27, z0: -16, z1: 16, top: 23 },
+  { id: "east-gallery", name: "East Gallery", x0: 27, x1: 36, z0: -16, z1: 16, top: 23 },
+];
+const SC_WALKS: ArenaWalk[] = [
+  { id: "dais-ramp-n", x: 0, z: -9.5, along: "z", length: 5, width: 5, top: 20, topB: 21.5, rails: false },
+  { id: "dais-ramp-s", x: 0, z: 9.5, along: "z", length: 5, width: 5, top: 21.5, topB: 20, rails: false },
+  { id: "dais-ramp-w", x: -9.5, z: 0, along: "x", length: 5, width: 5, top: 20, topB: 21.5, rails: false },
+  { id: "dais-ramp-e", x: 9.5, z: 0, along: "x", length: 5, width: 5, top: 21.5, topB: 20, rails: false },
+  { id: "west-ramp-n", x: -31.5, z: -20, along: "z", length: 8, width: 4, top: 20, topB: 23, rails: true },
+  { id: "west-ramp-s", x: -31.5, z: 20, along: "z", length: 8, width: 4, top: 23, topB: 20, rails: true },
+  { id: "east-ramp-n", x: 31.5, z: -20, along: "z", length: 8, width: 4, top: 20, topB: 23, rails: true },
+  { id: "east-ramp-s", x: 31.5, z: 20, along: "z", length: 8, width: 4, top: 23, topB: 20, rails: true },
+];
+const SC_LEDGES: ArenaWall[] = [
+  ...ledgeRing(-7, 7, -7, 7, 19.5, 21.5, [{ side: "n", from: -2.5, to: 2.5 }, { side: "s", from: -2.5, to: 2.5 }, { side: "w", from: -2.5, to: 2.5 }, { side: "e", from: -2.5, to: 2.5 }]),
+  ...ledgeRing(-36, -27, -16, 16, 19.5, 23, [{ side: "n", from: -33.5, to: -29.5 }, { side: "s", from: -33.5, to: -29.5 }, { side: "w", from: -16, to: 16 }]),
+  ...ledgeRing(27, 36, -16, 16, 19.5, 23, [{ side: "n", from: 29.5, to: 33.5 }, { side: "s", from: 29.5, to: 33.5 }, { side: "e", from: -16, to: 16 }]),
+];
+const SC_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  // the screen between each spawn and the dais: come round it
+  { id: "screen", kind: "wall", x: 0, z: 22, w: 12, d: 0.8, h: 4 },
+  // pillars at the corners of the dais
+  { id: "pillar-sw", kind: "pillar", x: -11, z: 11, w: 1.6, d: 1.6, h: 5 },
+  { id: "pillar-se", kind: "pillar", x: 11, z: 11, w: 1.6, d: 1.6, h: 5 },
+  // the walls between the court and the lane under each gallery, a doorway between them
+  { id: "lane-wall-w", kind: "wall", x: -20, z: 6, w: 0.8, d: 8, h: 4 },
+  { id: "lane-wall-e", kind: "wall", x: 20, z: 6, w: 0.8, d: 8, h: 4 },
+  { id: "monolith-w", kind: "monolith", x: -20, z: 26, w: 2, d: 2, h: 3.5 },
+  { id: "monolith-e", kind: "monolith", x: 20, z: 26, w: 2, d: 2, h: 3.5 },
+  { id: "court-barrier", kind: "barrier", x: -14, z: 16, w: 3, d: 1.2, h: 1.2 },
+  { id: "court-crate", kind: "crate", x: 14, z: 18, w: 2.2, d: 2.2, h: 1.3 },
+  // on the galleries and the dais
+  { id: "gallery-crate", kind: "crate", x: -31.5, z: 6, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "gallery-console", kind: "console", x: 31.5, z: 8, w: 2, d: 1, h: 1.4 },
+  { id: "dais-console", kind: "console", x: 4, z: 4, w: 1.6, d: 1, h: 1.3 },
+]);
+const SC_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // hard-light screens by the dais that fail in the eclipse…
+  { id: "light-w", x: -17, z: 0, w: 1, d: 5, h: 2.6, phase: "up" },
+  // …and the stone wards that rise before the ramps
+  { id: "ward-s", x: 0, z: 14, w: 5, d: 1, h: 2.4, phase: "down" },
+]);
+
+export const SANCTUM: KillboxArena = {
+  id: "sanctum", name: "Sanctum", region: "Elyndra · Concord Sanctum", size: "medium",
+  blurb: "A Concord court at dusk. Everyone fights for the dais in the middle; the galleries along each flank look down on it and either team can climb them. Pillars and screen walls break the long lines. In the eclipse the light fails and stone wards rise.",
+  site: { x: 2300, z: 1180 }, base: ARENA_ALTITUDE, look: "sanctum",
+  roofs: SC_ROOFS, walks: SC_WALKS, cover: SC_COVER, ledges: SC_LEDGES, shifters: SC_SHIFTERS,
+  spawns: {
+    us: [[-14, 30], [0, 31], [14, 30], [-24, 31], [24, 31], [-6, 33]],
+    them: [[14, -30], [0, -31], [-14, -30], [24, -31], [-24, -31], [6, -33]],
+  },
+  zones: [{ id: "A", dx: -31.5, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 31.5, dz: 0 }], objective: [0, 0],
+  killPlane: 10,
+  fracture: { name: "Eclipse", brief: "The Concord's light is eclipsed: the court goes dark (sight drops), the hard-light screens fail and stone wards rise before the dais.", first: 80, every: 135, length: 25, warn: 10, visibility: 0.5 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
+};
+
+// Rig Nine: the small, fast one. A drilling platform's deck, 52 x 56 m, with the derrick floor in the middle 4 m up (one
+// stair from each side) and containers pinwheeled round it so no line across the deck is clear.
+const RG_ROOFS: ArenaRoof[] = [
+  { id: "deck", name: "Rig Deck", x0: -26, x1: 26, z0: -28, z1: 28, top: 20 },
+  { id: "derrick", name: "Derrick Floor", x0: -5, x1: 5, z0: -4, z1: 4, top: 24 },
+];
+const RG_WALKS: ArenaWalk[] = [
+  { id: "stair-s", x: -3.5, z: 8, along: "z", length: 8, width: 3, top: 24, topB: 20, rails: true },
+  { id: "stair-n", x: 3.5, z: -8, along: "z", length: 8, width: 3, top: 20, topB: 24, rails: true },
+];
+const RG_LEDGES: ArenaWall[] = ledgeRing(-5, 5, -4, 4, 19.5, 24, [{ side: "s", from: -5, to: -2 }, { side: "n", from: 2, to: 5 }]);
+const RG_COVER: ArenaCover[] = pointPair<ArenaCover>([
+  { id: "box-w", kind: "container", x: -12, z: 8, w: 2.4, d: 6, h: 2.6 },
+  { id: "box-e", kind: "container", x: 12, z: 12, w: 6, d: 2.4, h: 2.6 },
+  { id: "stack", kind: "container", x: -19, z: 18, w: 6, d: 2.4, h: 5.2 },
+  { id: "mud-tank", kind: "tank", x: 20, z: 4, w: 3, d: 3, h: 3 },
+  { id: "pump", kind: "hvac", x: 8, z: 3, w: 2.5, d: 2, h: 1.4 },
+  { id: "spawn-barrier", kind: "barrier", x: 0, z: 18, w: 4, d: 1.2, h: 1.2 },
+  { id: "crates-s", kind: "crate", x: 5, z: 22, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "crates-w", kind: "crate", x: -22, z: 10, w: 2.2, d: 2.2, h: 1.3 },
+  { id: "rail-barrier", kind: "barrier", x: 18, z: 22, w: 3, d: 1.2, h: 1.2 },
+  { id: "derrick-crate", kind: "crate", x: 3.2, z: 1.5, w: 1.4, d: 1.4, h: 1.2 },
+]);
+const RG_SHIFTERS: ArenaShifter[] = pointPair<ArenaShifter>([
+  // pipe racks the swell knocks flat…
+  { id: "rack-s", x: -8, z: 18, w: 1, d: 4, h: 2.4, phase: "up" },
+  // …and the storm shutters that rise on the open deck
+  { id: "shutter-e", x: 14, z: 0, w: 1, d: 4, h: 2.4, phase: "down" },
+]);
+
+export const RIG_NINE: KillboxArena = {
+  id: "rig-nine", name: "Rig Nine", region: "Thalassia Sea · Platform Nine", size: "small",
+  blurb: "A drilling platform at sunset, and the smallest map in the Killbox: the derrick floor in the middle, containers pinwheeled round it, nowhere to hide for long. When the storm swell hits, spray cuts the sight lines, the pipe racks go over and the shutters rise.",
+  site: { x: 2600, z: 1180 }, base: ARENA_ALTITUDE, look: "rig",
+  roofs: RG_ROOFS, walks: RG_WALKS, cover: RG_COVER, ledges: RG_LEDGES, shifters: RG_SHIFTERS,
+  spawns: {
+    us: [[-10, 25], [0, 25], [10, 25], [-20, 25], [22, 26], [-14, 22]],
+    them: [[10, -25], [0, -25], [-10, -25], [20, -25], [-22, -26], [14, -22]],
+  },
+  zones: [{ id: "A", dx: -21, dz: 0 }, { id: "B", dx: 0, dz: 0 }, { id: "C", dx: 21, dz: 0 }], objective: [0, 0],
+  killPlane: 10,
+  fracture: { name: "Storm Swell", brief: "A storm swell breaks over the rig: spray cuts the sight lines, the pipe racks go over and storm shutters rise on the open deck.", first: 60, every: 110, length: 25, warn: 10, visibility: 0.6 },
+  modes: ["clash", "dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"],
+};
+
+export const ARENAS: Readonly<Record<ArenaId, KillboxArena>> = { "kaiju-complex": KAIJU_COMPLEX, "fracture-floor": FRACTURE_FLOOR, "killbox-prime": KILLBOX_PRIME, skydock: SKYDOCK, "neon-yard": NEON_YARD, "glass-spire": GLASS_SPIRE, riverfront: RIVERFRONT, "solara-outpost": SOLARA_OUTPOST, "frostveil-ring": FROSTVEIL_RING, "thalassia-dome": THALASSIA_DOME, "void-rift": VOID_RIFT, "foundry-row": FOUNDRY_ROW, sanctum: SANCTUM, "rig-nine": RIG_NINE };
 export const arenaById = (id: string | undefined): KillboxArena | undefined => (id && id in ARENAS ? ARENAS[id as ArenaId] : undefined);
 /** every arena a mode plays on, in rotation order; empty = it plays in the open world (Fracture Royale, the old duels) */
 /** Extraction's sites on an arena: the core drops in on the objective, and each team's pad is the middle of its spawns */

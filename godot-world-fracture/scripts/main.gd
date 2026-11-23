@@ -1,4 +1,5 @@
 extends Control
+const SessionStore := preload("res://scripts/driving/drive_session_store.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## World Fracture (Godot): the Planetary Director. The globe is home; tapping a continent twice (or OPEN MAP) opens its region
 ## map, and Back returns to the globe. Android's back gesture goes back too.
@@ -16,11 +17,13 @@ const CloudPanel := preload("res://scripts/cloud/cloud_panel.gd")
 const RaceView := preload("res://scripts/racing/race_view.gd")
 const Descent := preload("res://scripts/mission/descent.gd")
 const Campaign := preload("res://scripts/mission/campaign.gd")
+const Aftershock := preload("res://scripts/mission/aftershock.gd")
 const ArenaView := preload("res://scripts/killbox/arena_view.gd")
 const RoyaleView := preload("res://scripts/killbox/royale_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
 const BossArena := preload("res://scripts/combat/boss_arena.gd")
+const Boss := preload("res://scripts/combat/boss.gd")
 const Airport := preload("res://scripts/airport/airport.gd")
 const AirportView := preload("res://scripts/airport/airport_view.gd")
 const ArrivalView := preload("res://scripts/airport/arrival_view.gd")
@@ -137,6 +140,14 @@ func _ready() -> void:
 	fd.add_theme_font_size_override("font_size", 18)
 	fd.pressed.connect(_open_descent)
 	_dock_add(fd)
+	var side := Data.button("SIDE MISSIONS · quests, factions, world events", true)
+	side.custom_minimum_size = Vector2(0, 48)
+	side.pressed.connect(_open_side_board)
+	_dock_add(side)
+	var enc := Data.button("ENCOUNTER JOURNAL · the hidden unique encounters", true)
+	enc.custom_minimum_size = Vector2(0, 48)
+	enc.pressed.connect(_open_journal)
+	_dock_add(enc)
 	var race_button := Data.button("RACE", true)
 	race_button.custom_minimum_size = Vector2(0, 48)
 	race_button.pressed.connect(func(): _open_race())
@@ -279,8 +290,9 @@ func _street_door(id: String) -> void:
 		"rift":
 			view = BossArena.new()
 		"descent":
-			# the crash-site transport: Act 1's descent, then the campaign's missions 02–25 once the act is cleared
-			view = Campaign.new() if Descent.chapter_cleared() else Descent.new()
+			# the crash-site transport: Chapter 1 — The Aftershock (the owner's Nov 22 screenplays), then the original story —
+			# Act 1's descent, then the campaign's missions 02–25 once the act is cleared
+			view = _story_view()
 		"apartment":
 			view = Mission01.new()
 			view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -339,6 +351,10 @@ func _show_from_street(view: Control) -> void:
 		view.flew.connect(_flown.bind(view))
 	if view.has_signal("outside"):
 		view.outside.connect(_walk_out.bind(view))
+	if view.has_signal("roll_on"):
+		view.roll_on.connect(_roll_on.bind(view))
+	if view.has_signal("unique_called"):
+		view.unique_called.connect(_unique_called.bind(view))
 	add_child(view)
 
 func _airport_view(code: String, arriving: bool) -> Control:
@@ -346,6 +362,30 @@ func _airport_view(code: String, arriving: bool) -> Control:
 	v.code = code
 	v.arriving = arriving
 	return v
+
+## the story the crash-site door opens: Chapter 1 until it is done, then Act 1, then missions 02–25
+func _story_view() -> Control:
+	# the main story until it is done — unless the player stepped out into the original campaign from a chapter card
+	# (profile `story_line`), which then plays until it is done
+	var line := ""
+	var pf := FileAccess.open("user://profile.json", FileAccess.READ)
+	if pf:
+		var pd: Variant = JSON.parse_string(pf.get_as_text())
+		if pd is Dictionary:
+			line = String(pd.get("story_line", ""))
+	var original_done := FileAccess.file_exists("user://campaign.json") and Campaign.next_mission() == ""
+	if not Aftershock.finished() and (line != "original" or original_done):
+		return Aftershock.new()
+	return Campaign.new() if Descent.chapter_cleared() else Descent.new()
+
+## Chapter 1 done: the story rolls straight on into the original set, over the same hidden street
+func _roll_on(from_view: Control) -> void:
+	if _from_street != from_view:
+		return
+	_from_street = null
+	from_view.queue_free()
+	Sound.loops_stop()
+	_show_from_street(_story_view())
 
 ## walked out of a region's airport (Azure Isles, Frostveil, Solara): that region on foot
 func _walk_out(code: String, from_view: Control) -> void:
@@ -408,7 +448,7 @@ func _title_action(action: String) -> void:
 		"triumphs":
 			_open_triumphs()
 		"journal":
-			_open_journal()
+			_open_quest_journal()
 		"skills":
 			_open_overlay("res://scripts/progress/skills_view.gd")
 		"season":
@@ -450,7 +490,7 @@ func _open_overlay(path: String) -> void:
 
 ## Cyberpunk's Journal over whatever is open (scripts/progress/journal_view.gd)
 var journal_view: Control
-func _open_journal() -> void:
+func _open_quest_journal() -> void:
 	if journal_view:
 		return
 	journal_view = load("res://scripts/progress/journal_view.gd").new()
@@ -487,10 +527,73 @@ func _open_descent() -> void:
 	add_child(descent)
 	planet_view.set_process(false)
 
+## the side missions (scripts/mission/side_board.gd → side_mission.gd): the board, then one mission over the globe
+var side_board: Control
+func _open_side_board() -> void:
+	if side_board or descent:
+		return
+	side_board = load("res://scripts/mission/side_board.gd").new()
+	side_board.closed.connect(func(): side_board.queue_free(); side_board = null)
+	side_board.play.connect(_open_side)
+	add_child(side_board)
+
+func _open_side(id: String) -> void:
+	if side_board:
+		side_board.queue_free()
+		side_board = null
+	if descent:
+		return
+	var SideMission = load("res://scripts/mission/side_mission.gd")
+	SideMission.pending = id
+	descent = SideMission.new()
+	descent.closed.connect(_close_descent)
+	add_child(descent)
+	planet_view.set_process(false)
+
+## the hidden unique encounters (scripts/mission/encounter_journal.gd → unique_encounter.gd)
+var journal: Control
+func _open_journal() -> void:
+	if journal or descent:
+		return
+	journal = load("res://scripts/mission/encounter_journal.gd").new()
+	journal.closed.connect(func(): journal.queue_free(); journal = null)
+	journal.play.connect(_open_unique)
+	add_child(journal)
+
+func _open_unique(mission: String, rematch := false) -> void:
+	if journal:
+		journal.queue_free()
+		journal = null
+	if descent:
+		return
+	var Unique = load("res://scripts/mission/unique_encounter.gd")
+	Unique.pending = mission
+	Unique.rematch = rematch
+	descent = Unique.new()
+	descent.closed.connect(_close_descent)
+	add_child(descent)
+	planet_view.set_process(false)
+
+## the Sky Sovereign came down over a free-roam view (sky_sovereign.gd): the view sleeps under his fight and wakes after
+var _under_unique: Control
+func _unique_called(mission: String, view: Control) -> void:
+	if descent or _from_street != view:
+		return
+	_under_unique = view
+	view.visible = false
+	view.process_mode = Node.PROCESS_MODE_DISABLED
+	_open_unique(mission, true)
+
 func _close_descent() -> void:
 	if descent:
 		descent.queue_free()
 		descent = null
+	if _under_unique and is_instance_valid(_under_unique):
+		_under_unique.visible = true
+		_under_unique.process_mode = Node.PROCESS_MODE_INHERIT
+		if _under_unique.has_method("refresh_mark"):
+			_under_unique.refresh_mark()
+	_under_unique = null
 	planet_view.set_process(true)
 	_sync_later()
 
@@ -702,7 +805,15 @@ func open_pause() -> void:
 	var tr: Variant = v.get("_objective")
 	if tr is Control and tr.get("text") is String:
 		pause_menu.objective = String(tr.text)
-	pause_menu.live = bool(v.get("online")) if v.get("online") is bool else v.get("online") != null
+	# live = other players are actually there: story co-op with company (coop.count() counts you), an online Killbox
+	# match, the street's online session. A story merely open to co-op (descent.online) still pauses.
+	var cp: Variant = v.get("coop")
+	if cp is Node and (cp as Node).has_method("count"):
+		pause_menu.live = int(cp.count()) > 1
+	elif kind == "arena_view":
+		pause_menu.live = bool(v.get("online"))
+	else:
+		pause_menu.live = v.get("online") is Node
 	_pause_mouse = Input.mouse_mode
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if not pause_menu.live:
@@ -716,7 +827,7 @@ func open_pause() -> void:
 	pause_menu.open.connect(func(what_: String):
 		match what_:
 			"settings": _open_settings()
-			"journal": _open_journal()
+			"journal": _open_quest_journal()
 			"skills": _open_overlay("res://scripts/progress/skills_view.gd")
 			"season": _open_overlay("res://scripts/progress/season_view.gd")
 		var panel: Node = { "settings": settings_view, "journal": journal_view }.get(what_, _overlay_view)
@@ -941,8 +1052,14 @@ func _shoot(path: String, opts: Array) -> void:
 			if String(o).contains("walk:drive"):
 				street.controls.scripted = true
 				# a frame later: the street's first frame settles the operator and the parked cars before anyone climbs in
+				# (walk:drive:bike=<id> drives a showroom bike out of the garage instead: the rider astride it in a helmet)
 				var st := street
+				var bike_id := String(o).split("bike=")[1].split(":")[0] if String(o).contains("bike=") else ""
 				get_tree().process_frame.connect(func():
+					if bike_id != "":
+						st.drive_out(bike_id)
+						st.controls.move = Vector2(-0.12, 1.0)
+						return
 					var nearest: Node3D = null
 					for c in st.parked:
 						if nearest == null or c.position.distance_to(st.operator.position) < nearest.position.distance_to(st.operator.position):
@@ -1107,6 +1224,49 @@ func _shoot(path: String, opts: Array) -> void:
 		# char[:body[:face[:tab[:key=value,...]]]]  the operator creator, e.g. char:female:f-cyber:HAIR or char:male:m-rebel:FACE:hair=afro,beard=full
 		if String(o) == "cloud":
 			_open_cloud()
+		# aftershock[:<chapter id>][:scene]  Chapter 1 — The Aftershock (scripts/mission/aftershock.gd) standing in a chapter
+		# (A02A … A07G), its opening skipped, or :scene with it playing (:b<n> jumps to its n-th line; :close plays the
+		# chapter's closing lines on its set)
+		if String(o).begins_with("aftershock"):
+			var aid := "A02A"
+			var beat := -1
+			for part in String(o).split(":"):
+				if part.length() == 4 and part.begins_with("A") and part.substr(1, 2).is_valid_int():
+					aid = part
+				if part.begins_with("b") and part.substr(1).is_valid_int():
+					beat = int(part.substr(1))
+			var fa := FileAccess.open("user://aftershock.json", FileAccess.WRITE)
+			fa.store_string(JSON.stringify({ "done": [], "current": aid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 0, "stage": 0 }))
+			fa.close()
+			var aft: Control = Aftershock.new()
+			aft.closed.connect(_close_descent)
+			descent = aft
+			add_child(aft)
+			planet_view.set_process(false)
+			if not String(o).contains("scene") and aft.cutscene and aft.cutscene.playing:
+				aft.cutscene._end()
+			if String(o).contains("close"):
+				if aft.cutscene.playing:
+					aft.cutscene._end()
+				var cdef: Dictionary = aft._quest_def(aid)
+				var cb: Array = aft._scene(cdef, cdef.get("close", []), 200.0)
+				if not cb.is_empty():
+					aft.cutscene.play(cb, aft.region.camera())
+			if beat > 0 and aft.cutscene.playing:
+				aft.cutscene._i = beat - 2
+				aft.cutscene._next()
+		# unique:<chapter id>[:scene]  a hidden encounter's mission (scripts/mission/unique_encounter.gd) standing in a chapter
+		# (U01A … U18D) with its opening skipped, or :scene with it playing; journal  the Encounter Journal
+		if String(o).begins_with("unique:"):
+			var uid := String(o).split(":")[1]
+			var fu := FileAccess.open("user://unique_%s.json" % uid.substr(0, 3), FileAccess.WRITE)
+			fu.store_string(JSON.stringify({ "done": [], "current": uid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 0, "stage": 0 }))
+			fu.close()
+			_open_unique(uid.substr(0, 3))
+			if not String(o).contains("scene") and descent.cutscene and descent.cutscene.playing:
+				descent.cutscene._end()
+		if String(o) == "journal":
+			_open_journal()
 		# campaign[:<chapter id>][:scene]  the campaign's chapters (scripts/mission/campaign.gd) standing in a chapter (02A …
 		# 25C) with its opening skipped, or :scene with it playing
 		if String(o).begins_with("campaign"):
@@ -1126,16 +1286,16 @@ func _shoot(path: String, opts: Array) -> void:
 				camp.cutscene._end()
 		# descent[:fight|:wild]  the Fracture Descent in the Verdant Forest; :fight sprints and fires; :wild stands by the deer herd
 		if String(o).begins_with("descent"):
-			# descent[:wild] [:fd-05|:fd-06|:fd-07] [:vyrak]: the quest to stand in (the chain is set to it), vyrak summons the boss
+			# descent[:wild] [:fd-05|:fd-06|:fd-07] [:boss]: the quest to stand in (the chain is set to it), boss summons fd-07's act boss
 			for qid in ["fd-05", "fd-06", "fd-07"]:
 				if String(o).contains(qid):
 					var f := FileAccess.open("user://quests.json", FileAccess.WRITE)
-					f.store_string(JSON.stringify({ "done": [], "current": qid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 3 if String(o).contains("vyrak") else 0, "stage": 1 if qid == "fd-05" else 0 }))
+					f.store_string(JSON.stringify({ "done": [], "current": qid, "kills": 0, "relay": 0, "timer": 0.0, "wave": 3 if String(o).contains("boss") else 0, "stage": 1 if qid == "fd-05" else 0 }))
 					f.close()
 			_open_descent()
 			if descent.cutscene and descent.cutscene.playing:
 				descent.cutscene._end()
-			if String(o).contains("vyrak") and descent.quest.get("id", "") == "fd-07":
+			if String(o).contains("boss") and descent.quest.get("id", "") == "fd-07":
 				descent.operator.position = descent.waypoint + Vector3(6, 0, 10)
 				descent.operator.position.y = descent.region.ground(descent.operator.position.x, descent.operator.position.z)
 				descent.operator.heading = 0.0
@@ -1179,8 +1339,8 @@ func _shoot(path: String, opts: Array) -> void:
 		# triumphs | collections  the Triumphs screen on that tab
 		if String(o) == "triumphs" or String(o) == "collections":
 			_open_triumphs(String(o))
-		if String(o) == "journal":
-			_open_journal()
+		if String(o) == "quests":
+			_open_quest_journal()
 		if String(o) == "skills":
 			_open_overlay("res://scripts/progress/skills_view.gd")
 		if String(o) == "season":
@@ -1190,11 +1350,12 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_creator()
 			if String(o).contains(":"):
 				creator.show_tab(String(o).get_slice(":", 1).to_upper())
-		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default); :fight holds fire
+		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default; any BOSSES / STORY / UNIQUE
+		# id); :fight holds fire
 		if String(o).begins_with("boss"):
 			boss_arena = BossArena.new()
 			boss_arena.boss_id = "rift-hound"
-			for id in ["crystal-stalker", "abyssal-leviathan", "vyrak", "astravore", "colossus"]:
+			for id in Boss.BOSSES.keys() + Boss.STORY.keys() + Boss.UNIQUE.keys():
 				if String(o).contains(id):
 					boss_arena.boss_id = id
 			boss_arena.closed.connect(_close_boss)
@@ -1212,6 +1373,8 @@ func _shoot(path: String, opts: Array) -> void:
 				if String(o).contains(String(pair[0])):
 					skyways.craft_id = String(pair[1])
 			skyways.closed.connect(_close_skyways)
+			if String(o).contains("race"):
+				skyways.air_race = true   # the ring course against three rival jets (air_race.gd)
 			add_child(skyways)
 			if String(o).contains("side"):
 				skyways.look_dev = Vector3(14.0, 1.2, 6.0)   # low, off the right wing: the undercarriage
@@ -1236,7 +1399,7 @@ func _shoot(path: String, opts: Array) -> void:
 			for mid in ["dominion", "freefall", "lockdown", "ascendancy", "extraction", "ranked"]:
 				if String(o).contains(mid):
 					killbox.mode_id = mid
-			for id in ["fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift"]:
+			for id in ["fracture-floor", "killbox-prime", "skydock", "neon-yard", "glass-spire", "riverfront", "solara-outpost", "frostveil-ring", "thalassia-dome", "void-rift", "foundry-row", "sanctum", "rig-nine"]:
 				if String(o).contains(String(id).split("-")[0] if id != "killbox-prime" else "prime"):
 					killbox.arena_id = id
 			killbox.closed.connect(_close_killbox)
@@ -1292,7 +1455,10 @@ func _shoot(path: String, opts: Array) -> void:
 		# the lights and drives itself
 		if String(o).begins_with("race") and not String(o).begins_with("race="):
 			var rq := String(o).split(":")
-			_open_race(rq[1] if rq.size() > 1 and rq[1] != "go" else "")
+			# race:<track>[:go][:in=<vehicle id>]  in= races that car or bike (as the last one driven would)
+			if String(o).contains("in="):
+				SessionStore.save(String(o).split("in=")[1].split(":")[0], 0.0)
+			_open_race(rq[1] if rq.size() > 1 and rq[1] not in ["go"] and not rq[1].begins_with("in=") else "")
 			if String(o).contains("go"):
 				race_view.countdown = 0.05
 				race_view.controls.scripted = true
@@ -1346,6 +1512,56 @@ func _shoot(path: String, opts: Array) -> void:
 		if String(o).begins_with("eye:") and region_3d:
 			for i in 3:
 				await get_tree().process_frame
+			if String(o).begins_with("eye:look:"):
+				# eye:look:<name>[:pitch]  stays where Street View stood and turns to face a board landmark
+				var lk := String(o).split(":")
+				var lspots: Dictionary = region_3d.get_meta("board_spots", {})
+				if lspots.has(lk[2]):
+					var ls: Vector3 = lspots[lk[2]]
+					var e3: Vector3 = region_3d._eye
+					region_3d._look_yaw = atan2(-(ls.x - e3.x), -(ls.z - e3.z))
+					region_3d._look_pitch = float(lk[3]) if lk.size() > 3 else 6.0
+					region_3d._apply_cam()
+				continue
+			if String(o).begins_with("eye:highway"):
+				# eye:highway[:t][:side]  stands on the region's first highway at fraction t of its length (default 0.4), on
+				# the deck or (side) 30 m off it, looking along it
+				var hk := String(o).split(":")
+				var ht := float(hk[2]) if hk.size() > 2 else 0.4
+				for r in region_3d.m.roads:
+					if r.cls != "highway":
+						continue
+					var pts: Array = r.pts
+					var k := clampi(int(ht * (pts.size() - 1)), 0, pts.size() - 2)
+					var a2: Vector2 = region_3d._loc(pts[k][0], pts[k][1])
+					var b2: Vector2 = region_3d._loc(pts[k + 1][0], pts[k + 1][1])
+					var dir := (b2 - a2).normalized()
+					var at := a2
+					var yaw := atan2(-dir.x, -dir.y)
+					if hk.size() > 3:
+						at = a2 + dir.orthogonal() * 34.0 - dir * 20.0
+						yaw = atan2(-(dir.x * 0.8 - dir.orthogonal().x * 0.6), -(dir.y * 0.8 - dir.orthogonal().y * 0.6))
+					region_3d.set_eye(at.x, at.y, yaw)
+					region_3d._look_pitch = -4.0
+					region_3d._apply_cam()
+					break
+				continue
+			if String(o).begins_with("eye:board:"):
+				# eye:board:<name>[:dist]  stands in front of one of the board landmarks (region_board.gd), between it and the
+				# middle of the land, facing it (the land's edge behind it, as the owner's key art frames them)
+				var bk := String(o).split(":")
+				var spots: Dictionary = region_3d.get_meta("board_spots", {})
+				if spots.has(bk[2]):
+					var sp: Vector3 = spots[bk[2]]
+					var dd := float(bk[3]) if bk.size() > 3 else maxf(sp.y * 3.0, 40.0)
+					var to := Vector2(-sp.x, -sp.z).normalized() if Vector2(sp.x, sp.z).length() > 1.0 else Vector2(0, 1)
+					var ex := sp.x + to.x * dd
+					var ez := sp.z + to.y * dd
+					region_3d.set_eye(ex, ez, atan2(-(sp.x - ex), -(sp.z - ez)))
+					region_3d._look_pitch = 4.0
+					region_3d._apply_cam()
+				print(o, " spots ", spots.keys())
+				continue
 			if String(o) in ["eye:root", "eye:cave", "eye:corrupt"]:
 				# eye:cave stands 12 m off the nearest underwater cave mouth (on the surface, looking down through the water)
 				var spots: Array[Vector3] = region_3d.root_spots if String(o) == "eye:root" else (region_3d.sea_caves if String(o) == "eye:cave" else region_3d.corrupt_spots)
@@ -1393,6 +1609,8 @@ func _shoot(path: String, opts: Array) -> void:
 	if killbox and killbox.match_state:
 		var kb := killbox
 		print("killbox: ", kb.mode_id, " us ", kb.match_state.us, " them ", kb.match_state.them, " clock ", kb.match_state.clock_text(), " zones ", kb.match_state.zones.map(func(z): return [z.id, z.owner]), " rounds ", kb.match_state.us_rounds, "-", kb.match_state.them_rounds, " board ", kb.match_state.board, " at ", kb.operator.position.round(), " bots ", kb.enemies.enemies.size(), " hull ", kb.enemies.hull, " shots ", kb.gunplay.shots_fired, " hits ", kb.gunplay.hits_landed)
+	if street and street.driving_car:
+		print("driving: ", street.driving_car.node.get_meta("vehicle", ""), " bike ", street._bike, " speed ", street.driving_car.speed, " operator at ", street.operator.position.round(), " rig visible ", street.operator.rig.visible if street.operator.rig else false, " clip ", street.operator.idle_clip)
 	if street and street.district:
 		print("district: focus ", street.district.focus_k, " counts ", street.district.counts(), " tiles built ", street.tiles.keys(), " operator z ", street.operator.position.z, " boxes ", street.operator.obstacles.size())
 	if modes and modes.view and "raid" in modes.view:

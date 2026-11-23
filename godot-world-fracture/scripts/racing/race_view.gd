@@ -184,27 +184,48 @@ func _environment() -> void:
 	var sky := Sky.new()
 	var psm := ProceduralSkyMaterial.new()
 	psm.sky_top_color = Color(0.22, 0.42, 0.72)
-	psm.sky_horizon_color = Color(0.82, 0.72, 0.6)
+	psm.sky_horizon_color = Color(0.68, 0.78, 0.88)   # a clear day's horizon: the beige one read as a sandstorm (polish, Nov 21)
 	psm.ground_bottom_color = Color(0.2, 0.2, 0.18)
-	psm.ground_horizon_color = Color(0.6, 0.55, 0.45)
+	psm.ground_horizon_color = Color(0.52, 0.56, 0.5)
 	sky.sky_material = psm
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.9
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.8, 0.75, 0.65)
+	env.fog_light_color = Color(0.7, 0.78, 0.86)
 	env.fog_density = 0.0004
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
 
+## mown infield grass: muted, striped by the mower, patchy up close (the flat colour box read as lime plastic)
+func _grass() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """shader_type spatial;
+varying vec2 wp;
+void vertex() { wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz; }
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+void fragment() {
+	float stripe = smoothstep(-0.15, 0.15, sin(wp.x * 0.42));
+	float patchy = vn(wp * 0.08) * 0.6 + vn(wp * 0.9) * 0.25 + vn(wp * 6.0) * 0.15;
+	vec3 c = mix(vec3(0.17, 0.27, 0.1), vec3(0.23, 0.34, 0.13), stripe);
+	c = mix(c, vec3(0.3, 0.32, 0.15), smoothstep(0.55, 0.85, patchy) * 0.5) * (0.88 + 0.24 * patchy);
+	ALBEDO = c;
+	ROUGHNESS = 0.95;
+}"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	return m
+
 ## asphalt segments along the centreline with kerbs at both edges; grass under everything; a wall past the run-off
 func _build_track() -> void:
-	var grass := _mat(Color(0.26, 0.42, 0.18), 1.0)
+	var grass := _grass()
 	var g := track.bounds(140.0)     # the ground follows the circuit (it was a fixed 400 m square for the old oval)
 	_box(Vector3(g.size.x, 0.1, g.size.y), Vector3(g.get_center().x, -0.06, g.get_center().y), grass)
-	var asphalt := _mat(Color(0.11, 0.11, 0.12), 0.9)
+	var asphalt := Materials.pbr("asphalt_02", Color(0.3, 0.3, 0.32), 4.0, 0.85)
 	var red := _mat(Color(0.8, 0.12, 0.1), 0.6)
 	var white := _mat(Color(0.9, 0.9, 0.88), 0.6)
 	var line := _mat(Color(0.95, 0.95, 0.9), 0.5)
@@ -466,9 +487,13 @@ func _build_streets() -> void:
 # --------------------------------------------------------------------------------------------- the cars
 func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 	var node: Node3D
-	if ResourceLoader.exists(FLEET + file):
-		node = (load(FLEET + file) as PackedScene).instantiate() as Node3D
+	# a fleet file by name, or a full path (the showroom's cars and bikes live under models/fleet/showroom/: by their
+	# bare name they were not found, and you raced an invisible car)
+	var path := file if file.begins_with("res://") else FLEET + file
+	if ResourceLoader.exists(path):
+		node = (load(path) as PackedScene).instantiate() as Node3D
 	else:
+		push_warning("race: no model for %s (%s)" % [vehicle, path])
 		node = Node3D.new()
 	StreetCar.face_forward(node)
 	StaticBatch.compact(node)
@@ -490,7 +515,7 @@ func _spawn_car(file: String, at: Transform3D, vehicle: String) -> RefCounted:
 		sc.ground_at = func(x: float, z: float) -> float: return tr.height_at(Vector3(x, 0, z))
 	sc.obstacles = obstacles
 	sc.skip = obstacles.size()
-	obstacles.append(sc.box())
+	obstacles.append(AABB(Vector3(0, -1000, 0), Vector3(0.1, 0.1, 0.1)))   # cars meet in _contacts, not the wall list
 	sc.set_meta("box_index", sc.skip)
 	return sc
 
@@ -499,27 +524,218 @@ func _grid() -> void:
 	if race_km > 0.0 and race.laps_to_go == 1 and race_km * 1000.0 < track.length * 0.88:
 		race.finish_frac = clampf(race_km * 1000.0 / track.length, 0.15, 0.88)
 	var v := Catalog.vehicle(vehicle_id)
-	var file := String(v.get("model", FLEET + "tuner.glb")).get_file() if not v.is_empty() else "tuner.glb"
+	var file := String(v.get("model", FLEET + "tuner.glb")) if not v.is_empty() else "tuner.glb"
 	if online:
 		# the players' grid is set at the start (_go); until then you wait on the line in slot 0
 		player = _spawn_car(file, track.grid(0), vehicle_id)
 		var me := race.add("You", true)
 		me["node"] = player.node
 		cam_yaw = player.yaw()
+		_mount_rider()
 		countdown = INF
 		_lobby()
 		return
-	# rivals take the front rows, you start last
+	# rivals take the front rows, you start last — in your class: bikes against bikes (riders on them), off-roaders
+	# against off-roaders on the rally, the mountain and the volcano
+	var files := _rival_files()
 	for i in 3:
-		var sc := _spawn_car(RIVAL_FILES[i], track.grid(i), "")
+		var sc := _spawn_car(files[i], track.grid(i), "")
 		var names: Array = track.def.get("rivals", STREET_NAMES if track.street() else RIVAL_NAMES)
 		var e := race.add(String(names[i]))
 		e["node"] = sc.node
 		rivals.append({ "sc": sc, "entry": e, "skill": 0.86 + i * 0.05 })
+		if race_class() == "bike":
+			_mount_rider(sc, _rival_look(i))
 	player = _spawn_car(file, track.grid(3), vehicle_id)
 	var me2 := race.add("You", true)
 	me2["node"] = player.node
 	cam_yaw = player.yaw()
+	_mount_rider()
+	_mud()
+
+# --------------------------------------------------------------------------------------------- race classes
+## the owner's racing direction (Nov 1): cars, motorcycles and off-road. The class is the vehicle you bring:
+##   bike     the rivals are on bikes too, every one with a rider (the showroom's Shadow R1, Tempest 900, Ravager)
+##   offroad  off-road rivals (the ATV, the Raider, the buggy) — and the rally, the mountain and the volcano run
+##            off-road whatever you bring, with mud across the road (_mud)
+##   street   the usual grid
+const BIKE_RIVALS := ["showroom/shadow-r1.glb", "showroom/tempest-900.glb", "showroom/ravager-chopper.glb"]
+const OFFROAD_RIVALS := ["showroom/sandstalker-atv.glb", "showroom/wasteland-raider.glb", "raider-buggy.glb"]
+func race_class() -> String:
+	var cls := String(Catalog.vehicle(vehicle_id).get("cls", ""))
+	if cls == "bike":
+		return "bike"
+	if cls == "offroad" or bool(track.def.get("offroad", false)):
+		return "offroad"
+	return "street"
+
+func _rival_files() -> Array:
+	match race_class():
+		"bike":
+			return BIKE_RIVALS
+		"offroad":
+			return OFFROAD_RIVALS
+	return RIVAL_FILES
+
+## a rival rider's look: a civilian frame and face, seeded by the slot so the same rider turns up at the same track
+func _rival_look(i: int) -> Dictionary:
+	var civ: Node = load("res://scripts/city/civilians.gd").new()
+	civ._rng.seed = hash(track_id) + i * 7919
+	var look: Dictionary = civ.random_look()
+	civ.free()
+	return look
+
+## on a bike you ride in the open (street_slice does the same on the avenue): the operator astride it in a helmet,
+## work_idle.gd "ride", moved with the bike every frame (_step_riders); the rivals' riders the same
+var rider: Node3D
+var riders: Array = []   # [{ "rider": Node3D, "sc": StreetCar }]
+func _mount_rider(sc: RefCounted = null, look: Dictionary = {}) -> void:
+	var on: RefCounted = sc if sc else player
+	if on == null:
+		return
+	if sc == null and String(Catalog.vehicle(vehicle_id).get("cls", "")) != "bike":
+		return
+	var Player: GDScript = load("res://scripts/player/operator_player.gd")
+	var r: Node3D = Player.new()
+	r.set_meta("dynamic", true)
+	world.add_child(r)
+	if sc:
+		r.set("civilian", true)
+	r.build(look)
+	if r.rig:
+		var wear: Array = Array(r.rig.look.get("wear", []))
+		if "helmet" not in wear:
+			wear.append("helmet")
+			r.rig.look.wear = wear
+			r.rig._wear()
+	r.set("idle_clip", "ride")
+	riders.append({ "rider": r, "sc": on })
+	if sc == null:
+		rider = r
+	_step_riders()
+
+func _step_riders() -> void:
+	for it in riders:
+		var r: Node3D = it.rider
+		var on: RefCounted = it.sc
+		var bb: AABB = on.box()
+		var c: Node3D = on.node
+		r.position = c.position + Vector3(0, bb.size.y * 0.48 - 0.72, 0) - on.forward() * 0.12
+		r.set("heading", c.rotation.y + PI)
+		if r.rig:
+			r.rig.rotation.y = float(r.get("heading"))
+		r.call("_animate", 0.0, false)
+
+# --------------------------------------------------------------------------------------------- mud
+## mudding (owner, Nov 1): on the off-road runs, wallows of mud lie across the road every so often — dark, wet,
+## slick: a car in one loses its pace to a slither (MUD_CRAWL of top speed), throws up a brown spray, and comes out
+## caked (the hull tinted by Facility.paint_camo's damage tint, which the garage washes off)
+const MUD_EVERY := 140.0
+const MUD_CRAWL := 0.45
+var mud: Array = []      # [{ "p": Vector3, "r": float, "along": float }]
+var _mud_spray := {}     # StreetCar -> CPUParticles3D
+func _mud() -> void:
+	if race_class() != "offroad" or bool(track.def.get("hover", false)):
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(track_id + ":mud")
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	var quad := QuadMesh.new()
+	quad.size = Vector2(1, 1)
+	quad.orientation = PlaneMesh.FACE_Y
+	mm.mesh = quad
+	var d := MUD_EVERY * 0.6
+	while d < track.length - 40.0:
+		var a := track.at(d)
+		var b := track.at(d + 2.0)
+		var along := Vector3(b.x - a.x, 0, b.z - a.z).normalized()
+		var right := Vector3(-along.z, 0, along.x)
+		var off := (rng.randf() - 0.5) * track.width * 0.5
+		var r := 4.5 + rng.randf() * 4.0
+		mud.append({ "p": a + right * off, "r": r, "along": d })
+		d += MUD_EVERY * (0.7 + rng.randf() * 0.6)
+	mm.instance_count = mud.size() * 3
+	for i in mud.size():
+		for k in 3:
+			var m: Dictionary = mud[i]
+			var pr: float = float(m.r) * (1.0 - k * 0.22)
+			var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(pr * 2.0 * (1.0 + 0.35 * k), 1, pr * 1.4)), Vector3(m.p.x, m.p.y + 0.03 + k * 0.004, m.p.z) + Vector3((rng.randf() - 0.5) * 2.0, 0, (rng.randf() - 0.5) * 2.0))
+			mm.set_instance_transform(i * 3 + k, t)
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.2, 0.14, 0.09, 0.9)   # the wallow
+	mat.roughness = 0.25
+	mat.metallic = 0.0
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(mi)
+
+## the caking: a multiply overlay toward wet brown over every mesh of the hull (its own, not the damage tint: that one
+## lights the bonnet smoke)
+static func _cake(hull: Node, k: float) -> void:
+	var m := StandardMaterial3D.new()
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color.WHITE.lerp(Color(0.5, 0.38, 0.26), clampf(k, 0.0, 1.0) * 0.8)
+	for mi in hull.find_children("*", "MeshInstance3D", true, false):
+		if not (mi as MeshInstance3D).material_overlay or (mi as MeshInstance3D).material_overlay.has_meta("mud"):
+			m.set_meta("mud", true)
+			(mi as MeshInstance3D).material_overlay = m
+
+## in the mud: the slither, the spray, the caking — for every car on the grid
+func _step_mud(dt: float) -> void:
+	if mud.is_empty():
+		return
+	var cars: Array = [player]
+	for r in rivals:
+		cars.append(r.sc)
+	for sc in cars:
+		var p: Vector3 = sc.node.position
+		var inside := false
+		for m in mud:
+			if Vector2(p.x - m.p.x, p.z - m.p.z).length() < float(m.r):
+				inside = true
+				break
+		var spray: CPUParticles3D = _mud_spray.get(sc)
+		if inside:
+			var crawl: float = float(sc.profile.max_speed) * MUD_CRAWL
+			if absf(sc.speed) > crawl:
+				sc.speed = move_toward(sc.speed, signf(sc.speed) * crawl, (6.0 + absf(sc.speed) * 1.2) * dt)
+			if spray == null:
+				spray = CPUParticles3D.new()
+				spray.amount = 40
+				spray.lifetime = 0.9
+				spray.mesh = QuadMesh.new()
+				(spray.mesh as QuadMesh).size = Vector2(0.35, 0.35)
+				spray.direction = Vector3(0, 1, 0)
+				spray.spread = 55.0
+				spray.initial_velocity_min = 3.0
+				spray.initial_velocity_max = 7.0
+				spray.gravity = Vector3(0, -12, 0)
+				spray.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+				spray.emission_box_extents = Vector3(1.0, 0.1, 1.6)
+				spray.color = Color(0.25, 0.17, 0.1)
+				var pm := StandardMaterial3D.new()
+				pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				pm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+				pm.vertex_color_use_as_albedo = true
+				spray.mesh.surface_set_material(0, pm)
+				spray.position = Vector3(0, 0.2, 0)
+				sc.node.add_child(spray)
+				_mud_spray[sc] = spray
+			spray.emitting = absf(sc.speed) > 2.0
+			var caked: int = int(sc.node.get_meta("mud", 0))
+			if caked < 100:
+				caked = mini(100, caked + int(absf(sc.speed) * dt * 2.0) + 1)
+				sc.node.set_meta("mud", caked)
+				if caked % 10 == 0:
+					_cake(sc.node, caked / 100.0)
+		elif spray:
+			spray.emitting = false
 
 ## the GPS (owner, Nov 18): the track ahead and the rivals on it, under the standings board
 var gps: Control
@@ -790,17 +1006,40 @@ func _process(dt: float) -> void:
 		controls.nitro_off()
 	player.nitro_fx()
 	player.drive_fx(dt)
+	_step_riders()
+	_step_mud(dt)
 	# the rivals: aim at a point ahead on the centreline, ease off for the corners, skill sets the pace
+	var ri := 0
 	for r in rivals:
 		var sc: RefCounted = r.sc
 		var n: Node3D = sc.node
 		var aim: Vector3 = track.ahead(n.position, 14.0)
+		# each rival keeps its own lane (a fifth of the road's width off the centreline either side), and eases off
+		# and steers wide of a car just ahead in it, so the grid does not converge into one rubbing pack
+		var further: Vector3 = track.ahead(n.position, 24.0)
+		var along := Vector3(further.x - aim.x, 0, further.z - aim.z).normalized()
+		var right := Vector3(-along.z, 0, along.x)
+		var lane: float = track.width * 0.2 * float(ri - 1)
+		var blocked := 0.0
+		for other in [player] + rivals.map(func(q): return q.sc):
+			if other == sc:
+				continue
+			var d: Vector3 = other.node.position - n.position
+			var fwd: float = d.dot(sc.forward())
+			var side: float = d.dot(right)
+			if fwd > 0.0 and fwd < 9.0 and absf(side) < 2.6:
+				blocked = maxf(blocked, 1.0 - fwd / 9.0)
+				lane += (-3.0 if side > 0.0 else 3.0) * (1.0 - fwd / 9.0)
+		aim += right * clampf(lane, -track.width * 0.5 + 1.5, track.width * 0.5 - 1.5)
+		ri += 1
 		var to := aim - n.position
 		var want_yaw := atan2(-to.x, -to.z)
 		var err := wrapf(want_yaw - n.rotation.y, -PI, PI)
 		var curve: float = maxf(track.curvature_ahead(n.position, 26.0), track.curvature_ahead(n.position, 44.0) if track.street() else 0.0)
 		var top: float = float(sc.profile.max_speed) * float(r.skill) * (1.0 - (0.68 if track.street() else 0.55) * curve)
 		var thr := clampf((top - sc.speed) / 4.0, -1.0, 1.0)
+		if blocked > 0.0 and sc.speed > 6.0:
+			thr = minf(thr, 0.6 - blocked * 0.8)
 		var e: Dictionary = r.entry
 		if e.finished_at >= 0.0:
 			thr = -0.2
@@ -833,6 +1072,7 @@ func _process(dt: float) -> void:
 	board.text = "\n".join(lines)
 	if me.finished_at >= 0.0 and not _prize_paid:
 		_finish()
+	_contacts(dt)
 	_place_camera(dt)
 
 ## grass slows a car, and the tyre walls stop it (the obstacle list); on a street circuit the barriers are the track's edge:
@@ -847,14 +1087,63 @@ func _step_car(sc: RefCounted, dt: float, throttle: float, steer: float, brake: 
 			var out := Vector3(sc.node.position.x - q.x, 0, sc.node.position.z - q.z).normalized()
 			sc.node.position = Vector3(q.x + out.x * lim, sc.node.position.y, q.z + out.z * lim)
 			sc.speed *= pow(0.3, dt)
-		obstacles[int(sc.get_meta("box_index"))] = sc.box()
 		return
 	if track.off_track(sc.node.position):
 		# grass: no grip past a crawl (the rally and the mountain are rougher roads: off them is slower, not a stop)
 		var crawl: float = float(sc.profile.max_speed) * (0.6 if bool(track.def.get("offroad", false)) else 0.35)
 		if absf(sc.speed) > crawl:
 			sc.speed = move_toward(sc.speed, signf(sc.speed) * crawl, (4.0 + absf(sc.speed) * 0.9) * dt)
-	obstacles[int(sc.get_meta("box_index"))] = sc.box()
+
+## car on car is a shove, not a wall: the cars were each other's obstacle boxes, and the grid piled up on the first
+## straight of a narrow street (everyone converging on the centreline at walking pace, each hit killing 60 % of the
+## speed, the three of them stopped dead on one another). Now each car is three discs (nose, middle, tail) pushed
+## apart from every other car's, both move, the faster one keeps most of its speed and takes a nudge of yaw.
+const CAR_DISC := 1.15
+func _contacts(dt: float) -> void:
+	var cars: Array = [player]
+	for r in rivals:
+		cars.append(r.sc)
+	for i in cars.size():
+		for j in range(i + 1, cars.size()):
+			var a: RefCounted = cars[i]
+			var b: RefCounted = cars[j]
+			var pa: Vector3 = a.node.position
+			var pb: Vector3 = b.node.position
+			if Vector2(pa.x - pb.x, pa.z - pb.z).length() > 9.0:
+				continue
+			var fa: Vector3 = a.forward()
+			var fb: Vector3 = b.forward()
+			var hit := false
+			for ka: float in [-1.0, 0.0, 1.0]:
+				var ca: Vector3 = pa + fa * ka * StreetCar.HALF_LENGTH
+				for kb: float in [-1.0, 0.0, 1.0]:
+					var cb: Vector3 = pb + fb * kb * StreetCar.HALF_LENGTH
+					var d := Vector2(ca.x - cb.x, ca.z - cb.z)
+					var dist := d.length()
+					if dist >= CAR_DISC * 2.0:
+						continue
+					var push := (CAR_DISC * 2.0 - dist) * 0.5
+					var n := d / dist if dist > 0.001 else Vector2(1, 0)
+					a.node.position += Vector3(n.x, 0, n.y) * push
+					b.node.position -= Vector3(n.x, 0, n.y) * push
+					pa = a.node.position
+					pb = b.node.position
+					hit = true
+			if hit:
+				# the closing speed decides the cost: a car running into another at more than a jog loses nearly half the
+				# closing speed (never thrown into reverse) and shoves the other on a little; two cars rubbing along
+				# side by side at the same pace, or nosing off the grid together, only get pushed apart
+				var ab := Vector3(pb.x - pa.x, 0, pb.z - pa.z).normalized()
+				var rel: float = (fa * a.speed - fb * b.speed).dot(ab)   # > 0: a closing on b
+				var closing: RefCounted = a if rel > 0.0 else b
+				var other: RefCounted = b if rel > 0.0 else a
+				var r := absf(rel)
+				if r > 2.0:
+					closing.speed = maxf(closing.speed - r * 0.45, minf(closing.speed, 0.0))
+					if other.speed >= 0.0:
+						other.speed += r * 0.15
+					a.hits += 1   # a bump counts as a hit (crash damage, the HUD); rubbing does not
+					b.hits += 1
 
 func _place_camera(dt: float) -> void:
 	var n: Node3D = player.node

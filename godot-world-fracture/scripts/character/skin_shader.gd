@@ -81,7 +81,7 @@ static func code(hair_mode: int, beard: String, marks: Array, has_normal: bool) 
 		s += "uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;\n"
 	s += "uniform vec3 skin = vec3(0.0); uniform float skin_lum = 0.2; uniform vec3 hair = vec3(0.07); uniform vec3 bald = vec3(0.4, 0.3, 0.25);\n"
 	s += "uniform vec3 beard_tone = vec3(0.01); uniform float roughness_v = 0.62;\n"
-	s += "varying vec3 rest;\n"
+	s += "varying vec3 rest;\nvarying float pressed;\n"
 	s += "vec3 wf_map(vec3 v) { return normalize((v - %s) / %s) * 0.1; }\n" % [_v3(sk.centre), _v3(sk.radii)]
 	s += """float wf_line(vec3 q, vec3 a, vec3 b, float w) {
 	vec3 ma = wf_map(a), mb = wf_map(b), ab = mb - ma;
@@ -90,9 +90,24 @@ static func code(hair_mode: int, beard: String, marks: Array, has_normal: bool) 
 }
 float wf_dot(vec3 q, vec3 c, float r) { return 1.0 - smoothstep(r, r + 0.004, length(q - wf_map(c))); }
 float wf_hash(vec3 q) { return fract(sin(dot(q, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
-void vertex() { rest = CUSTOM0.xyz; }
+void vertex() { rest = CUSTOM0.xyz; pressed = CUSTOM0.w; }
 void fragment() {
 	vec3 c = texture(albedo_tex, UV).rgb;
+	// the scans' skin is blotchy (baked noise and stray dark flecks): on skin only, the texel is blended with its
+	// neighbours, darker outliers most, so pores stay and blotches go (GTA pass, Nov 22); brows, lashes, lips, beard and
+	// hair are not skin-coloured and keep their own sharpness
+	{
+		vec2 ts = 1.6 / vec2(textureSize(albedo_tex, 0));
+		vec3 nb = (texture(albedo_tex, UV + vec2(ts.x, 0.0)).rgb + texture(albedo_tex, UV - vec2(ts.x, 0.0)).rgb
+			+ texture(albedo_tex, UV + vec2(0.0, ts.y)).rgb + texture(albedo_tex, UV - vec2(0.0, ts.y)).rgb
+			+ texture(albedo_tex, UV + ts * 1.7).rgb + texture(albedo_tex, UV - ts * 1.7).rgb) / 6.0;
+		float l0 = dot(c, vec3(0.3, 0.59, 0.11));
+		float ln = dot(nb, vec3(0.3, 0.59, 0.11));
+		float mx0 = max(nb.r, max(nb.g, nb.b)), mn0 = min(nb.r, min(nb.g, nb.b));
+		float skinish = smoothstep(0.015, 0.05, nb.r - nb.b) * smoothstep(0.12, 0.25, (mx0 - mn0) / (mx0 + 1e-4)) * smoothstep(0.06, 0.14, ln);
+		float outlier = smoothstep(0.0, 0.12, (ln - l0) / max(ln, 0.02));
+		c = mix(c, nb, skinish * (0.45 + 0.45 * outlier));
+	}
 	vec3 col = c;
 	float glow = 0.0;
 	float l = dot(c, vec3(0.3, 0.59, 0.11));
@@ -114,16 +129,18 @@ void fragment() {
 	float neck = step(p.y, 0.045) * step(length(vec2(p.x, p.z + 0.02)), 0.062);
 	// with a built style, the cut head's own fringe over the forehead stays as bangs (in the style's colour) to meet the cap
 	float bangs = %s * smoothstep(0.02, 0.04, p.z) * (1.0 - smoothstep(0.05, 0.065, abs(p.x))) * (1.0 - smoothstep(0.13, 0.145, p.y));
-	float scalp = notSkin * smoothstep(0.0, 0.015, p.y) * (1.0 - max(max(face, bangs), max(ears, neck)));
+	// the scan's hair has been pressed onto the skull and flagged per vertex (character_rig._press_hair): coloured as scalp
+	// by that smooth flag, nothing cut out
+	float scalp = smoothstep(0.2, 0.8, pressed) * (1.0 - max(face, bangs));
 	// cut only above the brow and behind the ears: below the brow at the front, the cut head's own hair (a fringe over an
 	// eye, locks at the cheek) has no face modelled under it, and cutting it left holes through the face (owner, Nov 11)
 	scalp *= max(smoothstep(0.1, 0.112, p.y), 1.0 - smoothstep(-0.01, 0.01, p.z));
-	if (scalp > 0.35) { discard; }
+
 	float kept = notSkin * max(smoothstep(%s, %s, p.y) * max(face, ears), bangs);
 	vec3 hairTone = %s;
-	col = mix(col, hairTone, max(scalp / 0.35, kept));
+	col = mix(col, hairTone, max(scalp, kept));
 	}
-""" % (["0.0", "0.098", "0.104", "bald * clamp(l / 0.05, 0.6, 1.3)"] if hair_mode == 1 else ["1.0", "0.088", "0.094", "hair * clamp(l / 0.06, 0.3, 1.6)"])
+""" % (["0.0", "0.098", "0.104", "mix(bald, vec3(dot(bald, vec3(0.3, 0.59, 0.11))), 0.22) * 1.18 * (0.94 + 0.08 * smoothstep(0.0, 0.2, l))"] if hair_mode == 1 else ["1.0", "0.088", "0.094", "hair * clamp(l / 0.06, 0.3, 1.6)"])
 	s += "\tc = col;\n\tvec3 q = wf_map(p);\n"
 	s += _beard(beard)
 	for id: String in marks:
@@ -131,6 +148,8 @@ void fragment() {
 		if not m.is_empty():
 			s += _marking(m)
 	s += "\tALBEDO = col;\n\tROUGHNESS = roughness_v;\n\tEMISSION = vec3(0.15, 0.85, 1.0) * glow * 1.6;\n"
+	# skin: a little light through it at the edges (ears, nose), a soft sheen; the forehead and nose a touch glossier
+	s += "\tBACKLIGHT = col * 0.3 * k;\n\tSPECULAR = 0.45;\n\tROUGHNESS = mix(roughness_v, roughness_v * 0.82, k * smoothstep(0.08, 0.12, p.y) * smoothstep(0.03, 0.06, p.z));\n"
 	if has_normal:
 		s += "\tNORMAL_MAP = texture(normal_tex, UV).rgb;\n"
 	s += "}\n"

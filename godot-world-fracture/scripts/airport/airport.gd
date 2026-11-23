@@ -19,7 +19,7 @@ const AIRPORTS := {
 		"lines": ["The night city's gateway", "International & domestic", "Private hangars", "VIP lounge"] },
 	"SOL": { "name": "Solmara Skyport", "tag": "SSP", "city": "Solmara", "region": "solara", "style": "desert", "night": false, "street": false,
 		"lines": ["Regional international", "Desert & trade routes", "Cargo & resource exports", "Charter & luxury flights"] },
-	"ELD": { "name": "Eldergrove Airfield", "tag": "EGA", "city": "Eldergrove", "region": "riverdale", "style": "forest", "night": false, "street": false,
+	"ELD": { "name": "Eldergrove Airfield", "tag": "EGA", "city": "Eldergrove", "region": "eldergrove", "style": "forest", "night": false, "street": false,
 		"lines": ["Regional hub", "Eco-friendly design", "Cargo (timber, flora, goods)", "Air taxi & tourism"] },
 	"FRV": { "name": "Frostveil International Airport", "tag": "FVI", "city": "Frostveil", "region": "frostveil", "style": "arctic", "night": false, "street": false,
 		"lines": ["Regional international", "Cold-weather operations", "Research & supply flights", "Reinforced, all-weather"] },
@@ -31,11 +31,11 @@ const AIRPORTS := {
 		"lines": ["Regional hub", "Eco & exploration flights", "Cargo (materials, goods)", "Links to Thalassia & Nexus City"] },
 	"THA": { "name": "Thalassia Oceanic Airport", "tag": "THA", "city": "Thalassia", "region": "thalassia", "style": "coastal", "night": false, "street": false,
 		"lines": ["Unique oceanic airport", "Surface & submersible hangars", "Research & trade access", "Direct link to Verdant Forest"] },
-	"SKA": { "name": "Skyhaven Airport", "tag": "SKA", "city": "Skyhaven", "region": "storm", "style": "skyhaven", "night": false, "street": false, "custom": true,
+	"SKA": { "name": "Skyhaven Airport", "tag": "SKA", "city": "Skyhaven", "region": "skyhaven", "style": "skyhaven", "night": false, "street": false, "custom": true,
 		"lines": ["Aerial gateway (high altitude)", "Special & research flights", "Airship / VTOL operations", "Limited commercial access"] },
-	"AGA": { "name": "Aurora Gate Airport", "tag": "AGA", "city": "Aurora Gate", "region": "frostspire", "style": "aurora", "night": true, "street": false,
+	"AGA": { "name": "Aurora Gate Airport", "tag": "AGA", "city": "Aurora Gate", "region": "aurora-gate", "style": "aurora", "night": true, "street": false,
 		"lines": ["Regional international", "Northern trade routes", "Exploration & research", "Aurora viewing terminal"] },
-	"HGA": { "name": "Horizon Gate Airport", "tag": "HGA", "city": "Horizon Gate", "region": "wastelands", "style": "horizon", "night": false, "street": false,
+	"HGA": { "name": "Horizon Gate Airport", "tag": "HGA", "city": "Horizon Gate", "region": "horizon-gate", "style": "horizon", "night": false, "street": false,
 		"lines": ["Regional international", "Trade & expedition hub", "Cargo & logistics center", "Strategic west gate"] },
 	"SHX": { "name": "Shattered Expanse Airport", "tag": "SEA", "city": "Shattered Expanse", "region": "crystal-badlands", "style": "expedition", "night": false, "street": false, "custom": true, "military": true,
 		"lines": ["Specialized airport", "Rift & anomaly operations", "High security", "Research & military support"] },
@@ -46,15 +46,15 @@ const DESTINATIONS := {
 	"NXC": { "name": "Nexus City", "region": "nexus", "fare": 150 },
 	"NEC": { "name": "Neon City", "region": "neon-city", "fare": 150 },
 	"SOL": { "name": "Solmara", "region": "solara", "fare": 220 },
-	"ELD": { "name": "Eldergrove", "region": "riverdale", "fare": 190 },
+	"ELD": { "name": "Eldergrove", "region": "eldergrove", "fare": 190 },
 	"FRV": { "name": "Frostveil", "region": "frostveil", "fare": 340 },
 	"OBS": { "name": "Obsidian Reach", "region": "ember", "fare": 300 },
 	"AZI": { "name": "Azure Isles", "region": "azure-isles", "fare": 300 },
 	"VRD": { "name": "Verdant Forest", "region": "veridan", "fare": 190 },
 	"THA": { "name": "Thalassia", "region": "thalassia", "fare": 260 },
-	"SKA": { "name": "Skyhaven", "region": "storm", "fare": 360 },
-	"AGA": { "name": "Aurora Gate", "region": "frostspire", "fare": 320 },
-	"HGA": { "name": "Horizon Gate", "region": "wastelands", "fare": 280 },
+	"SKA": { "name": "Skyhaven", "region": "skyhaven", "fare": 360 },
+	"AGA": { "name": "Aurora Gate", "region": "aurora-gate", "fare": 320 },
+	"HGA": { "name": "Horizon Gate", "region": "horizon-gate", "fare": 280 },
 	"SHX": { "name": "Shattered Expanse", "region": "crystal-badlands", "fare": 380 },
 	# towns without an airport of their own: you land on their strip and walk out
 	"GLD": { "name": "Goldenreach", "region": "goldenreach", "fare": 200 },
@@ -65,6 +65,11 @@ const DESTINATIONS := {
 ## the board code an airport shows (the owner's network board: NCI, SSP, EGA …); any other place keeps its own
 static func tag(code: String) -> String:
 	return String(AIRPORTS[code].get("tag", code)) if AIRPORTS.has(code) else code
+## a region whose map isn't in this build's exported data yet lands on its neighbour's (the four airport lands of Nov 22
+## came after the others; Frostveil, the Azure Isles and Goldenreach before them)
+const FALLBACK_REGION := { "frostveil": "frostspire", "azure-isles": "thalassia", "goldenreach": "riverdale", "eldergrove": "riverdale",
+	"skyhaven": "storm", "aurora-gate": "frostspire", "horizon-gate": "wastelands" }
+
 const GATES := ["A1", "A2", "A3", "B1", "B2", "B3"]
 const FLIGHT_EVERY := 45          # minutes between departures to one destination
 ## the private hangars on each apron, and what they and the aircraft cost

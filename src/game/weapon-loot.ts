@@ -63,7 +63,7 @@ export const QUEST_WEAPON: Record<string, string> = {
   "fd-01": "Fracture Edge", "fd-02": "Echo Lance", "fd-03": "Reality-Shift Carbine", "fd-04": "Whisper of Solara",
   "fd-05": "Tidebreaker", "fd-06": "Aether Rifle", "fd-07": "Starfall Edge", "fd-08": "Solara Spear", "fd-09": "Fracture Core Shard",
   "fd-10": "Worldsplitter", "fd-11": "Dawnbreaker Katana", "fd-12": "Sunder of Pyrrath", "fd-13": "Sunpillar", "fd-14": "Bow of the Fractured Sun",
-  "fd-15": "Core Crusher", "fd-16": "Tidebreaker Maul", "fd-17": "Staff of the Deepmind", "fd-18": "Vyrak's Fang",
+  "fd-15": "Core Crusher", "fd-16": "Tidebreaker Maul", "fd-17": "Staff of the Deepmind", "fd-18": "Ashfang",
   "side-storm-01": "Skyline Longbow", "side-storm-02": "Resonance Staff", "side-storm-03": "Phase Katana", "side-storm-side-01": "Sunforged Blade",
 };
 const questPower = (id: string) => { const m = /^fd-(\d+)$/.exec(id); return m ? 150 + 10 * Number(m[1]) : 230; };

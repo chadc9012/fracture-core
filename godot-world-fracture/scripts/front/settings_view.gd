@@ -76,6 +76,9 @@ func _ready() -> void:
 		_show_tier()))
 	_column.add_child(_tier_note)
 	_show_tier()
+	# main's Nov 22 additions, in this screen's rows
+	_row("Full resolution", _toggle(bool(s.get("full_res", false)), func(on: bool): Store.set_value("full_res", on)), "every pixel · more battery")
+	_row("HD textures", _toggle(bool(s.get("hd_textures", false)), func(on: bool): Store.set_value("hd_textures", on)), "4K weapons · recent phones")
 	_row("Screen", _choices(Store.ORIENTATIONS, String(s.get("orientation", "auto")), func(o: String):
 		Store.set_value("orientation", o)
 		Store.apply_orientation()))

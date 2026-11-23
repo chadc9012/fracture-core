@@ -27,7 +27,8 @@ const DUCK_DB := -9.0
 ## the web's regional beds (audio.ts AMBIENCE_FILES), plus the street styles
 const BEDS := { "veridan": "forest-wilds", "swamps": "swamp-marsh", "thalassia": "underwater-city", "nexus": "nexus-hum", "frostspire": "frost-spire", "solara": "solara-dunes", "wastelands": "wasteland-wind", "ember": "ember-peaks",
 	"neon": "nexus-hum", "neon-city": "nexus-hum", "riverdale": "nexus-hum", "miami": "underwater-city", "coast": "underwater-city", "sky": "wasteland-wind",
-	"storm": "wasteland-wind", "crystal-badlands": "solara-dunes", "shattered-reefs": "underwater-city", "goldenreach": "forest-wilds", "old-harrow": "forest-wilds", "floating-islands": "wasteland-wind" }
+	"storm": "wasteland-wind", "crystal-badlands": "solara-dunes", "shattered-reefs": "underwater-city", "goldenreach": "forest-wilds", "old-harrow": "forest-wilds", "floating-islands": "wasteland-wind",
+	"eldergrove": "forest-wilds", "skyhaven": "wasteland-wind", "aurora-gate": "frost-spire", "horizon-gate": "wasteland-wind" }
 
 var radio := Radio.new()
 var _pool: Array[AudioStreamPlayer] = []
@@ -117,14 +118,19 @@ func sfx(name: String, volume_db := 0.0, jitter := 0.08) -> void:
 		played.pop_front()
 	if s == null:
 		return
-	# a free player if there is one, else the one that started longest ago
+	# a free player if there is one, else the one that started longest ago — except a footstep, which never cuts off
+	# another sound (a squad sprinting must not steal the gunfire's voices)
 	var p := _pool[_pool_i % POOL]
+	var free := false
 	for i in POOL:
 		var q := _pool[(_pool_i + i) % POOL]
 		if not q.playing:
 			p = q
 			_pool_i += i
+			free = true
 			break
+	if not free and name.begins_with("step"):
+		return
 	_pool_i += 1
 	p.stream = s
 	p.volume_db = volume_db
@@ -228,9 +234,19 @@ func music_stop() -> void:
 	_music.stop()
 	radio.station = ""
 
+## each recording's gain to an even loudness (tools/radio_gain.py → data/radio_gain.json): ads, idents and talk no longer
+## drop 10–18 dB under the songs
+var _radio_gain: Dictionary = {}
+func _gain_of(path: String) -> float:
+	if _radio_gain.is_empty():
+		var f := FileAccess.open("res://data/radio_gain.json", FileAccess.READ)
+		var d: Variant = JSON.parse_string(f.get_as_text()) if f else null
+		_radio_gain = d if d is Dictionary else { "": 0.0 }
+	return float(_radio_gain.get(path, 0.0))
+
 func radio_on(station: String) -> void:
 	radio.tune(station)
-	_music_base_db = -4.0
+	_music_base_db = -2.0
 	_play_on_air()
 
 func radio_next() -> void:
@@ -262,6 +278,7 @@ func _play_on_air() -> void:
 		return
 	_looping(s, false)
 	_music.stream = s
+	_music_base_db = -2.0 + _gain_of(String(now.path))
 	_music.volume_db = _music_base_db
 	_music.play()
 

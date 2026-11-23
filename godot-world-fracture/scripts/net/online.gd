@@ -66,6 +66,28 @@ func _identity() -> void:
 	if display == "":
 		display = "Operator " + id.right(4).to_upper()
 
+## a small online preference kept with the guest id (story co-op open / private…)
+static func pref(key: String, default: Variant) -> Variant:
+	var f := FileAccess.open(SAVE, FileAccess.READ)
+	if f:
+		var v: Variant = JSON.parse_string(f.get_as_text())
+		if v is Dictionary:
+			return (v as Dictionary).get(key, default)
+	return default
+
+static func set_pref(key: String, value: Variant) -> void:
+	var d := {}
+	var f := FileAccess.open(SAVE, FileAccess.READ)
+	if f:
+		var v: Variant = JSON.parse_string(f.get_as_text())
+		if v is Dictionary:
+			d = v
+		f.close()
+	d[key] = value
+	var w := FileAccess.open(SAVE, FileAccess.WRITE)
+	if w:
+		w.store_string(JSON.stringify(d))
+
 func online() -> bool:
 	return live() and rt.is_open()
 

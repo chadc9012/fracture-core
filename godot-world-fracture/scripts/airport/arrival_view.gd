@@ -6,6 +6,8 @@ extends Control
 
 signal closed
 signal flew(code: String)
+## the Sky Sovereign came down (sky_sovereign.gd): main.gd hides this view and opens his fight
+signal unique_called(mission: String)
 
 const Air := preload("res://scripts/airport/airport.gd")
 const Region3D := preload("res://scripts/region_3d.gd")
@@ -17,6 +19,8 @@ const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const StreetSlice := preload("res://scripts/city/street_slice.gd")
 const NpcStreet := preload("res://scripts/npc/npc_street.gd")
 const People := preload("res://scripts/npc/people.gd")
+const Encounters := preload("res://scripts/mission/encounters.gd")
+const Sovereign := preload("res://scripts/mission/sky_sovereign.gd")
 
 var dest := "THA"
 var region: Control
@@ -40,7 +44,7 @@ func _ready() -> void:
 	# a destination whose region has no exported map yet (Frostveil, the Azure Isles, Goldenreach) lands on the
 	# nearest mapped land rather than on nothing: without this the region built no world and the walk out crashed
 	if Data.map(id).is_empty():
-		id = { "frostveil": "frostspire", "azure-isles": "thalassia", "goldenreach": "riverdale" }.get(id, "veridan")
+		id = Air.FALLBACK_REGION.get(id, "veridan")
 	region = Region3D.new()
 	region.set_anchors_preset(Control.PRESET_FULL_RECT)
 	region.closed.connect(func(): closed.emit())
@@ -82,7 +86,7 @@ func _ready() -> void:
 	gunplay.set_holstered(not armed)
 	controls.set_armed(armed)
 	var row := HBoxContainer.new()
-	row.position = Vector2(16, 16)
+	row.position = Vector2(250, 8)   # right of the hull bar (HUD rule): it sat on it (polish, Nov 21)
 	row.add_theme_constant_override("separation", 8)
 	add_child(row)
 	var back := Button.new()
@@ -120,10 +124,17 @@ func _process(dt: float) -> void:
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if beacon:
 		beacon.step(dt, operator)
+	if Engine.get_process_frames() % 30 == 0:
+		_clue_sense()
+	_sovereign(dt)
 	if npcs:
 		var who: String = npcs.near(operator.position)
 		if who != _near:
 			_near = who
+			# the Ashen Mark: people notice it (one remark per person per visit)
+			if who != "" and _sov_marked and not _remarked.has(who):
+				_remarked[who] = true
+				controls.toast(String(Sovereign.REMARKS[_remarked.size() % Sovereign.REMARKS.size()]))
 			controls.prompt(npcs.label_for(who) if who != "" else "")
 		if who != "" and controls.take_enter():
 			controls.prompt("")
@@ -136,6 +147,57 @@ func _process(dt: float) -> void:
 	var g = gunplay.gun()
 	controls.weapon_name.text = g.display_name() if armed else "UNARMED"
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text()) if armed else ""
+
+## the unique encounters' world and site clues (encounters.gd): walking near one of this region's places records it
+var _clue_seen := {}
+func _clue_sense() -> void:
+	var o: Vector2 = region.origin()
+	var at := Vector2(operator.position.x + o.x, operator.position.z + o.y)
+	for pl in Encounters.near(map_id, at):
+		var k := "%s:%s" % [pl.e, pl.c]
+		if _clue_seen.has(k):
+			continue
+		_clue_seen[k] = true
+		var w := map_id
+		for l in Encounters.with_profile(func(p: Dictionary) -> Array: return Encounters.sense(p, w, at)):
+			controls.toast(String(l))
+
+## Vyrak (sky_sovereign.gd): nothing points here. Alone in Solara, on foot, level 12+, at night by the device's clock, standing
+## in the Ribcage crater long enough — and he comes down. The profile is re-read every few seconds, not every frame.
+var _sov := Sovereign.new_watch()
+var _sov_read := -1.0
+var _sov_level := 0
+var _sov_slain := true
+var _sov_marked := false
+var _remarked := {}
+func _sovereign(dt: float) -> void:
+	_sov_read -= dt
+	if _sov_read <= 0.0:
+		_sov_read = 3.0
+		var p := Gear.profile_load()
+		_sov_level = int(p.get("level", 1))
+		_sov_slain = Sovereign.is_slain(p)
+		_sov_marked = Sovereign.is_marked(p)
+	if map_id != Sovereign.WORLD or _sov_slain:
+		return
+	var lair: Variant = Encounters.pois(map_id).get(Sovereign.LAIR)
+	if not (lair is Vector2):
+		return
+	var o: Vector2 = region.origin()
+	var at := Vector2(operator.position.x + o.x, operator.position.z + o.y)
+	var c := { "dist": at.distance_to(lair), "night": Sovereign.is_night(), "level": _sov_level, "on_foot": true,
+		"alone": not (npcs and npcs.busy) }
+	if Sovereign.step(_sov, c, dt, _sov_slain):
+		controls.toast("The wind over the crater stops dead.")
+		get_tree().create_timer(1.5).timeout.connect(func(): unique_called.emit(Sovereign.MISSION))
+
+## back from his fight: the mark (or its absence) shows on the operator at once
+func refresh_mark() -> void:
+	_sov_read = 0.0
+	if region:
+		region.camera().current = true
+	if operator and operator.get("rig"):
+		operator.rig.ashen_mark(Sovereign.is_marked(Gear.profile_load()))
 
 ## the return desk: a ticket home, paid and boarded in one press
 func _flights() -> void:

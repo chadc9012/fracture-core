@@ -403,7 +403,7 @@
    "title": "The First Operator",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Weapon down. State your affiliation.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -425,7 +425,7 @@
    "title": "The First Operator",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Not if you can explain how you survived the breach.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -458,7 +458,7 @@
    "title": "The First Operator",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "That is not possible. NOVA was decommissioned.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -480,7 +480,7 @@
    "title": "The First Operator",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Come with us. We can keep civilians safe.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -502,7 +502,7 @@
    "title": "The Choice to Stay",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "We need people who can withstand the Fractures.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -524,7 +524,7 @@
    "title": "The Choice to Stay",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Then be something better. Make your own choice.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -557,7 +557,7 @@
    "title": "The Choice to Stay",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Fair. Prove you can protect this district, and we talk again.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -579,7 +579,7 @@
    "title": "The Choice to Stay",
    "region": "Nexus City",
    "category": "branch",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Agreed. You answer to your conscience before you answer to me.",
    "branch": "cooperate",
    "voice_status": "not_recorded"
@@ -601,7 +601,7 @@
    "title": "The Choice to Stay",
    "region": "Nexus City",
    "category": "branch",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Then prove that independence is not indifference.",
    "branch": "independent",
    "voice_status": "not_recorded"
@@ -1492,7 +1492,7 @@
    "title": "A City of Masks",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "People are calling you a hero. Others are calling you a threat.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -1514,7 +1514,7 @@
    "title": "A City of Masks",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "They know what your choices did to their streets.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -1547,7 +1547,7 @@
    "title": "A City of Masks",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Then make sure your next choice is worth defending.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -2009,7 +2009,7 @@
    "title": "The Broken Alliance",
    "region": "Multiple Regions",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "Every alliance you made is being tested.",
    "branch": null,
    "voice_status": "not_recorded"
@@ -2097,7 +2097,7 @@
    "title": "The Broken Alliance",
    "region": "Multiple Regions",
    "category": "branch",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "I can give you ten minutes.",
    "branch": "negotiate",
    "voice_status": "not_recorded"
@@ -2207,7 +2207,7 @@
    "title": "A World Worth Keeping",
    "region": "Nexus City",
    "category": "main",
-   "speaker": "CAPTAIN VALE",
+   "speaker": "CAPTAIN ROURKE",
    "text": "The Fractures are quiet. For now.",
    "branch": null,
    "voice_status": "not_recorded"

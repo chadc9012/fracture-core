@@ -3,7 +3,7 @@ extends RefCounted
 ## "auto" to the device (phone → medium); scripts/phone.gd and the views read it. Keep every option here, not in a view.
 
 const PATH := "user://settings.json"
-const DEFAULTS := { "graphics": "auto", "sensitivity": 1.0, "invert_look": false, "master": 0.8, "music": 0.7, "sfx": 0.9, "voices": 1.0, "simple_hud": true, "radio": "", "perf_readout": false, "gore": "reduced", "orientation": "auto", "difficulty": "normal" }
+const DEFAULTS := { "graphics": "auto", "sensitivity": 1.0, "invert_look": false, "master": 0.8, "music": 0.7, "sfx": 0.9, "voices": 1.0, "simple_hud": true, "radio": "", "perf_readout": false, "gore": "reduced", "orientation": "auto", "full_res": false, "hd_textures": false, "difficulty": "normal" }
 const TIERS := ["low", "medium", "high"]
 
 static var _cache: Dictionary = {}
@@ -40,6 +40,16 @@ static func tier() -> String:
 	if g in TIERS:
 		return g
 	return "medium" if (OS.has_feature("mobile") or OS.get_name() in ["Android", "iOS"]) else "high"
+
+## FULL RESOLUTION (owner, Nov 23: "push it as far as it will go"): the 3D scene drawn at every pixel of the screen
+## instead of the tier's render scale (phones: 85 % upscaled), with sharper texture sampling. Costs frame rate and battery.
+static func full_res() -> bool:
+	return bool(get_value("full_res"))
+
+## HD TEXTURES: the 4K versions of the models that have them (res://models/hd/…) instead of the 2K ones. Four times the
+## graphics memory per model, so it is off unless the player turns it on.
+static func hd_textures() -> bool:
+	return bool(get_value("hd_textures"))
 
 static func sensitivity() -> float:
 	return clampf(float(get_value("sensitivity")), 0.3, 3.0)

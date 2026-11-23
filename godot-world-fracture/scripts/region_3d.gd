@@ -43,8 +43,8 @@ var m: Dictionary = {}
 static var season := -1
 const SEASONS := ["SPRING", "SUMMER", "AUTUMN", "WINTER"]
 ## the lands that stay as they are all year: the tropics, the deserts, the fire, the ice, the deep
-const NO_WINTER := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire", "neon-city", "nexus"]
-const EVERGREEN := ["azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire"]
+const NO_WINTER := ["horizon-gate", "aurora-gate", "azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire", "neon-city", "nexus"]
+const EVERGREEN := ["horizon-gate", "aurora-gate", "azure-isles", "shattered-reefs", "solara", "wastelands", "ember", "crystal-badlands", "thalassia", "frostveil", "frostspire"]
 var _season_btn: Button
 var _ground_mat: ShaderMaterial
 var _base_pal := PackedVector3Array()
@@ -280,7 +280,7 @@ func _build_civic_roofs() -> void:
 
 ## Snow and lava mountains read as one smooth cone: scatter rock outcrops where the ground is steep and high
 func _build_slope_rock() -> void:
-	if map_id not in ["frostspire", "ember", "crystal-badlands", "wastelands", "frostveil"]:
+	if map_id not in ["frostspire", "ember", "crystal-badlands", "wastelands", "frostveil", "horizon-gate", "skyhaven", "aurora-gate"]:
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(map_id) + 7
@@ -318,7 +318,7 @@ func _build_slope_rock() -> void:
 	mesh.radial_segments = 6
 	mesh.rings = 3
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = {"frostspire": Color("#6d737d"), "frostveil": Color("#3a3e46"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e")}.get(map_id, Color("#555555"))
+	mat.albedo_color = {"frostspire": Color("#6d737d"), "frostveil": Color("#3a3e46"), "ember": Color("#2a2420"), "crystal-badlands": Color("#6b4e5e"), "wastelands": Color("#7a5a3e"), "horizon-gate": Color("#8a5236"), "skyhaven": Color("#6c665e"), "aurora-gate": Color("#4a4e58")}.get(map_id, Color("#555555"))
 	mat.roughness = 0.95
 	_multimesh(mesh, rocks, mat, 700.0, false)
 
@@ -467,6 +467,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	if m.is_empty():
 		return
 	_split_ruins()
+	_add_road_net(id)
 	_title.text = "%s · 3D" % m.name
 	var b: Dictionary = m.bounds
 	_span = b.span
@@ -477,6 +478,8 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	if id == "thalassia":
 		_flatten_city_dome()
 	_style = _style_for(id)
+	_decks.clear()
+	_deck_grid_n = -1
 	if _style.under:
 		# under the sea (Thalassia): no surface over the city, so "water level" sits below the seabed and everything that
 		# clamps to it (street view, docks, labels) stands on the floor instead of 30-odd metres up at the surface
@@ -493,6 +496,11 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	_cam.fov = 62.0
 	_world.add_child(_cam)
 	_build_env()
+	if float(_style.get("aurora", 0.0)) > 0.0:
+		# Aurora Gate's sky (scripts/vfx/aurora.gd, the same ribbons as its airport)
+		var arng := RandomNumberGenerator.new()
+		arng.seed = hash(id)
+		_world.add_child(load("res://scripts/vfx/aurora.gd").make(arng, Vector3(0, 300, -_span * 0.95), _span * 0.7))
 	_build_ground()
 	_build_water()
 	if staged:
@@ -512,6 +520,8 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 		if _world != w:
 			return
 	_build_roads()
+	_build_highways()
+	_dress_bridges()
 	if CITY_ROAD_MARKINGS:
 		_build_road_markings_batch_19_43()
 	_build_rings()
@@ -533,6 +543,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 		if _world != w:
 			return
 	Flora.floor(self, _clearings())
+	_build_grass_field()
 	_build_floating()
 	_build_ruins()
 	if id == "thalassia":
@@ -544,6 +555,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	_build_lamps()
 	Flora.landmark_fx(self)
 	Flora.fracture_set(self)
+	preload("res://scripts/region_board.gd").build(self)   # the owner's region boards (Nov 22): their landmarks
 	_build_labels()
 	_apply_season()
 	_weather = Weather.new()
@@ -647,15 +659,23 @@ func _style_for(id: String) -> Dictionary:
 			# the owner's "STORM - EMBER PEAKS" photo (docs/reference/world-photos/storm-ember.jpg, volcano.jpg): a night
 			# storm over black basalt — slate-blue cloud, cold light from the storm, the lava the only warm thing in the land
 			# (it was an orange noon haze, every surface the same rust, the crater blown out to white)
-			s.merge({"top": "#0c1120", "hor": "#3a3448", "fog": "#272433", "fog_d": 0.0019, "sun": 0.42, "sun_col": "#a9b8e0", "sun_el": 32.0,
-				"amb": 0.55, "amb_col": "#4a5276", "night": 0.8, "sat": 1.0, "exp": 1.25, "planet": false, "sky": "storm",
-				"glow": "#ff4a14", "glow_amt": 0.35, "embers": 1.0}, true)
+			# Nov 22, the owner's Ember Peaks / Obsidian Reach boards: a burning dusk — a dark violet zenith over a red-orange
+			# horizon under heavy cloud lit from below, the sun down behind the peaks, black rock and the lava the brightest thing
+			# (first render: one red wash over everything — a darker violet zenith, a grey-brown haze, more contrast)
+			s.merge({"top": "#120a24", "hor": "#f0642a", "fog": "#2c1e22", "fog_d": 0.0016, "sun": 1.2, "sun_col": "#ff9050", "sun_el": 8.0, "sun_az": 150.0,
+				"amb": 0.6, "amb_col": "#5a4a58", "night": 0.4, "sat": 1.05, "exp": 1.0, "planet": false, "sky": "sunset",
+				"sky_set": {"cover": 0.55, "cloud_dark": Color("#1e0e1c"), "cloud_lit": Color("#ff8a48"), "streak": 0.5},
+				"glow": "#ff4a14", "glow_amt": 0.32, "embers": 1.0}, true)
 		"frostspire":
 			# the owner's "NIGHT / MOON - FROSTSPIRE MOUNTAINS" photos: a big moon over the peaks, deep blue night, the snow
 			# lit blue-white, the dark rock showing on the steep faces, the settlements' lights warm in the valleys (it was
 			# a white-out: white sky, white fog, white ground, no shape)
-			s.merge({"top": "#050b22", "hor": "#2a4a86", "fog": "#1e3260", "fog_d": 0.0016, "sun": 0.85, "sun_col": "#b8ccff", "sun_el": 24.0, "sun_az": 120.0,
-				"amb": 0.38, "amb_col": "#3e5590", "night": 0.75, "sat": 1.05, "exp": 1.1, "planet": false, "sky": "moon", "glow": "#3d5ea8", "glow_amt": 0.25}, true)
+			# (first render: the snow blew out to flat white — lower exposure and moon so it keeps its blue shading)
+			# Nov 22, the owner's Frostspire / Frostveil boards: polar twilight rather than full night — a deep blue zenith
+			# over a lighter horizon, the aurora green across the north, the snow lit blue-white, the Fracture spire glowing
+			s.merge({"top": "#081640", "hor": "#5a7cc4", "fog": "#36508a", "fog_d": 0.0014, "sun": 0.8, "sun_col": "#b4c8ff", "sun_el": 22.0, "sun_az": 120.0,
+				"amb": 0.36, "amb_col": "#4a62a8", "night": 0.55, "sat": 1.15, "exp": 0.72, "planet": false, "sky": "moon", "glow": "#4a7ad0", "glow_amt": 0.3,
+				"aurora": 1.0}, true)
 		"swamps":
 			# the Shrouded Swamps (owner's world board: bioluminescent wetlands, mangroves, the sunken temple, a High Risk
 			# Fracture Zone): a misty green twilight under the moon, standing water through the marsh, glowing fungi and
@@ -663,7 +683,13 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#0f2024", "hor": "#4a6e5a", "fog": "#34493f", "fog_d": 0.003, "sun": 0.95, "sun_col": "#c4dccf", "sun_el": 26.0, "sun_az": 60.0,
 				"amb": 1.0, "amb_col": "#4a6c62", "night": 0.7, "sat": 1.0, "exp": 1.45, "planet": false, "sky": "moon", "glow": "#3f8a6a", "glow_amt": 0.3,
 				"bog": 1.0}, true)
-		"veridan", "riverdale":
+		"veridan":
+			# the owner's Verdant Forest / Eldergrove boards (Nov 22, docs/reference/regions): a bright clear day, deep blue
+			# sky with big white cumulus, the sun high and warm, saturated greens, turquoise water
+			s.merge({"top": "#2f6fc4", "hor": "#cfe2ec", "fog": "#9ab6ae", "fog_d": 0.0016, "sun": 1.45, "sun_col": "#fff0d0", "sun_el": 40.0, "sun_az": 140.0,
+				"amb": 0.6, "amb_col": "#6a8a74", "sat": 1.22, "exp": 0.72, "sky": "day", "sky_set": {"cover": 0.42, "cloud_scale": 0.85},
+				"tint": Vector3(0.8, 1.0, 0.68)}, true)
+		"riverdale":
 			s.merge({"top": "#6a879e", "hor": "#c6cdc8", "fog": "#a3ada7", "fog_d": 0.0019, "sun": 0.95, "sun_col": "#fff0d8", "sun_el": 34.0, "amb": 0.6}, true)
 		"wastelands":
 			# the owner's "SUNSET - THE WASTELANDS" photo: the sun on the horizon, an orange sky under streaked cloud, red
@@ -671,26 +697,33 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#2e3f7a", "hor": "#f08a48", "fog": "#b8704a", "fog_d": 0.0014, "sun": 1.7, "sun_col": "#ffa45c", "sun_el": 8.0, "sun_az": 150.0,
 				"amb": 0.42, "sat": 1.05, "exp": 0.95, "planet": true, "sky": "sunset", "glow": "#ff7a30", "glow_amt": 0.35, "tint": Vector3(0.92, 0.7, 0.52)}, true)
 		"solara":
-			# the owner's "DAY - SOLARA" photo (Nov 18): a deep blue sky with white cloud over golden sand (it read as pale
-			# cream). A lower, warmer sun and less exposure keep the dunes' shading (the noon sun blew them out to white)
-			s.merge({"top": "#2c6cc0", "hor": "#bcd6ec", "fog": "#d9c6a2", "fog_d": 0.0012, "sun": 1.05, "sun_col": "#ffe2b8", "sun_el": 30.0, "amb": 0.45, "exp": 0.68, "sat": 0.95,
-				"sky": "day", "tint": Vector3(1.0, 0.84, 0.64)}, true)
+			# the owner's Solmara boards (Nov 22, docs/reference/regions/solmara-*.jpg): late golden hour — the sun low
+			# over the dunes, a blue zenith over gold and coral cloud, orange sand and red rock in long shadow (the Nov 18
+			# "DAY - SOLARA" noon read pale next to the boards)
+			s.merge({"top": "#2d5aa8", "hor": "#ffc27a", "fog": "#d8925a", "fog_d": 0.0011, "sun": 1.6, "sun_col": "#ffb468", "sun_el": 13.0, "sun_az": 150.0,
+				"amb": 0.5, "amb_col": "#9a7a7a", "exp": 0.78, "sat": 1.15, "sky": "sunset", "sky_set": {"cover": 0.38, "cloud_lit": Color("#ffcf8a"), "cloud_dark": Color("#8a5a6a"), "streak": 0.5},
+				"glow": "#ff9a48", "glow_amt": 0.3, "tint": Vector3(1.0, 0.74, 0.5)}, true)
 		"storm":
 			# the board's floating islands under a storm at dusk: a heavy cloud deck, the low sun breaking warm along the
 			# horizon, the crystals glowing (Nov 18 pass: the region_sky storm deck with a warm horizon, lightning on)
-			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 10.0, "sun_az": 150.0,
-				"amb": 0.6, "sat": 1.1, "exp": 1.0, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
+			s.merge({"top": "#1b1f42", "hor": "#8a6a9e", "fog": "#4e4a72", "fog_d": 0.0022, "sun": 1.1, "sun_col": "#ffb98a", "sun_el": 18.0, "sun_az": 150.0,
+				# (Nov 21, Street View: the ground and the trees were black in the shade — more violet ambient, a higher sun)
+				"amb": 1.5, "amb_col": "#7a6aa2", "sat": 1.1, "exp": 1.1, "planet": false, "sky": "storm", "glow": "#ff9a5a", "glow_amt": 0.45}, true)
 		"crystal-badlands":
 			# the owner's "MOONLIGHT - FRACTURE ZONE" photo: a full moon over dark rock spires, deep blue night, the crystals
 			# and rift seams glowing cyan and violet (it was a flat pink-orange dusk)
-			s.merge({"top": "#040a24", "hor": "#24407e", "fog": "#16224a", "fog_d": 0.0015, "sun": 0.8, "sun_col": "#aec4ff", "sun_el": 28.0, "sun_az": 140.0,
-				"amb": 0.4, "amb_col": "#36508c", "night": 0.75, "sat": 1.1, "exp": 1.15, "planet": false, "sky": "moon", "glow": "#5a3cff", "glow_amt": 0.3,
-				"tint": Vector3(0.5, 0.52, 0.68)}, true)
+			# Nov 22, the owner's Shattered Expanse boards (this land is the Expanse — airport SHX): a violet storm dusk,
+			# heavy cloud lit purple from below, the Fracture spire's light over dark rock
+			# (first render: one purple wash — darker grey rock, a deeper haze, the violet left to the light and the crystals)
+			s.merge({"top": "#140a30", "hor": "#7a3ab8", "fog": "#1e1630", "fog_d": 0.0013, "sun": 0.9, "sun_col": "#c8a8ff", "sun_el": 18.0, "sun_az": 140.0,
+				"amb": 0.45, "amb_col": "#40385e", "night": 0.6, "sat": 1.0, "exp": 1.0, "planet": false, "sky": "storm",
+				"sky_set": {"cover": 0.7, "cloud_dark": Color("#140a24"), "cloud_lit": Color("#9a5ad8")}, "glow": "#a040ff", "glow_amt": 0.4,
+				"tint": Vector3(0.42, 0.4, 0.48)}, true)
 		"old-harrow":
 			# the board's town picture: dusk over the roofs, the last sun on the spire, windows coming on (Nov 18: the
 			# region_sky sunset deck, streaked cloud lit from below)
 			s.merge({"top": "#2a3866", "hor": "#f0a468", "fog": "#a88468", "fog_d": 0.0016, "sun": 1.1, "sun_col": "#ffb27a", "sun_el": 9.0, "sun_az": 150.0,
-				"amb": 0.5, "night": 0.4, "sat": 1.05, "exp": 0.95, "sky": "sunset", "glow": "#ff8a44", "glow_amt": 0.3}, true)
+				"amb": 0.85, "amb_col": "#9a8c8a", "night": 0.4, "sat": 1.05, "exp": 1.0, "sky": "sunset", "glow": "#ff8a44", "glow_amt": 0.3}, true)   # Nov 22: dusk fill, the shaded streets were near black
 		"goldenreach":
 			# the owner's flower-field photo: late-afternoon gold, the sun low and warm behind haze, a blue sky with cloud
 			s.merge({"top": "#3f7cc8", "hor": "#f2d9ae", "fog": "#d8c49e", "fog_d": 0.0012, "sun": 1.4, "sun_col": "#ffd49a", "sun_el": 20.0, "sun_az": 150.0,
@@ -706,10 +739,30 @@ func _style_for(id: String) -> Dictionary:
 			s.merge({"top": "#3a64a0", "hor": "#d8e6f2", "fog": "#b8cade", "fog_d": 0.0016, "sun": 1.15, "sun_col": "#ffe0c4", "sun_el": 11.0, "sun_az": 150.0,
 				"amb": 0.4, "exp": 0.48, "sat": 1.1, "sky": "day", "sky_set": {"cover": 0.22, "cloud_scale": 0.7}, "glow": "#ffd2b0", "glow_amt": 0.2,
 				"tint": Vector3(0.84, 0.9, 1.0)}, true)
+		"eldergrove":
+			# the 12-airport board's Eldergrove (Nov 22): an old forest in late-afternoon light — sun shafts low through
+			# the canopy, a green-gold haze down the valley, the falls' spray catching the light
+			s.merge({"top": "#4f7fae", "hor": "#d8dcc0", "fog": "#9fae92", "fog_d": 0.0021, "sun": 1.2, "sun_col": "#ffe2b0", "sun_el": 24.0, "sun_az": 140.0,
+				"amb": 0.55, "amb_col": "#5d7458", "sat": 1.12, "exp": 0.78, "sky": "day", "glow": "#ffd08a", "glow_amt": 0.2,
+				"tint": Vector3(0.72, 0.92, 0.62)}, true)
+		"skyhaven":
+			# the board's Skyhaven: bright high air over the Sea of Gales, cloud below the pinnacles' tops, a clean sun
+			s.merge({"top": "#2f6fc6", "hor": "#d6e8f6", "fog": "#c4d8ea", "fog_d": 0.0013, "sun": 1.35, "sun_col": "#fff4e0", "sun_el": 36.0, "sun_az": 140.0,
+				"amb": 0.55, "sat": 1.08, "exp": 0.66, "sky": "day", "sky_set": {"cover": 0.45, "cloud_scale": 0.9}}, true)
+		"aurora-gate":
+			# the board's Aurora Gate: a clear polar night, the aurora green over the snow, the town's windows warm, the
+			# frozen lake catching the sky
+			s.merge({"top": "#03101e", "hor": "#16486a", "fog": "#122a40", "fog_d": 0.0014, "sun": 0.7, "sun_col": "#a8e0d0", "sun_el": 22.0, "sun_az": 150.0,
+				"amb": 0.42, "amb_col": "#2f5a6a", "night": 0.8, "sat": 1.1, "exp": 1.15, "planet": false, "sky": "moon", "glow": "#2fd89a", "glow_amt": 0.35,
+				"tint": Vector3(0.78, 0.86, 0.95), "aurora": 1.0}, true)
+		"horizon-gate":
+			# the board's Horizon Gate: the sun on the horizon behind the mesas, red rock in long shadows, a violet zenith
+			s.merge({"top": "#3a2f78", "hor": "#ff9a52", "fog": "#c27a52", "fog_d": 0.0013, "sun": 1.75, "sun_col": "#ffa058", "sun_el": 7.0, "sun_az": 160.0,
+				"amb": 0.45, "sat": 0.98, "exp": 0.92, "planet": true, "sky": "sunset", "glow": "#ff8838", "glow_amt": 0.3, "tint": Vector3(0.95, 0.8, 0.66)}, true)
 		"shattered-reefs":
 			# the owner's "OCEAN" photo, as Azure Isles
 			s.merge({"top": "#2370c8", "hor": "#cfe6f0", "fog": "#b6d6e4", "fog_d": 0.0007, "sun": 1.4, "sun_col": "#fff6e4", "sun_el": 45.0, "sun_az": 150.0,
-				"amb": 0.6, "sat": 1.05, "exp": 0.8, "sky": "day"}, true)
+				"amb": 0.5, "sat": 1.12, "exp": 0.6, "sky": "day"}, true)   # Nov 21: the ground washed out at street level
 		"thalassia":
 			# the city inside the dome carries its own lights: a dimmer, bluer deep so they read (it was blown out to white)
 			s.merge({"fog": "#06465e", "fog_d": 0.009, "sun": 0.45, "sun_col": "#a8e6ff", "sun_el": 70.0, "amb": 0.35, "planet": false, "under": true, "night": 0.6, "exp": 0.8}, true)
@@ -747,7 +800,8 @@ func _build_env() -> void:
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY if not _style.under else Environment.AMBIENT_SOURCE_COLOR
 	_env.ambient_light_color = Color(_style.fog)
 	_env.ambient_light_energy = _style.amb + _style.night * 0.5
-	if _style.night > 0.5:
+	# a style that names its ambient colour gets it by day too (the Storm Islands' dark cloud deck lit nothing: black shade)
+	if _style.night > 0.5 or _style.has("amb_col"):
 		_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 		_env.ambient_light_color = Color(_style.get("amb_col", Color(_style.hor).lightened(0.25)))
 	_env.tonemap_mode = Environment.TONE_MAPPER_ACES
@@ -914,6 +968,11 @@ func _build_water() -> void:
 	elif _style.night > 0.5:
 		mat.set_shader_parameter("deep_col", Color(0.02, 0.03, 0.08))
 		mat.set_shader_parameter("shallow_col", Color(0.05, 0.08, 0.16))
+	# what the water reflects: the night sky, or the day's blue
+	mat.set_shader_parameter("sky_col", Color(0.06, 0.08, 0.16) if _style.night > 0.5 else Color(0.55, 0.68, 0.82))
+	if map_id == "swamps":
+		mat.set_shader_parameter("wave", 0.25)
+		mat.set_shader_parameter("foam", 0.3)
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_world.add_child(mi)
@@ -1001,6 +1060,9 @@ func _build_buildings() -> void:
 	mat.shader = load("res://shaders/building3d.gdshader")
 	mat.set_shader_parameter("night", _style.night)
 	mat.set_shader_parameter("neon", _style.neon)
+	# facade styles drawn in the shader (Nov 22, no new models): a half-timbered town, scrap-built outposts
+	mat.set_shader_parameter("town", 1.0 if map_id in TOWN_MAPS else 0.0)
+	mat.set_shader_parameter("rust", 1.0 if map_id in ["wastelands", "ember"] else 0.0)
 	mi.material_override = mat
 	_world.add_child(mi)
 	# Neon City's signs: strips of colour along the rooflines of the taller towers
@@ -1106,8 +1168,8 @@ func _build_roads() -> void:
 	var any := false
 	for r in m.roads:
 		var cls: String = r.cls
-		if not ROAD.has(cls):
-			continue
+		if not ROAD.has(cls) or cls == "highway":
+			continue   # highways: _build_highways (raised deck, barriers, paint)
 		var pts: Array = r.pts
 		if pts.size() < 2:
 			continue
@@ -1140,6 +1202,7 @@ func _build_roads() -> void:
 			if cls == "bridge":
 				ya = maxf(ya, lerpf(deck_a, deck_b, float(i) / (line.size() - 1)) + 0.3)
 				yb = maxf(yb, lerpf(deck_a, deck_b, float(i + 1) / (line.size() - 1)) + 0.3)
+				_decks.append([a, b, ya, yb, w / 2.0])
 			elif cls == "skybridge":
 				ya = _h(a.x, a.y) + 15.0
 				yb = _h(b.x, b.y) + 15.0
@@ -1238,7 +1301,9 @@ func _build_rings() -> void:
 				c.height = 0.4
 				mi.mesh = c
 				y = maxf(y, _water + 0.2) + 0.2
-				mat.albedo_color = Color("#9aa0a6")
+				# weathered concrete: the pale grey deck blew out to white under the island sun (Azure Marina, Nov 21)
+				mat.albedo_color = Color("#6e7072")
+				mat.roughness = 0.95
 		mi.material_override = mat
 		mi.position = Vector3(p.x, y, p.y)
 		_world.add_child(mi)
@@ -1249,7 +1314,13 @@ const PITCH_USES := ["house", "store", "civic", "industrial", "school", "enterta
 func _pitched(use: String, hgt: float, hx: float, hz: float) -> bool:
 	if map_id in ["nexus", "neon-city", "thalassia", "crystal-badlands", "frostveil"]:
 		return false
+	# a market town's taller halls and inns are roofed too (Old Harrow's 26-30 m blocks were flat-topped boxes, Nov 22)
+	if map_id in TOWN_MAPS:
+		return use in PITCH_USES and hgt < 34.0 and maxf(hx, hz) < 22.0
 	return use in PITCH_USES and hgt < 18.0 and maxf(hx, hz) < 16.0
+
+## the half-timbered towns: building3d.gdshader `town` facades, tiled roofs with eaves
+const TOWN_MAPS := ["old-harrow", "goldenreach"]
 
 func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float, wall: Color, seed: float) -> void:
 	const ROOFS := [Color("#8e4a33"), Color("#6b3a2c"), Color("#4b5058"), Color("#5e4a3a"), Color("#9a5a3c")]
@@ -1261,6 +1332,17 @@ func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float
 	var a2: Vector2 = c[2]
 	var a3: Vector2 = c[3]
 	var rise := minf(hx, hz) * 0.75 + 0.3
+	var orig: Array = []
+	if map_id in TOWN_MAPS:
+		# a steeper roof that oversails the walls: push the corners out 0.5 m from the middle for the eaves
+		rise = minf(hx, hz) * 1.05 + 0.4
+		orig = [a0, a1, a2, a3]
+		var mid := (a0 + a1 + a2 + a3) * 0.25
+		var grow := func(v: Vector2) -> Vector2: return v + (v - mid).normalized() * 0.7
+		a0 = grow.call(a0)
+		a1 = grow.call(a1)
+		a2 = grow.call(a2)
+		a3 = grow.call(a3)
 	var r0: Vector2
 	var r1: Vector2
 	var slopes: Array
@@ -1276,6 +1358,20 @@ func _gable(st: SurfaceTool, c: Array[Vector2], top: float, hx: float, hz: float
 		slopes = [[a1, a2, r1, r0], [a0, r0, r1, a3]]
 		ends = [[a0, a1, r0], [a3, r1, a2]]
 	var y := func(v: Vector2, ridge: bool) -> Vector3: return Vector3(v.x, top + (rise if ridge else 0.0), v.y)
+	if not orig.is_empty():
+		# the gable walls stay on the wall line under the oversailing roof
+		var o0: Vector2 = orig[0]
+		var o1: Vector2 = orig[1]
+		var o2: Vector2 = orig[2]
+		var o3: Vector2 = orig[3]
+		if along_x:
+			r0 = (o0 + o3) * 0.5
+			r1 = (o1 + o2) * 0.5
+			ends = [[o0, r0, o3], [o1, o2, r1]]
+		else:
+			r0 = (o0 + o1) * 0.5
+			r1 = (o3 + o2) * 0.5
+			ends = [[o0, o1, r0], [o3, r1, o2]]
 	for q in slopes:
 		var p0: Vector3 = y.call(q[0], false)
 		var p1: Vector3 = y.call(q[1], false)
@@ -1346,7 +1442,7 @@ func _build_trees() -> void:
 				if not _space_claim(lx, lz, 0.35 * s2):
 					continue
 				shards.append(Transform3D(Basis.from_euler(Vector3((roll - 0.06) * 3.0, roll * 40.0, (0.06 - roll) * 2.0)).scaled(Vector3(s2 * 0.5, s2 * 1.6, s2 * 0.5)), Vector3(lx, _h(lx, lz), lz)))
-	var cold := map_id in ["frostspire", "frostveil"]
+	var cold := map_id in ["frostspire", "frostveil", "aurora-gate"]
 	# the fracture's corruption takes its share first (the Shattered Expanse, the ground round every rift tear)
 	trees = Flora.corrupted(self, trees, tears)
 	if not trees.is_empty():
@@ -1708,7 +1804,13 @@ func _build_floating() -> void:
 			boulders.append(Transform3D(Basis.from_euler(Vector3(rng.randf(), rng.randf() * TAU, rng.randf())).scaled(Vector3(bs, bs * 0.7, bs)),
 				Vector3(p.x + cos(ang2) * d2, top + r * 0.06 * (1.0 - d2 / r) + bs * 0.2, p.y + sin(ang2) * d2)))
 	if not trees.is_empty():
-		_multimesh(_tree_mesh(false), trees, _tree_material(false))
+		# the islands' trees were still the old stacked-cone stand-in (near-black trunks under the storm, Nov 22): the
+		# same pine as the ground forests, its leaf cards beyond
+		var lods := Flora.tree_lods("conifer", 11.0)
+		if lods.is_empty():
+			_multimesh(_tree_mesh(false), trees, _tree_material(false))
+		else:
+			_multimesh_lod(lods, trees, null)
 	if not boulders.is_empty():
 		var sm := SphereMesh.new()
 		sm.radius = 1.0
@@ -1891,12 +1993,54 @@ func _islet(under: SurfaceTool, cap: SurfaceTool, p: Vector2, r: float, top: flo
 			cap.add_vertex(v)
 
 ## street lights along the roads at night (the wet-neon city frames): a glowing head every 24 m on both kerbs
+## every road's segments (and the buildings) in 32 m buckets, so a lamp post can see it would stand in another road's lanes,
+## a junction, a highway deck or a house (owner, Nov 23: "lightpost ... showing up in the middle of road freeways and roads")
+var _seg_grid := {}
+func _index_segments() -> void:
+	_seg_grid.clear()
+	for r in m.roads:
+		var pts: Array = r.pts
+		var hw := float(r.get("w", 4.0)) * 0.5
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var lo := Vector2i(floori((minf(a.x, b.x) - hw) / 32.0), floori((minf(a.y, b.y) - hw) / 32.0))
+			var hi := Vector2i(floori((maxf(a.x, b.x) + hw) / 32.0), floori((maxf(a.y, b.y) + hw) / 32.0))
+			for gj in range(lo.y, hi.y + 1):
+				for gi in range(lo.x, hi.x + 1):
+					var key := Vector2i(gi, gj)
+					if not _seg_grid.has(key):
+						_seg_grid[key] = []
+					_seg_grid[key].append([a, b, hw])
+	for bd in m.buildings:
+		var c := _loc(bd[0], bd[1])
+		var rr := maxf(float(bd[2]), float(bd[3]))
+		var key2 := Vector2i(floori(c.x / 32.0), floori(c.y / 32.0))
+		if not _seg_grid.has(key2):
+			_seg_grid[key2] = []
+		_seg_grid[key2].append([c, c, rr])
+
+func _lamp_ok(q: Vector2) -> bool:
+	if _h(q.x, q.y) < _water + 0.3:
+		return false      # a post in the river (a bridge's own lamps are its railings)
+	for gj in range(-1, 2):
+		for gi in range(-1, 2):
+			for sg in _seg_grid.get(Vector2i(floori(q.x / 32.0) + gi, floori(q.y / 32.0) + gj), []):
+				var a: Vector2 = sg[0]
+				var b: Vector2 = sg[1]
+				var ab := b - a
+				var t := 0.0 if ab.length_squared() < 0.001 else clampf((q - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+				if q.distance_to(a + ab * t) < float(sg[2]) + 0.5:
+					return false
+	return true
+
 func _build_lamps() -> void:
 	if _style.night < 0.5:
 		return
+	_index_segments()
 	var xf: Array[Transform3D] = []
 	for r in m.roads:
-		if not (r.cls in ["street", "main", "highway", "bridge"]) or xf.size() > 3000:
+		if not (r.cls in ["street", "main", "bridge"]) or xf.size() > 3000:
 			continue
 		var pts: Array = r.pts
 		var off := float(r.w) / 2.0 + 0.8
@@ -1913,7 +2057,8 @@ func _build_lamps() -> void:
 			while t < L:
 				for sd in [-1.0, 1.0]:
 					var q: Vector2 = a + d * t + n * off * sd
-					xf.append(Transform3D(Basis(), Vector3(q.x, _h(q.x, q.y) + 6.0, q.y)))
+					if _lamp_ok(q):
+						xf.append(Transform3D(Basis(), Vector3(q.x, _h(q.x, q.y) + 6.0, q.y)))
 				t += 24.0
 			carry = t - L
 	for p in m.pavements:
@@ -1926,7 +2071,8 @@ func _build_lamps() -> void:
 		while t < long:
 			for sd in [-1.0, 1.0]:
 				var q: Vector2 = c + (Vector2(t, sd * (float(p[3]) + 0.6)) if along_x else Vector2(sd * (float(p[2]) + 0.6), t))
-				xf.append(Transform3D(Basis(), Vector3(q.x, _h(q.x, q.y) + 6.0, q.y)))
+				if _lamp_ok(q):
+					xf.append(Transform3D(Basis(), Vector3(q.x, _h(q.x, q.y) + 6.0, q.y)))
 			t += 24.0
 	if xf.is_empty():
 		return
@@ -1943,6 +2089,21 @@ func _build_lamps() -> void:
 	mat.emission = mat.albedo_color
 	mat.emission_energy_multiplier = 4.0
 	_multimesh(sm, xf, mat)
+	# the posts under the heads (they hung in the air on their own — polish, Nov 21)
+	var post := CylinderMesh.new()
+	post.top_radius = 0.06
+	post.bottom_radius = 0.09
+	post.height = 6.0
+	post.radial_segments = 6
+	post.rings = 1
+	var pm := StandardMaterial3D.new()
+	pm.albedo_color = Color(0.16, 0.17, 0.19)
+	pm.roughness = 0.5
+	pm.metallic = 0.6
+	var posts: Array[Transform3D] = []
+	for t in xf:
+		posts.append(Transform3D(Basis(), t.origin - Vector3(0, 3.0, 0)))
+	_multimesh(post, posts, pm, 300.0, false)
 	# and the pool each one throws on the wet street under it (night_fx.gd's additive pools, one multimesh): the
 	# boards' amber-lit roads, which the heads alone left dark (Nov 18 Neon pass)
 	if map_id in ["neon-city", "nexus"]:
@@ -2121,6 +2282,34 @@ func terrain(lx: float, lz: float) -> float:
 	return _h(lx, lz)
 func water_level() -> float:
 	return _water
+
+## what a foot lands on here (operator_player.gd footsteps, Nov 22): "step" (paving, rock, the city), "step_grass",
+## "step_dirt", "step_sand", "step_snow" or "step_water", from the map's land cover
+const STEP_FOR := { "beach": "step_sand", "desert": "step_sand", "dunes": "step_sand", "sandstone": "step_sand", "wash": "step_sand",
+	"meadow": "step_grass", "grass": "step_grass", "forest": "step_grass", "denseForest": "step_grass", "crop": "step_grass",
+	"scrub": "step_dirt", "dirt": "step_dirt", "ash": "step_dirt", "marsh": "step_water", "shallow": "step_water", "river": "step_water",
+	"lake": "step_water", "reef": "step_water", "snow": "step_snow", "ice": "step_snow" }
+var _cover_bytes := PackedByteArray()
+var _cover_w := 0
+func surface(lx: float, lz: float) -> String:
+	if _off_map(lx, lz) or over_water(lx, lz):
+		return "step_water"
+	if _cover_w == 0:
+		var img := Data.image("maps/%s.data.pngb" % map_id)
+		if img == null:
+			_cover_w = -1
+		else:
+			img = img.duplicate()
+			img.convert(Image.FORMAT_RGB8)
+			_cover_w = img.get_width()
+			_cover_bytes = img.get_data()
+	if _cover_w <= 0:
+		return "step"
+	var i := clampi(int((lx / _span + 0.5) * _cover_w), 0, _cover_w - 1)
+	var j := clampi(int((lz / _span + 0.5) * _cover_w), 0, _cover_w - 1)
+	var covers: Array = Data.styles.get("covers", [])
+	var cv := int(_cover_bytes[(j * _cover_w + i) * 3])
+	return String(STEP_FOR.get(String(covers[cv]) if cv < covers.size() else "", "step"))
 func over_water(lx: float, lz: float) -> bool:
 	if _off_map(lx, lz):
 		return true
@@ -2193,6 +2382,10 @@ func _stand_near(at: Vector2) -> void:
 				var dx := maxf(maxf(bx.position.x - q.x, q.x - bx.end.x), 0.0)
 				var dz := maxf(maxf(bx.position.z - q.y, q.y - bx.end.z), 0.0)
 				clear = minf(clear, Vector2(dx, dz).length())
+			# steep ground is where the slope rocks stand (Ember opened beside a black outcrop, Nov 22): prefer the flat
+			var rise := maxf(absf(_h(q.x + 3.0, q.y) - _h(q.x - 3.0, q.y)), absf(_h(q.x, q.y + 3.0) - _h(q.x, q.y - 3.0))) / 6.0
+			if rise > 0.45:
+				clear = minf(clear, 1.5)
 			if clear > best_clear:
 				best_clear = clear
 				best = q
@@ -2200,7 +2393,34 @@ func _stand_near(at: Vector2) -> void:
 			break
 	_eye = Vector3(best.x, _ground(best.x, best.y) + EYE, best.y)
 	_look_yaw = atan2(_eye.x - at.x, _eye.z - at.y)
+	# in a dense town the place can be behind a wall 3 m away (Old Harrow, Nov 22): if the view towards it is blocked
+	# within 10 m, look down the longest open line instead
+	var want := Vector2(at.x - best.x, at.y - best.y).normalized()
+	if _open_run(best, want, boxes) < 10.0:
+		var far := 0.0
+		for k in 16:
+			var d := Vector2(cos(k * TAU / 16.0), sin(k * TAU / 16.0))
+			var run := _open_run(best, d, boxes)
+			if run > far:
+				far = run
+				_look_yaw = atan2(-d.x, -d.y)
 	_look_pitch = 4.0
+
+## how far you can see from p along d before a building (up to 60 m)
+func _open_run(p: Vector2, d: Vector2, boxes: Array[AABB]) -> float:
+	var eye_y := _ground(p.x, p.y) + EYE
+	var t := 2.0
+	while t < 60.0:
+		var q := p + d * t
+		for bx in boxes:
+			if q.x > bx.position.x and q.x < bx.end.x and q.y > bx.position.z and q.y < bx.end.z:
+				return t
+		# rising ground blocks the view too (Ember's Street View opened on a black slope, Nov 22): a bank that climbs
+		# above the eye's sight line
+		if _ground(q.x, q.y) > eye_y + t * 0.12:
+			return t
+		t += 2.0
+	return 60.0
 
 func _in_building(q: Vector2) -> bool:
 	for bd in m.buildings:
@@ -2218,7 +2438,498 @@ func _ground(lx: float, lz: float) -> float:
 	var fl := _floating_top(lx + _ox, lz + _oz)
 	if fl > -INF:
 		return fl
-	return maxf(_h(lx, lz), _water + 0.4)
+	var g := maxf(_h(lx, lz), _water + 0.4)
+	# a bridge's deck carries you over the river (or the gap between Skyhaven's pinnacles); highways add hundreds of
+	# deck pieces, so look only at the pieces bucketed in this 32 m cell
+	if _deck_grid_n != _decks.size():
+		_index_decks()
+	for di in _deck_grid.get(Vector2i(floori(lx / 32.0), floori(lz / 32.0)), []):
+		var b: Array = _decks[di]
+		var a: Vector2 = b[0]
+		var e: Vector2 = b[1]
+		var ab := e - a
+		var t := clampf((Vector2(lx, lz) - a).dot(ab) / maxf(ab.length_squared(), 0.01), 0.0, 1.0)
+		if Vector2(lx, lz).distance_to(a + ab * t) <= float(b[4]):
+			g = maxf(g, lerpf(float(b[2]), float(b[3]), t) + 0.12)
+	return g
+## bridge decks you can walk: [from, to, deck y at each end, half width] in local metres (the bridge roads)
+var _decks: Array = []
+var _deck_grid := {}
+var _deck_grid_n := -1
+
+func _index_decks() -> void:
+	_deck_grid.clear()
+	_deck_grid_n = _decks.size()
+	for k in _decks.size():
+		var a: Vector2 = _decks[k][0]
+		var e: Vector2 = _decks[k][1]
+		var r := float(_decks[k][4])
+		for j in range(floori((minf(a.y, e.y) - r) / 32.0), floori((maxf(a.y, e.y) + r) / 32.0) + 1):
+			for i in range(floori((minf(a.x, e.x) - r) / 32.0), floori((maxf(a.x, e.x) + r) / 32.0) + 1):
+				var key := Vector2i(i, j)
+				if not _deck_grid.has(key):
+					_deck_grid[key] = []
+				_deck_grid[key].append(k)
+
+## real 3D grass round the camera on every grassy cover (scripts/vfx/grass_field.gd; owner, Nov 23 "make the grass look
+## real"), kept off every road and bridge by a 2 m road mask; autumn turns the tips gold, winter has none
+var _road_mask := PackedByteArray()
+var _road_mask_n := 0
+func _build_grass_field() -> void:
+	if map_id in ["thalassia", "storm"] or season == 3:
+		return
+	_road_mask_n = int(ceil(_span / 2.0)) + 1
+	_road_mask.resize(_road_mask_n * _road_mask_n)
+	_road_mask.fill(0)
+	for r in m.roads:
+		var pts: Array = r.pts
+		var hw := float(r.get("w", 4.0)) * 0.5 + 1.2
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var steps := maxi(1, int(a.distance_to(b) / 1.5))
+			for k in steps + 1:
+				var c := a.lerp(b, float(k) / steps)
+				var ci := int((c.x / _span + 0.5) * (_road_mask_n - 1))
+				var cj := int((c.y / _span + 0.5) * (_road_mask_n - 1))
+				var rr := int(ceil(hw / 2.0))
+				for dj in range(-rr, rr + 1):
+					for di in range(-rr, rr + 1):
+						var ii := ci + di
+						var jj := cj + dj
+						if ii >= 0 and jj >= 0 and ii < _road_mask_n and jj < _road_mask_n:
+							_road_mask[jj * _road_mask_n + ii] = 1
+	var g := preload("res://scripts/vfx/grass_field.gd").new()
+	_world.add_child(g)
+	var tip := Color(0.44, 0.5, 0.22)
+	var base := Color(0.07, 0.12, 0.035)
+	if season == 2:
+		tip = Color(0.75, 0.6, 0.25)
+	elif map_id in ["solara", "wastelands", "horizon-gate", "crystal-badlands"]:
+		tip = Color(0.68, 0.62, 0.34)
+		base = Color(0.2, 0.2, 0.08)
+	g.setup(_grass_here, func(x: float, z: float) -> float: return _ground(x, z), base, tip)
+
+func _grass_here(lx: float, lz: float) -> bool:
+	if _off_map(lx, lz):
+		return false
+	var ii := int((lx / _span + 0.5) * (_road_mask_n - 1))
+	var jj := int((lz / _span + 0.5) * (_road_mask_n - 1))
+	if ii < 0 or jj < 0 or ii >= _road_mask_n or jj >= _road_mask_n or _road_mask[jj * _road_mask_n + ii] == 1:
+		return false
+	return surface(lx, lz) == "step_grass" and _h(lx, lz) > _water + 0.25
+
+## the generated road network (tools/gen_road_net.gd → data/road_net.json; owner, Nov 23 "Generate roads and highway"):
+## roads to every place and an expressway across the bigger regions, added to the region's own roads
+static var _road_net: Dictionary = {}
+func _add_road_net(id: String) -> void:
+	if _road_net.is_empty():
+		var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/road_net.json")) if FileAccess.file_exists("res://data/road_net.json") else null
+		_road_net = d if d is Dictionary else { "_": [] }
+	var extra: Array = _road_net.get(id, [])
+	if extra.is_empty():
+		return
+	m = m.duplicate()
+	m.roads = (m.get("roads", []) as Array) + extra
+
+## the highways (exported and generated): a deck that rides the ground but never dips with it — dips and water are
+## crossed on fill (retaining walls) or a bridge (piers), never in a cutting — with jersey barriers, lane paint, a
+## median of lamps and, at night, neon trim along the barrier tops (the boards' lit expressway). The deck is walkable
+## and drivable where it stands above the ground (_decks). Two draws: the concrete/asphalt mesh and the glowing trim.
+func _build_highways() -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var glow := SurfaceTool.new()
+	glow.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	var any_glow := false
+	var night: float = _style.night
+	var neon_col := Color(0.62, 0.25, 1.0) if float(_style.neon) > 0.0 or map_id == "neon-city" else Color(0.25, 0.75, 1.0)
+	var asphalt := Color("#3a3d42")
+	var paint := Color(0.86, 0.86, 0.82)
+	var yellow := Color(0.9, 0.72, 0.2)
+	var concrete := Color(0.55, 0.55, 0.53)
+	var wall := Color(0.42, 0.42, 0.41)
+	var sign_green := Color(0.05, 0.36, 0.18)
+	for r in m.roads:
+		if r.cls != "highway":
+			continue
+		var pts: Array = r.pts
+		if pts.size() < 2:
+			continue
+		var w := maxf(10.0, float(r.w))
+		var line: Array[Vector2] = []
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var steps := maxi(1, int(a.distance_to(b) / 6.0))
+			for k in steps:
+				line.append(a.lerp(b, float(k) / steps))
+		line.append(_loc(pts[-1][0], pts[-1][1]))
+		var n := line.size()
+		if n < 2:
+			continue
+		# a normal at every point (mitred between the two segments) so the deck, paint and barriers run on through curves
+		var nrms: Array[Vector2] = []
+		for i in n:
+			var d0 := (line[i] - line[maxi(i - 1, 0)]).normalized() if i > 0 else (line[1] - line[0]).normalized()
+			var d1 := (line[mini(i + 1, n - 1)] - line[i]).normalized() if i < n - 1 else d0
+			var avg := (d0 + d1).normalized()
+			if avg == Vector2.ZERO:
+				avg = d0
+			var miter := avg.orthogonal()
+			var k := 1.0 / maxf(0.5, miter.dot(d0.orthogonal()))
+			nrms.append(miter * k)
+		# the profile: ground, raised over water; averaged over ±36 m; never below the ground (fills, no cuttings)
+		var gnd := PackedFloat32Array()
+		var base := PackedFloat32Array()
+		gnd.resize(n)
+		base.resize(n)
+		for i in n:
+			var h := _h(line[i].x, line[i].y)
+			gnd[i] = h
+			base[i] = h if h > _water + 0.3 else _water + 6.0
+		var hw := w * 0.5
+		var deck := PackedFloat32Array()
+		deck.resize(n)
+		for i in n:
+			var sum := 0.0
+			var cnt := 0
+			for k in range(maxi(0, i - 6), mini(n, i + 7)):
+				sum += base[k]
+				cnt += 1
+			var side := nrms[i] * hw
+			var under := maxf(gnd[i], maxf(_h(line[i].x + side.x, line[i].y + side.y), _h(line[i].x - side.x, line[i].y - side.y)))
+			deck[i] = maxf(sum / cnt, under + 0.35)
+		# junctions: where another road ends at the highway, the barrier opens on that side, a ramp brings it up to the
+		# deck if the deck stands high, and a green sign 60 m before names the place
+		var gaps: Array = []        # [index, side]
+		for o in m.roads:
+			if o == r or not (String(o.cls) in ["main", "street", "track", "bridge"]):
+				continue
+			var opts: Array = o.pts
+			for e in [0, opts.size() - 1]:
+				var ep := _loc(opts[e][0], opts[e][1])
+				var best := -1
+				var bd := 16.0
+				for i in n:
+					var dd := line[i].distance_to(ep)
+					if dd < bd:
+						bd = dd
+						best = i
+				if best < 0:
+					continue
+				var sd := signf((ep - line[best]).dot(nrms[best]))
+				if sd == 0.0:
+					sd = 1.0
+				gaps.append([best, sd])
+				var inner: Array = opts[1 if e == 0 else opts.size() - 2]
+				var away := (_loc(inner[0], inner[1]) - ep).normalized()
+				var edge := line[best] + nrms[best].normalized() * sd * hw
+				var lift := deck[best] - _h(edge.x, edge.y)
+				if lift > 0.6:
+					# the ramp: 8 m wide, from the deck edge down to the ground at 1 in 12
+					var run := clampf(lift * 12.0, 12.0, 60.0)
+					var foot := edge + away * run
+					var rn := away.orthogonal() * 4.0
+					var y0 := deck[best]
+					var y1 := _h(foot.x, foot.y) + 0.2
+					_quad(st, Vector3(edge.x - rn.x, y0, edge.y - rn.y), Vector3(edge.x + rn.x, y0, edge.y + rn.y), Vector3(foot.x + rn.x, y1, foot.y + rn.y), Vector3(foot.x - rn.x, y1, foot.y - rn.y), asphalt)
+					for sd5: float in [-1.0, 1.0]:
+						var pa5 := Vector3(edge.x + rn.x * sd5, y0, edge.y + rn.y * sd5)
+						var pb5 := Vector3(foot.x + rn.x * sd5, y1, foot.y + rn.y * sd5)
+						_quad(st, pa5, pb5, Vector3(pb5.x, _h(pb5.x, pb5.z) - 0.3, pb5.z), Vector3(pa5.x, _h(pa5.x, pa5.z) - 0.3, pa5.z), wall)
+					_decks.append([edge, foot, y0, y1, 4.0])
+				# the green sign, 60 m before the junction (10 steps of 6 m) on the junction's side
+				var si := maxi(best - 10, 0)
+				var sp := line[si] + nrms[si].normalized() * sd * (hw + 1.6)
+				var sy := deck[si]
+				var dir2 := (line[mini(si + 1, n - 1)] - line[si]).normalized()
+				var face := atan2(dir2.x, dir2.y)
+				for po: float in [-1.6, 1.6]:
+					var pp := sp + dir2.orthogonal() * po
+					_pillar(st, Vector3(pp.x, sy, pp.y), sy + 5.8, 0.09, Color(0.55, 0.56, 0.58))
+				var panel := Vector3(sp.x, sy + 5.0, sp.y)
+				var pm := MeshInstance3D.new()
+				var bm := BoxMesh.new()
+				bm.size = Vector3(4.6, 1.8, 0.12)
+				pm.mesh = bm
+				var gm := StandardMaterial3D.new()
+				gm.albedo_color = sign_green
+				gm.roughness = 0.4
+				gm.metallic = 0.2
+				pm.material_override = gm
+				pm.position = panel
+				pm.rotation.y = face
+				_world.add_child(pm)
+				var lbl := Label3D.new()
+				var dest := String(o.get("name", "")).replace("Road to ", "")
+				lbl.text = ("EXIT  %s\n%s" % ["↖" if sd > 0 else "↗", dest.to_upper()]) if dest != "" else "EXIT"
+				lbl.font_size = 64
+				lbl.pixel_size = 0.012
+				lbl.outline_size = 0
+				lbl.modulate = Color(0.97, 0.97, 0.95)
+				lbl.position = panel + Vector3(sin(face), 0, cos(face)) * -0.08
+				lbl.rotation.y = face + PI
+				lbl.width = 360.0
+				lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+				lbl.double_sided = false
+				_world.add_child(lbl)
+		# the gantry over the start, with the highway's name
+		var g0 := line[0]
+		var gd := (line[1] - line[0]).normalized()
+		var gn := gd.orthogonal()
+		for sd6: float in [-1.0, 1.0]:
+			var gp := g0 + gn * sd6 * (hw + 0.8) + gd * 8.0
+			_pillar(st, Vector3(gp.x, deck[1], gp.y), deck[1] + 7.2, 0.18, Color(0.55, 0.56, 0.58))
+		var gc := g0 + gd * 8.0
+		var gantry := MeshInstance3D.new()
+		var gbm := BoxMesh.new()
+		gbm.size = Vector3(w + 1.6, 1.9, 0.14)
+		gantry.mesh = gbm
+		var ggm := StandardMaterial3D.new()
+		ggm.albedo_color = sign_green
+		ggm.roughness = 0.4
+		gantry.material_override = ggm
+		gantry.position = Vector3(gc.x, deck[1] + 6.4, gc.y)
+		gantry.rotation.y = atan2(gd.x, gd.y)
+		_world.add_child(gantry)
+		var gl := Label3D.new()
+		gl.text = String(r.get("name", "EXPRESSWAY")).to_upper()
+		gl.font_size = 72
+		gl.pixel_size = 0.014
+		gl.modulate = Color(0.97, 0.97, 0.95)
+		gl.position = gantry.position - Vector3(gd.x, 0, gd.y) * 0.09
+		gl.rotation.y = atan2(gd.x, gd.y) + PI
+		gl.double_sided = false
+		_world.add_child(gl)
+		var dash := 0.0
+		for i in n - 1:
+			var a := line[i]
+			var b := line[i + 1]
+			var d := (b - a).normalized()
+			var na := nrms[i]
+			var nb := nrms[i + 1]
+			var ya := deck[i]
+			var yb := deck[i + 1]
+			var seg := a.distance_to(b)
+			var high := maxf(ya - gnd[i], yb - gnd[i + 1])
+			var wet := gnd[i] < _water + 0.3 or gnd[i + 1] < _water + 0.3
+			# deck top
+			_quad(st, Vector3(a.x - na.x * hw, ya, a.y - na.y * hw), Vector3(a.x + na.x * hw, ya, a.y + na.y * hw), Vector3(b.x + nb.x * hw, yb, b.y + nb.y * hw), Vector3(b.x - nb.x * hw, yb, b.y - nb.y * hw), asphalt)
+			for off: float in [-0.18, 0.18]:
+				_strip(st, a, b, ya + 0.03, yb + 0.03, off, 0.12, na, nb, yellow)
+			for off2: float in [-hw + 0.9, hw - 0.9]:
+				_strip(st, a, b, ya + 0.03, yb + 0.03, off2, 0.15, na, nb, paint)
+			if fmod(dash, 12.0) < 4.0:
+				for off3: float in [-hw * 0.5, hw * 0.5]:
+					_strip(st, a, b, ya + 0.03, yb + 0.03, off3, 0.13, na, nb, paint)
+			dash += seg
+			for sd: float in [-1.0, 1.0]:
+				var open := false
+				for gp2 in gaps:
+					if gp2[1] == sd and absi(int(gp2[0]) - i) <= 2:
+						open = true
+				if open:
+					continue
+				var o := sd * (hw - 0.2)
+				_wall(st, a, b, ya, yb, 0.85, 0.4, na, nb, o, concrete)
+				if night > 0.3:
+					_strip(glow, a, b, ya + 0.87, yb + 0.87, o, 0.12, na, nb, neon_col)
+					any_glow = true
+			if high > 0.5:
+				for sd2: float in [-1.0, 1.0]:
+					var pa := Vector3(a.x + na.x * sd2 * hw, ya, a.y + na.y * sd2 * hw)
+					var pb := Vector3(b.x + nb.x * sd2 * hw, yb, b.y + nb.y * sd2 * hw)
+					var ga := ya - 1.4 if wet else _h(pa.x, pa.z) - 0.3
+					var gb := yb - 1.4 if wet else _h(pb.x, pb.z) - 0.3
+					_quad(st, pa, pb, Vector3(pb.x, gb, pb.z), Vector3(pa.x, ga, pa.z), wall)
+				if wet:
+					_quad(st, Vector3(a.x - na.x * hw, ya - 1.4, a.y - na.y * hw), Vector3(b.x - nb.x * hw, yb - 1.4, b.y - nb.y * hw), Vector3(b.x + nb.x * hw, yb - 1.4, b.y + nb.y * hw), Vector3(a.x + na.x * hw, ya - 1.4, a.y + na.y * hw), wall.darkened(0.3))
+					if i % 5 == 0:
+						for sd3: float in [-0.55, 0.55]:
+							var c := a + na * sd3 * hw
+							_pillar(st, Vector3(c.x, _water - 3.0, c.y), ya - 1.4, 0.9, concrete.darkened(0.15))
+				_decks.append([a, b, ya, yb, hw])
+			if i % 8 == 0:
+				# the lamps stand outside the barrier on alternate shoulders and reach over the lanes (they stood on the
+				# centreline in the traffic: owner, Nov 23 "lightpost ... in the middle of road freeways"), none at a ramp gap
+				var sd4: float = 1.0 if (i / 8) % 2 == 0 else -1.0
+				var lamp_open := false
+				for gp3 in gaps:
+					if gp3[1] == sd4 and absi(int(gp3[0]) - i) <= 3:
+						lamp_open = true
+				if not lamp_open:
+					var foot := a + na * sd4 * (hw + 0.45)
+					_pillar(st, Vector3(foot.x, ya, foot.y), ya + 9.0, 0.14, Color(0.3, 0.3, 0.32))
+					var arm := a + na * sd4 * (hw - 3.2)
+					_strip(st, foot, arm, ya + 9.0, ya + 8.95, 0.0, 0.1, d, d, Color(0.3, 0.3, 0.32))
+					if night > 0.3:
+						_box_tri(glow, Vector3(arm.x, ya + 8.9, arm.y), Vector3(0.7, 0.18, 0.35), Color(1.0, 0.72, 0.4) * 2.0)
+						any_glow = true
+			any = true
+	if any:
+		st.generate_normals()
+		var mat := StandardMaterial3D.new()
+		mat.vertex_color_use_as_albedo = true
+		mat.roughness = lerpf(0.85, 0.25, _style.wet)
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = mat
+		mi.name = "Highways"
+		_world.add_child(mi)
+	if any_glow:
+		var gm2 := StandardMaterial3D.new()
+		gm2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		gm2.vertex_color_use_as_albedo = true
+		gm2.albedo_color = Color(2.2, 2.2, 2.2)
+		var gi := MeshInstance3D.new()
+		gi.mesh = glow.commit()
+		gi.material_override = gm2
+		gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		gi.name = "HighwayGlow"
+		_world.add_child(gi)
+
+## the bridges (exported and generated `bridge` roads): the deck the ribbon already draws gets a slab edge under it,
+## railings with posts, piers down to the bed every ~16 m and, over a span longer than 36 m, a steel arch each side
+## with hangers down to the deck (owner, Nov 23: "add … bridges"). One mesh for every bridge.
+func _dress_bridges() -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	var slab := Color(0.5, 0.5, 0.49)
+	var steel := Color(0.32, 0.36, 0.42) if _style.night < 0.5 else Color(0.25, 0.27, 0.33)
+	var rail := Color(0.62, 0.63, 0.65)
+	for r in m.roads:
+		if r.cls != "bridge":
+			continue
+		var pts: Array = r.pts
+		if pts.size() < 2:
+			continue
+		var w := maxf(1.2, float(r.w))
+		var hw := w * 0.5
+		var line: Array[Vector2] = []
+		for i in pts.size() - 1:
+			var a := _loc(pts[i][0], pts[i][1])
+			var b := _loc(pts[i + 1][0], pts[i + 1][1])
+			var steps := maxi(1, int(a.distance_to(b) / 6.0))
+			for s in steps:
+				line.append(a.lerp(b, float(s) / steps))
+		line.append(_loc(pts[-1][0], pts[-1][1]))
+		var n := line.size()
+		# the same deck heights the ribbon uses (_build_roads)
+		var deck_a := maxf(_h(line[0].x, line[0].y), _water + 2.5)
+		var deck_b := maxf(_h(line[-1].x, line[-1].y), _water + 2.5)
+		var ys := PackedFloat32Array()
+		ys.resize(n)
+		for i in n:
+			ys[i] = maxf(_h(line[i].x, line[i].y) + 0.18, lerpf(deck_a, deck_b, float(i) / maxf(n - 1, 1)) + 0.3)
+		var length := 0.0
+		for i in n - 1:
+			length += line[i].distance_to(line[i + 1])
+		var walked := 0.0
+		for i in n - 1:
+			var a := line[i]
+			var b := line[i + 1]
+			var d := (b - a).normalized()
+			var nrm := d.orthogonal()
+			var ya := ys[i]
+			var yb := ys[i + 1]
+			for sd: float in [-1.0, 1.0]:
+				var ea := a + nrm * sd * hw
+				var eb := b + nrm * sd * hw
+				# the slab's edge, 0.9 m deep
+				_quad(st, Vector3(ea.x, ya, ea.y), Vector3(eb.x, yb, eb.y), Vector3(eb.x, yb - 0.9, eb.y), Vector3(ea.x, ya - 0.9, ea.y), slab)
+				# railing: top rail and a mid rail, posts every 3 m
+				var ra := a + nrm * sd * (hw - 0.15)
+				var rb := b + nrm * sd * (hw - 0.15)
+				_strip(st, ra, rb, ya + 1.05, yb + 1.05, 0.0, 0.1, nrm, nrm, rail)
+				_quad(st, Vector3(ra.x, ya + 1.05, ra.y), Vector3(rb.x, yb + 1.05, rb.y), Vector3(rb.x, yb + 0.95, rb.y), Vector3(ra.x, ya + 0.95, ra.y), rail)
+				_quad(st, Vector3(ra.x, ya + 0.55, ra.y), Vector3(rb.x, yb + 0.55, rb.y), Vector3(rb.x, yb + 0.48, rb.y), Vector3(ra.x, ya + 0.48, ra.y), rail)
+				var seg := a.distance_to(b)
+				var k := 0.0
+				while k < seg:
+					var pp := ra + d * k
+					_pillar(st, Vector3(pp.x, lerpf(ya, yb, k / seg), pp.y), lerpf(ya, yb, k / seg) + 1.05, 0.04, rail)
+					k += 3.0
+			# underside
+			_quad(st, Vector3(a.x - nrm.x * hw, ya - 0.9, a.y - nrm.y * hw), Vector3(b.x - nrm.x * hw, yb - 0.9, b.y - nrm.y * hw), Vector3(b.x + nrm.x * hw, yb - 0.9, b.y + nrm.y * hw), Vector3(a.x + nrm.x * hw, ya - 0.9, a.y + nrm.y * hw), slab.darkened(0.35))
+			# piers where the deck stands well clear of the bed (one each ~16 m)
+			if i > 0 and i % 3 == 0 and ya - _h(a.x, a.y) > 2.0:
+				var foot := minf(_h(a.x, a.y), _water) - 2.0
+				for sd2: float in [-0.6, 0.6]:
+					var c := a + nrm * sd2 * hw
+					_pillar(st, Vector3(c.x, foot, c.y), ya - 0.9, 0.45 + w * 0.02, slab.darkened(0.15))
+				_quad(st, Vector3(a.x - nrm.x * hw * 0.8, ya - 0.9, a.y - nrm.y * hw * 0.8), Vector3(a.x + nrm.x * hw * 0.8, ya - 0.9, a.y + nrm.y * hw * 0.8), Vector3(a.x + nrm.x * hw * 0.8, ya - 1.5, a.y + nrm.y * hw * 0.8), Vector3(a.x - nrm.x * hw * 0.8, ya - 1.5, a.y - nrm.y * hw * 0.8), slab.darkened(0.2))
+			# the arches over a long span: a parabola each side, hangers every 6 m
+			if length > 36.0:
+				var u0 := walked / length
+				var u1 := (walked + a.distance_to(b)) / length
+				var rise := minf(length * 0.18, 16.0)
+				var ha := ya + 1.0 + rise * 4.0 * u0 * (1.0 - u0)
+				var hb := yb + 1.0 + rise * 4.0 * u1 * (1.0 - u1)
+				for sd3: float in [-1.0, 1.0]:
+					var aa := a + nrm * sd3 * (hw + 0.3)
+					var bb := b + nrm * sd3 * (hw + 0.3)
+					_quad(st, Vector3(aa.x, ha + 0.35, aa.y), Vector3(bb.x, hb + 0.35, bb.y), Vector3(bb.x, hb - 0.35, bb.y), Vector3(aa.x, ha - 0.35, aa.y), steel)
+					_strip(st, aa, bb, ha + 0.35, hb + 0.35, 0.0, 0.5, nrm, nrm, steel)
+					if ha - ya > 1.6:
+						_pillar(st, Vector3(aa.x, ya, aa.y), ha - 0.35, 0.05, steel)
+				walked += a.distance_to(b)
+			any = true
+	if not any:
+		return
+	st.generate_normals()
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.7
+	mat.metallic = 0.15
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	mi.name = "Bridges"
+	_world.add_child(mi)
+
+func _quad(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, col: Color) -> void:
+	for v in [p0, p1, p2, p0, p2, p3]:
+		st.set_color(col)
+		st.add_vertex(v)
+
+## a flat strip along a→b at `off` across, `w` wide, at heights ya..yb (normals na at a, nb at b: mitred through curves)
+func _strip(st: SurfaceTool, a: Vector2, b: Vector2, ya: float, yb: float, off: float, w: float, na: Vector2, nb: Vector2, col: Color) -> void:
+	var a0 := a + na * (off - w * 0.5)
+	var a1 := a + na * (off + w * 0.5)
+	var b0 := b + nb * (off - w * 0.5)
+	var b1 := b + nb * (off + w * 0.5)
+	_quad(st, Vector3(a0.x, ya, a0.y), Vector3(a1.x, ya, a1.y), Vector3(b1.x, yb, b1.y), Vector3(b0.x, yb, b0.y), col)
+
+## a barrier at `off` across: two sloped faces and a top, `h` high, `w` wide at the foot (mitred like _strip)
+func _wall(st: SurfaceTool, a: Vector2, b: Vector2, ya: float, yb: float, h: float, w: float, na: Vector2, nb: Vector2, off: float, col: Color) -> void:
+	var lo := w * 0.5
+	var hi := w * 0.2
+	for sd: float in [-1.0, 1.0]:
+		var fa := a + na * (off + sd * lo)
+		var fb := b + nb * (off + sd * lo)
+		var ta := a + na * (off + sd * hi)
+		var tb := b + nb * (off + sd * hi)
+		_quad(st, Vector3(fa.x, ya, fa.y), Vector3(fb.x, yb, fb.y), Vector3(tb.x, yb + h, tb.y), Vector3(ta.x, ya + h, ta.y), col)
+	_strip(st, a, b, ya + h, yb + h, off, hi * 2.0, na, nb, col.lightened(0.1))
+
+## a square column from `foot` up to height `top`
+func _pillar(st: SurfaceTool, foot: Vector3, top: float, r: float, col: Color) -> void:
+	var c := [Vector2(-r, -r), Vector2(r, -r), Vector2(r, r), Vector2(-r, r)]
+	for k in 4:
+		var p: Vector2 = c[k]
+		var q: Vector2 = c[(k + 1) % 4]
+		_quad(st, Vector3(foot.x + p.x, foot.y, foot.z + p.y), Vector3(foot.x + q.x, foot.y, foot.z + q.y), Vector3(foot.x + q.x, top, foot.z + q.y), Vector3(foot.x + p.x, top, foot.z + p.y), col)
+
+## a small box (lamp heads)
+func _box_tri(st: SurfaceTool, c: Vector3, s: Vector3, col: Color) -> void:
+	var h := s * 0.5
+	_quad(st, c + Vector3(-h.x, -h.y, -h.z), c + Vector3(h.x, -h.y, -h.z), c + Vector3(h.x, -h.y, h.z), c + Vector3(-h.x, -h.y, h.z), col)
+	_quad(st, c + Vector3(-h.x, h.y, -h.z), c + Vector3(h.x, h.y, -h.z), c + Vector3(h.x, h.y, h.z), c + Vector3(-h.x, h.y, h.z), col)
 
 func _apply_cam() -> void:
 	if _cam == null:
@@ -2604,8 +3315,8 @@ func _build_road_markings_batch_19_43() -> void:
 	var edge_count := 0
 	for r in m.roads:
 		var cls: String = r.cls
-		if cls != "main" and cls != "highway":
-			continue
+		if cls != "main":
+			continue   # highways paint their own lanes on the deck (_build_highways)
 		var pts: Array = r.pts
 		if pts.size() < 2:
 			continue

@@ -91,7 +91,7 @@ func _ready() -> void:
 func _head() -> void:
 	var bar := HBoxContainer.new()
 	bar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	bar.offset_left = 12
+	bar.offset_left = 250   # right of the hull bar (HUD rule, Nov 16): it sat on top of it (polish, Nov 21)
 	bar.offset_top = 8
 	bar.offset_right = -12
 	add_child(bar)

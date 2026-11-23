@@ -5,6 +5,10 @@ const Settings := preload("res://scripts/front/settings_store.gd")
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const HULL_W := 220.0
 const HULL_SEGS := 10
+const BoardHud := preload("res://scripts/player/board_hud.gd")
+## the game screen from the owner's boards (board_hud.gd): weapon card, compass + place + quest, operator plate.
+## Views set `hud.place`, `hud.set_quest(...)`, `hud.hull_max` / `hud.shield_max`; the old readouts stay as data.
+var hud: Control
 ## On-foot input for the phone and the desk, one overlay over the 3D view: a virtual stick where the thumb lands on the left
 ## half of the screen, look-drag anywhere on the right half, JUMP, SPRINT, FIRE, RELOAD and SWAP buttons (phone), WASD / arrows + Space + Shift,
 ## left mouse to fire, right-drag look, R and Q on a keyboard, J / K (GRENADE / ⟳) for the Operator's grenades; a crosshair and the magazine read-out. Reads out `move` (x right, y forward, -1..1), `look_delta` (pixels this frame, consumed by
@@ -36,6 +40,24 @@ var _super_meter: Control
 var _super_hud := {}
 var _cycle_grenade := false
 var _grapple := false
+## close combat (close_combat.gd): MELEE (tap / hold for the heavy), DODGE, BLOCK (held) — F / C or Ctrl / V on the desk
+var _melee := false
+var _melee_held := false
+var _dodge := false
+var _block_held := false
+var _melee_button: Button
+## the class's abilities (abilities.gd): three buttons wearing their names and readiness; 1 / 2 / 3 on the desk
+var _ability := -1
+## aim down sights: the phone's ADS toggle, the right mouse button held, a controller's left trigger
+var _ads_on := false
+var _ads_mouse := false
+var _ads_button: Button
+var _ability_buttons: Array = []
+var _k1_was := false
+var _k2_was := false
+var _k3_was := false
+var _dodge_button: Button
+var _block_button: Button
 var _grenade_button: Button
 var _grapple_button: Button
 var _cycle_button: Button
@@ -220,6 +242,49 @@ func _ready() -> void:
 			func(rel: Vector2): _wheel_aim += rel)
 		add_child(nx)
 		_swap_button = nx
+		var ml := _button("MELEE")
+		ml.custom_minimum_size = Vector2(110, 110)
+		ml.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		ml.position = Vector2(-380, -150)
+		ml.add_theme_color_override("font_color", Color(1.0, 0.8, 0.45))
+		bind(ml, func(): _melee = true; _melee_held = true, func(): _melee_held = false, func(rel: Vector2): look_delta += rel)
+		add_child(ml)
+		_melee_button = ml
+		var dg := _button("DODGE")
+		dg.custom_minimum_size = Vector2(104, 76)
+		dg.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		dg.position = Vector2(-500, -110)
+		dg.add_theme_color_override("font_color", Color(0.6, 0.95, 1.0))
+		bind(dg, func(): _dodge = true)
+		add_child(dg)
+		_dodge_button = dg
+		var bl := _button("BLOCK")
+		bl.custom_minimum_size = Vector2(110, 70)
+		bl.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		bl.position = Vector2(-500, -200)
+		bind(bl, func(): _block_held = true, func(): _block_held = false, func(rel: Vector2): look_delta += rel)
+		add_child(bl)
+		_block_button = bl
+		for i in 3:
+			var ab := _button(["A1", "A2", "SUPER"][i])
+			ab.custom_minimum_size = Vector2(96, 60) if i < 2 else Vector2(110, 66)
+			ab.add_theme_font_size_override("font_size", 13)
+			ab.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+			ab.position = [Vector2(-500, -280), Vector2(-500, -350), Vector2(-380, -330)][i]
+			var idx := i
+			bind(ab, func(): _ability = idx)
+			add_child(ab)
+			_ability_buttons.append(ab)
+		# aim down sights: a tap raises the sights and another lowers them (a thumb cannot hold it and fire); a drag
+		# on it aims, like FIRE
+		var ad := _button("ADS")
+		ad.custom_minimum_size = Vector2(110, 66)
+		ad.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		ad.position = Vector2(-380, -240)
+		ad.add_theme_color_override("font_color", Color(0.75, 1.0, 0.7))
+		bind(ad, func(): _ads_on = not _ads_on; _lit(ad, _ads_on), Callable(), func(rel: Vector2): look_delta += rel)
+		add_child(ad)
+		_ads_button = ad
 		var gb := _button("GRENADE")
 		gb.custom_minimum_size = Vector2(120, 64)
 		gb.add_theme_font_size_override("font_size", 13)
@@ -239,7 +304,7 @@ func _ready() -> void:
 		var cy := _button("⟳")
 		cy.custom_minimum_size = Vector2(56, 64)
 		cy.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-		cy.position = Vector2(-316, -240)
+		cy.position = Vector2(-72, -432)     # above SWAP: the ADS button took its old place by GRENADE
 		bind(cy, func(): _cycle_grenade = true)
 		add_child(cy)
 		_cycle_button = cy
@@ -253,6 +318,8 @@ func _ready() -> void:
 		add_child(sp)
 		_super_button = sp
 	_hud()
+	if touch_ui:
+		_layout_ready()
 	if not touch_ui and not scripted:
 		toast.call_deferred("Click to aim with the mouse · Esc frees the cursor")
 
@@ -381,6 +448,15 @@ func _hud() -> void:
 			cuts.draw_rect(Rect2(x - 1.0, 0, 2.0, 10.0), Color(0.03, 0.04, 0.05, 0.9))
 		cuts.draw_rect(Rect2(0, 0, HULL_W, 10), Color(1, 1, 1, 0.22), false, 1.0))
 	hull_back.add_child(cuts)
+	hud = BoardHud.new()
+	hud.source = self
+	add_child(hud)
+	move_child(hud, 1)
+	# the board's plates draw these now; the labels keep their text for the plates (and the swap tap stays)
+	hull_back.visible = false
+	hull_fill.visible = false
+	weapon_name.self_modulate.a = 0.0
+	ammo.self_modulate.a = 0.0
 	_prompt_label = Label.new()
 	_prompt_label.set_anchors_preset(Control.PRESET_CENTER)
 	_prompt_label.position = Vector2(-80, 120)
@@ -427,6 +503,10 @@ func show_loadout(frame: String, element := "") -> void:
 				at.region = Rect2(0, w * 0.25, w, w * 0.5)
 			_icons[frame] = at
 		tex = _icons[frame]
+	# the owner's board HUD (board_hud.gd) draws its own weapon card from these labels: no picture over it, and the
+	# labels stay where it reads them
+	if hud:
+		tex = null
 	_gun_icon.texture = tex
 	_gun_icon.visible = tex != null
 	ammo.position.x = 96.0 if tex else 20.0
@@ -436,9 +516,9 @@ func show_loadout(frame: String, element := "") -> void:
 	weapon_name.position.x = 34.0 if _element_pip.visible else 20.0
 
 ## the hull read-out: `frac` 0..1, `hurt` 0..1 fades the wash, `down_left` seconds until the operator stands (0 = up)
-func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> void:
+func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0, hull_max := -1.0, shield_max := -1.0) -> void:
 	hull_fill.size.x = HULL_W * clampf(frac, 0.0, 1.0)
-	# the energy shield: a thin bright line over the hull's (asset catalog §5)
+	# the energy shield: a thin cyan bar over the hull's (asset catalog §5)
 	if shield >= 0.0:
 		if not _shield_fill:
 			_shield_fill = ColorRect.new()
@@ -450,8 +530,14 @@ func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0) -> vo
 			add_child(_shield_fill)
 		_shield_fill.size.x = HULL_W * clampf(shield, 0.0, 1.0)
 		_shield_fill.visible = hull_fill.visible
-	# white while healthy, Destiny's red under a third
-	hull_fill.color = Color(0.95, 0.96, 0.97) if frac > 0.35 else Color(0.95, 0.3, 0.26)
+	hull_fill.color = Color(0.35, 0.95, 0.75) if frac > 0.35 else Color(0.95, 0.4, 0.3)
+	if hud:
+		hud.hull = frac
+		hud.shield = shield
+		if hull_max > 0.0:
+			hud.hull_max = hull_max
+		if shield_max > 0.0:
+			hud.shield_max = shield_max
 	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
 	status.text = ("DOWN  ·  %d" % ceili(down_left)) if down_left > 0.0 and _death == null else ""
 	if _death:
@@ -561,7 +647,12 @@ var _toast_t := 0.0
 const MIN_TOAST := 2.2
 var _toast_queue: Array[String] = []
 
+## tests listen here for every toast asked for (tests/gear/loot_test.gd), before the queue drops repeats
+var toast_hook: Callable
+
 func toast(text: String) -> void:
+	if toast_hook.is_valid():
+		toast_hook.call(text)
 	# Destiny's two special notices (Progression.grant's lines; the views toast every line): a level-up gets the big
 	# centred banner, a drop gets an "acquired" card down the left side
 	if text.begins_with("LEVEL ") and text.find(" — ") > 0:
@@ -677,6 +768,17 @@ func set_mode(m: String) -> void:
 	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button, _grapple_button, _super_button]:
 		if b:
 			b.visible = not drive and not fly and weapons_out and not simple()
+	# the close-combat buttons stay on the simple screen too (owner, Nov 21: melee, dodge on the phone's combat HUD)
+	for b in [_melee_button, _dodge_button, _block_button, _ads_button] + _ability_buttons:
+		if b:
+			b.visible = not drive and not fly and weapons_out
+	if drive or fly or not weapons_out:
+		_ads_on = false
+		if _ads_button:
+			_lit(_ads_button, false)
+	if drive or fly:
+		_melee_held = false
+		_block_held = false
 	var armed_drive := drive and armed_vehicle
 	if _cannon_button:
 		_cannon_button.visible = armed_drive
@@ -751,8 +853,9 @@ func show_super(h: Dictionary) -> void:
 	if not _super_meter:
 		_super_meter = Control.new()
 		_super_meter.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		_super_meter.position = Vector2(20, 31)
-		_super_meter.size = Vector2(HULL_W, 14)
+		# under the board's weapon card (board_hud.gd: y 12–86), above the grenade line (y 100)
+		_super_meter.position = Vector2(14, 89)
+		_super_meter.size = Vector2(HULL_W + 200, 14)
 		_super_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_super_meter.draw.connect(func():
 			if _super_hud.is_empty():
@@ -778,6 +881,78 @@ func show_super(h: Dictionary) -> void:
 			var full := float(h.charge) >= 1.0
 			_super_button.text = (String(h.name).get_slice(" ", 0) + " ◆") if full else "SUPER %d%%" % int(float(h.charge) * 100.0)
 			_super_button.modulate = Color(1.3, 1.15, 0.8) if full else Color(1, 1, 1, 0.85)
+func take_ability() -> int:
+	var a := _ability
+	_ability = -1
+	return a
+
+## the ability read-out: each button wears its name and fills as it readies; on the desk a line under the grenade's
+var _ability_label: Label
+func show_abilities(list: Array) -> void:
+	for i in mini(list.size(), _ability_buttons.size()):
+		var b: Button = _ability_buttons[i]
+		var h: Dictionary = list[i]
+		var r := clampf(float(h.ready), 0.0, 1.0)
+		# the boards' ability tile, drawn on the button (its text stays empty)
+		b.text = ""
+		b.modulate = Color(1, 1, 1, 1)
+		b.set_meta("tile", h)
+		b.set_meta("tile_i", i)
+		if not b.has_meta("tile_hooked"):
+			b.set_meta("tile_hooked", true)
+			for st in ["normal", "hover", "pressed"]:
+				var sb := StyleBoxEmpty.new()
+				b.add_theme_stylebox_override(st, sb)
+			b.draw.connect(func():
+				var hh: Dictionary = b.get_meta("tile", {})
+				var side := minf(b.size.x, b.size.y)
+				var rr := Rect2((b.size.x - side) * 0.5, (b.size.y - side) * 0.5, side, side)
+				BoardHud.tile(b, rr, hh, int(b.get_meta("tile_i", 0)), "", ThemeDB.fallback_font))
+		b.queue_redraw()
+	if hud:
+		hud.set("abilities", list if (not touch_ui and mode == "foot" and weapons_out) else [])
+	if touch_ui:
+		return
+	if not _ability_label:
+		_ability_label = Label.new()
+		_ability_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_ability_label.position = Vector2(20, 118)
+		_ability_label.add_theme_font_size_override("font_size", 13)
+		_ability_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		_ability_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_ability_label)
+	var parts: Array = []
+	for i in list.size():
+		var h2: Dictionary = list[i]
+		var r2 := clampf(float(h2.ready), 0.0, 1.0)
+		parts.append("%d %s %s" % [i + 1, String(h2.name), "●" if r2 >= 1.0 else "%d%%" % int(r2 * 100.0)])
+	_ability_label.text = ""   # the board's tiles (board_hud.gd) show them now
+
+## the sights are up: the phone's toggle, the right mouse button, the left trigger
+func ads() -> bool:
+	return mode == "foot" and weapons_out and (_ads_on or _ads_mouse or _pad_ads)
+
+## a reload or a swap lowers a toggled ADS on the phone (the gun leaves the shoulder)
+func drop_ads() -> void:
+	_ads_on = false
+	if _ads_button:
+		_lit(_ads_button, false)
+
+func take_melee() -> bool:
+	var m := _melee
+	_melee = false
+	return m
+
+func melee_held() -> bool:
+	return _melee_held or _pad_melee
+
+func take_dodge() -> bool:
+	var d := _dodge
+	_dodge = false
+	return d
+
+func block_held() -> bool:
+	return _block_held or _pad_block
 
 func take_grenade() -> bool:
 	var g := _grenade
@@ -835,6 +1010,14 @@ func _ring(r: float, col: Color) -> Control:
 static func bind(b: Button, down: Callable, up := Callable(), drag := Callable()) -> void:
 	var held := [-1]
 	b.gui_input.connect(func(e: InputEvent) -> void:
+		if b.has_meta("editing"):
+			var ed: Node = b.get_parent()
+			if e is InputEventScreenTouch and (e as InputEventScreenTouch).pressed and ed and ed.has_method("edit_touch"):
+				ed.edit_touch(b, Vector2.ZERO)
+			elif e is InputEventScreenDrag and ed and ed.has_method("edit_touch"):
+				ed.edit_touch(b, (e as InputEventScreenDrag).relative)
+			b.accept_event()
+			return
 		if e is InputEventScreenTouch:
 			var t := e as InputEventScreenTouch
 			if t.pressed and held[0] < 0:
@@ -907,6 +1090,19 @@ func take_look() -> Vector2:
 	look_delta = Vector2.ZERO
 	return d
 
+## the horn (Nov 22 audio pass): H on a keyboard, the left stick's click on a pad, while driving
+var _horn_was := false
+func _horn() -> void:
+	if mode != "drive":
+		_horn_was = false
+		return
+	var on := Input.is_physical_key_pressed(KEY_H)
+	for id in Input.get_connected_joypads():
+		on = on or Input.is_joy_button_pressed(id, JOY_BUTTON_LEFT_STICK)
+	if on and not _horn_was:
+		preload("res://scripts/audio/sound.gd").sfx("horn", -4.0, 0.02)
+	_horn_was = on
+
 func _process(_dt: float) -> void:
 	# holding SWAP on the phone opens the weapon wheel; the drag aims it
 	if _swap_held:
@@ -917,6 +1113,7 @@ func _process(_dt: float) -> void:
 		_wheel_aim = _wheel_aim.limit_length(220.0)
 		_wheel.queue_redraw()
 		look_delta = Vector2.ZERO
+	_horn()
 	if _hit_t > 0.0:
 		_hit_t -= _dt
 		if _hitmark:
@@ -932,6 +1129,7 @@ func _process(_dt: float) -> void:
 		return
 	if touch_ui:
 		sprint = _sprint_held or (simple() and mode == "foot" and move.length() > 0.92)
+		_pad(_dt)
 		return
 	# keyboard
 	var k := Vector2.ZERO
@@ -975,10 +1173,31 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_E) and not _e_was:
 		_enter = true
 	_e_was = Input.is_key_pressed(KEY_E)
-	if Input.is_key_pressed(KEY_F) and not _f_was:
-		_missiles = true
-	_f_was = Input.is_key_pressed(KEY_F)
+	var f_down := Input.is_key_pressed(KEY_F)
+	if f_down and not _f_was:
+		if mode == "foot":
+			_melee = true
+		else:
+			_missiles = true
+	_melee_held = f_down and mode == "foot"
+	_f_was = f_down
+	var dodge_down := Input.is_key_pressed(KEY_C) or Input.is_key_pressed(KEY_CTRL)
+	if dodge_down and not _c_was and mode == "foot":
+		_dodge = true
+	_c_was = dodge_down
+	_block_held = (Input.is_key_pressed(KEY_V) or _mouse4) and mode == "foot"
+	for ki in 3:
+		var down: bool = Input.is_key_pressed([KEY_1, KEY_2, KEY_3][ki])
+		var was: bool = [_k1_was, _k2_was, _k3_was][ki]
+		if down and not was and mode == "foot":
+			_ability = ki
+		if ki == 0: _k1_was = down
+		elif ki == 1: _k2_was = down
+		else: _k3_was = down
+	_pad(_dt)
 var _e_was := false
+var _c_was := false
+var _mouse4 := false
 var _g_was := false
 var _j_was := false
 var _k_was := false
@@ -1019,6 +1238,8 @@ func _input(event: InputEvent) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			fire = mb.pressed
+		elif mb.button_index == MOUSE_BUTTON_RIGHT and mode == "foot":
+			_ads_mouse = mb.pressed
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and mode == "drive" and armed_vehicle:
 			_missiles = true
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
@@ -1558,3 +1779,217 @@ func feed(killer: String, victim: String, killer_ally: bool, victim_ally: bool, 
 	tw.tween_interval(4.5)
 	tw.tween_property(row, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(row.queue_free)
+
+# --------------------------------------------------------------------------------------------- controller (Nov 22)
+## A controller (Xbox / PlayStation layout, any pad Godot sees): left stick moves, right stick looks, RT fires, LT aims
+## down sights, A jumps, B dodges, X reloads, Y swaps, RB melee (held = heavy), LB grenade, d-pad ← / → the two
+## abilities and ↑ the super, d-pad ↓ held blocks, L3 sprints. In a car: RT gas, LT brake, left stick steers, Y exits.
+const PAD_DEAD := 0.18
+const PAD_LOOK := 900.0          # px a second at full right stick (the same units as a drag)
+var _pad_ads := false
+var _pad_used := false
+var _pad_was := {}
+var _pad_fire := false
+var _pad_melee := false
+var _pad_block := false
+
+func _pad_edge(btn: int, down: bool) -> bool:
+	var was: bool = _pad_was.get(btn, false)
+	_pad_was[btn] = down
+	return down and not was
+
+func _pad(dt: float) -> void:
+	var pads := Input.get_connected_joypads()
+	if pads.is_empty():
+		if _pad_used:
+			_pad_used = false
+			_pad_ads = false
+			if _pad_fire:
+				fire = false
+				_pad_fire = false
+		return
+	var id: int = pads[0]
+	var lx := Input.get_joy_axis(id, JOY_AXIS_LEFT_X)
+	var ly := Input.get_joy_axis(id, JOY_AXIS_LEFT_Y)
+	var rx := Input.get_joy_axis(id, JOY_AXIS_RIGHT_X)
+	var ry := Input.get_joy_axis(id, JOY_AXIS_RIGHT_Y)
+	var lt := Input.get_joy_axis(id, JOY_AXIS_TRIGGER_LEFT)
+	var rt := Input.get_joy_axis(id, JOY_AXIS_TRIGGER_RIGHT)
+	var stick := Vector2(lx, -ly)
+	var look := Vector2(rx, ry)
+	var any := stick.length() > PAD_DEAD or look.length() > PAD_DEAD or lt > 0.3 or rt > 0.3
+	for b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_Y, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_LEFT_STICK]:
+		any = any or Input.is_joy_button_pressed(id, b)
+	if not any and not _pad_used:
+		return
+	_pad_used = true
+	if stick.length() > PAD_DEAD:
+		move = (stick - stick.normalized() * PAD_DEAD) / (1.0 - PAD_DEAD)
+		move = move.limit_length(1.0)
+	elif touch_ui and _stick_id < 0:
+		move = Vector2.ZERO
+	if look.length() > PAD_DEAD:
+		var l := (look - look.normalized() * PAD_DEAD) / (1.0 - PAD_DEAD)
+		look_delta += Vector2(l.x * absf(l.x), l.y * absf(l.y)) * PAD_LOOK * dt
+	if mode == "drive":
+		_gas_held = rt > 0.3
+		_brake_held = lt > 0.3
+		if _pad_edge(JOY_BUTTON_Y, Input.is_joy_button_pressed(id, JOY_BUTTON_Y)):
+			_enter = true
+		return
+	var f := rt > 0.4
+	if f != _pad_fire:
+		fire = f
+		_pad_fire = f
+	_pad_ads = lt > 0.4
+	if Input.is_joy_button_pressed(id, JOY_BUTTON_LEFT_STICK):
+		sprint = true
+	if _pad_edge(JOY_BUTTON_A, Input.is_joy_button_pressed(id, JOY_BUTTON_A)):
+		_jump = true
+	if _pad_edge(JOY_BUTTON_B, Input.is_joy_button_pressed(id, JOY_BUTTON_B)):
+		_dodge = true
+	if _pad_edge(JOY_BUTTON_X, Input.is_joy_button_pressed(id, JOY_BUTTON_X)):
+		_reload = true
+		_enter = true          # X also opens doors / cars, as A does on many pads' "interact"
+	if _pad_edge(JOY_BUTTON_Y, Input.is_joy_button_pressed(id, JOY_BUTTON_Y)):
+		_next = true
+	var rb := Input.is_joy_button_pressed(id, JOY_BUTTON_RIGHT_SHOULDER)
+	if _pad_edge(JOY_BUTTON_RIGHT_SHOULDER, rb):
+		_melee = true
+	_pad_melee = rb
+	if _pad_edge(JOY_BUTTON_LEFT_SHOULDER, Input.is_joy_button_pressed(id, JOY_BUTTON_LEFT_SHOULDER)):
+		_grenade = true
+	if _pad_edge(JOY_BUTTON_DPAD_LEFT, Input.is_joy_button_pressed(id, JOY_BUTTON_DPAD_LEFT)):
+		_ability = 0
+	if _pad_edge(JOY_BUTTON_DPAD_RIGHT, Input.is_joy_button_pressed(id, JOY_BUTTON_DPAD_RIGHT)):
+		_ability = 1
+	if _pad_edge(JOY_BUTTON_DPAD_UP, Input.is_joy_button_pressed(id, JOY_BUTTON_DPAD_UP)):
+		_ability = 2
+	_pad_block = Input.is_joy_button_pressed(id, JOY_BUTTON_DPAD_DOWN)
+
+# --------------------------------------------------------------------------------------------- HUD layout (Nov 22)
+## The phone's buttons can be moved and resized (owner: "The HUD should be customizable"): ✎ HUD at the top right opens
+## the editor — drag any button where the thumb wants it, tap one then SIZE − / + to scale it, OPACITY − / + for all,
+## RESET puts the factory layout back, DONE saves to user://hud_layout.json. Positions are kept as offsets from the
+## button's own anchor, so a layout survives a different screen size.
+const LAYOUT_FILE := "user://hud_layout.json"
+var editing := false
+var _defaults := {}              # id -> [position, scale]
+var _picked: Button
+var _edit_bar: HBoxContainer
+var _edit_button: Button
+var hud_opacity := 0.85
+
+func _layout_buttons() -> Dictionary:
+	var out := {}
+	for b in get_children():
+		if b is Button and b.has_meta("hud_id"):
+			out[String(b.get_meta("hud_id"))] = b
+	return out
+
+func _layout_ready() -> void:
+	for b in get_children():
+		if b is Button and b != _enter_button:
+			var id := String((b as Button).text)
+			if id == "" or b.has_meta("hud_id"):
+				continue
+			b.set_meta("hud_id", id)
+			_defaults[id] = [(b as Button).position, 1.0]
+	_edit_button = _button("✎ HUD")
+	_edit_button.custom_minimum_size = Vector2(84, 40)
+	_edit_button.add_theme_font_size_override("font_size", 14)
+	_edit_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_edit_button.position = Vector2(-96, 8)
+	bind(_edit_button, func(): set_editing(not editing))
+	add_child(_edit_button)
+	_load_layout()
+
+func _load_layout() -> void:
+	if not FileAccess.file_exists(LAYOUT_FILE):
+		return
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(LAYOUT_FILE))
+	if not (d is Dictionary):
+		return
+	hud_opacity = clampf(float((d as Dictionary).get("opacity", 0.85)), 0.25, 1.0)
+	var btns := _layout_buttons()
+	for id in (d as Dictionary).get("buttons", {}):
+		if not btns.has(id):
+			continue
+		var row: Array = d.buttons[id]
+		var b: Button = btns[id]
+		b.position = Vector2(float(row[0]), float(row[1]))
+		b.scale = Vector2.ONE * clampf(float(row[2]), 0.6, 1.8)
+	_apply_opacity()
+
+func _save_layout() -> void:
+	var rows := {}
+	for id in _layout_buttons():
+		var b: Button = _layout_buttons()[id]
+		rows[id] = [b.position.x, b.position.y, b.scale.x]
+	var f := FileAccess.open(LAYOUT_FILE, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({ "opacity": hud_opacity, "buttons": rows }))
+
+func _apply_opacity() -> void:
+	for b in _layout_buttons().values():
+		if not (b as Button).has_meta("lit"):
+			(b as Button).modulate = Color(1, 1, 1, hud_opacity)
+
+## the editor on / off: buttons stop answering and follow the finger instead
+func set_editing(on: bool) -> void:
+	editing = on
+	_picked = null
+	if _edit_button:
+		_edit_button.text = "DONE" if on else "✎ HUD"
+	for b in _layout_buttons().values():
+		var btn := b as Button
+		if on:
+			btn.set_meta("editing", true)
+			btn.visible = true
+		else:
+			btn.remove_meta("editing")
+	if on:
+		if not _edit_bar:
+			_edit_bar = HBoxContainer.new()
+			_edit_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
+			_edit_bar.position = Vector2(-260, 56)
+			_edit_bar.add_theme_constant_override("separation", 8)
+			for item in [["SIZE −", func(): _resize(-0.1)], ["SIZE +", func(): _resize(0.1)], ["OPACITY −", func(): _fade(-0.1)], ["OPACITY +", func(): _fade(0.1)], ["RESET", _reset_layout]]:
+				var eb := _button(String(item[0]))
+				eb.custom_minimum_size = Vector2(96, 44)
+				eb.add_theme_font_size_override("font_size", 14)
+				bind(eb, item[1])
+				_edit_bar.add_child(eb)
+			add_child(_edit_bar)
+		_edit_bar.visible = true
+		toast("Drag a button to move it · tap one, then SIZE − / + · DONE saves")
+	else:
+		if _edit_bar:
+			_edit_bar.visible = false
+		_save_layout()
+		set_mode(mode)
+
+func _resize(by: float) -> void:
+	if _picked:
+		_picked.scale = Vector2.ONE * clampf(_picked.scale.x + by, 0.6, 1.8)
+
+func _fade(by: float) -> void:
+	hud_opacity = clampf(hud_opacity + by, 0.25, 1.0)
+	_apply_opacity()
+
+func _reset_layout() -> void:
+	var btns := _layout_buttons()
+	for id in _defaults:
+		if btns.has(id):
+			(btns[id] as Button).position = _defaults[id][0]
+			(btns[id] as Button).scale = Vector2.ONE
+	hud_opacity = 0.85
+	_apply_opacity()
+
+## a finger on a button while editing: picks it and drags it (bind() hands these over when the button has "editing")
+func edit_touch(b: Button, rel: Vector2) -> void:
+	_picked = b
+	for o in _layout_buttons().values():
+		(o as Button).modulate = Color(1, 1, 1, hud_opacity)
+	b.modulate = Color(0.6, 1.0, 0.6, 1.0)
+	b.position += rel

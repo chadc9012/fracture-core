@@ -8,12 +8,16 @@ const Sound := preload("res://scripts/audio/sound.gd")
 ## while the trigger is warm. weapons.gd holds the frames and the magazine; this node is the scene side.
 
 ## the shot cue per frame (audio/sfx, scripts/build-sfx.py)
-const SHOT_CUES := { "AUTO": "rifle", "SNIPER": "sniper", "FUSION": "fusion", "SMG": "smg", "SHOTGUN": "shotgun", "SIDEARM": "sidearm", "LMG": "lmg", "HEAVY": "heavy" }
+const SHOT_CUES := { "AUTO": "rifle", "SNIPER": "sniper", "FUSION": "fusion", "SMG": "smg", "SHOTGUN": "shotgun", "SIDEARM": "sidearm", "LMG": "lmg", "HEAVY": "heavy",
+	"PISTOL": "sidearm", "MARKSMAN": "sniper", "ROCKET": "", "GL": "", "BOW": "swing" }
 const Weapons := preload("res://scripts/combat/weapons.gd")
 const Grenades := preload("res://scripts/combat/grenades.gd")
+const CloseCombat := preload("res://scripts/combat/close_combat.gd")
+const HeavyWeapons := preload("res://scripts/combat/heavy_weapons.gd")
 ## Tracer's mark: a marked Target takes this much more from every bolt and grenade
 const MARK_MULT := 1.33
 const MODELS := "res://models/weapons/"
+const Phone := preload("res://scripts/phone.gd")
 
 ## something a bolt can hit: a world box, hull points, and the node that shows it (optional)
 class Target:
@@ -30,17 +34,29 @@ class Target:
 	## Operator grenades (grenades.gd): seconds stunned (a bot holds still and holds fire) and marked (takes +33% damage)
 	var stun := 0.0
 	var mark := 0.0
+	## hit reactions (close_combat.gd, Nov 22): the shove and the poise damage of the last hits, consumed by whoever moves
+	## the body (enemies.gd staggers, knocks down or flinches by them); `heavy` marks a guard-breaking blow
+	var knock := Vector3.ZERO
+	var impact := 0.0
+	var heavy := false
+	## elemental states (weapons.gd ELEMENTS, applied by gunplay._element): THERMAL burns, VOID weakens (takes more),
+	## CRYO slows and, five hits in, freezes (a stun); enemies.gd reads `slow`
+	var burn := 0.0
+	var burn_dps := 0.0
+	var weaken := 0.0
+	var slow := 0.0
+	var cryo_hits := 0
 	func _init(b: AABB, h: float, n: Node3D = null) -> void:
 		box = b; hp = h; max_hp = h; node = n
 	func alive() -> bool:
 		return hp > 0.0
 	## lands `d` damage: the shield first, the rest on the hull. Returns {shield, hull, broke}
-	func take(d: float, energy := false) -> Dictionary:
+	func take(d: float, energy := false, shield_k := 1.5) -> Dictionary:
 		since = 0.0
 		var on_shield := 0.0
 		var broke := false
 		if shield > 0.0:
-			var k := 1.5 if energy else 1.0
+			var k := shield_k if energy else 1.0
 			on_shield = minf(shield, d * k)
 			shield -= on_shield
 			d = maxf(0.0, d - on_shield / k)
@@ -54,6 +70,9 @@ const SHIELD_RATE := 18.0
 const GONE_BOX := AABB(Vector3(0, -1000, 0), Vector3(0.01, 0.01, 0.01))
 
 signal hit(target: Target, damage: float, head: bool)
+## what landed the hit being emitted, when it was not the gun in hand: "MELEE" (melee_hit), "GRENADE" (grenade_hit), else ""
+## (the unique encounters' adaptive and attuned bosses tell damage apart by it: boss.gd `gimmick_mult`)
+var hit_kind := ""
 signal killed(target: Target)
 ## a piece of destructible cover went (not a kill: no drop, no scavenge)
 signal cover_broken(target: Target)
@@ -62,6 +81,8 @@ var player: Node3D            # operator_player.gd
 ## the Operator's grenades (grenades.gd), stepped here so every combat view has them; `roster` is enemies.gd (set by its
 ## setup) for the operator's hull, which the Rift Well heals
 var grenades: Node3D
+## melee, dodge, block and parry (close_combat.gd), stepped here so every combat view has them with no wiring
+var close: Node3D
 var roster: Node = null
 ## off while unarmed (holstered) or in a view that wants no grenades
 var grenades_on := true
@@ -90,6 +111,14 @@ var holstered := false
 var assist_deg := 7.0 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")) else 0.0
 var shots_fired := 0
 var hits_landed := 0
+## aiming down the sights (the ADS button / right mouse / left trigger): eased 0..1 by the gun's handling, it narrows the
+## spread, halves the kick, zooms by the frame's `zoom` and slows the walk
+var aiming := false
+var ads := 0.0
+var _base_fov := 0.0
+var _still_ads := 0.0
+## rockets, grenade-launcher shells and the perks' bursts fly through this (heavy_weapons.gd, the tank's ordnance)
+var ordnance: Node3D
 
 var _hand: BoneAttachment3D
 var _held: Node3D
@@ -106,10 +135,29 @@ var _mags := 0
 
 ## a kill resupplies: every carried gun gets half a magazine back into its reserve (to the frame's full reserve), so a
 ## long fight — a Fracture boss, a lockdown — is paced by kills rather than ended by an empty bag
-func scavenge() -> void:
+## a kill's ammo back to every carried gun: what that foe took to drop (its hull and shield over the gun's body-shot
+## damage), doubled for misses, never less than half a magazine nor more than two (the Nov 22 balance pass
+## made troopers tougher; a flat half-mag ran the rifle dry by the second lockdown wave)
+func scavenge(t: Target = null) -> void:
 	for g in guns:
 		var f: Dictionary = Weapons.FRAMES.get(g.frame, {})
-		g.reserve = mini(int(g.reserve) + maxi(1, int(f.get("mag", 10)) / 2), int(f.get("reserve", 0)))
+		var mag := int(f.get("mag", 10))
+		var back := maxi(1, mag / 2)
+		if t != null and t.max_hp > 0.0:
+			var per := Weapons.BASE_DAMAGE * float(f.get("damage", 1.0)) * Weapons.pellets(g.frame) * maxf(g.mult, 0.1)
+			var needed := (t.max_hp + t.shield_max) / maxf(per, 0.1)
+			back = clampi(int(ceil(needed * 2.0)), maxi(1, mag / 2), mag * 2)
+		g.reserve = mini(int(g.reserve) + back, int(f.get("reserve", 0)))
+
+## a full restock (a chapter's start, standing back up after going down — Destiny refills there too): every carried
+## gun's reserve to its frame's full load and a fresh magazine
+func resupply() -> void:
+	for g in guns:
+		var f: Dictionary = Weapons.FRAMES.get(g.frame, {})
+		g.reserve = int(f.get("reserve", g.reserve))
+		if not f.has("draw"):
+			g.mag = int(f.get("mag", g.mag))
+		g.cancel_reload()
 
 func gun() -> Weapons.Gun:
 	return guns[current]
@@ -147,6 +195,18 @@ func setup(p: Node3D, boxes: Array[AABB]) -> void:
 	super_ability = load("res://scripts/combat/super_ability.gd").new()
 	add_child(super_ability)
 	super_ability.setup(self)
+	close = CloseCombat.new()
+	add_child(close)
+	close.setup(self)
+	ordnance = HeavyWeapons.new()
+	add_child(ordnance)
+	ordnance.gunplay = self
+	ordnance.obstacles = obstacles
+	ordnance.ground_at = p.ground_at
+	ordnance.listener = func() -> Vector3: return player.position if player else Vector3.ZERO
+	ordnance.shake = func(a: float) -> void:
+		if player and player.has_method("add_shake"):
+			player.add_shake(a)
 	hit.connect(_hit_feedback)
 	hit.connect(func(t: Target, _d: float, head: bool) -> void: _head_on[t] = head)
 	killed.connect(_callout)
@@ -200,14 +260,98 @@ func _mount() -> void:
 		elif bn.ends_with("RightUpLeg"):
 			_thigh_bone = bone
 	for f in Weapons.ORDER:
-		var path: String = MODELS + String(Weapons.FRAMES[f].model)
-		if not ResourceLoader.exists(path):
-			continue
-		var m := (load(path) as PackedScene).instantiate() as Node3D
-		_held.add_child(m)
-		_models[f] = m
-		_attach(m, String(f))
+		_ensure_model(f)
 	_show_current()
+
+## a frame's model in the hand node (loaded once, when a view's kit or the worn gear first carries it)
+func _ensure_model(f: String) -> void:
+	if _models.has(f) or not _held:
+		return
+	var m: Node3D
+	if f == "BOW":
+		m = _make_bow()
+	else:
+		var path: String = Phone.model_path(MODELS + String(Weapons.FRAMES[f].model))
+		if not ResourceLoader.exists(path):
+			return
+		m = (load(path) as PackedScene).instantiate() as Node3D
+	_held.add_child(m)
+	_models[f] = m
+	m.set_meta("mid", _model_box(m).get_center())   # before the attachments: a laser beam's mesh would swell the box
+	_attach(m, f)
+
+## the combat bow (no authored model yet): a dark recurve — riser, two limbs swept back at the tips, a glowing string —
+## held upright with the arrow along +Z like a barrel; the nocked arrow shows while the string is drawn
+func _make_bow() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Bow"
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(0.13, 0.14, 0.16)
+	metal.metallic = 0.7
+	metal.roughness = 0.35
+	var glow := StandardMaterial3D.new()
+	glow.albedo_color = Color(0.4, 0.9, 1.0)
+	glow.emission_enabled = true
+	glow.emission = Color(0.4, 0.9, 1.0)
+	glow.emission_energy_multiplier = 2.5
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var riser := MeshInstance3D.new()
+	var rb := BoxMesh.new()
+	rb.size = Vector3(0.035, 0.26, 0.05)
+	riser.mesh = rb
+	riser.material_override = metal
+	root.add_child(riser)
+	var tips: Array[Vector3] = []
+	for sgn in [1.0, -1.0]:
+		# each limb in two pieces: out from the riser, then the recurved tip bent forward
+		var a := Vector3(0, 0.13 * sgn, 0.0)
+		var b := Vector3(0, 0.44 * sgn, -0.1)
+		var c := Vector3(0, 0.56 * sgn, -0.04)
+		for seg in [[a, b, 0.018], [b, c, 0.012]]:
+			var p0: Vector3 = seg[0]
+			var p1: Vector3 = seg[1]
+			var limb := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = float(seg[2]) * 0.8
+			cm.bottom_radius = float(seg[2])
+			cm.height = p0.distance_to(p1)
+			cm.radial_segments = 8
+			cm.rings = 1
+			limb.mesh = cm
+			limb.material_override = metal
+			limb.position = (p0 + p1) * 0.5
+			limb.basis = Basis(Quaternion(Vector3.UP, (p1 - p0).normalized()))
+			root.add_child(limb)
+		tips.append(c)
+		var trim := MeshInstance3D.new()
+		var tb := BoxMesh.new()
+		tb.size = Vector3(0.012, 0.2, 0.006)
+		trim.mesh = tb
+		trim.material_override = glow
+		trim.position = Vector3(0.0, 0.3 * sgn, -0.05 + 0.025)
+		trim.rotation.x = 0.33 * sgn
+		root.add_child(trim)
+	var string := MeshInstance3D.new()
+	var sm := BoxMesh.new()
+	sm.size = Vector3(0.004, tips[0].y - tips[1].y, 0.004)
+	string.mesh = sm
+	string.material_override = glow
+	string.position = Vector3(0, 0, -0.06)
+	string.name = "String"
+	root.add_child(string)
+	var arrow := MeshInstance3D.new()
+	var am := CylinderMesh.new()
+	am.top_radius = 0.006
+	am.bottom_radius = 0.006
+	am.height = 0.75
+	arrow.mesh = am
+	arrow.material_override = glow
+	arrow.rotation.x = PI * 0.5
+	arrow.position = Vector3(0, 0, 0.2)
+	arrow.name = "Arrow"
+	arrow.visible = false
+	root.add_child(arrow)
+	return root
 
 ## aim help on a touch screen while the trigger is held: the camera eases toward the nearest live foe within 14° of the
 ## crosshair, faster the closer it already is (a thumb cannot track a strafing trooper the way a mouse can)
@@ -247,6 +391,13 @@ func _pull_aim(dt: float, cam: Camera3D) -> void:
 func _point_gun(cam: Camera3D) -> void:
 	if not _held or not _hand or holstered or not cam or not is_instance_valid(cam):
 		return
+	# a swing, a dodge or a fall: the gun in hand goes out of sight (Destiny's melee does the same), back when it ends
+	var stow: bool = (close != null and close.phase != "") or (player != null and player.has_method("dodging") and player.dodging()) or (roster != null and float(roster.down) > 0.0)
+	var lm0: Node3D = _models.get(gun().frame)
+	if lm0:
+		lm0.visible = not stow
+	if stow:
+		return
 	var at := _hand.global_position
 	var dir := aim_point(cam) - at
 	if dir.length() < 0.5:
@@ -254,7 +405,25 @@ func _point_gun(cam: Camera3D) -> void:
 	dir = dir.normalized()
 	if absf(dir.y) > 0.98:
 		return
-	_held.global_transform = Transform3D(Basis.looking_at(-dir, Vector3.UP), at)
+	var b := Basis.looking_at(-dir, Vector3.UP)
+	var g: Weapons.Gun = gun()
+	if g.reloading > 0.0:
+		# the reload tilt: the gun rolls onto its side and dips (the LMG lifts) while the hands work, out and back in
+		var u := maxf(g.reload_progress(), 0.0)
+		var w := smoothstep(0.0, 0.15, u) * (1.0 - smoothstep(0.85, 1.0, u))
+		var pitch := (-0.35 if g.frame == "LMG" else (0.2 if g.frame == "SIDEARM" else 0.45)) * w
+		var roll := (0.15 if g.frame in ["HEAVY", "LMG"] else 0.7) * w
+		b = b * Basis(Vector3(0, 0, 1), roll) * Basis(Vector3(1, 0, 0), pitch)
+	_held.global_transform = Transform3D(b, at)
+	if g.frame == "BOW" and lm0:
+		var pull: float = g.draw_frac()
+		var st: Node3D = lm0.get_node_or_null("String")
+		var ar: Node3D = lm0.get_node_or_null("Arrow")
+		if st:
+			st.position.z = -0.06 - 0.32 * pull
+		if ar:
+			ar.visible = pull > 0.05
+			ar.position.z = 0.2 - 0.32 * pull
 	# the laser on the gun in hand reaches to where it points, while the gun is in the fight
 	var lm: Node3D = _models.get(gun().frame)
 	if lm and lm.has_meta("laser"):
@@ -271,6 +440,7 @@ func _show_current() -> void:
 	var carried := {}
 	for g in guns:
 		carried[g.frame] = true
+		_ensure_model(g.frame)
 	var back_taken := false
 	var thigh_taken := false
 	for f in _models:
@@ -279,10 +449,10 @@ func _show_current() -> void:
 		if not holstered and carried.has(f):
 			if f == gun().frame:
 				place = "hand"
-			elif f in ["SIDEARM", "SMG"] and not thigh_taken and _thigh_bone >= 0:
+			elif f in ["SIDEARM", "SMG", "PISTOL"] and not thigh_taken and _thigh_bone >= 0:
 				place = "thigh"
 				thigh_taken = true
-			elif not (f in ["SIDEARM", "SMG"]) and not back_taken and _spine_bone >= 0:
+			elif not (f in ["SIDEARM", "SMG", "PISTOL"]) and not back_taken and _spine_bone >= 0:
 				place = "back"
 				back_taken = true
 		var parent: Node3D = _held if place == "hand" or place == "" else _rack
@@ -311,10 +481,13 @@ func set_loadout(list: Array) -> void:
 	var sk_dmg: float = Skills.saved("dmg")
 	head_bonus = Skills.saved("head")
 	for w in list:
-		var g := Weapons.Gun.new(Weapons.known(String(w.frame)))
+		var f := Weapons.frame_for(w)
+		var g := Weapons.Gun.new(f)
 		g.label = String(w.name)
 		g.mult = float(w.mult) * sk_dmg
-		g.element = String(w.get("element", ""))
+		g.element = String(w.get("element", "KINETIC")).to_upper()
+		g.rarity = String(w.get("rarity", ""))
+		g.perks = Weapons.item_perks(String(w.get("id", w.name)), f, g.rarity)
 		guns.append(g)
 	current = 0
 	for i in guns.size():
@@ -324,8 +497,13 @@ func set_loadout(list: Array) -> void:
 	_show_current()
 
 func next_weapon() -> void:
+	if player and player.rig and player.rig.action and player.rig.action.current() == "reload":
+		player.rig.action.stop()
+	gun().cancel_reload()
 	current = (current + 1) % guns.size()
+	gun().draw()
 	_show_current()
+	_card()
 
 ## the muzzle, world space (the viewmodel's muzzle sits 0.8 m down the barrel, further for the sniper)
 func muzzle() -> Vector3:
@@ -378,6 +556,37 @@ func aim_point(cam: Camera3D) -> Vector3:
 			return pick.box.get_center() + Vector3(0, pick.box.size.y * 0.15, 0)
 	return from + dir * maxf(best, near + 0.1)
 
+## the weapon card on a swap: name, category, element, perks
+func _card() -> void:
+	var c := _controls()
+	if not c or not c.has_method("toast") or guns.is_empty() or holstered:
+		return
+	var g: Weapons.Gun = gun()
+	var st := Weapons.stats(g.frame, g.mult, g.element, g.perks)
+	var line := "%s · %s" % [g.display_name().to_upper(), st.category]
+	if g.element != "KINETIC":
+		line += " · " + g.element
+	if not (st.perks as Array).is_empty():
+		line += " · " + ", ".join(st.perks)
+	c.toast(line)
+
+## aiming: the eased blend, the camera's zoom and the body's slower walk (the stance itself is operator_player.sights)
+func _step_ads(dt: float, cam: Camera3D) -> void:
+	var c := _controls()
+	var want := c != null and c.has_method("ads") and bool(c.ads())
+	var g: Weapons.Gun = gun()
+	aiming = want and not holstered and g.drawing <= 0.0 and g.reloading <= 0.0 and not (close and close.busy())
+	ads = move_toward(ads, 1.0 if aiming else 0.0, dt / maxf(g.ads_time(), 0.05))
+	_still_ads = _still_ads + dt if ads >= 1.0 else 0.0
+	if player:
+		player.ads_blend = ads
+		if "sights" in player:
+			player.sights = ads > 0.5
+	if cam and is_instance_valid(cam):
+		if _base_fov <= 0.0:
+			_base_fov = cam.fov
+		cam.fov = lerpf(_base_fov, _base_fov * float(g.def().get("zoom", 0.8)), ads)
+
 func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: float) -> void:
 	warm += dt
 	if _streak_t > 0.0:
@@ -386,6 +595,9 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 	var hud := _controls()
 	if hud and hud.has_method("show_loadout"):
 		hud.show_loadout("" if holstered else gun().frame, gun().element)
+	_step_ads(dt, cam)
+	if player and "armed_pose" in player:
+		player.armed_pose = not holstered
 	if trigger and assist_deg > 0.0 and not holstered:
 		_pull_aim(dt, cam)
 	_point_gun(cam)
@@ -398,25 +610,54 @@ func step(dt: float, cam: Camera3D, trigger: bool, reload: bool, moving_speed: f
 		t.since += dt
 		t.stun = maxf(0.0, t.stun - dt)
 		t.mark = maxf(0.0, t.mark - dt)
+		t.weaken = maxf(0.0, t.weaken - dt)
+		t.slow = maxf(0.0, t.slow - dt)
+		if t.slow <= 0.0:
+			t.cryo_hits = 0
+		if t.burn > 0.0:
+			t.burn -= dt
+			if t.alive():
+				t.take(t.burn_dps * dt, true)
+				if t.hp <= 0.0:
+					_down_target(t, t.box.get_center(), false)
 		if t.shield_max > 0.0 and t.alive() and t.since > SHIELD_DELAY and t.shield < t.shield_max:
 			t.shield = minf(t.shield_max, t.shield + SHIELD_RATE * dt)
 	var was_reloading := gun().reloading > 0.0
 	var empty_before := gun().mag <= 0
+	if close and close.busy():
+		trigger = false     # a swing, a dodge or the guard holds the trigger
 	var n := gun().step(dt, trigger)
 	if trigger and empty_before and not was_reloading and gun().reloading > 0.0:
 		Sound.sfx("dry", -6.0)
 		Sound.sfx("reload", -4.0)
 	if not was_reloading and gun().reloading > 0.0:
 		_drop_mag()
+		var cc := _controls()
+		if cc and cc.has_method("drop_ads"):
+			cc.drop_ads()
+		# the gun's own reload on the body (combat_clips.gd RELOADS), stretched to its reload time
+		if player and player.rig and player.rig.has_method("act_reload") and not (player.rig.action and player.rig.action.busy() and player.rig.action.current() != "reload"):
+			player.rig.act_reload(gun().frame, gun().reload_full)
 	_place_holsters()
+	if ordnance:
+		ordnance.step(dt)
 	_step_grenades(dt, cam)
 	_step_grapple(cam)
+	if close:
+		close.step(dt, cam)
 	for i in n:
-		Sound.sfx(SHOT_CUES.get(gun().frame, "rifle"), -2.0, 0.05)
-		_muzzle_flash(cam)
+		var cue: String = SHOT_CUES.get(gun().frame, "rifle")
+		if cue != "":
+			Sound.sfx(cue, -2.0 if gun().frame != "BOW" else -8.0, 0.05)
+		if gun().frame != "BOW":
+			_muzzle_flash(cam)
+		if gun().def().has("projectile"):
+			_launch(cam)
+			continue
 		for k in Weapons.pellets(gun().frame):
 			_fire_one(cam, moving_speed)
-		_eject(cam)
+		if not gun().def().has("draw"):
+			_eject(cam)
 	# tracers and the flash fade
 	var keep: Array = []
 	for tr in _tracers:
@@ -472,10 +713,13 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 	# standing still steadies the gun toward its aimed spread; running opens it to the hip spread
 	var steady := clampf(moving_speed / 5.4, 0.0, 1.0)
 	var spread := float(d.spread) * lerpf(float(d.ads_spread), 1.0, steady)
+	# down the sights the gun holds its aimed spread (a little looser on the move); the string's bloom opens it a touch
+	spread = lerpf(spread, float(d.spread) * float(d.ads_spread) * (1.0 + 0.4 * steady), ads)
+	spread *= 1.0 + minf(gun().shot_i, 8) * 0.03 * (1.0 - float(d.get("stability", 50)) / 100.0)
 	var side := dir.cross(Vector3.UP).normalized()
 	var up := side.cross(dir)
 	dir = (dir + side * _rng.randfn(0.0, spread) + up * _rng.randfn(0.0, spread)).normalized()
-	player.recoil = minf(player.recoil + float(d.recoil), 0.25)
+	_kick()
 	# the body squares up to where it shoots
 	player.heading = lerp_angle(player.heading, atan2(dir.x, dir.z), 0.6)
 	# the first thing along the bolt: an obstacle or a target
@@ -508,10 +752,26 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 	if hit_t:
 		# cover has no head, counts no kill and scavenges nothing; it stays down once broken
 		var head := not cover and end.y > hit_t.box.position.y + hit_t.box.size.y * 0.82
-		var dmg := Weapons.damage(gun().frame, dist, head) * gun().mult * (MARK_MULT if hit_t.mark > 0.0 else 1.0) * (head_bonus if head else 1.0)
+		var g: Weapons.Gun = gun()
+		var el := Weapons.element_of(g.element)
+		var dmg: float = Weapons.damage(g.frame, dist, head) * g.damage_mult() * (MARK_MULT if hit_t.mark > 0.0 else 1.0) * (head_bonus if head else 1.0)
 		if super_ability:
 			dmg *= super_ability.shot_mult()   # the Golden Gun's empowered shots
-		var res: Dictionary = hit_t.take(dmg, gun().frame == "FUSION")
+		if g.def().has("draw"):
+			dmg *= g.last_charge
+		if not cover:
+			if hit_t.shield <= 0.0:
+				dmg *= float(el.unshielded)
+			if hit_t.weaken > 0.0:
+				dmg *= 1.2
+			if head and g.has_perk("box_breathing") and _still_ads >= 1.0:
+				dmg *= 1.3
+				_still_ads = 0.0
+			dmg *= g.on_hit(head)
+		var energy: bool = g.frame == "FUSION" or g.element != "KINETIC"
+		var res: Dictionary = hit_t.take(dmg, energy, float(el.shield) if g.element != "KINETIC" else 1.5)
+		if not cover:
+			_element(hit_t, g, end)
 		if float(res.shield) > 0.0:
 			_shield_flash(hit_t, bool(res.broke))
 		if cover:
@@ -532,14 +792,100 @@ func _fire_one(cam: Camera3D, moving_speed: float) -> void:
 		hit.emit(hit_t, dmg, head)
 		Sound.sfx_at("headshot" if head else "hit", end, from, -3.0)
 		if hit_t.hp <= 0.0:
-			hit_t.hp = 0.0
-			hit_t.down = 5.0
-			if hit_t.node:
-				hit_t.node.visible = false
-			kills += 1
-			Sound.sfx_at("down", end, from, -4.0)
-			scavenge()
-			killed.emit(hit_t)
+			_down_target(hit_t, end, head)
+
+## a foe down to a gun: the count, the sound, the resupply, the perks that feed on kills (and burst on precision ones)
+func _down_target(t: Target, at: Vector3, head: bool) -> void:
+	t.hp = 0.0
+	t.down = 5.0
+	t.burn = 0.0
+	if t.node:
+		t.node.visible = false
+	kills += 1
+	Sound.sfx_at("down", at, player.position if player else at, -4.0)
+	scavenge(t)
+	if not guns.is_empty():
+		var g: Weapons.Gun = gun()
+		g.on_kill(head)
+		if head and ordnance and (g.has_perk("firefly") or g.has_perk("dragonfly")):
+			ordnance.pop(t.box.get_center(), 3.0 if g.has_perk("firefly") else 4.0, 40.0)
+		if g.has_perk("devour") and roster and float(roster.down) <= 0.0:
+			roster.hull = minf(float(roster.hull_max), float(roster.hull) + 25.0)
+			roster.shield = float(roster.shield_max)
+	killed.emit(t)
+
+## the gun's kick (weapons.gd recoil_kick): up into the camera's pitch, which settles back, and a sideways drift into
+## its yaw, which stays (the pattern to learn and pull against)
+func _kick() -> void:
+	var g: Weapons.Gun = gun()
+	var k := Weapons.recoil_kick(g.frame, g.shot_i, ads > 0.5, g.stability_bonus())
+	player.recoil = minf(player.recoil + k.y, 0.25)
+	player.cam_yaw += k.x * 0.6
+
+## a rocket or a grenade-launcher shell: launched along the crosshair from the muzzle, flown by the ordnance node
+func _launch(cam: Camera3D) -> void:
+	shots_fired += 1
+	warm = 0.0
+	player.combat_hold = 1.5
+	var g: Weapons.Gun = gun()
+	var from := muzzle()
+	var dir := (aim_point(cam) - from).normalized()
+	var proj: Dictionary = g.def().projectile
+	if String(proj.kind) == "gl":
+		dir = (dir + Vector3(0, 0.12, 0)).normalized()     # a lob over the crosshair, the shell drops onto it
+	_kick()
+	player.heading = lerp_angle(player.heading, atan2(dir.x, dir.z), 0.6)
+	var dmg: float = Weapons.BASE_DAMAGE * float(g.def().damage) * g.damage_mult()
+	ordnance.fire_launch(from, dir, proj, dmg, { "cluster": g.has_perk("cluster_bomb") })
+
+## the element's mark on a hit (weapons.gd ELEMENTS): burn, a jolt arcing on, weaken, chill → freeze; Tempest arcs too
+func _element(t: Target, g: Weapons.Gun, at: Vector3) -> void:
+	var el := Weapons.element_of(g.element)
+	if el.has("burn"):
+		t.burn = float(el.burn_s)
+		t.burn_dps = float(el.burn)
+	if el.has("weaken"):
+		t.weaken = float(el.weaken_s)
+	if el.has("slow"):
+		t.slow = float(el.slow_s)
+		t.cryo_hits += 1
+		if t.cryo_hits >= int(el.freeze_at):
+			t.cryo_hits = 0
+			t.stun = maxf(t.stun, float(el.freeze_s))
+			_dot(at, Color(0.7, 0.95, 1.0), 0.45, 0.6)
+	var jumps := int(el.get("chain_n", 0)) if el.has("chain") and randf() < 0.35 else 0
+	if g.has_perk("tempest"):
+		jumps = maxi(jumps, 2)
+	if jumps > 0:
+		_chain(t, Weapons.BASE_DAMAGE * float(g.def().damage) * g.damage_mult() * 0.35, jumps, float(el.get("chain_r", 5.0)))
+
+## an arc leaps from `from` to the nearest live foes in reach, one after another
+func _chain(from: Target, dmg: float, jumps: int, reach: float) -> void:
+	var at := from.box.get_center()
+	var done := [from]
+	for j in jumps:
+		var best: Target = null
+		var bd := reach
+		for t in targets:
+			if done.has(t) or not t.alive() or t.has_meta("cover_box") or t.has_meta("prop"):
+				continue
+			if t.has_meta("roster") and t.get_meta("enemy").team == t.get_meta("roster").operator_team:
+				continue
+			var d := t.box.get_center().distance_to(at)
+			if d < bd:
+				bd = d
+				best = t
+		if best == null:
+			return
+		var to := best.box.get_center()
+		tracer(at, to, Color(0.5, 0.9, 1.0))
+		best.take(dmg, true)
+		best.stun = maxf(best.stun, 0.4)
+		hit.emit(best, dmg, false)
+		if best.hp <= 0.0:
+			_down_target(best, to, false)
+		done.append(best)
+		at = to
 
 ## the grenades: J / K on the desk, GRENADE / ⟳ on the phone (touch_controls.gd, found by its group), and the HUD line
 func _step_grenades(dt: float, cam: Camera3D) -> void:
@@ -640,7 +986,9 @@ func grenade_hit(t: Target, dmg: float, at: Vector3) -> void:
 	var res: Dictionary = t.take(dmg, false)
 	if float(res.shield) > 0.0:
 		_shield_flash(t, bool(res.broke))
+	hit_kind = "GRENADE"
 	hit.emit(t, dmg, false)
+	hit_kind = ""
 	if t.hp <= 0.0:
 		t.hp = 0.0
 		t.down = 5.0
@@ -648,7 +996,36 @@ func grenade_hit(t: Target, dmg: float, at: Vector3) -> void:
 			t.node.visible = false
 		kills += 1
 		Sound.sfx_at("down", at, player.position if player else at, -4.0)
-		scavenge()
+		scavenge(t)
+		killed.emit(t)
+
+## a melee blow (close_combat.gd): the same hit / killed path as a bolt, plus the shove and the poise it carries
+func melee_hit(t: Target, dmg: float, at: Vector3, knock_v: Vector3, poise: float, heavy_blow := false, energy := false) -> void:
+	if not t.alive():
+		return
+	dmg *= MARK_MULT if t.mark > 0.0 else 1.0
+	var res: Dictionary = t.take(dmg, energy)
+	if float(res.shield) > 0.0:
+		_shield_flash(t, bool(res.broke))
+	t.knock += knock_v
+	t.impact += poise
+	t.heavy = t.heavy or heavy_blow
+	hits_landed += 1
+	hit_kind = "MELEE"
+	hit.emit(t, dmg, false)
+	hit_kind = ""
+	spark(at, true, Color(t.get_meta("blood", Color(0.85, 0.1, 0.08))))
+	Sound.sfx_at("hit", at, player.position if player else at, -2.0)
+	if t.hp <= 0.0:
+		t.hp = 0.0
+		t.down = 5.0
+		if t.node:
+			t.node.visible = false
+		kills += 1
+		Sound.sfx_at("down", at, player.position if player else at, -4.0)
+		scavenge(t)
+		if not guns.is_empty():
+			gun().on_kill(false, true)
 		killed.emit(t)
 
 func tracer(from: Vector3, to: Vector3, col := Color(1.0, 0.85, 0.55)) -> void:
@@ -823,9 +1200,17 @@ func _place_holsters() -> void:
 	for f in _slung:
 		var m: Node3D = _models[f]
 		if _slung[f] == "back":
-			var at: Vector3 = sk.global_transform * sk.get_bone_global_pose(_spine_bone).origin - fwd * 0.2
-			var dir := (Vector3.UP * 0.8 - right * 0.6).normalized()
-			m.global_transform = Transform3D(Basis.looking_at(-dir, -fwd), at - dir * 0.25)
+			# centred on the upper back, clear of the armour (owner, Nov 22: the slung rifle cut through the body in a fight):
+			# the model's own middle sits 0.3 m behind the spine, steep across the shoulder blades, so a long sniper's stock
+			# stops at the hip instead of the knee and a swing's bend no longer pushes it through the chest
+			var spine: Transform3D = sk.global_transform * sk.get_bone_global_pose(_spine_bone)
+			var back := -fwd
+			var up := (spine.basis.y).normalized() if spine.basis.y.length() > 0.1 else Vector3.UP
+			var at: Vector3 = spine.origin - up * 0.06 + back * 0.28
+			var dir := (up * 0.78 - right * 0.62).normalized()
+			var bs := Basis.looking_at(-dir, -fwd)
+			var mid: Vector3 = m.get_meta("mid", Vector3.ZERO)
+			m.global_transform = Transform3D(bs, at - bs * mid)
 		else:
 			var at2: Vector3 = sk.global_transform * sk.get_bone_global_pose(_thigh_bone).origin + right * 0.17 - Vector3.UP * 0.14
 			var dir2 := (-Vector3.UP + fwd * 0.12).normalized()
@@ -851,8 +1236,8 @@ static func _model_box(m: Node3D) -> AABB:
 
 ## weapon attachments by frame (asset catalog §5): a red-dot optic on the rifles, SMG and LMG, a laser module under the
 ## barrel of the rifle, SMG and sidearm (its beam shows while the gun is in the fight), a suppressor on the sidearm
-const OPTIC := ["AUTO", "LMG", "SMG"]
-const LASER := ["AUTO", "SMG", "SIDEARM"]
+const OPTIC := ["AUTO", "LMG", "SMG", "MARKSMAN"]
+const LASER := ["AUTO", "SMG", "SIDEARM", "PISTOL"]
 func _attach(m: Node3D, f: String) -> void:
 	var b := _model_box(m)
 	if b.size.z < 0.1:

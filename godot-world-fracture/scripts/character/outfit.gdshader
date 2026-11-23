@@ -22,6 +22,7 @@ uniform float armpit = 0.1;
 uniform int pieces = 0;
 // a crop top: the torso is bare below this height above the hip line (-1: covered)
 uniform float crop = -1.0;
+uniform float button = -9.0;      // a buttoned jacket: the shirt panel shows only above this height (formal wear, Nov 23)
 
 varying flat int zone;
 varying float jit;
@@ -56,7 +57,7 @@ int part_of(float lat, float hh, float front, float outn) {
 		return SHOE;
 	}
 	if (zone == 2) {
-		if (front > -0.1 && abs(lat) < 0.045 && hh < neck - 0.02 && distance(pal[INNER], pal[TOP]) > 0.002) return INNER;   // an open jacket's shirt, up to the collar
+		if (front > -0.1 && abs(lat) < 0.045 && hh < neck - 0.02 && hh > button && distance(pal[INNER], pal[TOP]) > 0.002) return INNER;   // an open jacket's shirt, up to the collar
 		return hh > neck - 0.035 ? HOOD_OPEN : HOOD;
 	}
 	if (zone == 3) {
@@ -87,15 +88,12 @@ int part_of(float lat, float hh, float front, float outn) {
 	if (front > -0.1 && abs(lat) < 0.045 && distance(pal[INNER], pal[TOP]) > 0.002) {
 		// an open jacket: a straight shirt panel down the front, its print on it
 		if (abs(lat) < 0.008) return ZIP;
-		if (abs(hh - pc) < 0.007 && abs(lat) < 0.04) return PRINT2;
 		return INNER;
 	}
 	if (front > 0.3) {
 		float dn = neck - hh;
 		if (abs(lat) < 0.008) return ZIP;
 		if ((pieces & 1) == 0 && dn > 0.025 && dn < 0.1 && min(abs(lat - 0.03), abs(lat + 0.03)) < 0.0045) return STRING;
-		if (abs(hh - pc) < 0.03 && abs(lat) < 0.06)
-			return (abs(hh - pc) < 0.007 && abs(lat) < 0.046) ? PRINT2 : PRINT;
 		float ptop = min(0.13, pc - 0.045);
 		if ((pieces & 2) == 0 && hh > 0.035 && hh < ptop && abs(lat) < 0.085)
 			return (abs(lat) > 0.075 || hh > ptop - 0.01) ? POCKET_EDGE : POCKET;
@@ -103,10 +101,56 @@ int part_of(float lat, float hh, float front, float outn) {
 	return TOP;
 }
 
+// The chest print: a round badge with a slash through it, edges smoothed by the pixel's footprint. The old print was a
+// hard-cut rectangle split by the zip line and a stripe, and read as a pixelated logo (polish, Nov 22). Print2 fills the
+// badge, print draws the ring and the slash; on a front whose zip shows, or an open jacket's shirt, it sits off the zip.
+vec3 chest_print(vec3 c, int part, float lat, float hh) {
+	if (part != TOP && part != INNER && !(part == ZIP && distance(pal[ZIP], pal[TOP]) <= 0.002)) return c;   // a hidden zip line takes the print too
+	bool open = distance(pal[INNER], pal[TOP]) > 0.002;          // an open jacket: the badge is on the shirt panel
+	// a zip that shows or modelled drawstrings down the front: a smaller badge on the left chest, clear of both (centred,
+	// the strings hung either side of it like brackets)
+	bool side = distance(pal[ZIP], pal[TOP]) > 0.002 || (pieces & 1) != 0;
+	float r = open ? 0.014 : (side ? 0.016 : 0.026);
+	vec2 p = open ? vec2(lat - 0.024, hh - neck * 0.6)
+		: (side ? vec2(lat - 0.06, hh - (neck * 0.6 + 0.012)) : vec2(lat, hh - neck * 0.6));
+	float d = length(p);
+	if (d > r + 0.01) return c;
+	float aa = max(fwidth(d), 1e-5);
+	float w = r * 0.2;
+	float disc = 1.0 - smoothstep(r - aa, r + aa, d);
+	float fill = 1.0 - smoothstep(r - w - aa, r - w + aa, d);
+	float ls = abs(dot(p, vec2(0.8, 0.6)));
+	float la = max(fwidth(ls), 1e-5);
+	float slash = (1.0 - smoothstep(w * 0.55 - la, w * 0.55 + la, ls)) * fill;
+	if (open && part != INNER) return c;
+	vec3 ink = open ? pal[PRINT2] : pal[PRINT];
+	vec3 ground = open ? pal[INNER] : pal[PRINT2];
+	c = mix(c, ground, fill);
+	return mix(c, ink, clamp(disc - fill + slash, 0.0, 1.0));
+}
+
+// surface relief (GTA pass, Nov 22): a height field over the rest-pose zone coordinates (so it stays on the cloth as the
+// body moves), lit as a bump from its screen-space slopes — soft folds and creases in fabric, fine pores on bare skin
+float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn2(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h2(i), h2(i + vec2(1, 0)), f.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), f.x), f.y);
+}
+vec3 bumped(vec3 n, vec3 pos, float h, float strength) {
+	vec3 dpdx = dFdx(pos);
+	vec3 dpdy = dFdy(pos);
+	vec3 r1 = cross(dpdy, n);
+	vec3 r2 = cross(n, dpdx);
+	float det = dot(dpdx, r1);
+	vec3 grad = sign(det) * (dFdx(h) * r1 + dFdy(h) * r2);
+	return normalize(abs(det) * n - grad * strength);
+}
+
 void fragment() {
 	// glTF stores texture coordinates with V flipped (1 - v): undone here
 	int part = part_of(UV.x, 1.0 - UV.y, UV2.x, 1.0 - UV2.y);
 	vec3 c = (part == SKIN) ? skin : pal[part];
+	if (zone >= 5 && 1.0 - UV.y > 0.0 && UV2.x > 0.3) c = chest_print(c, part, UV.x, 1.0 - UV.y);
 	float g = grain[part];
 	float shade = 0.97 + jit * 0.05;
 	float rough = 0.88;
@@ -116,10 +160,30 @@ void fragment() {
 	} else if (g > 1.5 && g < 2.5) {   // rib knit: fine ribs
 		float rb = sin((lpos.x + lpos.z) * 700.0) * 0.5 + 0.5;
 		shade *= 0.9 + rb * 0.12;
-	} else if (g > 2.5) {              // nylon / leather: smoother, a sheen
-		rough = 0.42;
+	} else if (g > 2.5) {              // nylon / leather: smoother, a soft sheen (0.42 read as latex)
+		rough = 0.62;
 	}
-	ALBEDO = c * shade;
-	ROUGHNESS = rough;
-	SPECULAR = 0.35;
+	vec2 q = vec2(UV.x + float(zone) * 3.1, 1.0 - UV.y);   // body heights; zones apart so seams don't line up
+	if (part == SKIN) {
+		// bare skin: softer and a little translucent like the heads beside it, faint mottling, fine pores
+		float mott = vn2(q * 60.0) * 0.6 + vn2(q * 180.0) * 0.4;
+		c *= 0.94 + 0.1 * mott;
+		ALBEDO = c;
+		ROUGHNESS = 0.5 + 0.12 * vn2(q * 300.0);
+		SPECULAR = 0.5;
+		BACKLIGHT = c * 0.35;
+		NORMAL = bumped(NORMAL, VERTEX, vn2(q * 700.0) * 0.7 + vn2(q * 1600.0) * 0.3, 0.0009);
+	} else {
+		// fabric: soft folds running round the limbs and body, finer creases, and the weave catching the light
+		float fold = vn2(vec2(q.x * 9.0, q.y * 30.0)) * 0.65 + vn2(vec2(q.x * 26.0, q.y * 75.0) + 7.3) * 0.35;
+		if (g > 2.5) fold *= 0.6;                          // nylon / leather: taut
+		shade *= 0.9 + 0.14 * fold;
+		ALBEDO = c * shade;
+		ROUGHNESS = rough;
+		SPECULAR = 0.35;
+		NORMAL = bumped(NORMAL, VERTEX, fold, g > 2.5 ? 0.006 : 0.011);
+		// a soft sheen across the fibres at grazing angles (cloth catches light at its edges)
+		float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
+		ALBEDO += c * rim * (g > 2.5 ? 0.06 : 0.18);
+	}
 }

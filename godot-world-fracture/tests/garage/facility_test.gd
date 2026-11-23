@@ -68,7 +68,7 @@ func _run() -> void:
 			if not ResourceLoader.exists(String(v.model)):
 				models_ok = false
 				print("  no model: ", v.id, " ", v.model)
-	ok(Facility.aircraft().size() == 9 and Facility.military().size() == 5 and models_ok, "nine aircraft and five military vehicles, every one with its model")
+	ok(Facility.aircraft().size() == 12 and Facility.military().size() == 5 and models_ok, "twelve aircraft (the Nov 18 three sold at the airport too) and five military vehicles, every one with its model")
 	var prof := { "nex": 0, "air": { "aircraft": { "NXC": ["skyhawk"] } }, "cars_owned": ["havoc-ifv"] }
 	ok(Facility.owned("aviation", "skyhawk", prof) and not Facility.owned("aviation", "riftwing", prof) and Facility.owned("military", "havoc-ifv", prof) and not Facility.owned("military", "warden-mech", prof), "only what you own")
 

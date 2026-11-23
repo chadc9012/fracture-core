@@ -33,7 +33,7 @@ export const DECOR: readonly DecorDef[] = [
   { id: "sofa-street", name: "Street-salvage sofa", slot: "furniture", price: 500, rooms: ["living", "garage"] },
   { id: "sofa-aegis", name: "Aegis lounge set", slot: "furniture", price: 6000, rooms: ["living"] },
   { id: "art-fracture", name: "Fracture print", slot: "art", price: 800, rooms: ["living", "bedroom"] },
-  { id: "art-vyrak", name: "Vyrak oil painting", slot: "art", price: 4000, rooms: ["living", "bedroom"] },
+  { id: "art-vyrak", name: "Glass Flats nocturne (oil)", slot: "art", price: 4000, rooms: ["living", "bedroom"] },
   { id: "tv-wall", name: "Wall-screen TV", slot: "tv", price: 800, rooms: ["living", "bedroom", "garage"] },
   { id: "tv-holo", name: "Holo-theatre", slot: "tv", price: 6000, rooms: ["living"] },
   { id: "bed-bunk", name: "Bunk bed", slot: "bed", price: 400, rooms: ["bedroom"] },

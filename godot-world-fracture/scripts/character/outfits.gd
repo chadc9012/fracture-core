@@ -14,7 +14,8 @@ const PARTS := ["skin", "arm_stripe_hi", "sole", "midsole", "heel", "flash", "to
 ## the modelled garment pieces on every civ body (Piece_<kind> meshes, scripts/build-operator-civilian.py part 4) and the
 ## part of the palette each takes its colour and fabric from; an outfit's "pieces" says which it wears
 const PIECE_PART := { "cuffs": "wrist", "sleeve_hems": "sleeve_hi", "shorts_hems": "thigh_lo", "ankle_cuffs": "ankle", "hem": "hem",
-	"rib_collar": "hood_open", "shirt_collar": "hood", "strings": "string", "pocket": "pocket", "cargo": "cargo", "hood": "hood" }
+	"rib_collar": "hood_open", "shirt_collar": "hood", "strings": "string", "pocket": "pocket", "cargo": "cargo", "hood": "hood",
+	"lapels": "top", "tie": "string" }   # formal wear (Nov 23): the lapels in the jacket's cloth, the tie in the "string" slot
 ## pieces the shader then leaves unpainted (outfit.gdshader `pieces`)
 const PIECE_BIT := { "strings": 1, "pocket": 2, "cargo": 4 }
 
@@ -67,6 +68,28 @@ const LIST := [
 		"top": "e8b4c4", "rib": "d79fb1", "print": "ffffff", "print2": "e8b4c4", "string": "ffffff",
 		"legs": "e8b4c4", "legs2": "d79fb1", "stripe": "ffffff", "cargo": "LEGS", "cargo_flap": "LEGS",
 		"shoe": "fafaf8", "accent": "e8b4c4", "sole": "fafaf8", "midsole": "fafaf8", "toe": "ededeb" } },
+	# formal wear (asset catalog §4, Nov 23): an open jacket over a shirt (the shader's INNER panel), modelled lapels and
+	# tie (build-operator-civilian.py), dress shoes — leather upper, thin dark sole, no flash
+	{ "id": "charcoal-suit", "button": 0.12, "pieces": ["shirt_collar", "lapels", "tie", "cuffs"], "name": "Charcoal Suit", "c": {
+		"top": "2a2b30", "fabric": PLAIN, "rib": "2a2b30", "hood": "f2f2ee", "hood_open": "f2f2ee", "zip": "2a2b30", "inner": "f2f2ee", "string": "6b1d24",
+		"print": "f2f2ee", "print2": "f2f2ee", "pocket": "TOP", "pocket_edge": "TOP",
+		"legs": "2a2b30", "legs2": "25262a", "stripe": "LEGS", "legs_fabric": PLAIN, "cargo": "LEGS", "cargo_flap": "LEGS", "ankle": "25262a",
+		"shoe": "1a1512", "accent": "1a1512", "sole": "0f0d0b", "midsole": "0f0d0b", "toe": "1a1512" } },
+	{ "id": "navy-suit", "button": 0.12, "pieces": ["shirt_collar", "lapels", "tie", "cuffs"], "name": "Navy Suit", "c": {
+		"top": "1d2a4a", "fabric": PLAIN, "rib": "1d2a4a", "hood": "dfe6f2", "hood_open": "dfe6f2", "zip": "1d2a4a", "inner": "dfe6f2", "string": "1a1a1c",
+		"print": "dfe6f2", "print2": "dfe6f2", "pocket": "TOP", "pocket_edge": "TOP",
+		"legs": "1d2a4a", "legs2": "182440", "stripe": "LEGS", "legs_fabric": PLAIN, "cargo": "LEGS", "cargo_flap": "LEGS", "ankle": "182440",
+		"shoe": "4a2e1c", "accent": "4a2e1c", "sole": "1e1612", "midsole": "1e1612", "toe": "4a2e1c" } },
+	{ "id": "burgundy-blazer", "button": 0.12, "pieces": ["shirt_collar", "lapels", "cuffs"], "name": "Burgundy Blazer & Chinos", "c": {
+		"top": "5a1e26", "fabric": PLAIN, "rib": "5a1e26", "hood": "f4f1ea", "hood_open": "f4f1ea", "zip": "5a1e26", "inner": "f4f1ea", "string": "INNER",
+		"print": "f4f1ea", "print2": "f4f1ea", "pocket": "TOP", "pocket_edge": "TOP",
+		"legs": "c9b89a", "legs2": "bca98a", "stripe": "LEGS", "legs_fabric": PLAIN, "cargo": "LEGS", "cargo_flap": "LEGS", "ankle": "bca98a",
+		"shoe": "6b4423", "accent": "6b4423", "sole": "2a211a", "midsole": "2a211a", "toe": "6b4423" } },
+	{ "id": "ivory-suit", "button": 0.12, "pieces": ["shirt_collar", "lapels", "cuffs"], "name": "Ivory Suit", "for": "female", "c": {
+		"top": "ece6da", "fabric": PLAIN, "rib": "ece6da", "hood": "1a1a1c", "hood_open": "1a1a1c", "zip": "ece6da", "inner": "1a1a1c", "string": "INNER",
+		"print": "1a1a1c", "print2": "1a1a1c", "pocket": "TOP", "pocket_edge": "TOP",
+		"legs": "ece6da", "legs2": "e0d9cc", "stripe": "LEGS", "legs_fabric": PLAIN, "cargo": "LEGS", "cargo_flap": "LEGS", "ankle": "e0d9cc",
+		"shoe": "1a1512", "accent": "1a1512", "sole": "0f0d0b", "midsole": "0f0d0b", "toe": "1a1512" } },
 	{ "id": "workwear", "pieces": ["shirt_collar", "hem", "cuffs"], "name": "Work Jacket", "c": {
 		"top": "a07a45", "rib": "8a683a", "hood": "4a3a28", "hood_open": "4a3a28", "zip": "3a2e22", "inner": "ecebe6", "string": "INNER",
 		"print": "ecebe6", "print2": "ecebe6", "pocket": "TOP", "pocket_edge": "TOP",
@@ -107,12 +130,16 @@ const LIST := [
 	{ "id": "npc-crop-jeans", "npc": true, "name": "Crop Top & Jeans", "base": "tee-shorts", "pieces": [], "tank": true, "crop": 0.075, "c": {
 		"top": "a9a9ad", "rib": "a9a9ad", "print": "a9a9ad", "print2": "a9a9ad", "legs": "7f9fc4", "legs2": "6f8fb4", "legs_fabric": DENIM,
 		"knee": "c9d6e6", "shin": "LEGS", "ankle": "6f8fb4", "shoe": "f2f2ef", "accent": "d9534f", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "f2f2ef" } },
-	{ "id": "npc-beige-suit", "npc": true, "name": "Beige Suit", "base": "denim", "pieces": ["shirt_collar", "cuffs"], "c": {
+	{ "id": "npc-beige-suit", "npc": true, "name": "Beige Suit", "base": "denim", "button": 0.12, "pieces": ["shirt_collar", "lapels", "cuffs"], "c": {
 		"top": "c8b48e", "fabric": PLAIN, "rib": "c8b48e", "hood": "c8b48e", "zip": "2a2f3a", "inner": "f4f4f1", "print": "f4f4f1", "print2": "f4f4f1",
 		"legs": "c8b48e", "legs2": "b9a57f", "legs_fabric": PLAIN, "shoe": "3a2a1e", "accent": "2a1d14", "sole": "1a1410", "midsole": "1a1410", "toe": "3a2a1e" } },
-	{ "id": "npc-business", "npc": true, "name": "Black Blazer", "base": "denim", "pieces": ["shirt_collar", "cuffs"], "c": {
-		"top": "1a1b1f", "fabric": PLAIN, "rib": "1a1b1f", "hood": "1a1b1f", "zip": "f4f4f1", "inner": "f4f4f1", "print": "f4f4f1", "print2": "f4f4f1",
+	{ "id": "npc-business", "npc": true, "name": "Black Blazer", "base": "denim", "button": 0.12, "pieces": ["shirt_collar", "lapels", "tie", "cuffs"], "c": {
+		"top": "1a1b1f", "fabric": PLAIN, "rib": "1a1b1f", "hood": "1a1b1f", "zip": "f4f4f1", "inner": "f4f4f1", "print": "f4f4f1", "print2": "f4f4f1", "string": "3a3c44",
 		"legs": "1a1b1f", "legs2": "141518", "legs_fabric": PLAIN, "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
+	# the airports' check-in, gate and lounge staff (owner's airport boards, Nov 18: people in uniform at the desks)
+	{ "id": "npc-airline", "npc": true, "name": "Airline Uniform", "base": "denim", "pieces": ["shirt_collar", "cuffs"], "c": {
+		"top": "17233f", "fabric": PLAIN, "rib": "17233f", "hood": "17233f", "zip": "c9a45a", "inner": "f4f4f1", "print": "f4f4f1", "print2": "c9a45a",
+		"wrist": "c9a45a", "legs": "17233f", "legs2": "121c33", "legs_fabric": PLAIN, "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
 	{ "id": "npc-hoodie-backpack", "npc": true, "name": "Grey Hoodie & Backpack", "base": "heather-hoodie", "wear": ["backpack"], "hat": "cap", "c": {
 		"top": "b4b6ba", "rib": "a0a2a6", "print": "b4b6ba", "print2": "b4b6ba", "legs": "1c1d21", "shoe": "f2f2ef", "sole": "f2f2ef", "midsole": "f2f2ef", "toe": "e6e6e3" } },
 	{ "id": "npc-summer", "npc": true, "name": "Yellow Tank & Shorts", "base": "tee-shorts", "pieces": ["shorts_hems"], "tank": true, "c": {
@@ -216,7 +243,7 @@ static func find(id: String) -> Dictionary:
 			c.merge(o.c, true)
 			b.id = o.id
 			b.name = o.name
-			for k: String in ["pieces", "npc", "uniform", "tank", "bare_top", "crop", "hat", "wear"]:
+			for k: String in ["pieces", "npc", "uniform", "tank", "bare_top", "crop", "button", "hat", "wear"]:
 				if o.has(k):
 					b[k] = o[k]
 			b.erase("for")
@@ -298,6 +325,7 @@ static func material(id: String, skin: Color) -> ShaderMaterial:
 		bits |= int(PIECE_BIT.get(pc, 0))
 	m.set_shader_parameter("pieces", bits)
 	m.set_shader_parameter("crop", float(o.get("crop", -1.0)))
+	m.set_shader_parameter("button", float(o.get("button", -9.0)))
 	return m
 
 ## the material for one modelled piece of an outfit: its part's colour (linear, from the outfit material's palette) and fabric

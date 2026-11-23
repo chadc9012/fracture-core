@@ -4,12 +4,16 @@ const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## The Fracture Descent after Mission 01 — Act 1 (schedule step 11): fd-02 to fd-04 in the Verdant Forest (clear the patrols,
 ## trace the signal, walk to the treeline), fd-05 across the Shrouded Swamps (hold out in the fog, purge the Drowned Relay),
-## fd-06 and fd-07 in Neon City (the Blackout Protocol terminal, then the Stitched Neon Core and Vyrak, the act boss). The
+## fd-06 and fd-07 in Neon City (the Blackout Protocol terminal, then the Stitched Neon Core and the Lockdown Warden, the act boss). The
 ## chain, words and rewards are the web game's (src/game/quests.ts; shards 1:1 as XP and Nex). Each quest names its world:
 ## moving on rebuilds the region (region_3d.gd in PLAY mode) under the same operator, guns, troopers and gear; the
 ## cutscenes (cutscene.gd) carry the owner's recorded lines — Mara at the crash site, Dr Aris's World Anchor log at the
 ## terminal, Serik Vale's recording at the core, Vaelith's first contact as the act's last word. Progress is
 ## user://quests.json (and rides the cloud save).
+##
+## Online (Nov 22, online_story.gd): the players on the same chapter play it together — the first one in leads and runs
+## it (`authority()`), the others see its troopers, progress, waypoint and boss, and finish the chapter when the leader
+## does. On by default (CO-OP OPEN on the HUD; PRIVATE keeps you alone); alone it plays exactly as it did.
 
 signal closed
 
@@ -26,6 +30,7 @@ const TouchControls := preload("res://scripts/player/touch_controls.gd")
 const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const Enemies := preload("res://scripts/combat/enemies.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
+const Encounters := preload("res://scripts/mission/encounters.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const SAVE := "user://quests.json"
 const REGION := "veridan"
@@ -40,6 +45,15 @@ const QUESTS := [
 	{ "id": "fd-07", "title": "Full Lockdown", "world": "neon-city", "start": "aegis-quartermaster", "line": "Full lockdown. Every drone in the district is hunting one signature — a Resonant Carrier. You.", "kind": "core", "amount": 3, "label": "Breach the Stitched Neon Core", "xp": 320, "nex": 320 },
 ]
 const ACT_END := "done"
+## story co-op: open to the other players on your chapter (Online pref "story_coop"), the identity to use (tests give
+## each view its own; the shared one when unset), the chapter's co-op node
+var online := true
+var net: Node
+var coop: Node
+var _coop_label: Label
+var _coop_button: Button
+var _boss_to := Vector3.INF
+var _pending_done := ""
 
 var region: Control
 var operator: Node3D
@@ -79,10 +93,23 @@ func _ready() -> void:
 	_objective.position = Vector2(20, 128)
 	add_child(_objective)
 	var back := Button.new()
+	_back_button = back
 	back.text = "← GLOBE"
 	back.position = Vector2(250, 8)   # right of the hull bar (HUD layout rule)
 	back.pressed.connect(func(): _save(); closed.emit())
 	add_child(back)
+	online = bool(load("res://scripts/net/online.gd").pref("story_coop", true)) and online
+	_coop_button = Button.new()
+	_coop_button.position = Vector2(370, 8)
+	_coop_button.pressed.connect(_toggle_coop)
+	add_child(_coop_button)
+	_coop_label = Label.new()
+	_coop_label.position = Vector2(16, 178)
+	_coop_label.add_theme_font_size_override("font_size", 13)
+	_coop_label.add_theme_color_override("font_color", Color(0.6, 0.9, 1.0))
+	_coop_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	add_child(_coop_label)
+	_coop_paint()
 	cutscene = Cutscene.new()
 	add_child(cutscene)
 	_begin(progress.current)
@@ -156,6 +183,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 	var half: float = region.span() * 0.5 - 20.0
 	operator.bounds = Rect2(-half, -half, half * 2.0, half * 2.0)
 	operator.ground_at = func(x: float, z: float) -> float: return region.ground(x, z)
+	operator.surface_at = func(x: float, z: float) -> String: return region.surface(x, z)
 	operator.obstacles = region.building_boxes()
 	operator.position = region.stand_point()
 	operator.civilian = false   # the armour is for the fights (streetwear in the city)
@@ -221,7 +249,24 @@ func _site(dist: float) -> Vector3:
 	return best
 
 var _gps: Control
+var _back_button: Button
+var _hud_hidden := false
+
+func _scene_on() -> bool:
+	return cutscene != null and cutscene.playing
+
+## a cutscene is a film: the HUD (hull, ammo, objective, the GPS, the buttons, the touch pad) steps out while it plays
+## and comes back when it ends (owner, Nov 22: "Stage everything" — the shots had the minimap over the faces)
+func _hud_for_scene() -> void:
+	var on := _scene_on()
+	if on == _hud_hidden:
+		return
+	_hud_hidden = on
+	for n in [controls, _objective, _coop_button, _coop_label, _gps, _back_button, beacon]:
+		if n != null and is_instance_valid(n):
+			n.visible = not on
 func _teardown_world() -> void:
+	_coop_stop()
 	if _gps:
 		_gps.queue_free()
 		_gps = null
@@ -254,15 +299,43 @@ func _respawn_point() -> Vector3:
 func _on_ground(p: Vector3) -> Vector3:
 	var half: float = region.span() * 0.5 - 25.0
 	var q := Vector3(clampf(p.x, -half, half), 0, clampf(p.z, -half, half))
+	# never inside a building or hard against one (Mission 02's stairwell marker sat inside a Nexus tower, Nov 23: the
+	# nearest spot with 4 m of open ground round it)
+	if operator and not _open_ground(q):
+		var found := false
+		for rad: float in [5.0, 8.0, 12.0, 16.0, 22.0, 30.0]:
+			for k in 12:
+				var c := q + Vector3(cos(k * TAU / 12.0), 0, sin(k * TAU / 12.0)) * rad
+				if absf(c.x) < half and absf(c.z) < half and _open_ground(c):
+					q = c
+					found = true
+					break
+			if found:
+				break
 	q.y = region.ground(q.x, q.z)
 	return q
 
+## no obstacle box within 4 m of p (on the map plane)
+func _open_ground(p: Vector3) -> bool:
+	for b in operator.obstacles:
+		var bx: AABB = b
+		if bx.size.y < 1.2:
+			continue   # kerbs and low planters are stepped over
+		var dx := maxf(maxf(bx.position.x - p.x, p.x - bx.end.x), 0.0)
+		var dz := maxf(maxf(bx.position.z - p.z, p.z - bx.end.z), 0.0)
+		if dx * dx + dz * dz < 16.0:
+			return false
+	return true
+
 # --------------------------------------------------------------------------------------------- the chain
 func _begin(id: String) -> void:
+	_coop_stop()
 	quest = _quest_def(id)
 	if quest.is_empty():
 		_chapter_done()
 		return
+	if gunplay:
+		gunplay.resupply()     # every chapter starts on full ammo
 	if String(quest.world) != world_id:
 		_travel(String(quest.world), String(quest.start))
 	# Destiny's new-mission card (touch_controls.mission_card): the chapter's code, its title and its opening line
@@ -287,7 +360,7 @@ func _begin(id: String) -> void:
 			_set_waypoint(_site(60.0), true)
 			_place_terminal(waypoint, true)
 			if int(progress.wave) >= int(quest.amount) and boss == null:
-				_summon_vyrak()
+				_summon_warden()
 		"kills":
 			_set_waypoint(Vector3.ZERO, false)
 			_spawn_t = 1.0
@@ -299,6 +372,7 @@ func _begin(id: String) -> void:
 		"reach":
 			_set_waypoint(_edge, true)
 	_refresh()
+	_coop_start()
 
 func _set_waypoint(p: Vector3, on: bool) -> void:
 	waypoint = p
@@ -334,6 +408,7 @@ func _set_waypoint(p: Vector3, on: bool) -> void:
 	waypoint_node.add_child(l)
 
 func _on_kill(_t: Variant) -> void:
+	_clue_on_kill()
 	if quest.is_empty():
 		return
 	if quest.kind == "kills":
@@ -342,6 +417,31 @@ func _on_kill(_t: Variant) -> void:
 			_complete()
 	_refresh()
 
+## the unique encounters' clues (encounters.gd): a kill can turn up a combat clue, standing near a place a world / site
+## clue; checked against the POIs without the profile, which is read only when one is in reach
+func _clue_on_kill() -> void:
+	if world_id == "" or not gunplay or not Encounters.combat_in(world_id):
+		return
+	var kind := String(gunplay.gun().element) if not gunplay.guns.is_empty() else "KINETIC"
+	var w := world_id
+	for l in Encounters.with_profile(func(p: Dictionary) -> Array: return Encounters.on_kill(p, w, kind)):
+		controls.toast(String(l))
+
+var _clue_seen := {}
+func _clue_sense() -> void:
+	if world_id == "" or not operator or not region:
+		return
+	var o: Vector2 = region.origin()
+	var at := Vector2(operator.position.x + o.x, operator.position.z + o.y)
+	for pl in Encounters.near(world_id, at):
+		var k := "%s:%s" % [pl.e, pl.c]
+		if _clue_seen.has(k):
+			continue
+		_clue_seen[k] = true
+		var w := world_id
+		for l in Encounters.with_profile(func(p: Dictionary) -> Array: return Encounters.sense(p, w, at)):
+			controls.toast(String(l))
+
 var _guards: Array = []      # the source's guards: fd-03 is done when all three are down
 var _respawn_t := 0.0
 
@@ -349,6 +449,8 @@ func _complete() -> void:
 	var id := String(quest.id)
 	if id in progress.done:
 		return
+	if coop and coop.leader:
+		coop.send("done", { "id": id })
 	progress.done.append(id)
 	var p := Gear.profile_load()
 	var res := Progression.grant(p, "quest", int(quest.nex), int(round(int(quest.xp) * float(load("res://scripts/progress/difficulty.gd").level().xp))), "%s complete" % String(quest.title))
@@ -402,7 +504,7 @@ func _chapter_done() -> void:
 	var v := VBoxContainer.new()
 	_done_panel.add_child(v)
 	var t := Label.new()
-	t.text = "ACT 1 COMPLETE\nfd-02 to fd-07 cleared · Vyrak walks beside you\nAct 2: the Ember Peaks"
+	t.text = "ACT 1 COMPLETE\nfd-02 to fd-07 cleared · the lockdown is broken\nAct 2: the Ember Peaks"
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_font_size_override("font_size", 20)
 	v.add_child(t)
@@ -431,12 +533,12 @@ func _refresh() -> void:
 			if int(progress.stage) == 0:
 				_objective.text = "%s\n%s · %d / %d s" % [quest.title, quest.label, int(progress.timer), int(quest.amount)]
 			else:
-				_objective.text = "%s\n%s · %d / 3 guards down · %d m" % [quest.title, String(quest.stage2), _guards_down(), int(d)]
+				_objective.text = "%s\n%s · %d / 3 guards down · %d m" % [quest.title, String(quest.get("stage2", quest.label)), _guards_down(), int(d)]
 		"hack":
 			_objective.text = "%s\n%s · %d / %d s%s" % [quest.title, quest.label, int(progress.timer), int(quest.amount), "" if d < 9.0 else " · terminal %d m" % int(d)]
 		"core":
 			if boss:
-				_objective.text = "%s\nVYRAK, THE ASHEN COVENANT · break the plates" % quest.title
+				_objective.text = "%s\nTHE LOCKDOWN WARDEN · break its frame" % quest.title
 			else:
 				_objective.text = "%s\n%s · wave %d / %d%s" % [quest.title, quest.label, mini(int(progress.wave) + 1, int(quest.amount)), int(quest.amount), "" if d < 14.0 else " · core %d m" % int(d)]
 
@@ -445,6 +547,7 @@ func _process(dt: float) -> void:
 	dt = minf(dt, 0.05)
 	if region == null or enemies == null:
 		return
+	_hud_for_scene()
 	if cutscene and cutscene.playing:
 		# the scene plays; the world idles under it
 		enemies.step(dt)
@@ -452,15 +555,30 @@ func _process(dt: float) -> void:
 			boss.step(dt)
 		return
 	enemies.step(dt)
+	if coop:
+		coop.step(dt)
+		if Engine.get_process_frames() % 15 == 0:
+			_coop_label.text = String(coop.hud_lines()).strip_edges()
 	if boss:
+		boss.echo = not authority()
 		boss.step(dt)
+		if region == null or enemies == null:
+			# the boss went down in that step and the next chapter moved the story to another world
+			return
+		if boss and boss.echo and _boss_to != Vector3.INF:
+			boss.position = boss.position.lerp(_boss_to, minf(1.0, dt * 8.0))
 	if wildlife:
 		wildlife.step(dt)
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
+	_board_objective()
+	if Engine.get_process_frames() % 30 == 0:
+		_clue_sense()
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:
-			operator.position = _respawn_point()
+			operator.position = enemies.respawn_point(_respawn_point()) if enemies else _respawn_point()
+			if gunplay:
+				gunplay.resupply()
 			operator.velocity = Vector3.ZERO
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if beacon:
@@ -473,6 +591,15 @@ func _process(dt: float) -> void:
 	controls.ammo.text = ("RELOADING" if g.reloading > 0.0 else g.ammo_text())
 	if quest.is_empty():
 		return
+	if _pending_done != "" and not _busy():
+		var pd := _pending_done
+		_pending_done = ""
+		coop_done(pd)
+	if not authority():
+		# the leader runs the chapter; this screen shows where it stands
+		if Engine.get_process_frames() % 10 == 0:
+			_refresh()
+		return
 	match String(quest.kind):
 		"kills":
 			# patrols come out of the trees two at a time until the count is met
@@ -482,7 +609,7 @@ func _process(dt: float) -> void:
 				_spawn_t = 6.0
 		"trace":
 			var d := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
-			if int(progress.relay) < 3 and d < 6.0:
+			if int(progress.relay) < 3 and _near(waypoint, 6.0):
 				progress.relay = int(progress.relay) + 1
 				controls.toast("Relay %d locked · the signal runs on" % int(progress.relay))
 				if int(progress.relay) < 3:
@@ -499,7 +626,7 @@ func _process(dt: float) -> void:
 			_refresh()
 		"reach":
 			var d2 := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
-			if d2 < 8.0:
+			if _near(waypoint, 8.0):
 				_complete()
 			elif Engine.get_process_frames() % 15 == 0:
 				_refresh()
@@ -525,7 +652,7 @@ func _process(dt: float) -> void:
 				return
 		"hack":
 			var d3 := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
-			if d3 < 9.0:
+			if _near(waypoint, 9.0):
 				progress.timer = float(progress.timer) + dt
 				_wave_t -= dt
 				if _wave_t <= 0.0:
@@ -545,7 +672,7 @@ func _process(dt: float) -> void:
 				_refresh()
 		"core":
 			var d4 := Vector2(waypoint.x - operator.position.x, waypoint.z - operator.position.z).length()
-			if boss == null and int(progress.wave) < int(quest.amount) and d4 < 14.0:
+			if boss == null and int(progress.wave) < int(quest.amount) and _near(waypoint, 14.0):
 				_wave_t -= dt
 				if _wave_t <= 0.0 and _alive() == 0:
 					progress.wave = int(progress.wave) + 1
@@ -558,10 +685,22 @@ func _process(dt: float) -> void:
 				return
 			if Engine.get_process_frames() % 10 == 0:
 				_refresh()
+			# the lockdown is fought at the core: a hostile that has ended up far from it (lost behind the city's
+			# blocks — an elite idled 117 m off and the core never opened, Nov 23) is dropped back in at its edge
+			if boss == null and Engine.get_process_frames() % 90 == 0 and authority():
+				var k := 0
+				for e in enemies.enemies:
+					if e.team != 1 and e.state != Enemies.State.DOWN and e.target.alive():
+						var off: Vector3 = e.mover.position - waypoint
+						if Vector2(off.x, off.z).length() > 70.0:
+							var a := atan2(off.z, off.x) + k * 0.5
+							e.mover.position = _on_ground(waypoint + Vector3(cos(a), 0, sin(a)) * 30.0)
+							e.state = Enemies.State.ENGAGE
+							k += 1
 
 ## the source: a marksman and two scouts guard it (once; they stay down when shot, they don't respawn into it)
 func _spawn_guards() -> void:
-	if not _guards.is_empty():
+	if not _guards.is_empty() or not authority():
 		return
 	# the marker stays over the source until it's broken (picked up after a reload you start back at the crash site)
 	_set_waypoint(_relays[2], true)
@@ -581,11 +720,14 @@ func _guards_down() -> int:
 func _alive() -> int:
 	var n := 0
 	for e in enemies.enemies:
-		if e.state != Enemies.State.DOWN:
+		# the hostiles only: another player's body here (story co-op) is on your side
+		if e.team != 1 and e.state != Enemies.State.DOWN and e.target.alive():
 			n += 1
 	return n
 
 func _spawn_patrol(scout: bool) -> void:
+	if not authority():
+		return
 	var a := _rng.randf() * TAU
 	var at := _on_ground(operator.position + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(28.0, 42.0))
 	var e: RefCounted = enemies.spawn("scout" if scout else "executor", at)
@@ -651,7 +793,7 @@ func _opening(id: String) -> void:
 
 ## the relay's guards (fd-05) stand around the given point: a marksman and two scouts, down for good when shot
 func _spawn_guards_at(at: Vector3) -> void:
-	if not _guards.is_empty():
+	if not _guards.is_empty() or not authority():
 		return
 	for k in 3:
 		var a := k * TAU / 3.0
@@ -724,6 +866,8 @@ func _hack_done() -> void:
 
 ## fd-07: the lockdown's waves at the core, heavier each time
 func _spawn_core_wave(n: int) -> void:
+	if not authority():
+		return
 	var roster: Array = [["drone", "drone", "scout"], ["scout", "scout", "marksman", "drone"], ["elite", "marksman", "scout", "drone", "drone"]]
 	var types: Array = roster[clampi(n - 1, 0, roster.size() - 1)]
 	for k in types.size():
@@ -732,7 +876,8 @@ func _spawn_core_wave(n: int) -> void:
 		e.state = Enemies.State.ENGAGE
 		e.stays_down = true      # a wave is beaten when it is down, it does not stand again
 
-## the core breached: Serik Vale's recording (the owner's), then Vyrak drops in — the act boss
+## the core breached: Serik Vale's recording (the owner's), then the Lockdown Warden wakes — the act boss. (Vyrak was
+## the act boss until Nov 23; the owner: he is a hidden unique encounter only, unique_encounters.json U09.)
 func _core_breached() -> void:
 	if _seen.has("fd-07-core"):
 		return
@@ -742,41 +887,175 @@ func _core_breached() -> void:
 		Cutscene.beat("NOVA", "Core open. There is a recording wired into it — Vanguard, old. Serik Vale.", 4.0, look, { "orbit": { "radius": 12.0, "height": 4.0, "deg0": 160.0, "deg1": 200.0 }, "look_up": 3.0 }),
 		Cutscene.beat("Serik Vale · recording", "", 9.0, look, { "voice": "serik-vale-warning", "orbit": { "radius": 9.0, "height": 3.5, "deg0": 200.0, "deg1": 250.0 }, "look_up": 3.0 }),
 		Cutscene.beat("Serik Vale · recording", "If the Anchor wakes again, don't let the system make the choice for you.", 4.0, look, { "orbit": { "radius": 9.0, "height": 3.5, "deg0": 250.0, "deg1": 280.0 }, "look_up": 3.0 }),
-		Cutscene.line("M09_001", look + Vector3(0, 0, -20), { "orbit": { "radius": 16.0, "height": 5.0, "deg0": 60.0, "deg1": 110.0 }, "look_up": 2.5 }),
-		Cutscene.line("M09_003", look + Vector3(0, 0, -20), { "orbit": { "radius": 13.0, "height": 4.5, "deg0": 110.0, "deg1": 130.0 }, "look_up": 2.5 }),
-		Cutscene.line("M09_004", look + Vector3(0, 0, -20), { "orbit": { "radius": 12.0, "height": 4.0, "deg0": 130.0, "deg1": 150.0 }, "look_up": 2.5 }),
+		Cutscene.beat("NOVA", "Something under the core just powered up. The lockdown has a warden, and it has your signature.", 4.0, look + Vector3(0, 0, -20), { "orbit": { "radius": 16.0, "height": 5.0, "deg0": 60.0, "deg1": 110.0 }, "look_up": 2.5 }),
+		Cutscene.beat("NOVA", "It is calling every drone in the district. Break the frame and the lockdown dies with it.", 4.0, look + Vector3(0, 0, -20), { "orbit": { "radius": 13.0, "height": 4.5, "deg0": 110.0, "deg1": 150.0 }, "look_up": 2.5 }),
 	], region.camera())
-	_summon_vyrak()
-	cutscene.finished.connect(func(): controls.toast("VYRAK, THE ASHEN COVENANT"), CONNECT_ONE_SHOT)
+	_summon_warden()
+	cutscene.finished.connect(func(): controls.toast("THE LOCKDOWN WARDEN"), CONNECT_ONE_SHOT)
 
-func _summon_vyrak() -> void:
+const ACT_BOSS := "lockdown-warden"
+
+func _summon_warden() -> void:
 	if boss:
 		return
 	boss = BossView.new()
 	region.world().add_child(boss)
 	var at := _on_ground(waypoint + Vector3(0, 0, -20.0))
-	boss.setup("vyrak", at, operator, gunplay, enemies, operator.ground_at)
+	boss.setup(ACT_BOSS, at, operator, gunplay, enemies, operator.ground_at)
 	boss.obstacles = operator.obstacles
 	boss.heading = PI
 	boss.toast = func(t: String) -> void: controls.toast(t)
-	boss.killed.connect(_on_vyrak_down)
+	boss.killed.connect(_on_warden_down)
 	Sound.sfx("roar", -2.0)
 
-## Vyrak down: the Covenant — it chooses to walk beside you (dragon-covenant.ts); the boss pays as a Rift Gate clear too
-func _on_vyrak_down(_id: String, reward: Dictionary) -> void:
+## the Warden down: the lockdown breaks; the boss pays as a story clear (boss_clears, like a Rift Gate clear)
+func _on_warden_down(_id: String, reward: Dictionary) -> void:
 	var p := Gear.profile_load()
 	var clears: Dictionary = p.get("boss_clears", {})
-	var first: bool = not clears.has("vyrak")
-	var res := Progression.grant(p, "boss", int(reward.nex) / (1 if first else 3), int(reward.xp) / (1 if first else 3), "Vyrak, the Ashen Covenant")
-	clears["vyrak"] = int(clears.get("vyrak", 0)) + 1
+	var first: bool = not clears.has(ACT_BOSS)
+	var res := Progression.grant(p, "boss", int(reward.nex) / (1 if first else 3), int(reward.xp) / (1 if first else 3), "The Lockdown Warden")
+	clears[ACT_BOSS] = int(clears.get(ACT_BOSS, 0)) + 1
 	p.boss_clears = clears
 	Gear.profile_save(p)
 	for l in res.lines:
 		controls.toast(String(l))
 	var look: Vector3 = boss.position
 	cutscene.play([
-		Cutscene.line("M09_011", look, { "orbit": { "radius": 14.0, "height": 5.0, "deg0": 40.0, "deg1": 100.0 }, "look_up": 2.0 }),
-		Cutscene.line("M10_003", look, { "orbit": { "radius": 10.0, "height": 3.5, "deg0": 100.0, "deg1": 130.0 }, "look_up": 2.0 }),
-		Cutscene.line("M10_002", look, { "orbit": { "radius": 11.0, "height": 3.5, "deg0": 130.0, "deg1": 170.0 }, "look_up": 2.0 }),
+		Cutscene.beat("NOVA", "Frame down. The lockdown is losing the thread — drones are dropping out of the hunt one by one.", 4.0, look, { "orbit": { "radius": 14.0, "height": 5.0, "deg0": 40.0, "deg1": 100.0 }, "look_up": 2.0 }),
+		Cutscene.beat("NOVA", "Neon City just forgot your signature. Let us not give it a reason to remember.", 4.0, look, { "orbit": { "radius": 11.0, "height": 3.5, "deg0": 100.0, "deg1": 170.0 }, "look_up": 2.0 }),
 	], region.camera())
 	cutscene.finished.connect(_complete, CONNECT_ONE_SHOT)
+
+# --------------------------------------------------------------------------------------------- story co-op
+## which story this is, for the chapter's room (campaign.gd: "campaign")
+func coop_chain() -> String:
+	return "descent"
+
+## this screen runs the chapter: alone, offline, or the co-op's leader (not while the lead is still being decided)
+func authority() -> bool:
+	return coop == null or (coop.decided and coop.leader)
+
+## somebody in the fireteam stands within `r` of `p` (alone: you)
+func _near(p: Vector3, r: float) -> bool:
+	if coop:
+		return coop.anyone_near(p, r)
+	return enemies.down <= 0.0 and Vector2(operator.position.x - p.x, operator.position.z - p.z).length() < r
+
+## a cutscene (or a choice) is up: a chapter the leader finished waits for it
+func _busy() -> bool:
+	return cutscene != null and cutscene.playing
+
+func _coop_start() -> void:
+	if not online or coop != null or quest.is_empty() or region == null:
+		return
+	coop = load("res://scripts/net/online_story.gd").new()
+	add_child(coop)
+	if not coop.setup(self, net):
+		coop.queue_free()
+		coop = null
+		return
+	coop.remote_kill.connect(_on_kill)
+	_coop_paint()
+
+func _coop_stop() -> void:
+	if coop == null:
+		return
+	coop.shutdown()
+	coop.queue_free()
+	coop = null
+	_boss_to = Vector3.INF
+	_pending_done = ""
+	if _coop_label:
+		_coop_label.text = ""
+
+## the lead is decided (or passed here): the leader puts the chapter's guards out where the counts stand
+func coop_ready(lead: bool, first: bool) -> void:
+	if not lead:
+		controls.toast("Co-op · %s leads this chapter" % coop.name_of(coop.leader_id))
+		return
+	if not first:
+		_guards.clear()
+		controls.toast("Co-op · you lead this chapter now")
+	elif coop and coop.count() > 1:
+		controls.toast("Co-op · you lead · %d players" % coop.count())
+	match String(quest.get("kind", "")):
+		"trace":
+			if int(progress.relay) >= 3:
+				_spawn_guards()
+		"survive":
+			if int(progress.stage) == 1:
+				_spawn_guards_at(waypoint)
+
+## the leader finished the chapter: so does this screen (its own rewards and save), once any scene playing is over
+func coop_done(id: String) -> void:
+	if quest.is_empty() or String(quest.id) != id or id in progress.done:
+		return
+	if _busy():
+		_pending_done = id
+		return
+	if boss and boss.echo and boss.rules and not boss.rules.dead:
+		# the leader's boss fell before its last state reached here: the echo falls now, and its kill (the reward, the
+		# scene) finishes the chapter
+		boss.rules.hit(1e9)
+		return
+	if String(quest.kind) == "hack":
+		_hack_done()
+	else:
+		_complete()
+
+## the leader's boss, here as an echo: where it stands, its hull, down or not
+func coop_boss(at: Vector3, heading: float, hull: float, dead: bool) -> void:
+	if boss == null:
+		_summon_warden()
+	if boss == null or boss.rules == null:
+		return
+	boss.echo = true
+	_boss_to = at
+	boss.heading = heading
+	if not boss.rules.dead:
+		boss.rules.hull = minf(boss.rules.hull_max, hull)
+		boss.target.hp = boss.rules.hull
+		if dead:
+			boss.rules.hit(1e9)
+
+func _toggle_coop() -> void:
+	online = not online
+	load("res://scripts/net/online.gd").set_pref("story_coop", online)
+	if online:
+		_coop_start()
+	else:
+		_coop_stop()
+		if not quest.is_empty():
+			# alone again: the chapter's guards come back out on this screen
+			coop_ready(true, true)
+	_coop_paint()
+
+func _coop_paint() -> void:
+	if _coop_button:
+		_coop_button.text = "CO-OP: OPEN" if online else "CO-OP: PRIVATE"
+
+## the boards' quest panel (board_hud.gd) carries the objective: first line the title, the rest its steps; the old label
+## keeps the text (tests and co-op read it) but no longer draws
+var _board_obj_was := ""
+func _board_objective() -> void:
+	if not controls or not controls.hud or not _objective:
+		return
+	_objective.self_modulate.a = 0.0
+	var t := _objective.text
+	if t == _board_obj_was:
+		return
+	_board_obj_was = t
+	var rows := t.split("\n", false)
+	if rows.is_empty():
+		controls.hud.call("set_quest", "", [])
+		return
+	var lines: Array = []
+	for i in range(1, rows.size()):
+		lines.append({ "text": rows[i], "done": false })
+	if lines.is_empty():
+		lines.append({ "text": rows[0], "done": true })
+	controls.hud.call("set_quest", rows[0], lines)
+	var w := String(quest.get("world", "")) if quest is Dictionary else ""
+	var names := { "veridan": "Verdant Forest", "neon": "Neon City", "nexus": "Nexus City", "swamps": "Shrouded Swamps", "solara": "Solara Desert", "ember": "Ember Peaks", "frostspire": "Frost Spire", "wastelands": "The Wastelands", "thalassia": "Thalassia" }
+	controls.hud.set("place", String(names.get(w, w.capitalize())) + ("  •  " + String(quest.get("title", "")) if quest is Dictionary and quest.has("title") else ""))
+

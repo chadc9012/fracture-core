@@ -13,6 +13,7 @@ const Phone := preload("res://scripts/phone.gd")
 signal closed
 
 const Arena := preload("res://scripts/killbox/arena.gd")
+const Look := preload("res://scripts/killbox/arena_look.gd")
 const Match := preload("res://scripts/killbox/killbox_match.gd")
 const Player := preload("res://scripts/player/operator_player.gd")
 const TouchControls := preload("res://scripts/player/touch_controls.gd")
@@ -34,6 +35,9 @@ const LOOKS := {
 	"solara-outpost": { "trim": [Color(1.0, 0.6, 0.2), Color(0.95, 0.95, 0.9), Color(0.3, 0.6, 1.0)], "facade": Color(0.82, 0.72, 0.55), "roof": Color(0.8, 0.68, 0.48), "sky": Color(0.45, 0.68, 0.9), "fog": Color(0.92, 0.84, 0.7), "sign": "SOLARA", "sign_color": Color(1.0, 0.6, 0.2) },
 	"frostveil-ring": { "trim": [Color(0.37, 0.88, 1.0), Color(1.0, 0.76, 0.48), Color(0.3, 0.95, 0.6)], "facade": Color(0.23, 0.27, 0.33), "roof": Color(0.75, 0.8, 0.86), "sky": Color(0.05, 0.09, 0.2), "fog": Color(0.55, 0.65, 0.78), "sign": "FROSTVEIL", "sign_color": Color(0.37, 0.88, 1.0) },
 	"thalassia-dome": { "trim": [Color(0.16, 1.0, 0.82), Color(0.62, 0.96, 1.0), Color(1.0, 0.23, 0.16)], "facade": Color(0.23, 0.27, 0.31), "roof": Color(0.82, 0.85, 0.88), "sky": Color(0.01, 0.1, 0.15), "fog": Color(0.05, 0.28, 0.36), "sign": "THALASSIA", "sign_color": Color(0.16, 1.0, 0.82) },
+	"foundry": { "trim": [Color(1.0, 0.55, 0.15), Color(1.0, 0.85, 0.3), Color(0.95, 0.25, 0.15)], "facade": Color(0.42, 0.33, 0.28), "roof": Color(0.34, 0.33, 0.32), "sky": Color(0.3, 0.46, 0.68), "fog": Color(0.78, 0.76, 0.72), "sign": "FOUNDRY ROW", "sign_color": Color(1.0, 0.55, 0.15) },
+	"sanctum": { "trim": [Color(1.0, 0.8, 0.35), Color(0.3, 0.95, 0.85), Color(0.95, 0.9, 1.0)], "facade": Color(0.5, 0.46, 0.42), "roof": Color(0.46, 0.43, 0.42), "sky": Color(0.07, 0.06, 0.26), "fog": Color(0.5, 0.3, 0.42), "sign": "SANCTUM", "sign_color": Color(1.0, 0.8, 0.35) },
+	"rig": { "trim": [Color(1.0, 0.5, 0.1), Color(1.0, 0.85, 0.2), Color(0.3, 0.85, 1.0)], "facade": Color(0.25, 0.27, 0.3), "roof": Color(0.3, 0.31, 0.33), "sky": Color(0.12, 0.1, 0.3), "fog": Color(0.95, 0.5, 0.28), "sign": "RIG NINE", "sign_color": Color(1.0, 0.5, 0.1) },
 	"void-rift": { "trim": [Color(0.78, 0.42, 1.0), Color(0.5, 0.96, 1.0), Color(1.0, 0.23, 0.85)], "facade": Color(0.23, 0.19, 0.25), "roof": Color(0.17, 0.17, 0.19), "sky": Color(0.05, 0.0, 0.1), "fog": Color(0.2, 0.06, 0.3), "sign": "VOID RIFT", "sign_color": Color(0.78, 0.42, 1.0) },
 	"prime-roof": { "trim": [Color(0.75, 0.3, 1.0), Color(1.0, 0.3, 0.5), Color(0.4, 0.5, 1.0)], "facade": Color(0.09, 0.07, 0.13), "roof": Color(0.11, 0.1, 0.15), "sky": Color(0.04, 0.01, 0.07), "fog": Color(0.22, 0.1, 0.32), "sign": "KILLBOX PRIME", "sign_color": Color(0.75, 0.3, 1.0) },
 }
@@ -255,6 +259,7 @@ func _start() -> void:
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	enemies.tactics = false     # PvP bots play like players (killbox-bots), not as a squad with fire tokens
 	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	enemies.operator_team = 1
 	enemies.operator_down.connect(_on_operator_down)
@@ -339,84 +344,73 @@ func _box(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	return mi
 
 func _environment() -> void:
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = look.sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.25, 0.2, 0.4)
-	env.ambient_light_energy = 1.3
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.fog_enabled = true
-	env.fog_light_color = look.fog
-	env.fog_density = 0.0015 if String(arena.def.look) == "neon-rooftops" else 0.0005
-	env.glow_enabled = true
-	env.glow_intensity = 0.6
-	var we := WorldEnvironment.new()
-	we.environment = env
-	world.add_child(we)
-	var moon := DirectionalLight3D.new()
-	moon.light_color = Color(0.5, 0.55, 0.9)
-	moon.light_energy = 0.7
-	moon.rotation_degrees = Vector3(-55, 20, 0)
-	moon.shadow_enabled = true
-	world.add_child(moon)
+	# the sky, the ambient and the key light per look; what stands around the arena (arena_look.gd)
+	Look.environment(world, String(arena.def.look), look)
+	Look.backdrop(world, String(arena.def.look), look, arena.bounds(), _rng)
 
 ## the street far below between the two blocks, lit by the signs: a reason not to fall
 func _street() -> void:
-	_box(Vector3(140, 0.2, 140), Vector3(0, -0.1, 0), _mat(Color(0.05, 0.05, 0.07), 0.3, 0.2))
-	var paint := _mat(Color(0.8, 0.8, 0.75), 0.5)
-	var z := -60.0
-	while z < 60.0:
-		_box(Vector3(0.15, 0.02, 3.0), Vector3(0, 0.01, z), paint)
-		z += 9.0
-	for s: float in [-1.0, 1.0]:
-		_box(Vector3(0.15, 0.02, 140), Vector3(s * 6.5, 0.01, 0), paint)
-	# the two blocks' facades up to the roofs, with lit windows
-	var facade := _mat(look.facade, 0.7)
-	var lit := _mat(Color(1.0, 0.85, 0.6), 0.5, 0.0, 1.5)
+	var city: bool = Look.scene(String(arena.def.look)).kind == "city"
+	if city:
+		_box(Vector3(140, 0.2, 140), Vector3(0, -0.1, 0), _mat(Color(0.05, 0.05, 0.07), 0.3, 0.2))
+		var paint := _mat(Color(0.8, 0.8, 0.75), 0.5)
+		var z := -60.0
+		while z < 60.0:
+			_box(Vector3(0.15, 0.02, 3.0), Vector3(0, 0.01, z), paint)
+			z += 9.0
+		for s: float in [-1.0, 1.0]:
+			_box(Vector3(0.15, 0.02, 140), Vector3(s * 6.5, 0.01, 0), paint)
+	# the blocks under the roofs: storeys of windows, some lit (few and faint by day)
+	var sc := Look.scene(String(arena.def.look))
+	var day := bool(sc.get("day", sc.kind == "desert"))
+	var facade := Look.facade(look, 0.12 if day else 0.42, 0.5 if day else 1.7)
+	# a map on the ground (or a rig's deck on legs) has no block below its floor: only what stands on it is built up
+	var base := float(sc.get("ground_y", 0.0))
+	if sc.get("legs", false):
+		base = INF
+		for r0 in arena.def.roofs:
+			base = minf(base, float(r0.top))
 	for r in arena.def.roofs:
 		var w := float(r.x1) - float(r.x0)
 		var d := float(r.z1) - float(r.z0)
 		var top := float(r.top)
-		_box(Vector3(w, top, d), Vector3((float(r.x0) + float(r.x1)) / 2.0, top / 2.0, (float(r.z0) + float(r.z1)) / 2.0), facade)
-		var zc := (float(r.z0) + float(r.z1)) / 2.0
-		for fl in int(top / 3.2):
-			for k in int(w / 4.0):
-				if _rng.randf() < 0.55:
-					_box(Vector3(1.6, 1.2, 0.05), Vector3(float(r.x0) + 2.0 + k * 4.0, 2.0 + fl * 3.2, float(r.z0) - 0.03 if zc < 0 else float(r.z1) + 0.03), lit)
+		if top - base < 0.5:
+			continue
+		_box(Vector3(w, top - base, d), Vector3((float(r.x0) + float(r.x1)) / 2.0, (top + base) / 2.0, (float(r.z0) + float(r.z1)) / 2.0), facade)
 
 func _roofs() -> void:
-	var wet := _mat(look.roof, 0.25, 0.1)
+	var wet := Look.deck(look, String(arena.def.look))   # panels, seams and standing water in the shader
 	var trim_k := 0
 	for r in arena.def.roofs:
 		var w := float(r.x1) - float(r.x0)
 		var d := float(r.z1) - float(r.z0)
 		var c := Vector3((float(r.x0) + float(r.x1)) / 2.0, float(r.top), (float(r.z0) + float(r.z1)) / 2.0)
 		_box(Vector3(w, 0.3, d), c + Vector3(0, -0.15, 0), wet)
-		# seams between the roof panels, catching the sign light
-		var seam := _mat(Color(0.2, 0.2, 0.24), 0.2, 0.2)
-		var sx := float(r.x0) + 4.0
-		while sx < float(r.x1) - 0.5:
-			_box(Vector3(0.08, 0.02, d), Vector3(sx, float(r.top) + 0.01, c.z), seam)
-			sx += 4.0
-		var sz := float(r.z0) + 4.0
-		while sz < float(r.z1) - 0.5:
-			_box(Vector3(w, 0.02, 0.08), Vector3(c.x, float(r.top) + 0.01, sz), seam)
-			sz += 4.0
 		# parapets as drawn walls where the data puts them; neon trim along every edge
 		var neon: Color = look.trim[trim_k % (look.trim as Array).size()]
 		trim_k += 1
 		for edge in [[Vector3(c.x, 0, float(r.z0)), Vector3(w, 0.05, 0.08)], [Vector3(c.x, 0, float(r.z1)), Vector3(w, 0.05, 0.08)], [Vector3(float(r.x0), 0, c.z), Vector3(0.08, 0.05, d)], [Vector3(float(r.x1), 0, c.z), Vector3(0.08, 0.05, d)]]:
 			var mi := _box(edge[1], Vector3((edge[0] as Vector3).x, float(r.top) + 1.1, (edge[0] as Vector3).z), _mat(neon, 0.4, 0.0, 3.5))
 			signs.append(mi)
+	var concrete := _mat(Color(0.3, 0.3, 0.33), 0.8)
+	var ledge_skin := String(Look.scene(String(arena.def.look)).get("ledge", ""))
+	var shed := Look.facade(look, 0.1, 0.5)
+	shed.set_shader_parameter("floor_h", 3.6)
+	var ribbed := Look.ribbed(Color(0.5, 0.36, 0.14))
 	for b in arena.boxes():
 		# the parapets and ledges from the data, drawn as concrete
 		if b.size.y > 0.9 and (b.size.x < 0.5 or b.size.z < 0.5) and b.size.y < 5.0:
-			_box(b.size, b.get_center(), _mat(Color(0.3, 0.3, 0.33), 0.8))
+			# a tall face is the side of a building on the lane maps: brick and windows (Foundry Row), ribbed steel (Rig Nine)
+			var face: Material = concrete
+			if b.size.y > 3.0 and ledge_skin == "facade":
+				face = shed
+			elif b.size.y > 3.0 and ledge_skin == "ribbed":
+				face = ribbed
+			_box(b.size, b.get_center(), face)
 
 func _walks() -> void:
 	var steel := _mat(Color(0.35, 0.37, 0.4), 0.5, 0.6)
-	var grate := _mat(Color(0.22, 0.23, 0.26), 0.6, 0.4)
+	var grate := Look.grate()
 	for w in arena.def.walks:
 		var q := Arena._walk_rect(w)
 		var lo := float(w.top)
@@ -435,7 +429,7 @@ func _walks() -> void:
 				rail.rotation = mi.rotation
 
 func _cover() -> void:
-	var mats := { "hvac": _mat(Color(0.6, 0.62, 0.65), 0.5, 0.5), "tank": _mat(Color(0.5, 0.35, 0.25), 0.7), "vent": _mat(Color(0.4, 0.42, 0.45), 0.6, 0.5), "crate": _mat(Color(0.45, 0.4, 0.3), 0.8), "sign": _mat(Color(0.15, 0.15, 0.18), 0.5, 0.3), "container": _mat(Color(0.2, 0.35, 0.5), 0.6, 0.4), "console": _mat(Color(0.18, 0.2, 0.25), 0.4, 0.6), "barrier": _mat(Color(0.85, 0.3, 0.2), 0.7) }
+	var mats := { "hvac": _mat(Color(0.6, 0.62, 0.65), 0.5, 0.5), "tank": _mat(Color(0.5, 0.35, 0.25), 0.7), "vent": _mat(Color(0.4, 0.42, 0.45), 0.6, 0.5), "crate": _mat(Color(0.45, 0.4, 0.3), 0.8), "sign": _mat(Color(0.15, 0.15, 0.18), 0.5, 0.3), "container": Look.ribbed(Color(0.2, 0.35, 0.5)), "console": _mat(Color(0.18, 0.2, 0.25), 0.4, 0.6), "barrier": _mat(Color(0.85, 0.3, 0.2), 0.7), "pillar": _mat(Color(0.5, 0.5, 0.55), 0.7), "monolith": _mat(Color(0.1, 0.08, 0.13), 0.35, 0.3), "planter": _mat(Color(0.36, 0.36, 0.4), 0.8), "dropship": _mat(Color(0.3, 0.33, 0.38), 0.4, 0.7), "wall": _mat(Color(0.5, 0.5, 0.5), 0.85) }
 	for c in arena.def.cover:
 		var top: float = arena.surface_at(float(c.x), float(c.z))
 		if top == -INF:
@@ -454,11 +448,14 @@ func _cover() -> void:
 			mi.position = Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z))
 			mi.material_override = m
 			world.add_child(mi)
+			signs.append_array(Look.dress(world, "tank", mi.position, Vector3(float(c.w), float(c.h), float(c.w)), look))
 		else:
 			_box(Vector3(float(c.w), float(c.h), float(c.d)), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z)), m)
 			if c.kind == "sign":
 				var face := _box(Vector3(float(c.w) - 0.4, float(c.h) - 0.4, 0.05), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z) + float(c.d) / 2.0 + 0.03), _mat(look.trim[1], 0.4, 0.0, 3.0))
 				signs.append(face)
+			else:
+				signs.append_array(Look.dress(world, String(c.kind), Vector3(float(c.x), top + float(c.h) / 2.0, float(c.z)), Vector3(float(c.w), float(c.h), float(c.d)), look))
 
 ## destructible cover (asset catalog §5): a crate, barrier, vent, HVAC unit, console or sign is a Gunplay target with the
 ## arena's hull for its kind; the operator's bolts chip it and the last one breaks it — the mesh goes, chips fly, the
@@ -483,10 +480,12 @@ func _breakable_cover(c: Dictionary, top: float, m: Material) -> void:
 	elif c.kind == "barrier":
 		var stripe := _box(Vector3(size.x + 0.02, 0.18, size.z + 0.02), pos + Vector3(0, size.y * 0.2, 0), _mat(Color(0.95, 0.95, 0.9), 0.6))
 		stripe.reparent(holder)
+	if c.kind != "sign":
+		signs.append_array(Look.dress(holder, String(c.kind), pos, size, look))
 	var t := Gunplay.Target.new(arena.cover_box(c), float(Arena.BREAKABLE[String(c.kind)]), holder)
 	t.set_meta("prop", String(c.kind))
 	t.set_meta("cover", String(c.get("id", "")))
-	t.set_meta("blood", (m as StandardMaterial3D).albedo_color if m is StandardMaterial3D else Color(0.7, 0.65, 0.55))
+	t.set_meta("blood", (m as StandardMaterial3D).albedo_color if m is StandardMaterial3D else Color(0.3, 0.4, 0.5))
 	_cover_targets[String(c.get("id", ""))] = t   # registered with gunplay once it exists (_build)
 
 func _on_prop_killed(t: Gunplay.Target) -> void:
@@ -510,17 +509,29 @@ func _signs() -> void:
 		if float(cand.z1) > float(r.z1) or (float(cand.z1) == float(r.z1) and absf(float(cand.x0) + float(cand.x1)) < absf(float(r.x0) + float(r.x1))):
 			r = cand
 	var mi := _box(Vector3(26, 6, 0.4), Vector3((float(r.x0) + float(r.x1)) / 2.0, float(r.top) + 8.0, float(r.z1) + 0.5), _mat(Color(0.08, 0.08, 0.1), 0.5, 0.3))
-	var face := _box(Vector3(25, 5, 0.1), mi.position + Vector3(0, 0, -0.3), _mat(look.sign_color, 0.4, 0.0, 3.5))
-	signs.append(face)
-	var l3 := Label3D.new()
-	l3.text = String(look.sign)
-	l3.font_size = 220 if String(look.sign).length() <= 6 else 120
-	l3.pixel_size = 0.02
-	l3.modulate = Color(1, 1, 1)
-	l3.shaded = false
-	l3.position = face.position + Vector3(0, 0, -0.2)
-	l3.rotation_degrees.y = 180.0
-	world.add_child(l3)
+	# a dark screen, the name in the arena's neon, a lit frame round it — on both sides, so the board reads from the
+	# fight and from the city behind (a glowing slab with white letters washed the name out on the pale looks)
+	var sc: Color = look.sign_color
+	var glass := _mat(Color(sc.r * 0.1 + 0.01, sc.g * 0.1 + 0.01, sc.b * 0.1 + 0.02), 0.25, 0.4)
+	var neon := _mat(sc, 0.4, 0.0, 3.5)
+	var text := String(look.sign)
+	for side: float in [-1.0, 1.0]:
+		var face := _box(Vector3(25, 5, 0.1), mi.position + Vector3(0, 0, side * 0.3), glass)
+		for sy: float in [-1.0, 1.0]:
+			signs.append(_box(Vector3(25.3, 0.22, 0.14), face.position + Vector3(0, sy * 2.5, side * 0.03), neon))
+		for sx: float in [-1.0, 1.0]:
+			signs.append(_box(Vector3(0.22, 5.2, 0.14), face.position + Vector3(sx * 12.55, 0, side * 0.03), neon))
+		var l3 := Label3D.new()
+		l3.text = text
+		l3.font_size = 220 if text.length() <= 6 else (170 if text.length() <= 9 else 140)
+		l3.pixel_size = 0.02
+		l3.modulate = sc.lerp(Color.WHITE, 0.35)
+		l3.outline_size = 20
+		l3.outline_modulate = Color(sc.r * 0.25, sc.g * 0.25, sc.b * 0.25)
+		l3.shaded = false
+		l3.position = face.position + Vector3(0, 0, side * 0.2)
+		l3.rotation_degrees.y = 180.0 if side < 0.0 else 0.0
+		world.add_child(l3)
 	for i in 4:
 		var l := OmniLight3D.new()
 		l.light_color = look.trim[i % (look.trim as Array).size()]
@@ -581,7 +592,8 @@ func _set_event(on: bool) -> void:
 	var f: Dictionary = arena.def.fracture
 	if float(f.get("visibility", 1.0)) < 1.0:
 		for s in signs:
-			(s as MeshInstance3D).visible = not on
+			if is_instance_valid(s):   # a broken crate's lights went with it
+				(s as MeshInstance3D).visible = not on
 		for l in sign_lights:
 			(l as OmniLight3D).light_energy = 0.3 if on else 2.5
 	if not _shifter_nodes.is_empty():
@@ -836,7 +848,7 @@ func _process(dt: float) -> void:
 	if _obj_ring:
 		_obj_ring.visible = match_state.objective_open()
 		_obj_label.visible = _obj_ring.visible
-	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac())
+	controls.show_hull(enemies.hull / enemies.hull_max, enemies.hurt, enemies.down, enemies.shield_frac(), enemies.hull_max, enemies.shield_max)
 	if _respawn_t > 0.0:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:

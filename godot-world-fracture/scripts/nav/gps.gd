@@ -25,6 +25,8 @@ var place_name: Callable = Callable()      # -> String
 ## hosts without a region map: [{a: Vector2, b: Vector2, w: float, color: Color}] and [{p: Vector2, color, label}]
 var lines: Array = []
 var marks: Array = []
+## circles drawn on the dial: { p: Vector2 (world x, z), r: metres, color } — Fracture Royale's closing circle
+var rings: Array = []
 var area := ""                             # the line under the dial when there is no region
 var land_bg := false                       # the ground beyond the host's lines is land (dark slate), not sea
 var offset := Vector2(-DIAM - 14.0, 70.0)  # from the top-right corner
@@ -107,7 +109,7 @@ func refresh_map() -> void:
 	_tex = null
 	if region and not region.is_open_sea() and String(region.map_id) != "":
 		_map_id = String(region.map_id)
-		_tex = Data.texture("maps/%s.map.pngb" % _map_id, true)
+		_tex = _data().texture("maps/%s.map.pngb" % _map_id, true)
 
 ## puts a GPS on `host` for an on-foot operator in a region (the arrow follows the camera: the operator's body turns on
 ## its own)
@@ -120,6 +122,10 @@ static func attach(host: Control, reg: Node, who: Node3D) -> Control:
 	g.ranges = [70.0, 160.0, 400.0]
 	host.add_child(g)
 	return g
+
+## the Data autoload, found at run time (naming it would stop the --script tests that load views carrying a GPS)
+func _data() -> Node:
+	return get_node("/root/Data")
 
 func _process(_dt: float) -> void:
 	if region != null and not is_instance_valid(region):
@@ -173,7 +179,7 @@ func _caption() -> String:
 	if place_name.is_valid():
 		where = String(place_name.call())
 	elif region and String(region.map_id) != "":
-		where = String(Data.map(String(region.map_id)).get("name", region.map_id))
+		where = String(_data().map(String(region.map_id)).get("name", region.map_id))
 		var a := _area_name()
 		if a != "" and a != where:
 			where = "%s · %s" % [a, where]
@@ -187,7 +193,7 @@ func _caption() -> String:
 func _area_name() -> String:
 	if region == null or region.is_open_sea():
 		return ""
-	var m: Dictionary = Data.map(String(region.map_id))
+	var m: Dictionary = _data().map(String(region.map_id))
 	var me: Vector2 = region.map_point(_centre().x, _centre().y)
 	var best := ""
 	var bd := 160.0
@@ -244,7 +250,7 @@ func _draw_dial() -> void:
 	var h := view_heading()
 	# places: airports and the map's main places
 	if region and _tex:
-		var m: Dictionary = Data.map(String(region.map_id))
+		var m: Dictionary = _data().map(String(region.map_id))
 		for poi in m.get("pois", []):
 			var cat := String(poi.get("cat", ""))
 			var big := cat == "airport" or int(poi.get("rank", 3)) <= 1
@@ -256,6 +262,11 @@ func _draw_dial() -> void:
 				_dial.draw_circle(dp, 4.0 if cat == "airport" else 3.0, Color(0.55, 0.9, 1.0) if cat == "airport" else Color(0.95, 0.9, 0.75, 0.9))
 				if cat == "airport":
 					_dial.draw_arc(dp, 7.0, 0, TAU, 16, Color(0.55, 0.9, 1.0), 1.5)
+	for rg in rings:
+		var rp := to_dial(rg.p)
+		var rr := float(rg.r) * k
+		if rr > 2.0 and rp.distance_to(c) < rr + r:
+			_dial.draw_arc(rp, rr, 0, TAU, 72, rg.get("color", Color(0.9, 0.5, 1.0)), 2.0)
 	# only the three nearest marks within their reach are named, so a busy strip stays readable
 	var named := {}
 	var cands: Array = []
@@ -283,7 +294,7 @@ func _draw_dial() -> void:
 			dp = c + (dp - c).limit_length(r - 8.0)
 		_dial.draw_circle(dp, 3.5, col)
 		if named.has(mi) and dp.distance_to(c) < r - 14.0:
-			var lt := String(mk.label)
+			var lt := _short(String(mk.label))
 			var lw := ThemeDB.fallback_font.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 			var lpos := dp + Vector2(6, 4) if dp.x < c.x + 10.0 else dp + Vector2(-6 - lw, 4)
 			lpos.x = clampf(lpos.x, 2.0, DIAM - lw - 2.0)

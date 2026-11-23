@@ -5,12 +5,14 @@ extends Control
 ## modes and features along the bottom); each tile opens that mode's lobby, and the lobby launches the mode's own view:
 ##
 ##   PvP     the Killbox arenas (scripts/killbox/arena_view.gd), Clash against bot teams
-##   Raids   Raid 01 · The Hollow Star (scripts/raid/raid_view.gd) with a bot fireteam, from the gate or the checkpoint
+##   Raids   Raid 01 · The Hollow Star (scripts/raid/raid_view.gd): an online fireteam (players, bots in the empty
+##           slots) or bots only, from the gate or the checkpoint
 ##   Races   Nexus Speedway and the Neon Night Circuit (scripts/racing/race_view.gd) against bot racers
 ##
 ## Online play (Nov 18, the owner: "make the bots in the pvp a game mode not available in other modes"): PvP plays
 ## ONLINE against other players or VS BOTS — its own mode, the only one with bot opponents; Races are between the players
-## on the line (alone, the track's pace); Raids keep their AI fireteam until online fireteams land. The views are hosted
+## on the line (alone, the track's pace); Raids are an online fireteam (Nov 22, online_raid.gd) with bots filling the
+## empty slots — the bots are allies there, never opponents. The views are hosted
 ## here, so LEAVE in a mode comes back to its lobby.
 
 signal closed
@@ -31,7 +33,7 @@ const MODES := [
 	{ "id": "raids", "name": "RAIDS", "plate": "RAID 01", "accent": Color(0.7, 0.45, 1.0), "sub": "Six-player fireteams · 3.8 km down",
 	  "blurb": "The Hollow Star: hold the Broken Gate, then break Astravore before the machine overloads.", "tags": ["Fireteam of 6", "Checkpoints", "Exotic drops"] },
 	{ "id": "races", "name": "RACES", "plate": "CIRCUITS", "accent": Color(0.3, 0.9, 1.0), "sub": "Venues · street circuits · online",
-	  "blurb": "Your garage build against the players on the line: the Speedway by day, Neon City's streets by night, the long tracks.", "tags": ["Your garage car", "Other players", "Prize Nex"] },
+	  "blurb": "Your garage build against other players: the Speedway, Neon City's night streets, the long tracks.", "tags": ["Your garage car", "Other players", "Prize Nex"] },
 ]
 
 var page: Control
@@ -313,7 +315,6 @@ func open_mode(id: String) -> void:
 			_races()
 
 # --------------------------------------------------------------------------------------------- PvP
-const PVP_SOON := [["neon-yard", "NEON YARD", "Industrial container yard"], ["glass-spire", "GLASS SPIRE", "Vertical combat tower"], ["riverfront", "RIVERFRONT", "Urban waterfront arena"], ["void-rift", "VOID RIFT", "Fracture anomaly zone"]]
 
 ## ONLINE (players, no bots) or VS BOTS (the bot squads: the only mode with bots in it)
 var pvp_bots := false
@@ -351,10 +352,6 @@ func _pvp() -> void:
 		var royale := _tile("pvp-royale", "FRACTURE ROYALE", "60-player survival · the Verdant Forest · bots", "", Color(0.75, 0.3, 1.0), func(): _host(RoyaleView.new()), true, 22)
 		royale.custom_minimum_size = Vector2(0, 150)
 		grid.add_child(royale)
-	for s in PVP_SOON:
-		var t2 := _tile("pvp-" + String(s[0]), String(s[1]), String(s[2]) + " · coming", "", Color(0.4, 0.5, 0.6), func(): pass, false, 22)
-		t2.custom_minimum_size = Vector2(0, 150)
-		grid.add_child(t2)
 	v.add_child(_strip("PVP MODES", (["✓ Clash vs bot squads", "✓ Every arena's modes", "✓ Fracture Royale"] if pvp_bots else ["✓ Clash online · players", "Sides fill by who's in", "Ranked · soon"]), Color(1.0, 0.3, 0.7)))
 
 func _launch_arena(id: String) -> void:
@@ -366,9 +363,21 @@ func _launch_arena(id: String) -> void:
 	_host(av)
 
 # --------------------------------------------------------------------------------------------- Raids
+## raids join the encounter's online fireteam (bots fill the empty slots); off: you and five bots, offline
+var raids_online := true
+
 func _raids() -> void:
 	var v := _page()
-	v.add_child(_header("RAIDS", "SIX-PLAYER FIRETEAMS   /   CHECKPOINTS   /   YOU + FIVE BOTS", show_hub))
+	v.add_child(_header("RAIDS", "SIX-PLAYER FIRETEAMS   /   CHECKPOINTS   /   %s" % ("ONLINE · PLAYERS + BOTS IN THE EMPTY SLOTS" if raids_online else "YOU + FIVE BOTS · OFFLINE"), show_hub))
+	var sw := HBoxContainer.new()
+	sw.add_theme_constant_override("separation", 10)
+	for opt in [[true, "ONLINE FIRETEAM"], [false, "BOTS ONLY"]]:
+		var b := Data.button(String(opt[1]), raids_online == bool(opt[0]))
+		b.custom_minimum_size = Vector2(200, 44)
+		var want: bool = opt[0]
+		b.pressed.connect(func(): raids_online = want; open_mode("raids"))
+		sw.add_child(b)
+	v.add_child(sw)
 	var row := _row()
 	v.add_child(row)
 	var save := HollowStar.load_save()
@@ -394,7 +403,7 @@ func _raids() -> void:
 		var l := text("%s  %d  %s%s" % [mark, n, String(e.name).to_upper(), "" if on else "  (coming)"], 14, Color(0.9, 0.92, 1.0) if on else Color(0.5, 0.55, 0.65), false)
 		sv.add_child(l)
 		n += 1
-	sv.add_child(text("Fireteam: you + Vance, Iko, Sable, Ren, Tamsin\nLives: %d shared · Clears: %d%s" % [HollowStar.LIVES, int(save.clears), ("\nBest: %d:%02d" % [int(float(save.best) / 60.0), int(fmod(float(save.best), 60.0))]) if float(save.best) > 0.0 else ""], 13, Color(0.75, 0.82, 0.92), false))
+	sv.add_child(text(("Fireteam: the players in the encounter, bots in the empty slots\nThe first one in leads" if raids_online else "Fireteam: you + Vance, Iko, Sable, Ren, Tamsin") + "\nLives: %d shared · Clears: %d%s" % [HollowStar.LIVES, int(save.clears), ("\nBest: %d:%02d" % [int(float(save.best) / 60.0), int(fmod(float(save.best), 60.0))]) if float(save.best) > 0.0 else ""], 13, Color(0.75, 0.82, 0.92), false))
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sv.add_child(spacer)
@@ -413,6 +422,7 @@ func _raids() -> void:
 func _launch_raid(at: String) -> void:
 	var rv := RaidView.new()
 	rv.start_at = at
+	rv.online = raids_online
 	rv.next.connect(func(enc: String): _launch_raid(enc))
 	_host(rv)
 
@@ -430,7 +440,17 @@ func _races() -> void:
 		var body := "Neon City's blocks at night: barriers, right-angle corners, the market jog. Win: %d Nex." % int(tr.def.prize[0]) if street else "Stands, pit lane and start lights; a grand-prix lap with a hairpin and esses. Win: %d Nex." % int(tr.def.prize[0])
 		row.add_child(_tile("race-" + tid, String(tr.def.name).to_upper(), sub, body, Color(0.3, 0.9, 1.0), func(): _launch_race(tid), true, 28))
 	v.add_child(_track_pack())
-	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "Motorcycle · soon", "Off-road / mud · soon", "Air races · soon"], Color(0.3, 0.9, 1.0)))
+	# the air race (air_race.gd): the Skyways ring course over Nexus City against three rival jets
+	var air := _row()
+	v.add_child(air)
+	air.add_child(_tile("race-air", "AIR RACE · NEXUS SKYLINE", "Skyways · 8 rings · the F-39 Jupiter", "Lift off the runway and the field lifts with you: three rival jets fly the rings at their own pace. First through the last ring wins %d Nex." % int(load("res://scripts/flying/air_race.gd").PURSE[0]), Color(0.3, 0.9, 1.0), _launch_air_race, true, 28))
+	v.add_child(_strip("RACE CLASSES", ["✓ Street", "✓ Supercar", "✓ Motorcycle", "✓ Off-road / mud", "✓ Air races"], Color(0.3, 0.9, 1.0)))
+
+func _launch_air_race() -> void:
+	var sv: Control = load("res://scripts/flying/skyways_view.gd").new()
+	sv.craft_id = "vanguard-jet"
+	sv.air_race = true
+	_host(sv)
 
 ## Track Pack 01 (the owner's eight long tracks, track_pack.gd): a button each, and how many laps — one, the board's
 ## shortest race, or its longest
