@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cg26mof6ma60f"
-path="res://.godot/imported/vael-turog_Image_0.jpg-d4d8740539be3a85c43e3760e58a7922.ctex"
+path.s3tc="res://.godot/imported/vael-turog_Image_0.jpg-d4d8740539be3a85c43e3760e58a7922.s3tc.ctex"
+path.etc2="res://.godot/imported/vael-turog_Image_0.jpg-d4d8740539be3a85c43e3760e58a7922.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "4e2b878babeb844348858770ed5fd910"
@@ -14,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://models/bosses/vael-turog_Image_0.jpg"
-dest_files=["res://.godot/imported/vael-turog_Image_0.jpg-d4d8740539be3a85c43e3760e58a7922.ctex"]
+dest_files=["res://.godot/imported/vael-turog_Image_0.jpg-d4d8740539be3a85c43e3760e58a7922.s3tc.ctex", "res://.godot/imported/vael-turog_Image_0.jpg-d4d8740539be3a85c43e3760e58a7922.etc2.ctex"]
 
 [params]
 
