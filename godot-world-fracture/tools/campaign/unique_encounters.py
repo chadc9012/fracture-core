@@ -23,7 +23,7 @@ ROOM_SETS = {"zero_point", "choir_hall", "witness_vault", "astryan_hall", "counc
 STAGE_BY_CHAPTER = {"U01C": "desert_road", "U01D": "desert_road", "U02B": "lab", "U02C": "lab", "U02D": "plaza",
                     "U03B": "snow_camp", "U03C": "snow_camp", "U04B": "vault", "U04C": "vault_gate", "U04D": "vault_gate", "U04E": "vault",
                     "U05C": "abbey", "U06B": "sea", "U06C": "sea", "U06D": "palace", "U06E": "palace", "U07B": "ridge",
-                    "U09A": "ribcage", "U09B": "ribcage", "U10B": "underground", "U10C": "crater", "U11B": "dig", "U11C": "vault", "U11D": "dig",
+                    "U09B": "ribcage", "U10B": "underground", "U10C": "crater", "U11B": "dig", "U11C": "vault", "U11D": "dig",
                     "U13B": "subway", "U13C": "neon_street", "U14B": "underground", "U14C": "neon_street", "U15B": "abbey", "U15C": "abbey",
                     "U16B": "farms", "U16C": "docks", "U18C": "vault_gate", "U18D": "vault_gate"}
 

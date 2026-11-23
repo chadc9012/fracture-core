@@ -329,6 +329,8 @@ func _show_from_street(view: Control) -> void:
 		view.outside.connect(_walk_out.bind(view))
 	if view.has_signal("roll_on"):
 		view.roll_on.connect(_roll_on.bind(view))
+	if view.has_signal("unique_called"):
+		view.unique_called.connect(_unique_called.bind(view))
 	add_child(view)
 
 func _airport_view(code: String, arriving: bool) -> Control:
@@ -506,10 +508,26 @@ func _open_unique(mission: String, rematch := false) -> void:
 	add_child(descent)
 	planet_view.set_process(false)
 
+## the Sky Sovereign came down over a free-roam view (sky_sovereign.gd): the view sleeps under his fight and wakes after
+var _under_unique: Control
+func _unique_called(mission: String, view: Control) -> void:
+	if descent or _from_street != view:
+		return
+	_under_unique = view
+	view.visible = false
+	view.process_mode = Node.PROCESS_MODE_DISABLED
+	_open_unique(mission, true)
+
 func _close_descent() -> void:
 	if descent:
 		descent.queue_free()
 		descent = null
+	if _under_unique and is_instance_valid(_under_unique):
+		_under_unique.visible = true
+		_under_unique.process_mode = Node.PROCESS_MODE_INHERIT
+		if _under_unique.has_method("refresh_mark"):
+			_under_unique.refresh_mark()
+	_under_unique = null
 	planet_view.set_process(true)
 	_sync_later()
 

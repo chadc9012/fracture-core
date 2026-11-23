@@ -8,6 +8,7 @@ const Sound := preload("res://scripts/audio/sound.gd")
 ## follow the speed. `sprint` runs faster. Whoever owns the scene gives it `ground_at`, `obstacles` and `bounds`.
 
 const Rig := preload("res://scripts/character/character_rig.gd")
+const Sovereign := preload("res://scripts/mission/sky_sovereign.gd")
 const Settings := preload("res://scripts/front/settings_store.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
 
@@ -174,6 +175,8 @@ func build(look: Dictionary = {}) -> void:
 		l = preload("res://scripts/character/wardrobe.gd").civ(l)
 	rig.build(l)
 	rig.rotation.y = heading
+	# the Ashen Mark (sky_sovereign.gd): survivors of the Sky Sovereign carry his ash on the left shoulder until he falls
+	rig.ashen_mark(Sovereign.is_marked(preload("res://scripts/gear/gear_store.gd").profile_load()))
 
 func attach_camera(c: Camera3D) -> void:
 	cam = c

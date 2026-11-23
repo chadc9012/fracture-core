@@ -8,6 +8,8 @@ extends "res://scripts/mission/campaign.gd"
 ## `rematch` starts straight at the fight (an encounter already cleared).
 
 const DATA_PATH := "res://data/dialogue/unique_encounters.json"
+const Sovereign := preload("res://scripts/mission/sky_sovereign.gd")
+const CharacterStore := preload("res://scripts/character/character_store.gd")
 static var pending := ""
 static var rematch := false
 var mission_id := ""
@@ -68,12 +70,58 @@ func _summon_boss(id: String) -> void:
 	if String(encounter.get("taunt", "")) != "":
 		controls.toast(String(encounter.taunt))
 	controls.toast(String(encounter.get("briefing", "")))
+	# Vyrak (sky_sovereign.gd): going down does not reset him — he leaves and brands the Ashen Mark
+	if String(encounter.get("id", "")) == Sovereign.ID and enemies and not enemies.operator_down.is_connected(_sovereign_down):
+		enemies.operator_down.connect(_sovereign_down)
 
 func _on_boss_down(_bid: String, _reward: Dictionary) -> void:
 	var eid := String(encounter.get("id", ""))
+	if eid == Sovereign.ID:
+		_sovereign_slain()
+		return
 	for l in Encounters.with_profile(func(p: Dictionary) -> Array: return Encounters.clear(p, eid)):
 		controls.toast(String(l))
 	_complete()
+
+## the Sky Sovereign falls: once per profile — the stamp and title (sky_sovereign.gd), the pay (Encounters.clear), then the
+## world-first check against every save (the web's /api/world-firsts once the stamp has synced; offline it just says SLAIN)
+func _sovereign_slain() -> void:
+	var sign := String(CharacterStore.load_look().get("name", ""))
+	var now := int(Time.get_unix_time_from_system() * 1000.0)
+	var first_time := { "yes": false }   # a lambda captures locals by value: the flag rides in a dictionary
+	for l in Encounters.with_profile(func(p: Dictionary) -> Array:
+		if not Sovereign.slay(p, sign, now):
+			return []
+		first_time.yes = true
+		var lines := Encounters.clear(p, Sovereign.ID)
+		lines.append("Title earned: " + Sovereign.TITLE)
+		return lines):
+		controls.toast(String(l))
+	_complete()
+	if first_time.yes:
+		var mine := Sovereign.slain_at(Gear.profile_load())
+		var first: Dictionary = await Sovereign.fetch_first(self)
+		if is_inside_tree():
+			controls.toast(Sovereign.banner(first, mine))
+			Encounters.with_profile(func(p: Dictionary) -> Array: Sovereign.mark_seen(p); return [])
+
+## the operator went down: he climbs back into the dark, brands the mark, and the encounter is over
+var _sovereign_left := false
+func _sovereign_down() -> void:
+	if _sovereign_left:
+		return
+	_sovereign_left = true
+	Encounters.with_profile(func(p: Dictionary) -> Array: Sovereign.brand(p); return [])
+	for l in Sovereign.BRAND_LINES:
+		controls.toast(String(l))
+	if boss:
+		boss.queue_free()
+		boss = null
+	_objective.text = "He is gone. The ash is not."
+	get_tree().create_timer(5.0).timeout.connect(func():
+		if is_inside_tree():
+			_save()
+			closed.emit())
 
 func _chapter_done() -> void:
 	_set_waypoint(Vector3.ZERO, false)

@@ -9,6 +9,7 @@ signal play(mission: String, rematch: bool)
 signal closed
 
 const Encounters := preload("res://scripts/mission/encounters.gd")
+const Sovereign := preload("res://scripts/mission/sky_sovereign.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const ROUTE := { "site": "the place itself", "story": "the story", "npc": "someone who heard", "world": "a place", "combat": "a fight" }
 
@@ -60,6 +61,11 @@ func _ready() -> void:
 	var hidden := 0
 	for e in Encounters.all():
 		var eid := String(e.id)
+		# a Unique (sky_sovereign.gd): absent until met, then an unnamed entry (the Ashen Mark) or his name (the kill); never a lead
+		if bool(e.get("unique", false)):
+			if Sovereign.has_met(p):
+				_unique(e, Sovereign.is_slain(p))
+			continue
 		var known: Array = Encounters.known(p, e)
 		var found := Encounters.is_discovered(p, eid)
 		var done := Encounters.is_done(p, eid)
@@ -123,6 +129,26 @@ func _entry(p: Dictionary, e: Dictionary, known: Array, found: bool, done: bool)
 	var mid := String(e.mission)
 	b.pressed.connect(func(): play.emit(mid, done))
 	v.add_child(b)
+
+func _unique(e: Dictionary, slain: bool) -> void:
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.09, 0.06, 0.05, 0.95)
+	sb.border_color = Color(1.0, 0.45, 0.15, 0.8)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(12)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list.add_child(panel)
+	var v := VBoxContainer.new()
+	panel.add_child(v)
+	var t := Label.new()
+	t.text = ("✓ " + String(e.name)) if slain else "Unknown"
+	t.add_theme_font_size_override("font_size", 19)
+	t.modulate = Color(1.0, 0.7, 0.45)
+	v.add_child(t)
+	_line(v, "Unique · slain. There was only ever one of it." if slain else "Ash burned into your armor at the end of the Glass Flats. It will not wipe off.", Color(0.9, 0.75, 0.65))
 
 func _line(v: Control, text: String, c: Color) -> void:
 	var l := Label.new()

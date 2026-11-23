@@ -30,7 +30,8 @@ func _ready() -> void:
 		await _play(e)
 	var p := Gear.profile_load()
 	var t := Encounters.tally(p)
-	ok(int(t.done) == 18, "every encounter cleared: %d of 18" % int(t.done))
+	# Vyrak is a Unique (sky_sovereign.gd, Nov 23): the tally never counts him, so it is 17 of 17 — and he was cleared too
+	ok(int(t.all) == 17 and int(t.done) == 17 and Encounters.is_done(p, "vyrak"), "every encounter cleared: %d of %d (and the Unique)" % [int(t.done), int(t.all)])
 	for k in saves:
 		if _kept[k] == null:
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(k))
@@ -55,12 +56,9 @@ func _rules() -> void:
 			"hollow-colossus", "exiled-architect", "verdant-sovereign", "black-market-phantom", "king-beneath", "clockwork-saint", "abyssal-leviathan",
 			"eternal-huntress", "iron-behemoth"]:
 		ok(ids.has(want), "the roster keeps %s" % want)
-	# the web's authored clue ids are kept
+	# Vyrak is a Unique (owner, Nov 23: "Think Shanghai-la frontier"): no clue of any kind points at him
 	var vy := Encounters.by_id("vyrak")
-	var vids := []
-	for c in vy.clues:
-		vids.append(String(c.id))
-	ok(vids.has("site") and vids.has("inscription") and vids.has("ember"), "Vyrak keeps the web's three routes: site, inscription, ember")
+	ok(bool(vy.get("unique", false)) and (vy.clues as Array).is_empty() and String(vy.trigger) == "", "Vyrak is a Unique: no clues, no trigger text")
 	var p := { "aftershock_done": _story_to(14) }
 	ok(Encounters.sense(p, "solara", Encounters.pois("solara")["cb-refraction-city"]).is_empty(), "no clue before the story reaches it (Unbroken Glass opens after Mission 15)")
 	p.aftershock_done = _story_to(15)
@@ -94,13 +92,11 @@ func _rules() -> void:
 	Encounters.clear(p, "unbroken-glass")
 	ok(int(p.nex) - nex1 == 200 and int(p.relics.anomalyCarbon) == 1, "again pays a third and no drop")
 	# places are only the region's
-	ok(Encounters.near("solara", Encounters.pois("solara")["ribcage"]).size() >= 1, "the Ribcage is Vyrak's lair")
-	var w := Encounters.places("wastelands")
-	var has_ember := false
-	for pl in w:
-		if String(pl.e) == "vyrak" and String(pl.c) == "ember":
-			has_ember = true
-	ok(has_ember, "the ranger's campfire (Vyrak's ember clue) is in the Wastelands")
+	var at_ribcage := false
+	for pl in Encounters.near("solara", Encounters.pois("solara")["ribcage"]):
+		if String(pl.e) == "vyrak":
+			at_ribcage = true
+	ok(not at_ribcage, "standing in the Ribcage records nothing about Vyrak (only his secret conditions bring him down)")
 
 func _gimmicks() -> void:
 	var b := Boss.new("dark-knight")
@@ -176,7 +172,8 @@ func _data_checks() -> void:
 	ok(faceless.is_empty(), "every speaker stands as someone or is a voice" + ("" if faceless.is_empty() else ": " + str(faceless)))
 	for e in Encounters.all():
 		ok(Encounters.pois(String(e.world)).has(String(e.lair)), "%s's lair %s is a real place in %s" % [e.id, e.lair, e.world])
-		ok((e.clues as Array).size() >= 3, "%s has at least three routes to its clues" % e.id)
+		if not bool(e.get("unique", false)):
+			ok((e.clues as Array).size() >= 3, "%s has at least three routes to its clues" % e.id)
 
 func _journal() -> void:
 	var j: Control = Journal.new()

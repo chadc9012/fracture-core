@@ -242,15 +242,20 @@ static func clear(p: Dictionary, eid: String) -> Array:
 	return lines
 
 ## the journal's counts: discovered / done / all
+## the count the journal shows: a Unique (sky_sovereign.gd, `unique: true`) is never counted — nobody is told it exists
 static func tally(p: Dictionary) -> Dictionary:
 	var found := 0
 	var done := 0
+	var n := 0
 	for e in all():
+		if bool(e.get("unique", false)):
+			continue
+		n += 1
 		if is_discovered(p, String(e.id)):
 			found += 1
 		if is_done(p, String(e.id)):
 			done += 1
-	return { "found": found, "done": done, "all": all().size() }
+	return { "found": found, "done": done, "all": n }
 
 # --------------------------------------------------------------------------------------------- with the save
 ## load the profile, apply `f` (which returns toast lines), save if it changed anything; returns the lines
