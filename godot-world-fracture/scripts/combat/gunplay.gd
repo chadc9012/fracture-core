@@ -124,7 +124,7 @@ var _mags := 0
 ## a kill resupplies: every carried gun gets half a magazine back into its reserve (to the frame's full reserve), so a
 ## long fight — a Fracture boss, a lockdown — is paced by kills rather than ended by an empty bag
 ## a kill's ammo back to every carried gun: what that foe took to drop (its hull and shield over the gun's body-shot
-## damage) with a third again for misses, never less than half a magazine nor more than two (the Nov 22 balance pass
+## damage), doubled for misses, never less than half a magazine nor more than two (the Nov 22 balance pass
 ## made troopers tougher; a flat half-mag ran the rifle dry by the second lockdown wave)
 func scavenge(t: Target = null) -> void:
 	for g in guns:
@@ -134,8 +134,18 @@ func scavenge(t: Target = null) -> void:
 		if t != null and t.max_hp > 0.0:
 			var per := Weapons.BASE_DAMAGE * float(f.get("damage", 1.0)) * Weapons.pellets(g.frame) * maxf(g.mult, 0.1)
 			var needed := (t.max_hp + t.shield_max) / maxf(per, 0.1)
-			back = clampi(int(ceil(needed * 1.35)), maxi(1, mag / 2), mag * 2)
+			back = clampi(int(ceil(needed * 2.0)), maxi(1, mag / 2), mag * 2)
 		g.reserve = mini(int(g.reserve) + back, int(f.get("reserve", 0)))
+
+## a full restock (a chapter's start, standing back up after going down — Destiny refills there too): every carried
+## gun's reserve to its frame's full load and a fresh magazine
+func resupply() -> void:
+	for g in guns:
+		var f: Dictionary = Weapons.FRAMES.get(g.frame, {})
+		g.reserve = int(f.get("reserve", g.reserve))
+		if not f.has("draw"):
+			g.mag = int(f.get("mag", g.mag))
+		g.cancel_reload()
 
 func gun() -> Weapons.Gun:
 	return guns[current]

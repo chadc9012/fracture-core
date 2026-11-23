@@ -90,7 +90,8 @@ the seven bosses, then the hero lineup in `NPC_LINEUP.md` (rigged in Meshy, reta
 | 5 Interiors | **in the game (Nov 16)**, remeshed to ~10k in Meshy (reception and TV wall decimated in Blender): bed, sofa and kitchen island back in apartment 1204 (off the TORN list), café set, reception desk; drop-in wiring is in: hotel concierge desk, bar counter and lobby TV wall, office desks and shelving (`interiors.gd`), slot machines and roulette (`casino_interior.gd`) — `models/city/{concierge-desk,bar-counter,tv-wall,office-desk,shelving,slot-machine,roulette}.glb`; bed, sofa and kitchen island come off mission_01's TORN list when their remeshes land. 12 made (bed, sofa, kitchen island, cafe set, reception, concierge, office desk, bar, slot machine, roulette, shelving, TV wall) |
 | 6 Buildings | **in the game (Nov 16): all 24**, remeshed to ~30k in Meshy (neon-v-D decimated in Blender), textures 2048, placed with `--match` on the old ones: neon blocks a-b, neon towers a-c, neon-v A-F (the six slim towers), nexus civic a-c, spire, terraces a-b, riverdale corner, and city apartment, brick (brownstone), casino, deco, office (glass curtain wall), villa. 24 made at 4K (2 neon offices, 3 neon skyscrapers, 6 neon towers, 3 civic, spire, 2 terraces, brick corner, apartment, brownstone, casino, art deco hotel, glass office, villa) |
 | Remesh | weapons ~12k; animals ~10k and nature (trees ~12k, shrubs ~6k, rocks ~4k) requested in Meshy |
-| Not yet | bosses and hero characters (needs a credit top-up: ~560 left after the batches above) |
+| 7 Chapter 1 bosses (Nov 23, lead, owner: "make sure you create everything that we need for chapter 1", ~750 credits allowed) | **in the game: fracture-commander, subject-zero, fracture-executioner, siege-beast, harbinger, archive-warden** (`models/bosses/`, boss.gd STORY rows, campaign.gd BOSS_FOR; stage.gd FIGURES "THE HARBINGER" / "ARCHIVE WARDEN" / "ENEMY COMMANDER" on them too). Meshy 7 has no text-to-3D: each was a Nano Banana Pro concept image in the Image tool (9 credits, A-Pose, on the script's description) then Image-to-3D Standard (35 credits; 7.1 Flagship, 2K textures, ~0.7–1.7M faces). Decimated to 80k tris with `tools/decimate_glb.py` (Blender collapse, UVs kept, JPEG q92: 30–60 MB → ~6 MB) and through import-meshy.py at 2048; all six pass the gate (base blocky ≤ 0.010). Spend ≈ 264 credits; the balance also dropped 71 (36 + 35) before the first task and 10 more mid-session with nothing of the lead's submitted — flagged to the owner. Look-dev: `OUT=x.png godot … res://tests/tools/_boss_lineup.tscn` |
+| Not yet | bespoke hulls for the Rift Gate's board six and the hero characters |
 | Vehicles | being re-made separately on the account from the vehicle roster sheets ("Recreate the exact vehicle"), not duplicated here |
 
 ## Drop-in wiring (lead session, Nov 15)
@@ -123,7 +124,8 @@ models/foliage/conifer-cards.glb 13.0`.
 ## How a model comes in
 
 1. Download the GLB from the Meshy canvas (the file name carries the model name).
-2. `python3 scripts/import-meshy.py SRC.glb godot-world-fracture/models/<dir>/<name>.glb --match <the old model> [--weapon [--flip]]`
+2. A Meshy 7.1 hull at ~1M faces first: `blender -b -P godot-world-fracture/tools/decimate_glb.py -- SRC.glb DEC.glb 80000`
+   (collapse decimate, UVs and textures kept) — then `python3 scripts/import-meshy.py DEC.glb godot-world-fracture/models/<dir>/<name>.glb --match <the old model> [--weapon [--flip]]`
    or `--height <metres>`: placed where the old one was, textures to 2048 px JPEG, the pixelation gate run on the
    result (a fail deletes it).
 3. `tests/tools/model_compare.gd -- out.png old.glb new.glb [--close]`: old and new side by side, then a close crop.

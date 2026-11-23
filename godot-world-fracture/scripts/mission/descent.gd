@@ -305,6 +305,8 @@ func _begin(id: String) -> void:
 	if quest.is_empty():
 		_chapter_done()
 		return
+	if gunplay:
+		gunplay.resupply()     # every chapter starts on full ammo
 	if String(quest.world) != world_id:
 		_travel(String(quest.world), String(quest.start))
 	controls.toast("%s · %s" % [String(quest.id).to_upper(), quest.title])
@@ -542,6 +544,8 @@ func _process(dt: float) -> void:
 		_respawn_t -= dt
 		if _respawn_t <= 0.0:
 			operator.position = enemies.respawn_point(_respawn_point()) if enemies else _respawn_point()
+			if gunplay:
+				gunplay.resupply()
 			operator.velocity = Vector3.ZERO
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if beacon:

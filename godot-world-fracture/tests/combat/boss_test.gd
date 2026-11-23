@@ -9,12 +9,13 @@ func _init() -> void:
 	var ok := true
 	# every board boss: a model that exists, hull scaled, attacks known
 	var r1 := true
-	for id in Boss.BOSSES:
+	for id in Boss.BOSSES.keys() + Boss.STORY.keys():
 		var b := Boss.new(id)
 		r1 = r1 and ResourceLoader.exists("res://models/bosses/" + String(b.def.model)) and b.hull_max > 1000.0
 		for a in b.def.attacks:
 			r1 = r1 and Boss.ATTACKS.has(a)
-	print("six bosses with models, hulls and known attacks: ", r1)
+	r1 = r1 and Boss.STORY.size() == 6
+	print("six board bosses and the six Aftershock bosses with models, hulls and known attacks: ", r1)
 	ok = ok and r1
 	# phases: 100 % → 0, 60 % → 1 (OVERDRIVEN, weak point opens), 25 % → 2
 	var b := Boss.new("rift-hound")

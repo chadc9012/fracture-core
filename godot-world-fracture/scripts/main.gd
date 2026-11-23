@@ -23,6 +23,7 @@ const RoyaleView := preload("res://scripts/killbox/royale_view.gd")
 const SkywaysView := preload("res://scripts/flying/skyways_view.gd")
 var skyways: Control
 const BossArena := preload("res://scripts/combat/boss_arena.gd")
+const Boss := preload("res://scripts/combat/boss.gd")
 const Airport := preload("res://scripts/airport/airport.gd")
 const AirportView := preload("res://scripts/airport/airport_view.gd")
 const ArrivalView := preload("res://scripts/airport/arrival_view.gd")
@@ -1173,11 +1174,12 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_creator()
 			if String(o).contains(":"):
 				creator.show_tab(String(o).get_slice(":", 1).to_upper())
-		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default); :fight holds fire
+		# boss[:<id>][:fight]  a Fracture boss at the crash-site clearing (rift-hound by default; any BOSSES / STORY / UNIQUE
+		# id); :fight holds fire
 		if String(o).begins_with("boss"):
 			boss_arena = BossArena.new()
 			boss_arena.boss_id = "rift-hound"
-			for id in ["crystal-stalker", "abyssal-leviathan", "vyrak", "astravore", "colossus"]:
+			for id in Boss.BOSSES.keys() + Boss.STORY.keys() + Boss.UNIQUE.keys():
 				if String(o).contains(id):
 					boss_arena.boss_id = id
 			boss_arena.closed.connect(_close_boss)
@@ -1344,6 +1346,29 @@ func _shoot(path: String, opts: Array) -> void:
 					region_3d._look_yaw = atan2(-(ls.x - e3.x), -(ls.z - e3.z))
 					region_3d._look_pitch = float(lk[3]) if lk.size() > 3 else 6.0
 					region_3d._apply_cam()
+				continue
+			if String(o).begins_with("eye:highway"):
+				# eye:highway[:t][:side]  stands on the region's first highway at fraction t of its length (default 0.4), on
+				# the deck or (side) 30 m off it, looking along it
+				var hk := String(o).split(":")
+				var ht := float(hk[2]) if hk.size() > 2 else 0.4
+				for r in region_3d.m.roads:
+					if r.cls != "highway":
+						continue
+					var pts: Array = r.pts
+					var k := clampi(int(ht * (pts.size() - 1)), 0, pts.size() - 2)
+					var a2: Vector2 = region_3d._loc(pts[k][0], pts[k][1])
+					var b2: Vector2 = region_3d._loc(pts[k + 1][0], pts[k + 1][1])
+					var dir := (b2 - a2).normalized()
+					var at := a2
+					var yaw := atan2(-dir.x, -dir.y)
+					if hk.size() > 3:
+						at = a2 + dir.orthogonal() * 34.0 - dir * 20.0
+						yaw = atan2(-(dir.x * 0.8 - dir.orthogonal().x * 0.6), -(dir.y * 0.8 - dir.orthogonal().y * 0.6))
+					region_3d.set_eye(at.x, at.y, yaw)
+					region_3d._look_pitch = -4.0
+					region_3d._apply_cam()
+					break
 				continue
 			if String(o).begins_with("eye:board:"):
 				# eye:board:<name>[:dist]  stands in front of one of the board landmarks (region_board.gd), between it and the
