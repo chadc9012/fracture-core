@@ -315,6 +315,8 @@ func _ready() -> void:
 			d.enemies.hull = d.enemies.hull_max
 			d.enemies.down = 0.0
 	d.controls.fire = false
+	if d.boss and not d.boss.rules.dead:
+		print("     Vyrak hull %s, %.0f m off, operator at %s, guns %s, shots %d hits %d, deaths %d" % [str(d.boss.rules.get("hull")), d.boss.position.distance_to(d.operator.position), str(d.operator.position.round()), str(d.gunplay.guns.map(func(g): return "%s %d/%d" % [g.frame, g.mag, g.reserve])), d.gunplay.shots_fired, d.gunplay.hits_landed, d.enemies.deaths])
 	ok(d.boss != null and d.boss.rules.dead, "Vyrak broken (%.0f s)" % bt)
 	for i in 10:
 		await get_tree().process_frame
