@@ -46,6 +46,48 @@ func _aim(p: Vector3) -> void:
 	d.operator.cam_pitch = clampf(d.operator.cam_pitch + clampf(asin(clampf(want.y, -1, 1)) - asin(clampf(f.y, -1, 1)), -0.5, 0.5), -0.9, 0.45)
 
 ## walk to `to` with the stick; false if the operator stalls (a blocked or unreachable waypoint)
+## the way to walk towards `to`: straight at it, or — with a building in the next 12 m of that line — at the corner of
+## that building that makes the shortest way round (a player walks round a tower; the old walk leaned on its wall until
+## it gave up: Mission 02's stairwell, Nov 23)
+func _round(from: Vector3, to: Vector3) -> Vector2:
+	var a := Vector2(from.x, from.z)
+	var b := Vector2(to.x, to.z)
+	var dir := (b - a).normalized()
+	var reach := minf(12.0, a.distance_to(b))
+	for bx: AABB in d.operator.obstacles:
+		if bx.size.y < 1.2 or absf(bx.get_center().x - a.x) > 40.0 or absf(bx.get_center().z - a.y) > 40.0:
+			continue
+		var lo := Vector2(bx.position.x - 0.7, bx.position.z - 0.7)
+		var hi := Vector2(bx.end.x + 0.7, bx.end.z + 0.7)
+		if b.x > lo.x - 1.5 and b.x < hi.x + 1.5 and b.y > lo.y - 1.5 and b.y < hi.y + 1.5:
+			continue   # the thing it is walking to
+		var hit := false
+		var s := 0.5
+		while s <= reach:
+			var q := a + dir * s
+			if q.x > lo.x and q.x < hi.x and q.y > lo.y and q.y < hi.y:
+				hit = true
+				break
+			s += 0.5
+		if not hit:
+			continue
+		var best_c := b
+		var best_len := INF
+		for c: Vector2 in [Vector2(lo.x - 1.2, lo.y - 1.2), Vector2(hi.x + 1.2, lo.y - 1.2), Vector2(lo.x - 1.2, hi.y + 1.2), Vector2(hi.x + 1.2, hi.y + 1.2)]:
+			# a corner it can walk straight to
+			var blocked := false
+			for k in 9:
+				var q2 := a.lerp(c, (k + 1) / 10.0)
+				if q2.x > lo.x and q2.x < hi.x and q2.y > lo.y and q2.y < hi.y:
+					blocked = true
+					break
+			var l := a.distance_to(c) + c.distance_to(b) + (1000.0 if blocked else 0.0)
+			if l < best_len:
+				best_len = l
+				best_c = c
+		return best_c - a
+	return b - a
+
 func _walk_to(to: Vector3, near: float, label: String) -> bool:
 	var best := INF
 	var stall := 0.0
@@ -57,7 +99,8 @@ func _walk_to(to: Vector3, near: float, label: String) -> bool:
 		if dist < near:
 			d.controls.move = Vector2.ZERO
 			return true
-		op.cam_yaw = atan2(-off.x, -off.y)
+		var head := _round(op.position, to)
+		op.cam_yaw = atan2(-head.x, -head.y)
 		d.controls.move = Vector2(0, 1)
 		d.controls.sprint = true
 		await get_tree().process_frame
@@ -105,7 +148,8 @@ func _walk_until(to: Vector3, near: float, label: String, stop: Callable) -> boo
 		if dist < near and stop.call():
 			d.controls.move = Vector2.ZERO
 			return true
-		op.cam_yaw = atan2(-off.x, -off.y)
+		var head := _round(op.position, to)
+		op.cam_yaw = atan2(-head.x, -head.y)
 		d.controls.move = Vector2(0, 1)
 		d.controls.sprint = true
 		await get_tree().process_frame

@@ -270,8 +270,33 @@ func _respawn_point() -> Vector3:
 func _on_ground(p: Vector3) -> Vector3:
 	var half: float = region.span() * 0.5 - 25.0
 	var q := Vector3(clampf(p.x, -half, half), 0, clampf(p.z, -half, half))
+	# never inside a building or hard against one (Mission 02's stairwell marker sat inside a Nexus tower, Nov 23: the
+	# nearest spot with 4 m of open ground round it)
+	if operator and not _open_ground(q):
+		var found := false
+		for rad: float in [5.0, 8.0, 12.0, 16.0, 22.0, 30.0]:
+			for k in 12:
+				var c := q + Vector3(cos(k * TAU / 12.0), 0, sin(k * TAU / 12.0)) * rad
+				if absf(c.x) < half and absf(c.z) < half and _open_ground(c):
+					q = c
+					found = true
+					break
+			if found:
+				break
 	q.y = region.ground(q.x, q.z)
 	return q
+
+## no obstacle box within 4 m of p (on the map plane)
+func _open_ground(p: Vector3) -> bool:
+	for b in operator.obstacles:
+		var bx: AABB = b
+		if bx.size.y < 1.2:
+			continue   # kerbs and low planters are stepped over
+		var dx := maxf(maxf(bx.position.x - p.x, p.x - bx.end.x), 0.0)
+		var dz := maxf(maxf(bx.position.z - p.z, p.z - bx.end.z), 0.0)
+		if dx * dx + dz * dz < 16.0:
+			return false
+	return true
 
 # --------------------------------------------------------------------------------------------- the chain
 func _begin(id: String) -> void:
@@ -475,7 +500,7 @@ func _refresh() -> void:
 			if int(progress.stage) == 0:
 				_objective.text = "%s\n%s · %d / %d s" % [quest.title, quest.label, int(progress.timer), int(quest.amount)]
 			else:
-				_objective.text = "%s\n%s · %d / 3 guards down · %d m" % [quest.title, String(quest.stage2), _guards_down(), int(d)]
+				_objective.text = "%s\n%s · %d / 3 guards down · %d m" % [quest.title, String(quest.get("stage2", quest.label)), _guards_down(), int(d)]
 		"hack":
 			_objective.text = "%s\n%s · %d / %d s%s" % [quest.title, quest.label, int(progress.timer), int(quest.amount), "" if d < 9.0 else " · terminal %d m" % int(d)]
 		"core":
