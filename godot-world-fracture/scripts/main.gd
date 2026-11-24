@@ -336,6 +336,8 @@ func _show_from_street(view: Control) -> void:
 		view.outside.connect(_walk_out.bind(view))
 	if view.has_signal("roll_on"):
 		view.roll_on.connect(_roll_on.bind(view))
+	if view.has_signal("story_next"):
+		view.story_next.connect(_roll_on.bind(view))
 	if view.has_signal("unique_called"):
 		view.unique_called.connect(_unique_called.bind(view))
 	add_child(view)
@@ -349,10 +351,18 @@ func _airport_view(code: String, arriving: bool) -> Control:
 ## the story the crash-site door opens: the main story, Missions 2–70, and nothing after it (owner, Nov 24: "we shouldn't
 ## be moving backwards, no duplicate missions" — it used to roll on into the original campaign, which starts again at
 ## Mission 02 and retells the same arc; the original set and Act 1's descent are no longer on the story path)
+## Mission 1 first: until it has been played through (profile `m1_drop`, set at its end) the door opens the apartment
 func _story_view() -> Control:
-	return Aftershock.new()
+	var pf := FileAccess.open("user://profile.json", FileAccess.READ)
+	if pf:
+		var pd: Variant = JSON.parse_string(pf.get_as_text())
+		if pd is Dictionary and (pd as Dictionary).get("m1_drop", false) == true:
+			return Aftershock.new()
+	var m1: Control = Mission01.new()
+	m1.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return m1
 
-## Chapter 1 done: the story rolls straight on into the original set, over the same hidden street
+## the story goes on in the same place: Mission 01 → the main story, over the same hidden street
 func _roll_on(from_view: Control) -> void:
 	if _from_street != from_view:
 		return
@@ -645,9 +655,19 @@ func _open_mission() -> void:
 	mission = Mission01.new()
 	mission.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mission.closed.connect(_close_mission)
+	mission.story_next.connect(_mission_on_to_story)
 	add_child(mission)
 	planet_view.set_process(false)
 	planet_view.visible = false
+
+## Mission 1 done and the player went straight on: the city opens (home), and Mission 2 over it
+func _mission_on_to_story() -> void:
+	_mission_from_onboarding = false
+	_close_mission()
+	_open_street(true, "nexus", true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_street_door("descent")
 
 func _close_mission() -> void:
 	if mission:

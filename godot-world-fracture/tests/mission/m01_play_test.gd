@@ -118,6 +118,17 @@ func _ready() -> void:
 		await get_tree().process_frame
 	ok(m.story.phase == "DONE" and m._complete.visible, "mission complete")
 	ok(int(m.profile.xp) >= 850, "paid, with the rescue bonus")
+	# the story goes on from here (Nov 24): the end card's first choice is the main story, and it hands over to Mission 2
+	var labels: Array = m._complete.find_children("*", "Button", true, false).map(func(b): return (b as Button).text)
+	ok(labels.has("CONTINUE THE STORY"), "the end card goes on into the story (%s)" % str(labels))
+	var handed := [false]
+	m.story_next.connect(func(): handed[0] = true)
+	m._to_mission_2()
+	var t3: float = m._now
+	while not handed[0] and m._now - t3 < 10.0:
+		await get_tree().process_frame
+	ok(handed[0], "NOVA warns of the second surge, the screen goes dark, and Mission 2 takes over")
+	ok(bool(m.profile.get("m1_drop", false)), "Mission 1 is marked played, so the story door opens Mission 2 next")
 	print("mission 01 play: %d failed" % fails)
 	# leave no save behind
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://mission01.json"))

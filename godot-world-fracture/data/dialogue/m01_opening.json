@@ -40,6 +40,7 @@
 
     { "id": "M01X_WORLD_1", "speaker": "NOVA", "text": "Every city on this world woke up somewhere new this morning." },
     { "id": "M01X_WORLD_2", "speaker": "NOVA", "text": "Nexus was only the first to notice." },
-    { "id": "M01X_WORLD_3", "speaker": "PLAYER", "text": "Then we'd better find out where we are." }
+    { "id": "M01X_WORLD_3", "speaker": "PLAYER", "text": "Then we'd better find out where we are." },
+    { "id": "M01X_BRIDGE", "speaker": "NOVA", "text": "Wait. A second surge. One point eight kilometres out. Brace—" }
   ]
 }
