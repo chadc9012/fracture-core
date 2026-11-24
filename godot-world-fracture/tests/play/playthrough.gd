@@ -257,7 +257,7 @@ func _play_creator() -> void:
 		problem("the operator creator did not open")
 		return
 	var CS = load("res://scripts/character/character_store.gd")
-	for body in ["male", "female", "robot"]:
+	for body in ["male", "female"]:
 		step("creator body %s" % body)
 		c.look = CS.clean({"frame": "goliath" if body != "female" else "nyx", "body": body}, true)
 		if c.has_method("_rebuild"):

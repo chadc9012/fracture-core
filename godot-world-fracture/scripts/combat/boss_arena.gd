@@ -97,7 +97,7 @@ func _start() -> void:
 	region.world().add_child(operator)
 	var half: float = region.span() * 0.5 - 20.0
 	operator.bounds = Rect2(-half, -half, half * 2.0, half * 2.0)
-	operator.ground_at = func(x: float, z: float) -> float: return region.ground(x, z)
+	region.fit_walker(operator)
 	operator.obstacles = region.building_boxes()
 	operator.position = region.stand_point()
 	operator.civilian = false   # the armour is for the fights (streetwear in the city)
@@ -159,6 +159,7 @@ func _process(dt: float) -> void:
 			operator.position = region.stand_point()
 			operator.velocity = Vector3.ZERO
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
+	controls.water_label(operator.swimming, operator.diving)
 	if controls.take_next():
 		gunplay.next_weapon()
 	gunplay.step(dt, region.camera(), controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())

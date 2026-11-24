@@ -56,6 +56,7 @@ var _fade: ColorRect
 var _busy := false
 var _cine_t := -1.0
 var _cine_cam: Camera3D
+var _cine_key: OmniLight3D
 var _echoes: Array = []
 var _wave_pending := false
 var _npcs := {}
@@ -107,7 +108,7 @@ var _keys := {}
 func _ready() -> void:
 	_rng.seed = 2207
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	touch = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
+	touch = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_environment("WF_TOUCH")   # WF_TOUCH: a desktop run as the phone (recordings)
 	_load_profile()
 	var svc := SubViewportContainer.new()
 	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -129,6 +130,12 @@ func _ready() -> void:
 	_buildings()
 	_skyline()
 	_props()
+	# the kerb palm in front of the Residences' sign stood between the opening's camera and the building: its fronds,
+	# seen from under the crown, read as torn scraps (owner's video, Nov 17). That stretch keeps its lamps, no palm
+	for n in street_root.find_children("*", "Node3D", false, false):
+		if String(n.get_meta("file", "")) == "palm.glb" and (n as Node3D).position.x < 0.0 and absf((n as Node3D).position.z - RES_DOOR.z) < 14.0:
+			n.queue_free()
+			_tree_feet = _tree_feet.filter(func(p: Vector3) -> bool: return not (p.x < 0.0 and absf(p.z - RES_DOOR.z) < 14.0))
 	_cars()
 	_residences_front()
 	_street_collision()
@@ -169,6 +176,18 @@ func _ready() -> void:
 	_cine_cam.fov = 55.0
 	_cine_cam.far = 2500.0
 	street_root.add_child(_cine_cam)
+	# a soft key on the camera for the close shots: in the alarm-red corridor and against the windows the people in
+	# a cinematic stood as black cut-outs (owner's video, Nov 17). Short range, no shadow: wide shots are untouched
+	var key := OmniLight3D.new()
+	_cine_key = key
+	key.visible = false   # on only while a cinematic plays (_play_cine)
+	key.light_color = Color(1.0, 0.93, 0.86)
+	key.light_energy = 0.9
+	key.omni_range = 4.5
+	key.omni_attenuation = 1.6
+	key.shadow_enabled = false
+	key.position = Vector3(0.6, 0.5, 0.3)
+	_cine_cam.add_child(key)
 	_build_hud()
 	_cs = Cutscene.new()
 	add_child(_cs)
@@ -537,8 +556,10 @@ func _interior_skyline() -> void:
 	var count := 12 if Phone.tier() == "low" else 20
 	for i in count:
 		var a := TAU * (float(i) + r.randf_range(-0.3, 0.3)) / float(count)
-		var dist := r.randf_range(270.0, 470.0)
-		var h := r.randf_range(80.0, 200.0)
+		# far enough that a 1024 px tower texture holds up through the glass (at 270 m the nearest one filled a window
+		# and its balconies read stretched and blurred; owner's video, Nov 17)
+		var dist := r.randf_range(420.0, 640.0)
+		var h := r.randf_range(90.0, 170.0)
 		var at := mid + Vector3(cos(a) * dist, -45.0, sin(a) * dist)
 		var t := prop(SKYLINE[i % SKYLINE.size()], h, at, r.randf() * 360.0)
 		if t:
@@ -547,14 +568,16 @@ func _interior_skyline() -> void:
 				(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# the far ring: plain massing, too far to read as boxes
 	var far := StandardMaterial3D.new()
-	far.albedo_color = Color(0.42, 0.47, 0.55)
-	far.roughness = 0.7
-	for i in (48 if placed > 0 else 110):
+	# hazy blue-grey and sunk well below the floor line, so no box reads as a white block hanging over the sea
+	far.albedo_color = Color(0.3, 0.34, 0.41)
+	far.roughness = 0.9
+	# (with the towers there, no plain boxes: at that distance over the sea they read as white blocks hanging in the sky)
+	for i in (0 if placed > 0 else 110):
 		var a := r.randf() * TAU
-		var dist := r.randf_range(540.0, 780.0) if placed > 0 else r.randf_range(140.0, 520.0)
+		var dist := r.randf_range(720.0, 980.0) if placed > 0 else r.randf_range(140.0, 520.0)
 		var h := r.randf_range(60.0, 220.0)
 		var w := r.randf_range(22.0, 44.0)
-		var mi := _box(Vector3(w, h, w), mid + Vector3(cos(a) * dist, h * 0.5 - 45.0, sin(a) * dist), far)
+		var mi := _box(Vector3(w, h + 60.0, w), mid + Vector3(cos(a) * dist, (h + 60.0) * 0.5 - 105.0, sin(a) * dist), far)
 		mi.rotation.y = r.randf() * PI
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
@@ -661,7 +684,7 @@ func _apartment() -> void:
 	if art_id != "":
 		var frame_m := flat(Color(0.1, 0.1, 0.11), 0.5, 0.3)
 		_box(Vector3(1.7, 1.1, 0.04), c + Vector3(2.0, 1.9, 5.47), frame_m)
-		var canvas := flat(Color(0.1, 0.16, 0.28), 0.8) if art_id == "art-skyline" else flat(Color(0.5, 0.2, 0.55), 0.7, 0.0, 0.6)
+		var canvas: Material = flat(Color(0.1, 0.16, 0.28), 0.8) if art_id == "art-skyline" else _first_light()
 		_box(Vector3(1.55, 0.95, 0.02), c + Vector3(2.0, 1.9, 5.44), canvas)
 		if art_id == "art-skyline":
 			for k in 7:
@@ -706,6 +729,38 @@ func _apartment() -> void:
 		envelope.visible = false
 		_morning("mail"), func() -> bool: return _todo("mail"), "mail")
 	_interact("apt", c + Vector3(1.0, 0, 4.8), 1.4, "Go out to the corridor", func() -> void: _go_room("hall", HALL + Vector3(1.0, 0, -6.0), 0.0), func() -> bool: return true, "to_hall")
+
+## "First Light" (Haven Home art): the Fracture in oils — a dawn sky split by a violet tear over the towers, brushed. It
+## was a plain purple panel, which read as a missing texture on the wall (owner's video, Nov 17)
+func _first_light() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+void fragment() {
+	vec2 uv = vec2(UV.x, 1.0 - UV.y);
+	// brushed dawn: amber low, violet high, strokes running sideways
+	float stroke = n(vec2(uv.x * 6.0, uv.y * 40.0)) * 0.5 + n(vec2(uv.x * 14.0, uv.y * 90.0)) * 0.25;
+	vec3 sky = mix(vec3(0.95, 0.55, 0.3), vec3(0.32, 0.12, 0.42), smoothstep(0.15, 0.85, uv.y + stroke * 0.12));
+	// the tear: a jagged bright line down from the top
+	float x0 = 0.58 + (n(vec2(uv.y * 7.0, 3.0)) - 0.5) * 0.12 + (n(vec2(uv.y * 23.0, 9.0)) - 0.5) * 0.04;
+	float d = abs(uv.x - x0);
+	float tear = smoothstep(0.035, 0.0, d) * smoothstep(0.25, 0.5, uv.y);
+	sky = mix(sky, vec3(0.85, 0.75, 1.0), tear) + vec3(0.6, 0.3, 0.9) * smoothstep(0.18, 0.0, d) * 0.35 * smoothstep(0.25, 0.6, uv.y);
+	// the towers: dark blocks along the bottom
+	float bx = floor(uv.x * 11.0);
+	float top = 0.12 + h(vec2(bx, 2.0)) * 0.26;
+	float city = step(uv.y, top);
+	vec3 col = mix(sky, vec3(0.08, 0.06, 0.12) + stroke * 0.05, city);
+	ALBEDO = col * (0.85 + stroke * 0.3);
+}
+"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	return m
 
 var _news: ShaderMaterial
 func _news_mat() -> ShaderMaterial:
@@ -966,6 +1021,7 @@ func _npc(id: String, face: String, body: String, frame: String, at: Vector3, ya
 	if outfit != "":
 		# a neighbour at home in the morning: their own clothes, not an operator's armour
 		lk.civ = true
+		lk.npc = true   # the city's people keep the painted bodies (the real one is the operator's)
 		lk.outfit = outfit
 	rig.build(lk)
 	rig.position = at
@@ -1014,8 +1070,10 @@ func _play_cine(shots: Array) -> void:
 	if _radio_on:
 		Sound.music_stop()
 		_radio_on = false
+	_cine_key.visible = true
 	_cs.play(shots)
 	await _cs.finished
+	_cine_key.visible = false
 	_cs.music("")
 	hud.visible = true
 	op.frozen = false
@@ -1089,6 +1147,11 @@ func _go_room(rm: String, at: Vector3, yaw: float, fade := true) -> void:
 		await _fade_out()
 	room = rm
 	_set_world(false)
+	# Mara stays freed: a game loaded after the rescue had her back in the lounge, standing where the operator came in
+	# (she stood inside them; owner's video, Nov 17)
+	var trapped: Node3D = _npcs.get("mara_trapped")
+	if trapped and story.rescued:
+		trapped.visible = false
 	if rm == "hall" and story.phase == "ALARM" and not _hall_said:
 		_hall_said = true
 		_say(Story.HALL_LINES.duplicate())
@@ -1872,8 +1935,21 @@ func _fit_hud() -> void:
 		return
 	var w := get_viewport_rect().size.x
 	var sw := minf(760.0, w - 24.0)
-	# upright, the line sits above the minimap (bottom left, 170 tall) rather than over it
-	_place(_sub_box, Control.PRESET_CENTER_BOTTOM, -sw * 0.5, -160 if w >= 900.0 else -232, sw, 0)
+	# upright, the line sits above the minimap (bottom left, 170 tall) rather than over it; on the phone with the combat
+	# pad up it sits above the pad and grows upward (DASH and MELEE covered the lines in the street fight; owner's
+	# video, Nov 17)
+	_pad_layout = touch and op != null and op.powers >= 1
+	if _pad_layout:
+		_place(_sub_box, Control.PRESET_CENTER_BOTTOM, -sw * 0.5, -345, sw, 0)
+		_sub_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	else:
+		_place(_sub_box, Control.PRESET_CENTER_BOTTOM, -sw * 0.5, -160 if w >= 900.0 else -232, sw, 0)
+		_sub_box.grow_vertical = Control.GROW_DIRECTION_END
+	# the magazine count: on the phone up by the compass, not under the FIRE button
+	if touch:
+		_place(_ammo, Control.PRESET_TOP_RIGHT, -260, 64, 230, 44)
+	else:
+		_place(_ammo, Control.PRESET_BOTTOM_RIGHT, -260, -110, 230, 44)
 	_sub_text.custom_minimum_size = Vector2(sw - 30.0, 0)
 	var aw := minf(590.0, w - 48.0)
 	_place(_abil, Control.PRESET_BOTTOM_RIGHT, -aw - 30.0, -126 if touch else -62, aw, 24)
@@ -1936,7 +2012,7 @@ func _build_hud() -> void:
 	_place(_location, Control.PRESET_BOTTOM_LEFT, 30, -34, 360, 24)
 	# ammo and abilities, bottom right
 	_ammo = _hud_label("", 34, Color(1, 1, 1), hud)
-	_place(_ammo, Control.PRESET_BOTTOM_RIGHT, -260, -170 if touch else -110, 230, 44)
+	_place(_ammo, Control.PRESET_BOTTOM_RIGHT, -260, -110, 230, 44)
 	_ammo.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_abil = _hud_label("", 15, Color(0.75, 0.9, 1.0), hud)
 	_place(_abil, Control.PRESET_BOTTOM_RIGHT, -620, -126 if touch else -62, 590, 24)
@@ -2041,7 +2117,7 @@ func _build_hud() -> void:
 	_btns.append(use)
 	use.name = "USE"
 	if touch:
-		var pad := [["FIRE", Vector2(-150, -230), Vector2(110, 110)], ["BLAST", Vector2(-290, -190), Vector2(84, 84)], ["DASH", Vector2(-150, -330), Vector2(84, 70)], ["MELEE", Vector2(-270, -290), Vector2(84, 70)], ["RELOAD", Vector2(-380, -120), Vector2(90, 54)], ["RUN", Vector2(-40, -330), Vector2(0, 0)]]
+		var pad := [["FIRE", Vector2(-150, -230), Vector2(110, 110)], ["BLAST", Vector2(-290, -190), Vector2(84, 84)], ["DASH", Vector2(-150, -330), Vector2(84, 70)], ["MELEE", Vector2(-270, -290), Vector2(84, 70)], ["RELOAD", Vector2(-150, -108), Vector2(110, 50)], ["RUN", Vector2(-40, -330), Vector2(0, 0)]]
 		for p: Array in pad:
 			if p[0] == "RUN":
 				continue
@@ -2071,6 +2147,7 @@ func _update_hud() -> void:
 	_update_hud_rest()
 
 var _tracker_sig := ""
+var _pad_layout := false   # the phone's subtitles lifted over the combat pad (_fit_hud)
 func _rebuild_tracker() -> void:
 	for c in _obj_box.get_children():
 		c.free()
@@ -2080,6 +2157,8 @@ func _rebuild_tracker() -> void:
 	_hud_label("◈", 18, Color(1.0, 0.82, 0.3), head)
 	_hud_label("M1: The Fracture", 19, Color(1.0, 0.82, 0.3), head)
 	for t: Dictionary in story.tracker():
+		if String(t.label) == "":
+			continue
 		var r := HBoxContainer.new()
 		r.add_theme_constant_override("separation", 8)
 		_obj_box.add_child(r)
@@ -2107,6 +2186,10 @@ func _update_hud_rest() -> void:
 	if armed and not touch:
 		ab.append("LMB fire · F melee · R reload")
 	_abil.text = "   ".join(ab)
+	# the keys are the desktop's: on the phone the pad's own buttons are the abilities ("SPACE DASH READY" under them)
+	_abil.visible = not touch
+	if touch and (op.powers >= 1) != _pad_layout:
+		_fit_hud()
 	_hp_bar.value = op.hp
 	_hp_bar.visible = story.phase in ["DAZED", "SURGE", "ANCHOR", "CLEAR"] or op.hp < 100.0
 	# prompt

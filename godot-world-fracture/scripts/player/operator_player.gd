@@ -34,6 +34,33 @@ var bounds := Rect2(-1000, -1000, 2000, 2000)
 var obstacles: Array[AABB] = []
 ## ground height under (x, z); set by the scene
 var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
+## open water deep enough to swim in: the water's surface at a point, or -INF where you wade or stand (regions give
+## region.swim_surface; scenes without open water leave it unset). Over it the operator swims instead of walking on
+## the surface: head and shoulders out, slower, no jump, the guns stowed (gunplay reads `swimming`).
+var swim_at: Callable
+## the lowest the chase camera may go (ground_at when unset; regions keep it above the water's surface)
+var cam_floor: Callable
+var swimming := false
+const SWIM := 1.6
+const SWIM_FAST := 2.6
+const SWIM_SINK := 1.3        # body origin (the feet) below the surface while swimming: head and shoulders out
+var _swim_tilt := 0.0
+## diving (the web's underwater.ts): JUMP in the water ducks under, then the stick swims where the camera looks (pitch
+## down to go deeper); JUMP under water kicks up. Oxygen drains under the surface and comes back above it; with none
+## left the operator is carried up and cannot go down again until they have breathed. `bed_at` is the true sea floor
+## and `water_top` the sea level (region_3d.gd fit_walker); without them there is no diving.
+var bed_at: Callable
+var water_top := -INF
+var diving := false
+var oxygen := 100.0
+const OXYGEN_MAX := 100.0
+const OXYGEN_DRAIN := 5.5     # per second under (underwater.ts OXYGEN_DRAIN_PER_SEC)
+const OXYGEN_REGEN := 14.0
+const DIVE_V := 2.2           # m/s straight down or up at full stick
+const BUOYANCY := 0.6         # m/s drift up when not swimming down
+const KICK_V := 2.6
+var _dive_vy := 0.0
+var _under_fx: CanvasLayer
 
 # camera
 var cam: Camera3D
@@ -89,6 +116,16 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	var want := (fwd * move.y + right * move.x)
 	var mag := minf(want.length(), 1.0)
 	var top := (SPRINT if sprint else RUN) if mag > 0.6 else WALK
+	var surf := -INF
+	if swim_at.is_valid():
+		surf = swim_at.call(position.x, position.z) as float
+	swimming = surf > -INF
+	if diving and not swimming:
+		diving = false            # under water over shallows: stand on the bed
+	if swimming:
+		top = SWIM_FAST if sprint else SWIM
+		if diving:
+			top *= 0.85
 	var target := want.normalized() * top * mag if mag > 0.02 else Vector3.ZERO
 	var rate := ACCEL if mag > 0.02 else DECEL
 	var flat := Vector3(velocity.x, 0, velocity.z).move_toward(target, rate * dt)
@@ -101,6 +138,39 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		heading = lerp_angle(heading, want_heading, minf(1.0, TURN * dt))
 	# vertical
 	var gy := ground_at.call(position.x, position.z) as float
+	if swimming and not diving and jump and bed_at.is_valid() and oxygen > 15.0 and position.y < surf - SWIM_SINK + 0.3:
+		diving = true             # duck under
+		_dive_vy = -DIVE_V
+		jump = false
+		if cam:
+			Sound.sfx("water", -10.0, 0.1)
+	if swimming and diving:
+		# under water: forward on the stick goes where the camera looks, up or down; buoyancy lifts a still body
+		var floor_y: float = (bed_at.call(position.x, position.z) as float) + 0.15
+		var pitch_k := clampf(sin(cam_pitch + 0.18) * 2.2, -1.0, 1.0)   # level-ish looks hold the depth
+		var want_vy := move.y * mag * pitch_k * DIVE_V + BUOYANCY
+		if jump:
+			_dive_vy = KICK_V
+		if oxygen <= 0.0:
+			want_vy = maxf(want_vy, DIVE_V)                        # out of air: up to the surface
+		_dive_vy = move_toward(_dive_vy, want_vy, 4.0 * dt)
+		gy = surf - SWIM_SINK
+		jump = false
+		grounded = true
+		y_vel = 0.0
+		position.y = clampf(position.y + _dive_vy * dt, floor_y, gy)
+		if position.y >= gy - 0.01 and _dive_vy >= 0.0:
+			diving = false                                         # surfaced
+	elif swimming:
+		# float at the surface: settle to the swimming depth (a jump or a fall into the water eases down to it)
+		gy = surf - SWIM_SINK
+		jump = false
+		grounded = true
+		y_vel = 0.0
+		position.y = lerpf(position.y, gy, minf(1.0, 6.0 * dt))
+	# breath: the head (≈1.6 m up the body) under the surface drains it
+	var head_under := water_top > -INF and position.y + 1.6 < water_top
+	oxygen = clampf(oxygen + (-OXYGEN_DRAIN if head_under else OXYGEN_REGEN) * dt, 0.0, OXYGEN_MAX)
 	var was_grounded := grounded
 	if grounded and jump:
 		y_vel = JUMP_V
@@ -110,7 +180,9 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	if not grounded:
 		y_vel -= GRAVITY * dt
 	var ny := position.y + y_vel * dt
-	if ny <= gy and y_vel <= 0.0:
+	if swimming:
+		ny = position.y
+	elif ny <= gy and y_vel <= 0.0:
 		ny = gy
 		y_vel = 0.0
 		grounded = true
@@ -124,7 +196,14 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	nz = p.y
 	# a kerb or a low ledge is stepped onto; a drop is just a fall
 	var g2 := ground_at.call(nx, nz) as float
-	if grounded and g2 > ny and g2 - ny <= STEP:
+	var s2 := (swim_at.call(nx, nz) as float) if swim_at.is_valid() else -INF
+	if swimming and s2 > -INF:
+		pass                                   # still in deep water
+	elif swimming:
+		# wading out onto the shore or a bank: climb up onto it (the beach rises gently; a quay wall is a ledge you pull
+		# yourself onto)
+		ny = g2
+	elif grounded and g2 > ny and g2 - ny <= STEP:
 		ny = g2
 	elif grounded and g2 < ny - 0.02:
 		grounded = false
@@ -135,7 +214,12 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 		if grounded and not was_grounded and y_vel <= 0.0:
 			Sound.sfx("land", -8.0)
 		var sp := flat.length()
-		if grounded and sp > 0.5:
+		if swimming and sp > 0.3:
+			_step_t -= dt * sp
+			if _step_t <= 0.0:
+				_step_t = 1.6
+				Sound.sfx("water", -18.0, 0.2)
+		elif grounded and sp > 0.5:
 			_step_t -= dt * sp
 			if _step_t <= 0.0:
 				_step_t = 2.1
@@ -146,8 +230,10 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	recoil = maxf(0.0, recoil - RECOIL_SETTLE * dt * maxf(recoil, 0.05) * 4.0)
 	if rig:
 		rig.rotation.y = heading
+		_swim_pose(dt, flat.length())
 	_animate(flat.length(), sprint)
 	_place_camera(dt)
+	_underwater_fx()
 
 func _slide(to: Vector2, from: Vector2, y: float) -> Vector2:
 	var p := to
@@ -184,10 +270,72 @@ func _slide(to: Vector2, from: Vector2, y: float) -> Vector2:
 				p = Vector2(cx, cz) + d / dist * RADIUS
 	return p
 
+## swimming lays the body forward in the water as it moves (upright, treading water, when still); the rig tips about its
+## feet, so it is lifted and drawn back to keep the chest where the upright body's was
+func _swim_pose(dt: float, speed: float) -> void:
+	var want := 0.0
+	if swimming:
+		want = lerpf(0.25, 1.25, clampf(speed / SWIM, 0.0, 1.0))
+		if diving:
+			want = clampf(1.35 - _dive_vy * 0.35, 0.6, 2.3)       # head down going deeper, up rising
+	_swim_tilt = lerpf(_swim_tilt, want, minf(1.0, 5.0 * dt))
+	rig.rotation.x = _swim_tilt
+	var lift := sin(_swim_tilt) * 0.95
+	rig.position = Vector3(-sin(heading), 0.0, -cos(heading)) * lift + Vector3(0, (1.0 - cos(_swim_tilt)) * 1.15, 0)
+
+## the camera under the surface: a blue-green murk over the view, and the oxygen read-out while it is not full
+func _underwater_fx() -> void:
+	if not cam or water_top == -INF:
+		return
+	var under := cam.global_position.y < water_top if cam.is_inside_tree() else cam.position.y < water_top
+	var show_o2 := oxygen < OXYGEN_MAX - 0.5 or diving
+	if not under and not show_o2:
+		if _under_fx:
+			_under_fx.visible = false
+		return
+	if not _under_fx:
+		_under_fx = CanvasLayer.new()
+		_under_fx.layer = 5
+		var murk := ColorRect.new()
+		murk.name = "Murk"
+		murk.set_anchors_preset(Control.PRESET_FULL_RECT)
+		murk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		murk.color = Color(0.03, 0.22, 0.26, 0.55)
+		_under_fx.add_child(murk)
+		var o2 := Label.new()
+		o2.name = "O2"
+		o2.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		o2.offset_top = 64
+		o2.offset_left = -80
+		o2.offset_right = 80
+		o2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		o2.add_theme_font_size_override("font_size", 22)
+		o2.add_theme_constant_override("outline_size", 6)
+		o2.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		_under_fx.add_child(o2)
+		add_child(_under_fx)
+	_under_fx.visible = true
+	(_under_fx.get_node("Murk") as ColorRect).visible = under
+	var lab := _under_fx.get_node("O2") as Label
+	lab.visible = show_o2
+	lab.text = "O₂ %d%%" % int(round(oxygen / OXYGEN_MAX * 100.0))
+	lab.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3) if oxygen < 20.0 else Color(0.75, 0.95, 1.0))
+
 func _animate(speed: float, sprint: bool) -> void:
 	if not rig or not rig.anim:
 		return
 	var clip := "idle"
+	if swimming:
+		# no swim clip on the Mixamo set: the run's arm swing, slowed, reads as a crawl with the body laid forward; the
+		# walk, slow, as treading water
+		clip = "run" if speed > 0.4 else "walk"
+		var a: AnimationPlayer = rig.anim
+		if clip != _clip and a.has_animation(clip):
+			a.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+			a.play(clip, 0.25)
+			_clip = clip
+		a.speed_scale = 0.55 if clip == "run" else 0.35
+		return
 	if speed > 3.2:
 		clip = "run"
 	elif speed > 0.3:
@@ -217,7 +365,8 @@ func _place_camera(dt: float) -> void:
 	# keep the camera out of the walls: pull it in along the bounds, and never below the ground
 	want.x = clampf(want.x, bounds.position.x + 0.3, bounds.end.x - 0.3)
 	want.z = clampf(want.z, bounds.position.y + 0.3, bounds.end.y - 0.3)
-	want.y = maxf(want.y, (ground_at.call(want.x, want.z) as float) + 0.4)
+	var floor_f: Callable = cam_floor if cam_floor.is_valid() and not diving else (bed_at if diving and bed_at.is_valid() else ground_at)
+	want.y = maxf(want.y, (floor_f.call(want.x, want.z) as float) + 0.4)
 	want = _clear_camera(pivot, want)
 	# pulled in by a box right behind (a pillar, the overpass): never into the operator's head — up and over instead,
 	# looking down past the shoulder (owner, Nov 11: the view was a face filling the screen)
@@ -225,6 +374,9 @@ func _place_camera(dt: float) -> void:
 		want = pivot + Vector3(back.x, 0.0, back.z).normalized() * 1.4 + Vector3(0, 1.1, 0)
 	var k := 1.0 if dt >= 1.0 else 1.0 - exp(-14.0 * dt)
 	cam.position = cam.position.lerp(want, k)
+	# the eased camera can cut through a box on its way to a cleared spot (a car swinging past, the chase camera
+	# swinging round as the car turns): it went inside parked cars and walls for a frame or two (owner's video, Nov 18)
+	cam.position = _clear_camera(pivot, cam.position)
 	cam.look_at(pivot + side * 0.6 + Vector3(0, 0.1, 0))
 	if shake > 0.001:
 		# a fast rumble plus a jolt, both fading with the shake (squared, so a big hit kicks and a small one tickles)

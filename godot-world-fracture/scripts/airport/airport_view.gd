@@ -1311,7 +1311,7 @@ func _forecourt() -> void:
 	_text("Departures  ↑\nArrivals  ↑\nCheck-in · Tickets  ↑\nShops · Duty Free  ↑\nGates · Hangars  ↑\n(weapons not permitted)", Vector3(0, 4.6, 0.16), 34, Color(0.95, 0.97, 1.0), 0.0, sg)
 	_text("NO WEAPONS BEYOND THIS POINT", Vector3(0, 3.0, 26.4), 60, Color(1.0, 0.45, 0.35))
 	# a car at the kerb and a shuttle back to the street
-	var car: Node3D = _model("res://models/fleet/luxury-sedan.glb") if Phone.tier() == "high" else null   # 34 surfaces: HIGH only
+	var car: Node3D = _model("res://models/fleet/luxury-sedan.glb") if Phone.tier() in ["high", "ultra"] else null   # 34 surfaces: HIGH only
 	if car:
 		StreetCar.face_forward(car)
 		car.position = Vector3(-8, 0.1, 48)
@@ -1727,12 +1727,12 @@ func _skyline() -> void:
 		["neon-tower-a", "neon-tower-b", "neon-tower-c", "neon-v-A", "neon-v-B", "neon-v-C"]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7 if night else 3
-	for k in (14 if Phone.tier() == "high" else 8):
+	for k in (14 if Phone.tier() in ["high", "ultra"] else 8):
 		var f: String = files[k % files.size()]
 		var m := _model("res://models/buildings/%s.glb" % f)
 		if not m:
 			continue
-		var x := -560.0 + k * (80.0 if Phone.tier() == "high" else 140.0) + rng.randf_range(-20, 20)
+		var x := -560.0 + k * (80.0 if Phone.tier() in ["high", "ultra"] else 140.0) + rng.randf_range(-20, 20)
 		m.position = Vector3(x, 0, -480.0 - rng.randf_range(0, 200))
 		m.rotation.y = rng.randf_range(0, TAU)
 		var s := rng.randf_range(2.2, 3.4)

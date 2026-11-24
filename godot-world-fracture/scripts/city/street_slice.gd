@@ -245,7 +245,10 @@ func _ready() -> void:
 	cam.far = 1500.0
 	world.add_child(cam)
 	cam.current = true
-	look_from(Vector3(ROAD_W * 0.5 + 3.4, 1.7, 30.0), Vector3(ROAD_W * 0.5 - 3.0, 4.0, -40.0))
+	# the opening frame only — not look_from, whose points are held every frame over the follow camera (that pinned the
+	# walking camera here for good, Nov 11 – Nov 22: the operator walked out of shot)
+	cam.position = Vector3(ROAD_W * 0.5 + 3.4, 1.7, 30.0)
+	cam.look_at(Vector3(ROAD_W * 0.5 - 3.0, 4.0, -40.0))
 	if walk:
 		_spawn_player()
 	sound_on()
@@ -388,9 +391,8 @@ func _spawn_player() -> void:
 	gunplay.setup(operator, operator.obstacles)
 	_spawn = operator.position
 	armed = force_armed or story_armed()
-	# two practice dummies by the garage, and the block's cyber troopers (enemies.gd) further down
-	for spot in [Vector3(half + 1.6, 0.18, 19.0), Vector3(half + 4.5, 0.18, -2.0)]:
-		gunplay.add_dummy(spot)
+	# the block's cyber troopers (enemies.gd) further down. (Two practice dummies used to stand on the sidewalk by the
+	# garage: orange boxes on posts in the middle of the city's main avenue; owner's video, Nov 17)
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
@@ -767,6 +769,8 @@ func _process(dt: float) -> void:
 		_drive(minf(dt, 0.05))
 		if life:
 			life.step(minf(dt, 0.05))
+		if gunplay:
+			gunplay.fade(minf(dt, 0.05))   # the enemies' tracers fade while you drive
 		return
 	if life:
 		life.step(minf(dt, 0.05))
@@ -2453,8 +2457,7 @@ func enter_car(c: Node3D) -> void:
 		Sound.radio_on(saved)
 	_radio_button.visible = true
 	if controls.touch_ui and controls._enter_button:
-		controls._enter_button.text = "EXIT"
-		controls._enter_button.visible = true
+		controls.prompt("EXIT")   # sized to its text (a long prompt before left a screen-wide EXIT)
 
 func exit_car() -> void:
 	if life:

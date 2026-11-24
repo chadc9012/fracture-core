@@ -129,7 +129,7 @@ func _spawn(o: Dictionary) -> void:
 	var start := n.goal + Vector3(0, 0, 3.0)
 	n.mover.position = start
 	n.mover.build(look_for(p))
-	if Phone.tier() != "high":
+	if not Phone.tier() in ["high", "ultra"]:
 		# a dozen people at the night market: their shadows were ~10 draws each on the phone tier, for a soft blob nobody reads
 		for g in n.mover.find_children("*", "GeometryInstance3D", true, false):
 			(g as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

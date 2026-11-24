@@ -62,10 +62,23 @@ static func swatch(key: String, id: String) -> Variant:
 	var hex: String = s.get("hex", "")
 	return Color(hex) if hex != "" else null
 
-static func body_path(frame: String, body: String, civ := false) -> String:
+const REAL_BODIES := true
+const REAL_FOR := ["male", "female"]
+
+static func is_real_body(path: String) -> bool:
+	return path.get_file().begins_with("real-")
+
+static func body_path(frame: String, body: String, civ := false, real_ok := true) -> String:
 	# in regular clothes (the creator, home in Mission 01): the same build dressed in a sweater, jeans and trainers
 	# (scripts/build-operator-civilian.py); a robot has no other clothes
 	if civ and body != "robot":
+		# a real person in real clothes from the neck down (tools/headless_person.py, from the city's Meshy people):
+		# the painted-on clothes read as a bodysuit (owner, Nov 18)
+		var real := "res://models/operators/bodies/real-%s.glb" % body
+		# the woman's is her own Meshy person (Nov 23: grey zip hoodie, black joggers, white trainers, hair tied back so
+		# nothing falls over the shoulders), made for this — the city's civ-business had long hair fused into her jacket
+		if REAL_BODIES and real_ok and body in REAL_FOR and ResourceLoader.exists(real):
+			return real
 		return "res://models/operators/bodies/civ-%s-%s.glb" % [frame, body]
 	return "res://models/operators/bodies/%s-%s.glb" % [frame, body]
 
@@ -74,7 +87,7 @@ static func body_path(frame: String, body: String, civ := false) -> String:
 ## armoured operators wear the board's three suits — Titan on the heavy male frame, Hunter on the slim female frame,
 ## Warlock on the athletic female frame — and a look can name any of them with "model" (the city's people do).
 const HEROES := { "goliath-male": "titan", "nyx-female": "hunter", "cipher-female": "warlock" }
-const PEOPLE := { "male": ["civ-tee"], "female": ["civ-business"], "police": ["police"] }
+const PEOPLE := { "male": ["civ-tee", "people-beige-suit", "people-hoodie-backpack"], "female": ["civ-business", "people-crop-jeans", "people-sundress"], "police": ["police"] }
 
 static func model_path(id: String) -> String:
 	return "res://models/characters/%s.glb" % id

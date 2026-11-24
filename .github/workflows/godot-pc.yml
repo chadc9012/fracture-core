@@ -1,0 +1,70 @@
+# Builds the PC version of World Fracture (godot-world-fracture/) for Windows and Linux and publishes it as the "godot-pc"
+# release (owner, Nov 22: "Finish phone build with PC visuals and then steam with better quality"). The PC build runs the
+# Forward+ renderer with the ULTRA graphics tier by default (scripts/phone.gd: SDFGI, SSIL, SSAO, screen-space
+# reflections, volumetric fog, TAA, 4-split soft shadows); the phone keeps the Mobile renderer (project.godot
+# rendering_method.mobile). These zips are the Steam depots once a Steamworks app exists.
+name: Godot PC
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "godot-world-fracture/**"
+      - ".github/workflows/godot-pc.yml"
+  push:
+    branches: [main]
+    paths:
+      - "godot-world-fracture/**"
+      - "scripts/export-godot-data.ts"
+      - ".github/workflows/godot-pc.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: godot-pc
+  cancel-in-progress: true
+
+jobs:
+  pc:
+    runs-on: ubuntu-latest
+    env:
+      GODOT: "4.6.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Export the world data from the web game
+        run: |
+          bun install --frozen-lockfile
+          bun scripts/export-godot-data.ts
+      - name: Install Godot and the desktop export templates
+        run: |
+          cd $RUNNER_TEMP
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT}-stable/Godot_v${GODOT}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && mv Godot_v${GODOT}-stable_linux.x86_64 /usr/local/bin/godot
+          curl -sSL -o tpl.tpz "https://github.com/godotengine/godot/releases/download/${GODOT}-stable/Godot_v${GODOT}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT}.stable
+          unzip -q -j tpl.tpz 'templates/windows_*' 'templates/linux_*' 'templates/version.txt' -d ~/.local/share/godot/export_templates/${GODOT}.stable
+      - name: Export Windows and Linux
+        working-directory: godot-world-fracture
+        run: |
+          godot --headless --import || true
+          mkdir -p build/windows build/linux
+          godot --headless --export-release "Windows" build/windows/WorldFracture.exe
+          godot --headless --export-release "Linux" build/linux/WorldFracture.x86_64
+          cd build && zip -qr WorldFracture-Windows.zip windows && zip -qr WorldFracture-Linux.zip linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WorldFracture-PC
+          path: |
+            godot-world-fracture/build/WorldFracture-Windows.zip
+            godot-world-fracture/build/WorldFracture-Linux.zip
+      - name: Publish the godot-pc release
+        if: github.event_name != 'pull_request'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release delete godot-pc --yes --cleanup-tag || true
+          gh release create godot-pc godot-world-fracture/build/WorldFracture-Windows.zip godot-world-fracture/build/WorldFracture-Linux.zip \
+            --title "World Fracture for PC (latest)" \
+            --notes "Built from ${GITHUB_SHA::7}. Windows and Linux builds of World Fracture on the Forward+ renderer with ULTRA graphics (bounce light, reflections, ambient occlusion, volumetric fog, TAA). Unzip and run WorldFracture.exe (Windows) or WorldFracture.x86_64 (Linux). Settings → Graphics drops to HIGH / MEDIUM / LOW on older cards." \
+            --prerelease

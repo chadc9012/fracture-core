@@ -170,7 +170,13 @@ func refresh_markers() -> void:
 		var open: bool = career.unlocked(String(mk.id))
 		var c := (Color(1.0, 0.2, 0.62) if not bool(e.legal) else Color(0.2, 0.85, 1.0)) if open else Color(0.45, 0.47, 0.5)
 		(mk.mat as StandardMaterial3D).albedo_color = c
-		(mk.beam as MeshInstance3D).material_override = _glow(c, 0.22)
+		var bmat := _glow(c, 0.22)
+		# gone within a few metres of the camera: a car stopped on the meet (it stands in the road) put the chase camera
+		# inside the beam, and its glow over the whole screen washed the street out white (owner's video, Nov 18)
+		bmat.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+		bmat.distance_fade_min_distance = 3.0
+		bmat.distance_fade_max_distance = 12.0
+		(mk.beam as MeshInstance3D).material_override = bmat
 		var what := ""
 		match String(e.kind):
 			"sprint": what = "%.1f km sprint" % (float(mk.length) / 1000.0)

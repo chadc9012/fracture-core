@@ -133,7 +133,7 @@ func _step_intro() -> void:
 	var c = main.creator
 	if c:
 		var CS = load("res://scripts/character/character_store.gd")
-		for body in ["male", "female", "robot", "male"]:
+		for body in ["male", "female", "male"]:
 			c.look = CS.clean({"frame": "goliath" if body != "female" else "nyx", "body": body}, true)
 			if c.has_method("_rebuild"):
 				c._rebuild()

@@ -251,35 +251,68 @@ static func sleeper(m: Node) -> Node3D:
 	var rig: Node3D = load("res://scripts/character/character_rig.gd").new()
 	holder.add_child(rig)
 	rig.build(look)
-	if rig.anim and rig.anim.has_animation("idle"):
-		rig.anim.play("idle")
-		rig.anim.speed_scale = 0.35    # slow breathing
-	# on the back, head to the headboard (−z), face to the ceiling
-	rig.rotation = Vector3(-PI * 0.5, 0, 0)
-	rig.position = c + Vector3(-6.4, 0.68, -1.7)
-	# a duvet over them to the chest, and a pillow
-	var duvet := MeshInstance3D.new()
-	var dm := CapsuleMesh.new()     # a soft, rounded quilt (a capsule laid along the bed, flattened)
-	dm.radius = 0.5
-	dm.height = 1.75
-	duvet.mesh = dm
-	duvet.rotation = Vector3(PI * 0.5, 0, 0)
-	duvet.scale = Vector3(2.0, 1.0, 0.32)
-	duvet.material_override = Materials.surface("velour_velvet", Color(0.35, 0.22, 0.5), 0.6)
-	duvet.position = c + Vector3(-6.4, 0.8, -2.2)
-	holder.add_child(duvet)
+	# asleep on top of the covers, on their side, knees drawn up, hands in by the face, head on a pillow: the way a game
+	# puts its character to bed (owner's examples, Nov 18: GTA's bedrooms; under a quilt only a head showed). The pose is
+	# the rig's own bones bent from its rest; no clip plays over it
+	if rig.anim:
+		rig.anim.stop()
+		rig.anim.active = false
+	_sleep_pose(rig)
+	if rig.head_mesh:
+		for si in rig.head_mesh.mesh.get_surface_count():
+			var hm: Material = rig.head_mesh.get_surface_override_material(si)
+			if hm == null:
+				hm = rig.head_mesh.mesh.surface_get_material(si)
+			if hm is ShaderMaterial:
+				(hm as ShaderMaterial).set_shader_parameter("eyes_shut", 1.0)
+	# on the left side, head to the headboard (−z), facing the room (+x) where the camera stands
+	var roll := SLEEP_ROLL
+	if OS.get_environment("WF_SLEEP_ROLL") != "":
+		roll = OS.get_environment("WF_SLEEP_ROLL").to_float()
+	rig.basis = Basis(Vector3(0, 0, 1), deg_to_rad(roll)) * Basis(Vector3(1, 0, 0), -PI * 0.5)
+	# a soft white pillow under the head, in front of the bed's own upright cushions
 	var pillow := MeshInstance3D.new()
-	var pm := BoxMesh.new()
-	pm.size = Vector3(0.7, 0.12, 0.45)
+	var pm := SphereMesh.new()
+	pm.radius = 0.5
+	pm.height = 1.0
 	pillow.mesh = pm
-	pillow.material_override = Materials.surface("velour_velvet", Color(0.92, 0.92, 0.94), 0.6)
-	pillow.position = c + Vector3(-6.4, 0.66, -3.42)
+	pillow.scale = Vector3(0.66, 0.15, 0.38)
+	pillow.material_override = Materials.surface("fabric_pattern_07", Color(0.86, 0.86, 0.87), 0.85)
+	pillow.position = c + Vector3(-6.4, 0.8, -2.97)
 	holder.add_child(pillow)
+	# the head laid on the pillow, the rest of the curled body follows down the bed on top of the duvet
+	rig.position = c + Vector3(-6.4, 0.95, -1.4)
+	var on_pillow := c + Vector3(-6.4, 0.97, -2.95)
+	rig.position += on_pillow - rig.head_world()
 	holder.visible = false
-	holder.set_meta("head", c + Vector3(-6.4, 0.84, -3.35))
+	holder.set_meta("head", rig.head_world())
 	return holder
 
-# ---------------------------------------------------------------- the shots
+## the sleeping pose: bone (by its Mixamo name's end) → local rotation from rest, degrees XYZ. WF_SLEEP_POSE (JSON of the
+## same shape) overrides it for look-dev
+const SLEEP_ROLL := -90.0   # about the body's length, from lying on the back: on the left side, facing the room (+x)
+const SLEEP_POSE := {
+	"LeftUpLeg": Vector3(-70, 0, 0), "RightUpLeg": Vector3(-50, 0, 0), "LeftLeg": Vector3(90, 0, 0), "RightLeg": Vector3(80, 0, 0),
+	"LeftArm": Vector3(0, 0, 50), "RightArm": Vector3(50, 0, 30), "RightForeArm": Vector3(0, 0, 80),
+}
+
+static func _sleep_pose(rig: Node3D) -> void:
+	var sk: Skeleton3D = rig.skeleton
+	if sk == null:
+		return
+	var pose: Dictionary = SLEEP_POSE
+	var env := OS.get_environment("WF_SLEEP_POSE")
+	if env != "":
+		pose = {}
+		var d: Dictionary = JSON.parse_string(env)
+		for k in d:
+			pose[k] = Vector3(d[k][0], d[k][1], d[k][2])
+	for i in sk.get_bone_count():
+		var nm := sk.get_bone_name(i)
+		var short := nm.get_slice(":", nm.get_slice_count(":") - 1).trim_prefix("mixamorig_").trim_prefix("mixamorig")
+		if pose.has(short):
+			var e: Vector3 = pose[short] * PI / 180.0
+			sk.set_bone_pose_rotation(i, sk.get_bone_rest(i).basis.get_rotation_quaternion() * Quaternion.from_euler(e))
 
 static func _head(m: Node) -> Vector3:
 	return m.op.global_position + Vector3(0, 1.62, 0)
@@ -287,7 +320,8 @@ static func _head(m: Node) -> Vector3:
 ## 1 + 2: the city at sunrise, then the apartment
 static func opening(m: Node) -> Array:
 	var c: Vector3 = m.APT
-	var sleep_head: Vector3 = c + Vector3(-6.4, 0.84, -3.35)
+	var sl: Node3D = m._cine_props.get("sleeper") if "_cine_props" in m else null
+	var sleep_head: Vector3 = sl.get_meta("head") if sl and sl.has_meta("head") else c + Vector3(-6.4, 0.97, -2.95)
 	return [
 		{ "dur": 9.0, "fade_in": 2.0, "music": "dawn", "music_db": -4.0,
 			"pos": [Vector3(3.0, 26.0, 78.0), Vector3(1.0, 15.0, 40.0)], "look": [Vector3(-2.0, 10.0, -80.0), Vector3(-4.0, 5.0, -50.0)], "fov": [44.0, 50.0],
@@ -301,11 +335,12 @@ static func opening(m: Node) -> Array:
 		{ "dur": 7.5, "fade_in": 0.8,
 			"on": [[0.0, func() -> void: m._set_world(false); m._cine_cam.current = true; m._sleeping(true)]],
 			"sfx": [[0.2, "phone_alarm", -6.0]],
-			"pos": [c + Vector3(6.4, 2.3, 4.4), c + Vector3(-3.2, 2.0, 0.2)], "look": [c + Vector3(-1.0, 1.2, -2.0), sleep_head], "fov": [52.0, 44.0],
+			"pos": [c + Vector3(6.4, 2.3, 4.4), c + Vector3(-3.4, 2.1, 0.4)], "look": [c + Vector3(-1.0, 1.2, -2.0), sleep_head + Vector3(0, -0.15, 0.55)], "fov": [52.0, 46.0],
 			"title": ["APARTMENT 12-04", "NEXUS CITY RESIDENCES"], "title_at": 2.2, "title_for": 4.0,
 			"lines": ["M01X_RADIO_02"], "line_at": 1.6 },
 		# over the pillow: the alarm keeps on; then black
-		{ "dur": 4.0, "pos": [sleep_head + Vector3(1.5, 0.9, 1.1), sleep_head + Vector3(1.0, 0.62, 0.7)], "look": [sleep_head + Vector3(0, -0.05, 0.3), sleep_head], "fov": 38.0,
+		# from the room side, level with the face on the pillow, easing in
+		{ "dur": 4.0, "pos": [sleep_head + Vector3(1.15, 0.55, -0.4), sleep_head + Vector3(0.9, 0.4, -0.32)], "look": [sleep_head + Vector3(0.06, -0.02, 0.0), sleep_head + Vector3(0.08, 0.02, -0.08)], "fov": 44.0,
 			"sfx": [[0.4, "phone_alarm", -4.0]], "fade_out": 0.7 },
 		# up: standing by the bed, a look out at the morning
 		{ "dur": 4.5, "fade_in": 0.7,
@@ -427,11 +462,16 @@ static func first_power(m: Node, sw: Dictionary) -> Array:
 			"lines": ["M01_012", "M02_001"], "line_at": 0.4 },
 		{ "dur": 3.5, "pos": [func() -> Vector3: return _head(m) + Vector3(-0.8, -0.1, -1.4), func() -> Vector3: return _head(m) + Vector3(-0.6, -0.1, -1.1)], "look": func() -> Vector3: return _head(m), "fov": 38.0,
 			"lines": ["M02_002", "M02_003"], "line_at": 0.3, "sfx": [[2.0, "rumble", -6.0]], "shake": 0.4, "shake_at": 2.0 },
-		{ "dur": 4.0, "music": "nova", "music_db": -9.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.7, -0.2, 1.4), func() -> Vector3: return _head(m) + Vector3(0.5, -0.3, 1.0)],
-			"look": c + Vector3(0, 1.0, -12.0), "fov": 42.0,
+		# over the shoulder, high and wide of it, the operator on the left and the jammed door on the right (low behind
+		# the back the hoodie filled the phone's narrow frame black; owner's video, Nov 17)
+		{ "dur": 4.0, "music": "nova", "music_db": -9.0, "pos": [func() -> Vector3: return _head(m) + Vector3(1.1, 0.25, 1.9), func() -> Vector3: return _head(m) + Vector3(0.95, 0.2, 1.6)],
+			"look": c + Vector3(-0.6, 1.0, -12.0), "fov": 50.0,
 			"lines": ["M01_013", "M02_004"], "line_at": 0.3, "on": [[3.0, hands]] },
-		{ "dur": 3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.2, -0.75, -0.7), func() -> Vector3: return _head(m) + Vector3(0.15, -0.8, -0.55)],
-			"look": func() -> Vector3: return _head(m) + Vector3(0, -0.4, 0), "fov": 34.0,
+		# the power gathering: chest and hands, from far enough out to read as a person (at 0.7 m the hoodie filled the
+		# frame; at 1.5 m and chest high the phone's narrow frame still showed only the hoodie, and the wall at the jammed
+		# door is too close to back off: from above the head, down to the hands, wider; owner's videos, Nov 17)
+		{ "dur": 3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.55, 0.4, -1.75), func() -> Vector3: return _head(m) + Vector3(0.45, 0.35, -1.55)],
+			"look": func() -> Vector3: return _head(m) + Vector3(0, -0.55, 0), "fov": 58.0,
 			"lines": ["M02_005"], "line_at": 0.2, "sfx": [[0.4, "surge", -4.0]] },
 		{ "dur": 4.5, "music": "power", "music_db": -3.0, "pos": [func() -> Vector3: return _head(m) + Vector3(0.9, -1.1, 2.0), func() -> Vector3: return _head(m) + Vector3(1.2, -0.9, 2.6)],
 			"look": c + Vector3(0, 1.2, -12.0), "fov": [40.0, 50.0],
@@ -456,9 +496,11 @@ static func new_world(m: Node) -> Array:
 			m.create_tween().tween_property(env, "fog_density", env.fog_density * 0.25, 6.0)
 	return [
 		{ "dur": 7.0, "music": "title", "music_db": -3.0, "fade_in": 0.6,
-			"pos": [p + Vector3(2.4, 1.6, 3.2), p + Vector3(6.0, 9.0, 14.0)], "look": [p + Vector3(0, 1.5, 0), p + Vector3(0, 12.0, -60.0)], "fov": [46.0, 54.0],
+			# from the road side of the operator up and out over the middle of the avenue, above the palm crowns (it rose
+			# through a kerb palm and a shop awning; owner's video, Nov 17)
+			"pos": [p + Vector3(-signf(p.x) * 1.4, 1.6, 3.0), Vector3(p.x * 0.15, 14.0, p.z + 14.0)], "look": [p + Vector3(0, 1.5, 0), p + Vector3(0, 12.0, -60.0)], "fov": [46.0, 54.0],
 			"lines": ["M01X_WORLD_1"], "line_at": 1.0, "on": [[0.5, clear]] },
-		{ "dur": 8.0, "pos": [p + Vector3(6.0, 9.0, 14.0), Vector3(12.0, 48.0, 90.0)], "look": [p + Vector3(0, 12.0, -60.0), Vector3(-10.0, 45.0, -420.0)], "fov": [54.0, 50.0],
+		{ "dur": 8.0, "pos": [Vector3(p.x * 0.15, 14.0, p.z + 14.0), Vector3(12.0, 48.0, 90.0)], "look": [p + Vector3(0, 12.0, -60.0), Vector3(-10.0, 45.0, -420.0)], "fov": [54.0, 50.0],
 			"lines": ["M01X_WORLD_2", "M01X_WORLD_3"], "line_at": 1.2 },
 		{ "dur": 9.0, "pos": [Vector3(12.0, 48.0, 90.0), Vector3(16.0, 58.0, 110.0)], "look": [Vector3(-10.0, 45.0, -420.0), Vector3(-10.0, 60.0, -440.0)], "fov": 50.0,
 			"title": ["WORLD FRACTURE", "CHAPTER ONE  ·  COMPLETE"], "title_at": 1.4, "title_for": 6.6, "sfx": [[1.4, "title_hit", -2.0]], "fade_out": 1.2 },

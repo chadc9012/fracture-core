@@ -1,6 +1,6 @@
 extends SceneTree
 ## Look-dev for Mission 01's rooms: the operator stood at a spot, the camera turned a way, one picture.
-##   godot --path . --script res://tests/tools/m1_look.gd -- out.png <moment> [x,z,yaw_deg[,pitch]] [hide_op]
+##   godot --path . --script res://tests/tools/m1_look.gd -- out.png <moment> [x,z,yaw_deg[,pitch]] [hide_op] [hud] [say] [f:N]
 ## <moment> is a mission shot() moment (apt2, hall, lounge, lobby, surge …); x,z are metres from that room's origin
 ## (APT, HALL, LOUNGE, LOBBY), yaw 0 looks north (−z).
 
@@ -23,6 +23,8 @@ func _run() -> void:
 	for i in 4:
 		await process_frame
 	var m = main.mission
+	if moment.length() > 3 and moment[2] == "-":
+		M.skip_cinema = false   # a cutscene moment plays (the opening's skip is behind us)
 	m.shot(moment)
 	for i in 10:
 		await process_frame
@@ -37,8 +39,14 @@ func _run() -> void:
 			m.op.pitch = float(p[3])
 	if "hide_op" in args:
 		m.op.rig.visible = false
-	m.hud.visible = false
-	for i in 40:
+	m.hud.visible = "hud" in args
+	if "say" in args:
+		m._say([["NOVA", "I don't know yet either. Stay with me. We'll learn the rest as we go."]])
+	var settle := 40
+	for a in args:
+		if a.begins_with("f:"):
+			settle = int(a.substr(2))   # f:N — frames to wait (a cutscene moment moves on while it waits)
+	for i in settle:
 		await process_frame
 	await RenderingServer.frame_post_draw
 	root.get_texture().get_image().save_png(out)

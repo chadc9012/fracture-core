@@ -76,6 +76,10 @@ void vertex() {
 	world.x += sign(origin.x - player.x + 0.001) * near * 1.2;
 	// shrink into the ground at the span ends so nobody pops
 	world.y = mix(origin.y - 2.0, world.y, ends);
+	// the far crowd only: inside 12 m of the camera a figure is gone whole (the close people are civilians.gd's full
+	// characters). It used to dither out from 14 m to 9 m, and the half-dissolved figures read as shredded, glitching
+	// people on the phone (owner's video, Nov 17)
+	if (length(vec2(origin.x, z) - CAMERA_POSITION_WORLD.xz) < 12.0) { world = vec3(origin.x, origin.y - 50.0, z); }
 	VERTEX = (inverse(MODEL_MATRIX) * vec4(world, 1.0)).xyz;
 	trim = UV2.x;
 	skin = UV2.y;
@@ -90,14 +94,6 @@ void vertex() {
 	c_skin = skins[int(fract(hsh * 7.31) * 5.0) % 5];
 }
 void fragment() {
-	// people right at the camera dissolve (screen-door dither), so nobody fills the frame as a mannequin or gets cut by
-	// the near plane when the camera swings past them
-	// they are the far crowd only: the civilians up close are full characters (civilians.gd), so these thin out from
-	// 14 m and are gone by 9 m
-	float near_cam = smoothstep(9.0, 14.0, length(VERTEX));
-	vec2 fc = floor(FRAGCOORD.xy);
-	float ign = fract(52.9829189 * fract(0.06711056 * fc.x + 0.00583715 * fc.y));   // interleaved gradient noise
-	if (near_cam < 1.0 && ign > near_cam) { discard; }
 	vec3 col = part > 1.5 ? vec3(0.04, 0.03, 0.03) : (part > 0.5 ? c_trousers : c_jacket);
 	ALBEDO = mix(col, c_skin, skin);
 	ROUGHNESS = mix(part > 0.5 && part < 1.5 ? 0.85 : 0.6, 0.5, skin);

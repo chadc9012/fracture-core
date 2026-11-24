@@ -16,6 +16,8 @@ var skeleton: Skeleton3D
 var head_mesh: MeshInstance3D
 var hair_mesh: MeshInstance3D
 var _body_meshes: Array = []
+## a real person's body (its own clothes in its own texture): no painted outfit, no reshape
+var real_body := false
 var anim: AnimationPlayer
 ## where the head sits on this body (body skeleton space), for framing a camera
 var head_point := Vector3(0, 1.6, 0)
@@ -65,7 +67,11 @@ func build(new_look: Dictionary, animate := true) -> void:
 	for c in get_children():
 		c.free()
 	var hero := Catalog.hero_model(look)
-	var ps: PackedScene = load(hero if hero != "" else Catalog.body_path(look.frame, look.body, bool(look.get("civ", false))))
+	# the real body wears its own clothes: it is the everyday look in the operator's own clothes; a bought outfit (and a
+	# fitting-room trial, and the city's people dressed by outfit) keeps the painted body that can wear any outfit
+	var outfit := String(look.get("outfit", ""))
+	var own_clothes := outfit == "" or outfit == Outfits.default_for(String(look.get("body", "male")))
+	var ps: PackedScene = load(hero if hero != "" else Catalog.body_path(look.frame, look.body, bool(look.get("civ", false)), own_clothes and not bool(look.get("npc", false))))
 	body_root = ps.instantiate()
 	add_child(body_root)
 	skeleton = _find(body_root, "Skeleton3D")
@@ -88,9 +94,309 @@ func build(new_look: Dictionary, animate := true) -> void:
 		head_point = skeleton.get_bone_global_rest(hb).origin
 	if hero != "":
 		return    # a whole Meshy character: its own face, hair and clothes
+	real_body = Catalog.is_real_body(ps.resource_path)
+	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
+		_reshape()
 	_attach_head(hb)
 	if bool(look.get("civ", false)) and String(look.get("body", "")) != "robot":
-		dress(String(look.get("outfit", "")))
+		if not real_body:
+			dress(String(look.get("outfit", "")))
+		else:
+			_tint_real_skin()
+		# the throat between the face's jaw and the collar (the real bodies' own necks are mostly the head they had)
+		_neck_tube(hb)
+
+## a real body's own skin (neck, arms, hands, legs) turned to the face's tone: the person it came from has their own,
+## and a pale face on dark hands, or the reverse, read as two people. Skin texels (the same test the face uses) are
+## scaled from the body's own lit skin tone to the face's, keeping their shading; the clothes are left as they are
+const REAL_SKIN_SHADER := """
+shader_type spatial;
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap;
+uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap;
+uniform bool has_normal = false;
+uniform vec3 from_tone = vec3(0.5, 0.35, 0.28);
+uniform vec3 to_tone = vec3(0.5, 0.35, 0.28);
+void fragment() {
+	// a sharper mip: Meshy's atlas is hundreds of small islands, and the blurred mips mixed hair and skin islands into
+	// the dark fabric next to them (flecks down the joggers at creator distance, Nov 23)
+	vec3 c = texture(albedo_tex, UV, -0.75).rgb;
+	float mx = max(c.r, max(c.g, c.b));
+	float mn = min(c.r, min(c.g, c.b));
+	float sat = (mx - mn) / (mx + 1e-4);
+	float l = dot(c, vec3(0.3, 0.59, 0.11));
+	float k = smoothstep(0.015, 0.05, c.r - c.b) * smoothstep(0.1, 0.2, sat) * (1.0 - smoothstep(0.8, 0.9, sat)) * smoothstep(0.012, 0.035, l) * step(c.b, c.g + 0.04);
+	// and no darker than a deep shadow on the body's own skin: near-black fabric with a warm cast (dark joggers) took the
+	// skin ratio and came out in orange flecks (Nov 23)
+	float own_l = dot(from_tone, vec3(0.3, 0.59, 0.11));
+	k *= smoothstep(0.25 * own_l, 0.45 * own_l, l);
+	vec3 ratio = to_tone / max(from_tone, vec3(0.01));
+	ALBEDO = mix(c, clamp(c * ratio, 0.0, 1.0), k);
+	ROUGHNESS = mix(0.8, 0.55, k);
+	SPECULAR = mix(0.3, 0.5, k);
+	// cloth at half depth: Meshy's fabric normals glinted in white streaks down dark joggers on the phone (Nov 23)
+	if (has_normal) { NORMAL_MAP = texture(normal_tex, UV).rgb; NORMAL_MAP_DEPTH = mix(0.45, 0.8, k); }
+}
+"""
+static var _real_shader: Shader
+
+func _tint_real_skin() -> void:
+	if _tex_skin == null:
+		return
+	if _real_shader == null:
+		_real_shader = Shader.new()
+		_real_shader.code = REAL_SKIN_SHADER
+	for mi: MeshInstance3D in _body_meshes:
+		if not is_instance_valid(mi) or mi.mesh == null:
+			continue
+		for si in mi.mesh.get_surface_count():
+			var std := mi.mesh.surface_get_material(si) as StandardMaterial3D
+			if std == null or std.albedo_texture == null:
+				continue
+			var own: Variant = _limb_skin(mi, si, std)
+			if own == null:
+				continue
+			var sm := ShaderMaterial.new()
+			sm.shader = _real_shader
+			sm.set_shader_parameter("albedo_tex", std.albedo_texture)
+			if std.normal_enabled and std.normal_texture:
+				sm.set_shader_parameter("normal_tex", std.normal_texture)
+				sm.set_shader_parameter("has_normal", true)
+			var o := (own as Color).srgb_to_linear()   # the shader works on linear colour
+			sm.set_shader_parameter("from_tone", Vector3(o.r, o.g, o.b))
+			var t := (_tex_skin as Color).srgb_to_linear()
+			sm.set_shader_parameter("to_tone", Vector3(t.r, t.g, t.b))
+			mi.set_surface_override_material(si, sm)
+
+## the body's own skin tone where it is surely skin — the hands and forearms (the whole texture's skin-coloured texels
+## took in the jeans' torn threads and the trainers): the brightest quarter of the skin-coloured texels under those
+## vertices, the same measure the face's tone is taken with
+func _limb_skin(mi: MeshInstance3D, si: int, std: StandardMaterial3D) -> Variant:
+	var img := std.albedo_texture.get_image()
+	if img == null:
+		return null
+	if img.is_compressed():
+		img = img.duplicate()
+		if img.decompress() != OK:
+			return null
+	var arr := mi.mesh.surface_get_arrays(si)
+	var uv: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+	var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+	var ws: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+	if uv.is_empty() or bones.is_empty():
+		return null
+	var per := bones.size() / uv.size()
+	var limb := {}
+	for b in mi.skin.get_bind_count():
+		var nm := String(mi.skin.get_bind_name(b))
+		if nm == "" and mi.skin.get_bind_bone(b) >= 0:
+			nm = skeleton.get_bone_name(mi.skin.get_bind_bone(b))
+		if nm.ends_with("Hand") or nm.ends_with("ForeArm"):
+			limb[b] = true
+	var px: Array[Color] = []
+	var W := img.get_width()
+	var H := img.get_height()
+	for k in range(0, uv.size(), 3):
+		var w := 0.0
+		for j in per:
+			if limb.has(bones[k * per + j]):
+				w += ws[k * per + j]
+		if w < 0.6:
+			continue
+		var c := img.get_pixel(clampi(int(uv[k].x * W), 0, W - 1), clampi(int(uv[k].y * H), 0, H - 1))
+		var mx := maxf(c.r, maxf(c.g, c.b))
+		var sat := (mx - minf(c.r, minf(c.g, c.b))) / (mx + 1e-4)
+		if c.r - c.b > 0.02 and sat > 0.12 and sat < 0.85 and c.b <= c.g + 0.04:
+			px.append(c)
+	if px.size() < 20:
+		return null
+	px.sort_custom(func(a: Color, b: Color) -> bool: return a.get_luminance() > b.get_luminance())
+	var n := maxi(1, px.size() / 4)
+	var sum := Color(0, 0, 0)
+	for i in n:
+		sum += px[i]
+	return Color(sum.r / n, sum.g / n, sum.b / n)
+
+## the everyday body's proportions, set at load: each bone's piece of the body scaled across the bone (in the bone's own
+## space, x and z; y runs along it) and blended by the skin weights. The clothed bodies read as a broad, boxy hoodie on
+## stick legs (owner, Nov 18: "too bulky / wide", "stiff / stick-like", "wrong proportions", "should look like GTA"):
+## a narrower chest and waist, less padding over the shoulders and upper arms, fuller thighs and calves in looser
+## joggers. WF_RESHAPE (JSON,
+## suffix → [x, z]) overrides it for look-dev
+const RESHAPE := {
+	"Hips": Vector2(0.97, 1.0), "Spine": Vector2(0.92, 0.97), "Spine1": Vector2(0.9, 0.96), "Spine2": Vector2(0.9, 0.96),
+	"Shoulder": Vector2(0.85, 0.9), "UpLeg": Vector2(1.14, 1.12), "Leg": Vector2(1.14, 1.12), "Arm": Vector2(0.93, 0.94),
+	"ForeArm": Vector2(0.97, 0.97),
+}
+## how much of the build each part takes on a real body (1: all of it)
+const REAL_BUILD := {
+	"Hips": 1.0, "Spine": 1.2, "Spine1": 1.1, "Spine2": 0.9, "Shoulder": 0.5, "Arm": 1.0, "ForeArm": 0.8,
+	"UpLeg": 1.0, "Leg": 0.8,
+}
+static var _reshaped := {}
+
+func _reshape() -> void:
+	# the heavy frame is already full in the leg and broadest in the chest: its legs stay, its chest comes in most
+	var fr := String(look.get("frame", "cipher"))
+	var leg: float = { "nyx": 1.0, "cipher": 0.75, "goliath": 0.0 }.get(fr, 0.75)
+	var chest: float = { "nyx": 0.6, "cipher": 1.0, "goliath": 1.35 }.get(fr, 1.0)
+	var table: Dictionary = {}
+	if real_body:
+		# a real person's build is right as it is; the build picked in the creator thins or fills it out (it showed
+		# the same body whatever was picked; owner, Nov 18)
+		var g: float = { "nyx": 0.84, "cipher": 1.0, "goliath": 1.26 }.get(fr, 1.0)
+		for k: String in REAL_BUILD:
+			table[k] = Vector2.ONE * (1.0 + (g - 1.0) * float(REAL_BUILD[k]))
+	else:
+		for k: String in RESHAPE:
+			var v: Vector2 = RESHAPE[k]
+			var amt := leg if k in ["UpLeg", "Leg"] else (chest if k.begins_with("Spine") or k in ["Hips", "Shoulder"] else 1.0)
+			table[k] = Vector2.ONE.lerp(v, amt)
+	var env := OS.get_environment("WF_RESHAPE")
+	if env != "":
+		table = {}
+		var d: Dictionary = JSON.parse_string(env)
+		for k in d:
+			table[k] = Vector2(d[k][0], d[k][1])
+	for mi: MeshInstance3D in _body_meshes:
+		if mi.skin == null or mi.mesh == null:
+			continue
+		var key := "%s|%s|%s" % [mi.mesh.resource_path if mi.mesh.resource_path != "" else str(mi.mesh.get_instance_id()), fr, env]
+		if _reshaped.has(key):
+			mi.mesh = _reshaped[key]
+			continue
+		var binds: Array[Transform3D] = []
+		var scales: Array[Vector2] = []
+		for b in mi.skin.get_bind_count():
+			binds.append(mi.skin.get_bind_pose(b))
+			var nm := String(mi.skin.get_bind_name(b))
+			if nm == "" and skeleton and mi.skin.get_bind_bone(b) >= 0:
+				nm = skeleton.get_bone_name(mi.skin.get_bind_bone(b))
+			var short := nm.get_slice(":", nm.get_slice_count(":") - 1).trim_prefix("mixamorig_")
+			for side in ["Left", "Right"]:
+				short = short.trim_prefix(side)
+			scales.append(table.get(short, Vector2.ONE))
+		var out := ArrayMesh.new()
+		for si in mi.mesh.get_surface_count():
+			var arr := mi.mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+			var ws: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+			var per := bones.size() / maxi(vs.size(), 1)
+			for k in vs.size():
+				var acc := Vector3.ZERO
+				var tot := 0.0
+				for j in per:
+					var w := ws[k * per + j]
+					if w <= 0.0:
+						continue
+					var bi := bones[k * per + j]
+					var sc: Vector2 = scales[bi] if bi < scales.size() else Vector2.ONE
+					var q := binds[bi] * vs[k] if bi < binds.size() else vs[k]
+					q.x *= sc.x
+					q.z *= sc.y
+					acc += (binds[bi].affine_inverse() * q if bi < binds.size() else q) * w
+					tot += w
+				if tot > 0.0:
+					vs[k] = acc / tot
+			arr[Mesh.ARRAY_VERTEX] = vs
+			arr[Mesh.ARRAY_NORMAL] = arr[Mesh.ARRAY_NORMAL]
+			out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+			out.surface_set_material(si, mi.mesh.surface_get_material(si))
+			out.surface_set_name(si, mi.mesh.surface_get_name(si))
+		_reshaped[key] = out
+		mi.mesh = out
+
+## in everyday clothes the creator head's own neck is cut away with its armour collar (skin_shader civ_clip), and the
+## body's neck stops short under the jaw: from behind and in the bed close-up there was a gap between head and
+## collar, the room showing through (owner's video, Nov 17). A skin-toned neck from the Neck bone up into the skull
+## closes it whatever the frame; it follows the Neck bone, and its ends are hidden in the collar and the head.
+const NECK_SHADER := """
+shader_type spatial;
+uniform vec3 top : source_color;
+uniform vec3 bot : source_color;
+uniform vec3 hair : source_color;
+uniform float half_h = 0.05;
+uniform float rad = 0.05;
+varying float h;
+varying vec3 lp;
+void vertex() { h = UV.y; lp = VERTEX; }
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+void fragment() {
+	float rim = 1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	vec3 c = mix(top, bot, smoothstep(0.15, 1.0, h));
+	// the nape: at the back (local +z) the hairline comes down onto the neck in a soft, ragged fade of short hair,
+	// so the scan's hair doesn't stop in a hard line over a bare tube (owner's target render, Nov 18)
+	float back = smoothstep(-0.2, 0.75, lp.z / rad);
+	float fromtop = (half_h - lp.y) / (2.0 * half_h);
+	float line = 0.5 + 0.1 * sin(atan(lp.x, lp.z) * 5.0) + 0.08 * hash(floor(UV * vec2(180.0, 70.0)));
+	float hairy = back * (1.0 - smoothstep(line - 0.35, line, fromtop));
+	float stub = 0.65 + 0.35 * hash(floor(UV * vec2(260.0, 120.0)));
+	c = mix(c, hair * stub, clamp(hairy, 0.0, 1.0) * 0.92);
+	ALBEDO = c * (1.0 - 0.35 * rim * rim);
+	ROUGHNESS = 0.6;
+	SPECULAR = 0.35;
+}
+"""
+static var _neck_shader: Shader
+
+func _neck_tube(head_bone: int) -> void:
+	var ni := _bone(skeleton, "Neck")
+	if ni < 0 or head_bone < 0:
+		return
+	var nr := skeleton.get_bone_global_rest(ni)
+	var hp := skeleton.get_bone_global_rest(head_bone).origin
+	var lo := nr.origin.lerp(hp, 0.1)
+	# up into the skull past the jaw: from behind, the inside of the face's lower edge showed as a dark band above it
+	var hi := hp + (hp - nr.origin).normalized() * (0.05 if real_body else 0.02)
+	var up := (hi - lo)
+	var cm := CylinderMesh.new()
+	var r := 0.05 if String(look.get("body", "male")) == "male" else 0.04
+	if String(look.get("frame", "")) == "goliath":
+		r *= 1.12
+	if real_body:
+		r *= 1.22   # a real man's neck under a real jaw: a thin tube read as a stalk (Nov 18)
+	cm.top_radius = r * 0.94
+	cm.bottom_radius = r
+	cm.height = up.length()
+	cm.radial_segments = 20
+	cm.rings = 2
+	cm.cap_top = false
+	cm.cap_bottom = false
+	var mi := MeshInstance3D.new()
+	mi.name = "NeckTube"
+	mi.mesh = cm
+	# the face's own lit skin (the head texture's brightest quarter), a shade down under the jaw and darker still into
+	# the collar, its sides turning away into shadow so it reads round: a flat colour read as a pasted-on block from
+	# behind (owner, Nov 18: "the head-to-neck connection should be seamless")
+	var tone: Color = _tex_skin if _tex_skin != null else _scalp_tone()
+	var sm := ShaderMaterial.new()
+	if _neck_shader == null:
+		_neck_shader = Shader.new()
+		_neck_shader.code = NECK_SHADER
+	sm.shader = _neck_shader
+	var top := tone.darkened(0.16 if real_body else 0.3)
+	# Colors, not Vector3s: a source_color vec3 handed a Vector3 skips the sRGB-to-linear step on the Forward+ and
+	# Mobile renderers, and the neck came out a pale bandage on the phone (seen on the Mobile renderer, Nov 22; the
+	# look-dev ran on Compatibility, which hid it)
+	sm.set_shader_parameter("top", Color(top.r, top.g, top.b))
+	var bot := tone.darkened(0.42)
+	sm.set_shader_parameter("bot", Color(bot.r, bot.g, bot.b))
+	var hc: Variant = Catalog.swatch("hairColors", look.hairColor)
+	var hcol: Color = hc if hc != null else Color("#120f0e")
+	var bald := String(look.get("hair", "")) in ["", "none", "bald", "shaved"]
+	sm.set_shader_parameter("hair", Color(hcol.r, hcol.g, hcol.b) if not bald else Color(top.r, top.g, top.b))
+	sm.set_shader_parameter("half_h", up.length() * 0.5)
+	sm.set_shader_parameter("rad", r)
+	mi.material_override = sm
+	var att := BoneAttachment3D.new()
+	att.bone_idx = ni
+	skeleton.add_child(att)
+	att.add_child(mi)
+	# rest pose: the tube along Neck → Head, set in the Neck bone's frame
+	var y := up.normalized()
+	var x := y.cross(Vector3.FORWARD).normalized() if absf(y.dot(Vector3.FORWARD)) < 0.95 else y.cross(Vector3.RIGHT).normalized()
+	var z := x.cross(y)
+	mi.transform = nr.affine_inverse() * Transform3D(Basis(x, y, z), (lo + hi) * 0.5)
 
 ## puts the civ body in an outfit (scripts/character/outfits.gd); the bare hands take the skin tone
 func dress(outfit_id: String) -> void:
@@ -137,6 +443,60 @@ static func _fit_skin(skin: Skin, sk: Skeleton3D) -> Skin:
 		out.set_bind_pose(i, skin.get_bind_pose(head_i))
 	return out
 
+## the head scans' leftover scraps (the cut collar and headset): small loose pieces low on the head, out past the jaw
+## and ears and behind them, which no colour rule caught — specks beside the ears and shreds at the back of the neck
+## (owner, Nov 18). Pieces are found by shared positions in head space; the eyes, teeth and lashes (small pieces too)
+## sit high and at the front, and are kept
+static func _drop_flecks(idx: PackedInt32Array, hp: PackedFloat32Array) -> PackedInt32Array:
+	var n := hp.size() / 4
+	var key := {}
+	var parent := PackedInt32Array()
+	parent.resize(n)
+	for i in n:
+		var k := Vector3i(roundi(hp[i * 4] * 4000.0), roundi(hp[i * 4 + 1] * 4000.0), roundi(hp[i * 4 + 2] * 4000.0))
+		parent[i] = key.get(k, i)
+		if not key.has(k):
+			key[k] = i
+	var find := func(a: int) -> int:
+		while parent[a] != a:
+			parent[a] = parent[parent[a]]
+			a = parent[a]
+		return a
+	for t in range(0, idx.size(), 3):
+		var a: int = find.call(idx[t])
+		for j in [1, 2]:
+			var b: int = find.call(idx[t + j])
+			if a != b:
+				parent[b] = a
+	var count := {}
+	var sum := {}
+	for t in range(0, idx.size(), 3):
+		var r: int = find.call(idx[t])
+		count[r] = count.get(r, 0) + 1
+		var c := Vector3(hp[idx[t] * 4], hp[idx[t] * 4 + 1], hp[idx[t] * 4 + 2])
+		sum[r] = sum.get(r, Vector3.ZERO) + c
+	var out := PackedInt32Array()
+	for t in range(0, idx.size(), 3):
+		var r: int = find.call(idx[t])
+		var m: Vector3 = sum[r] / float(count[r])
+		var face_part := m.z > 0.04 and absf(m.x) < 0.055 and m.y > 0.0
+		if count[r] < 120 and m.y < 0.11 and not face_part:
+			continue
+		# behind the ears (not the ears), and low beside the jaw: the scraps of the cut collar and headset are stuck to
+		# the head's surface (it is all one piece), seen as dark specks beside the jaw and ears; the throat there is the
+		# neck tube
+		var pa := Vector3(hp[idx[t] * 4], hp[idx[t] * 4 + 1], hp[idx[t] * 4 + 2])
+		var pb := Vector3(hp[idx[t + 1] * 4], hp[idx[t + 1] * 4 + 1], hp[idx[t + 1] * 4 + 2])
+		var pc := Vector3(hp[idx[t + 2] * 4], hp[idx[t + 2] * 4 + 1], hp[idx[t + 2] * 4 + 2])
+		var cen := (pa + pb + pc) / 3.0
+		var crr := Vector2(cen.x, cen.z + 0.01).length()
+		if (cen.y < 0.1 and crr > 0.06 and cen.z < -0.01 and absf(cen.x) < 0.085) or (cen.y < 0.045 and crr > 0.06 and not (cen.z > 0.03 and absf(cen.x) < 0.07)):
+			continue
+		out.append(idx[t])
+		out.append(idx[t + 1])
+		out.append(idx[t + 2])
+	return out
+
 func _attach_head(body_head: int) -> void:
 	var hs: PackedScene = load(Catalog.head_path(look.head))
 	if not hs:
@@ -149,6 +509,11 @@ func _attach_head(body_head: int) -> void:
 		return
 	var hi := _bone(hsk, "Head")
 	var ti := _bone(hsk, "HeadTop_End")
+	# in everyday clothes the head sits a little lower and fuller on the shoulders: on the long civ neck it read small
+	# and perched (owner, Nov 18: "wrong proportions"). Hair, the head's gear and its worn pieces move with it
+	var civ := bool(look.get("civ", false)) and String(look.get("body", "")) != "robot"
+	_head_scale = HEAD_SCALE if civ else 1.0
+	_head_drop = Vector3(0, -HEAD_DROP, 0) if civ else Vector3.ZERO
 	var head_rest := hsk.get_bone_global_rest(hi)
 	var unit := 1.0
 	if ti >= 0:
@@ -184,11 +549,15 @@ func _attach_head(body_head: int) -> void:
 				var dp := FaceMorphs.displacement(look.morphs, p)
 				p += dp
 				vs[k] = vs[k] + dp * unit
+			if _head_scale != 1.0 or _head_drop != Vector3.ZERO:
+				vs[k] = head_rest.origin + (vs[k] - head_rest.origin) * _head_scale + _head_drop
 			custom[k * 4] = p.x
 			custom[k * 4 + 1] = p.y
 			custom[k * 4 + 2] = p.z
 			head_pts.append(p)
 		arr[Mesh.ARRAY_VERTEX] = vs
+		if bool(look.get("civ", false)) and not robot and arr[Mesh.ARRAY_INDEX] != null:
+			arr[Mesh.ARRAY_INDEX] = _drop_flecks(arr[Mesh.ARRAY_INDEX], custom)
 		if sculpt:
 			arr[Mesh.ARRAY_NORMAL] = _normals(vs, arr[Mesh.ARRAY_INDEX], arr[Mesh.ARRAY_NORMAL])
 		arr[Mesh.ARRAY_CUSTOM0] = custom
@@ -210,7 +579,7 @@ func _attach_head(body_head: int) -> void:
 	att.bone_idx = body_head
 	skeleton.add_child(att)
 	var holder := Node3D.new()
-	holder.transform = head_rest.affine_inverse() * Transform3D(Basis.from_scale(Vector3.ONE * unit), head_rest.origin - cal * unit)
+	holder.transform = head_rest.affine_inverse() * Transform3D(Basis.from_scale(Vector3.ONE * unit * _head_scale), head_rest.origin + _head_drop - cal * unit * _head_scale)
 	att.add_child(holder)
 	var hb := HairBuilder.new()
 	hb.fit_skull(head_pts)
@@ -338,6 +707,10 @@ func _head_material(m: Material, robot: bool) -> Material:
 	return mat
 
 var _tex_skin: Variant = null
+const HEAD_SCALE := 1.06
+const HEAD_DROP := 0.018
+var _head_scale := 1.0
+var _head_drop := Vector3.ZERO
 ## the head texture's own skin colour (its mean over skin-like texels), or null when the image can't be read
 static func _sample_skin(m: Material) -> Variant:
 	var std := m as StandardMaterial3D
@@ -597,6 +970,8 @@ func _on_bone(suffix: String, off: Vector3) -> Node3D:
 	var idx := _bone(skeleton, suffix)
 	if idx < 0:
 		return null
+	if suffix == "Head":
+		off = off * _head_scale + _head_drop
 	var att := BoneAttachment3D.new()
 	att.bone_idx = idx
 	skeleton.add_child(att)

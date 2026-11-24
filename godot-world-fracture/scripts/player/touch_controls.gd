@@ -371,12 +371,31 @@ func prompt(text: String) -> void:
 	if _enter_button:
 		_enter_button.text = text
 		_enter_button.visible = text != ""
+		# centred on its text and never wider than the screen, wrapping onto a second line: a long prompt grew the button
+		# off the right edge ("OUTLAW AVENUE RUN NEEDS OUTL…"; owner's video, Nov 18)
+		var font := _enter_button.get_theme_font("font")
+		var fs := _enter_button.get_theme_font_size("font_size")
+		var vw := get_viewport_rect().size.x if is_inside_tree() else 540.0
+		var w := clampf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 40.0, 150.0, vw - 32.0)
+		_enter_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_enter_button.custom_minimum_size = Vector2(w, 64)
+		_enter_button.anchor_left = 0.5
+		_enter_button.anchor_right = 0.5
+		_enter_button.anchor_top = 0.5
+		_enter_button.anchor_bottom = 0.5
+		_enter_button.offset_left = -w * 0.5
+		_enter_button.offset_right = w * 0.5
+		_enter_button.offset_top = 120.0
+		_enter_button.offset_bottom = 184.0
 		return
 	if not _prompt_label:
 		_prompt_label = Label.new()
 		_prompt_label.set_anchors_preset(Control.PRESET_CENTER)
-		_prompt_label.position = Vector2(-150, 60)
 		_prompt_label.custom_minimum_size = Vector2(300, 30)
+		_prompt_label.offset_left = -150
+		_prompt_label.offset_top = 60
+		_prompt_label.offset_right = 150
+		_prompt_label.offset_bottom = 90
 		_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_prompt_label.add_theme_font_size_override("font_size", 18)
 		_prompt_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
@@ -388,6 +407,22 @@ func prompt(text: String) -> void:
 ## pushed to its edge, a tap on the weapon's name swaps, an empty magazine reloads itself (gunplay does that on the pull)
 func simple() -> bool:
 	return touch_ui and bool(Settings.get_value("simple_hud"))
+
+## in the water the JUMP button ducks under (DIVE) and, under the surface, kicks up (UP); the operator's view calls this
+## each frame with operator_player.gd's swimming / diving
+func water_label(swimming: bool, diving: bool) -> void:
+	# the guns are stowed in the water (gunplay follow_swim): no FIRE and no crosshair until the shore
+	if swimming != _in_water and mode == "foot":
+		if swimming:
+			_armed_ashore = weapons_out
+			set_armed(false)
+		else:
+			set_armed(_armed_ashore)
+		_in_water = swimming
+	if _jump_button and mode == "foot":
+		var t := ("UP" if diving else "DIVE") if swimming else "JUMP"
+		if _jump_button.text != t:
+			_jump_button.text = t
 
 func set_mode(m: String) -> void:
 	mode = m
@@ -416,18 +451,28 @@ func set_mode(m: String) -> void:
 		_cannon_held = false
 	if _missile_button:
 		_missile_button.visible = armed_drive
-	if _gas_button and armed_drive:
-		_gas_button.position = Vector2(-380, -150)
-	elif _gas_button:
-		_gas_button.position = Vector2(-250, -160)
+	# by the anchor's offsets: `position` here is in the parent's pixels, and (-250, -160) put GAS off the top left of
+	# the screen, so a phone in a car had BRAKE and no GAS (portrait audit, Nov 17)
+	if _gas_button:
+		_at_corner(_gas_button, Vector2(-380, -150) if armed_drive else Vector2(-250, -160))
 	if crosshair:
 		crosshair.visible = (not fly and not drive and weapons_out) or armed_drive
 	if drive or fly:
 		_sprint_held = false
 		fire = false
 
+## a bottom-right anchored button placed `at` from the corner (offsets, so it holds on any screen size)
+static func _at_corner(b: Control, at: Vector2) -> void:
+	b.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	b.offset_left = at.x
+	b.offset_top = at.y
+	b.offset_right = at.x + b.custom_minimum_size.x
+	b.offset_bottom = at.y + b.custom_minimum_size.y
+
 var crosshair: Control
 var weapons_out := true
+var _in_water := false
+var _armed_ashore := true
 ## the driven car has nitrous: in drive mode the SPRINT button becomes NOS (tap to fire it, tap again to stop; Shift on a
 ## keyboard, held)
 var has_nitro := false

@@ -22,6 +22,8 @@ uniform float armpit = 0.1;
 uniform int pieces = 0;
 // a crop top: the torso is bare below this height above the hip line (-1: covered)
 uniform float crop = -1.0;
+// how strongly the cloth's creases show (0: flat colour)
+uniform float folds = 1.0;
 
 varying flat int zone;
 varying float jit;
@@ -131,10 +133,41 @@ void fragment() {
 	if (part == SKIN) {
 		// bare skin (hands, the neck) the way the face is lit: a skin sheen, not the clothes' matte, and a touch less
 		// saturated (they read orange beside the face; Nov 16)
-		c = mix(vec3(dot(c, vec3(0.3, 0.59, 0.11))), c, 0.85);
+		c = mix(vec3(dot(c, vec3(0.3, 0.59, 0.11))), c, 0.72);
 		shade = 1.0;
 		rough = 0.55;
 		spec = 0.5;
+	}
+	// the cloth lies in folds: painted flat, the clothes read as a bodysuit on a mannequin (owner, Nov 18: "stiff /
+	// stick-like", "should look like GTA"). Soft creases, darker in the fold and catching a little light on the ridge,
+	// where cloth bunches: round the elbow and above the cuff on a sleeve, above the hem and drawn down from the armpit
+	// on the body, behind the knee and stacked over the ankle on a leg. Measured on the body's rest landmarks (UV), so
+	// they stay put on the cloth as it moves
+	if (part != SKIN && folds > 0.0 && zone > 1) {
+		float lat = UV.x;
+		float hh = 1.0 - UV.y;
+		float outn = 1.0 - UV2.y;
+		float wob = sin(lat * 140.0 + hh * 37.0) * 1.4 + sin(lat * 63.0 - outn * 5.0) * 1.8 + sin(lat * 23.0 + hh * 90.0) * 1.2;
+		// folds come and go round the limb, not rings
+		float patch = smoothstep(0.15, 0.85, 0.5 + 0.5 * sin(lat * 48.0 + hh * 31.0 + outn * 3.0) * sin(lat * 17.0 - hh * 55.0 + 1.3));
+		float f = 0.0;
+		float m = 0.0;
+		if (zone == 3 || zone == 4) {
+			f = sin(hh * 150.0 + wob);
+			m = 0.25 + 0.75 * max(1.0 - smoothstep(0.0, 0.05, abs(hh - elbow)), 1.0 - smoothstep(0.02, 0.08, hh - wrist));
+		} else if (hh < 0.0) {
+			f = sin(hh * 120.0 + wob + lat * 30.0);
+			m = 0.2 + 0.8 * max(1.0 - smoothstep(0.03, 0.12, hh - ankle), 1.0 - smoothstep(0.0, 0.04, abs(hh - knee - 0.01)));
+			m = max(m, (1.0 - smoothstep(-0.12, -0.04, hh)) * smoothstep(-0.2, -0.12, hh) * 0.0);
+		} else if (zone >= 5) {
+			float side = smoothstep(0.03, 0.09, abs(lat));
+			f = mix(sin(hh * 120.0 + wob), sin((hh + abs(lat) * 0.9) * 110.0 + wob), side);
+			m = 0.15 + 0.85 * max(1.0 - smoothstep(0.03, 0.09, hh), side * (1.0 - smoothstep(armpit - 0.12, armpit, hh)) * 0.0 + side * 0.45);
+		}
+		m *= patch;
+		float crease = smoothstep(0.5, 1.0, f) * m;
+		float ridge = smoothstep(-0.3, -0.9, f) * m;
+		shade *= 1.0 - folds * (0.26 * crease - 0.06 * ridge);
 	}
 	ALBEDO = c * shade;
 	ROUGHNESS = rough;

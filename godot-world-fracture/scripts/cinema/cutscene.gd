@@ -238,6 +238,10 @@ func _unclip(target: Vector3) -> void:
 	var hit := cam.get_world_3d().direct_space_state.intersect_ray(q)
 	if hit:
 		var p: Vector3 = hit.position
+		# something right at the subject (a collider round the person, debris at their feet) is not a wall to come in
+		# front of: pulled in there the camera sat inside the operator's chest (owner's video, Nov 17)
+		if p.distance_to(target) < 0.9:
+			return
 		cam.global_position = p - to.normalized() * 0.2
 
 func _bar(top: bool) -> ColorRect:

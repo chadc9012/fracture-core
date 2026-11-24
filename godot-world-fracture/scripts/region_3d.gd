@@ -1924,6 +1924,25 @@ func water_level() -> float:
 	return _water
 func over_water(lx: float, lz: float) -> bool:
 	return _h(lx, lz) < _water - 0.3
+## on foot (operator_player.gd): the bed under shallow water is waded on; where the water is deeper than SWIM_DEPTH
+## you swim, the feet held SWIM_DEPTH under the surface (`swim_surface` gives the surface there, -INF elsewhere)
+const SWIM_DEPTH := 1.3
+func wade_ground(lx: float, lz: float) -> float:
+	var fl := _floating_top(lx + _ox, lz + _oz)
+	if fl > -INF:
+		return fl
+	return maxf(_h(lx, lz), _water - SWIM_DEPTH)
+func swim_surface(lx: float, lz: float) -> float:
+	if _floating_top(lx + _ox, lz + _oz) > -INF or _h(lx, lz) >= _water - SWIM_DEPTH:
+		return -INF
+	return _water
+## the operator's whole footing in a region: wading, swimming, and the camera kept above the water
+func fit_walker(p: Node3D) -> void:
+	p.ground_at = func(x: float, z: float) -> float: return wade_ground(x, z)
+	p.swim_at = func(x: float, z: float) -> float: return swim_surface(x, z)
+	p.cam_floor = func(x: float, z: float) -> float: return _ground(x, z)
+	p.bed_at = func(x: float, z: float) -> float: return _h(x, z)
+	p.water_top = _water
 ## the buildings as world boxes (local space, metres from the region centre), for the on-foot movers to slide around
 func building_boxes() -> Array[AABB]:
 	var out: Array[AABB] = []

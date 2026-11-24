@@ -26,7 +26,7 @@ func _ready() -> void:
 	box.add_child(_label("GRAPHICS · %s in force" % Store.tier().to_upper()))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
-	for t in ["auto", "low", "medium", "high"]:
+	for t in ["auto", "low", "medium", "high", "ultra"]:
 		var b := Button.new()
 		b.text = t.to_upper()
 		b.toggle_mode = true
