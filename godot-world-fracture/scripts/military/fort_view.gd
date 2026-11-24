@@ -23,6 +23,8 @@ const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 const Rides := preload("res://scripts/killbox/royale_rides.gd")
 
+const MIL := "res://models/military/"
+
 ## the wire: x -260..260, z -520..300; the gate on the south side at x = GATE_X; the road runs out to z = ROAD_END
 const WIRE := Rect2(-260, -520, 520, 820)
 const GATE_X := -200.0
@@ -36,6 +38,8 @@ const APRON := Rect2(-40, -300, 124, 360)
 const HANGAR_Z := [-260.0, -180.0, -100.0, -20.0]
 const HANGAR_X := -112.0
 const TOWER := Vector3(-30, 0, 110)
+const TOWER_H := 34.0
+const HANGAR_YAW := PI * 0.5   # the Meshy hangar faces +z; turned so its doors face the apron (+x)
 const SPAWN := Vector3(GATE_X, 0, 395)
 const WARN_S := 6.0
 const LOSE_S := 16.0
@@ -225,6 +229,31 @@ func _mm(mesh: Mesh, mat: Material, xfs: Array, shadows := true) -> void:
 	world.add_child(mi)
 
 ## the valley floor: dry scrub and dirt for kilometres round the base
+## a Meshy model from models/military/ (Nov 24: hangar, control-tower), fitted so its longest side is `span` metres
+## (or its height `tall` metres when given), standing on the ground at `at`, turned `yaw`. null when the file is missing.
+func _model(file: String, at: Vector3, yaw: float, span := 0.0, tall := 0.0) -> Node3D:
+	var path := MIL + file
+	if not ResourceLoader.exists(path):
+		return null
+	var n := (load(path) as PackedScene).instantiate() as Node3D
+	world.add_child(n)
+	var box := AABB()
+	var first := true
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		var b: AABB = n.global_transform.affine_inverse() * (mi as MeshInstance3D).global_transform * (mi as MeshInstance3D).get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	var k := 1.0
+	if tall > 0.0 and box.size.y > 0.01:
+		k = tall / box.size.y
+	elif span > 0.0 and maxf(box.size.x, box.size.z) > 0.01:
+		k = span / maxf(box.size.x, box.size.z)
+	n.scale = Vector3.ONE * k
+	n.rotation.y = yaw
+	var c := box.get_center() * k
+	n.position = at - Vector3(c.x, 0, c.z).rotated(Vector3.UP, yaw) - Vector3(0, box.position.y * k, 0)
+	return n
+
 func _land() -> void:
 	_plane(Vector2(3600, 3600), Vector3(0, -0.02, -100), Look.scrub())
 
@@ -359,6 +388,11 @@ func _hangars() -> void:
 		var d := 56.0      # along x
 		var h := 15.0
 		var c := Vector3(HANGAR_X, 0, z)
+		# the Meshy hangar (arched corrugated roof, sliding doors) with its doors to the apron (+x); the primitive one
+		# below when the model is missing
+		if _model("hangar.glb", c, HANGAR_YAW, w):
+			obstacles.append(AABB(c - Vector3(d * 0.5, 0, w * 0.5), Vector3(d, h, w)))
+			continue
 		_box(Vector3(d, h, w), c + Vector3(0, h * 0.5, 0), walls, true)
 		# the curved roof: a shallow drum along x
 		var drum := _cyl(w * 0.62, d + 1.0, c + Vector3(0, h - w * 0.62 + 6.0, 0), roof, -1.0, 40)
@@ -399,6 +433,11 @@ func _tower() -> void:
 		_box(Vector3(2.2, 1.3, 0.1), TOWER + Vector3(2.0 + k * 3.4, 4.2, 8.02), Look.glass())
 	var side := 7.0
 	var band := 3.2
+	# the Meshy tower (banded shaft, glass cab, radar); the primitive one below when the model is missing
+	if _model("control-tower.glb", TOWER, 0.0, 0.0, TOWER_H):
+		obstacles.append(AABB(TOWER - Vector3(side * 0.5, 0, side * 0.5), Vector3(side, TOWER_H, side)))
+		_tower_old()
+		return
 	for k2 in 7:
 		_box(Vector3(side, band, side), TOWER + Vector3(0, band * 0.5 + k2 * band, 0), red if k2 % 2 == 0 else white, k2 == 0)
 	var top := 7 * band
@@ -415,7 +454,10 @@ func _tower() -> void:
 	var dish := _cyl(1.6, 0.4, TOWER + Vector3(-1.5, top + 5.6, -1.5), Look.flat(Color(0.92, 0.92, 0.9), 0.5), 0.6)
 	dish.rotation.x = 0.9
 	_cyl(0.2, 0.2, TOWER + Vector3(1.5, top + 13.6, 0), Look.flat(Color(1.0, 0.1, 0.05), 0.4, 0.0, 6.0))
-	# a second, older tower by the hangars, the frames' grey one
+	_tower_old()
+
+## a second, older tower by the hangars, the frames' grey one
+func _tower_old() -> void:
 	var old := TOWER + Vector3(-70.0, 0, 70.0)
 	_box(Vector3(9.0, 16.0, 9.0), old + Vector3(0, 8.0, 0), Look.render_wall(Color(0.74, 0.7, 0.62)), true)
 	_box(Vector3(10.4, 3.0, 10.4), old + Vector3(0, 17.5, 0), Look.glass(Color(0.22, 0.3, 0.34)))
@@ -597,10 +639,22 @@ func _park(file: String, id: String, length: float, at: Vector3, yaw: float, dri
 		obstacles.append(box)
 	return n
 
+## the base's fighter: the Meshy olive-green jet (Nov 24) when it is in, else the fleet's Vanguard
+static func jet_file() -> String:
+	return "military-jet.glb" if ResourceLoader.exists(Rides.FLEET + "military-jet.glb") else "vanguard-jet.glb"
+
 func _vehicles() -> void:
+	var jf := jet_file()
 	for k in 3:
-		_park("vanguard-jet.glb", "vanguard-jet", 17.0, Vector3(55.0, 0, APRON.position.y + 40.0 + k * 45.0), -PI * 0.5)
-	_park("vanguard-jet.glb", "vanguard-jet", 17.0, Vector3(HANGAR_X + 10.0, 0, HANGAR_Z[1]), PI * 0.5)
+		_park(jf, "vanguard-jet", 19.0, Vector3(55.0, 0, APRON.position.y + 40.0 + k * 45.0), -PI * 0.5)
+	_park(jf, "vanguard-jet", 19.0, Vector3(HANGAR_X + 10.0, 0, HANGAR_Z[1]), PI * 0.5)
+	# Humvees: two at the gate, a line in the motor pool, one on the apron road (drivable)
+	if ResourceLoader.exists(Rides.FLEET + "humvee.glb"):
+		_park("humvee.glb", "offroad-truck", 4.9, Vector3(GATE_X + 14.0, 0, GATE_Z - 30.0), PI * 0.5, true)
+		_park("humvee.glb", "offroad-truck", 4.9, Vector3(GATE_X - 14.0, 0, GATE_Z - 30.0), -PI * 0.5)
+		for k2 in 3:
+			_park("humvee.glb", "offroad-truck", 4.9, Vector3(GATE_X + 36.0 + k2 * 7.0, 0, 62.0), 0.0, k2 == 0)
+		_park("humvee.glb", "offroad-truck", 4.9, Vector3(TAXI_X - 20.0, 0, 20.0), PI, true)
 	_park("rift-helicopter.glb", "rift-helicopter", 16.0, Vector3(10.0, 0, 120.0), 0.4)
 	_park("goliath-tank.glb", "goliath-tank", 8.5, Vector3(GATE_X - 8.0, 0, 60.0), 0.0, true)
 	_park("goliath-tank.glb", "goliath-tank", 8.5, Vector3(GATE_X + 8.0, 0, 60.0), 0.0)
@@ -725,7 +779,7 @@ func _respawn() -> void:
 
 ## a jet in low along the runway, guns on the operator as it passes; its model is the fleet's Vanguard
 func _send_jet() -> void:
-	var path := "res://models/fleet/vanguard-jet.glb"
+	var path := Rides.FLEET + jet_file()
 	if not ResourceLoader.exists(path):
 		return
 	var j := (load(path) as PackedScene).instantiate() as Node3D
@@ -737,7 +791,7 @@ func _send_jet() -> void:
 		box = b if first else box.merge(b)
 		first = false
 	if maxf(box.size.x, box.size.z) > 0.01:
-		j.scale = Vector3.ONE * (17.0 / maxf(box.size.x, box.size.z))
+		j.scale = Vector3.ONE * (19.0 / maxf(box.size.x, box.size.z))
 	var me := operator.position
 	var dir := Vector3(0, 0, -1) if _rng.randf() < 0.5 else Vector3(0, 0, 1)
 	var from := Vector3(me.x + _rng.randf_range(-20, 20), 45.0, me.z) - dir * 700.0
