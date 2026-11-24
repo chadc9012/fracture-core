@@ -277,8 +277,7 @@ func _street_door(id: String) -> void:
 		"rift":
 			view = BossArena.new()
 		"descent":
-			# the crash-site transport: Chapter 1 — The Aftershock (the owner's Nov 22 screenplays), then the original story —
-			# Act 1's descent, then the campaign's missions 02–25 once the act is cleared
+			# the crash-site transport: the main story (Chapter 1 — The Aftershock, the owner's Nov 22 screenplays, to Mission 70)
 			view = _story_view()
 		"apartment":
 			view = Mission01.new()
@@ -341,20 +340,11 @@ func _airport_view(code: String, arriving: bool) -> Control:
 	v.arriving = arriving
 	return v
 
-## the story the crash-site door opens: Chapter 1 until it is done, then Act 1, then missions 02–25
+## the story the crash-site door opens: the main story, Missions 2–70, and nothing after it (owner, Nov 24: "we shouldn't
+## be moving backwards, no duplicate missions" — it used to roll on into the original campaign, which starts again at
+## Mission 02 and retells the same arc; the original set and Act 1's descent are no longer on the story path)
 func _story_view() -> Control:
-	# the main story until it is done — unless the player stepped out into the original campaign from a chapter card
-	# (profile `story_line`), which then plays until it is done
-	var line := ""
-	var pf := FileAccess.open("user://profile.json", FileAccess.READ)
-	if pf:
-		var pd: Variant = JSON.parse_string(pf.get_as_text())
-		if pd is Dictionary:
-			line = String(pd.get("story_line", ""))
-	var original_done := FileAccess.file_exists("user://campaign.json") and Campaign.next_mission() == ""
-	if not Aftershock.finished() and (line != "original" or original_done):
-		return Aftershock.new()
-	return Campaign.new() if Descent.chapter_cleared() else Descent.new()
+	return Aftershock.new()
 
 ## Chapter 1 done: the story rolls straight on into the original set, over the same hidden street
 func _roll_on(from_view: Control) -> void:

@@ -147,12 +147,6 @@ func _play_through() -> void:
 	ok(Aftershock.finished(), "the main story is finished")
 	await _frames(3)
 	ok(d._done_panel != null, "the chapter's end card is up")
-	var cont: Button = null
-	for b in d._done_panel.find_children("*", "Button", true, false):
-		if (b as Button).text == "CONTINUE THE STORY":
-			cont = b
-	ok(cont != null, "with CONTINUE THE STORY")
-	if cont:
-		cont.pressed.emit()
-	ok(rolled, "which rolls on into the original story")
+	var labels: Array = d._done_panel.find_children("*", "Button", true, false).map(func(b): return (b as Button).text)
+	ok(labels == ["BACK TO THE CITY"], "and it ends there: back to the city, no rolling back into the original set (%s)" % str(labels))
 	await _close()

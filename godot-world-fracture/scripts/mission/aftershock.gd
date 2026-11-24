@@ -5,7 +5,8 @@ extends "res://scripts/mission/campaign.gd"
 ## every spoken line the owner's, voiced), on the campaign runner (campaign.gd) with a story line of its own — its own
 ## progress (user://aftershock.json), its own finished missions (profile `aftershock_done`) and choice (`a05_choice`: fdi /
 ## free / ascendancy), its own co-op rooms (story:aftershock:<chapter>). One mission rolls into the next; when Beneath the
-## Ashes is done the story rolls on (`roll_on`) into the original set — Act 1 (descent.gd), then missions 02–25.
+## Ashes is done it goes on through Chapter 9 to Mission 70, and ends there (owner, Nov 24: "we shouldn't be moving
+## backwards, no duplicate missions" — it no longer rolls on into the original set, which restarts at Mission 02).
 ## Mission 1 is Mission 01 (mission_01.gd). The crash-site door opens it (main.gd `_street_door("descent")`).
 
 const AFTERSHOCK_DATA := "res://data/dialogue/aftershock.json"
@@ -31,7 +32,7 @@ func _choice_key(mission: String) -> String:
 
 ## the chapters of the main story (Nov 22: the owner's Chapter 1, then Chapters 2 onward from tools/campaign/story/):
 ## when a mission of a new chapter begins, its title card comes up over the world with the chapter just finished — go on,
-## step out into the original campaign (`roll_on`, remembered as the profile's `story_line`), or back to the city
+## or back to the city
 var _card: PanelContainer
 var _card_for := ""
 
@@ -78,16 +79,6 @@ func _chapter_card(was: Array, now: Array, next_id: String) -> void:
 		_card = null
 		_begin(next_id))
 	v.add_child(b)
-	var o := Button.new()
-	o.text = "PLAY THE ORIGINAL CAMPAIGN"
-	o.custom_minimum_size = Vector2(360, 40)
-	o.pressed.connect(func():
-		_save()
-		var p := _profile()
-		p["story_line"] = "original"
-		_profile_save(p)
-		roll_on.emit())
-	v.add_child(o)
 	var g := Button.new()
 	g.text = "BACK TO THE CITY"
 	g.custom_minimum_size = Vector2(360, 40)
@@ -95,7 +86,7 @@ func _chapter_card(was: Array, now: Array, next_id: String) -> void:
 	v.add_child(g)
 	add_child(_card)
 
-## the whole main story done: the last card rolls on into the original story
+## the whole main story done: the last card (the story ends here — no rolling back into the original set, owner Nov 24)
 func _chapter_done() -> void:
 	_set_waypoint(Vector3.ZERO, false)
 	_objective.text = "The main story is complete."
@@ -112,11 +103,6 @@ func _chapter_done() -> void:
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_font_size_override("font_size", 20)
 	v.add_child(t)
-	var b := Button.new()
-	b.text = "CONTINUE THE STORY"
-	b.custom_minimum_size = Vector2(340, 48)
-	b.pressed.connect(func(): _save(); roll_on.emit())
-	v.add_child(b)
 	var g := Button.new()
 	g.text = "BACK TO THE CITY"
 	g.custom_minimum_size = Vector2(340, 40)
