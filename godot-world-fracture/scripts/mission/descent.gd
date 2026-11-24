@@ -15,6 +15,8 @@ const Sound := preload("res://scripts/audio/sound.gd")
 ## does. On by default (CO-OP OPEN on the HUD; PRIVATE keeps you alone); alone it plays exactly as it did.
 
 signal closed
+## the main story goes on (Eldergrove, Mission 11) — main.gd swaps to the next story view
+signal roll_on
 
 const Region3D := preload("res://scripts/region_3d.gd")
 const WildlifeView := preload("res://scripts/wildlife/wildlife_view.gd")
@@ -462,25 +464,30 @@ func _chapter_done() -> void:
 		cutscene.play([
 			Cutscene.beat("NOVA", "Massive life-form on the long-range scan. Thermal reading is impossible. It appears to be burning without consuming oxygen.", 5.0, look, { "orbit": { "radius": 14.0, "height": 6.0, "deg0": 200.0, "deg1": 240.0 } }),
 			Cutscene.beat("Vaelith · the Ember Peaks", "", 7.0, look, { "voice": "vaelith-first-contact", "orbit": { "radius": 11.0, "height": 4.0, "deg0": 240.0, "deg1": 290.0 } }),
-			Cutscene.beat("NOVA", "That was not a Fracture creature. Act 2 begins at the Ember Peaks.", 4.0, look, { "orbit": { "radius": 16.0, "height": 8.0, "deg0": 290.0, "deg1": 320.0 } }),
+			Cutscene.beat("NOVA", "That was not a Fracture creature. It can wait. The signal from the source points deeper into the forest: Eldergrove.", 4.0, look, { "orbit": { "radius": 16.0, "height": 8.0, "deg0": 290.0, "deg1": 320.0 } }),
 		], region.camera())
 		cutscene.finished.connect(_chapter_done, CONNECT_ONE_SHOT)
 		return
 	_done_panel = PanelContainer.new()
 	_done_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_done_panel.position = Vector2(-170, -70)
+	_done_panel.position = Vector2(-200, -80)
 	var v := VBoxContainer.new()
 	_done_panel.add_child(v)
 	var t := Label.new()
-	t.text = "ACT 1 COMPLETE\nfd-02 to fd-07 cleared · the lockdown is broken\nAct 2: the Ember Peaks"
+	t.text = "THE FRACTURE DESCENT COMPLETE\nthe lockdown is broken · the road out of Nexus is open\nNext: Chapter 2 — The Voice and the Map"
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_font_size_override("font_size", 20)
 	v.add_child(t)
 	var b := Button.new()
-	b.text = "BACK TO THE GLOBE"
-	b.custom_minimum_size = Vector2(300, 48)
-	b.pressed.connect(func(): _save(); closed.emit())
+	b.text = "CONTINUE THE STORY"
+	b.custom_minimum_size = Vector2(340, 48)
+	b.pressed.connect(func(): _save(); roll_on.emit())
 	v.add_child(b)
+	var g := Button.new()
+	g.text = "BACK TO THE CITY"
+	g.custom_minimum_size = Vector2(340, 40)
+	g.pressed.connect(func(): _save(); closed.emit())
+	v.add_child(g)
 	add_child(_done_panel)
 
 func _refresh() -> void:

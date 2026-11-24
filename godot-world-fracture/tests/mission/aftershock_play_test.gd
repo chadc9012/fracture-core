@@ -4,7 +4,8 @@ extends "res://tests/mission/descent_play_test.gd"
 ## every line of every chapter is voiced, every story person stands where the talk chapters need them and every boss
 ## has a hull; then the whole chapter is played through in order — each chapter begins on its world with its objective,
 ## the boss chapters' bosses go down, the talk chapters' people are met, Mission 5's choice lands as `a05_choice`, each
-## mission goes to `aftershock_done` — and Beneath the Ashes rolls on into the original story (Act 1).
+## mission goes to `aftershock_done`; after Mission 10 the story hands over to the Fracture Descent and comes back for
+## Chapter 2 once it is cleared; the last card is back to the city.
 ##   godot --headless --path godot-world-fracture res://tests/mission/aftershock_play.tscn
 const Aftershock := preload("res://scripts/mission/aftershock.gd")
 const Campaign := preload("res://scripts/mission/campaign.gd")
@@ -92,6 +93,24 @@ func _play_through() -> void:
 	while String(d.progress.current) != d.ACT_END and guard < 400:
 		guard += 1
 		await _skip_scene()
+		if d._card and (d._card.find_children("*", "Label", true, false)[0] as Label).text.contains("FRACTURE DESCENT"):
+			# Chapter 1 ends on the road out of Nexus: the card hands over to the Fracture Descent (owner, Nov 24)
+			ok(d.progress.done.back() == "A10" or String(d._quest_def(String(d.progress.done.back())).get("mission", "")) == "10", "the Descent card comes after Mission 10")
+			rolled = false
+			for b in d._card.find_children("*", "Button", true, false):
+				if (b as Button).text == "CONTINUE THE STORY":
+					(b as Button).pressed.emit()
+			ok(rolled, "its CONTINUE THE STORY hands over to the Fracture Descent")
+			# the Descent played and cleared (its own test plays it): back in, the story goes on into Chapter 2
+			var qf := FileAccess.open("user://quests.json", FileAccess.WRITE)
+			qf.store_string(JSON.stringify({ "current": "done", "done": [] }))
+			qf = null
+			d._card.queue_free()
+			d._card = null
+			d._card_for = ""
+			d._begin(String(d.progress.current))
+			await _frames(2)
+			ok(d._card != null and not (d._card.find_children("*", "Label", true, false)[0] as Label).text.contains("FRACTURE DESCENT"), "once the Descent is cleared, Chapter 2's own card comes up")
 		if d._card:
 			# a new chapter's title card: go on with the story
 			for b in d._card.find_children("*", "Button", true, false):

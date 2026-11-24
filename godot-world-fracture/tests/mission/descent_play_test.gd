@@ -422,6 +422,13 @@ func _ready() -> void:
 		d.cutscene._end()
 		await _frames(5)
 	ok(d.progress.current == "done" and d._done_panel != null, "Act 1 complete (%s)" % d.progress.current)
+	if d._done_panel:
+		var labels: Array = d._done_panel.find_children("*", "Button", true, false).map(func(b): return (b as Button).text)
+		ok(labels == ["CONTINUE THE STORY", "BACK TO THE CITY"], "the Descent is folded into the main story: it goes on to Eldergrove (%s)" % str(labels))
+		var went := [false]
+		d.roll_on.connect(func(): went[0] = true)
+		d._done_panel.find_children("*", "Button", true, false)[0].pressed.emit()
+		ok(went[0], "CONTINUE THE STORY hands back to the main story")
 	var clears: Dictionary = Gear.profile_load().get("boss_clears", {})
 	ok(clears.has("lockdown-warden"), "the Lockdown Warden counts as a boss clear")
 	await _close()
