@@ -46,7 +46,10 @@ func _init() -> void:
 					print("  no answer: ", p.id, " ", a[0])
 	check("every named person answers every ask", all_answer)
 	check("a new face's 'you' is the acquaintance line", Talk.topic_id(People.by_id("rosa"), "you", sv, "2026-11-15") == "P_rosa_you_acquaintance")
-	check("the news follows the campaign", Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15") == "P_rosa_news_start" and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "campaign_done": ["16"] }) == "P_rosa_news_masks" and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "m05_choice": "cooperate" }) == "P_rosa_news_allied")
+	check("the news follows the story (the main story, and the original campaign for old saves)", Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15") == "P_rosa_news_start" and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "campaign_done": ["16"] }) == "P_rosa_news_masks" and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "m05_choice": "cooperate" }) == "P_rosa_news_allied"
+		and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "aftershock_done": ["02", "03", "04", "05"] }) == "P_rosa_news_allied"
+		and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "aftershock_done": ["20"] }) == "P_rosa_news_masks"
+		and Talk.topic_id(People.by_id("rosa"), "news", sv, "2026-11-15", { "aftershock_done": ["70"] }) == "P_rosa_news_kept")
 	check("the answer has text", Talk.line_text("P_rosa_you_wary").begins_with("You're new"))
 	check("Sable speaks her own lines", Talk.greeting(People.by_id("sable"), sv, 23.0, "Nyx").begins_with("In Neon City") or Talk.greeting(People.by_id("sable"), sv, 23.0, "Nyx").begins_with("Every shortcut"))
 	Memory.talk(sv, "sable", "2026-11-11")

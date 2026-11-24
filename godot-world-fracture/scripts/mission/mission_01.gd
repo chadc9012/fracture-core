@@ -8,6 +8,8 @@ extends "res://scripts/city/street_slice.gd"
 ## owner's reference frame, keyboard + mouse or touch.
 
 signal finished
+## the player chose to go straight on into the main story (Mission 2 — No Way Back): main.gd opens it
+signal story_next
 
 const TouchPad := preload("res://scripts/player/touch_controls.gd")
 const Story := preload("res://scripts/mission/m01_story.gd")
@@ -1394,7 +1396,8 @@ func _on_phase() -> void:
 		await _play_checkpoint()
 		_mission_complete()
 
-## Missions 04 and 05 (the owner's Phase 3 scenes, scripts/cinema/scenes.gd): Captain Rourke's Vanguard checkpoint at the
+## The checkpoint and command scenes (the owner's Phase 3 scenes, scripts/cinema/scenes.gd — once titled Missions 04 and
+## 05 of the original set; retitled Nov 24 so they do not clash with the main story's own Missions 4 and 5): Captain Rourke's Vanguard checkpoint at the
 ## Breach once the street is clear — the checkpoint, NOVA in the medical tent, the terms of protection, then the temporary
 ## command and the relief line, where the player chooses to work with Rourke's team or stay independent. The choice is kept in
 ## the profile (`m05_choice`, synced with the cloud save) and the scenes play once; a replay of Mission 01 skips them.
@@ -1406,8 +1409,8 @@ func _play_checkpoint() -> void:
 	var face := atan2(p.x - at.x, p.z - at.z)
 	if not _npcs.has("vale"):
 		_npc("vale", "m-stern", "male", "goliath", at, face)
-	await _play_cine(Scenes.cinema_shots(Scenes.chain("04"), p, at, "MISSION 04  ·  CHECKPOINT"))
-	await _play_cine(Scenes.cinema_shots(Scenes.chain("05"), p, at, "MISSION 05  ·  COMMAND"))
+	await _play_cine(Scenes.cinema_shots(Scenes.chain("04"), p, at, "THE CHECKPOINT"))
+	await _play_cine(Scenes.cinema_shots(Scenes.chain("05"), p, at, "COMMAND"))
 	var ask := Choice.new()
 	add_child(ask)
 	_release_mouse()
@@ -1443,6 +1446,17 @@ func _mission_complete() -> void:
 	_complete.visible = true
 	_release_mouse()
 	finished.emit()
+
+## CONTINUE THE STORY: the second surge knocks the operator out, and the main story picks them up
+func _to_mission_2() -> void:
+	_complete.visible = false
+	_say([["NOVA", "Wait. A second surge. One point eight kilometres out. Brace—"]], true)
+	await get_tree().create_timer(3.2).timeout
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", 1.0, 0.8)
+	await tw.finished
+	await get_tree().create_timer(0.6).timeout
+	story_next.emit()
 
 # --------------------------------------------------------------------------------------------- effects
 func _on_fired(from: Vector3, to: Vector3, hit: Object) -> void:
@@ -1852,7 +1866,15 @@ func _build_hud() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 12)
 	cv.add_child(row)
-	var cont := Data.button("FREE ROAM", true)
+	# straight on into the main story (owner, Nov 24: Mission 1 is waking up in the apartment, and the story goes on
+	# from it): NOVA's warning of the second surge, a blackout, then Mission 2 — No Way Back opens on "Operator? Can you
+	# hear me?"
+	var story_btn := Data.button("CONTINUE THE STORY", true)
+	story_btn.custom_minimum_size = Vector2(220, 50)
+	story_btn.pressed.connect(_to_mission_2)
+	cv.add_child(story_btn)
+	cv.move_child(story_btn, 2)
+	var cont := Data.button("FREE ROAM")
 	cont.custom_minimum_size = Vector2(160, 50)
 	cont.pressed.connect(func() -> void: _complete.visible = false)
 	row.add_child(cont)

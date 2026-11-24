@@ -228,16 +228,20 @@ static func asks() -> Array:
 			out.append([t, String(a[t])])
 	return out
 
-## the campaign's stage for the news: what the profile says is done (`campaign_done`, the mission ids) and Mission 05's choice
+## the story's stage for the news
+## (Nov 24: read from the main story, the one the story door plays — `aftershock_done`: after Mission 5's choice "allied",
+## after the Neon City underworld of Missions 18-20 "masks", after NOVA's memories surface in Mission 28 "unbound", after
+## the epilogue, Mission 70, "kept". The original campaign's record, `campaign_done`, still counts for old saves.)
 static func stage(profile: Dictionary) -> String:
 	var done: Array = profile.get("campaign_done", [])
-	if done.has("25"):
+	var main: Array = profile.get("aftershock_done", [])
+	if main.has("70") or done.has("25"):
 		return "kept"
-	if done.has("22"):
+	if main.has("28") or done.has("22"):
 		return "unbound"
-	if done.has("16"):
+	if main.has("20") or done.has("16"):
 		return "masks"
-	if done.has("05") or String(profile.get("m05_choice", "")) != "":
+	if main.has("05") or String(profile.get("a05_choice", "")) != "" or done.has("05") or String(profile.get("m05_choice", "")) != "":
 		return "allied"
 	return "start"
 

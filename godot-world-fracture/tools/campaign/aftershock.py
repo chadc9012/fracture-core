@@ -36,7 +36,7 @@ MISSIONS = [
          "open": L(N, "Operator? Can you hear me?", "Your biometric readings are unstable. Please respond.")
          + L(O, "What the hell happened?")
          + L(N, "A Fracture event has occurred approximately 1.8 kilometres from your current position.")
-         + L(O, "A what?")
+         + L(O, "Another one?")   # (was "A what?": Mission 1 already met the Fracture and NOVA — Nov 24, the story's flow)
          + L(N, "I am detecting an anomalous energy signature across the entire city.")
          + L(O, "People are still inside those buildings!")
          + L(N, "Correct. Approximately 340 civilians remain inside the immediate danger zone.")

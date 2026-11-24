@@ -292,6 +292,14 @@
 "_r"
 ]
 },
+"M01X_BRIDGE": {
+"speaker": "NOVA",
+"text": "Wait. A second surge. One point eight kilometres out. Brace—",
+"dur": 3.96,
+"variants": [
+""
+]
+},
 "M01_001": {
 "speaker": "NEWS",
 "text": "Good morning, Nexus City. Overnight, residents reported unusual lights over the harbor.",
@@ -4482,8 +4490,8 @@
 },
 "A02_005": {
 "speaker": "PLAYER",
-"text": "A what?",
-"dur": 0.79,
+"text": "Another one?",
+"dur": 1.04,
 "variants": [
 "_m",
 "_f",
@@ -34217,6 +34225,7 @@
 "NOVA|Every city on this world woke up somewhere new this morning.": "M01X_WORLD_1",
 "NOVA|Nexus was only the first to notice.": "M01X_WORLD_2",
 "PLAYER|Then we'd better find out where we are.": "M01X_WORLD_3",
+"NOVA|Wait. A second surge. One point eight kilometres out. Brace—": "M01X_BRIDGE",
 "NEWS|Good morning, Nexus City. Overnight, residents reported unusual lights over the harbor.": "M01_001",
 "PLAYER|Another ordinary morning. That would be nice.": "M01_002",
 "NEWS|Officials say there is no cause for alarm—": "M01_003",
@@ -34702,7 +34711,7 @@
 "NOVA|Your biometric readings are unstable. Please respond.": "A02_002",
 "PLAYER|What the hell happened?": "A02_003",
 "NOVA|A Fracture event has occurred approximately 1.8 kilometres from your current position.": "A02_004",
-"PLAYER|A what?": "A02_005",
+"PLAYER|Another one?": "A02_005",
 "NOVA|I am detecting an anomalous energy signature across the entire city.": "A02_006",
 "PLAYER|People are still inside those buildings!": "A02_007",
 "NOVA|Correct. Approximately 340 civilians remain inside the immediate danger zone.": "A02_008",
