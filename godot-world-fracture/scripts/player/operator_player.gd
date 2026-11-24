@@ -302,8 +302,42 @@ func step(dt: float, move: Vector2, look: Vector2, jump: bool, sprint: bool) -> 
 	recoil = maxf(0.0, recoil - RECOIL_SETTLE * dt * maxf(recoil, 0.05) * 4.0)
 	if rig:
 		rig.rotation.y = heading
+		_lean_body(dt, flat.length(), sprint)
+		_head_follow()
 	_animate(flat.length(), sprint)
 	_place_camera(dt)
+
+## weight in the body (realism pass, Nov 24 — owner: "make game look and feel realistic"): the operator leans into a turn
+## by how fast it turns at speed, forward as it speeds up and back as it pulls up, a little more at a sprint; eased, and
+## upright while airborne, dodging or held
+var _lean := Vector2.ZERO          # x pitch (forward +), y roll
+var _lean_prev_heading := 0.0
+var _lean_prev_speed := 0.0
+## the operator's head turns to where the camera looks (character_rig.gd head_look), and lets go when that is behind the
+## body; only the player's mover has a camera, so bots and people are untouched
+func _head_follow() -> void:
+	if cam == null or not rig.has_method("head_look"):
+		return
+	var look := Vector3(-sin(cam_yaw) * cos(cam_pitch), sin(cam_pitch), -cos(cam_yaw) * cos(cam_pitch))
+	var body := Vector3(sin(heading), 0, cos(heading))
+	if Vector3(look.x, 0, look.z).normalized().dot(body) < -0.1 or dodge_t > 0.0:
+		rig.head_look(null)
+	else:
+		rig.head_look(position + Vector3(0, 1.55, 0) + look * 12.0)
+
+func _lean_body(dt: float, speed: float, sprint: bool) -> void:
+	var d := maxf(dt, 1e-3)
+	var turn := angle_difference(_lean_prev_heading, heading) / d
+	var accel := (speed - _lean_prev_speed) / d
+	_lean_prev_heading = heading
+	_lean_prev_speed = speed
+	var want := Vector2.ZERO
+	if grounded and dodge_t <= 0.0 and locked <= 0.0 and not grappling():
+		want.y = clampf(-turn * speed * 0.011, -0.16, 0.16)
+		want.x = clampf(accel * 0.010, -0.07, 0.09) + (0.06 if sprint and speed > RUN else 0.0)
+	_lean = _lean.lerp(want, 1.0 - exp(-7.0 * dt))
+	rig.rotation.x = _lean.x
+	rig.rotation.z = _lean.y
 
 func _slide(to: Vector2, from: Vector2, y: float) -> Vector2:
 	var p := to
@@ -371,7 +405,8 @@ func _animate(speed: float, sprint: bool) -> void:
 		anim.play(clip, 0.18)
 		_clip = clip
 	if _clip == "run":
-		anim.speed_scale = 1.25 if sprint else 1.0
+		# the stride matches the ground covered (the clip ran at one rate from 3.2 to 7.2 m/s: the feet skated)
+		anim.speed_scale = clampf(speed / RUN, 0.72, 1.35)
 	elif _clip == "walk":
 		anim.speed_scale = clampf(speed / WALK, 0.6, 1.4)
 	else:

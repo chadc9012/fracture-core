@@ -67,6 +67,7 @@ static func _overlook(r: Node, rng: RandomNumberGenerator) -> void:
 	var rock := Flora.rock_material(Color(0.5, 0.49, 0.47))
 	var top := _mesa(r, node, at, rad, float(s.h), rock, rng)
 	r.set_meta("overlook_cap", top + 0.6)
+	r.grass_holes.append(Vector3(at.x, at.y, rad * 1.15))
 	# the cap is a deck: [from, to, y at each end, half width] — a short span so the whole cap stands at its height
 	r._decks.append([at - Vector2(0.5, 0), at + Vector2(0.5, 0), top + 0.48, top + 0.48, rad * 0.62])
 	r._deck_grid_n = -1

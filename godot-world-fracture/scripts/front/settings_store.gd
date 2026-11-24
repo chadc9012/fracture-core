@@ -25,6 +25,7 @@ static func save(s: Dictionary) -> void:
 	_cache = s
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
 	f.store_string(JSON.stringify(s))
+	load("res://scripts/phone.gd").apply_global()   # a new graphics tier changes the shadow filter at once (load: phone.gd preloads this file)
 
 static func get_value(key: String) -> Variant:
 	return load_all().get(key, DEFAULTS.get(key))

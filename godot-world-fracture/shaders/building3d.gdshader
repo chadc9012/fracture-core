@@ -153,4 +153,9 @@ void fragment() {
 		}
 		ALBEDO = c;
 	}
+	// the wall's foot sits in the ground's shade (realism pass, Nov 24): ambient fades down the bottom few metres
+	if (COLOR.a <= 0.5) {
+		AO = mix(0.45, 1.0, smoothstep(0.0, 5.0, UV.y));
+		AO_LIGHT_AFFECT = 0.25;
+	}
 }

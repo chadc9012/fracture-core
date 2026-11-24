@@ -984,6 +984,60 @@ func ashen_mark(on: bool) -> void:
 		mi.rotation = Vector3(0.0, 0.45, 0.0)
 		_ashen.add_child(mi)
 
+## the head turns toward what the operator looks at (realism pass, Nov 24: "characters & animation"): a LookAtModifier3D
+## on the head bone after every clip and the action layer, limited like a neck (75° round, 35° up / down), eased; the
+## face's axis is found from the rest pose, since the rigs differ. `at` null lets the head go back to the clip.
+var _look: LookAtModifier3D
+var _look_target: Marker3D
+func head_look(at: Variant) -> void:
+	if skeleton == null:
+		return
+	if _look == null or not is_instance_valid(_look):
+		if at == null:
+			return
+		var hb := _bone(skeleton, "Head")
+		if hb < 0:
+			return
+		_look_target = Marker3D.new()
+		_look_target.top_level = true
+		add_child(_look_target)
+		_look = LookAtModifier3D.new()
+		_look.bone_name = skeleton.get_bone_name(hb)
+		# which of the head bone's own axes points out of the face (the rig's +Z) and which runs up the neck
+		var rest := skeleton.get_bone_global_rest(hb)
+		var to_sk := skeleton.global_transform.basis.inverse() * global_transform.basis
+		var fwd := (rest.basis.inverse() * (to_sk * Vector3(0, 0, 1))).normalized()
+		var up := (rest.basis.inverse() * (to_sk * Vector3(0, 1, 0))).normalized()
+		_look.forward_axis = _axis_enum(fwd)
+		_look.primary_rotation_axis = _main_axis(up)
+		_look.use_secondary_rotation = true
+		_look.use_angle_limitation = true
+		_look.set("symmetry_limitation", true)
+		_look.set("primary_limit_angle", deg_to_rad(150.0))
+		_look.set("secondary_limit_angle", deg_to_rad(70.0))
+		_look.duration = 0.3
+		_look.transition_type = Tween.TRANS_SINE
+		_look.influence = 0.75
+		skeleton.add_child(_look)
+		_look.target_node = _look.get_path_to(_look_target)
+	_look.active = at != null
+	if at != null:
+		_look_target.global_position = at
+
+static func _axis_enum(v: Vector3) -> int:
+	var a := v.abs()
+	if a.x >= a.y and a.x >= a.z:
+		return SkeletonModifier3D.BONE_AXIS_PLUS_X if v.x > 0.0 else SkeletonModifier3D.BONE_AXIS_MINUS_X
+	if a.y >= a.z:
+		return SkeletonModifier3D.BONE_AXIS_PLUS_Y if v.y > 0.0 else SkeletonModifier3D.BONE_AXIS_MINUS_Y
+	return SkeletonModifier3D.BONE_AXIS_PLUS_Z if v.z > 0.0 else SkeletonModifier3D.BONE_AXIS_MINUS_Z
+
+static func _main_axis(v: Vector3) -> int:
+	var a := v.abs()
+	if a.x >= a.y and a.x >= a.z:
+		return Vector3.AXIS_X
+	return Vector3.AXIS_Y if a.y >= a.z else Vector3.AXIS_Z
+
 ## a holder upright in model space at the bone's rest plus `off`, riding the bone
 func _on_bone(suffix: String, off: Vector3) -> Node3D:
 	var idx := _bone(skeleton, suffix)

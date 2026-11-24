@@ -481,6 +481,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	_decks.clear()
 	_deck_grid_n = -1
 	extra_boxes.clear()
+	grass_holes.clear()
 	if _style.under:
 		# under the sea (Thalassia): no surface over the city, so "water level" sits below the seabed and everything that
 		# clamps to it (street view, docks, labels) stands on the floor instead of 30-odd metres up at the surface
@@ -919,6 +920,10 @@ func _build_ground() -> void:
 	mat.set_shader_parameter("bog", float(_style.get("bog", 0.0)))
 	mat.set_shader_parameter("embers", float(_style.get("embers", 0.0)))
 	mat.set_shader_parameter("tint", _style.get("tint", Vector3.ONE))
+	var occ := _contact_occlusion()
+	if occ:
+		mat.set_shader_parameter("occ_tex", occ)
+		mat.set_shader_parameter("occ_amt", 1.0)
 	for pair in [["i_forest", "forest"], ["i_dense", "denseForest"], ["i_marsh", "marsh"], ["i_meadow", "meadow"], ["i_grass", "grass"], ["i_scrub", "scrub"],
 			["i_desert", "desert"], ["i_dunes", "dunes"], ["i_sandstone", "sandstone"], ["i_wash", "wash"], ["i_lava", "lava"], ["i_magma", "magma"],
 			["i_urban", "urban"], ["i_paved", "paved"], ["i_town", "town"], ["i_snow", "snow"], ["i_ice", "ice"], ["i_crystal", "crystal"], ["i_rift", "rift"],
@@ -2456,6 +2461,50 @@ func _ground(lx: float, lz: float) -> float:
 		if Vector2(lx, lz).distance_to(a + ab * t) <= float(b[4]):
 			g = maxf(g, lerpf(float(b[2]), float(b[3]), t) + 0.12)
 	return g
+## the ground's contact shadow (realism pass, Nov 24; terrain3d.gdshader occ_tex): every building's footprint dark, fading
+## out over a few metres round it (wider round taller ones) — a soft occlusion map at ~1 m a texel, max 512², built
+## once per region
+func _contact_occlusion() -> ImageTexture:
+	var bs: Array = m.get("buildings", [])
+	if bs.is_empty():
+		return null
+	var n := clampi(int(_span / 1.0), 128, 512)
+	var px := _span / float(n)
+	var occ := PackedFloat32Array()
+	occ.resize(n * n)
+	occ.fill(1.0)
+	for bd in bs:
+		var p := _loc(bd[0], bd[1])
+		var hx := float(bd[2])
+		var hz := float(bd[3])
+		var yaw := float(bd[4])
+		var c := cos(yaw)
+		var sn := sin(yaw)
+		var fall := clampf(2.5 + _bh(bd) * 0.06, 2.5, 7.0)
+		var ex := absf(hx * c) + absf(hz * sn) + fall
+		var ez := absf(hx * sn) + absf(hz * c) + fall
+		var i0 := maxi(0, int((p.x - ex) / px + n * 0.5))
+		var i1 := mini(n - 1, int((p.x + ex) / px + n * 0.5))
+		var j0 := maxi(0, int((p.y - ez) / px + n * 0.5))
+		var j1 := mini(n - 1, int((p.y + ez) / px + n * 0.5))
+		for j in range(j0, j1 + 1):
+			var lz := (float(j) + 0.5 - n * 0.5) * px - p.y
+			for i in range(i0, i1 + 1):
+				var lx := (float(i) + 0.5 - n * 0.5) * px - p.x
+				# into the building's own frame: distance outside its footprint
+				var u := absf(lx * c - lz * sn) - hx
+				var v := absf(lx * sn + lz * c) - hz
+				var d := Vector2(maxf(u, 0.0), maxf(v, 0.0)).length()
+				var o := 0.35 + 0.65 * smoothstep(0.0, fall, d)
+				var k := j * n + i
+				if o < occ[k]:
+					occ[k] = o
+	var bytes := PackedByteArray()
+	bytes.resize(n * n)
+	for k in n * n:
+		bytes[k] = int(clampf(occ[k], 0.0, 1.0) * 255.0)
+	return ImageTexture.create_from_image(Image.create_from_data(n, n, false, Image.FORMAT_L8, bytes))
+
 ## bridge decks you can walk: [from, to, deck y at each end, half width] in local metres (the bridge roads)
 var _decks: Array = []
 var _deck_grid := {}
@@ -2514,9 +2563,15 @@ func _build_grass_field() -> void:
 		base = Color(0.2, 0.2, 0.08)
 	g.setup(_grass_here, func(x: float, z: float) -> float: return _ground(x, z), base, tip)
 
+## circles (local x, z, radius) the region's set pieces stand on, where no grass grows (region_board.gd: the overlook
+## crag — blades sprouted out of its bare rock cap)
+var grass_holes: Array[Vector3] = []
 func _grass_here(lx: float, lz: float) -> bool:
 	if _off_map(lx, lz):
 		return false
+	for gh in grass_holes:
+		if Vector2(lx - gh.x, lz - gh.y).length() < gh.z:
+			return false
 	var ii := int((lx / _span + 0.5) * (_road_mask_n - 1))
 	var jj := int((lz / _span + 0.5) * (_road_mask_n - 1))
 	if ii < 0 or jj < 0 or ii >= _road_mask_n or jj >= _road_mask_n or _road_mask[jj * _road_mask_n + ii] == 1:

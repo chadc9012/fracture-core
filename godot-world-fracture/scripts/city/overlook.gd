@@ -154,13 +154,17 @@ func _begin_view() -> void:
 		if n != region and n != _overlay and n is CanvasItem and (n as CanvasItem).visible:
 			(n as CanvasItem).visible = false
 			_hidden.append(n)
+	var bc: Variant = host.get("beacon")
+	if bc is Node3D and (bc as Node3D).visible:
+		(bc as Node3D).visible = false   # the waypoint's beam and orb hung over the city in the frame
+		_hidden.append(bc)
 
 var _hidden: Array = []
 func _end_view() -> void:
 	viewing = false
 	for n in _hidden:
 		if is_instance_valid(n):
-			(n as CanvasItem).visible = true
+			n.visible = true
 	_hidden.clear()
 	if _overlay:
 		_overlay.queue_free()

@@ -58,6 +58,7 @@ var driving: Control
 
 func _ready() -> void:
 	preload("res://scripts/front/settings_store.gd").apply_orientation()   # the player's saved screen orientation
+	preload("res://scripts/phone.gd").apply_global()   # the tier's shadow filter (realism pass, Nov 24)
 	# the UI is laid out for a 540 px wide portrait phone; turned sideways the same rule would shrink every button to half
 	# its size, so the design size turns with the screen (540 × 1170 upright, 1170 × 540 on its side)
 	get_tree().root.size_changed.connect(_fit_design_size)

@@ -100,6 +100,21 @@ static func model_path(path: String) -> String:
 			return hd
 	return path
 
+## shadow edges (realism pass, Nov 24): hard-filtered shadows read as cut paper; the tiers above LOW get the soft filter's
+## cheapest setting (MEDIUM, the phone default) or its low one (HIGH / ULTRA). Called by main.gd at start and after a
+## settings save; project.godot keeps the hard filter as the boot default.
+static func apply_global() -> void:
+	var q := RenderingServer.SHADOW_QUALITY_HARD
+	match tier():
+		"medium":
+			q = RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW
+		"low":
+			q = RenderingServer.SHADOW_QUALITY_HARD
+		_:
+			q = RenderingServer.SHADOW_QUALITY_SOFT_LOW
+	RenderingServer.directional_soft_shadow_filter_set_quality(q)
+	RenderingServer.positional_soft_shadow_filter_set_quality(q)
+
 static func fit_sun(sun: DirectionalLight3D, phone_distance := 120.0) -> void:
 	var t := tier()
 	if t == "low":

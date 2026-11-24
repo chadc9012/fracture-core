@@ -14,7 +14,11 @@ uniform int i_urban; uniform int i_paved; uniform int i_town; uniform int i_snow
 uniform int i_ash = -1; uniform int i_basalt = -1;
 uniform vec3 tint = vec3(1.0); // the region's earth (the Wastelands' red ground)
 uniform float embers = 0.0; // smouldering specks in the ash (Ember Peaks at night)
-uniform float bog = 0.0; // the Shrouded Swamps: standing water through the marsh and the drowned forest
+uniform float bog = 0.0;
+// contact shadow under buildings and set pieces (realism pass, Nov 24): a soft occlusion map over the region (region_3d
+// `_contact_occlusion`), white open sky to dark under a footprint — the towers stood on the ground like boxes set on a table
+uniform sampler2D occ_tex : filter_linear, repeat_disable, hint_default_white;
+uniform float occ_amt = 0.0; // the Shrouded Swamps: standing water through the marsh and the drowned forest
 
 varying vec2 wpos;
 varying vec3 wnorm;
@@ -134,7 +138,10 @@ void fragment() {
 	} else {
 		c += vec3(16.0, 15.0, 14.0) / 255.0 * grain;
 	}
-	ALBEDO = clamp(c * tint, 0.0, 1.0);
+	float occ = mix(1.0, texture(occ_tex, (wpos - bounds.xy) / bounds.z).r, occ_amt);
+	ALBEDO = clamp(c * tint * mix(0.55, 1.0, occ), 0.0, 1.0);
+	AO = occ;
+	AO_LIGHT_AFFECT = 0.35;
 	ROUGHNESS = rough;
 	EMISSION = emit;
 }
