@@ -591,6 +591,7 @@ func _fit_gear() -> void:
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	if enemies:
 		enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
+		enemies.level = Progression.level_for(int(Gear.profile_load().get("xp", 0)))   # hostiles meet the operator at its level
 		enemies.hull = minf(enemies.hull, enemies.hull_max)
 
 func open_inventory() -> void:

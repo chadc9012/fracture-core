@@ -232,7 +232,7 @@ Shot: `descent:wild`.
 **Rift Gate — Fracture bosses** (`scripts/combat/boss.gd`, `boss_view.gd`, `boss_arena.gd`; the RIFT GATE button; asset
 catalog gap 5): the six creatures on the owner's board — Rift Hound, Crystal Stalker, Abyssal Leviathan, Vyrak the Ashen
 Covenant, Astravore, Rust Colossus — as boss fights at the Verdant Forest crash-site clearing on bespoke Meshy hulls since
-Nov 23 (models/bosses/<id>.glb; the Astravore still on the authored aberration-boss until its download lands; scaled to
+Nov 23 (models/bosses/<id>.glb, the Astravore's since Nov 24; scaled to
 2.6–9 m). `boss.gd` is the web game's boss systems ported pure: three phases by hull (ENGAGED / OVERDRIVEN / OVERLOADED,
 speed / damage / cooldown multipliers), poise from sustained fire (×1.6 per damage, 4/s decay) breaking into a 4 s stagger
 at ×2.25 damage with a 6 s refractory, a weak point (×1.6) for 5 s on every phase flare, and an attack cycle per boss —
