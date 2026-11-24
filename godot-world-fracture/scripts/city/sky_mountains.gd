@@ -34,14 +34,14 @@ vec3 mt_ranges(vec3 d, vec3 c, vec3 hz, vec3 light_dir) {
 		float r = mt_ridge(a, 3.0 + fl * 13.0);
 		float top = ((0.035 - fl * 0.008) + r * (0.26 - fl * 0.075)) * lift;
 		if (e < top) {
-			float haze = 0.62 - fl * 0.27;                   // far ranges sink into the sky
+			float haze = 0.55 - fl * 0.25;                   // far ranges sink into the sky
 			float tex = 0.82 + 0.36 * n(vec2(a * 9.0, e * 160.0 + fl * 5.0));
 			vec3 body;
 			if (mtn_night > 0.5) {
-				body = mix(vec3(0.018, 0.03, 0.035), vec3(0.03, 0.045, 0.05), fl * 0.5) * tex;
+				body = mix(vec3(0.03, 0.05, 0.06), vec3(0.05, 0.07, 0.09), fl * 0.5) * tex;
 				// moonlit ridge line and upper slopes on the moon's side
 				float rim = smoothstep(0.02, 0.0, top - e) * lit_side;
-				body += vec3(0.10, 0.12, 0.2) * rim * (0.6 + 0.4 * fl);
+				body += vec3(0.16, 0.19, 0.32) * rim * (0.7 + 0.4 * fl);
 				// hillside lights on the near range
 				if (L == 2) {
 					vec2 cell = floor(vec2(a * 60.0, e * 600.0));

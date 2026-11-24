@@ -1660,7 +1660,9 @@ void fragment() {
 	if style == "neon" and ResourceLoader.exists(MODELS + "../buildings/neon-spire.glb"):
 		# Neon City's landmark: the spire off the owner's board, magenta rings stacked under a lit mast (Meshy, Nov 24),
 		# at the end of the avenue where the board has it, over the hills
-		prop("../buildings/neon-spire.glb", 240.0, Vector3(-62.0, 0.0, -LENGTH * 0.5 - 70.0), 20.0)
+		var spire := prop("../buildings/neon-spire.glb", 240.0, Vector3(-62.0, 0.0, -LENGTH * 0.5 - 70.0), 20.0)
+		if spire and night:
+			_glow_from_albedo(spire, 3.5)
 		return
 	# a landmark at the end of the avenue
 	var lm := ShaderMaterial.new()
@@ -1670,6 +1672,22 @@ void fragment() {
 	lm.set_shader_parameter("glow", 1.6 if night else 0.35)
 	_box(Vector3(30, 260, 30), Vector3(-62, 130, -LENGTH * 0.5 - 70.0), lm)
 	_box(Vector3(18, 60, 18), Vector3(-62, 290, -LENGTH * 0.5 - 70.0), lm)
+
+## a Meshy model's painted neon lit at night: each material emits its own albedo, so what the texture paints bright (the
+## spire's magenta rings, its window strips) glows and the dark glass stays dark. Meshy textures carry no emission.
+func _glow_from_albedo(node: Node, energy: float) -> void:
+	for mi in node.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		for k in m.mesh.get_surface_count():
+			var base := m.get_active_material(k) as StandardMaterial3D
+			if base == null:
+				continue
+			var lit := base.duplicate() as StandardMaterial3D
+			lit.emission_enabled = true
+			lit.emission_texture = base.albedo_texture
+			lit.emission = Color(1, 1, 1)
+			lit.emission_energy_multiplier = energy
+			m.set_surface_override_material(k, lit)
 
 ## The skyline down the avenue (Nov 22 benchmark, owner's target-nexus-night: the street ends in a canyon of lit towers
 ## with neon crowns and vertical sign blades; ours ended in open sky — the glass skyline stands behind the courts, off to
