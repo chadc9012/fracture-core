@@ -183,8 +183,8 @@ func setup(p: Node3D, g: Node3D) -> void:
 ## a team colour band on a bot's body (Killbox): a tint over the plating
 ## who wears which authored soldier: [model, frame, body] (catalog.gd model_path); a type not listed keeps its look
 const SUITS := {
-	"scout": ["hunter", "nyx", "female"],
-	"marksman": ["hunter", "nyx", "female"],
+	"scout": ["nexus-infantry", "cipher", "male"],      # Meshy, Nov 24, from the enemies board's Nexus Infantry
+	"marksman": ["nexus-infantry", "cipher", "male"],
 	"elite": ["titan", "goliath", "male"],
 	"executor": ["warlock", "cipher", "female"],
 }

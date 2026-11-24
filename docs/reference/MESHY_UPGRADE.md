@@ -132,3 +132,9 @@ models/foliage/conifer-cards.glb 13.0`.
    result (a fail deletes it).
 3. `tests/tools/model_compare.gd -- out.png old.glb new.glb [--close]`: old and new side by side, then a close crop.
 4. Old extracted textures of the replaced model removed; the old `.import` kept (`generate_lods=false`).
+
+## Enemy soldiers (Nov 24, owner: "new models")
+
+| Model | From | Steps | Gate | In game |
+| --- | --- | --- | --- | --- |
+| nexus-infantry.glb | enemies board, Nexus Forces → Nexus Infantry | Meshy agent: concept sheet, isolated A-pose front, image-to-3D (Meshy 7.1, 4K PBR), remesh 10.3k tris, biped rig (groin marker moved to the crotch), GLB Mixamo with Walking / Running; tools/meshy_prep_rig.py 2048 | PASS (base detail 0.056) | enemies.gd SUITS: scout, marksman |
