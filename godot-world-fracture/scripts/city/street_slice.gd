@@ -1662,7 +1662,7 @@ void fragment() {
 		# at the end of the avenue where the board has it, over the hills
 		var spire := prop("../buildings/neon-spire.glb", 240.0, Vector3(-62.0, 0.0, -LENGTH * 0.5 - 70.0), 20.0)
 		if spire and night:
-			_glow_from_albedo(spire, 3.5)
+			_glow_from_albedo(spire, 0.9)
 		return
 	# a landmark at the end of the avenue
 	var lm := ShaderMaterial.new()
