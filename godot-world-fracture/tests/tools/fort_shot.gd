@@ -23,6 +23,25 @@ func _process(_d: float) -> void:
 		_out = OS.get_cmdline_user_args()[0]
 		_v = FortView.new()
 		add_child(_v)
+	if _n == 5 and OS.get_environment("WF_FORT") == "fly":
+		# a stolen jet in the air, from its own chase camera: the apron jet, throttle, UP and a bank for 10 s of game time
+		_v.set_process(false)
+		_v.controls.scripted = true
+		_v.operator.position = _v.air.parked[0].position + Vector3(0, 0, 4)
+		_v.controls._enter = true
+		_v._process(0.05)
+		_v.controls.move = Vector2(0, 1)
+		for k in 200:
+			_v.controls._brake_held = k > 110 and k < 175
+			_v.controls.move = Vector2(-0.5 if k > 160 else 0.0, 1)
+			_v._process(0.05)
+	if _n > 5 and _n < 60 and OS.get_environment("WF_FORT") == "fly":
+		_v._process(0.016)
+	if _n == 60 and OS.get_environment("WF_FORT") == "fly":
+		get_viewport().get_texture().get_image().save_png("%s-fly.png" % _out)
+		get_tree().quit()
+	if _n >= 5 and OS.get_environment("WF_FORT") == "fly":
+		return
 	if _n == 5:
 		_v.set_process(false)
 		_cam = Camera3D.new()

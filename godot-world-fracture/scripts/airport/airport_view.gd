@@ -1633,6 +1633,36 @@ var _liner_n := 0
 const LINERS_NARROW := ["a320n-aerolink", "b737-atlas"]
 const LINERS_WIDE := ["a380-world-fracture", "b777-veyron", "a350-horizon", "b787-dreamliner", "a330-solmara-air", "l1011-tristar"]
 
+## the board airliners are 150k triangles each and an apron parks half a dozen (phone pass, Nov 24: the airport drew
+## 2.6 M triangles): beyond LINER_LOD_M each swaps to its `-lod.glb` (12k, tools/make_lod.py) wearing the full model's
+## materials surface for surface, shadowless on the phone tiers — street_slice.gd `_lod`'s rule
+const LINER_LOD_M := 120.0
+func _liner_lod(lp: String, full: Node3D, holder: Node3D) -> void:
+	if not ResourceLoader.exists(lp):
+		return
+	var lod := (load(lp) as PackedScene).instantiate() as Node3D
+	lod.transform = full.transform
+	holder.add_child(lod)
+	holder.set_meta("dynamic", true)   # StaticBatch would fold both copies into a MultiMesh and lose the ranges
+	var fm := full.find_children("*", "MeshInstance3D", true, false)
+	var lm := lod.find_children("*", "MeshInstance3D", true, false)
+	for i in lm.size():
+		var l := lm[i] as MeshInstance3D
+		if i < fm.size():
+			var f := fm[i] as MeshInstance3D
+			for si in mini(l.mesh.get_surface_count(), f.mesh.get_surface_count()):
+				l.set_surface_override_material(si, f.get_active_material(si))
+		l.visibility_range_begin = LINER_LOD_M
+		l.visibility_range_begin_margin = 10.0
+		l.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		if Phone.tier() != "high":
+			l.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for f in fm:
+		var fi := f as MeshInstance3D
+		fi.visibility_range_end = LINER_LOD_M
+		fi.visibility_range_end_margin = 10.0
+		fi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+
 func _airliner(tail: Color, name: String, wide := false) -> Node3D:
 	# a board airliner when it's there (its own livery, nose turned to the old model's -z), else the authored one
 	# (scripts/build-airliner.py; `wide` is the ~62 m long-haul) repainted in the airline's colour
@@ -1645,6 +1675,7 @@ func _airliner(tail: Color, name: String, wide := false) -> Node3D:
 		liner.rotation.y = PI
 		lw.add_child(liner)
 		lw.set_meta("liner", pick)
+		_liner_lod("res://models/fleet/airliners/%s-lod.glb" % pick, liner, lw)
 		return lw
 	var model := _model("res://models/fleet/airliner-wide.glb" if wide else "res://models/fleet/airliner.glb")
 	var k := 1.55 if wide else 1.0

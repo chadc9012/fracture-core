@@ -521,7 +521,7 @@ func set_mode(m: String) -> void:
 		_block_held = false
 	var armed_drive := drive and armed_vehicle
 	if _cannon_button:
-		_cannon_button.visible = armed_drive
+		_cannon_button.visible = armed_drive or (fly and armed_vehicle)    # a fighter's nose gun (fort_jet.gd)
 		_cannon_held = false
 	if _missile_button:
 		_missile_button.visible = armed_drive

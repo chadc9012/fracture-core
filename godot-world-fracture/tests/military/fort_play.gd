@@ -61,5 +61,53 @@ func _ready() -> void:
 		v.operator.position = Vector3(-600, 0, 440)
 		v._process(0.05)
 	check("away and unseen: they lose you (%d)" % v.stars, v.stars == 0 and hostile.call() == 0)
+	# a jet off the apron: in, down the runway, up, the cannon, back down and out
+	check("apron fighters to steal (%d)" % v.air.parked.size(), v.air.parked.size() >= 3)
+	var jet: Node3D = v.air.parked[0]
+	v.operator.position = jet.position + Vector3(0, 0, 4)
+	v.controls._enter = true
+	v._process(0.05)
+	check("ENTER by a jet: flying it, three stars", v.air.flying() and v.stars >= 3)
+	var start := jet.position
+	v.controls.move = Vector2(0, 1)
+	for i in 40:
+		v._process(0.05)
+	check("throttle: rolling (%.0f m/s)" % v.air.state.speed, v.air.state.speed > 30.0)
+	v.controls._brake_held = true
+	v.controls.move = Vector2(-0.6, 0.3)     # climbing, banked round inside the valley
+	for i in 60:
+		v._process(0.05)
+	check("UP past takeoff speed: airborne (%.0f m)" % jet.position.y, v.air.airborne() and jet.position.y > 10.0 and not v.air.crashed)
+	v.controls._brake_held = false
+	var sol2: RefCounted = null
+	for e in v.enemies.enemies:
+		if e.type == "soldier" and e.target.alive():
+			sol2 = e
+			break
+	if sol2:
+		# put a soldier right under the gun line and fire
+		var f := Vector3(-sin(v.air.state.yaw), 0, -cos(v.air.state.yaw))
+		sol2.mover.position = jet.position + f * 60.0 + Vector3(0, -jet.position.y, 0)
+		v.air.state.pitch = atan2(-(jet.position.y - 1.0), 54.0)
+		var hp: float = sol2.target.hp + sol2.target.shield
+		v.air._fire(f, [sol2], v.gunplay.spark)
+		check("the cannon hits what is under the nose", sol2.target.hp + sol2.target.shield < hp)
+	check("it flew (%.0f m from the apron)" % jet.position.distance_to(start), jet.position.distance_to(start) > 150.0)
+	# the ranges are solid: a jet flown into a slope is a crash
+	var ridge := Vector3(0, 0, -100) + Vector3(1, 0, 0) * 1500.0
+	check("the ranges stand above the valley (%.0f m)" % v.terrain(ridge.x, ridge.z), v.terrain(ridge.x, ridge.z) > 50.0 and v.terrain(0, 0) == 0.0)
+	# back down: no throttle, descend, wait for the wheels
+	v.controls.move = Vector2(0, -1)
+	v.controls._sprint_held = true
+	for i in 400:
+		v._process(0.05)
+		if not v.air.airborne() and v.air.flying() and absf(v.air.state.speed) < 4.0:
+			break
+	v.controls._sprint_held = false
+	v.controls.move = Vector2.ZERO
+	if v.air.flying():
+		v.controls._enter = true
+		v._process(0.05)
+	check("landed and out (crashed: %s)" % str(v.air.crashed), not v.air.flying() and v.operator.rig.visible)
 	print("fort play: ", "0 failed" if ok else "FAILED")
 	get_tree().quit()
