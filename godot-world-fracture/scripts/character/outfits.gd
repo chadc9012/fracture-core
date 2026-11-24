@@ -157,6 +157,10 @@ const LIST := [
 		"legs": "1f2a44", "legs2": "1a2439", "legs_fabric": PLAIN, "stripe": "LEGS", "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },
 	{ "id": "npc-swat", "npc": true, "name": "Tactical Unit", "base": "techwear", "hat": "beanie", "wear": ["watch"], "c": {
 		"top": "17181b", "legs": "17181b", "legs2": "121315", "print2": "3a3c40", "stripe_arm": "17181b", "stripe": "LEGS" } },
+	# desert combat uniform (Fort Kessler's garrison, owner Nov 23): tan and khaki, olive webbing
+	{ "id": "npc-army", "npc": true, "name": "Army", "base": "techwear", "hat": "beanie", "wear": ["watch"], "c": {
+		"top": "a89a78", "rib": "8f8264", "zip": "5b5a3e", "print": "a89a78", "print2": "6e6a4a", "string": "5b5a3e", "stripe_arm": "9c8e6c",
+		"legs": "9a8d6d", "legs2": "877a5c", "stripe": "LEGS", "cargo_flap": "877a5c", "shoe": "6b5133", "accent": "4a3a26", "sole": "2a2118", "midsole": "2a2118", "toe": "5e4630" } },
 	{ "id": "npc-security", "npc": true, "name": "Security", "base": "tee-shorts", "pieces": ["cuffs", "hem"], "c": {
 		"top": "f2f2ef", "rib": "e6e6e2", "zip": "15171a", "print": "f2f2ef", "print2": "15171a", "sleeve_lo": "f2f2ef", "forearm": "f2f2ef", "wrist": "e6e6e2", "arm_stripe_lo": "f2f2ef",
 		"legs": "15171a", "legs2": "111215", "knee": "LEGS", "shin": "LEGS", "ankle": "111215", "shoe": "0e0e10", "accent": "0e0e10", "sole": "0e0e10", "midsole": "0e0e10", "toe": "0e0e10" } },

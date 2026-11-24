@@ -296,6 +296,8 @@ func _street_door(id: String) -> void:
 		"apartment":
 			view = Mission01.new()
 			view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		"fort":
+			view = preload("res://scripts/military/fort_view.gd").new()
 		"airport":
 			# the city's own airport: Neon City International from Neon City's street, Nexus City International otherwise
 			view = _airport_view("NEC" if street.style == "neon" else "NXC", false)

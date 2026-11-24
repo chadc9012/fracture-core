@@ -29,6 +29,8 @@ const DOORS := [
 	# the casino is Neon City's alone (owner, Nov 9): the Neon City Grand Casino; its door is set at the podium in _buildings
 	{ "id": "casino", "label": "NEON CITY GRAND CASINO", "x": -1.0, "z": -82.0, "color": Color(0.95, 0.72, 0.32), "kind": "door", "style": "neon" },
 	# Nexus City International / Neon City International (main.gd opens the street's own city's airport)
+	# Fort Kessler, the military airbase (owner, Nov 23: "I need my game to look like this", GTA's Fort Zancudo)
+	{ "id": "fort", "label": "FORT KESSLER · MILITARY BASE", "x": 1.0, "z": 96.0, "color": Color(0.6, 0.75, 0.4), "kind": "stop", "style": "any" },
 	{ "id": "airport", "label": "AIRPORT EXPRESS", "x": 1.0, "z": -40.0, "color": Color(0.55, 0.8, 1.0), "kind": "stop", "style": "any" },
 	{ "id": "sports", "label": "SPORTS DISTRICT", "x": -1.0, "z": 20.0, "color": Color(0.1, 0.85, 1.0), "kind": "door" },
 	# a clothing store on the avenue (owner, Nov 11: "make clothing stores so user can buy stuff"; clothing_store.gd)
