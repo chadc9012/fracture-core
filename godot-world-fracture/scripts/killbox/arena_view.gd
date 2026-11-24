@@ -47,6 +47,8 @@ var arena_id := ""
 var mode_id := "clash"
 ## the frame locked in on the hero select ("" keeps the saved character's)
 var hero := ""
+## the last round banner put up (tests look for it)
+var round_banner: Control
 ## an online match between players (online_pvp.gd): no bots on either side. Off: VS BOTS, the bot teams as before
 var online := false
 var net_pvp: Node
@@ -635,6 +637,10 @@ func _killer_on(team: int) -> String:
 
 func _on_bot_down(e: RefCounted, by_team: int, by_player: bool) -> void:
 	var en := e as Enemies.Enemy
+	if by_player and en.team == 0:
+		_round_kills += 1
+	elif en.team == 1:
+		_round_ours_down += 1
 	if _bot_ids.has(en):
 		_line(String(_bot_ids[en]), int(en.team)).d += 1
 	var who := "player" if by_player else _killer_on(by_team)
@@ -673,6 +679,7 @@ func _respawn_bot(e: RefCounted) -> void:
 	en.timer = 4.0
 
 func _on_operator_down() -> void:
+	_round_ours_down += 1
 	_line("player", 1).d += 1
 	var shooter := ""
 	for o in enemies.enemies:
@@ -800,7 +807,29 @@ func _steer_bots() -> void:
 		else:
 			e.goal = null
 
+## this round so far, for its banner's accolade (round_banner.gd): your kills, how many of ours went down, and whether
+## you stood alone with them still standing (a clutch)
+var _round_kills := 0
+var _round_ours_down := 0
+var _round_clutch := false
+
 func _new_round() -> void:
+	var role := ""
+	if String(match_state.mode.id) == "lockdown":
+		role = "Next: attack the objective" if match_state.attacking else "Next: defend the objective"
+	if not match_state.over:
+		# Valorant's round banner over the pause between rounds
+		var theirs: int = enemies.enemies.filter(func(o): return o.team == 0).size()
+		var b = load("res://scripts/killbox/round_banner.gd").new()
+		b.data = { "round": int(match_state.round) - 1, "result": int(match_state.last_round), "why": String(match_state.reason),
+			"us": int(match_state.us_rounds), "them": int(match_state.them_rounds), "to_win": int(match_state.target()),
+			"accolade": load("res://scripts/killbox/round_banner.gd").accolade(int(match_state.last_round) > 0, _round_kills, theirs, _round_ours_down, _round_clutch),
+			"next": role }
+		controls.add_child(b)
+		round_banner = b
+	_round_kills = 0
+	_round_ours_down = 0
+	_round_clutch = false
 	enemies.revive_all()
 	for e in enemies.enemies:
 		e.spawn = arena.spawn("us" if e.team == 1 else "them", [], int(e.get_meta("slot", 0)))
@@ -809,10 +838,6 @@ func _new_round() -> void:
 	enemies.down = 0.0
 	operator.position = arena.spawn("us")
 	operator.velocity = Vector3.ZERO
-	var role := ""
-	if String(match_state.mode.id) == "lockdown":
-		role = " — ATTACK the objective" if match_state.attacking else " — DEFEND the objective"
-	controls.toast("%s · Round %d%s" % [match_state.reason, match_state.round, role])
 
 func _process(dt: float) -> void:
 	if not match_state:
@@ -835,6 +860,10 @@ func _process(dt: float) -> void:
 		Sound.sfx("buzzer", -4.0)
 		_new_round()
 	var paused: bool = match_state.is_rounds() and match_state.round_over > 0.0
+	# a clutch: you, alone of a team, still up against them
+	if match_state.is_rounds() and not paused and alive_us == 1 and enemies.down <= 0.0 and enemies.alive_on(0) > 0 \
+			and enemies.enemies.any(func(o): return o.team == 1):
+		_round_clutch = true
 	if not paused:
 		enemies.step(dt)
 	_steer_bots()
