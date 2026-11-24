@@ -16,6 +16,7 @@ var _n := 0
 var _v: Control
 var _out := ""
 var _cam: Camera3D
+const GATE_X_SHOT := -200.0
 
 func _process(_d: float) -> void:
 	_n += 1
@@ -35,6 +36,32 @@ func _process(_d: float) -> void:
 			_v.controls._brake_held = k > 110 and k < 175
 			_v.controls.move = Vector2(-0.5 if k > 160 else 0.0, 1)
 			_v._process(0.05)
+	if _n == 5 and OS.get_environment("WF_FORT") == "mg":
+		# the Humvee minigun at the gate, firing on the garrison
+		_v.set_process(false)
+		_v.controls.scripted = true
+		var hv: Node3D = null
+		for c in _v.rides.parked:
+			if c.get_meta("minigun", false):
+				hv = c
+				break
+		_v.operator.position = hv.position + Vector3(2, 0, 0)
+		_v.controls._enter = true
+		_v._process(0.05)
+		_v._raise(2, "shot")
+		_v.controls._cannon_held = true
+	if _n > 5 and _n < 60 and OS.get_environment("WF_FORT") == "mg":
+		# the camera behind the gun, toward the soldiers at the gate
+		_v.controls.look_delta = Vector2.ZERO
+		var tgt := Vector3(GATE_X_SHOT, 0, 300)
+		var hv2: Node3D = _v.rides.car.node
+		_v.operator.cam_yaw = atan2(hv2.position.x - tgt.x, hv2.position.z - tgt.z)
+		_v._process(0.016)
+	if _n == 60 and OS.get_environment("WF_FORT") == "mg":
+		get_viewport().get_texture().get_image().save_png("%s-mg.png" % _out)
+		get_tree().quit()
+	if _n >= 5 and OS.get_environment("WF_FORT") == "mg":
+		return
 	if _n > 5 and _n < 60 and OS.get_environment("WF_FORT") == "fly":
 		_v._process(0.016)
 	if _n == 60 and OS.get_environment("WF_FORT") == "fly":

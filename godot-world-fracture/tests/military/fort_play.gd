@@ -109,5 +109,47 @@ func _ready() -> void:
 		v.controls._enter = true
 		v._process(0.05)
 	check("landed and out (crashed: %s)" % str(v.air.crashed), not v.air.flying() and v.operator.rig.visible)
+	# the Humvee's roof minigun
+	var hv: Node3D = null
+	for c in v.rides.parked:
+		if c.get_meta("minigun", false):
+			hv = c
+			break
+	check("a Humvee with a minigun to drive", hv != null)
+	if hv:
+		v.operator.position = hv.position + Vector3(2, 0, 0)
+		v.controls._enter = true
+		v._process(0.05)
+		check("in the Humvee, the CANNON button armed", v.rides.driving() and v.controls.armed_vehicle)
+		var sol3: RefCounted = null
+		for e in v.enemies.enemies:
+			if e.type == "soldier" and e.target.alive() and e.team != v.enemies.operator_team:
+				sol3 = e
+				break
+		if sol3 == null:
+			v._raise(2, "test")
+			for e in v.enemies.enemies:
+				if e.type == "soldier" and e.target.alive():
+					sol3 = e
+					break
+		v.controls._cannon_held = true
+		var hp0 := 0.0
+		for i in 30:
+			var f: Vector3 = -v.cam.global_transform.basis.z
+			sol3.mover.position = hv.position + Vector3(f.x, 0, f.z).normalized() * 30.0
+			if i == 0:
+				hp0 = sol3.target.hp + sol3.target.shield
+			v._process(0.05)
+		v.controls._cannon_held = false
+		check("the minigun spins up and cuts down what it is aimed at (%d hits)" % v._mg_hits, v._mg_hits >= 5 and (not sol3.target.alive() or sol3.target.hp + sol3.target.shield < hp0))
+		v.controls._cannon_held = true
+		for i in 140:
+			v._process(0.05)
+		v.controls._cannon_held = false
+		check("held too long, it overheats and stops", v._mg_jam > 0.0 or v._mg_heat > 0.9)
+		v.controls.move = Vector2.ZERO
+		v.controls._enter = true
+		v._process(0.05)
+		check("out of the Humvee, the gun off", not v.rides.driving() and not v.controls.armed_vehicle)
 	print("fort play: ", "0 failed" if ok else "FAILED")
 	get_tree().quit()

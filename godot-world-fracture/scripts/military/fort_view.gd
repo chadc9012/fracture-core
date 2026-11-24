@@ -24,6 +24,9 @@ const Sound := preload("res://scripts/audio/sound.gd")
 const Rides := preload("res://scripts/killbox/royale_rides.gd")
 
 const MIL := "res://models/military/"
+const MINIGUN_RANGE := 150.0
+const MINIGUN_DAMAGE := 12.0
+const MINIGUN_RATE := 22.0
 const FortJet := preload("res://scripts/military/fort_jet.gd")
 
 ## the wire: x -260..260, z -520..300; the gate on the south side at x = GATE_X; the road runs out to z = ROAD_END
@@ -56,6 +59,11 @@ var gunplay: Node3D
 var enemies: Node3D
 var rides: Rides
 var air := FortJet.new()     # the apron fighters you can steal and fly
+var _mg_t := 0.0             # the Humvee minigun (_minigun): next round, spin-up, heat, overheat lockout, hits
+var _mg_spin := 0.0
+var _mg_heat := 0.0
+var _mg_jam := 0.0
+var _mg_hits := 0
 var obstacles: Array[AABB] = []
 var stars := 0
 var _warn := 0.0
@@ -677,11 +685,18 @@ func _vehicles() -> void:
 	_park(jf, "vanguard-jet", 19.0, Vector3(HANGAR_X + 10.0, 0, HANGAR_Z[1]), PI * 0.5)
 	# Humvees: two at the gate, a line in the motor pool, one on the apron road (drivable)
 	if ResourceLoader.exists(Rides.FLEET + "humvee.glb"):
-		_park("humvee.glb", "offroad-truck", 4.9, Vector3(GATE_X + 14.0, 0, GATE_Z - 30.0), PI * 0.5, true)
+		var hv: Array[Node3D] = []
+		hv.append(_park("humvee.glb", "offroad-truck", 4.9, Vector3(GATE_X + 14.0, 0, GATE_Z - 30.0), PI * 0.5, true))
 		_park("humvee.glb", "offroad-truck", 4.9, Vector3(GATE_X - 14.0, 0, GATE_Z - 30.0), -PI * 0.5)
 		for k2 in 3:
-			_park("humvee.glb", "offroad-truck", 4.9, Vector3(GATE_X + 36.0 + k2 * 7.0, 0, 62.0), 0.0, k2 == 0)
-		_park("humvee.glb", "offroad-truck", 4.9, Vector3(TAXI_X - 20.0, 0, 20.0), PI, true)
+			var h := _park("humvee.glb", "offroad-truck", 4.9, Vector3(GATE_X + 36.0 + k2 * 7.0, 0, 62.0), 0.0, k2 == 0)
+			if k2 == 0:
+				hv.append(h)
+		hv.append(_park("humvee.glb", "offroad-truck", 4.9, Vector3(TAXI_X - 20.0, 0, 20.0), PI, true))
+		# the drivable ones carry the roof minigun
+		for h2 in hv:
+			if h2:
+				h2.set_meta("minigun", true)
 	_park("rift-helicopter.glb", "rift-helicopter", 16.0, Vector3(10.0, 0, 120.0), 0.4)
 	_park("goliath-tank.glb", "goliath-tank", 8.5, Vector3(GATE_X - 8.0, 0, 60.0), 0.0, true)
 	_park("goliath-tank.glb", "goliath-tank", 8.5, Vector3(GATE_X + 8.0, 0, 60.0), 0.0)
@@ -805,6 +820,69 @@ func _respawn() -> void:
 # ------------------------------------------------------------------------------------------------ the jets
 
 ## a jet in low along the runway, guns on the operator as it passes; its model is the fleet's Vanguard
+## the Humvee's roof minigun (owner, Nov 23 — the frames' military; "minigun" was the next step offered): FIRE (the CANNON
+## button on the phone) spins it up and it sprays where the camera looks, MINIGUN_RATE rounds a second, a little
+## spread, out to MINIGUN_RANGE; six seconds of fire overheats it and it stops to cool
+func _minigun(dt: float) -> void:
+	if _mg_jam > 0.0:
+		_mg_jam -= dt
+		_mg_heat = maxf(0.0, _mg_heat - dt * 0.4)
+		return
+	if not controls.cannon():
+		_mg_spin = maxf(0.0, _mg_spin - dt * 2.0)
+		_mg_heat = maxf(0.0, _mg_heat - dt * 0.4)
+		return
+	_mg_spin = minf(1.0, _mg_spin + dt * 2.5)     # under half a second to spin up
+	if _mg_spin < 0.6:
+		return
+	_mg_t -= dt
+	var rounds := 0
+	while _mg_t <= 0.0:
+		_mg_t += 1.0 / MINIGUN_RATE
+		rounds += 1
+	for r in rounds:
+		_mg_heat += 1.0 / (MINIGUN_RATE * 6.0)    # six seconds of fire from cold
+		if _mg_heat >= 1.0:
+			_mg_jam = 2.5
+			_mg_spin = 0.0
+			controls.toast("MINIGUN OVERHEATED")
+			return
+		_mg_round()
+	if rounds > 0:
+		Sound.sfx("heavy", -12.0)
+
+## one round: along the camera's heading, lifted or dipped onto whatever stands in a narrow cone (the turret's
+## gunner tracks for you on the phone), else into the ground ahead
+func _mg_round() -> void:
+	var muzzle: Vector3 = rides.car.node.position + Vector3(0, 2.4, 0)
+	var look := -cam.global_transform.basis.z
+	var flat := Vector3(look.x, 0, look.z).normalized()
+	flat = flat.rotated(Vector3.UP, randf_range(-0.012, 0.012))
+	var best: Variant = null
+	var best_t := MINIGUN_RANGE
+	for e in enemies.enemies:
+		if not e.target.alive() or e.team == enemies.operator_team:
+			continue
+		var c: Vector3 = e.mover.position + Vector3(0, 1.0, 0)
+		var to := Vector3(c.x - muzzle.x, 0, c.z - muzzle.z)
+		var t := to.dot(flat)
+		if t < 1.0 or t > best_t:
+			continue
+		if (to - flat * t).length() < 0.8 + t * 0.03:
+			best = e
+			best_t = t
+	var hit: Vector3
+	if best != null:
+		hit = best.mover.position + Vector3(randf_range(-0.3, 0.3), 1.0 + randf_range(-0.4, 0.4), randf_range(-0.3, 0.3))
+		best.target.take(MINIGUN_DAMAGE)
+		_mg_hits += 1
+	else:
+		hit = muzzle + flat * randf_range(25.0, 60.0)
+		hit.y = 0.05
+	gunplay.spark(hit, best != null)
+	if randf() < 0.5:
+		gunplay.tracer(muzzle + flat * 1.2, hit)
+
 ## a flight that ended in a building or the ground: the jet is gone and so, most likely, are you
 func _jet_down() -> void:
 	air.crashed = false
@@ -929,10 +1007,15 @@ func _process(dt: float) -> void:
 			prompt = "UP TO CLIMB" if not air.airborne() and air.state.speed > 30.0 else ""
 	elif rides.driving():
 		rides.step(dt, operator, controls, enemies.enemies)
+		if rides.car != null and rides.car.node.get_meta("minigun", false):
+			_minigun(dt)
+			if controls.cannon() and stars == 0 and operator.position.distance_to(Vector3(GATE_X, 0, GATE_Z)) < 420.0:
+				_raise(1, "Shots fired at a military installation")
 		if absf(rides.car.speed) < 4.0:
 			prompt = "EXIT"
 			if controls.take_enter():
 				rides.exit(operator, controls)
+				controls.set_armed_vehicle(false)
 				gunplay.set_holstered(false)
 				controls.set_armed(true)
 	else:
@@ -961,6 +1044,7 @@ func _process(dt: float) -> void:
 				rides.enter(rc, operator, controls)
 				gunplay.set_holstered(true)
 				controls.set_armed(false)
+				controls.set_armed_vehicle(bool(rc.get_meta("minigun", false)))
 		elif operator.position.z > ROAD_END - 15.0:
 			prompt = "LEAVE FORT KESSLER"
 			if controls.take_enter():
