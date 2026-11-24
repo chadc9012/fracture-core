@@ -170,9 +170,31 @@ func _gimmick_hint(kind: String, away: float) -> void:
 		_hint_t = Time.get_ticks_msec() / 1000.0 + 4.0
 		toast.call(say)
 
+## adds this boss called that are still up; capped, and kept to the fight (a stray flier is brought back in)
+const ADD_CAP := 5
+const ADD_LEASH := 40.0
+var _adds: Array = []
+func _prune_adds() -> void:
+	_adds = _adds.filter(func(x: RefCounted) -> bool: return x.target.alive() and x.state != Enemies.State.DOWN)
+
+func _leash_adds() -> void:
+	_prune_adds()
+	var k := 0
+	for add in _adds:
+		var off: Vector3 = add.mover.position - position
+		if Vector2(off.x, off.z).length() > ADD_LEASH:
+			var a := atan2(off.z, off.x) + k * 0.6
+			var at := position + Vector3(cos(a), 0, sin(a)) * (size + 6.0)
+			at.y = float(ground_at.call(at.x, at.z))
+			add.mover.position = at
+			add.state = Enemies.State.ENGAGE
+			k += 1
+
 func step(dt: float) -> void:
 	if not rules or rules.dead and _killed:
 		return
+	if Engine.get_process_frames() % 30 == 0 and not _adds.is_empty():
+		_leash_adds()
 	var to := operator.position - position
 	to.y = 0.0
 	var dist := to.length()
@@ -223,13 +245,19 @@ func step(dt: float) -> void:
 			"summon":
 				if echo:
 					continue
-				for i in int(e.count):
-					var a := TAU * i / int(e.count)
+				# a brood, not a swarm: no more than ADD_CAP of its adds up at once (summons stacked 3+phase every cycle,
+				# and drones hovering 35-150 m off piled past ten through the Lockdown Warden fight, Nov 23)
+				_prune_adds()
+				var n := mini(int(e.count), ADD_CAP - _adds.size())
+				for i in n:
+					var a := TAU * i / maxf(1.0, float(n))
 					var at := position + Vector3(cos(a), 0, sin(a)) * (size + 3.0)
 					at.y = float(ground_at.call(at.x, at.z))
 					var add: RefCounted = enemies.spawn(String(e.type), at, [], 0)
 					add.state = Enemies.State.ENGAGE
-				toast.call("%s calls its brood" % String(rules.def.name))
+					_adds.append(add)
+				if n > 0:
+					toast.call("%s calls its brood" % String(rules.def.name))
 			"phase":
 				toast.call("%s — %s" % [String(e.label), String(e.telegraph)])
 				_resupply(2)
@@ -245,6 +273,12 @@ func step(dt: float) -> void:
 			"dead":
 				if not _killed:
 					_killed = true
+					# its brood falls with it
+					for add in _adds:
+						if add.target.alive():
+							add.stays_down = true
+							add.target.hp = 0.0
+					_adds.clear()
 					if not e.get("yield", false):
 						Sound.sfx("explosion", -2.0)
 					Sound.sfx("confirm", -4.0)
