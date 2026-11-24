@@ -24,8 +24,8 @@ const PHASES := [
 	{ "label": "OVERLOADED", "telegraph": "Critical overload — maximum output, slower recovery.", "speed": 1.4, "damage": 1.6, "cooldown": 1.3 },
 ]
 
-## the Rift Gate's five. `model` under models/bosses (bespoke Meshy 7.1 hulls since Nov 23 for all but the Astravore, which
-## still rides the authored aberration-boss until its download lands — see docs/reference/MESHY_UPGRADE.md batch 8); `size` metres tall; `attacks` cycle in order; `adds` the enemies.gd type the SUMMON brings and
+## the Rift Gate's five. `model` under models/bosses (bespoke Meshy 7.1 hulls since Nov 23, the Astravore's since Nov 24 —
+## see docs/reference/MESHY_UPGRADE.md batch 8); `size` metres tall; `attacks` cycle in order; `adds` the enemies.gd type the SUMMON brings and
 ## how many; `reward` Nex / XP on a first clear (the web's regional boss pays 900 / 600, the world boss 2500 / 1500)
 const BOSSES := {
 	"rift-hound": { "name": "Rift Hound", "model": "rift-hound.glb", "size": 2.6, "hull": 0.6, "speed": 8.5, "range": 2.4, "attacks": ["LUNGE", "LUNGE", "VOLLEY"], "adds": ["scout", 0], "reward": [600, 400],
@@ -34,7 +34,7 @@ const BOSSES := {
 		"blurb": "Grown from the Crystal Badlands. It fires shards from range and shatters the ground when you close." },
 	"abyssal-leviathan": { "name": "Abyssal Leviathan", "model": "abyssal-leviathan.glb", "size": 7.0, "hull": 1.4, "speed": 4.0, "range": 18.0, "attacks": ["BREATH", "SLAM", "VOLLEY", "SUMMON"], "adds": ["scout", 3], "reward": [1200, 800],
 		"blurb": "The Drowned Crown's keeper, dragged up from the Thalassia trenches. A tide of pressure and brine." },
-	"astravore": { "name": "Astravore", "model": "aberration-boss.glb", "size": 6.0, "hull": 1.8, "speed": 3.5, "range": 20.0, "attacks": ["SUMMON", "VOLLEY", "SLAM", "BREATH"], "adds": ["elite", 2], "reward": [2000, 1200],
+	"astravore": { "name": "Astravore", "model": "astravore.glb", "size": 6.0, "hull": 1.8, "speed": 3.5, "range": 20.0, "attacks": ["SUMMON", "VOLLEY", "SLAM", "BREATH"], "adds": ["elite", 2], "reward": [2000, 1200],
 		"blurb": "The Hollow Star raid's heart. It calls its brood, then bathes the ground in starfire." },
 	"colossus": { "name": "Rust Colossus", "model": "colossus.glb", "size": 9.0, "hull": 2.4, "speed": 2.6, "range": 6.0, "attacks": ["SLAM", "LUNGE", "SLAM", "SUMMON"], "adds": ["executor", 2], "reward": [2500, 1500],
 		"blurb": "Grid-Iron Flats' world boss, a walking foundry. Every step is a shockwave; the core glows when it staggers." },
