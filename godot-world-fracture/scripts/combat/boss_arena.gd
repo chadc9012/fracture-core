@@ -128,7 +128,15 @@ func _start() -> void:
 	rng.seed = boss_id.hash()
 	var mid := (operator.position + at) * 0.5
 	mid.y = region.ground(mid.x, mid.z)
-	FractureSet.arena_ring(region.world(), mid, 26.0, Color(0.7, 0.35, 1.0), rng, operator.ground_at)
+	# the fight's own line, start to boss and the camera's place behind the start, kept clear of crystals
+	var behind := operator.position + (operator.position - at).normalized() * 8.0
+	var ring := FractureSet.arena_ring(region.world(), mid, 26.0, Color(0.7, 0.35, 1.0), rng, operator.ground_at, 8, [[behind, at]])
+	# the ring's tall spears are solid (Nov 24: one stood behind the start and the chase camera sat inside it, so every
+	# Rift Gate fight showed a purple wall): their boxes join the shared obstacle list the camera pulls in off
+	for c in ring.find_children("*", "MultiMeshInstance3D", true, false):
+		if c.has_meta("solids"):
+			for b in c.get_meta("solids"):
+				operator.obstacles.append((c as Node3D).global_transform * (b as AABB))
 	FractureSet.relic_container(region.world(), Vector3(mid.x + 16.0, region.ground(mid.x + 16.0, mid.z + 4.0), mid.z + 4.0))
 	boss.setup(boss_id, at, operator, gunplay, enemies, operator.ground_at)
 	boss.obstacles = operator.obstacles

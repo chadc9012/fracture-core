@@ -80,16 +80,27 @@ static func prism_mesh(r := 0.5, h := 2.0) -> ArrayMesh:
 				st.add_vertex(v)
 	return st.commit()
 
-static func crystals(parent: Node3D, center: Vector3, radius: float, count: int, col: Color, rng: RandomNumberGenerator, ground: Callable = Callable()) -> MultiMeshInstance3D:
+## `clear`: [from, to] pairs of points (y ignored) no cluster may stand within CLEAR_M of — the line a fight is fought along
+const CLEAR_M := 7.0
+static func crystals(parent: Node3D, center: Vector3, radius: float, count: int, col: Color, rng: RandomNumberGenerator, ground: Callable = Callable(), clear: Array = []) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = prism_mesh(0.5, 2.0)
 	mm.instance_count = count * 3
 	var n := 0
+	var solids: Array[AABB] = []
 	for i in count:
 		var a := rng.randf() * TAU
 		var d := radius * (0.35 + rng.randf() * 0.65)
 		var at := center + Vector3(cos(a) * d, 0, sin(a) * d)
+		for tries in 12:
+			if not _in_clear(at, clear):
+				break
+			a = rng.randf() * TAU
+			d = radius * (0.35 + rng.randf() * 0.65)
+			at = center + Vector3(cos(a) * d, 0, sin(a) * d)
+		if _in_clear(at, clear):
+			continue
 		if ground.is_valid():
 			at.y = float(ground.call(at.x, at.z))
 		# a cluster: one tall spear and two leaning shards
@@ -100,8 +111,15 @@ static func crystals(parent: Node3D, center: Vector3, radius: float, count: int,
 			var off := Vector3(rng.randf() - 0.5, -0.1, rng.randf() - 0.5) * (0.0 if k == 0 else 1.2)
 			mm.set_instance_transform(n, Transform3D(b, at + off))
 			n += 1
+			# a spear taller than a person is solid (Nov 24: the Rift Gate's chase camera sat inside one and the fight
+			# showed only purple): its box goes in the "solids" meta, which region_3d.building_boxes() collects
+			if k == 0 and s >= 1.25:
+				solids.append(Transform3D(b, at + off) * mm.mesh.get_aabb())
+	mm.visible_instance_count = n   # clusters skipped for `clear` leave their slots undrawn
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
+	if not solids.is_empty():
+		mmi.set_meta("solids", solids)
 	# a dark glassy body with the glow in the emission, so the facets read instead of a flat bright shape
 	var m := _mat(col.darkened(0.55), 0.12, 0.2, 0.0)
 	m.emission_enabled = true
@@ -111,6 +129,14 @@ static func crystals(parent: Node3D, center: Vector3, radius: float, count: int,
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(mmi)
 	return mmi
+
+static func _in_clear(at: Vector3, clear: Array) -> bool:
+	for seg in clear:
+		var a := Vector2((seg[0] as Vector3).x, (seg[0] as Vector3).z)
+		var b := Vector2((seg[1] as Vector3).x, (seg[1] as Vector3).z)
+		if Geometry2D.get_closest_point_to_segment(Vector2(at.x, at.z), a, b).distance_to(Vector2(at.x, at.z)) < CLEAR_M:
+			return true
+	return false
 
 ## broken slabs and pillar stumps in the air: a FloatingRuins node drifts them
 static func floating_ruins(parent: Node3D, center: Vector3, radius: float, count: int, rng: RandomNumberGenerator, col := Color(0.28, 0.26, 0.3)) -> Node3D:
@@ -230,7 +256,7 @@ static func relic_container(parent: Node3D, at: Vector3, col := Color(1.0, 0.8, 
 	return root
 
 ## boss arena structures: a ring of broken pillars, crystals between them, conduits to the centre, ruins drifting above
-static func arena_ring(parent: Node3D, center: Vector3, radius: float, col: Color, rng: RandomNumberGenerator, ground: Callable = Callable(), pillars := 8) -> Node3D:
+static func arena_ring(parent: Node3D, center: Vector3, radius: float, col: Color, rng: RandomNumberGenerator, ground: Callable = Callable(), pillars := 8, clear: Array = []) -> Node3D:
 	var root := Node3D.new()
 	parent.add_child(root)
 	var mm := MultiMesh.new()
@@ -273,6 +299,6 @@ static func arena_ring(parent: Node3D, center: Vector3, radius: float, col: Colo
 	halo.material_override = _mat(col, 0.3, 0.2, 1.2)
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(halo)
-	crystals(root, center, radius * 0.9, 10, col, rng, ground)
+	crystals(root, center, radius * 0.9, 10, col, rng, ground, clear)
 	floating_ruins(root, center + Vector3(0, 0, 0), radius * 0.8, 7, rng)
 	return root
