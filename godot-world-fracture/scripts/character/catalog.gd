@@ -87,7 +87,7 @@ static func body_path(frame: String, body: String, civ := false, real_ok := true
 ## armoured operators wear the board's three suits — Titan on the heavy male frame, Hunter on the slim female frame,
 ## Warlock on the athletic female frame — and a look can name any of them with "model" (the city's people do).
 const HEROES := { "goliath-male": "titan", "nyx-female": "hunter", "cipher-female": "warlock" }
-const PEOPLE := { "male": ["civ-tee"], "female": ["civ-business"], "police": ["police"] }
+const PEOPLE := { "male": ["civ-tee"], "female": ["civ-business", "people-crop-jeans"], "police": ["police"] }
 
 static func model_path(id: String) -> String:
 	return "res://models/characters/%s.glb" % id
