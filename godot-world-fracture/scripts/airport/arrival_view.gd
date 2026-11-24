@@ -23,6 +23,10 @@ const Encounters := preload("res://scripts/mission/encounters.gd")
 const Sovereign := preload("res://scripts/mission/sky_sovereign.gd")
 
 var dest := "THA"
+## walk a map straight from the street rather than off a flight (the HIGHLANDS FUNICULAR door: "nexus" with `on_cap`)
+var region_id := ""
+var on_cap := false
+var overlook: Node     # scripts/city/overlook.gd, on a map that has a lookout crag
 var region: Control
 var operator: Node3D
 var controls: Control
@@ -40,7 +44,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	profile = Gear.profile_load()
 	var d: Dictionary = Air.DESTINATIONS.get(dest, Air.DESTINATIONS.THA)
-	var id := String(d.region)
+	var id := String(d.region) if region_id == "" else region_id
 	# a destination whose region has no exported map yet (Frostveil, the Azure Isles, Goldenreach) lands on the
 	# nearest mapped land rather than on nothing: without this the region built no world and the walk out crashed
 	if Data.map(id).is_empty():
@@ -68,13 +72,18 @@ func _ready() -> void:
 	operator.obstacles = region.building_boxes()
 	operator.position = region.stand_point()
 	operator.build()
+	overlook = preload("res://scripts/city/overlook.gd").new()
+	add_child(overlook)
+	overlook.setup(self, id)
+	if on_cap:
+		overlook.arrive_on_cap()
 	operator.attach_camera(region.camera())
 	region.camera().current = true
 	preload("res://scripts/nav/gps.gd").attach(self, region, operator)   # the GPS (owner, Nov 18)
 	gunplay = Gunplay.new()
 	region.world().add_child(gunplay)
 	gunplay.setup(operator, operator.obstacles)
-	if People.ROSTERS.has(dest):
+	if People.ROSTERS.has(dest) and region_id == "":
 		npcs = NpcStreet.new()
 		npcs.origin = Vector3(operator.position.x, 0, operator.position.z)
 		region.world().add_child(npcs)
@@ -99,7 +108,7 @@ func _ready() -> void:
 	fl.custom_minimum_size = Vector2(110, 44)
 	fl.pressed.connect(_flights)
 	row.add_child(fl)
-	controls.toast("Welcome to %s." % String(d.name))
+	controls.toast("Highlands Overlook · Nexus City" if on_cap else "Welcome to %s." % String(d.name))
 	# out of the cloud deck the flight came down through (airport_view.gd fades to the same veil)
 	var veil := ColorRect.new()
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -121,6 +130,8 @@ func _process(dt: float) -> void:
 		if gunplay.shots_fired != _shots:
 			_shots = gunplay.shots_fired
 			npcs.gunfire(operator.position)
+	if overlook and overlook.step(dt):
+		return
 	operator.step(dt, controls.move, controls.take_look(), controls.take_jump(), controls.sprint)
 	if beacon:
 		beacon.step(dt, operator)

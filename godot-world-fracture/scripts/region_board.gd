@@ -20,6 +20,8 @@ extends RefCounted
 
 const Flora := preload("res://scripts/region_flora.gd")
 const Fx := preload("res://scripts/vfx/fx.gd")
+const Overlook := preload("res://scripts/city/overlook.gd")
+const FractureSet := preload("res://scripts/vfx/fracture_set.gd")
 
 ## each landmark's spot (local x, its size, local z) for the look-dev camera: main.gd --shot eye:board:<name>
 static func spot(r: Node, name: String, at: Vector2, size: float) -> void:
@@ -44,6 +46,76 @@ static func build(r: Node) -> void:
 			_shattered(r, rng)
 		"azure-isles":
 			_azure(r, rng)
+	# a crag with a lookout on its cap where the map has one (scripts/city/overlook.gd SPOTS: the Nexus Highlands)
+	if not Overlook.spot_for(String(r.map_id)).is_empty():
+		_overlook(r, rng)
+
+# ------------------------------------------------------------------------------------------------ the overlook crag
+
+## the Nexus Highlands Overlook (overlook.gd, owner's pick Nov 24, after docs/reference/target-overlook-day.png): Nexus's
+## land is a low plateau, so the height is a crag of its own — a weathered grey outcrop stepping in at its beds, a deck
+## over its cap the operator stands on (region_3d `_decks`), a box round its cliffs so the foot is a wall
+## (`extra_boxes`), a ring of Fracture crystals at the lip and the funicular's rail up the back to its car at the foot.
+## The cap's height goes on the region as meta "overlook_cap" for overlook.gd.
+static func _overlook(r: Node, rng: RandomNumberGenerator) -> void:
+	var s := Overlook.spot_for(String(r.map_id))
+	var at: Vector2 = r._loc(float(s.x), float(s.z))
+	var rad := float(s.rad)
+	var node := Node3D.new()
+	node.name = "BoardOverlook"
+	r._world.add_child(node)
+	var rock := Flora.rock_material(Color(0.5, 0.49, 0.47))
+	var top := _mesa(r, node, at, rad, float(s.h), rock, rng)
+	r.set_meta("overlook_cap", top + 0.6)
+	# the cap is a deck: [from, to, y at each end, half width] — a short span so the whole cap stands at its height
+	r._decks.append([at - Vector2(0.5, 0), at + Vector2(0.5, 0), top + 0.48, top + 0.48, rad * 0.62])
+	r._deck_grid_n = -1
+	# the cliffs: a wall at the foot, nothing on the cap (operator_player skips boxes whose top is under its feet)
+	var inner := rad * 0.72
+	var low: float = r._h(at.x, at.y) - 4.0
+	r.extra_boxes.append(AABB(Vector3(at.x - inner, low, at.y - inner), Vector3(inner * 2.0, top + 0.4 - low, inner * 2.0)))
+	# the crystals at the lip, on the far side from the view (they frame the city, they don't block it)
+	var face: Vector2 = r._loc(float(s.face_x), float(s.face_z))
+	var to := (face - at).normalized()
+	var lip := at - to * rad * 0.45
+	FractureSet.crystals(node, Vector3(lip.x, top + 0.5, lip.y), 2.2, 5, Color(0.62, 0.45, 1.0), rng)
+	# the funicular: a pair of rails from the car at the foot (behind the crag) up to the cap's back edge
+	var back := -to
+	var foot := at + back * (rad + 4.0)
+	var lip_b := at + back * rad * 0.55
+	var rail_mat := StandardMaterial3D.new()
+	rail_mat.albedo_color = Color(0.32, 0.34, 0.37)
+	rail_mat.metallic = 0.7
+	rail_mat.roughness = 0.4
+	var y0: float = r._h(foot.x, foot.y)
+	var a3 := Vector3(foot.x, y0 + 0.4, foot.y)
+	var b3 := Vector3(lip_b.x, top + 0.6, lip_b.y)
+	var side := Vector3(-back.y, 0, back.x)
+	for k in [-0.7, 0.7]:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.18, 0.22, a3.distance_to(b3))
+		mi.mesh = bm
+		mi.material_override = rail_mat
+		node.add_child(mi)
+		mi.position = (a3 + b3) * 0.5 + side * k
+		mi.look_at_from_position(mi.position, b3 + side * k, Vector3.UP)
+	# the car waiting at the foot: a glazed cabin on its frame, lit
+	var car := MeshInstance3D.new()
+	var cm := BoxMesh.new()
+	cm.size = Vector3(2.4, 2.3, 3.4)
+	car.mesh = cm
+	var glass := StandardMaterial3D.new()
+	glass.albedo_color = Color(0.85, 0.9, 0.95)
+	glass.emission_enabled = true
+	glass.emission = Color(1.0, 0.85, 0.55)
+	glass.emission_energy_multiplier = 0.5
+	glass.roughness = 0.2
+	car.material_override = glass
+	node.add_child(car)
+	car.position = a3 + Vector3(back.x * 1.5, 1.2, back.y * 1.5)
+	car.rotation.y = atan2(back.x, back.y)
+	spot(r, "overlook", at, rad)
 
 # ------------------------------------------------------------------------------------------------ Solara / Solmara
 

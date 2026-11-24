@@ -480,6 +480,7 @@ func show_region(id: String, at: Variant = null, start_mode: Mode = Mode.CITY, s
 	_style = _style_for(id)
 	_decks.clear()
 	_deck_grid_n = -1
+	extra_boxes.clear()
 	if _style.under:
 		# under the sea (Thalassia): no surface over the city, so "water level" sits below the seabed and everything that
 		# clamps to it (street view, docks, labels) stands on the floor instead of 30-odd metres up at the surface
@@ -2341,10 +2342,13 @@ func is_open_sea() -> bool:
 func map_point(lx: float, lz: float) -> Vector2:
 	return Vector2(lx + _ox, lz + _oz)
 ## the buildings as world boxes (local space, metres from the region centre), for the on-foot movers to slide around
+## boxes the region's own set pieces add to the walls (region_board.gd: the overlook crag's cliffs)
+var extra_boxes: Array[AABB] = []
 func building_boxes() -> Array[AABB]:
 	var out: Array[AABB] = []
 	if _open_sea:
 		return out
+	out.append_array(extra_boxes)
 	for bd in m.buildings:
 		var p := _loc(bd[0], bd[1])
 		var hx := float(bd[2])

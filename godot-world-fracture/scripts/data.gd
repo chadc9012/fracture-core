@@ -75,6 +75,10 @@ func map(id: String) -> Dictionary:
 	if not _maps.has(id):
 		var d = _json(GEN + "maps/%s.json" % id)
 		_maps[id] = d if d is Dictionary else {}
+		# a lookout the Godot build adds (scripts/city/overlook.gd: the Nexus Highlands Overlook) is a place on the map
+		var lp: Dictionary = preload("res://scripts/city/overlook.gd").poi_for(id)
+		if not lp.is_empty() and _maps[id].has("pois"):
+			(_maps[id].pois as Array).append(lp)
 	return _maps[id]
 
 func map_name(id: String) -> String:

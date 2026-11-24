@@ -48,6 +48,8 @@ const DOORS := [
 	# the city parking garage's door, at its lot (infrastructure.gd LOTS "parkade", block -2)
 	{ "id": "parking", "label": "UNDERGROUND PARKING", "x": -1.0, "z": -615.0, "color": Color(1.0, 0.85, 0.2), "kind": "door", "style": "any" },
 	# the metro: a glass entrance pavilion on the walk, down to the Central Line platform (interiors.gd "metro")
+	# the funicular up to the Highlands Overlook (owner's pick, Nov 24; overlook.gd) — Nexus's street only
+	{ "id": "overlook", "label": "HIGHLANDS FUNICULAR", "x": 1.0, "z": 128.0, "color": Color(0.55, 0.95, 0.7), "kind": "stop", "style": "nexus" },
 	{ "id": "metro", "label": "METRO · CENTRAL LINE", "x": 1.0, "z": -118.0, "color": Color(0.3, 0.75, 1.0), "kind": "metro", "style": "any" },
 ]
 var _door_spots: Array = []     # [{id, label, pos}]
