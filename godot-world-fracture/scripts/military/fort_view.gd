@@ -24,6 +24,7 @@ const Sound := preload("res://scripts/audio/sound.gd")
 const Rides := preload("res://scripts/killbox/royale_rides.gd")
 
 const MIL := "res://models/military/"
+const FortJet := preload("res://scripts/military/fort_jet.gd")
 
 ## the wire: x -260..260, z -520..300; the gate on the south side at x = GATE_X; the road runs out to z = ROAD_END
 const WIRE := Rect2(-260, -520, 520, 820)
@@ -54,6 +55,7 @@ var controls: Control
 var gunplay: Node3D
 var enemies: Node3D
 var rides: Rides
+var air := FortJet.new()     # the apron fighters you can steal and fly
 var obstacles: Array[AABB] = []
 var stars := 0
 var _warn := 0.0
@@ -69,6 +71,9 @@ var _vp: SubViewport
 var _rng := RandomNumberGenerator.new()
 var _wasted := 0.0
 var _near := ""
+var _hs := PackedFloat32Array()   # the ranges' heights (terrain())
+var _hs_cells := 1
+var _hs_size := 1.0
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -284,6 +289,9 @@ func _ranges() -> void:
 			var north := 1.0 + 0.6 * clampf(-(z + 300.0) / 1500.0, 0.0, 1.0)
 			var h := rise * rise * (380.0 + 420.0 * absf(ridge.get_noise_2d(x, z))) * north * (0.65 + 0.7 * (n.get_noise_2d(x, z) * 0.5 + 0.5))
 			hs[j * (cells + 1) + i] = h - 4.0 * (1.0 - rise)
+	_hs = hs
+	_hs_cells = cells
+	_hs_size = size
 	for j in cells:
 		for i in cells:
 			var x0 := -size * 0.5 + i * step
@@ -300,6 +308,22 @@ func _ranges() -> void:
 	mi.material_override = Look.range_rock()
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(mi)
+
+## the land's height at x, z: the valley floor (0) or the ranges' heightfield (what a jet flies into)
+func terrain(x: float, z: float) -> float:
+	if _hs.is_empty():
+		return 0.0
+	var step := _hs_size / _hs_cells
+	var fx := clampf((x + _hs_size * 0.5) / step, 0.0, _hs_cells - 0.001)
+	var fz := clampf((z + 100.0 + _hs_size * 0.5) / step, 0.0, _hs_cells - 0.001)
+	var i := int(fx)
+	var j := int(fz)
+	var tx := fx - i
+	var tz := fz - j
+	var w := _hs_cells + 1
+	var a := lerpf(_hs[j * w + i], _hs[j * w + i + 1], tx)
+	var b := lerpf(_hs[(j + 1) * w + i], _hs[(j + 1) * w + i + 1], tx)
+	return maxf(0.0, lerpf(a, b, tz))
 
 # ------------------------------------------------------------------------------------------------ the airfield
 
@@ -637,6 +661,7 @@ func _park(file: String, id: String, length: float, at: Vector3, yaw: float, dri
 		rides.parked.erase(n)
 		var box := AABB(at - Vector3(length * 0.35, 0, length * 0.35), Vector3(length * 0.7, 3.0, length * 0.7))
 		obstacles.append(box)
+		n.set_meta("box", box)
 	return n
 
 ## the base's fighter: the Meshy olive-green jet (Nov 24) when it is in, else the fleet's Vanguard
@@ -646,7 +671,9 @@ static func jet_file() -> String:
 func _vehicles() -> void:
 	var jf := jet_file()
 	for k in 3:
-		_park(jf, "vanguard-jet", 19.0, Vector3(55.0, 0, APRON.position.y + 40.0 + k * 45.0), -PI * 0.5)
+		var j := _park(jf, "vanguard-jet", 19.0, Vector3(55.0, 0, APRON.position.y + 40.0 + k * 45.0), -PI * 0.5)
+		if j:
+			air.parked.append(j)
 	_park(jf, "vanguard-jet", 19.0, Vector3(HANGAR_X + 10.0, 0, HANGAR_Z[1]), PI * 0.5)
 	# Humvees: two at the gate, a line in the motor pool, one on the apron road (drivable)
 	if ResourceLoader.exists(Rides.FLEET + "humvee.glb"):
@@ -778,6 +805,15 @@ func _respawn() -> void:
 # ------------------------------------------------------------------------------------------------ the jets
 
 ## a jet in low along the runway, guns on the operator as it passes; its model is the fleet's Vanguard
+## a flight that ended in a building or the ground: the jet is gone and so, most likely, are you
+func _jet_down() -> void:
+	air.crashed = false
+	gunplay.spark(operator.position + Vector3(0, 1, 0), false)
+	gunplay.set_holstered(false)
+	controls.set_armed(true)
+	controls.toast("CRASHED")
+	enemies._hit_operator(enemies.hull_max * 0.9)
+
 func _send_jet() -> void:
 	var path := Rides.FLEET + jet_file()
 	if not ResourceLoader.exists(path):
@@ -879,7 +915,19 @@ func _process(dt: float) -> void:
 		if not e.target.alive() and e.target.down <= 0.0:
 			e.target.down = 1e9
 	var prompt := ""
-	if rides.driving():
+	if air.flying():
+		air.step(dt, operator, controls, obstacles, enemies.enemies, gunplay.spark, terrain)
+		if air.crashed:
+			_jet_down()
+		elif not air.airborne() and absf(air.state.speed) < 4.0:
+			prompt = "EXIT"
+			if controls.take_enter():
+				air.exit(operator, controls)
+				gunplay.set_holstered(false)
+				controls.set_armed(true)
+		else:
+			prompt = "UP TO CLIMB" if not air.airborne() and air.state.speed > 30.0 else ""
+	elif rides.driving():
 		rides.step(dt, operator, controls, enemies.enemies)
 		if absf(rides.car.speed) < 4.0:
 			prompt = "EXIT"
@@ -892,8 +940,22 @@ func _process(dt: float) -> void:
 		if controls.take_next():
 			gunplay.next_weapon()
 		gunplay.step(dt, cam, controls.fire, controls.take_reload(), Vector2(operator.velocity.x, operator.velocity.z).length())
+		var jet := air.near(operator.position)
 		var rc := rides.near(operator.position)
-		if rc != null:
+		if jet != null:
+			prompt = "FLY"
+			if controls.take_enter():
+				# its parking box goes with it
+				if jet.has_meta("box"):
+					obstacles.erase(jet.get_meta("box"))
+					jet.remove_meta("box")
+				air.enter(jet, operator, controls)
+				gunplay.set_holstered(true)
+				controls.set_armed(false)
+				controls.fire = false
+				if stars < 3:
+					_raise(3, "Military aircraft stolen")
+		elif rc != null:
 			prompt = "DRIVE"
 			if controls.take_enter():
 				rides.enter(rc, operator, controls)
