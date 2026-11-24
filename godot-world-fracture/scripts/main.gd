@@ -357,6 +357,9 @@ func _story_view() -> Control:
 	if pf:
 		var pd: Variant = JSON.parse_string(pf.get_as_text())
 		if pd is Dictionary and (pd as Dictionary).get("m1_drop", false) == true:
+			# the Fracture Descent is the road out of Nexus between Mission 10 and Mission 11 (owner, Nov 24: fold it in)
+			if ((pd as Dictionary).get("aftershock_done", []) as Array).has("10") and not Descent.chapter_cleared():
+				return Descent.new()
 			return Aftershock.new()
 	var m1: Control = Mission01.new()
 	m1.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -466,6 +469,7 @@ func _open_descent() -> void:
 		return
 	descent = Descent.new()
 	descent.closed.connect(_close_descent)
+	descent.roll_on.connect(_close_descent)   # played from the globe: CONTINUE comes back here; the street door goes on
 	add_child(descent)
 	planet_view.set_process(false)
 

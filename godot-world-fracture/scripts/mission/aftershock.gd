@@ -12,8 +12,7 @@ extends "res://scripts/mission/campaign.gd"
 const AFTERSHOCK_DATA := "res://data/dialogue/aftershock.json"
 const AFTERSHOCK_SAVE := "user://aftershock.json"
 
-## the chapter is done and the player rolls on into the original story
-signal roll_on
+## (roll_on — declared in descent.gd — hands the story on to the next view: the Fracture Descent after Chapter 1)
 
 func _story() -> Dictionary:
 	return data_of(AFTERSHOCK_DATA)
@@ -45,9 +44,41 @@ func _begin(id: String) -> void:
 		var now: Array = _chapter_of(def)
 		if not prev.is_empty() and int(was[0]) != int(now[0]):
 			_card_for = id
-			_chapter_card(was, now, id)
+			if int(was[0]) == 1 and not DescentRun.chapter_cleared():
+				_descent_card(was)   # Chapter 1 ends on the road out of Nexus: the Fracture Descent, then Eldergrove
+			else:
+				_chapter_card(was, now, id)
 			return
 	super(id)
+
+const DescentRun := preload("res://scripts/mission/descent.gd")
+
+## after Mission 10 the story leaves Nexus through the fractured forest (the Fracture Descent, fd-02 to fd-07) before
+## Chapter 2 opens in Eldergrove — the card hands over to it
+func _descent_card(was: Array) -> void:
+	if _card:
+		_card.queue_free()
+	_card = PanelContainer.new()
+	_card.set_anchors_preset(Control.PRESET_CENTER)
+	_card.position = Vector2(-200, -110)
+	var v := VBoxContainer.new()
+	_card.add_child(v)
+	var t := Label.new()
+	t.text = "CHAPTER %d COMPLETE — %s\n\nNEXT\nTHE FRACTURE DESCENT\nthe road out of Nexus" % [int(was[0]), String(was[1]).to_upper()]
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.add_theme_font_size_override("font_size", 20)
+	v.add_child(t)
+	var b := Button.new()
+	b.text = "CONTINUE THE STORY"
+	b.custom_minimum_size = Vector2(360, 48)
+	b.pressed.connect(func(): _save(); roll_on.emit())
+	v.add_child(b)
+	var g := Button.new()
+	g.text = "BACK TO THE CITY"
+	g.custom_minimum_size = Vector2(360, 40)
+	g.pressed.connect(func(): _save(); closed.emit())
+	v.add_child(g)
+	add_child(_card)
 
 func _card_up() -> bool:
 	return _card != null
