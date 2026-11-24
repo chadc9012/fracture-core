@@ -1,4 +1,5 @@
 extends Control
+const Tracker := preload("res://scripts/ui/tracker.gd")
 const Progression := preload("res://scripts/progress/progression.gd")
 const Sound := preload("res://scripts/audio/sound.gd")
 ## The Fracture Descent after Mission 01 — Act 1 (schedule step 11): fd-02 to fd-04 in the Verdant Forest (clear the patrols,
@@ -70,7 +71,7 @@ var quest: Dictionary = {}
 var waypoint := Vector3.ZERO
 var beacon: Node3D
 var waypoint_node: Node3D
-var _objective: Label
+var _objective: Tracker
 var _spawn_t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _spawn_origin := Vector3.ZERO
@@ -87,18 +88,14 @@ func _ready() -> void:
 	var q0 := _quest_def(progress.current)
 	_setup_world(String(q0.get("world", REGION)), String(q0.get("start", "crash-site")))
 	add_child(controls)
-	_objective = Label.new()
-	_objective.position = Vector2(16, 122)   # under touch_controls' hull / weapon / ammo / grenade lines (HUD rule, Nov 16)
-	_objective.add_theme_font_size_override("font_size", 16)
-	_objective.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-	_objective.add_theme_constant_override("shadow_offset_x", 1)
-	_objective.add_theme_constant_override("shadow_offset_y", 1)
-	_objective.modulate = Color(0.95, 0.85, 0.5)
+	# the tracked step, Destiny-style (scripts/ui/tracker.gd), under the HUD's weapon and grenade lines
+	_objective = Tracker.new()
+	_objective.position = Vector2(20, 128)
 	add_child(_objective)
 	var back := Button.new()
 	_back_button = back
 	back.text = "← GLOBE"
-	back.position = Vector2(250, 8)   # right of the hull bar
+	back.position = Vector2(250, 8)   # right of the hull bar (HUD layout rule)
 	back.pressed.connect(func(): _save(); closed.emit())
 	add_child(back)
 	online = bool(load("res://scripts/net/online.gd").pref("story_coop", true)) and online
@@ -116,6 +113,33 @@ func _ready() -> void:
 	cutscene = Cutscene.new()
 	add_child(cutscene)
 	_begin(progress.current)
+	_brief()
+
+## Helldivers' mission briefing over the world as the story opens (scripts/ui/briefing.gd); the story waits for DEPLOY.
+## Scripted and headless runs (the tests) deploy at once.
+const PLACES := { "veridan": ["Verdant Forest", "load-fracture", ["Corrupted wildlife", "Fracture patrols"]],
+	"swamps": ["Shrouded Swamps", "load-fracture", ["Bog mutants", "Drowned relay guards"]],
+	"neon-city": ["Neon City", "load-neon", ["Syndicate drones", "Aegis security"]],
+	"nexus": ["Nexus City", "load-nexus", ["Fracture troopers", "Syndicate enforcers"]] }
+func _brief() -> void:
+	if quest.is_empty() or (controls and controls.scripted) or DisplayServer.get_name() == "headless":
+		return
+	var place: Array = PLACES.get(String(quest.get("world", "")), [String(quest.get("world", "")).capitalize(), "load-fracture", []])
+	var objectives: Array = [String(quest.get("label", ""))]
+	if quest.has("stage2"):
+		objectives.append(String(quest.stage2))
+	var b = load("res://scripts/ui/briefing.gd").new()
+	b.data = { "code": String(quest.id), "title": String(quest.title), "place": place[0], "art": place[1],
+		"text": String(quest.get("line", "")), "objectives": objectives, "threats": place[2],
+		"reward": "◆ %d nex  ·  %d xp  ·  a chance at elite gear" % [int(quest.get("nex", 0)), int(quest.get("xp", 0))],
+		"nex": int(quest.get("nex", 0)), "xp": int(quest.get("xp", 0)) }
+	set_process(false)
+	b.deploy.connect(func():
+		# the pick on the briefing holds for this drop (Halo Infinite's difficulty select)
+		var l: Dictionary = load("res://scripts/progress/difficulty.gd").level()
+		enemies.set_difficulty(float(l.hp), float(l.dmg))
+		set_process(true))
+	add_child(b)
 
 ## the chain (the campaign runner, scripts/mission/campaign.gd, extends this with its own)
 func _quests() -> Array:
@@ -126,6 +150,10 @@ func _save_path() -> String:
 
 func _first_id() -> String:
 	return "fd-02"
+
+## what the celebration says (the campaign's chapters say CHAPTER COMPLETE)
+func _complete_word() -> String:
+	return "Mission complete"
 
 func _quest_def(id: String) -> Dictionary:
 	for q in _quests():
@@ -169,6 +197,7 @@ func _setup_world(world: String, start_poi: String) -> void:
 	enemies = Enemies.new()
 	region.world().add_child(enemies)
 	enemies.setup(operator, gunplay)
+	load("res://scripts/progress/difficulty.gd").apply(enemies)   # story difficulty (Halo Infinite)
 	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	wildlife = null
 	if world in ["veridan", "swamps"]:
@@ -309,7 +338,8 @@ func _begin(id: String) -> void:
 		gunplay.resupply()     # every chapter starts on full ammo
 	if String(quest.world) != world_id:
 		_travel(String(quest.world), String(quest.start))
-	controls.toast("%s · %s" % [String(quest.id).to_upper(), quest.title])
+	# Destiny's new-mission card (touch_controls.mission_card): the chapter's code, its title and its opening line
+	controls.mission_card("New mission  ·  %s" % String(quest.id).to_upper(), String(quest.title), String(quest.get("line", "")))
 	if id == "fd-02":
 		# Mara's crash-site line, recorded (audio/voices)
 		Sound.voice("mara-crash-site")
@@ -423,7 +453,7 @@ func _complete() -> void:
 		coop.send("done", { "id": id })
 	progress.done.append(id)
 	var p := Gear.profile_load()
-	var res := Progression.grant(p, "quest", int(quest.nex), int(quest.xp), "%s complete" % String(quest.title))
+	var res := Progression.grant(p, "quest", int(quest.nex), int(round(int(quest.xp) * float(load("res://scripts/progress/difficulty.gd").level().xp))), "%s complete" % String(quest.title))
 	Gear.profile_save(p)
 	# a quest drops from the elite pool
 	var gear := Gear.load_save()
@@ -431,8 +461,11 @@ func _complete() -> void:
 	if not it.is_empty():
 		Gear.save(gear)
 		res.lines.append("LOOT · %s (%d power)" % [String(it.name), int(it.power)])
+	# the Division / Watch Dogs moment: the job's done, what it paid (the next chapter's card waits for it)
+	controls.celebrate(_complete_word(), String(quest.title), "◆ +%d nex   ·   +%d xp" % [int(quest.nex), int(quest.xp)])
 	for l in res.lines:
-		controls.toast(String(l))
+		if not String(l).begins_with("%s complete — " % String(quest.title)):   # the payment line is on the celebration
+			controls.toast(String(l))
 	Sound.sfx("confirm", -3.0)
 	var i := 0
 	var qs := _quests()

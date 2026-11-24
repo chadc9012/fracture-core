@@ -1,5 +1,10 @@
 extends Control
 const Settings := preload("res://scripts/front/settings_store.gd")
+## the Destiny-style look (scripts/ui/ui_theme.gd; owner Nov 18, interfaceingame.com Destiny 2): segmented hull, the gun's
+## picture beside a big magazine count, a red edge vignette when hit, hairline capsule buttons, banner toasts
+const UiTheme := preload("res://scripts/ui/ui_theme.gd")
+const HULL_W := 220.0
+const HULL_SEGS := 10
 const BoardHud := preload("res://scripts/player/board_hud.gd")
 ## the game screen from the owner's boards (board_hud.gd): weapon card, compass + place + quest, operator plate.
 ## Views set `hud.place`, `hud.set_quest(...)`, `hud.hull_max` / `hud.shield_max`; the old readouts stay as data.
@@ -28,6 +33,11 @@ var _reload := false
 var _next := false
 ## Operator grenades (grenades.gd via gunplay): a throw and a cycle press, consumed by gunplay; the HUD line
 var _grenade := false
+var _super := false
+var _v_was := false
+var _super_button: Button
+var _super_meter: Control
+var _super_hud := {}
 var _cycle_grenade := false
 var _grapple := false
 ## close combat (close_combat.gd): MELEE (tap / hold for the heavy), DODGE, BLOCK (held) — F / C or Ctrl / V on the desk
@@ -170,7 +180,7 @@ func _ready() -> void:
 		_cannon_button = can
 		var mis := _button("MISSILES")
 		mis.custom_minimum_size = Vector2(120, 76)
-		mis.add_theme_font_size_override("font_size", 16)
+		mis.add_theme_font_size_override("font_size", 13)
 		mis.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		mis.position = Vector2(-380, -250)
 		mis.visible = false
@@ -192,6 +202,7 @@ func _ready() -> void:
 		_sprint_button = run
 		var ent := _button("ENTER")
 		ent.custom_minimum_size = Vector2(150, 64)
+		ent.clip_text = false   # the prompt grows to fit ("TALK · MECHANIC")
 		ent.set_anchors_preset(Control.PRESET_CENTER)
 		ent.position = Vector2(-75, 120)
 		ent.visible = false
@@ -217,7 +228,18 @@ func _ready() -> void:
 		nx.custom_minimum_size = Vector2(104, 56)
 		nx.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		nx.position = Vector2(-120, -365)
-		bind(nx, func(): _next = true)
+		# a tap swaps; held, the weapon wheel opens and the finger's drag points at a gun (Cyberpunk / Apex circle menu)
+		bind(nx, func():
+			_swap_held = true
+			_wheel_hold = 0.0
+			_wheel_aim = Vector2.ZERO,
+			func():
+				_swap_held = false
+				if _wheel_open():
+					_close_wheel(true)
+				else:
+					_next = true,
+			func(rel: Vector2): _wheel_aim += rel)
 		add_child(nx)
 		_swap_button = nx
 		var ml := _button("MELEE")
@@ -265,7 +287,7 @@ func _ready() -> void:
 		_ads_button = ad
 		var gb := _button("GRENADE")
 		gb.custom_minimum_size = Vector2(120, 64)
-		gb.add_theme_font_size_override("font_size", 16)
+		gb.add_theme_font_size_override("font_size", 13)
 		gb.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		gb.position = Vector2(-250, -240)
 		bind(gb, func(): _grenade = true)
@@ -273,7 +295,7 @@ func _ready() -> void:
 		_grenade_button = gb
 		var gr := _button("GRAPPLE")
 		gr.custom_minimum_size = Vector2(120, 56)
-		gr.add_theme_font_size_override("font_size", 16)
+		gr.add_theme_font_size_override("font_size", 13)
 		gr.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		gr.position = Vector2(-250, -300)
 		bind(gr, func(): _grapple = true)
@@ -286,6 +308,15 @@ func _ready() -> void:
 		bind(cy, func(): _cycle_grenade = true)
 		add_child(cy)
 		_cycle_button = cy
+		# the super: a round button above GRAPPLE wearing the meter round its edge (Destiny's super icon)
+		var sp := _button("SUPER")
+		sp.custom_minimum_size = Vector2(120, 56)
+		sp.add_theme_font_size_override("font_size", 13)
+		sp.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		sp.position = Vector2(-250, -372)
+		bind(sp, func(): _super = true)
+		add_child(sp)
+		_super_button = sp
 	_hud()
 	if touch_ui:
 		_layout_ready()
@@ -298,10 +329,15 @@ func _hud() -> void:
 	cross.set_anchors_preset(Control.PRESET_CENTER)
 	cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cross.draw.connect(func():
-		var c := Color(1, 1, 1, 0.85)
+		# Destiny's reticle: four short ticks round a dot, each with a dark keyline so it reads on a bright sky
+		var c := Color(1, 1, 1, 0.92)
+		var k := Color(0, 0, 0, 0.45)
 		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
-			cross.draw_line(d * 5.0, d * 14.0, c, 2.0)
-		cross.draw_circle(Vector2.ZERO, 1.6, c))
+			cross.draw_line(d * 6.0, d * 13.0, k, 4.0)
+		cross.draw_circle(Vector2.ZERO, 2.6, k)
+		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+			cross.draw_line(d * 6.5, d * 12.5, c, 1.6)
+		cross.draw_circle(Vector2.ZERO, 1.5, c))
 	add_child(cross)
 	crosshair = cross
 	_hitmark = Control.new()
@@ -317,12 +353,39 @@ func _hud() -> void:
 			_hitmark.draw_line(d * 7.0 * big, d * 16.0 * big, Color(0, 0, 0, a * 0.6), 4.5)
 			_hitmark.draw_line(d * 7.0 * big, d * 16.0 * big, c, 2.5))
 	add_child(_hitmark)
+	# the gun's picture (ui/icons, tools/make_gear_icons.gd) left of the magazine count, as on Destiny's weapon slots
+	_gun_icon = TextureRect.new()
+	_gun_icon.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_gun_icon.position = Vector2(14, 56)
+	_gun_icon.size = Vector2(76, 38)
+	_gun_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_gun_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_gun_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_gun_icon.visible = false
+	add_child(_gun_icon)
+	_element_pip = Control.new()
+	_element_pip.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_element_pip.position = Vector2(20, 42)
+	_element_pip.size = Vector2(10, 10)
+	_element_pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_element_pip.visible = false
+	_element_pip.draw.connect(func():
+		_element_pip.draw_circle(Vector2(5, 5), 4.0, _element_col)
+		_element_pip.draw_arc(Vector2(5, 5), 4.5, 0.0, TAU, 16, Color(0, 0, 0, 0.5), 1.0))
+	add_child(_element_pip)
 	weapon_name = Label.new()
 	# the read-outs sit at the top left, out of the stick's way (owner, Nov 11: "add controls to screen")
 	weapon_name.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	weapon_name.position = Vector2(20, 40)
-	weapon_name.add_theme_font_size_override("font_size", 16)
-	weapon_name.modulate = Color(0.75, 0.85, 0.95)
+	weapon_name.position = Vector2(20, 38)
+	weapon_name.uppercase = true
+	weapon_name.add_theme_font_override("font", UiTheme.font(600, 2))
+	weapon_name.add_theme_font_size_override("font_size", 13)
+	weapon_name.add_theme_color_override("font_color", UiTheme.INK)
+	weapon_name.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	weapon_name.add_theme_constant_override("shadow_offset_y", 1)
+	weapon_name.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+	weapon_name.add_theme_constant_override("outline_size", 6)
+	weapon_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(weapon_name)
 	# a tap on the weapon's name (or the magazine) swaps weapons: the simple HUD has no SWAP button
 	var swap_tap := Control.new()
@@ -337,30 +400,54 @@ func _hud() -> void:
 	add_child(swap_tap)
 	ammo = Label.new()
 	ammo.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	ammo.position = Vector2(20, 62)
+	ammo.position = Vector2(20, 56)
+	ammo.add_theme_font_override("font", UiTheme.font(700, 0))
 	ammo.add_theme_font_size_override("font_size", 30)
+	ammo.add_theme_color_override("font_color", UiTheme.INK)
+	ammo.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	ammo.add_theme_constant_override("shadow_offset_y", 1)
+	ammo.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+	ammo.add_theme_constant_override("outline_size", 6)
+	ammo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(ammo)
-	# hull: a bar at the bottom left above the magazine, and a red wash when hit
+	# hit: Destiny reddens the screen's edges, not the whole picture (a shader vignette; `color.a` is how hard)
 	hurt_flash = ColorRect.new()
 	hurt_flash.color = Color(0.9, 0.1, 0.1, 0.0)
 	hurt_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hurt_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sh := Shader.new()
+	sh.code = "shader_type canvas_item;\nvoid fragment() {\n\tvec2 q = UV - 0.5;\n\tfloat e = smoothstep(0.18, 0.62, length(q * vec2(1.0, 0.8)) * 1.25);\n\tCOLOR = vec4(COLOR.rgb, COLOR.a * (0.06 + 0.94 * e));\n}"
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	hurt_flash.material = mat
 	add_child(hurt_flash)
 	move_child(hurt_flash, 0)
+	# hull: a segmented bar along the top left (Destiny's health bar); the shield rides above it as a thin line
 	hull_back = ColorRect.new()
-	hull_back.color = Color(0, 0, 0, 0.45)
+	hull_back.color = Color(0, 0, 0, 0.42)
 	hull_back.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hull_back.position = Vector2(20, 18)
-	hull_back.size = Vector2(220, 14)
+	hull_back.size = Vector2(HULL_W, 10)
 	hull_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hull_back)
 	hull_fill = ColorRect.new()
-	hull_fill.color = Color(0.35, 0.95, 0.75)
+	hull_fill.color = Color(0.95, 0.96, 0.97)
 	hull_fill.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	hull_fill.position = Vector2(22, 20)
-	hull_fill.size = Vector2(216, 10)
+	hull_fill.position = Vector2(20, 18)
+	hull_fill.size = Vector2(HULL_W, 10)
 	hull_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hull_fill)
+	# the gaps between segments, cut over the fill (a child of the backing, so hiding the bar hides them)
+	var cuts := Control.new()
+	cuts.size = Vector2(HULL_W, 10)
+	cuts.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cuts.z_index = 1
+	cuts.draw.connect(func():
+		for i in range(1, HULL_SEGS):
+			var x := HULL_W * float(i) / HULL_SEGS
+			cuts.draw_rect(Rect2(x - 1.0, 0, 2.0, 10.0), Color(0.03, 0.04, 0.05, 0.9))
+		cuts.draw_rect(Rect2(0, 0, HULL_W, 10), Color(1, 1, 1, 0.22), false, 1.0))
+	hull_back.add_child(cuts)
 	hud = BoardHud.new()
 	hud.source = self
 	add_child(hud)
@@ -376,27 +463,72 @@ func _hud() -> void:
 	_prompt_label.add_theme_font_size_override("font_size", 20)
 	_prompt_label.modulate = Color(0.8, 0.95, 1.0)
 	add_child(_prompt_label)
+	# down: Destiny's "GUARDIAN DOWN" — wide-spaced caps over the red edges
 	status = Label.new()
 	status.set_anchors_preset(Control.PRESET_CENTER)
-	status.position = Vector2(-120, -120)
-	status.add_theme_font_size_override("font_size", 34)
-	status.modulate = Color(1.0, 0.3, 0.3)
+	status.position = Vector2(-200, -130)
+	status.custom_minimum_size = Vector2(400, 44)
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status.add_theme_font_override("font", UiTheme.font(700, 6))
+	status.add_theme_font_size_override("font_size", 30)
+	status.add_theme_color_override("font_color", Color(1.0, 0.36, 0.32))
+	status.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.75))
+	status.add_theme_constant_override("shadow_offset_y", 2)
+	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(status)
+
+var _gun_icon: TextureRect
+var _element_pip: Control
+var _element_col := Color.WHITE
+var _loadout_key := ""
+var _icons := {}
+
+## the gun in hand, for its picture and element pip (gunplay.step hands this over every frame; cheap when unchanged)
+func show_loadout(frame: String, element := "") -> void:
+	var key := frame + "|" + element + "|" + mode
+	if key == _loadout_key:
+		return
+	_loadout_key = key
+	var tex: Texture2D = null
+	if frame != "" and mode == "foot":
+		if not _icons.has(frame):
+			var path := "res://ui/icons/weapon-%s.png" % frame
+			# the icons are square with the gun across the middle: show only that 2:1 band
+			var at: AtlasTexture = null
+			if ResourceLoader.exists(path):
+				var full: Texture2D = load(path)
+				at = AtlasTexture.new()
+				at.atlas = full
+				var w := float(full.get_width())
+				at.region = Rect2(0, w * 0.25, w, w * 0.5)
+			_icons[frame] = at
+		tex = _icons[frame]
+	# the owner's board HUD (board_hud.gd) draws its own weapon card from these labels: no picture over it, and the
+	# labels stay where it reads them
+	if hud:
+		tex = null
+	_gun_icon.texture = tex
+	_gun_icon.visible = tex != null
+	ammo.position.x = 96.0 if tex else 20.0
+	_element_col = UiTheme.element_color(element) if element != "" else Color(0, 0, 0, 0)
+	_element_pip.visible = tex != null and element != ""
+	_element_pip.queue_redraw()
+	weapon_name.position.x = 34.0 if _element_pip.visible else 20.0
 
 ## the hull read-out: `frac` 0..1, `hurt` 0..1 fades the wash, `down_left` seconds until the operator stands (0 = up)
 func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0, hull_max := -1.0, shield_max := -1.0) -> void:
-	hull_fill.size.x = 216.0 * clampf(frac, 0.0, 1.0)
+	hull_fill.size.x = HULL_W * clampf(frac, 0.0, 1.0)
 	# the energy shield: a thin cyan bar over the hull's (asset catalog §5)
 	if shield >= 0.0:
 		if not _shield_fill:
 			_shield_fill = ColorRect.new()
-			_shield_fill.color = Color(0.35, 0.8, 1.0)
+			_shield_fill.color = Color(0.55, 0.85, 1.0)
 			_shield_fill.set_anchors_preset(Control.PRESET_TOP_LEFT)
-			_shield_fill.position = Vector2(22, 12)
-			_shield_fill.size = Vector2(216, 4)
+			_shield_fill.position = Vector2(20, 12)
+			_shield_fill.size = Vector2(HULL_W, 3)
 			_shield_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(_shield_fill)
-		_shield_fill.size.x = 216.0 * clampf(shield, 0.0, 1.0)
+		_shield_fill.size.x = HULL_W * clampf(shield, 0.0, 1.0)
 		_shield_fill.visible = hull_fill.visible
 	hull_fill.color = Color(0.35, 0.95, 0.75) if frac > 0.35 else Color(0.95, 0.4, 0.3)
 	if hud:
@@ -407,7 +539,104 @@ func show_hull(frac: float, hurt: float, down_left: float, shield := -1.0, hull_
 		if shield_max > 0.0:
 			hud.shield_max = shield_max
 	hurt_flash.color.a = 0.35 * clampf(hurt, 0.0, 1.0) + (0.45 if down_left > 0.0 else 0.0)
-	status.text = ("DOWN · %d" % ceili(down_left)) if down_left > 0.0 else ""
+	status.text = ("DOWN  ·  %d" % ceili(down_left)) if down_left > 0.0 and _death == null else ""
+	if _death:
+		if down_left <= 0.0:
+			_death.queue_free()
+			_death = null
+		else:
+			_death_left.text = "RESPAWN IN  %d" % ceili(down_left)
+			_death_bar.size.x = 300.0 * clampf(1.0 - down_left / _death_total, 0.0, 1.0)
+
+var _death: Control
+var _death_left: Label
+var _death_bar: ColorRect
+var _death_total := 5.0
+## Titanfall 2's "You died" with The Finals' death camera card (enemies.gd calls it as the operator goes down): who did
+## it in big caps, what they are and what they used, the health they had left and how far off they were, then RESPAWN
+## IN n over a bar that fills. Without a killer (a fall) it says YOU DIED and the countdown only. show_hull keeps the
+## countdown and clears it when the operator stands.
+func death_card(info: Dictionary, respawn: float) -> void:
+	if _death:
+		_death.queue_free()
+	_death_total = maxf(0.5, respawn)
+	var red := Color(1.0, 0.33, 0.3)
+	# a dark band across the screen behind it, as Titanfall's death screen sets its text on one
+	var holder := Control.new()
+	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(holder)
+	var band := ColorRect.new()
+	band.set_anchors_and_offsets_preset(Control.PRESET_HCENTER_WIDE)
+	band.offset_top = -238
+	band.offset_bottom = -32
+	band.color = Color(0.02, 0.02, 0.03, 0.62)
+	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(band)
+	var edge := ColorRect.new()
+	edge.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	edge.offset_bottom = 2
+	edge.color = Color(red.r, red.g, red.b, 0.8)
+	band.add_child(edge)
+	var card := VBoxContainer.new()
+	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.alignment = BoxContainer.ALIGNMENT_CENTER
+	card.add_theme_constant_override("separation", 4)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band.add_child(card)
+	_death = holder
+	var lab := func(t: String, w: int, sp: int, px: int, c: Color) -> Label:
+		var l := Label.new()
+		l.text = t
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.add_theme_font_override("font", UiTheme.font(w, sp))
+		l.add_theme_font_size_override("font_size", px)
+		l.add_theme_color_override("font_color", c)
+		l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+		l.add_theme_constant_override("outline_size", 6)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return l
+	if info.is_empty():
+		card.add_child(lab.call("YOU DIED", 800, 8, 44, red))
+	else:
+		card.add_child(lab.call("ELIMINATED BY", 700, 6, 16, red))
+		card.add_child(lab.call(String(info.name).to_upper(), 800, 4, 46, UiTheme.INK))
+		var what := String(info.kind)
+		card.add_child(lab.call(("%s  ·  %s" % [what, String(info.weapon)]).to_upper() if what != String(info.name) else String(info.weapon).to_upper(), 600, 3, 15, UiTheme.INK_DIM))
+		# their health left and the distance, as the death camera's stat line
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 10)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var back := ColorRect.new()
+		back.custom_minimum_size = Vector2(140, 6)
+		back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		back.color = Color(1, 1, 1, 0.15)
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var fill := ColorRect.new()
+		fill.size = Vector2(140.0 * float(info.hp), 6)
+		fill.color = red
+		back.add_child(fill)
+		row.add_child(back)
+		row.add_child(lab.call("%d%% HULL LEFT  ·  %d M" % [int(round(float(info.hp) * 100.0)), int(round(float(info.dist)))], 700, 3, 15, UiTheme.INK))
+		card.add_child(row)
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 10
+	card.add_child(gap)
+	_death_left = lab.call("RESPAWN IN  %d" % ceili(respawn), 700, 5, 17, UiTheme.INK)
+	card.add_child(_death_left)
+	var track := ColorRect.new()
+	track.custom_minimum_size = Vector2(300, 3)
+	track.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	track.color = Color(1, 1, 1, 0.15)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_death_bar = ColorRect.new()
+	_death_bar.size = Vector2(0, 3)
+	_death_bar.color = UiTheme.INK
+	track.add_child(_death_bar)
+	card.add_child(track)
+	holder.modulate.a = 0.0
+	holder.create_tween().tween_property(holder, "modulate:a", 1.0, 0.25)
 
 var _toast: Label
 var _toast_t := 0.0
@@ -424,6 +653,17 @@ var toast_hook: Callable
 func toast(text: String) -> void:
 	if toast_hook.is_valid():
 		toast_hook.call(text)
+	# Destiny's two special notices (Progression.grant's lines; the views toast every line): a level-up gets the big
+	# centred banner, a drop gets an "acquired" card down the left side
+	if text.begins_with("LEVEL ") and text.find(" — ") > 0:
+		_level_up(text)
+		return
+	if text.begins_with("LOOT · "):
+		_acquired(text.substr(7))
+		return
+	if text.begins_with("TRIUMPH · "):
+		_acquired(text.substr(10), "TRIUMPH", UiTheme.GOLD)
+		return
 	if _toast and _toast_t > 0.0 and _toast.text != "":
 		if _toast.text == text or _toast_queue.has(text):
 			return
@@ -443,10 +683,21 @@ func _show_toast(text: String) -> void:
 		_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_toast.add_theme_font_size_override("font_size", 18)
-		_toast.modulate = Color(0.95, 0.85, 0.5)
+		# Destiny's notification banner: a dark strip, a gold rule along its top, light caps text
+		var sb := UiTheme.box(Color(0.03, 0.04, 0.055, 0.78), Color(0, 0, 0, 0), 0, Vector4(18, 9, 18, 10))
+		sb.border_width_top = 2
+		sb.border_color = UiTheme.GOLD
+		_toast.add_theme_stylebox_override("normal", sb)
+		_toast.add_theme_font_override("font", UiTheme.font(600, 1))
+		_toast.add_theme_font_size_override("font_size", 16)
+		_toast.add_theme_color_override("font_color", Color(0.98, 0.93, 0.78))
 		add_child(_toast)
+	# a banner, not a full-width bar: centred, at most 620 px wide
+	var side := maxf(24.0, (size.x - 620.0) * 0.5)
+	_toast.offset_left = side
+	_toast.offset_right = -side
 	_toast.text = text
+	_toast.visible = true
 	_toast_t = 3.0
 
 var _brake_held := false
@@ -467,7 +718,7 @@ var _prompt_label: Label
 ## the interaction prompt: the ENTER button carries it on touch; a keyboard player sees "<text> · E" under the crosshair
 func prompt(text: String) -> void:
 	if _enter_button:
-		_enter_button.text = text
+		_enter_button.text = text.to_upper()
 		_enter_button.visible = text != ""
 		return
 	if not _prompt_label:
@@ -476,11 +727,14 @@ func prompt(text: String) -> void:
 		_prompt_label.position = Vector2(-150, 60)
 		_prompt_label.custom_minimum_size = Vector2(300, 30)
 		_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_prompt_label.add_theme_font_size_override("font_size", 18)
+		_prompt_label.add_theme_font_override("font", UiTheme.font(600, 2))
+		_prompt_label.add_theme_font_size_override("font_size", 15)
+		_prompt_label.add_theme_color_override("font_color", UiTheme.INK)
 		_prompt_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-		_prompt_label.modulate = Color(0.5, 0.95, 1.0)
+		_prompt_label.add_theme_constant_override("shadow_offset_y", 1)
 		add_child(_prompt_label)
-	_prompt_label.text = (text + "  ·  E") if text != "" else ""
+	# Destiny's interact prompt: the key in brackets, then the action in caps
+	_prompt_label.text = ("[E]   " + text.to_upper()) if text != "" else ""
 
 ## the simple phone HUD (settings "simple_hud", the owner's ask): stick, FIRE, JUMP and ENTER only — sprint is the stick
 ## pushed to its edge, a tap on the weapon's name swaps, an empty magazine reloads itself (gunplay does that on the pull)
@@ -489,6 +743,12 @@ func simple() -> bool:
 
 func set_mode(m: String) -> void:
 	mode = m
+	if _gun_icon and m != "foot":
+		_loadout_key = ""
+		_gun_icon.visible = false
+		_element_pip.visible = false
+		ammo.position.x = 20.0
+		weapon_name.position.x = 20.0
 	var drive := m == "drive"
 	var fly := m == "fly"
 	if _jump_button:
@@ -505,7 +765,7 @@ func set_mode(m: String) -> void:
 		_lit(_gas_button, false)
 	if _stick_label:
 		_stick_label.text = "STEER" if drive else ("FLY" if fly else "MOVE")
-	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button, _grapple_button]:
+	for b in [_reload_button, _swap_button, _grenade_button, _cycle_button, _grapple_button, _super_button]:
 		if b:
 			b.visible = not drive and not fly and weapons_out and not simple()
 	# the close-combat buttons stay on the simple screen too (owner, Nov 21: melee, dodge on the phone's combat HUD)
@@ -581,6 +841,46 @@ func take_grapple() -> bool:
 	_grapple = false
 	return g
 
+func take_super() -> bool:
+	var s := _super
+	_super = false
+	return s
+
+## Destiny's super meter: a thin gold bar under the hull (full: it glows and says SUPER READY · V / on the button); while
+## the Golden Gun is live the bar shows the shots left. {} hides it
+func show_super(h: Dictionary) -> void:
+	_super_hud = h
+	if not _super_meter:
+		_super_meter = Control.new()
+		_super_meter.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		# under the board's weapon card (board_hud.gd: y 12–86), above the grenade line (y 100)
+		_super_meter.position = Vector2(14, 89)
+		_super_meter.size = Vector2(HULL_W + 200, 14)
+		_super_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_super_meter.draw.connect(func():
+			if _super_hud.is_empty():
+				return
+			var f := float(_super_hud.charge)
+			var col: Color = _super_hud.color
+			var ready := f >= 1.0
+			_super_meter.draw_rect(Rect2(0, 0, HULL_W, 3), Color(0, 0, 0, 0.45))
+			var a := 0.65 + 0.35 * sin(Time.get_ticks_msec() / 160.0) if ready else 0.9
+			_super_meter.draw_rect(Rect2(0, 0, HULL_W * clampf(f, 0.0, 1.0), 3), Color(col.r, col.g, col.b, a))
+			if bool(_super_hud.active):
+				var font := UiTheme.font(700, 2)
+				_super_meter.draw_string(font, Vector2(HULL_W + 8, 8), "%s  ×%d" % [String(_super_hud.name), int(_super_hud.shots)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col)
+			elif ready and not touch_ui:
+				_super_meter.draw_string(UiTheme.font(700, 2), Vector2(HULL_W + 8, 8), "SUPER READY  ·  V", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col))
+		add_child(_super_meter)
+	_super_meter.visible = mode == "foot" and not h.is_empty()
+	_super_meter.queue_redraw()
+	if _super_button:
+		if h.is_empty():
+			_super_button.visible = false
+		else:
+			var full := float(h.charge) >= 1.0
+			_super_button.text = (String(h.name).get_slice(" ", 0) + " ◆") if full else "SUPER %d%%" % int(float(h.charge) * 100.0)
+			_super_button.modulate = Color(1.3, 1.15, 0.8) if full else Color(1, 1, 1, 0.85)
 func take_ability() -> int:
 	var a := _ability
 	_ability = -1
@@ -671,7 +971,10 @@ func show_grenade(h: Dictionary) -> void:
 		grenade_label = Label.new()
 		grenade_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		grenade_label.position = Vector2(20, 100)
-		grenade_label.add_theme_font_size_override("font_size", 14)
+		grenade_label.add_theme_font_override("font", UiTheme.font(600, 1))
+		grenade_label.add_theme_font_size_override("font_size", 13)
+		grenade_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+		grenade_label.add_theme_constant_override("outline_size", 5)
 		grenade_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 		grenade_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(grenade_label)
@@ -697,7 +1000,7 @@ func _ring(r: float, col: Color) -> Control:
 	c.custom_minimum_size = Vector2(r * 2, r * 2)
 	c.size = c.custom_minimum_size
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.draw.connect(func(): c.draw_circle(Vector2(r, r), r, col); c.draw_arc(Vector2(r, r), r - 1.0, 0.0, TAU, 48, Color(1, 1, 1, 0.5), 2.0))
+	c.draw.connect(func(): c.draw_circle(Vector2(r, r), r, Color(0.03, 0.04, 0.055, col.a * 2.4)); c.draw_arc(Vector2(r, r), r - 1.0, 0.0, TAU, 64, Color(1, 1, 1, 0.45), 1.5))
 	return c
 
 ## a phone button that answers any finger. A Button only hears the first finger on the glass (Godot turns touch 0 into
@@ -748,7 +1051,30 @@ func _button(text: String) -> Button:
 	b.text = text
 	b.custom_minimum_size = Vector2(104, 76)
 	b.focus_mode = Control.FOCUS_NONE
-	b.add_theme_font_size_override("font_size", 20)
+	b.clip_text = true
+	# Destiny-style touch buttons: dark glass capsules with a hairline, wide-spaced caps; pressed fills white
+	b.add_theme_font_override("font", UiTheme.font(600, 2))
+	b.add_theme_font_size_override("font_size", 15)
+	var normal := UiTheme.box(Color(0.03, 0.04, 0.055, 0.5), Color(1, 1, 1, 0.4), 1, Vector4(8, 6, 8, 6))
+	normal.set_corner_radius_all(64)
+	normal.anti_aliasing = true
+	var pressed := UiTheme.box(Color(0.95, 0.96, 0.97, 0.92), Color(1, 1, 1, 0.9), 1, Vector4(8, 6, 8, 6))
+	pressed.set_corner_radius_all(64)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", normal)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_color_override("font_color", UiTheme.INK)
+	b.add_theme_color_override("font_hover_color", UiTheme.INK)
+	b.add_theme_color_override("font_pressed_color", Color(0.05, 0.06, 0.08))
+	# a radius past half the short side leaves a seam down a round button: fit it to the button's size
+	var fit := func():
+		var sz := b.size.max(b.custom_minimum_size)
+		var r := int(minf(sz.x, sz.y) * 0.44)
+		normal.set_corner_radius_all(r)
+		pressed.set_corner_radius_all(r)
+	b.resized.connect(fit)
+	b.ready.connect(fit)
 	b.modulate = Color(1, 1, 1, 0.85)
 	return b
 
@@ -778,6 +1104,15 @@ func _horn() -> void:
 	_horn_was = on
 
 func _process(_dt: float) -> void:
+	# holding SWAP on the phone opens the weapon wheel; the drag aims it
+	if _swap_held:
+		_wheel_hold += _dt
+		if _wheel_hold >= WHEEL_HOLD and not _wheel_open():
+			_open_wheel()
+	if _wheel_open():
+		_wheel_aim = _wheel_aim.limit_length(220.0)
+		_wheel.queue_redraw()
+		look_delta = Vector2.ZERO
 	_horn()
 	if _hit_t > 0.0:
 		_hit_t -= _dt
@@ -789,6 +1124,7 @@ func _process(_dt: float) -> void:
 			_show_toast(_toast_queue.pop_front())
 		elif _toast_t <= 0.0:
 			_toast.text = ""
+			_toast.visible = false
 	if scripted:
 		return
 	if touch_ui:
@@ -807,12 +1143,27 @@ func _process(_dt: float) -> void:
 	if Input.is_key_pressed(KEY_R) and not _r_was:
 		_reload = true
 	_r_was = Input.is_key_pressed(KEY_R)
-	if Input.is_key_pressed(KEY_Q) and not _q_was:
-		_next = true
-	_q_was = Input.is_key_pressed(KEY_Q)
+	# Q: a tap swaps to the next gun; held, it opens the weapon wheel and letting go equips what the mouse points at
+	var q := Input.is_key_pressed(KEY_Q)
+	if q and not _q_was:
+		_wheel_hold = 0.0
+		_wheel_aim = Vector2.ZERO
+	if q:
+		_wheel_hold += get_process_delta_time()
+		if _wheel_hold >= WHEEL_HOLD and not _wheel_open():
+			_open_wheel()
+	if not q and _q_was:
+		if _wheel_open():
+			_close_wheel(true)
+		else:
+			_next = true
+	_q_was = q
 	if Input.is_key_pressed(KEY_J) and not _j_was:
 		_grenade = true
 	_j_was = Input.is_key_pressed(KEY_J)
+	if Input.is_key_pressed(KEY_V) and not _v_was:
+		_super = true
+	_v_was = Input.is_key_pressed(KEY_V)
 	if Input.is_key_pressed(KEY_K) and not _k_was:
 		_cycle_grenade = true
 	_k_was = Input.is_key_pressed(KEY_K)
@@ -876,7 +1227,12 @@ func _input(event: InputEvent) -> void:
 		_capture(false)
 		return
 	if event is InputEventMouseMotion:
-		look_delta += (event as InputEventMouseMotion).relative
+		if _wheel_open():
+			_wheel_aim += (event as InputEventMouseMotion).relative
+			_wheel_aim = _wheel_aim.limit_length(220.0)
+			_wheel.queue_redraw()
+		else:
+			look_delta += (event as InputEventMouseMotion).relative
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
@@ -944,6 +1300,485 @@ func _gui_input(event: InputEvent) -> void:
 		look_delta += (event as InputEventMouseMotion).relative
 		accept_event()
 
+# --------------------------------------------------------------------------------------- level up / acquired
+var _level_banner: Control
+var _acquired_col: VBoxContainer
+
+## "LEVEL 7 — +2 power, +4 hull" as Destiny's level-up: gold rules opening out, LEVEL UP, the number, what it gave
+func _level_up(text: String) -> void:
+	var parts := text.split(" — ", true, 1)
+	var num := parts[0].substr(6).strip_edges()
+	var gave := parts[1].replace(", ", "   ·   ").to_upper() if parts.size() > 1 else ""
+	if _level_banner:
+		_level_banner.queue_free()
+	var b := Control.new()
+	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	b.offset_top = 270   # under the toast strip (offset 190)
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(b)
+	_level_banner = b
+	var rule_l := ColorRect.new()
+	var rule_r := ColorRect.new()
+	for r in [rule_l, rule_r]:
+		r.color = UiTheme.GOLD
+		r.size = Vector2(0, 2)
+		r.position = Vector2(0, 24)
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(r)
+	var cap := _banner_label("LEVEL UP", 600, 6, 15, UiTheme.GOLD)
+	cap.position = Vector2(-150, 12)
+	b.add_child(cap)
+	var big := _banner_label(num, 700, 0, 64, UiTheme.INK)
+	big.position = Vector2(-150, 34)
+	b.add_child(big)
+	var sub := _banner_label(gave, 600, 2, 13, UiTheme.INK_DIM)
+	sub.position = Vector2(-150, 112)
+	b.add_child(sub)
+	b.modulate.a = 0.0
+	var tw := b.create_tween()
+	tw.tween_property(b, "modulate:a", 1.0, 0.25)
+	tw.parallel().tween_method(func(w: float):
+		rule_l.size.x = w
+		rule_l.position.x = -84.0 - w
+		rule_r.size.x = w
+		rule_r.position.x = 84.0, 0.0, 170.0, 0.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(3.2)
+	tw.tween_property(b, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(func():
+		if _level_banner == b:
+			_level_banner = null
+		b.queue_free())
+
+func _banner_label(t: String, weight: int, spacing: int, px: int, col: Color) -> Label:
+	var l := Label.new()
+	l.text = t
+	l.custom_minimum_size = Vector2(300, 0)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_override("font", UiTheme.font(weight, spacing))
+	l.add_theme_font_size_override("font_size", px)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.5))
+	l.add_theme_constant_override("outline_size", 6)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+## "Void Sceptre (183 power)" as a Destiny pickup card down the left: a coloured edge, ACQUIRED, the name, the power
+func _acquired(what: String, caption := "ACQUIRED", edge := Color(0, 0, 0, 0)) -> void:
+	if not _acquired_col:
+		_acquired_col = VBoxContainer.new()
+		_acquired_col.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+		_acquired_col.offset_left = 20
+		_acquired_col.offset_top = -40
+		_acquired_col.add_theme_constant_override("separation", 6)
+		_acquired_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_acquired_col)
+	var power := ""
+	var name := what
+	var at := what.rfind(" (")
+	if at > 0 and what.ends_with(" power)"):
+		name = what.substr(0, at)
+		power = what.substr(at + 2, what.length() - at - 8)
+	var card := PanelContainer.new()
+	var sb := UiTheme.box(Color(0.03, 0.04, 0.055, 0.78), Color(0, 0, 0, 0), 0, Vector4(12, 7, 16, 8))
+	sb.border_width_left = 3
+	sb.border_color = UiTheme.rarity_color("epic") if edge.a == 0.0 else edge
+	card.add_theme_stylebox_override("panel", sb)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	card.add_child(col)
+	var cap := Label.new()
+	cap.text = caption
+	cap.add_theme_font_override("font", UiTheme.font(600, 3))
+	cap.add_theme_font_size_override("font_size", 10)
+	cap.add_theme_color_override("font_color", UiTheme.INK_DIM)
+	col.add_child(cap)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	col.add_child(row)
+	var nm := Label.new()
+	nm.text = name.to_upper()
+	nm.add_theme_font_override("font", UiTheme.font(700, 1))
+	nm.add_theme_font_size_override("font_size", 15)
+	row.add_child(nm)
+	if power != "":
+		var pw := Label.new()
+		pw.text = "◆ " + power
+		pw.add_theme_font_override("font", UiTheme.font(600, 0))
+		pw.add_theme_font_size_override("font_size", 14)
+		pw.add_theme_color_override("font_color", UiTheme.GOLD)
+		row.add_child(pw)
+	_acquired_col.add_child(card)
+	while _acquired_col.get_child_count() > 4:
+		_acquired_col.get_child(0).free()
+	card.modulate.a = 0.0
+	var tw := card.create_tween()
+	tw.tween_property(card, "modulate:a", 1.0, 0.2)
+	tw.tween_interval(4.0)
+	tw.tween_property(card, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(card.queue_free)
+
+# ---------------------------------------------------------------------------------------------- new mission
+var _mission_card: Control
+
+## Destiny's "New mission" card (owner Nov 18): a gold kicker with the chapter's code, the title in wide caps between
+## two rules, the chapter's opening line under it; holds a few seconds and fades. The story calls it as a chapter begins.
+func mission_card(kicker: String, title: String, line := "") -> void:
+	# a celebration on screen goes first; the next chapter's card waits for it
+	var wait := (_celebrate_until - Time.get_ticks_msec()) / 1000.0
+	if wait > 0.0 and is_inside_tree():
+		get_tree().create_timer(wait).timeout.connect(func(): mission_card(kicker, title, line))
+		return
+	if _mission_card:
+		_mission_card.queue_free()
+	var b := VBoxContainer.new()
+	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	b.offset_top = 300   # clear of the toast strip (190) and the crosshair
+	b.offset_left = -360
+	b.offset_right = 360
+	b.alignment = BoxContainer.ALIGNMENT_BEGIN
+	b.add_theme_constant_override("separation", 8)
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(b)
+	_mission_card = b
+	var k := _banner_label(kicker.to_upper(), 600, 5, 14, UiTheme.GOLD)
+	k.custom_minimum_size.x = 720
+	b.add_child(k)
+	var top := ColorRect.new()
+	top.color = Color(1, 1, 1, 0.5)
+	top.custom_minimum_size = Vector2(0, 2)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(top)
+	var t := _banner_label(title.to_upper(), 700, 8, 40, UiTheme.INK)
+	t.custom_minimum_size.x = 720
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.add_child(t)
+	var bottom := ColorRect.new()
+	bottom.color = Color(1, 1, 1, 0.5)
+	bottom.custom_minimum_size = Vector2(0, 2)
+	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(bottom)
+	if line != "":
+		var l := _banner_label(line, 400, 0, 17, Color(0.93, 0.94, 0.95, 0.85))
+		l.custom_minimum_size.x = 720
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_child(l)
+	# the rules draw in from the middle
+	for r in [top, bottom]:
+		(r as ColorRect).size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		(r as ColorRect).custom_minimum_size.x = 0.0
+	b.modulate.a = 0.0
+	var tw := b.create_tween()
+	tw.tween_property(b, "modulate:a", 1.0, 0.35)
+	tw.parallel().tween_method(func(w: float):
+		top.custom_minimum_size.x = w
+		bottom.custom_minimum_size.x = w, 0.0, 520.0, 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(4.2)
+	tw.tween_property(b, "modulate:a", 0.0, 0.8)
+	tw.tween_callback(func():
+		if _mission_card == b:
+			_mission_card = null
+		b.queue_free())
+
+# ---------------------------------------------------------------------------------------------- weapon wheel
+## Cyberpunk 2077's / Apex Legends' circle menu (owner Nov 18, interfaceingame.com): the carried guns round a ring, each
+## with its picture; the mouse (or the finger held on SWAP) points at one, letting go equips it. gunplay feeds the list
+## (set_wheel) and takes the pick (take_wheel_pick).
+const WHEEL_HOLD := 0.28
+const WHEEL_R := 190.0
+var _wheel_guns: Array = []
+var _wheel_current := 0
+var _wheel_pick := -1
+var _wheel_hold := 0.0
+var _wheel_aim := Vector2.ZERO
+var _swap_held := false
+var _wheel: Control
+
+func set_wheel(list: Array, current: int) -> void:
+	_wheel_guns = list
+	_wheel_current = current
+
+func take_wheel_pick() -> int:
+	var p := _wheel_pick
+	_wheel_pick = -1
+	return p
+
+func _wheel_open() -> bool:
+	return _wheel != null and _wheel.visible
+
+## the slice the aim points at (-1 near the middle)
+func _wheel_slot() -> int:
+	var n := _wheel_guns.size()
+	if n == 0 or _wheel_aim.length() < 24.0:
+		return -1
+	var a := fposmod(_wheel_aim.angle() + PI * 0.5 + PI / n, TAU)
+	return int(a / (TAU / n)) % n
+
+func _open_wheel() -> void:
+	if _wheel_guns.size() < 2 or mode != "foot":
+		return
+	if not _wheel:
+		_wheel = Control.new()
+		_wheel.set_anchors_preset(Control.PRESET_CENTER)
+		_wheel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_wheel.draw.connect(_draw_wheel)
+		_wheel.z_index = 10
+		add_child(_wheel)
+	_wheel.visible = true
+	if crosshair:
+		crosshair.visible = false
+	_wheel.queue_redraw()
+
+func _close_wheel(pick: bool) -> void:
+	if not _wheel:
+		return
+	var s := _wheel_slot()
+	if pick and s >= 0:
+		_wheel_pick = s
+	_wheel.visible = false
+	if crosshair:
+		crosshair.visible = mode == "foot" and weapons_out
+
+func _draw_wheel() -> void:
+	var n := _wheel_guns.size()
+	if n == 0:
+		return
+	var sel := _wheel_slot()
+	_wheel.draw_circle(Vector2.ZERO, WHEEL_R + 70.0, Color(0.01, 0.015, 0.03, 0.82))
+	_wheel.draw_arc(Vector2.ZERO, WHEEL_R + 70.0, 0.0, TAU, 96, Color(1, 1, 1, 0.18), 1.5, true)
+	_wheel.draw_arc(Vector2.ZERO, 56.0, 0.0, TAU, 64, Color(1, 1, 1, 0.25), 1.5, true)
+	var step := TAU / n
+	for i in n:
+		var mid := -PI * 0.5 + i * step
+		var on := i == sel
+		# the slice: an arc band, lit when pointed at
+		var band := Color(1, 1, 1, 0.16) if on else Color(1, 1, 1, 0.05)
+		_wheel.draw_arc(Vector2.ZERO, WHEEL_R, mid - step * 0.45, mid + step * 0.45, 32, band, 120.0, true)
+		_wheel.draw_arc(Vector2.ZERO, WHEEL_R + 60.0, mid - step * 0.45, mid + step * 0.45, 32, UiTheme.GOLD if on else (UiTheme.INK if i == _wheel_current else Color(1, 1, 1, 0.3)), 3.0 if on else 1.5, true)
+		var g: Dictionary = _wheel_guns[i]
+		var c := Vector2(cos(mid), sin(mid)) * WHEEL_R
+		var tex: Texture2D = null
+		var f := String(g.frame)
+		if not _icons.has(f):
+			var path := "res://ui/icons/weapon-%s.png" % f
+			_icons[f] = null
+			if ResourceLoader.exists(path):
+				var full: Texture2D = load(path)
+				var at := AtlasTexture.new()
+				at.atlas = full
+				var w := float(full.get_width())
+				at.region = Rect2(0, w * 0.25, w, w * 0.5)
+				_icons[f] = at
+		tex = _icons[f]
+		if tex:
+			_wheel.draw_texture_rect(tex, Rect2(c - Vector2(66, 33) + Vector2(0, -8), Vector2(132, 66)), false, Color(1, 1, 1, 1.0 if on else 0.75))
+		var font := UiTheme.font(700, 1)
+		var label := String(g.label).to_upper()
+		var w2 := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+		_wheel.draw_string(font, c + Vector2(-w2 * 0.5, 40), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiTheme.GOLD if on else UiTheme.INK)
+	# the middle: what letting go will equip
+	var mid_text := "LET GO TO EQUIP" if sel >= 0 else "POINT AT A WEAPON"
+	var mf := UiTheme.font(600, 2)
+	var mw := mf.get_string_size(mid_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+	_wheel.draw_string(mf, Vector2(-mw * 0.5, 4), mid_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, UiTheme.INK_DIM)
+
+# ---------------------------------------------------------------------------------------------- kill medals
+var _medal: Control
+
+## Valorant's kill callout under the crosshair: a word in wide caps with a thin rule either side and a line under it;
+## pops in, holds a moment, fades. A new one replaces the last.
+func medal(word: String, line := "", col := Color(1.0, 0.82, 0.35)) -> void:
+	if _medal:
+		_medal.queue_free()
+	var v := VBoxContainer.new()
+	v.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	v.offset_left = -220
+	v.offset_right = 220
+	v.offset_top = 70
+	v.add_theme_constant_override("separation", 0)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(v)
+	_medal = v
+	var h := HBoxContainer.new()
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.add_theme_constant_override("separation", 12)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(h)
+	for i in 3:
+		if i == 1:
+			var w := _banner_label(word, 700, 6, 22, col)
+			w.custom_minimum_size.x = 0
+			h.add_child(w)
+		else:
+			var r := ColorRect.new()
+			r.color = Color(col.r, col.g, col.b, 0.7)
+			r.custom_minimum_size = Vector2(40, 2)
+			r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			h.add_child(r)
+	if line != "":
+		var l := _banner_label(line, 600, 4, 12, Color(0.93, 0.94, 0.95, 0.85))
+		l.custom_minimum_size.x = 440
+		v.add_child(l)
+	v.pivot_offset = Vector2(220, 14)
+	v.scale = Vector2(1.35, 1.35)
+	v.modulate.a = 0.0
+	var tw := v.create_tween()
+	tw.tween_property(v, "modulate:a", 1.0, 0.08)
+	tw.parallel().tween_property(v, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.1)
+	tw.tween_property(v, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(func():
+		if _medal == v:
+			_medal = null
+		v.queue_free())
+
+# ---------------------------------------------------------------------------------------------- enemy leader
+## The Division 2's named-enemy banner (owner Nov 18): ENEMY LEADER DETECTED (red) when a boss appears, ENEMY LEADER
+## DEFEATED (gold) when it falls — a strip across the top with the name in wide caps, a skull-diamond mark either side
+func leader(boss_name: String, detected := true) -> void:
+	var col := Color(1.0, 0.36, 0.32) if detected else UiTheme.GOLD
+	var root := VBoxContainer.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	root.offset_left = -330
+	root.offset_right = 330
+	root.offset_top = 300   # under the toast strip, where a fight's own banners go
+	root.add_theme_constant_override("separation", 2)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+	var head := HBoxContainer.new()
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
+	head.add_theme_constant_override("separation", 12)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(head)
+	for i in 3:
+		if i == 1:
+			var cap := _banner_label("ENEMY LEADER DETECTED" if detected else "ENEMY LEADER DEFEATED", 700, 5, 13, col)
+			cap.custom_minimum_size.x = 0
+			head.add_child(cap)
+		else:
+			var m := _banner_label("◆", 700, 0, 12, col)
+			m.custom_minimum_size.x = 0
+			head.add_child(m)
+	var bar := ColorRect.new()
+	bar.color = Color(col.r, col.g, col.b, 0.55)
+	bar.custom_minimum_size = Vector2(0, 2)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bar)
+	var nm := _banner_label(boss_name.to_upper(), 700, 6, 30, UiTheme.INK)
+	nm.custom_minimum_size.x = 660
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	root.add_child(nm)
+	root.modulate.a = 0.0
+	var tw := root.create_tween()
+	tw.tween_property(root, "modulate:a", 1.0, 0.3)
+	tw.parallel().tween_property(bar, "custom_minimum_size:x", 660.0, 0.5).from(0.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(3.0)
+	tw.tween_property(root, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(root.queue_free)
+
+# ---------------------------------------------------------------------------------------------- mission complete
+var _celebrate_until := 0
+
+## the moment a job is done (owner Nov 18, interfaceingame.com: The Division 2 "Summary", Watch Dogs: Legion
+## "Celebration"): MISSION COMPLETE / CHAPTER COMPLETE in gold wide caps, the job's name, what it paid; a burst of thin
+## rays behind it. Holds ~3 s; a mission card asked for meanwhile waits its turn.
+func celebrate(word: String, title: String, line := "") -> void:
+	_celebrate_until = Time.get_ticks_msec() + 3400
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	root.offset_top = 260
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+	var rays := Control.new()
+	rays.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var spin := [0.0]
+	rays.draw.connect(func():
+		for i in 24:
+			var a: float = float(spin[0]) + i * TAU / 24.0
+			var d := Vector2(cos(a), sin(a) * 0.45)
+			rays.draw_line(d * 90.0, d * (230.0 + 40.0 * float(i % 3)), Color(UiTheme.GOLD.r, UiTheme.GOLD.g, UiTheme.GOLD.b, 0.16), 2.0, true))
+	rays.position = Vector2(0, 52)
+	root.add_child(rays)
+	var v := VBoxContainer.new()
+	v.position = Vector2(-360, 0)
+	v.custom_minimum_size.x = 720
+	v.add_theme_constant_override("separation", 4)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(v)
+	var w := _banner_label(word.to_upper(), 700, 10, 40, UiTheme.GOLD)
+	w.custom_minimum_size.x = 720
+	v.add_child(w)
+	var t := _banner_label(title.to_upper(), 700, 4, 18, UiTheme.INK)
+	t.custom_minimum_size.x = 720
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(t)
+	if line != "":
+		var l := _banner_label(line.to_upper(), 700, 3, 15, UiTheme.INK)
+		l.custom_minimum_size.x = 720
+		v.add_child(l)
+	root.modulate.a = 0.0
+	w.pivot_offset = Vector2(360, 24)
+	w.scale = Vector2(1.3, 1.3)
+	var tw := root.create_tween()
+	tw.tween_property(root, "modulate:a", 1.0, 0.25)
+	tw.parallel().tween_property(w, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_method(func(a: float):
+		spin[0] = a
+		rays.queue_redraw(), 0.0, 0.6, 3.4)
+	tw.tween_interval(2.4)
+	tw.tween_property(root, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(root.queue_free)
+
+# ---------------------------------------------------------------------------------------------- kill feed
+## the arena shooters' kill feed (owner Nov 18, interfaceingame.com: Halo Infinite, Overwatch 2, Apex Legends, The
+## Finals): down the right side, newest at the bottom, "KILLER  ▸  VICTIM" in each side's colour (✛ for a headshot),
+## your own lines on a lit strip; five at most, each fades after a few seconds
+const FEED_ALLY := Color(0.45, 0.78, 1.0)
+const FEED_RIVAL := Color(1.0, 0.42, 0.42)
+var _feed: VBoxContainer
+
+func feed(killer: String, victim: String, killer_ally: bool, victim_ally: bool, head := false, you := false) -> void:
+	if not _feed:
+		_feed = VBoxContainer.new()
+		_feed.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		_feed.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		_feed.offset_left = -360
+		_feed.offset_right = -16
+		_feed.offset_top = 300
+		_feed.alignment = BoxContainer.ALIGNMENT_END
+		_feed.add_theme_constant_override("separation", 4)
+		_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_feed)
+	var row := PanelContainer.new()
+	row.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var sb := UiTheme.box(Color(1, 1, 1, 0.16) if you else Color(0.02, 0.025, 0.04, 0.6), Color(0, 0, 0, 0), 0, Vector4(10, 3, 10, 3))
+	if you:
+		sb.border_width_right = 3
+		sb.border_color = UiTheme.GOLD
+	row.add_theme_stylebox_override("panel", sb)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(h)
+	for part in [[killer, FEED_ALLY if killer_ally else FEED_RIVAL], ["✛" if head else "▸", UiTheme.INK if head else UiTheme.INK_DIM], [victim, FEED_ALLY if victim_ally else FEED_RIVAL]]:
+		var l := Label.new()
+		l.text = String(part[0]).to_upper()
+		l.add_theme_font_override("font", UiTheme.font(700, 1))
+		l.add_theme_font_size_override("font_size", 13)
+		l.add_theme_color_override("font_color", part[1])
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(l)
+	_feed.add_child(row)
+	while _feed.get_child_count() > 5:
+		_feed.get_child(0).free()
+	row.modulate.a = 0.0
+	var tw := row.create_tween()
+	tw.tween_property(row, "modulate:a", 1.0, 0.15)
+	tw.tween_interval(4.5)
+	tw.tween_property(row, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(row.queue_free)
 
 # --------------------------------------------------------------------------------------------- controller (Nov 22)
 ## A controller (Xbox / PlayStation layout, any pad Godot sees): left stick moves, right stick looks, RT fires, LT aims

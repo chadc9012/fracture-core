@@ -152,7 +152,7 @@ static func loadout(d: Dictionary) -> Array:
 	for slot in ["primary", "secondary", "heavy"]:
 		var it := worn(d, slot)
 		if not it.is_empty():
-			out.append({ "slot": slot, "id": it.id, "name": it.name, "frame": str(it.get("frame", "AUTO")), "power": float(it.power), "mult": damage_mult(float(it.power)), "cls": str(it.get("cls", "")) })
+			out.append({ "slot": slot, "id": it.id, "name": it.name, "frame": str(it.get("frame", "AUTO")), "power": float(it.power), "mult": damage_mult(float(it.power)), "cls": str(it.get("cls", "")), "element": str(it.get("element", "")) })
 	return out
 
 ## a drop from the catalogue: enemies roll the loot pool, elites and bosses the boss pool too; `roll` is one uniform 0..1.

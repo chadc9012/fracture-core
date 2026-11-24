@@ -47,6 +47,8 @@ func setup(boss_id: String, at: Vector3, op: Node3D, g: Node3D, en: Node3D, grou
 	rules = Boss.new(boss_id)
 	operator = op
 	gunplay = g
+	# The Division 2's "Enemy leader detected" (owner Nov 18, interfaceingame.com) — on every venue a boss appears in
+	_leader_banner(true)
 	enemies = en
 	ground_at = ground
 	size = float(rules.def.size)
@@ -249,6 +251,7 @@ func step(dt: float) -> void:
 						Sound.sfx("explosion", -2.0)
 					Sound.sfx("confirm", -4.0)
 					_ring.visible = false
+					_leader_banner(false)
 					killed.emit(rules.id, rules.reward())
 	# the breath keeps burning while it lasts
 	if _breath_t > 0.0:
@@ -374,6 +377,14 @@ static func _closest(a: Vector3, b: Vector3, p: Vector3) -> float:
 	var ab := b - a
 	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 1e-6), 0.0, 1.0)
 	return (a + ab * t).distance_to(p)
+
+## the HUD's leader banner (touch_controls.leader), through gunplay's controls or the tree's touch_controls
+func _leader_banner(detected: bool) -> void:
+	var c: Node = gunplay.get("controls") if gunplay else null
+	if c == null and gunplay and gunplay.is_inside_tree():
+		c = gunplay.get_tree().get_first_node_in_group("touch_controls")
+	if c and c.has_method("leader"):
+		c.leader(String(rules.def.name), detected)
 
 # ------------------------------------------------------------------------------------------ patterns (Nov 22)
 ## a parried swing (close_combat.gd): poise in a lump, and the body reels

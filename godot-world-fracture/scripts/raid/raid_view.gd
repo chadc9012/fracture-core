@@ -138,6 +138,7 @@ func _ready() -> void:
 	enemies = Enemies.new()
 	world.add_child(enemies)
 	enemies.setup(operator, gunplay)
+	load("res://scripts/progress/difficulty.gd").apply(enemies)   # story difficulty (Halo Infinite)
 	enemies.goal_done.connect(func(line: String): controls.toast(line))
 	enemies.operator_team = 1
 	enemies.operator_down.connect(_on_operator_down)

@@ -29,6 +29,7 @@ const AirportView := preload("res://scripts/airport/airport_view.gd")
 const ArrivalView := preload("res://scripts/airport/arrival_view.gd")
 var boss_arena: Control
 const Title := preload("res://scripts/front/title.gd")
+const LoadingCard := preload("res://scripts/ui/loading_card.gd")
 const SettingsView := preload("res://scripts/front/settings_view.gd")
 const PerfHud := preload("res://scripts/front/perf_hud.gd")
 const ProfileView := preload("res://scripts/progress/profile_view.gd")
@@ -71,6 +72,7 @@ func _ready() -> void:
 	# adds later and under the frame-time readout
 	_overlays = CanvasLayer.new()
 	_overlays.layer = 50
+	_overlays.process_mode = Node.PROCESS_MODE_ALWAYS   # the panels the pause menu opens work while the game is paused
 	add_child(_overlays)
 	add_child(PerfHud.new())   # the frame-time readout over everything (settings: perf_hud)
 	planet_view = PlanetView.new()
@@ -193,6 +195,17 @@ func _ready() -> void:
 	if i >= 0 and i + 1 < args.size():
 		_shoot.call_deferred(args[i + 1], args.slice(i + 2))
 
+## puts the place's loading card up, lets it be drawn, builds the place under it (`then`), and fades the card away
+func _loading(place: String, then: Callable, named := "") -> void:
+	var card := LoadingCard.new()
+	card.place = place
+	card.title_override = named
+	_overlays.add_child(card)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	then.call()
+	card.finish()
+
 ## a director shortcut into the ☰ MENU column (it closes the menu when pressed)
 func _dock_add(b: Button) -> void:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -296,11 +309,22 @@ func _street_door(id: String) -> void:
 				view.style = street.style
 	if view == null:
 		return
-	street.visible = false
-	street.set_process(false)
-	street._vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
-	street.sound_off()
-	_show_from_street(view)
+	# Destiny's loading card while the place builds (scripts/ui/loading_card.gd); interiors carry their own name
+	var place := id
+	var named := ""
+	if id == "airport" and street.style == "neon":
+		named = "Neon City International"
+	if not LoadingCard.PLACES.has(place):
+		place = "interior"
+		named = String(preload("res://scripts/city/interiors.gd").DOORS.get(id, ""))
+	_loading(place, func():
+		if not street:
+			return
+		street.visible = false
+		street.set_process(false)
+		street._vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		street.sound_off()
+		_show_from_street(view), named)
 
 ## puts a system over the hidden street; closing it brings the street back (in the city you left from, if you flew)
 func _show_from_street(view: Control) -> void:
@@ -410,7 +434,7 @@ func _title_action(action: String) -> void:
 	match action:
 		"continue":
 			_close_title()
-			_open_street(true, "nexus", true)
+			_loading("nexus", func(): _open_street(true, "nexus", true))
 		"new":
 			_close_title()
 			_open_creator(true)
@@ -423,6 +447,14 @@ func _title_action(action: String) -> void:
 			_open_settings()
 		"operator":
 			_open_profile()
+		"triumphs":
+			_open_triumphs()
+		"journal":
+			_open_quest_journal()
+		"skills":
+			_open_overlay("res://scripts/progress/skills_view.gd")
+		"season":
+			_open_overlay("res://scripts/progress/season_view.gd")
 		"cloud":
 			_close_title()
 			_open_cloud()
@@ -446,6 +478,40 @@ func _open_profile() -> void:
 		profile_view.queue_free()
 		profile_view = null)
 	_overlays.add_child(profile_view)
+
+## any full-screen panel with a `closed` signal over whatever is open (the skill tree, …)
+var _overlay_view: Control
+func _open_overlay(path: String) -> void:
+	if _overlay_view:
+		return
+	_overlay_view = load(path).new()
+	_overlay_view.closed.connect(func():
+		_overlay_view.queue_free()
+		_overlay_view = null)
+	_overlays.add_child(_overlay_view)
+
+## Cyberpunk's Journal over whatever is open (scripts/progress/journal_view.gd)
+var journal_view: Control
+func _open_quest_journal() -> void:
+	if journal_view:
+		return
+	journal_view = load("res://scripts/progress/journal_view.gd").new()
+	journal_view.closed.connect(func():
+		journal_view.queue_free()
+		journal_view = null)
+	_overlays.add_child(journal_view)
+
+## Destiny's Triumphs and Collections over whatever is open (scripts/progress/triumphs_view.gd)
+var triumphs_view: Control
+func _open_triumphs(t := "triumphs") -> void:
+	if triumphs_view:
+		return
+	triumphs_view = load("res://scripts/progress/triumphs_view.gd").new()
+	triumphs_view.tab = t
+	triumphs_view.closed.connect(func():
+		triumphs_view.queue_free()
+		triumphs_view = null)
+	_overlays.add_child(triumphs_view)
 
 func _close_street() -> void:
 	if street:
@@ -699,6 +765,89 @@ func _close_map() -> void:
 		region_map = null
 	planet_view.visible = true
 	planet_view.set_process(true)
+
+# ----------------------------------------------------------------------------------------------------- pause (Esc / Start)
+const PauseMenu := preload("res://scripts/front/pause_menu.gd")
+const ACTIVITY := { "descent": "Story", "campaign": "Campaign", "arena_view": "Killbox", "royale_view": "Fracture Royale",
+	"boss_arena": "Rift Gate", "raid_view": "Raid", "street_slice": "The City", "race_view": "Race", "skyways_view": "Skyways",
+	"mission_01": "Mission 01", "drive_view": "Driving", "speedway_view": "Speedway", "track_view": "Track" }
+var pause_menu: Control
+var _pause_mouse := Input.MOUSE_MODE_VISIBLE
+
+## what is being played now (the view a pause would stop), or null at the globe, the title and the menus
+func _playing() -> Control:
+	if title or creator or settings_view or _overlay_view or journal_view or triumphs_view or profile_view:
+		return null
+	if modes:
+		return modes.view if modes.view and modes.view.has_signal("closed") else null
+	for v in [mission, descent, boss_arena, killbox, royale, race_view, skyways, street, driving]:
+		if v and is_instance_valid(v) and (v as Node).has_signal("closed"):
+			return v
+	return null
+
+func _unhandled_input(e: InputEvent) -> void:
+	var esc := (e is InputEventKey and (e as InputEventKey).pressed and not (e as InputEventKey).echo and (e as InputEventKey).keycode == KEY_ESCAPE) \
+		or (e is InputEventJoypadButton and (e as InputEventJoypadButton).pressed and (e as InputEventJoypadButton).button_index == JOY_BUTTON_START)
+	if esc and pause_menu == null and _playing() != null:
+		get_viewport().set_input_as_handled()
+		open_pause()
+
+## Titanfall 2's pause over the view being played (scripts/front/pause_menu.gd)
+func open_pause() -> void:
+	var v := _playing()
+	if v == null or pause_menu:
+		return
+	pause_menu = PauseMenu.new()
+	var kind := String((v.get_script() as Script).resource_path.get_file().get_basename())
+	var what := String(ACTIVITY.get(kind, kind.capitalize()))
+	var q: Variant = v.get("quest")
+	if q is Dictionary and (q as Dictionary).has("title"):
+		what += "  ·  " + String(q.title)
+	pause_menu.activity = what
+	var tr: Variant = v.get("_objective")
+	if tr is Control and tr.get("text") is String:
+		pause_menu.objective = String(tr.text)
+	# live = other players are actually there: story co-op with company (coop.count() counts you), an online Killbox
+	# match, the street's online session. A story merely open to co-op (descent.online) still pauses.
+	var cp: Variant = v.get("coop")
+	if cp is Node and (cp as Node).has_method("count"):
+		pause_menu.live = int(cp.count()) > 1
+	elif kind == "arena_view":
+		pause_menu.live = bool(v.get("online"))
+	else:
+		pause_menu.live = v.get("online") is Node
+	_pause_mouse = Input.mouse_mode
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if not pause_menu.live:
+		get_tree().paused = true
+	pause_menu.resume.connect(close_pause)
+	pause_menu.quit.connect(func():
+		close_pause()
+		if v.has_method("_save"):
+			v._save()
+		v.closed.emit())
+	pause_menu.open.connect(func(what_: String):
+		match what_:
+			"settings": _open_settings()
+			"journal": _open_quest_journal()
+			"skills": _open_overlay("res://scripts/progress/skills_view.gd")
+			"season": _open_overlay("res://scripts/progress/season_view.gd")
+		var panel: Node = { "settings": settings_view, "journal": journal_view }.get(what_, _overlay_view)
+		if panel:
+			# the menu steps aside while the panel is up, and comes back when it closes
+			pause_menu.visible = false
+			panel.tree_exited.connect(func():
+				if pause_menu:
+					pause_menu.visible = true)
+	)
+	_overlays.add_child(pause_menu)
+
+func close_pause() -> void:
+	if pause_menu:
+		pause_menu.queue_free()
+		pause_menu = null
+	get_tree().paused = false
+	Input.mouse_mode = _pause_mouse
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_WM_CLOSE_REQUEST:
@@ -1189,6 +1338,15 @@ func _shoot(path: String, opts: Array) -> void:
 			_open_settings()
 		if String(o) == "operator":
 			_open_profile()
+		# triumphs | collections  the Triumphs screen on that tab
+		if String(o) == "triumphs" or String(o) == "collections":
+			_open_triumphs(String(o))
+		if String(o) == "quests":
+			_open_quest_journal()
+		if String(o) == "skills":
+			_open_overlay("res://scripts/progress/skills_view.gd")
+		if String(o) == "season":
+			_open_overlay("res://scripts/progress/season_view.gd")
 		# creator[:<tab>]  the operator creator on a tab (body by default)
 		if String(o).begins_with("creator"):
 			_open_creator()

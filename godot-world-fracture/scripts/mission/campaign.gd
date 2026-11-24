@@ -85,13 +85,16 @@ static func _start_of(m: Dictionary, c: Dictionary) -> String:
 
 func _ready() -> void:
 	super()
-	_objective.position = Vector2(16, 128)   # under the weapon and ammo lines, not over them
+	_objective.position = Vector2(20, 128)   # under the weapon and ammo lines, not over them
 
 func _quests() -> Array:
 	return chapters
 
 func _save_path() -> String:
 	return CAMPAIGN_SAVE
+
+func _complete_word() -> String:
+	return "Chapter complete"
 
 func _first_id() -> String:
 	return String(chapters[0].id) if not chapters.is_empty() else ACT_END

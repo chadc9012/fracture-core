@@ -113,6 +113,7 @@ const SHIELD_DELAY := 3.0
 const SHIELD_RATE := 20.0
 var shield := SHIELD_MAX
 var shield_max := SHIELD_MAX
+var shield_delay := SHIELD_DELAY
 func shield_frac() -> float:
 	return shield / shield_max if shield_max > 0.0 else 0.0
 ## the operator's hull, damage this frame for the HUD flash, and the down state
@@ -140,6 +141,12 @@ var operator_team := 1
 var _last_hitter := {}
 ## Killbox rounds: downed bots stay down until revive_all()
 var respawn_enabled := true
+## story difficulty (difficulty.gd apply): hostiles' health and the damage they deal the operator; 1.0 in the Killbox
+var hp_mult := 1.0
+var dmg_mult := 1.0
+## who put the operator down last (Titanfall 2's "You died" / The Finals' death camera): the camera turns to them and
+## the HUD's death card names them; views may name bots with set_meta("callsign", ...)
+var killer: Enemy
 ## squad tactics on: roles, cover, flanking, fire tokens (off where a view runs its own bot brains)
 var tactics := true
 ## no more than this many gunners fire on the operator at once (the rest hold, reposition, or wait their turn), and one
@@ -159,6 +166,11 @@ const OPERATOR_HIT := -2
 func setup(p: Node3D, g: Node3D) -> void:
 	player = p
 	gunplay = g
+	# the skill tree's Capacitor / Hardlight / Fast Recharge (scripts/progress/skills.gd)
+	var Skills = load("res://scripts/progress/skills.gd")
+	shield_max = SHIELD_MAX * Skills.saved("shield")
+	shield = shield_max
+	shield_delay = SHIELD_DELAY * Skills.saved("shield_delay")
 	_rng.seed = 19
 	g.killed.connect(_on_target_killed)
 	if "roster" in g:
@@ -213,8 +225,9 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 			_tint(e, team_color(team))
 	else:
 		_drone_body(e)
-	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
-	e.target.shield_max = float(e.def.get("shield", 0.0))
+	var hard := hp_mult if e.team != operator_team else 1.0
+	e.target = Gunplay.Target.new(_box(e), float(e.def.hull) * hard, null)
+	e.target.shield_max = float(e.def.get("shield", 0.0)) * hard
 	e.target.shield = e.target.shield_max
 	# what it bleeds (gunplay.spark): machines coolant, people red
 	e.target.set_meta("blood", Color(0.2, 0.9, 1.0) if type in ["drone", "sentinel", "turret"] else Color(0.85, 0.1, 0.08))
@@ -295,11 +308,12 @@ func step(dt: float) -> void:
 	hurt = maxf(0.0, hurt - dt * 3.0)
 	if down > 0.0:
 		down -= dt
+		_death_cam(dt)
 		if down <= 0.0:
 			hull = hull_max
 			shield = shield_max
 			spawn_guard = SPAWN_GUARD
-	elif since_hit > SHIELD_DELAY and shield < shield_max:
+	elif since_hit > shield_delay and shield < shield_max:
 		shield = minf(shield_max, shield + SHIELD_RATE * dt)
 	elif since_hit > 4.0:
 		hull = minf(hull_max, hull + 12.0 * dt)
@@ -745,9 +759,23 @@ func burn(damage: float) -> void:
 		down = 5.0
 		deaths += 1
 		Sound.sfx("down", -2.0)
+		_downed(false)
 		operator_down.emit()
 
+## a new difficulty mid-mission (the briefing's pick): live hostiles' health rescaled to it, bolts hit at its weight
+func set_difficulty(hp: float, dmg: float) -> void:
+	var k := hp / hp_mult
+	hp_mult = hp
+	dmg_mult = dmg
+	for e in enemies:
+		if e.team != operator_team and e.target:
+			e.target.hp *= k
+			e.target.max_hp *= k
+			e.target.shield *= k
+			e.target.shield_max *= k
+
 func _hit_operator(damage: float, src := Vector3.INF, melee := false, attacker: Variant = null) -> void:
+	damage *= dmg_mult   # story difficulty (difficulty.gd); 1.0 in the Killbox
 	if down > 0.0 or spawn_guard > 0.0:
 		return
 	# the dodge's i-frames, the guard and the parry take their share first (close_combat.gd)
@@ -782,7 +810,42 @@ func _hit_operator(damage: float, src := Vector3.INF, melee := false, attacker: 
 		down = 5.0
 		deaths += 1
 		Sound.sfx("down", -2.0)
+		_downed(true, attacker)
 		operator_down.emit()
+
+## the operator just went down: who did it (the bot whose bolt landed last, when a bolt did) and the HUD's death card
+func _downed(by_bot: bool, who: Variant = null) -> void:
+	killer = who if who is Enemy and enemies.has(who) else null
+	if by_bot and killer == null:
+		for o in enemies:
+			if o.has_meta("hit_operator"):
+				killer = o
+	var c: Node = get_tree().get_first_node_in_group("touch_controls") if is_inside_tree() else null
+	if c and c.has_method("death_card"):
+		c.death_card(killer_info(), down)
+
+## what the death card says about the one who did it: {name, kind, weapon, hp 0..1, dist}; {} when nobody did
+func killer_info() -> Dictionary:
+	if killer == null or not enemies.has(killer):
+		return {}
+	var e := killer
+	var w := String(e.def.get("weapon", "")).get_basename().replace("-", " ").replace("_", " ")
+	if bool(e.def.get("melee", false)):
+		w = "melee"
+	var nm := String(e.get_meta("callsign")) if e.has_meta("callsign") else String(e.def.get("name", e.type))
+	return { "name": nm, "kind": String(e.def.get("name", e.type)), "weapon": w if w != "" else "weapon",
+		"hp": clampf(e.target.hp / maxf(1.0, e.target.max_hp), 0.0, 1.0) if e.target else 0.0,
+		"dist": (e.mover.position.distance_to(player.position)) if e.mover and player else 0.0 }
+
+## the death camera: while down, the view swings round to the one who did it
+func _death_cam(dt: float) -> void:
+	if killer == null or not enemies.has(killer) or killer.mover == null or player == null or player.get("cam_yaw") == null:
+		return
+	var d: Vector3 = killer.mover.position - player.position
+	if Vector2(d.x, d.z).length() < 0.5:
+		return
+	var want := atan2(-d.x, -d.z)
+	player.cam_yaw = lerp_angle(float(player.cam_yaw), want, minf(1.0, dt * 4.0))
 
 func _on_target_killed(_t: Gunplay.Target) -> void:
 	pass

@@ -21,6 +21,7 @@ const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const Enemies := preload("res://scripts/combat/enemies.gd")
 const Gear := preload("res://scripts/gear/gear_store.gd")
 const OutfitLook := preload("res://scripts/gear/outfit_look.gd")
+const CharacterStore := preload("res://scripts/character/character_store.gd")
 const PROFILE := "user://profile.json"
 const BOT_TYPES := ["scout", "elite", "marksman", "scout", "executor"]
 ## the palette per arena `look` (killbox-arenas.ts): neon trim colours, the facade and roof tones, the sign text
@@ -44,6 +45,10 @@ const LOOKS := {
 ## "" opens the arena picker first; a shot sets it before the view is added
 var arena_id := ""
 var mode_id := "clash"
+## the frame locked in on the hero select ("" keeps the saved character's)
+var hero := ""
+## the last round banner put up (tests look for it)
+var round_banner: Control
 ## an online match between players (online_pvp.gd): no bots on either side. Off: VS BOTS, the bot teams as before
 var online := false
 var net_pvp: Node
@@ -65,6 +70,9 @@ var _blackout := false
 var _respawn_t := 0.0
 var _rng := RandomNumberGenerator.new()
 var _done_panel: Control
+## who downed whom, for the end screen's scoreboard (scripts/killbox/match_summary.gd): id -> {name, team, k, d}
+var _tally := {}
+const CALLSIGNS := ["Vance", "Iko", "Sable", "Ren", "Tamsin", "Kilo", "Vex", "Juno", "Rook", "Hex", "Nova", "Cinder", "Wraith", "Talon", "Ash", "Echo"]
 var _paid := false
 var look: Dictionary = LOOKS["neon-rooftops"]
 var _shifted := false
@@ -81,7 +89,7 @@ func _ready() -> void:
 	if arena_id == "":
 		_pick()
 	else:
-		_start()
+		_select()
 
 ## the arena list before the match: name, region blurb, the fracture event
 func _pick() -> void:
@@ -157,7 +165,7 @@ func _pick_mode() -> void:
 		b.text = "%s — %s" % [String(m.name).to_upper(), String(m.tagline)]
 		b.custom_minimum_size = Vector2(0, 52)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.pressed.connect(func(): mode_id = String(mid); _picker.queue_free(); _picker = null; _start())
+		b.pressed.connect(func(): mode_id = String(mid); _picker.queue_free(); _picker = null; _select())
 		box.add_child(b)
 		var brief := Label.new()
 		brief.text = String(m.brief)
@@ -171,6 +179,21 @@ func _pick_mode() -> void:
 	back.custom_minimum_size = Vector2(0, 48)
 	back.pressed.connect(func(): _picker.queue_free(); _picker = null; arena_id = ""; _pick())
 	box.add_child(back)
+
+## Overwatch 2's hero select before the match (scripts/killbox/hero_select.gd): the frame you lock in is the one you
+## fight in this match; skipped for tests (headless) and shots
+func _select() -> void:
+	if DisplayServer.get_name() == "headless" or hero != "":
+		_start()
+		return
+	var h = load("res://scripts/killbox/hero_select.gd").new()
+	h.arena = String(Arena.new(arena_id).def.get("name", arena_id))
+	h.mode = String(Arena.mode(mode_id).get("name", mode_id))
+	h.locked.connect(func(f: String):
+		hero = f
+		_start()
+		move_child(h, -1))
+	add_child(h)
 
 func _start() -> void:
 	_rng.seed = 31
@@ -224,7 +247,10 @@ func _start() -> void:
 	operator.position = arena.spawn("us")
 	operator.heading = PI
 	operator.civilian = false   # the armour is for the fights (streetwear in the city)
-	operator.build()
+	var lk: Dictionary = CharacterStore.load_look()
+	if hero != "":
+		lk.frame = hero
+	operator.build(CharacterStore.clean(lk))
 	operator.attach_camera(cam)
 	gunplay = Gunplay.new()
 	world.add_child(gunplay)
@@ -269,6 +295,9 @@ func _start() -> void:
 			e2.state = Enemies.State.ENGAGE
 			e2.set_meta("slot", i)
 			_bot_ids[e2] = "bot:%d" % (i + 1)
+	# each bot carries its callsign, so the death card names who got you as the kill feed does
+	for o in _bot_ids:
+		o.set_meta("callsign", String(_line(String(_bot_ids[o]), int(o.team)).name))
 	enemies.respawn_enabled = not match_state.is_rounds()
 	if match_state.is_rounds():
 		_objective_marker()
@@ -583,8 +612,41 @@ func _slide_shifters(dt: float) -> void:
 		mi.position.y = move_toward(mi.position.y, want, 2.5 * dt)
 
 # --------------------------------------------------------------------------------------------- the match
+## a kill on the HUD's feed (touch_controls.feed): names and sides from the tally; in FFA everyone else is a rival
+func _feed_line(killer_id: String, victim_id: String) -> void:
+	if victim_id == "" or not _tally.has(killer_id) or not _tally.has(victim_id) or not controls.has_method("feed"):
+		return
+	var ffa: bool = match_state.kind == "ffa"
+	var k: Dictionary = _tally[killer_id]
+	var v: Dictionary = _tally[victim_id]
+	controls.feed(String(k.name), String(v.name), bool(k.you) or (not ffa and int(k.team) == 1), bool(v.you) or (not ffa and int(v.team) == 1), false, bool(k.you) or bool(v.you))
+
+## the tally line for an id (made on first sight: bots get a callsign from their id)
+func _line(id: String, team: int) -> Dictionary:
+	if not _tally.has(id):
+		var nm: String = "You" if id == "player" else String(CALLSIGNS[absi(_tally.size() * 7 + id.hash()) % CALLSIGNS.size()])
+		_tally[id] = { "name": nm, "team": team, "k": 0, "d": 0, "you": id == "player" }
+	return _tally[id]
+
+## the bot of `team` most likely to have made a kill (the first standing one; the rules don't say who fired)
+func _killer_on(team: int) -> String:
+	for o in enemies.enemies:
+		if o.team == team and _bot_ids.has(o) and o.target.alive():
+			return String(_bot_ids[o])
+	return ""
+
 func _on_bot_down(e: RefCounted, by_team: int, by_player: bool) -> void:
 	var en := e as Enemies.Enemy
+	if by_player and en.team == 0:
+		_round_kills += 1
+	elif en.team == 1:
+		_round_ours_down += 1
+	if _bot_ids.has(en):
+		_line(String(_bot_ids[en]), int(en.team)).d += 1
+	var who := "player" if by_player else _killer_on(by_team)
+	if who != "":
+		_line(who, 1 if who == "player" else by_team).k += 1
+		_feed_line(who, String(_bot_ids.get(en, "")))
 	if match_state.kind == "ffa":
 		# the kill goes on the killer's board line; a fall is nobody's
 		var killer := ""
@@ -617,6 +679,19 @@ func _respawn_bot(e: RefCounted) -> void:
 	en.timer = 4.0
 
 func _on_operator_down() -> void:
+	_round_ours_down += 1
+	_line("player", 1).d += 1
+	var shooter := ""
+	for o in enemies.enemies:
+		if o.has_meta("hit_operator") and _bot_ids.has(o):
+			shooter = String(_bot_ids[o])
+	if shooter == "":
+		shooter = _killer_on(0)
+	if shooter != "":
+		for o in enemies.enemies:
+			if _bot_ids.get(o, "") == shooter:
+				_line(shooter, int(o.team)).k += 1
+		_feed_line(shooter, "player")
 	if online:
 		if net_pvp:
 			net_pvp.my_down()
@@ -732,7 +807,29 @@ func _steer_bots() -> void:
 		else:
 			e.goal = null
 
+## this round so far, for its banner's accolade (round_banner.gd): your kills, how many of ours went down, and whether
+## you stood alone with them still standing (a clutch)
+var _round_kills := 0
+var _round_ours_down := 0
+var _round_clutch := false
+
 func _new_round() -> void:
+	var role := ""
+	if String(match_state.mode.id) == "lockdown":
+		role = "Next: attack the objective" if match_state.attacking else "Next: defend the objective"
+	if not match_state.over:
+		# Valorant's round banner over the pause between rounds
+		var theirs: int = enemies.enemies.filter(func(o): return o.team == 0).size()
+		var b = load("res://scripts/killbox/round_banner.gd").new()
+		b.data = { "round": int(match_state.round) - 1, "result": int(match_state.last_round), "why": String(match_state.reason),
+			"us": int(match_state.us_rounds), "them": int(match_state.them_rounds), "to_win": int(match_state.target()),
+			"accolade": load("res://scripts/killbox/round_banner.gd").accolade(int(match_state.last_round) > 0, _round_kills, theirs, _round_ours_down, _round_clutch),
+			"next": role }
+		controls.add_child(b)
+		round_banner = b
+	_round_kills = 0
+	_round_ours_down = 0
+	_round_clutch = false
 	enemies.revive_all()
 	for e in enemies.enemies:
 		e.spawn = arena.spawn("us" if e.team == 1 else "them", [], int(e.get_meta("slot", 0)))
@@ -741,10 +838,6 @@ func _new_round() -> void:
 	enemies.down = 0.0
 	operator.position = arena.spawn("us")
 	operator.velocity = Vector3.ZERO
-	var role := ""
-	if String(match_state.mode.id) == "lockdown":
-		role = " — ATTACK the objective" if match_state.attacking else " — DEFEND the objective"
-	controls.toast("%s · Round %d%s" % [match_state.reason, match_state.round, role])
 
 func _process(dt: float) -> void:
 	if not match_state:
@@ -767,6 +860,10 @@ func _process(dt: float) -> void:
 		Sound.sfx("buzzer", -4.0)
 		_new_round()
 	var paused: bool = match_state.is_rounds() and match_state.round_over > 0.0
+	# a clutch: you, alone of a team, still up against them
+	if match_state.is_rounds() and not paused and alive_us == 1 and enemies.down <= 0.0 and enemies.alive_on(0) > 0 \
+			and enemies.enemies.any(func(o): return o.team == 1):
+		_round_clutch = true
 	if not paused:
 		enemies.step(dt)
 	_steer_bots()
@@ -879,24 +976,31 @@ func _finish() -> void:
 	if not it.is_empty():
 		Gear.save(gear)
 		res.lines.append("LOOT · %s (%d power)" % [String(it.name), int(it.power)])
+	var loot := ""
 	for l in res.lines:
-		controls.toast(String(l))
-	_done_panel = PanelContainer.new()
-	_done_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_done_panel.position = Vector2(-170, -90)
-	var v := VBoxContainer.new()
-	_done_panel.add_child(v)
-	var t := Label.new()
-	t.text = "%s\n%d – %d\n+%d Nex   +%d XP" % ["VICTORY" if won else ("DRAW" if match_state.winner == "draw" else "DEFEAT"), match_state.us, match_state.them, nex, xp]
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.add_theme_font_size_override("font_size", 24)
-	v.add_child(t)
-	var b := Button.new()
-	b.text = "LEAVE THE KILLBOX"
-	b.custom_minimum_size = Vector2(300, 48)
-	b.pressed.connect(func(): closed.emit())
-	v.add_child(b)
-	add_child(_done_panel)
+		if String(l).begins_with("LOOT · "):
+			loot = String(l).substr(7)
+		else:
+			controls.toast(String(l))
+	# Valorant's end screen: the result, the score, the MVP, the scoreboard, your numbers, the pay
+	_line("player", 1)
+	var draw: bool = match_state.winner == "draw"
+	var teams: Array = []
+	if match_state.kind == "ffa":
+		teams.append({ "name": "Everyone", "rows": _tally.values() })
+	else:
+		teams.append({ "name": "Your squad", "rows": _tally.values().filter(func(r): return int(r.team) == 1) })
+		teams.append({ "name": "Rivals", "rows": _tally.values().filter(func(r): return int(r.team) != 1) })
+	var me: Dictionary = _tally.player
+	var summary = load("res://scripts/killbox/match_summary.gd").new()
+	summary.data = { "result": "VICTORY" if won else ("DRAW" if draw else "DEFEAT"), "won": won, "draw": draw,
+		"score": "%d  –  %d" % [match_state.us, match_state.them], "sub": "%s · %s" % [String(match_state.mode.name), String(arena.def.get("name", ""))],
+		"teams": teams, "stats": [["KILLS", str(int(match_state.player_kills))], ["DEATHS", str(int(match_state.player_deaths))],
+			["K/D", "%.1f" % (float(match_state.player_kills) / maxf(float(match_state.player_deaths), 1.0))], ["SCORE", str(int(me.k) * 100)]],
+		"nex": nex, "xp": xp, "loot": loot, "leave_text": "LEAVE THE KILLBOX" }
+	summary.leave.connect(func(): closed.emit())
+	_done_panel = summary
+	controls.add_child(summary)
 
 # --------------------------------------------------------------------------------------------- Extraction
 var _core_node: Node3D

@@ -68,6 +68,8 @@ var busts := 0
 var escapes := 0
 ## event id -> best finishing place
 var best := {}
+## event id -> best time in seconds (the leaderboard's personal best; drift battles keep their best score here)
+var times := {}
 
 static func tier_index(r: int) -> int:
 	var t := 0
@@ -110,13 +112,19 @@ func unlocked(id: String) -> bool:
 	return not ev.is_empty() and tier() >= int(ev.tier)
 
 ## the paid result of a finish: {nex, rep, tier_up ("" or the new rung's name)}; `entrants` counts the player
-func finish(id: String, place: int, ev_override := {}) -> Dictionary:
+## the skill tree's Known Face / Ghost (scripts/progress/skills.gd); street_life sets them when it loads the career
+var rep_mult := 1.0
+var escape_mult := 1.0
+
+## `result`: the run's time (seconds) or, for a drift battle, its score; -1 when there's none. The return carries "pb"
+## (a new personal best) and "prev" (the one it beat, -1 when it's the first)
+func finish(id: String, place: int, ev_override := {}, result := -1.0) -> Dictionary:
 	var ev: Dictionary = ev_override if not ev_override.is_empty() else event(id)
 	var prize: Array = ev.get("prize", [0])
 	var reps: Array = ev.get("rep", [0])
 	var i := clampi(place - 1, 0, prize.size() - 1)
 	var before := tier()
-	var got := { "nex": int(prize[i]), "rep": int(reps[mini(i, reps.size() - 1)]), "tier_up": "" }
+	var got := { "nex": int(prize[i]), "rep": int(round(int(reps[mini(i, reps.size() - 1)]) * rep_mult)), "tier_up": "" }
 	rep += got.rep
 	races += 1
 	if place == 1:
@@ -125,6 +133,14 @@ func finish(id: String, place: int, ev_override := {}) -> Dictionary:
 		best[id] = place
 	if tier() > before:
 		got.tier_up = tier_name()
+	got.pb = false
+	got.prev = -1.0
+	if id != "" and result >= 0.0:
+		var drift := String(ev.get("kind", "")) == "drift"
+		got.prev = float(times.get(id, -1.0))
+		if got.prev < 0.0 or (result > got.prev if drift else result < got.prev):
+			times[id] = result
+			got.pb = true
 	return got
 
 ## a bust: the fine (no more than the player holds) and the reputation lost, by the heat it happened at
@@ -137,12 +153,12 @@ func busted(level: int, holding_nex: int) -> Dictionary:
 ## shaking the police off pays in reputation
 func escaped(level: int) -> int:
 	escapes += 1
-	var got := 40 * maxi(1, level)
+	var got := int(round(40 * maxi(1, level) * escape_mult))
 	rep += got
 	return got
 
 func to_dict() -> Dictionary:
-	return { "rep": rep, "wins": wins, "races": races, "busts": busts, "escapes": escapes, "best": best }
+	return { "rep": rep, "wins": wins, "races": races, "busts": busts, "escapes": escapes, "best": best, "times": times }
 
 func from_dict(d: Dictionary) -> void:
 	rep = maxi(0, int(d.get("rep", 0)))
@@ -152,6 +168,8 @@ func from_dict(d: Dictionary) -> void:
 	escapes = int(d.get("escapes", 0))
 	var b: Variant = d.get("best", {})
 	best = b if b is Dictionary else {}
+	var tm: Variant = d.get("times", {})
+	times = tm if tm is Dictionary else {}
 
 func save() -> void:
 	var f := FileAccess.open(path, FileAccess.WRITE)

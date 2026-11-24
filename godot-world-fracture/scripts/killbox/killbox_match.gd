@@ -56,6 +56,8 @@ const OVERTIME_S := 60.0
 var round_clock := 0.0
 var us_rounds := 0
 var them_rounds := 0
+## how the round just played ended for us: 1 won, -1 lost, 0 replayed (the arena's round banner reads it)
+var last_round := 0
 var attacking := true
 var plant := 0.0
 var zone_hold := 0.0
@@ -261,6 +263,7 @@ func held(team: int) -> int:
 	return n
 
 func _end_round(won: bool, why: String) -> void:
+	last_round = 1 if won else -1
 	if won:
 		us_rounds += 1
 	else:
@@ -280,6 +283,7 @@ func _end_round(won: bool, why: String) -> void:
 
 ## the round again, nobody's point (an overtime draw)
 func _replay_round(why: String) -> void:
+	last_round = 0
 	reason = why
 	round_over = ROUND_PAUSE
 	round += 1
