@@ -1511,6 +1511,7 @@ func _write_perf(file: String, opts: Array, times: Array[float]) -> void:
 	}
 	out["heaviest"] = _heaviest_geometry()
 	out["most_drawn"] = _most_drawn()
+	out["on_screen"] = _on_screen()
 	var f := FileAccess.open(file, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(out))
@@ -1540,6 +1541,58 @@ func _heaviest_geometry() -> Array:
 			"range": gi.visibility_range_end})
 	rows.sort_custom(func(a, b): return a.tris > b.tris)
 	return rows.slice(0, 12)
+
+## what the camera actually draws (phone pass, Nov 24): every geometry under a rendering viewport whose box is in the
+## current camera's frustum and inside its visibility range, triangles and surfaces summed by model — `heaviest` counts
+## whole trees, LOD copies and hidden views included, so it pointed at the wrong things
+func _on_screen() -> Array:
+	var groups := {}
+	var stack: Array[Node] = [get_tree().root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is SubViewport and (n as SubViewport).render_target_update_mode == SubViewport.UPDATE_DISABLED:
+			continue
+		if n is CanvasItem and not (n as CanvasItem).visible:
+			continue
+		for c in n.get_children():
+			stack.append(c)
+		if not (n is GeometryInstance3D) or not (n as Node3D).is_visible_in_tree():
+			continue
+		var gi := n as GeometryInstance3D
+		var cam := gi.get_viewport().get_camera_3d() if gi.get_viewport() else null
+		if cam == null:
+			continue
+		var mesh: Mesh = null
+		var count := 1
+		if gi is MeshInstance3D:
+			mesh = (gi as MeshInstance3D).mesh
+		elif gi is MultiMeshInstance3D and (gi as MultiMeshInstance3D).multimesh:
+			var mm := (gi as MultiMeshInstance3D).multimesh
+			mesh = mm.mesh
+			count = mm.visible_instance_count if mm.visible_instance_count >= 0 else mm.instance_count
+		if mesh == null:
+			continue
+		var box := gi.global_transform * gi.get_aabb()
+		var d := cam.global_position.distance_to(box.get_center())
+		if gi.visibility_range_end > 0.0 and d > gi.visibility_range_end + gi.visibility_range_end_margin:
+			continue
+		if d < gi.visibility_range_begin - gi.visibility_range_begin_margin:
+			continue
+		var inside := true
+		for pl in cam.get_frustum():
+			if pl.distance_to(box.get_support(-pl.normal)) > 0.0:
+				inside = false
+				break
+		if not inside:
+			continue
+		var key := "%s %s" % [mesh.resource_path.get_file() if mesh.resource_path != "" else (mesh.resource_name if mesh.resource_name != "" else String(n.get_parent().name).left(20)), "(mm)" if gi is MultiMeshInstance3D else ""]
+		var row: Dictionary = groups.get(key, { "what": key, "tris": 0, "surfaces": 0, "shadow": gi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF })
+		row.tris += _mesh_tris(mesh) * count
+		row.surfaces += mesh.get_surface_count()
+		groups[key] = row
+	var rows: Array = groups.values()
+	rows.sort_custom(func(a, b): return a.tris > b.tris)
+	return rows.slice(0, 20)
 
 ## separate (non-instanced) mesh nodes grouped by their parent's name and mesh class: what costs draw calls one by one
 func _most_drawn() -> Array:
