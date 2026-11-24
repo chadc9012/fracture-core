@@ -6916,7 +6916,7 @@
    "speaker": "MECHANIC ROOK",
    "body": "male",
    "age": 46,
-   "text": "Vyrak's been circling the garage. It knows something about your companion. It won't say. Dragons."
+   "text": "Your companion talked to my truck's radio last night. Fixed a fault I've chased for a year. Didn't ask. Didn't say thanks."
   },
   {
    "id": "P_rook_news_kept",
@@ -7020,7 +7020,7 @@
    "speaker": "ZAHRA HADDAD",
    "body": "female",
    "age": 35,
-   "text": "Vyrak says your companion is old. Dragons don't say old lightly."
+   "text": "Old traders say your companion is older than the Fracture. Out here, old things that still work are worth more than water."
   },
   {
    "id": "P_zahra_news_kept",

@@ -32502,8 +32502,8 @@
 },
 "P_rook_news_unbound": {
 "speaker": "MECHANIC ROOK",
-"text": "Vyrak's been circling the garage. It knows something about your companion. It won't say. Dragons.",
-"dur": 5.29,
+"text": "Your companion talked to my truck's radio last night. Fixed a fault I've chased for a year. Didn't ask. Didn't say thanks.",
+"dur": 6.28,
 "variants": [
 ""
 ]
@@ -32606,8 +32606,8 @@
 },
 "P_zahra_news_unbound": {
 "speaker": "ZAHRA HADDAD",
-"text": "Vyrak says your companion is old. Dragons don't say old lightly.",
-"dur": 3.83,
+"text": "Old traders say your companion is older than the Fracture. Out here, old things that still work are worth more than water.",
+"dur": 6.04,
 "variants": [
 ""
 ]
@@ -37988,7 +37988,7 @@
 "MECHANIC ROOK|Raiders hit a convoy past the mesas. The storm got them first. The storm's on nobody's side.": "P_rook_news_start",
 "MECHANIC ROOK|A Nexus captain wants trucks that'll cross the dunes. I told her the trucks are fine. The drivers aren't.": "P_rook_news_allied",
 "MECHANIC ROOK|News from the cities: masks, crowds, politics. Out here the sand doesn't care what you wear.": "P_rook_news_masks",
-"MECHANIC ROOK|Vyrak's been circling the garage. It knows something about your companion. It won't say. Dragons.": "P_rook_news_unbound",
+"MECHANIC ROOK|Your companion talked to my truck's radio last night. Fixed a fault I've chased for a year. Didn't ask. Didn't say thanks.": "P_rook_news_unbound",
 "MECHANIC ROOK|Storm's calmer. Convoys are through. I've got time to fix my own truck. First time in a year.": "P_rook_news_kept",
 "ZAHRA HADDAD|The caravan was three days out when the sky cracked. We saw it from the dunes. We kept walking. What else?": "P_zahra_fracture_1",
 "ZAHRA HADDAD|The Fracture made water the only currency. I sell water. Draw your own conclusions.": "P_zahra_fracture_2",
@@ -38001,7 +38001,7 @@
 "ZAHRA HADDAD|The caravan's late. Sandstorm or raiders. Either way, prices go up.": "P_zahra_news_start",
 "ZAHRA HADDAD|A Nexus captain's buying water by the truck. For a district. I asked which. She said 'mine'.": "P_zahra_news_allied",
 "ZAHRA HADDAD|Cities have masks. Deserts have sand. The sand's more honest.": "P_zahra_news_masks",
-"ZAHRA HADDAD|Vyrak says your companion is old. Dragons don't say old lightly.": "P_zahra_news_unbound",
+"ZAHRA HADDAD|Old traders say your companion is older than the Fracture. Out here, old things that still work are worth more than water.": "P_zahra_news_unbound",
 "ZAHRA HADDAD|Caravans on time. Water's cheaper. I'm making less. I don't mind. Write that down; it won't last.": "P_zahra_news_kept",
 "IDRIS BELLO|Every panel on the array lit up purple. Fed the grid at ten times rating. For a minute. Then they sulked for a week.": "P_idris_fracture_1",
 "IDRIS BELLO|The Fracture made the sun louder. The arrays hear it. I clean them at dawn so they can listen.": "P_idris_fracture_2",
