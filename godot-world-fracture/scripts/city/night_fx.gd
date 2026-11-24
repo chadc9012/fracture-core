@@ -288,6 +288,8 @@ void sky() {
 	}
 }
 """
+	# the mountains round Neon City (sky_mountains.gd), off until a street turns them on
+	sh.code = load("res://scripts/city/sky_mountains.gd").inject(sh.code, "\t\tCOLOR = c;", "horizon", "md")
 	var m := ShaderMaterial.new()
 	m.shader = sh
 	return m

@@ -189,7 +189,9 @@ const Facility := preload("res://scripts/garage/facility.gd")
 const CarDetail := preload("res://scripts/driving/car_detail.gd")
 const Burnt := preload("res://scripts/fx/burnt.gd")
 ## the parked cars you can take (phase 5): each fleet file's vehicle id for the garage build it drives with
-const CAR_IDS := { "street-racer-lod.glb": "street-racer", "muscle-car-lod.glb": "muscle-car", "security-suv.glb": "security-suv", "tuner.glb": "tuner", "offroad-truck.glb": "offroad-truck", "goliath-tank.glb": "goliath-tank", "hover-car.glb": "hover-car" }
+## the Meshy overpass's height (its deck spans the avenue at this size: the model is ~2.4 times as long as it stands)
+const OVERPASS_H := 16.0
+const CAR_IDS := { "street-racer-lod.glb": "street-racer", "muscle-car-lod.glb": "muscle-car", "security-suv.glb": "security-suv", "tuner.glb": "tuner", "offroad-truck.glb": "offroad-truck", "goliath-tank.glb": "goliath-tank", "hover-car.glb": "hover-car", "neon-tuner.glb": "night-racer" }
 ## the hulls that are not garage cars drive on vehicle_handling.gd's numbers (web vehicle-handling.ts): max speed from the
 ## base 62 m/s × profile top × fleet speed, braking / acceleration from the profile; the tank pivots on the spot
 const Handling := preload("res://scripts/driving/vehicle_handling.gd")
@@ -1028,6 +1030,16 @@ func _environment() -> void:
 		NightFX.grade(env, sun, sky, style == "neon")
 		# the wet walks and road mirror the lit city, not the dark sky (baked once, like the day probe)
 		_day_probe()
+	if style == "neon":
+		# the forested ranges round Neon City (owner, Nov 24: "view of the mountains"; sky_mountains.gd), in the sky so
+		# they stand behind the skyline from anywhere on the avenue; by day the shader sky carries them
+		if not (sky.sky_material is ShaderMaterial):
+			sky.sky_material = day_sky()
+			sky.process_mode = Sky.PROCESS_MODE_INCREMENTAL
+			sky.radiance_size = Sky.RADIANCE_SIZE_128
+		(sky.sky_material as ShaderMaterial).set_shader_parameter("mountains", 1.0)
+		(sky.sky_material as ShaderMaterial).set_shader_parameter("mtn_night", 1.0 if night else 0.0)
+		env.fog_sky_affect = 0.25   # the haze sits on the ranges' feet, not over the whole sky
 
 ## the day sky over Nexus City: a deep zenith blue to a pale horizon, white cumulus drifting slowly (two fbm octave
 ## sets, lit on the sun side), the sun disc. Cheap: a few noise taps per sky pixel, and the radiance map is small.
@@ -1062,6 +1074,7 @@ void sky() {
 	}
 }
 """
+	sh.code = load("res://scripts/city/sky_mountains.gd").inject(sh.code, "\t\tCOLOR = mix(c, cc * (1.0 + 0.25 * sun), cl * 0.9);", "horizon", "LIGHT0_DIRECTION")
 	var m := ShaderMaterial.new()
 	m.shader = sh
 	return m
@@ -1440,7 +1453,7 @@ func _buildings() -> void:
 	if style == "coast":
 		kinds = [["../buildings/nexus-terrace-a.glb", 15.0], ["../buildings/nexus-terrace-b.glb", 14.0], ["../buildings/neon-v-F.glb", 18.0], ["../buildings/nexus-terrace-b.glb", 12.0]]
 	elif style == "neon":
-		kinds = [["../buildings/neon-v-D.glb", 22.0], ["../buildings/neon-v-A.glb", 24.0], ["../buildings/neon-v-E.glb", 26.0], ["../buildings/neon-block-a.glb", 24.0], ["../buildings/neon-v-C.glb", 30.0], ["../buildings/neon-tower-a.glb", 34.0], ["../buildings/neon-block-b.glb", 22.0], ["../buildings/neon-tower-b.glb", 36.0]]
+		kinds = [["../buildings/neon-v-D.glb", 22.0], ["../buildings/neon-v-A.glb", 24.0], ["../buildings/neon-v-E.glb", 26.0], ["../buildings/neon-block-a.glb", 24.0], ["../buildings/neon-v-C.glb", 30.0], ["../buildings/neon-tower-a.glb", 34.0], ["../buildings/neon-block-b.glb", 22.0], ["../buildings/neon-tower-b.glb", 36.0], ["cyber-wheels-shop.glb", 7.5]]
 	var k := 0
 	for side: float in [-1.0, 1.0]:
 		var z := -LENGTH * 0.5 + 6.0
@@ -1644,6 +1657,11 @@ void fragment() {
 		# the landmark is the Tech Faction Central Tower, 420 m, in the Spire end's west court (nexus_districts.gd)
 		world.add_child(Nexus.central_tower(self, world))
 		return
+	if style == "neon" and ResourceLoader.exists(MODELS + "../buildings/neon-spire.glb"):
+		# Neon City's landmark: the spire off the owner's board, magenta rings stacked under a lit mast (Meshy, Nov 24),
+		# at the end of the avenue where the board has it, over the hills
+		prop("../buildings/neon-spire.glb", 240.0, Vector3(-62.0, 0.0, -LENGTH * 0.5 - 70.0), 20.0)
+		return
 	# a landmark at the end of the avenue
 	var lm := ShaderMaterial.new()
 	lm.shader = sh
@@ -1716,6 +1734,10 @@ func _vista() -> void:
 ## the crossing at -20 and the courts' frontage); it rides over the monorail (13 m) and runs into the street wall either
 ## side; the lots' blocks (±2) and the coast have none. Lights in the deck's lanes stream as trails (`_trail_material`).
 func _skybridge() -> void:
+	if style == "neon" and absi(_tile_k) != 2 and ResourceLoader.exists(MODELS + "neon-overpass.glb"):
+		# the owner's Neon City board: a concrete overpass with a purple neon strip, on two pillars (Meshy, Nov 24),
+		# across the avenue between the sports door (z 20) and the apartment (z 52), its pillars out on the sidewalks
+		prop("neon-overpass.glb", OVERPASS_H, Vector3(0.0, 0.0, 36.0), 0.0)
 	if style == "coast" or absi(_tile_k) == 2:
 		return
 	var zc := 95.0
@@ -1795,12 +1817,19 @@ func _props() -> void:
 				if style == "coast" and ResourceLoader.exists(MODELS + "../foliage/palm-a.glb"):
 					# the web build's three authored palms on the resort strip
 					prop("../foliage/palm-%s.glb" % ["a", "b", "c"][(i + int(side + 1.0)) % 3], _rng.randf_range(8.5, 11.5), Vector3(edge, 0.18, z), _rng.randf() * 360.0)
+				elif style == "neon" and ResourceLoader.exists(MODELS + "../foliage/neon-palm.glb"):
+					# the palm off the owner's Neon City board (Meshy, Nov 24)
+					prop("../foliage/neon-palm.glb", _rng.randf_range(9.0, 12.0), Vector3(edge, 0.18, z), _rng.randf() * 360.0)
 				elif ResourceLoader.exists(MODELS + "palm.glb"):
 					prop("palm.glb", _rng.randf_range(8.5, 11.0), Vector3(edge, 0.18, z), _rng.randf() * 360.0)
 				else:
 					_palm_fallback(Vector3(edge, 0.18, z))
 			elif ResourceLoader.exists(MODELS + "street-lamp.glb"):
-				prop("street-lamp.glb", 6.5, Vector3(edge, 0.18, z), 90.0 * side + 180.0)
+				if style == "neon" and ResourceLoader.exists(MODELS + "neon-lamp.glb"):
+					# the board's lamp: a dark curved post, an LED head, a violet ring at its foot (Meshy, Nov 24)
+					prop("neon-lamp.glb", 6.8, Vector3(edge, 0.18, z), 90.0 * side + 180.0)
+				else:
+					prop("street-lamp.glb", 6.5, Vector3(edge, 0.18, z), 90.0 * side + 180.0)
 				if night:
 					var lamp := OmniLight3D.new()
 					lamp.light_color = Color(1.0, 0.72, 0.45)   # sodium orange (Nov 15 boards)
@@ -1846,7 +1875,11 @@ func _cars() -> void:
 	var i := 0
 	if _tile_root == null:
 		# the hub block: the Goliath tank and the hover-car wait across from the garage (asset catalog: Vehicles)
-		for spec in [["goliath-tank.glb", Vector3(-(half - 2.6), 0.0, GARAGE_Z + 30.0), 8.0], ["hover-car.glb", Vector3(-(half - 1.6), 0.0, GARAGE_Z + 44.0), 5.0]]:
+		var hub_cars := [["goliath-tank.glb", Vector3(-(half - 2.6), 0.0, GARAGE_Z + 30.0), 8.0], ["hover-car.glb", Vector3(-(half - 1.6), 0.0, GARAGE_Z + 44.0), 5.0]]
+		if style == "neon":
+			# the Night Racer off the owner's Neon City board, at the kerb up the avenue from where you start
+			hub_cars.append(["neon-tuner.glb", Vector3(half - 2.3, 0.0, GARAGE_Z - 30.0), 4.7])
+		for spec in hub_cars:
 			var f2 := String(spec[0])
 			if not ResourceLoader.exists(FLEET + f2):
 				continue

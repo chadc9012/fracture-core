@@ -36,6 +36,8 @@ const SHOWROOM := [
 	{ "id": "venom-rs", "name": "Venom RS", "cat": "super", "cls": "super", "price": 18000, "model": "res://models/fleet/showroom/venom-rs.glb", "stats": { "speed": 90, "accel": 88, "handling": 80, "armor": 14 } },
 	{ "id": "hyperion-x", "name": "Hyperion X", "cat": "super", "cls": "super", "price": 17000, "model": "res://models/fleet/showroom/hyperion-x.glb", "stats": { "speed": 89, "accel": 87, "handling": 81, "armor": 14 } },
 	{ "id": "crimson-z", "name": "Crimson Z", "cat": "sports", "cls": "street", "price": 8500, "model": "res://models/fleet/armored-muscle.glb", "stats": { "speed": 80, "accel": 78, "handling": 80, "armor": 18 } },
+	# the purple tuner off the owner's Neon City board (Meshy image-to-3D, Nov 24; docs/reference/meshy-neon/)
+	{ "id": "night-racer", "name": "Night Racer", "cat": "tuner", "cls": "street", "price": 5200, "model": "res://models/fleet/neon-tuner.glb", "stats": { "speed": 66, "accel": 68, "handling": 70, "armor": 22 } },
 	{ "id": "nightshade", "name": "Nightshade", "cat": "tuner", "cls": "street", "price": 4600, "model": "res://models/fleet/showroom/nightshade.glb", "stats": { "speed": 62, "accel": 64, "handling": 64, "armor": 26 } },
 	{ "id": "civic-rover", "name": "Civic Rover", "cat": "luxury", "cls": "street", "price": 3200, "model": "res://models/fleet/luxury-sedan.glb", "stats": { "speed": 60, "accel": 56, "handling": 60, "armor": 22 } },
 	{ "id": "atlas-overland", "name": "Atlas Overland", "cat": "suv", "cls": "offroad", "price": 5600, "model": "res://models/fleet/showroom/atlas-overland.glb", "stats": { "speed": 56, "accel": 52, "handling": 50, "armor": 44 } },
