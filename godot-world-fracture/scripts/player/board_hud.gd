@@ -47,6 +47,11 @@ func _ready() -> void:
 	_read_profile()
 
 var _view_quest := false
+## the day's goals (when no view sets a quest) stand open DAILY_OPEN seconds when a view opens and whenever a goal moves,
+## then fold to a chip — open, they sat over the middle of every race, fight and arena (look review, Nov 24)
+const DAILY_OPEN := 6.0
+var _daily_open := DAILY_OPEN
+var _daily_sig := ""
 func set_quest(title: String, lines: Array) -> void:
 	quest_title = title
 	quest_lines = lines
@@ -59,6 +64,7 @@ var ability_keys := ["1", "2", "3"]
 var tiles_on := true
 
 func _process(dt: float) -> void:
+	_daily_open -= dt
 	_profile_t -= dt
 	_top_t -= dt
 	if _top_t <= 0.0:
@@ -100,6 +106,11 @@ func _read_profile() -> void:
 			lines.append({ "text": "%s  %d/%d" % [g.label, g.progress, g.target], "done": g.done })
 		quest_title = "Daily Goals"
 		quest_lines = lines
+		var sig := str(lines)
+		if sig != _daily_sig:
+			if _daily_sig != "":
+				_daily_open = DAILY_OPEN   # a goal moved: show it, then fold again
+			_daily_sig = sig
 
 func _draw() -> void:
 	var w := size.x
@@ -187,6 +198,20 @@ func _quest(cx: float) -> void:
 		return
 	var x := cx - 160.0
 	var y := 66.0 + _top
+	if not _view_quest and _daily_open <= 0.0:
+		# folded: one chip, the diamond and how many of the day's goals are done
+		var done := 0
+		for q in quest_lines:
+			if (q as Dictionary).get("done", false):
+				done += 1
+		var cw := 176.0
+		var cxx := cx - cw * 0.5
+		draw_rect(Rect2(cxx, y, cw, 26), Color(0.02, 0.02, 0.05, 0.5))
+		draw_rect(Rect2(cxx, y, 2, 26), GOLD)
+		var cd := PackedVector2Array([Vector2(cxx + 14, y + 6), Vector2(cxx + 21, y + 13), Vector2(cxx + 14, y + 20), Vector2(cxx + 7, y + 13)])
+		draw_colored_polygon(cd, GOLD)
+		_text("%s  %d/%d" % [quest_title, done, quest_lines.size()], Vector2(cxx + 28, y + 18), 13, GOLD)
+		return
 	var h := 30.0 + 22.0 * quest_lines.size()
 	draw_rect(Rect2(x, y, 320, h), Color(0.02, 0.02, 0.05, 0.55))
 	draw_rect(Rect2(x, y, 2, h), GOLD)
