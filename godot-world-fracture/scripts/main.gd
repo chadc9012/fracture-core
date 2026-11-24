@@ -284,6 +284,12 @@ func _street_door(id: String) -> void:
 			view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		"fort":
 			view = preload("res://scripts/military/fort_view.gd").new()
+		"overlook":
+			# the Highlands Overlook (overlook.gd): Nexus on foot, from the crag's cap
+			view = ArrivalView.new()
+			view.dest = "NXC"
+			view.region_id = "nexus"
+			view.on_cap = true
 		"airport":
 			# the city's own airport: Neon City International from Neon City's street, Nexus City International otherwise
 			view = _airport_view("NEC" if street.style == "neon" else "NXC", false)

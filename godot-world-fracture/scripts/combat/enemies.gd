@@ -27,6 +27,7 @@ const Sound := preload("res://scripts/audio/sound.gd")
 
 const Player := preload("res://scripts/player/operator_player.gd")
 const CharacterStore := preload("res://scripts/character/character_store.gd")
+const Catalog := preload("res://scripts/character/catalog.gd")
 const Gunplay := preload("res://scripts/combat/gunplay.gd")
 const Weapons := preload("res://scripts/combat/weapons.gd")
 const Clips := preload("res://scripts/character/combat_clips.gd")
@@ -180,7 +181,15 @@ func setup(p: Node3D, g: Node3D) -> void:
 
 ## spawns one enemy of `type` at `at` with a patrol beat (world points it walks between)
 ## a team colour band on a bot's body (Killbox): a tint over the plating
-func _tint(e: Enemy, c: Color) -> void:
+## who wears which authored soldier: [model, frame, body] (catalog.gd model_path); a type not listed keeps its look
+const SUITS := {
+	"scout": ["hunter", "nyx", "female"],
+	"marksman": ["hunter", "nyx", "female"],
+	"elite": ["titan", "goliath", "male"],
+	"executor": ["warlock", "cipher", "female"],
+}
+
+func _tint(e: Enemy, c: Color, strength := 0.55) -> void:
 	e.tint = c
 	var rig: Node3D = e.mover.rig
 	if not rig or not rig.body_root:
@@ -193,7 +202,7 @@ func _tint(e: Enemy, c: Color) -> void:
 			var base: Material = mi.mesh.surface_get_material(i)
 			if base is StandardMaterial3D:
 				var m := (base as StandardMaterial3D).duplicate() as StandardMaterial3D
-				m.albedo_color = Color(1, 1, 1).lerp(c * 1.5, 0.55)
+				m.albedo_color = Color(1, 1, 1).lerp(c * 1.5, strength)
 				mi.set_surface_override_material(i, m)
 
 func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
@@ -214,6 +223,11 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 	e.mover.cam_yaw = 0.0
 	if e.def.frame != "":
 		var look := CharacterStore.clean({ "frame": e.def.frame, "body": "robot", "skin": e.def.plating, "eyes": e.def.optics })
+		if SUITS.has(type):
+			# the armoured troopers wear the authored Meshy soldiers, as the enemies board draws the Nexus Forces (owner,
+			# Nov 24: "Characters and guns" — the chrome robot bodies with egg heads read as toys)
+			var suit: Array = SUITS[type]
+			look = CharacterStore.clean({ "frame": suit[1], "body": suit[2], "model": suit[0] })
 		if e.def.has("outfit"):
 			look = CharacterStore.clean({ "frame": e.def.frame, "body": "male", "outfit": String(e.def.outfit),
 				"skin": ["natural", "tan", "brown", "deep", "fair"][_rng.randi() % 5] })
@@ -224,6 +238,8 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 		if team >= 0:
 			e.team = team
 			_tint(e, team_color(team))
+		elif SUITS.has(type):
+			_tint(e, Color(String(Catalog.find("plating", e.def.plating).get("hex", "#8b929c"))), 0.35)
 	else:
 		_drone_body(e)
 	e.target = Gunplay.Target.new(_box(e), float(e.def.hull) * level_hull(level), null)

@@ -364,7 +364,9 @@ func _point_gun(cam: Camera3D) -> void:
 		return
 	var at := _hand.global_position
 	var dir := aim_point(cam) - at
-	if dir.length() < 0.5:
+	if dir.length() < 2.5:
+		# a wall or a body right in front: aiming at that point from the hand swung the rifle across the chest (Killbox
+		# run, Nov 24); this close the barrel just follows the camera
 		dir = -cam.global_transform.basis.z
 	dir = dir.normalized()
 	if absf(dir.y) > 0.98:
