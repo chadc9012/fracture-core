@@ -45,6 +45,10 @@ var _marks: Array = []
 
 func setup(boss_id: String, at: Vector3, op: Node3D, g: Node3D, en: Node3D, ground: Callable) -> void:
 	rules = Boss.new(boss_id)
+	# a boss meets the operator at its level too (enemies.gd LEVEL_HULL; its hits scale through _hit_operator)
+	if en and int(en.get("level")) > 1:
+		rules.hull_max *= Enemies.level_hull(int(en.level))
+		rules.hull = rules.hull_max
 	operator = op
 	gunplay = g
 	enemies = en

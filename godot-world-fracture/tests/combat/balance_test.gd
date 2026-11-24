@@ -185,11 +185,14 @@ func _init() -> void:
 	by.sort()
 	var squad_t: float = op / (float(by[-1]) + float(by[-2]))
 	ok(squad_t >= 4.0 and squad_t <= 12.0, "a squad on its fire tokens downs a standing operator in 4–12 s (%.1f s): move or die" % squad_t)
-	# the level's hull (Progression: +4 a level, uncapped) must not make a squad harmless by mid-game: level 20 still
-	# falls to a squad in under 15 s standing still
-	var lv20 := op + 4.0 * 19.0
-	var squad20: float = lv20 / (float(by[-1]) + float(by[-2]))
-	ok(squad20 <= 15.0, "at level 20 a squad still downs a standing operator inside 15 s (%.1f s)" % squad20)
+	# the level's hull (Progression: +4 a level, uncapped) must not make a squad harmless by mid-game: hostiles meet the
+	# operator at its level (enemies.gd level_damage / level_hull, Nov 24), so at level 20 and at the cap a standing
+	# operator still falls to a squad in the same 4–12 s window give or take a little, a touch slower than at level 1
+	for lv in [20, Enemies.LEVEL_CAP]:
+		var hull_lv := op + 4.0 * float(lv - 1)
+		var squad_lv: float = hull_lv / ((float(by[-1]) + float(by[-2])) * Enemies.level_damage(lv))
+		ok(squad_lv >= squad_t and squad_lv <= 14.0, "at level %d a squad downs a standing operator in %.1f s (level 1: %.1f s)" % [lv, squad_lv, squad_t])
+	ok(Enemies.level_hull(20) <= 1.25 and Enemies.level_hull(Enemies.LEVEL_CAP) < Gear.DAMAGE_CAP, "their hull grows slower than the best gear's damage (×%.2f at 20, ×%.2f at the cap, gear ×%.1f)" % [Enemies.level_hull(20), Enemies.level_hull(Enemies.LEVEL_CAP), Gear.DAMAGE_CAP])
 	# 12. gear power: the best gear (×%.1f) speeds kills up but never trivialises them — an automatic still needs a
 	#     few bullets on trash and a real burst on a major
 	var cap: float = Gear.DAMAGE_CAP

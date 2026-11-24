@@ -116,6 +116,7 @@ func _start() -> void:
 	var gear := Gear.load_save()
 	gunplay.set_loadout(Gear.loadout(gear))
 	enemies.hull_max = Enemies.HULL_MAX + Gear.hull_bonus(gear) + Progression.hull_bonus(Gear.profile_load())   # armour and level
+	enemies.level = Progression.level_for(int(Gear.profile_load().get("xp", 0)))   # hostiles meet the operator at its level
 	OutfitLook.apply(operator.rig, Gear.outfit(str(gear.get("outfit", ""))))
 	# the boss, out across the clearing
 	boss = BossView.new()

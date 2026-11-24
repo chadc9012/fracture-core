@@ -118,6 +118,19 @@ func shield_frac() -> float:
 ## the operator's hull, damage this frame for the HUD flash, and the down state
 var hull := 100.0
 const HULL_MAX := 100.0
+## Enemy level (owner pick, Nov 24: "Enemy level scaling"): PvE hostiles meet the operator at its level, Destiny's way,
+## so a level's +4 hull (Progression) does not turn the city harmless. Per level past 1: their hits land LEVEL_DAMAGE
+## harder (three-quarters of what the level's hull buys — levelling still pays a little) and they carry LEVEL_HULL more
+## hull and shield (gear damage, up to ×1.7, still speeds kills up). Capped at LEVEL_CAP. The PvE views set `level`
+## (street_slice / descent / boss_arena); the Killbox and Royale leave it at 1 — PvP is level-flat.
+const LEVEL_CAP := 50
+const LEVEL_DAMAGE := 0.021
+const LEVEL_HULL := 0.01
+var level := 1
+static func level_damage(l: int) -> float:
+	return 1.0 + LEVEL_DAMAGE * float(clampi(l, 1, LEVEL_CAP) - 1)
+static func level_hull(l: int) -> float:
+	return 1.0 + LEVEL_HULL * float(clampi(l, 1, LEVEL_CAP) - 1)
 ## the hull the operator can have, armour included (street_slice _fit_gear)
 var hull_max := HULL_MAX
 var hurt := 0.0
@@ -213,8 +226,8 @@ func spawn(type: String, at: Vector3, beat: Array = [], team := -1) -> Enemy:
 			_tint(e, team_color(team))
 	else:
 		_drone_body(e)
-	e.target = Gunplay.Target.new(_box(e), float(e.def.hull), null)
-	e.target.shield_max = float(e.def.get("shield", 0.0))
+	e.target = Gunplay.Target.new(_box(e), float(e.def.hull) * level_hull(level), null)
+	e.target.shield_max = float(e.def.get("shield", 0.0)) * level_hull(level)
 	e.target.shield = e.target.shield_max
 	# what it bleeds (gunplay.spark): machines coolant, people red
 	e.target.set_meta("blood", Color(0.2, 0.9, 1.0) if type in ["drone", "sentinel", "turret"] else Color(0.85, 0.1, 0.08))
@@ -756,6 +769,7 @@ func _hit_operator(damage: float, src := Vector3.INF, melee := false, attacker: 
 		damage = close.incoming(damage, src, melee, attacker)
 		if damage <= 0.0:
 			return
+	damage *= level_damage(level)   # the hostile's level (a boss's too: it hits through here)
 	_operator_flinch(damage, src, melee)
 	since_hit = 0.0
 	operator_hit.emit(damage)

@@ -55,5 +55,17 @@ func _init() -> void:
 		if e.target.alive():
 			left += 1
 	ok(left == 0, "its brood falls with it (%d left)" % left)
+	# enemy level (enemies.gd, Nov 24): a level-20 hostile carries ×level_hull and hits ×level_damage; a boss too
+	en.level = 20
+	var sc: RefCounted = en.spawn("scout", Vector3(30, 0, 30))
+	ok(is_equal_approx(sc.target.max_hp, float(Enemies.TYPES.scout.hull) * Enemies.level_hull(20)), "a level-20 scout carries ×%.2f hull" % Enemies.level_hull(20))
+	en.shield = en.shield_max
+	en.spawn_guard = 0.0
+	en._hit_operator(10.0)
+	ok(is_equal_approx(en.shield_max - en.shield, 10.0 * Enemies.level_damage(20)), "and its hits land ×%.2f" % Enemies.level_damage(20))
+	var b2 := BossView.new()
+	root.add_child(b2)
+	b2.setup("lockdown-warden", Vector3(0, 0, 40), p, g, en, func(_x: float, _z: float) -> float: return 0.0)
+	ok(is_equal_approx(b2.rules.hull_max, b.rules.hull_max * Enemies.level_hull(20)), "a boss meets the operator's level too (×%.2f hull)" % (b2.rules.hull_max / b.rules.hull_max))
 	print("boss brood: %d failed" % failed)
 	quit(1 if failed > 0 else 0)
